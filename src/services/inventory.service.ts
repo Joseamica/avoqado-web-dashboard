@@ -75,6 +75,16 @@ export const rawMaterialsApi = {
 
   getById: (venueId: string, rawMaterialId: string) => api.get(`/api/v1/dashboard/venues/${venueId}/inventory/raw-materials/${rawMaterialId}`),
 
+  // Check if a SKU already exists (for validation)
+  checkSkuExists: async (venueId: string, sku: string, excludeId?: string): Promise<boolean> => {
+    const response = await api.get<{ data: RawMaterial[] }>(`/api/v1/dashboard/venues/${venueId}/inventory/raw-materials`, {
+      params: { search: sku }
+    })
+    const materials = response.data?.data || []
+    // Check for exact SKU match (case-insensitive), excluding the current item if editing
+    return materials.some(m => m.sku.toLowerCase() === sku.toLowerCase() && m.id !== excludeId)
+  },
+
   create: (venueId: string, data: CreateRawMaterialDto) => api.post(`/api/v1/dashboard/venues/${venueId}/inventory/raw-materials`, data),
 
   update: (venueId: string, rawMaterialId: string, data: UpdateRawMaterialDto) =>
@@ -483,6 +493,7 @@ export interface ProductWizardStep1Data {
   price: number
   categoryId: string
   imageUrl?: string
+  type?: ProductType
 }
 
 export interface ProductWizardStep2Data {
@@ -806,4 +817,45 @@ export const modifierInventoryApi = {
     api.get<{ success: boolean; data: ModifierWithInventory[]; count: number }>(`/api/v1/dashboard/venues/${venueId}/modifiers/inventory/list`, {
       params: filters,
     }),
+}
+
+// ===========================================
+// PRODUCT TYPES API (Square-aligned)
+// ===========================================
+
+export type ProductType =
+  | 'REGULAR'
+  | 'FOOD_AND_BEV'
+  | 'APPOINTMENTS_SERVICE'
+  | 'EVENT'
+  | 'DIGITAL'
+  | 'DONATION'
+  | 'OTHER'
+
+export interface ProductTypeConfig {
+  code: ProductType
+  label: string
+  labelEs: string
+  description: string
+  descriptionEs: string
+  hasAlcoholToggle?: boolean
+  fields: string[]
+  canTrackInventory: boolean
+  icon?: string
+}
+
+export interface ProductTypesResponse {
+  types: ProductTypeConfig[]
+  venueType: string
+  recommended: ProductType[]
+}
+
+export const productTypesApi = {
+  // Get available product types for a venue (filtered by industry)
+  getForVenue: (venueId: string) =>
+    api.get<{ data: ProductTypesResponse }>(`/api/v1/dashboard/venues/${venueId}/product-types`),
+
+  // Get all product types (admin/reference)
+  getAll: () =>
+    api.get<{ data: { types: ProductTypeConfig[] } }>(`/api/v1/dashboard/product-types`),
 }

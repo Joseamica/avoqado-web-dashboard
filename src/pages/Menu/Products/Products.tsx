@@ -14,19 +14,24 @@ import {
   AlertTriangle,
   CheckCircle2,
   ChefHat,
+  Search,
+  X,
+  ChevronRight,
 } from 'lucide-react'
 import { useCallback, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useDebounce } from '@/hooks/useDebounce'
+import { FilterPill, CheckboxFilterContent, ColumnCustomizer } from '@/components/filters'
 import { useVenueDateTime } from '@/utils/datetime'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import DataTable from '@/components/data-table'
 import { AddToAIButton } from '@/components/AddToAIButton'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ItemsCell } from '@/components/multiple-cell-values'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,6 +61,8 @@ import { useMenuSocketEvents } from '@/hooks/use-menu-socket-events'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 
 import { ProductWizardDialog } from '@/pages/Inventory/components/ProductWizardDialog'
+import { ProductTypeSelectorModal } from '@/pages/Inventory/components/ProductTypeSelectorModal'
+import { type ProductType } from '@/services/inventory.service'
 import { Sparkles } from 'lucide-react'
 
 export default function Products() {
@@ -66,8 +73,6 @@ export default function Products() {
   const { checkFeatureAccess } = useAuth()
   const hasChatbot = checkFeatureAccess('CHATBOT')
 
-  const location = useLocation()
-  const navigate = useNavigate()
 
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -83,7 +88,24 @@ export default function Products() {
   const [adjustStockDialogOpen, setAdjustStockDialogOpen] = useState(false)
   const [productToAdjust, setProductToAdjust] = useState<Product | null>(null)
   const [showLowStockOnly, setShowLowStockOnly] = useState(false)
+  const [typeSelectorOpen, setTypeSelectorOpen] = useState(false)
+  const [selectedProductType, setSelectedProductType] = useState<ProductType | null>(null)
   const [wizardOpen, setWizardOpen] = useState(false)
+  const [editProductId, setEditProductId] = useState<string | null>(null)
+  const [editWizardOpen, setEditWizardOpen] = useState(false)
+
+  // ✅ STRIPE-STYLE FILTERS: State for FilterPills
+  const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([])
+  const [statusFilter, setStatusFilter] = useState<string[]>([])
+  const [inventoryFilter, setInventoryFilter] = useState<string[]>([])
+  const [stockFilter, setStockFilter] = useState<string[]>([])
+
+  // Column visibility state
+  const defaultVisibleColumns = ['imageUrl', 'name', 'price', 'stock', 'categories', 'available', 'actions']
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(defaultVisibleColumns)
 
   // ✅ WORLD-CLASS: Fetch products sorted alphabetically by name
   const {
@@ -141,11 +163,137 @@ export default function Products() {
     })
   }, [products])
 
-  // ✅ Filter products based on low stock toggle
+  // ✅ STRIPE-STYLE: Extract unique categories from products
+  const categoryOptions = useMemo(() => {
+    if (!products) return []
+    const categories = new Map<string, string>()
+    products.forEach(product => {
+      if (product.category) {
+        categories.set(product.category.id, product.category.name)
+      }
+    })
+    return Array.from(categories.entries()).map(([id, name]) => ({
+      value: id,
+      label: name,
+    }))
+  }, [products])
+
+  // ✅ Status filter options
+  const statusOptions = useMemo(
+    () => [
+      { value: 'active', label: t('products.filters.active', { defaultValue: 'Activo' }) },
+      { value: 'inactive', label: t('products.filters.inactive', { defaultValue: 'Inactivo' }) },
+    ],
+    [t],
+  )
+
+  // ✅ Inventory method filter options
+  const inventoryOptions = useMemo(
+    () => [
+      { value: 'QUANTITY', label: t('products.filters.inventoryQuantity', { defaultValue: 'Por cantidad' }) },
+      { value: 'RECIPE', label: t('products.filters.inventoryRecipe', { defaultValue: 'Por receta' }) },
+      { value: 'NONE', label: t('products.filters.inventoryNone', { defaultValue: 'Sin inventario' }) },
+    ],
+    [t],
+  )
+
+  // ✅ Stock status filter options
+  const stockOptions = useMemo(
+    () => [
+      { value: 'low', label: t('products.filters.lowStock', { defaultValue: 'Stock bajo' }) },
+      { value: 'normal', label: t('products.filters.normalStock', { defaultValue: 'Stock normal' }) },
+    ],
+    [t],
+  )
+
+  // ✅ Helper to get display label for active filters
+  const getFilterDisplayLabel = useCallback((values: string[], options: { value: string; label: string }[]) => {
+    if (values.length === 0) return null
+    if (values.length === 1) {
+      const option = options.find(o => o.value === values[0])
+      return option?.label || values[0]
+    }
+    return `${values.length} ${t('common:selected', { defaultValue: 'seleccionados' })}`
+  }, [t])
+
+  // ✅ Count active filters
+  const activeFiltersCount = useMemo(
+    () =>
+      [
+        categoryFilter.length > 0,
+        statusFilter.length > 0,
+        inventoryFilter.length > 0,
+        stockFilter.length > 0,
+        debouncedSearchTerm !== '',
+      ].filter(Boolean).length,
+    [categoryFilter, statusFilter, inventoryFilter, stockFilter, debouncedSearchTerm],
+  )
+
+  // ✅ Reset all filters
+  const resetFilters = useCallback(() => {
+    setCategoryFilter([])
+    setStatusFilter([])
+    setInventoryFilter([])
+    setStockFilter([])
+    setSearchTerm('')
+    setShowLowStockOnly(false)
+  }, [])
+
+  // ✅ STRIPE-STYLE: Filter products based on all active filters
   const filteredProducts = useMemo(() => {
-    if (!showLowStockOnly || !products) return products
-    return lowStockProducts
-  }, [showLowStockOnly, products, lowStockProducts])
+    if (!products) return products
+
+    let result = products
+
+    // Filter by low stock (legacy toggle, kept for alert banner)
+    if (showLowStockOnly) {
+      result = lowStockProducts
+    }
+
+    // Filter by search term
+    if (debouncedSearchTerm) {
+      const lowerSearch = debouncedSearchTerm.toLowerCase()
+      result = result.filter(product => {
+        const nameMatches = product.name.toLowerCase().includes(lowerSearch)
+        const categoryMatches = product.category?.name.toLowerCase().includes(lowerSearch) || false
+        const modifierMatches =
+          product.modifierGroups?.some(mg => mg.group?.name.toLowerCase().includes(lowerSearch)) || false
+        return nameMatches || categoryMatches || modifierMatches
+      })
+    }
+
+    // Filter by category
+    if (categoryFilter.length > 0) {
+      result = result.filter(product => product.category && categoryFilter.includes(product.category.id))
+    }
+
+    // Filter by status
+    if (statusFilter.length > 0) {
+      result = result.filter(product => {
+        const isActive = product.active
+        return (statusFilter.includes('active') && isActive) || (statusFilter.includes('inactive') && !isActive)
+      })
+    }
+
+    // Filter by inventory method
+    if (inventoryFilter.length > 0) {
+      result = result.filter(product => {
+        if (inventoryFilter.includes('NONE') && !product.trackInventory) return true
+        if (product.trackInventory && product.inventoryMethod && inventoryFilter.includes(product.inventoryMethod)) return true
+        return false
+      })
+    }
+
+    // Filter by stock status
+    if (stockFilter.length > 0) {
+      result = result.filter(product => {
+        const isLowStock = lowStockProducts.some(p => p.id === product.id)
+        return (stockFilter.includes('low') && isLowStock) || (stockFilter.includes('normal') && !isLowStock)
+      })
+    }
+
+    return result
+  }, [products, showLowStockOnly, lowStockProducts, debouncedSearchTerm, categoryFilter, statusFilter, inventoryFilter, stockFilter])
 
   const toggleActive = useMutation({
     mutationFn: async ({ productId, status }: { productId: string; status: boolean }) => {
@@ -269,7 +417,7 @@ export default function Products() {
     },
   })
 
-  const columns: ColumnDef<Product, unknown>[] = [
+  const columns: ColumnDef<Product, unknown>[] = useMemo(() => [
     // AI column - only show if venue has chatbot feature
     ...(hasChatbot
       ? [
@@ -449,8 +597,8 @@ export default function Products() {
     {
       id: 'available',
       accessorKey: 'active',
-      meta: { label: 'Available' },
-      header: 'Available',
+      meta: { label: t('products.columns.available') },
+      header: t('products.columns.available'),
       enableColumnFilter: false,
       cell: ({ row }) => {
         const product = row.original
@@ -498,7 +646,8 @@ export default function Products() {
                 <DropdownMenuItem
                   onClick={e => {
                     e.stopPropagation()
-                    navigate(product.id, { state: { from: location.pathname } })
+                    setEditProductId(product.id)
+                    setEditWizardOpen(true)
                   }}
                   className="cursor-pointer"
                 >
@@ -540,22 +689,25 @@ export default function Products() {
         )
       },
     },
-  ]
+  ], [hasChatbot, t, tCommon, imageErrors, formatDate, toggleActive, fullBasePath])
 
-  // Search callback for DataTable
-  const handleSearch = useCallback((searchTerm: string, products: any[]) => {
-    if (!searchTerm) return products
+  // ✅ STRIPE-STYLE: Column options for ColumnCustomizer
+  const columnOptions = useMemo(() => {
+    return columns.map(col => ({
+      id: col.id || (col as any).accessorKey || '',
+      label: (col.meta as any)?.label || col.id || '',
+      visible: visibleColumns.includes(col.id || (col as any).accessorKey || ''),
+      disabled: col.id === 'actions', // Actions column is always visible
+    }))
+  }, [columns, visibleColumns])
 
-    const lowerSearchTerm = searchTerm.toLowerCase()
-
-    return products.filter(product => {
-      const nameMatches = product.name.toLowerCase().includes(lowerSearchTerm)
-      const modifierGroupMatches =
-        product.modifierGroups?.some(modifierGroup => modifierGroup.group?.name.toLowerCase().includes(lowerSearchTerm)) || false
-      const categoryMatches = product.category?.name.toLowerCase().includes(lowerSearchTerm) || false
-      return nameMatches || modifierGroupMatches || categoryMatches
+  // ✅ Filter columns based on visibility
+  const filteredColumns = useMemo(() => {
+    return columns.filter(col => {
+      const colId = col.id || (col as any).accessorKey || ''
+      return visibleColumns.includes(colId) || colId === 'actions'
     })
-  }, [])
+  }, [columns, visibleColumns])
 
   return (
     <div className="p-4">
@@ -568,58 +720,188 @@ export default function Products() {
           })}
         />
         <PermissionGate permission="menu:create">
-          <Button onClick={() => setWizardOpen(true)}>
+          <Button onClick={() => setTypeSelectorOpen(true)}>
             <Sparkles className="mr-2 h-4 w-4" />
             <span>{t('products.new')}</span>
           </Button>
         </PermissionGate>
       </div>
 
-      {/* ✅ SQUARE POS PATTERN: Low stock alert banner */}
-      {lowStockProducts.length > 0 && !showLowStockOnly && (
-        <Alert className="mb-4 border-orange-200 bg-orange-50 dark:bg-orange-950/50">
-          <AlertTriangle className="h-4 w-4 text-orange-600" />
-          <AlertDescription className="flex items-center justify-between">
-            <span className="text-orange-800 dark:text-orange-200">{t('products.lowStock.alert', { count: lowStockProducts.length })}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowLowStockOnly(true)}
-              className="ml-4 border-orange-300 text-orange-700 hover:bg-orange-100 dark:border-orange-700 dark:text-orange-300"
-            >
-              {t('products.lowStock.viewDetails')}
-            </Button>
-          </AlertDescription>
-        </Alert>
+      {/* ✅ Low stock alert banner - Pricing page style */}
+      {lowStockProducts.length > 0 && activeFiltersCount === 0 && (
+        <button
+          type="button"
+          onClick={() => setStockFilter(['low'])}
+          className="mb-4 p-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50 transition-colors cursor-pointer w-full text-left group"
+          aria-label={t('products.lowStock.alert', { count: lowStockProducts.length })}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+              <div>
+                <p className="text-sm font-semibold text-red-800 dark:text-red-400">
+                  {lowStockProducts.length} {t('products.lowStock.productsLowStock', { defaultValue: 'productos con stock bajo' })}
+                </p>
+                <p className="text-xs text-red-700 dark:text-red-500">
+                  {t('products.lowStock.clickToFilter', { defaultValue: 'Haz clic para filtrar' })}
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-red-600 dark:text-red-400 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </button>
       )}
 
-      {/* ✅ Active filter indicator */}
-      {showLowStockOnly && (
-        <div className="mb-4 flex items-center gap-2">
-          <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-            {t('products.lowStock.filterLabel')}
-          </Badge>
-          <Button variant="ghost" size="sm" onClick={() => setShowLowStockOnly(false)}>
-            {t('products.lowStock.clearFilter')}
-          </Button>
+      {/* ✅ STRIPE-STYLE FILTERS: Filter bar */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {/* Expandable search bar */}
+        <div className="relative flex items-center">
+          {isSearchOpen ? (
+            <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder={t('common:search')}
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Escape') {
+                      if (!searchTerm) setIsSearchOpen(false)
+                    }
+                  }}
+                  className="h-8 w-[200px] pl-8 pr-8 text-sm rounded-full"
+                  autoFocus
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full"
+                onClick={() => {
+                  setSearchTerm('')
+                  setIsSearchOpen(false)
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant={searchTerm ? 'secondary' : 'ghost'}
+              size="icon"
+              className="h-8 w-8 rounded-full"
+              onClick={() => setIsSearchOpen(true)}
+            >
+              <Search className="h-4 w-4" />
+              {searchTerm && <span className="sr-only">{t('common:searchActive')}</span>}
+            </Button>
+          )}
+          {/* Active search indicator dot */}
+          {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
         </div>
-      )}
+
+        {/* Category Filter Pill */}
+        <FilterPill
+          label={t('products.columns.categories')}
+          activeValue={getFilterDisplayLabel(categoryFilter, categoryOptions)}
+          isActive={categoryFilter.length > 0}
+          onClear={() => setCategoryFilter([])}
+        >
+          <CheckboxFilterContent
+            title={t('products.filters.filterByCategory', { defaultValue: 'Filtrar por categoría' })}
+            options={categoryOptions}
+            selectedValues={categoryFilter}
+            onApply={setCategoryFilter}
+            searchable={categoryOptions.length > 5}
+            searchPlaceholder={t('common:search')}
+          />
+        </FilterPill>
+
+        {/* Status Filter Pill */}
+        <FilterPill
+          label={t('products.filters.statusLabel', { defaultValue: 'Estado' })}
+          activeValue={getFilterDisplayLabel(statusFilter, statusOptions)}
+          isActive={statusFilter.length > 0}
+          onClear={() => setStatusFilter([])}
+        >
+          <CheckboxFilterContent
+            title={t('products.filters.filterByStatus', { defaultValue: 'Filtrar por estado' })}
+            options={statusOptions}
+            selectedValues={statusFilter}
+            onApply={setStatusFilter}
+          />
+        </FilterPill>
+
+        {/* Inventory Method Filter Pill */}
+        <FilterPill
+          label={t('products.filters.inventoryLabel', { defaultValue: 'Inventario' })}
+          activeValue={getFilterDisplayLabel(inventoryFilter, inventoryOptions)}
+          isActive={inventoryFilter.length > 0}
+          onClear={() => setInventoryFilter([])}
+        >
+          <CheckboxFilterContent
+            title={t('products.filters.filterByInventory', { defaultValue: 'Filtrar por tipo de inventario' })}
+            options={inventoryOptions}
+            selectedValues={inventoryFilter}
+            onApply={setInventoryFilter}
+          />
+        </FilterPill>
+
+        {/* Stock Status Filter Pill */}
+        <FilterPill
+          label={t('products.filters.stockLabel', { defaultValue: 'Stock' })}
+          activeValue={getFilterDisplayLabel(stockFilter, stockOptions)}
+          isActive={stockFilter.length > 0}
+          onClear={() => setStockFilter([])}
+        >
+          <CheckboxFilterContent
+            title={t('products.filters.filterByStock', { defaultValue: 'Filtrar por nivel de stock' })}
+            options={stockOptions}
+            selectedValues={stockFilter}
+            onApply={setStockFilter}
+          />
+        </FilterPill>
+
+        {/* Reset filters button */}
+        {activeFiltersCount > 0 && (
+          <Button variant="outline" size="sm" onClick={resetFilters} className="h-8 gap-1.5 rounded-full">
+            <X className="h-3.5 w-3.5" />
+            {t('common:clearFilters', { defaultValue: 'Borrar filtros' })}
+          </Button>
+        )}
+
+        {/* Column customizer - pushed right */}
+        <div className="ml-auto">
+          <ColumnCustomizer
+            columns={columnOptions}
+            onApply={setVisibleColumns}
+            label={t('common:columns', { defaultValue: 'Columnas' })}
+            title={t('common:editColumns', { defaultValue: 'Editar columnas' })}
+          />
+        </div>
+      </div>
 
       <DataTable
         data={filteredProducts || []}
         rowCount={filteredProducts?.length}
-        columns={columns}
+        columns={filteredColumns}
         isLoading={isLoading}
-        enableSearch={true}
-        searchPlaceholder={t('common:search')}
-        onSearch={handleSearch}
+        enableSearch={false}
         tableId="menu:products"
         pagination={pagination}
         setPagination={setPagination}
-        clickableRow={row => ({
-          to: row.id,
-          state: { from: location.pathname },
-        })}
+        onRowClick={row => {
+          setEditProductId(row.id)
+          setEditWizardOpen(true)
+        }}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -664,10 +946,44 @@ export default function Products() {
         isLoading={adjustStockMutation.isPending}
       />
 
+      {/* Product Type Selector Modal (shown first) */}
+      <ProductTypeSelectorModal
+        open={typeSelectorOpen}
+        onOpenChange={setTypeSelectorOpen}
+        onSelect={(type) => {
+          setSelectedProductType(type)
+          setWizardOpen(true)
+        }}
+      />
+
+      {/* Product Wizard (shown after type selection) */}
       <ProductWizardDialog
         open={wizardOpen}
-        onOpenChange={setWizardOpen}
+        onOpenChange={(open) => {
+          setWizardOpen(open)
+          // Reset selected type when wizard closes
+          if (!open) {
+            setSelectedProductType(null)
+          }
+        }}
         mode="create"
+        productType={selectedProductType}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+        }}
+      />
+
+      {/* Product Wizard for Edit Mode */}
+      <ProductWizardDialog
+        open={editWizardOpen}
+        onOpenChange={(open) => {
+          setEditWizardOpen(open)
+          if (!open) {
+            setEditProductId(null)
+          }
+        }}
+        mode="edit"
+        productId={editProductId ?? undefined}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['products', venueId] })
         }}

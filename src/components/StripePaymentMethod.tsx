@@ -244,7 +244,7 @@ export function StripePaymentMethod({ venueId, useOnboardingIntent, onPaymentMet
   const { t } = useTranslation('payment')
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [isLoadingIntent, setIsLoadingIntent] = useState(false)
-  const [intentError, setIntentError] = useState<string | null>(null)
+  const [_intentError, setIntentError] = useState<string | null>(null)
 
   // Fetch SetupIntent when venueId or useOnboardingIntent is provided
   useEffect(() => {

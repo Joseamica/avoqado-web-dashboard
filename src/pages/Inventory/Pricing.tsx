@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Settings } from 'lucide-react'
+import { ArrowUpDown, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Settings, Search, X, ChevronRight } from 'lucide-react'
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -13,12 +13,15 @@ import { pricingApi, type PricingPolicy, type Recipe } from '@/services/inventor
 import { Currency } from '@/utils/currency'
 import { PricingPolicyDialog } from './components/PricingPolicyDialog'
 import { RecipeDialog } from './components/RecipeDialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import api from '@/api'
 import { Loader2 } from 'lucide-react'
 import { PermissionGate } from '@/components/PermissionGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
+import { FilterPill } from '@/components/filters/FilterPill'
+import { CheckboxFilterContent } from '@/components/filters/CheckboxFilterContent'
+import { RangeFilterContent } from '@/components/filters/RangeFilterContent'
+import { ColumnCustomizer } from '@/components/filters/ColumnCustomizer'
 
 interface ProductPricingAnalysis {
   id: string
@@ -45,68 +48,114 @@ export default function Pricing() {
   const [recipeDialogOpen, setRecipeDialogOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<ProductPricingAnalysis | null>(null)
 
-  // Filter states
-  const [categoryFilter, setCategoryFilter] = useState<string>('all')
-  const [profitabilityFilter, setProfitabilityFilter] = useState<string>('all')
+  // Filter states - multi-select arrays
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([])
+  const [profitabilityFilter, setProfitabilityFilter] = useState<string[]>([])
+  const [priceRange, setPriceRange] = useState<{ min: string; max: string } | null>(null)
+  const [foodCostRange, setFoodCostRange] = useState<{ min: string; max: string } | null>(null)
+  const [strategyFilter, setStrategyFilter] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 20,
   })
 
+  // Get profitability status - defined early because it's used in useMemo filters
+  const getProfitabilityStatus = (foodCostPercentage: number) => {
+    if (foodCostPercentage < 20) return 'excellent'
+    if (foodCostPercentage < 30) return 'good'
+    if (foodCostPercentage < 40) return 'acceptable'
+    return 'poor'
+  }
+
+  // Column visibility state
+  const [visibleColumns, setVisibleColumns] = useState<string[]>([
+    'name',
+    'price',
+    'recipeCost',
+    'foodCostPercentage',
+    'contribution',
+    'profitability',
+    'pricingStrategy',
+    'actions',
+  ])
+
   // Fetch products with pricing data
-  const { data: products, isLoading } = useQuery({
-    queryKey: ['products-pricing', venueId, categoryFilter, profitabilityFilter, debouncedSearchTerm],
+  const { data: productsRaw, isLoading } = useQuery({
+    queryKey: ['products-pricing', venueId],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/products`, {
         params: {
           includeRecipe: true,
           includePricingPolicy: true,
-          ...(categoryFilter !== 'all' && { categoryId: categoryFilter }),
         },
       })
 
-      let productsData = response.data.data as ProductPricingAnalysis[]
-
       // Filter products with recipes only (need recipe for pricing analysis)
-      productsData = productsData.filter(p => p.recipe)
-
-      // Apply profitability filter
-      if (profitabilityFilter !== 'all') {
-        productsData = productsData.filter(p => {
-          if (!p.recipe) return false
-          const foodCostPercentage = (Number(p.recipe.totalCost) / Number(p.price)) * 100
-
-          switch (profitabilityFilter) {
-            case 'excellent':
-              return foodCostPercentage < 20
-            case 'good':
-              return foodCostPercentage >= 20 && foodCostPercentage < 30
-            case 'acceptable':
-              return foodCostPercentage >= 30 && foodCostPercentage < 40
-            case 'poor':
-              return foodCostPercentage >= 40
-            default:
-              return true
-          }
-        })
-      }
-
-      // Apply search filter
-      if (debouncedSearchTerm) {
-        const lowerSearch = debouncedSearchTerm.toLowerCase()
-        productsData = productsData.filter(
-          p =>
-            p.name.toLowerCase().includes(lowerSearch) ||
-            p.category.name.toLowerCase().includes(lowerSearch),
-        )
-      }
-
-      return productsData
+      return (response.data.data as ProductPricingAnalysis[]).filter(p => p.recipe)
     },
     enabled: !!venueId,
+    staleTime: 0, // Always consider data stale to ensure fresh pricing data
+    refetchOnMount: true, // Refetch when component mounts
   })
+
+  // Client-side filtering
+  const products = useMemo(() => {
+    if (!productsRaw) return []
+
+    return productsRaw.filter(p => {
+      // Category filter
+      if (categoryFilter.length > 0 && !categoryFilter.includes(p.category.id)) {
+        return false
+      }
+
+      // Profitability filter
+      if (profitabilityFilter.length > 0 && p.recipe) {
+        const foodCostPercentage = (Number(p.recipe.totalCost) / Number(p.price)) * 100
+        const status = getProfitabilityStatus(foodCostPercentage)
+        if (!profitabilityFilter.includes(status)) {
+          return false
+        }
+      }
+
+      // Strategy filter
+      if (strategyFilter.length > 0) {
+        const strategy = p.pricingPolicy?.pricingStrategy || 'MANUAL'
+        if (!strategyFilter.includes(strategy)) {
+          return false
+        }
+      }
+
+      // Price range filter
+      if (priceRange) {
+        const price = Number(p.price)
+        if (priceRange.min && price < Number(priceRange.min)) return false
+        if (priceRange.max && price > Number(priceRange.max)) return false
+      }
+
+      // Food cost % range filter
+      if (foodCostRange && p.recipe) {
+        const foodCostPercentage = (Number(p.recipe.totalCost) / Number(p.price)) * 100
+        if (foodCostRange.min && foodCostPercentage < Number(foodCostRange.min)) return false
+        if (foodCostRange.max && foodCostPercentage > Number(foodCostRange.max)) return false
+      }
+
+      // Search filter
+      if (debouncedSearchTerm) {
+        const lowerSearch = debouncedSearchTerm.toLowerCase()
+        if (
+          !p.name.toLowerCase().includes(lowerSearch) &&
+          !p.category.name.toLowerCase().includes(lowerSearch)
+        ) {
+          return false
+        }
+      }
+
+      return true
+    })
+  }, [productsRaw, categoryFilter, profitabilityFilter, strategyFilter, priceRange, foodCostRange, debouncedSearchTerm])
 
   // Fetch categories for filter
   const { data: categories } = useQuery({
@@ -136,14 +185,6 @@ export default function Pricing() {
       })
     },
   })
-
-  // Get profitability status
-  const getProfitabilityStatus = (foodCostPercentage: number) => {
-    if (foodCostPercentage < 20) return 'excellent'
-    if (foodCostPercentage < 30) return 'good'
-    if (foodCostPercentage < 40) return 'acceptable'
-    return 'poor'
-  }
 
   // Get profitability badge
   const getProfitabilityBadge = (foodCostPercentage: number) => {
@@ -183,6 +224,70 @@ export default function Pricing() {
     )
   }
 
+  // Filter options
+  const categoryOptions = useMemo(() => {
+    return (categories || []).map((cat: any) => ({
+      value: cat.id,
+      label: cat.name,
+    }))
+  }, [categories])
+
+  const profitabilityOptions = useMemo(() => [
+    { value: 'excellent', label: t('pricing.profitabilityStatus.EXCELLENT') },
+    { value: 'good', label: t('pricing.profitabilityStatus.GOOD') },
+    { value: 'acceptable', label: t('pricing.profitabilityStatus.ACCEPTABLE') },
+    { value: 'poor', label: t('pricing.profitabilityStatus.POOR') },
+  ], [t])
+
+  const strategyOptions = useMemo(() => [
+    { value: 'MANUAL', label: t('pricing.strategies.MANUAL') },
+    { value: 'AUTO_MARKUP', label: t('pricing.strategies.AUTO_MARKUP') },
+    { value: 'AUTO_TARGET_MARGIN', label: t('pricing.strategies.AUTO_TARGET_MARGIN') },
+  ], [t])
+
+  // Column options for customizer
+  const columnOptions = useMemo(() => [
+    { id: 'name', label: t('recipes.fields.product'), visible: visibleColumns.includes('name') },
+    { id: 'price', label: t('pricing.fields.currentPrice'), visible: visibleColumns.includes('price') },
+    { id: 'recipeCost', label: t('pricing.fields.recipeCost'), visible: visibleColumns.includes('recipeCost') },
+    { id: 'foodCostPercentage', label: t('pricing.fields.foodCostPercentage'), visible: visibleColumns.includes('foodCostPercentage') },
+    { id: 'contribution', label: t('pricing.fields.contribution'), visible: visibleColumns.includes('contribution') },
+    { id: 'profitability', label: t('pricing.fields.estatus'), visible: visibleColumns.includes('profitability') },
+    { id: 'pricingStrategy', label: t('pricing.fields.strategy'), visible: visibleColumns.includes('pricingStrategy') },
+    { id: 'actions', label: tCommon('actions'), visible: visibleColumns.includes('actions') },
+  ], [t, tCommon, visibleColumns])
+
+  // Filter display helpers
+  const getFilterDisplayLabel = (values: string[], options: { value: string; label: string }[]) => {
+    if (values.length === 0) return ''
+    if (values.length === 1) {
+      const option = options.find(o => o.value === values[0])
+      return option?.label || values[0]
+    }
+    return `${values.length} ${t('rawMaterials.filters.selected')}`
+  }
+
+  // Active filters count
+  const activeFiltersCount = useMemo(() => {
+    let count = 0
+    if (categoryFilter.length > 0) count++
+    if (profitabilityFilter.length > 0) count++
+    if (strategyFilter.length > 0) count++
+    if (priceRange) count++
+    if (foodCostRange) count++
+    return count
+  }, [categoryFilter, profitabilityFilter, strategyFilter, priceRange, foodCostRange])
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setCategoryFilter([])
+    setProfitabilityFilter([])
+    setStrategyFilter([])
+    setPriceRange(null)
+    setFoodCostRange(null)
+    setSearchTerm('')
+  }
+
   // Column definitions
   const columns = useMemo<ColumnDef<ProductPricingAnalysis, unknown>[]>(
     () => [
@@ -208,47 +313,41 @@ export default function Pricing() {
       {
         accessorKey: 'price',
         meta: { label: t('pricing.fields.currentPrice') },
+        size: 100,
         header: ({ column }) => (
-          <div className="flex justify-center">
-            <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-              {t('pricing.fields.currentPrice')}
-              <ArrowUpDown className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
+          <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+            {t('pricing.fields.currentPrice')}
+            <ArrowUpDown className="w-3 h-3 ml-1" />
+          </Button>
         ),
         cell: ({ cell }) => {
           const price = cell.getValue() as number
           return (
-            <div className="flex justify-center">
-              <span className="text-sm font-semibold text-foreground">
-                {Currency(Number(price))}
-              </span>
-            </div>
+            <span className="text-sm font-semibold text-foreground">
+              {Currency(Number(price))}
+            </span>
           )
         },
       },
       {
         id: 'recipeCost',
         meta: { label: t('pricing.fields.recipeCost') },
+        size: 100,
         header: ({ column }) => (
-          <div className="flex justify-center">
-            <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-              {t('pricing.fields.recipeCost')}
-              <ArrowUpDown className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
+          <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+            {t('pricing.fields.recipeCost')}
+            <ArrowUpDown className="w-3 h-3 ml-1" />
+          </Button>
         ),
         cell: ({ row }) => {
           const product = row.original
-          if (!product.recipe) return <div className="flex justify-center"><span className="text-sm text-muted-foreground">-</span></div>
+          if (!product.recipe) return <span className="text-sm text-muted-foreground">-</span>
 
           const totalCost = Number(product.recipe.totalCost)
           return (
-            <div className="flex justify-center">
-              <span className="text-sm font-medium text-foreground">
-                {Currency(totalCost)}
-              </span>
-            </div>
+            <span className="text-sm font-medium text-foreground">
+              {Currency(totalCost)}
+            </span>
           )
         },
         sortingFn: (rowA, rowB) => {
@@ -260,17 +359,16 @@ export default function Pricing() {
       {
         id: 'foodCostPercentage',
         meta: { label: t('pricing.fields.foodCostPercentage') },
+        size: 90,
         header: ({ column }) => (
-          <div className="flex justify-center">
-            <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-              {t('pricing.fields.foodCostPercentage')}
-              <ArrowUpDown className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
+          <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+            {t('pricing.fields.foodCostPercentage')}
+            <ArrowUpDown className="w-3 h-3 ml-1" />
+          </Button>
         ),
         cell: ({ row }) => {
           const product = row.original
-          if (!product.recipe) return <div className="flex justify-center"><span className="text-sm text-muted-foreground">-</span></div>
+          if (!product.recipe) return <span className="text-sm text-muted-foreground">-</span>
 
           const totalCost = Number(product.recipe.totalCost)
           const price = Number(product.price)
@@ -286,11 +384,9 @@ export default function Pricing() {
           }
 
           return (
-            <div className="flex items-center justify-center gap-2">
-              <span className={`text-sm font-semibold ${colorClass}`}>
-                {foodCostPercentage.toFixed(1)}%
-              </span>
-            </div>
+            <span className={`text-sm font-semibold ${colorClass}`}>
+              {foodCostPercentage.toFixed(1)}%
+            </span>
           )
         },
         sortingFn: (rowA, rowB) => {
@@ -306,28 +402,25 @@ export default function Pricing() {
       {
         id: 'contribution',
         meta: { label: t('pricing.fields.contribution') },
+        size: 100,
         header: ({ column }) => (
-          <div className="flex justify-center">
-            <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-              {t('pricing.fields.contribution')}
-              <ArrowUpDown className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
+          <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+            {t('pricing.fields.contribution')}
+            <ArrowUpDown className="w-3 h-3 ml-1" />
+          </Button>
         ),
         cell: ({ row }) => {
           const product = row.original
-          if (!product.recipe) return <div className="flex justify-center"><span className="text-sm text-muted-foreground">-</span></div>
+          if (!product.recipe) return <span className="text-sm text-muted-foreground">-</span>
 
           const totalCost = Number(product.recipe.totalCost)
           const price = Number(product.price)
           const contribution = price - totalCost
 
           return (
-            <div className="flex justify-center">
-              <span className="text-sm font-medium text-foreground">
-                {Currency(contribution)}
-              </span>
-            </div>
+            <span className="text-sm font-medium text-foreground">
+              {Currency(contribution)}
+            </span>
           )
         },
         sortingFn: (rowA, rowB) => {
@@ -342,8 +435,9 @@ export default function Pricing() {
       },
       {
         id: 'profitability',
-        meta: { label: tCommon('status') },
-        header: tCommon('status'),
+        meta: { label: t('pricing.fields.estatus') },
+        size: 110,
+        header: () => <span className="text-xs">{t('pricing.fields.estatus')}</span>,
         cell: ({ row }) => {
           const product = row.original
           if (!product.recipe) return null
@@ -358,7 +452,8 @@ export default function Pricing() {
       {
         id: 'pricingStrategy',
         meta: { label: t('pricing.fields.strategy') },
-        header: t('pricing.fields.strategy'),
+        size: 100,
+        header: () => <span className="text-xs">{t('pricing.fields.strategy')}</span>,
         cell: ({ row }) => {
           const product = row.original
           if (!product.pricingPolicy) {
@@ -420,6 +515,14 @@ export default function Pricing() {
     [t, applySuggestedPriceMutation],
   )
 
+  // Filtered columns based on visibility
+  const filteredColumns = useMemo(() => {
+    return columns.filter(col => {
+      const colId = col.id || (col as any).accessorKey
+      return visibleColumns.includes(colId)
+    })
+  }, [columns, visibleColumns])
+
   const productsNeedingReview = products?.filter(p => {
     if (!p.recipe) return false
     const foodCostPercentage = (Number(p.recipe.totalCost) / Number(p.price)) * 100
@@ -429,7 +532,7 @@ export default function Pricing() {
   return (
     <div className="p-4 bg-background text-foreground">
       {/* Header */}
-      <div className="flex flex-col gap-4 mb-6">
+      <div className="flex flex-col gap-3 mb-2">
         <div className="flex flex-row items-center justify-between">
           <div>
             <PageTitleWithInfo
@@ -447,61 +550,178 @@ export default function Pricing() {
         {productsNeedingReview > 0 && (
           <button
             type="button"
-            onClick={() => setProfitabilityFilter('poor')}
-            className="p-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50 transition-colors cursor-pointer w-full text-left"
+            onClick={() => setProfitabilityFilter(['poor'])}
+            className="p-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50 transition-colors cursor-pointer w-full text-left group"
             aria-label={t('pricing.filterPoorProfitability', `Filter products with poor profitability (${productsNeedingReview} items)`)}
           >
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
-              <div>
-                <p className="text-sm font-semibold text-red-800 dark:text-red-400">
-                  {productsNeedingReview} {t('reports.profitability.needsReview').toLowerCase()}
-                </p>
-                <p className="text-xs text-red-700 dark:text-red-500">
-                  {t('pricing.subtitle').toLowerCase()}
-                </p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                <div>
+                  <p className="text-sm font-semibold text-red-800 dark:text-red-400">
+                    {productsNeedingReview} {t('reports.profitability.needsReview').toLowerCase()}
+                  </p>
+                  <p className="text-xs text-red-700 dark:text-red-500">
+                    {t('pricing.subtitle').toLowerCase()}
+                  </p>
+                </div>
               </div>
+              <ChevronRight className="h-5 w-5 text-red-600 dark:text-red-400 group-hover:translate-x-1 transition-transform" />
             </div>
           </button>
         )}
 
-        {/* Filters */}
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <Input
-              placeholder={t('common:search')}
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="max-w-md"
-            />
+        {/* Stripe-style Filters */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Expandable Search */}
+          <div className="relative flex items-center">
+            {isSearchOpen ? (
+              <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder={tCommon('search')}
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Escape') {
+                        if (!searchTerm) setIsSearchOpen(false)
+                      }
+                    }}
+                    className="h-8 w-[200px] pl-8 pr-8 text-sm rounded-full"
+                    autoFocus
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full"
+                  onClick={() => {
+                    setSearchTerm('')
+                    setIsSearchOpen(false)
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant={searchTerm ? 'secondary' : 'ghost'}
+                size="icon"
+                className="h-8 w-8 rounded-full"
+                onClick={() => setIsSearchOpen(true)}
+              >
+                <Search className="h-4 w-4" />
+                {searchTerm && <span className="sr-only">{t('rawMaterials.filters.searchActive')}</span>}
+              </Button>
+            )}
+            {searchTerm && !isSearchOpen && (
+              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
+            )}
           </div>
 
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder={t('rawMaterials.fields.category')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('rawMaterials.filters.all')}</SelectItem>
-              {categories?.map((category: any) => (
-                <SelectItem key={category.id} value={category.id}>
-                  {category.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* Category Filter */}
+          <FilterPill
+            label={t('rawMaterials.fields.category')}
+            isActive={categoryFilter.length > 0}
+            activeLabel={getFilterDisplayLabel(categoryFilter, categoryOptions)}
+            onClear={() => setCategoryFilter([])}
+          >
+            <CheckboxFilterContent
+              title={t('rawMaterials.fields.category')}
+              options={categoryOptions}
+              selectedValues={categoryFilter}
+              onApply={setCategoryFilter}
+            />
+          </FilterPill>
 
-          <Select value={profitabilityFilter} onValueChange={setProfitabilityFilter}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder={tCommon('filter')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('rawMaterials.filters.all')}</SelectItem>
-              <SelectItem value="excellent">{t('pricing.profitabilityStatus.EXCELLENT')}</SelectItem>
-              <SelectItem value="good">{t('pricing.profitabilityStatus.GOOD')}</SelectItem>
-              <SelectItem value="acceptable">{t('pricing.profitabilityStatus.ACCEPTABLE')}</SelectItem>
-              <SelectItem value="poor">{t('pricing.profitabilityStatus.POOR')}</SelectItem>
-            </SelectContent>
-          </Select>
+          {/* Profitability Filter */}
+          <FilterPill
+            label={t('pricing.fields.estatus')}
+            isActive={profitabilityFilter.length > 0}
+            activeLabel={getFilterDisplayLabel(profitabilityFilter, profitabilityOptions)}
+            onClear={() => setProfitabilityFilter([])}
+          >
+            <CheckboxFilterContent
+              title={t('pricing.fields.estatus')}
+              options={profitabilityOptions}
+              selectedValues={profitabilityFilter}
+              onApply={setProfitabilityFilter}
+            />
+          </FilterPill>
+
+          {/* Strategy Filter */}
+          <FilterPill
+            label={t('pricing.fields.strategy')}
+            isActive={strategyFilter.length > 0}
+            activeLabel={getFilterDisplayLabel(strategyFilter, strategyOptions)}
+            onClear={() => setStrategyFilter([])}
+          >
+            <CheckboxFilterContent
+              title={t('pricing.fields.strategy')}
+              options={strategyOptions}
+              selectedValues={strategyFilter}
+              onApply={setStrategyFilter}
+            />
+          </FilterPill>
+
+          {/* Price Range Filter */}
+          <FilterPill
+            label={t('pricing.fields.currentPrice')}
+            isActive={priceRange !== null}
+            activeLabel={priceRange ? `$${priceRange.min || '0'} - $${priceRange.max || '∞'}` : null}
+            onClear={() => setPriceRange(null)}
+          >
+            <RangeFilterContent
+              title={t('pricing.fields.currentPrice')}
+              currentRange={priceRange}
+              onApply={setPriceRange}
+              prefix="$"
+              placeholder="0"
+            />
+          </FilterPill>
+
+          {/* Food Cost % Range Filter */}
+          <FilterPill
+            label={t('pricing.fields.foodCostPercentage')}
+            isActive={foodCostRange !== null}
+            activeLabel={foodCostRange ? `${foodCostRange.min || '0'}% - ${foodCostRange.max || '∞'}%` : null}
+            onClear={() => setFoodCostRange(null)}
+          >
+            <RangeFilterContent
+              title={t('pricing.fields.foodCostPercentage')}
+              currentRange={foodCostRange}
+              onApply={setFoodCostRange}
+              prefix=""
+              placeholder="0"
+            />
+          </FilterPill>
+
+          {/* Clear All */}
+          {activeFiltersCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearAllFilters}
+              className="h-8 text-xs text-muted-foreground hover:text-foreground"
+            >
+              {tCommon('filters.clearAll')} ({activeFiltersCount})
+            </Button>
+          )}
+
+          {/* Column Customizer */}
+          <ColumnCustomizer
+            columns={columnOptions}
+            onApply={setVisibleColumns}
+          />
         </div>
       </div>
 
@@ -509,10 +729,11 @@ export default function Pricing() {
       <DataTable
         data={products || []}
         rowCount={products?.length || 0}
-        columns={columns}
+        columns={filteredColumns}
         isLoading={isLoading}
         tableId="pricing:main"
         enableSearch={false}
+        showColumnCustomizer={false}
         pagination={pagination}
         setPagination={setPagination}
         onRowClick={(row) => {

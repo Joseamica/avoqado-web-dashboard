@@ -1,9 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
 import { productInventoryApi } from '@/services/inventory.service'
-import { Loader2, AlertTriangle, CheckCircle2, Info } from 'lucide-react'
+import { Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
@@ -28,7 +27,9 @@ export function YieldStatusHoverCard({ productId, currentYield, triggerClassName
     queryKey: ['product-inventory-status', venueId, productId],
     queryFn: async () => {
       const response = await productInventoryApi.getStatus(venueId!, productId)
-      return response.data
+      // Backend wraps response in { success, data }, extract the actual status
+      const responseData = response.data as unknown as { success: boolean; data: typeof response.data }
+      return responseData.data
     },
     enabled: !!venueId && !!productId,
     staleTime: 1000 * 60, // Cache for 1 minute
@@ -117,41 +118,58 @@ export function YieldStatusHoverCard({ productId, currentYield, triggerClassName
                     <AlertTriangle className={`h-3 w-3 ${maxPortions === 0 ? 'text-destructive' : 'text-yellow-600'}`} />
                     {t('yieldStatus.limitingFactor', { defaultValue: 'Ingrediente Limitante' })}
                   </div>
-                  
+
                   {/* Show bottleneck item */}
-                  <div className={`rounded-md border p-3 space-y-2 ${maxPortions === 0 ? 'border-destructive/20 bg-destructive/5' : 'border-border bg-muted/30'}`}>
+                  <div className={`rounded-md border p-3 space-y-2 ${maxPortions === 0 ? 'border-destructive/20 bg-destructive/5' : 'border-yellow-200/50 bg-yellow-50/50 dark:border-yellow-900/50 dark:bg-yellow-950/20'}`}>
                     <div className="flex justify-between items-center">
                         <span className="text-sm font-medium">{status.limitingIngredient.name}</span>
-                         <Button 
-                         variant="outline" 
-                         size="icon" 
-                         className="h-6 w-6 ml-auto mr-2"
+                         <Button
+                         variant="outline"
+                         size="icon"
+                         className="h-6 w-6 ml-auto cursor-pointer"
                             title={tCommon('restock', { defaultValue: 'Reponer Stock' })}
                             onClick={() => navigate(`${fullBasePath}/inventory/raw-materials?search=${encodeURIComponent(status.limitingIngredient!.name)}&openRestock=true`)}
                          >
                             <ShoppingCart className="h-3 w-3" />
                          </Button>
-                        <span className={`text-xs font-medium ${maxPortions === 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                            {((status.limitingIngredient.available / status.limitingIngredient.required) * 100).toFixed(0)}%
-                        </span>
                     </div>
-                    
-                    <Progress 
-                        value={(status.limitingIngredient.available / status.limitingIngredient.required) * 100} 
-                        className={`h-1.5 w-full ${maxPortions === 0 ? 'bg-destructive/20' : 'bg-muted'}`}
-                        indicatorClassName={maxPortions === 0 ? 'bg-destructive' : 'bg-primary'}
-                    />
-                    
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>{tCommon('have', { defaultValue: 'Tienes' })}: {formatUnitWithQuantity(status.limitingIngredient.available, status.limitingIngredient.unit)}</span>
-                        <span>{tCommon('need', { defaultValue: 'Necesitas' })}: {formatUnitWithQuantity(status.limitingIngredient.required, status.limitingIngredient.unit)}</span>
+
+                    {/* Clear explanation message */}
+                    <div className={`text-xs font-medium ${maxPortions === 0 ? 'text-destructive' : 'text-yellow-700 dark:text-yellow-400'}`}>
+                      {maxPortions === 0
+                        ? t('yieldStatus.cantProduce', { defaultValue: 'No alcanza para producir ni 1 porción' })
+                        : t('yieldStatus.onlyEnoughFor', { count: maxPortions, defaultValue: `Solo alcanza para ${maxPortions} ${maxPortions === 1 ? 'porción' : 'porciones'}` })
+                      }
                     </div>
+
+                    {/* Stock details in a clear grid */}
+                    <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-border/50">
+                        <div>
+                          <span className="text-muted-foreground">{t('yieldStatus.currentStock', { defaultValue: 'Stock actual' })}:</span>
+                          <span className="ml-1 font-medium">{status.limitingIngredient.available} {formatUnitWithQuantity(status.limitingIngredient.available, status.limitingIngredient.unit)}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">{t('yieldStatus.perPortion', { defaultValue: 'Por porción' })}:</span>
+                          <span className="ml-1 font-medium">{status.limitingIngredient.required} {formatUnitWithQuantity(status.limitingIngredient.required, status.limitingIngredient.unit)}</span>
+                        </div>
+                    </div>
+
+                    {/* Show remaining after production */}
+                    {maxPortions > 0 && (
+                      <div className="text-xs text-muted-foreground italic">
+                        {t('yieldStatus.afterProduction', {
+                          remaining: (status.limitingIngredient.available - (maxPortions * status.limitingIngredient.required)).toFixed(1),
+                          unit: formatUnitWithQuantity(status.limitingIngredient.available - (maxPortions * status.limitingIngredient.required), status.limitingIngredient.unit),
+                          defaultValue: `Después de producir ${maxPortions}: quedan ${(status.limitingIngredient.available - (maxPortions * status.limitingIngredient.required)).toFixed(1)} ${formatUnitWithQuantity(status.limitingIngredient.available - (maxPortions * status.limitingIngredient.required), status.limitingIngredient.unit)}`
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : maxPortions > 0 ? (
                 <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
-                    <Info className="h-3 w-3" />
-                    {t('yieldStatus.fullStock', { defaultValue: 'Stock suficiente para producción habitual' })}
+                    <CheckCircle2 className="h-3 w-3" />
+                    {t('yieldStatus.fullStock', { defaultValue: 'Todos los ingredientes tienen stock suficiente' })}
                 </div>
               ) : (
                 /* Fallback if no limiting ingredient found (e.g. no recipe) */

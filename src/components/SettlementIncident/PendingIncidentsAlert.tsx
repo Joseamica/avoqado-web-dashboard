@@ -44,7 +44,7 @@ export function PendingIncidentsAlert({ venueId }: PendingIncidentsAlertProps) {
     refetchInterval: 60000, // Refetch every minute
   })
 
-  const pendingIncidents = data?.data || []
+  const pendingIncidents = useMemo(() => data?.data || [], [data?.data])
 
   // Bulk confirm mutation
   const bulkConfirmMutation = useMutation({

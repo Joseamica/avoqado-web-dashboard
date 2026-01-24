@@ -246,8 +246,8 @@ export function MenuWizardDialog({ open, onOpenChange, onSuccess }: MenuWizardDi
               {currentStep === 1
                 ? t('wizard.step1.basicInfo')
                 : currentStep === 2
-                ? t('categoryDetail.sections.availability')
-                : t('createMenu.fields.categories')}
+                  ? t('categoryDetail.sections.availability')
+                  : t('createMenu.fields.categories')}
             </span>
             <span>{t('wizard.progress', { current: currentStep, total: 3 })}</span>
           </div>
@@ -286,7 +286,12 @@ export function MenuWizardDialog({ open, onOpenChange, onSuccess }: MenuWizardDi
                         <FormItem>
                           <FormLabel>{t('createMenu.fields.menuName')}</FormLabel>
                           <FormControl>
-                            <Input placeholder={t('createMenu.fields.menuNamePlaceholder')} {...field} autoFocus />
+                            <Input
+                              placeholder={t('createMenu.fields.menuNamePlaceholder')}
+                              className="border-transparent"
+                              {...field}
+                              autoFocus
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -301,7 +306,7 @@ export function MenuWizardDialog({ open, onOpenChange, onSuccess }: MenuWizardDi
                           <FormLabel>{t('menuId.fields.menuType')}</FormLabel>
                           <Select value={field.value} onValueChange={field.onChange}>
                             <FormControl>
-                              <SelectTrigger>
+                              <SelectTrigger className="border-transparent">
                                 <SelectValue placeholder={t('menuId.fields.selectType')} />
                               </SelectTrigger>
                             </FormControl>
@@ -322,7 +327,7 @@ export function MenuWizardDialog({ open, onOpenChange, onSuccess }: MenuWizardDi
                       control={form.control}
                       name="active"
                       render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg p-4">
                           <div className="space-y-0.5">
                             <FormLabel className="text-base">{t('createMenu.fields.menuActive')}</FormLabel>
                             <DialogDescription>{t('createMenu.fields.menuActiveDesc')}</DialogDescription>
@@ -350,9 +355,9 @@ export function MenuWizardDialog({ open, onOpenChange, onSuccess }: MenuWizardDi
             {/* Step 2: Availability */}
             {currentStep === 2 && (
               <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_1fr] gap-6">
-                <CardShadcn className="border-border/60">
+                <CardShadcn className="!bg-transparent border-border shadow-none">
                   <CardContentShadcn className="space-y-6 pt-6">
-                    <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/20">
+                    <div className="flex items-center gap-4 p-4 rounded-lg">
                       <div className="p-2 bg-primary/10 rounded-full">
                         <CalendarClock className="w-6 h-6 text-primary" />
                       </div>
@@ -379,10 +384,10 @@ export function MenuWizardDialog({ open, onOpenChange, onSuccess }: MenuWizardDi
                                   field.onChange(newDays)
                                 }}
                                 className={
-                                  'px-3 py-1 cursor-pointer transition-colors rounded-full border text-sm ' +
+                                  'px-3.5 py-1.5 cursor-pointer transition-colors rounded-full text-[13px] leading-none ' +
                                   (day.selected
-                                    ? 'bg-primary text-primary-foreground border-primary'
-                                    : 'bg-background text-foreground border-input hover:bg-muted')
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-muted/30 text-foreground hover:bg-muted/40')
                                 }
                               >
                                 {day.label}
@@ -398,13 +403,21 @@ export function MenuWizardDialog({ open, onOpenChange, onSuccess }: MenuWizardDi
                       control={form.control}
                       name="isAllDay"
                       render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md p-4">
                           <FormControl>
                             <Switch
                               checked={field.value}
                               onCheckedChange={checked => {
                                 field.onChange(checked)
-                                if (checked) form.clearErrors('startTime')
+                                if (checked) {
+                                  const updatedDays = form.getValues('days').map(day => ({ ...day, selected: true }))
+                                  form.setValue('days', updatedDays, { shouldDirty: true, shouldValidate: true })
+                                  form.clearErrors('days')
+                                  form.clearErrors(['startTime', 'endTime'])
+                                } else {
+                                  const updatedDays = form.getValues('days').map(day => ({ ...day, selected: false }))
+                                  form.setValue('days', updatedDays, { shouldDirty: true, shouldValidate: true })
+                                }
                               }}
                             />
                           </FormControl>
@@ -425,7 +438,7 @@ export function MenuWizardDialog({ open, onOpenChange, onSuccess }: MenuWizardDi
                             <FormControl>
                               <Select disabled={isAllDay} onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
-                                  <SelectTrigger>
+                                  <SelectTrigger className="border-transparent">
                                     <SelectValue placeholder={t('createMenu.fields.selectTime')} />
                                   </SelectTrigger>
                                 </FormControl>
@@ -454,7 +467,7 @@ export function MenuWizardDialog({ open, onOpenChange, onSuccess }: MenuWizardDi
                             <FormControl>
                               <Select disabled={isAllDay} onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
-                                  <SelectTrigger>
+                                  <SelectTrigger className="border-transparent">
                                     <SelectValue placeholder={t('createMenu.fields.selectTime')} />
                                   </SelectTrigger>
                                 </FormControl>

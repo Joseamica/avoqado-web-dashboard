@@ -250,7 +250,7 @@ const { t } = useTranslation()
 ```
 
 **Requirements:**
-- Add translations for BOTH `en` and `es` (and `fr` if applicable)
+- Add translations for BOTH `en` and `es`
 - Use interpolation: `t('greeting', { name })`
 - No hardcoded strings in JSX
  - Superadmin UI is the only exception (see note above)
@@ -373,6 +373,101 @@ const filteredColumns = useMemo(() =>
 **Pages needing migration:** `Payments.tsx`, `Customers.tsx`, `Inventory.tsx`
 
 **See:** [Complete UI Patterns guide](docs/guides/ui-patterns.md#stripe-style-filters-mandatory)
+
+#### Expandable Search Bar (MANDATORY)
+
+**ALWAYS use the expandable/animated search pattern from Orders.tsx for search bars in table/list views.**
+
+This pattern provides a clean, space-efficient search experience with smooth animations and proper state management.
+
+```typescript
+// ❌ WRONG - Static search bar always visible
+<div className="relative">
+  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+  <Input
+    placeholder={t('search.placeholder')}
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value)}
+    className="pl-9"
+  />
+</div>
+
+// ✅ CORRECT - Expandable search with animation
+import { useDebounce } from '@/hooks/useDebounce'
+
+const [searchTerm, setSearchTerm] = useState('')
+const debouncedSearchTerm = useDebounce(searchTerm, 300)
+const [isSearchOpen, setIsSearchOpen] = useState(false)
+
+// Expandable search UI
+<div className="relative flex items-center">
+  {isSearchOpen ? (
+    <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder={t('searchPlaceholder')}
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Escape') {
+              if (!searchTerm) setIsSearchOpen(false)
+            }
+          }}
+          className="h-8 w-[200px] pl-8 pr-8 text-sm rounded-full"
+          autoFocus
+        />
+        {searchTerm && (
+          <button
+            onClick={() => setSearchTerm('')}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 rounded-full"
+        onClick={() => {
+          setSearchTerm('')
+          setIsSearchOpen(false)
+        }}
+      >
+        <X className="h-4 w-4" />
+      </Button>
+    </div>
+  ) : (
+    <Button
+      variant={searchTerm ? 'secondary' : 'ghost'}
+      size="icon"
+      className="h-8 w-8 rounded-full"
+      onClick={() => setIsSearchOpen(true)}
+    >
+      <Search className="h-4 w-4" />
+      {searchTerm && <span className="sr-only">{t('filters.searchActive')}</span>}
+    </Button>
+  )}
+  {/* Active search indicator dot */}
+  {searchTerm && !isSearchOpen && (
+    <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
+  )}
+</div>
+```
+
+**Key Features:**
+- **State management**: Separate `searchTerm` (UI) and `debouncedSearchTerm` (API calls)
+- **Expandable UI**: Toggles between icon button and full input with `isSearchOpen` state
+- **Animation**: Uses Tailwind's `animate-in fade-in slide-in-from-left-2 duration-200`
+- **Rounded styling**: `rounded-full` for both button and input
+- **Clear button**: X icon appears when search has value
+- **Active indicator**: Dot badge shows when collapsed with active search
+- **Keyboard support**: Escape key to close (when empty)
+- **Auto-focus**: Input focuses automatically when opened
+- **Debouncing**: Required for API calls (see Rule #11)
+
+**Reference:** `src/pages/Order/Orders.tsx` (lines 1016-1068)
 
 ### 7. URL Hash-Based Tabs (MANDATORY)
 
@@ -851,9 +946,47 @@ const localeCode = getIntlLocale(i18n.language)
 new Intl.NumberFormat(localeCode, { style: 'currency', currency: 'MXN' })
 ```
 
+**Backend date calculations (CRITICAL):**
+
+Backend also has timezone utilities in `avoqado-server/src/utils/datetime.ts` using `date-fns-tz`.
+
+```typescript
+// ❌ WRONG - Using raw Date() without timezone handling
+const today = new Date()
+const weekStart = new Date(today)
+weekStart.setDate(today.getDate() - today.getDay())
+weekStart.setHours(0, 0, 0, 0)
+// Problem: This calculates dates in server's local timezone, not venue timezone!
+
+// ✅ CORRECT - Use date-fns-tz utilities
+import { toZonedTime, fromZonedTime } from 'date-fns-tz'
+
+const timezone = 'America/Mexico_City'
+const today = new Date()
+const nowVenue = toZonedTime(today, timezone)
+
+// Calculate dates in venue timezone
+const weekStartVenue = new Date(nowVenue)
+weekStartVenue.setDate(nowVenue.getDate() - nowVenue.getDay())
+weekStartVenue.setHours(0, 0, 0, 0)
+
+// Convert back to UTC for database queries
+const weekStart = fromZonedTime(weekStartVenue, timezone)
+
+// Use in Prisma queries (Prisma expects UTC)
+const orders = await prisma.order.findMany({
+  where: {
+    createdAt: { gte: weekStart, lt: weekEnd }
+  }
+})
+```
+
 **Architecture:**
 ```
-BACKEND → UTC (ISO 8601 with Z suffix) → API Response
+BACKEND → Calculate dates in venue timezone (date-fns-tz)
+       → Convert to UTC (fromZonedTime)
+       → Query database (Prisma, expects UTC)
+       → Send ISO 8601 with Z suffix
                     ↓
 FRONTEND → useVenueDateTime() hook
                     ↓
@@ -864,12 +997,30 @@ FRONTEND → useVenueDateTime() hook
            Display: "20 oct 2025, 12:30 PM" (venue timezone)
 ```
 
-**Why venue timezone (not browser)?**
+**Why venue timezone (not browser/server)?**
 - All team members see consistent times regardless of physical location
 - Financial reports match the business's operating timezone
 - Compliance: Transactions must reflect where the business operates
+- **Charts/analytics**: "Today" means today in the venue's timezone, not UTC or server time
 
-**Reference:** `src/utils/datetime.ts` | `src/utils/i18n-locale.ts`
+**Common mistake example:**
+```typescript
+// User in Mexico City (UTC-6) views chart for "this week"
+// Without timezone handling:
+//   Server calculates "Sunday 00:00 UTC" as week start
+//   But venue's Sunday starts 6 hours later!
+//   Result: Charts show wrong data, offset by 6 hours
+
+// With timezone handling:
+//   Server calculates "Sunday 00:00 CST" → converts to "Sunday 06:00 UTC"
+//   Queries database with UTC range
+//   Charts show correct data for venue's timezone ✅
+```
+
+**Reference:**
+- Frontend: `src/utils/datetime.ts` (Luxon)
+- Backend: `avoqado-server/src/utils/datetime.ts` (date-fns-tz)
+- **BOTH files MUST stay in sync** - see comments in backend file
 
 ### 14. White-Label Navigation Paths (MANDATORY)
 
@@ -1049,7 +1200,7 @@ const { staffInfo } = useAuth()
 
 ### Adding Translations
 
-1. **Create JSON structure** (`src/locales/[en|es|fr]/feature.json`):
+1. **Create JSON structure** (`src/locales/[en|es]/feature.json`):
    ```json
    {
      "feature": {
@@ -1112,7 +1263,7 @@ gh workflow run ci-cd.yml --field environment=demo
 
 **Before deploying:**
 - [ ] All user-facing text uses `t('...')`
-- [ ] Translations added for en, es, fr
+- [ ] Translations added for en, es
 - [ ] Arrays/objects memoized with `useMemo`/`useCallback`
 - [ ] Theme-aware colors used (no hardcoded grays)
 - [ ] Permissions synced between frontend and backend

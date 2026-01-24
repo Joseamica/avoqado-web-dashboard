@@ -93,6 +93,12 @@ function DataTable<TData>({
   // Search state
   const [searchTerm, setSearchTerm] = useState('')
 
+  // Internal pagination state (used when pagination/setPagination not provided)
+  const [internalPagination, setInternalPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 20,
+  })
+
   // Filter data based on search
   const filteredData = useMemo(() => {
     if (!enableSearch || !searchTerm || !onSearch) {
@@ -101,22 +107,20 @@ function DataTable<TData>({
     return onSearch(searchTerm, data || [])
   }, [enableSearch, searchTerm, onSearch, data])
 
-  // Default pagination state if not provided
-  const defaultPagination = {
-    pageIndex: 0,
-    pageSize: 20,
-  }
+  // Use external pagination if provided, otherwise use internal state
+  const currentPagination = pagination || internalPagination
+  const currentSetPagination = setPagination || setInternalPagination
 
   const table = useReactTable({
     data: filteredData,
     columns,
     state: {
-      pagination: pagination || defaultPagination,
+      pagination: currentPagination,
       rowSelection,
       columnVisibility,
       columnSizing,
     },
-    onPaginationChange: setPagination,
+    onPaginationChange: currentSetPagination,
     onRowSelectionChange: setRowSelection,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnSizingChange: setColumnSizing,
@@ -160,7 +164,7 @@ function DataTable<TData>({
   }, [tableId, enableColumnResizing, columnSizing])
 
   if (isLoading) {
-    const skeletonRows = pagination?.pageSize || defaultPagination.pageSize
+    const skeletonRows = currentPagination.pageSize
     return (
       <>
         {/* Toolbar Skeleton */}
@@ -187,38 +191,40 @@ function DataTable<TData>({
 
   return (
     <>
-      {/* Toolbar */}
-      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        {/* Search Bar */}
-        {enableSearch && <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder={searchPlaceholder || t('search')} />}
+      {/* Toolbar - Only render if has content */}
+      {(enableSearch || showColumnCustomizer) && (
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          {/* Search Bar */}
+          {enableSearch && <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder={searchPlaceholder || t('search')} />}
 
-        {/* Column Customizer */}
-        {showColumnCustomizer && (
-          <DropdownMenu modal={false}>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="default" className="gap-2">
-                <Settings2 className="h-4 w-4" /> {t('customize_columns')}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56" sideOffset={5}>
-              {table
-                .getAllLeafColumns()
-                .filter(col => col.getCanHide())
-                .map(col => (
-                  <DropdownMenuCheckboxItem
-                    key={col.id}
-                    className="capitalize"
-                    checked={col.getIsVisible()}
-                    onCheckedChange={val => col.toggleVisibility(!!val)}
-                  >
-                    {(col.columnDef as any)?.meta?.label ??
-                      (typeof col.columnDef.header === 'string' ? (col.columnDef.header as string) : col.id)}
-                  </DropdownMenuCheckboxItem>
-                ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      </div>
+          {/* Column Customizer */}
+          {showColumnCustomizer && (
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="default" className="gap-2">
+                  <Settings2 className="h-4 w-4" /> {t('customize_columns')}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56" sideOffset={5}>
+                {table
+                  .getAllLeafColumns()
+                  .filter(col => col.getCanHide())
+                  .map(col => (
+                    <DropdownMenuCheckboxItem
+                      key={col.id}
+                      className="capitalize"
+                      checked={col.getIsVisible()}
+                      onCheckedChange={val => col.toggleVisibility(!!val)}
+                    >
+                      {(col.columnDef as any)?.meta?.label ??
+                        (typeof col.columnDef.header === 'string' ? (col.columnDef.header as string) : col.id)}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+      )}
       <Table
         containerClassName="mb-4 rounded-xl border border-border bg-background overflow-hidden"
         className="table-sticky"

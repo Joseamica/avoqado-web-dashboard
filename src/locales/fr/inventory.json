@@ -75,6 +75,25 @@
   },
 
   "rawMaterials": {
+    "inTransit": "En Transit",
+    "fields": {
+      "name": "Nom",
+      "sku": "SKU",
+      "category": "Catégorie",
+      "currentStock": "Stock Actuel",
+      "confirmedStock": "Confirmé",
+      "confirmedStockTooltip": "Stock confirmé dans les bons de commande (en transit, pas encore reçu physiquement)",
+      "unit": "Unité",
+      "minimumStock": "Stock Minimum",
+      "reorderPoint": "Point de Réapprovisionnement",
+      "maximumStock": "Stock Maximum",
+      "costPerUnit": "Coût par Unité",
+      "avgCostPerUnit": "Coût Moyen",
+      "perishable": "Périssable",
+      "shelfLifeDays": "Durée de Conservation (jours)",
+      "active": "Actif",
+      "description": "Description"
+    },
     "movements": {
       "loading": "Chargement des mouvements récents...",
       "noRecentMovements": "Aucun mouvement de stock récent",

@@ -173,9 +173,22 @@ export default function MenuScheduleWithMenuDayModel() {
 
   // Si se activa/desactiva "Abierto 24 horas", limpiamos errores de horarios
   function handleAllDayChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setValue('isAllDay', e.target.checked)
-    if (e.target.checked) {
+    const checked = e.target.checked
+    setValue('isAllDay', checked)
+    if (checked) {
+      setValue(
+        'days',
+        days.map(day => ({ ...day, selected: true })),
+        { shouldDirty: true },
+      )
+      clearErrors('days')
       clearErrors(['startTime', 'endTime'])
+    } else {
+      setValue(
+        'days',
+        days.map(day => ({ ...day, selected: false })),
+        { shouldDirty: true },
+      )
     }
   }
 

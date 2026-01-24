@@ -13,6 +13,7 @@ interface FilterPillProps {
   onClear?: () => void
   align?: 'start' | 'center' | 'end'
   className?: string
+  contentClassName?: string // Custom width/styling for PopoverContent
 }
 
 /**

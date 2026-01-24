@@ -429,7 +429,7 @@ const SuperadminHeader: React.FC = () => {
                 {t('header.settings')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={logout} className="text-red-600 hover:text-red-700">
+              <DropdownMenuItem onClick={() => logout()} className="text-red-600 hover:text-red-700">
                 <LogOut className="mr-2 h-4 w-4" />
                 {t('header.logout')}
               </DropdownMenuItem>

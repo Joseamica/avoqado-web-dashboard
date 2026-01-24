@@ -37,9 +37,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       path: '@/pages/Home',
     },
 
-    routes: [
-      { path: '', element: 'Home', index: true },
-    ],
+    routes: [{ path: '', element: 'Home', index: true }],
 
     configSchema: {
       type: 'object',
@@ -348,9 +346,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       path: '@/pages/AvailableBalance/AvailableBalance',
     },
 
-    routes: [
-      { path: 'balance', element: 'AvailableBalance' },
-    ],
+    routes: [{ path: 'balance', element: 'AvailableBalance' }],
 
     configSchema: {
       type: 'object',
@@ -424,9 +420,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       path: '@/pages/Analytics/Analytics',
     },
 
-    routes: [
-      { path: 'analytics', element: 'Analytics' },
-    ],
+    routes: [{ path: 'analytics', element: 'Analytics' }],
 
     configSchema: {
       type: 'object',
@@ -566,9 +560,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       path: '@/pages/Loyalty/LoyaltySettings',
     },
 
-    routes: [
-      { path: 'loyalty', element: 'LoyaltySettings' },
-    ],
+    routes: [{ path: 'loyalty', element: 'LoyaltySettings' }],
 
     configSchema: {
       type: 'object',
@@ -613,9 +605,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       path: '@/pages/Review/Reviews',
     },
 
-    routes: [
-      { path: 'reviews', element: 'Reviews' },
-    ],
+    routes: [{ path: 'reviews', element: 'Reviews' }],
 
     configSchema: {
       type: 'object',
@@ -704,9 +694,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       path: '@/pages/playtelecom/CommandCenter/CommandCenter',
     },
 
-    routes: [
-      { path: '', element: 'CommandCenter', index: true },
-    ],
+    routes: [{ path: '', element: 'CommandCenter', index: true }],
 
     configSchema: {
       type: 'object',
@@ -904,9 +892,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       path: '@/pages/playtelecom/Managers/ManagersDashboard',
     },
 
-    routes: [
-      { path: 'managers', element: 'ManagersDashboard', roles: [StaffRole.ADMIN, StaffRole.OWNER] },
-    ],
+    routes: [{ path: 'managers', element: 'ManagersDashboard', roles: [StaffRole.ADMIN, StaffRole.OWNER] }],
 
     configSchema: {
       type: 'object',
@@ -935,6 +921,55 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
     defaultNavItem: {
       label: 'Gerentes',
       icon: 'UserCog',
+    },
+  },
+
+  SALES_REPORT: {
+    code: 'SALES_REPORT',
+    name: 'Reporte de Ventas',
+    description: 'Reporte de ventas con evidencias de registro (proof of sale) y validación de transacciones',
+    category: 'analytics',
+    source: 'module_specific',
+
+    component: {
+      path: '@/pages/playtelecom/Sales/SalesReport',
+    },
+
+    routes: [{ path: 'sales', element: 'SalesReport' }],
+
+    configSchema: {
+      type: 'object',
+      properties: {
+        requireProofOfSale: {
+          type: 'boolean',
+          default: true,
+          title: 'Requerir evidencia de venta',
+          description: 'Obligar a adjuntar foto de evidencia en cada venta',
+        },
+        autoReconcile: {
+          type: 'boolean',
+          default: false,
+          title: 'Conciliación automática',
+          description: 'Marcar ventas como conciliadas automáticamente al validar ICCID',
+        },
+        showRevenueCharts: {
+          type: 'boolean',
+          default: true,
+          title: 'Mostrar gráficas de ingresos',
+          description: 'Mostrar tendencias de ingresos y volumen',
+        },
+        exportFormats: {
+          type: 'array',
+          default: ['csv', 'xlsx'],
+          title: 'Formatos de exportación',
+          description: 'Formatos disponibles para exportar reportes',
+        },
+      },
+    },
+
+    defaultNavItem: {
+      label: 'Reporte de Ventas',
+      icon: 'Receipt',
     },
   },
 

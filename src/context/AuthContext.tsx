@@ -30,7 +30,7 @@ interface AuthContextType {
   signup: (data: SignupData) => Promise<void>
   loginWithGoogle: () => Promise<void>
   loginWithOneTap: (credential: string) => Promise<void>
-  logout: () => void
+  logout: (returnTo?: string) => void // Optional returnTo for URL-based state (Stripe/GitHub pattern)
   switchVenue: (newVenueSlug: string) => Promise<void> // Para cambiar de venue por slug
   authorizeVenue: (venueSlug: string) => boolean
   checkVenueAccess: (venueSlug: string) => boolean
@@ -212,6 +212,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (isStatusLoading || !isAuthenticated || !user) return
 
     const userVenues = user.venues || []
+
+    // PRIORITY 1: URL-based returnTo parameter (Stripe/GitHub pattern)
+    // This is the industry-standard way to preserve navigation state across login
+    // Example: /login?returnTo=/invite/abc123 → after login → redirect to /invite/abc123
+    const searchParams = new URLSearchParams(location.search)
+    const returnTo = searchParams.get('returnTo')
+    if (returnTo && location.pathname === '/login') {
+      // Validate returnTo is a safe internal path (security: prevent open redirect)
+      if (returnTo.startsWith('/') && !returnTo.startsWith('//')) {
+        navigate(returnTo, { replace: true })
+        return
+      }
+    }
 
     // World-Class Pattern (Stripe/Shopify): OWNER without venues → redirect to onboarding
     // This handles the case where user verified email but hasn't completed onboarding yet
@@ -432,18 +445,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // FAANG Pattern: Optimistic Logout
   // Clean local state FIRST (always works), then notify server in background
   // This ensures user can always logout even if server is down
-  const logout = useCallback(async () => {
+  // Optional returnTo parameter enables URL-based state preservation (Stripe/GitHub pattern)
+  const logout = useCallback(async (returnTo?: string) => {
     // 1. Clear local state IMMEDIATELY (no server dependency)
     localStorage.removeItem('authToken')
     localStorage.removeItem('refreshToken')
     localStorage.removeItem('user')
     localStorage.removeItem('avoqado_current_venue_slug') // Clear saved venue to prevent cross-session bleed
+    // DEPRECATED: Remove legacy localStorage-based invitation flow
+    localStorage.removeItem('pendingInvitationUrl')
+    sessionStorage.removeItem('inviteRedirected')
     clearAllChatStorage()
     queryClient.clear()
     setActiveVenue(null)
 
-    // 2. Navigate to login (user is already "logged out" locally)
-    navigate('/login', { replace: true })
+    // 2. Navigate to login with optional returnTo (URL-based state - industry standard)
+    // This replaces the localStorage-based pattern with the Stripe/GitHub approach
+    const loginUrl = returnTo ? `/login?returnTo=${encodeURIComponent(returnTo)}` : '/login'
+    navigate(loginUrl, { replace: true })
 
     // 3. Notify server in background (non-blocking)
     try {

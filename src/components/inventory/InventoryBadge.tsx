@@ -1,4 +1,3 @@
-import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import type { Product } from '@/types'
 
@@ -10,15 +9,15 @@ interface InventoryBadgeProps {
 }
 
 /**
- * Inventory Badge Component - Toast POS Style
+ * Inventory Badge Component - Minimal Style
  *
  * Displays available quantity for products with inventory tracking.
  * Works for both QUANTITY (simple count) and RECIPE (calculated from ingredients).
  *
- * Color coding:
- * - Red: Out of stock (0)
- * - Orange: Low stock (1-5)
- * - Green: Normal stock (>5)
+ * Color coding (subtle):
+ * - Red text: Out of stock (0)
+ * - Amber text: Low stock
+ * - Muted text: Normal stock
  * - Hidden: No tracking enabled
  *
  * @example
@@ -32,7 +31,7 @@ interface InventoryBadgeProps {
 export function InventoryBadge({ product, onClick, className, size = 'default' }: InventoryBadgeProps) {
   // Don't show badge if inventory tracking is disabled
   if (!product.trackInventory) {
-    return null
+    return <span className="text-muted-foreground">—</span>
   }
 
   // For products with inventory tracking, treat null/undefined as 0
@@ -46,51 +45,39 @@ export function InventoryBadge({ product, onClick, className, size = 'default' }
   const defaultThreshold = product.inventoryMethod === 'RECIPE' ? 5 : (Number(product.inventory?.minimumStock ?? 10))
   const threshold = product.lowStockThreshold ?? defaultThreshold
 
-  // Determine badge styling based on stock level
+  // Determine styling based on stock level - subtle colors
   const getStyles = () => {
     if (quantity === 0) {
-      // Red - Out of stock
-      return {
-        variant: 'destructive' as const,
-        className: '',
-      }
+      // Out of stock - subtle red
+      return 'text-red-600 dark:text-red-400'
     }
     if (quantity <= threshold) {
-      // Orange - Low stock (configurable threshold)
-      return {
-        variant: 'secondary' as const,
-        className: 'bg-orange-500 text-primary-foreground hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700',
-      }
+      // Low stock - subtle amber
+      return 'text-amber-600 dark:text-amber-400'
     }
-    // Green - Normal stock
-    return {
-      variant: 'secondary' as const,
-      className: 'bg-green-500 text-primary-foreground hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700',
-    }
+    // Normal stock - default muted text
+    return 'text-foreground'
   }
-
-  const { variant, className: statusClassName } = getStyles()
 
   // Size classes
   const sizeClasses = {
-    sm: 'h-5 text-xs px-1.5',
-    default: 'h-6 text-sm px-2',
-    lg: 'h-7 text-base px-3',
+    sm: 'text-xs',
+    default: 'text-sm',
+    lg: 'text-base',
   }
 
   return (
-    <Badge
-      variant={variant}
+    <span
       className={cn(
-        'font-bold tabular-nums border-transparent shadow-sm',
+        'font-medium tabular-nums',
         sizeClasses[size],
-        statusClassName,
-        isClickable && 'cursor-pointer hover:opacity-80 transition-opacity',
+        getStyles(),
+        isClickable && 'cursor-pointer hover:underline transition-all',
         className,
       )}
       onClick={onClick}
     >
       {quantity}
-    </Badge>
+    </span>
   )
 }

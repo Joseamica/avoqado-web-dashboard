@@ -17,6 +17,8 @@ import {
   LogIn,
   Tablet,
   Store,
+  CreditCard,
+  UtensilsCrossed,
 } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -164,7 +166,7 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
     checked: boolean
     onCheckedChange: (checked: boolean) => void
   }) => (
-    <div className="flex items-center justify-between py-3 border-b last:border-b-0">
+    <div className="flex items-center justify-between py-3">
       <div className="flex items-start gap-3">
         <Icon className="h-5 w-5 text-muted-foreground mt-0.5" />
         <div>
@@ -199,7 +201,6 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className="px-4 pb-4 space-y-1">
-              <div className="h-px bg-border/50 mb-3" />
               <SettingRow
                 icon={Lightbulb}
                 label={t('tpvSettings.showTipScreen')}
@@ -222,7 +223,7 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
                 onCheckedChange={checked => handleToggle('showReceiptScreen', checked)}
               />
               {settings.showTipScreen && (
-                <div className="flex items-center justify-between py-3 border-b last:border-b-0">
+                <div className="flex items-center justify-between py-3">
                   <div className="flex items-start gap-3">
                     <Percent className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <div>
@@ -275,7 +276,6 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className="px-4 pb-4 space-y-1">
-              <div className="h-px bg-border/50 mb-3" />
               <SettingRow
                 icon={KeyRound}
                 label={t('tpvSettings.requirePinLogin')}
@@ -334,7 +334,6 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className="px-4 pb-4 space-y-1">
-              <div className="h-px bg-border/50 mb-3" />
               <SettingRow
                 icon={Camera}
                 label={t('tpvSettings.requireClockInPhoto')}
@@ -380,7 +379,6 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className="px-4 pb-4 space-y-1">
-              <div className="h-px bg-border/50 mb-3" />
               <SettingRow
                 icon={Tablet}
                 label={t('tpvSettings.kioskModeEnabled')}
@@ -389,7 +387,7 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
                 onCheckedChange={checked => handleToggle('kioskModeEnabled', checked)}
               />
               {settings.kioskModeEnabled && (
-                <div className="flex items-center justify-between py-3 border-b last:border-b-0">
+                <div className="flex items-center justify-between py-3">
                   <div className="flex items-start gap-3">
                     <Store className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <div>
@@ -416,6 +414,44 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
                   </Select>
                 </div>
               )}
+            </div>
+          </CollapsibleContent>
+        </GlassCard>
+      </Collapsible>
+
+      {/* Home Screen Section */}
+      <Collapsible defaultOpen>
+        <GlassCard className="mb-4">
+          <CollapsibleTrigger asChild>
+            <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/30 transition-colors rounded-2xl">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-gradient-to-br from-cyan-500/20 to-cyan-500/5">
+                  <Monitor className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-sm">{t('tpvSettings.homeScreenSection')}</h3>
+                  <p className="text-xs text-muted-foreground">{t('tpvSettings.homeScreenSectionDesc')}</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground transition-transform data-[state=open]:rotate-90" />
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="px-4 pb-4 space-y-1">
+              <SettingRow
+                icon={CreditCard}
+                label={t('tpvSettings.showQuickPayment')}
+                description={t('tpvSettings.showQuickPaymentDesc')}
+                checked={settings.showQuickPayment}
+                onCheckedChange={checked => handleToggle('showQuickPayment', checked)}
+              />
+              <SettingRow
+                icon={UtensilsCrossed}
+                label={t('tpvSettings.showOrderManagement')}
+                description={t('tpvSettings.showOrderManagementDesc')}
+                checked={settings.showOrderManagement}
+                onCheckedChange={checked => handleToggle('showOrderManagement', checked)}
+              />
             </div>
           </CollapsibleContent>
         </GlassCard>

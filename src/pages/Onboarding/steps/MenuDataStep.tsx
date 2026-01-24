@@ -36,7 +36,7 @@ interface MenuDataStepProps extends OnboardingStepProps {
 
 export function MenuDataStep({ onNext, onPrevious, onSkip, isFirstStep, onSave, initialValue }: MenuDataStepProps) {
   const { t } = useTranslation('onboarding')
-  const { t: tCommon } = useTranslation('common')
+  const { t: _tCommon } = useTranslation('common')
 
   const [method, setMethod] = useState<'manual' | 'csv'>(initialValue?.method || 'manual')
   const [categories, setCategories] = useState<MenuCategory[]>(initialValue?.categories || [])

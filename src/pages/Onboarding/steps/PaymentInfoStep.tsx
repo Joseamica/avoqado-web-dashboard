@@ -21,7 +21,7 @@ interface PaymentInfoStepProps extends OnboardingStepProps {
 
 export function PaymentInfoStep({ onNext, onPrevious, isFirstStep, onSave, initialValue, isLoading }: PaymentInfoStepProps) {
   const { t } = useTranslation('onboarding')
-  const { t: tCommon } = useTranslation('common')
+  const { t: _tCommon } = useTranslation('common')
 
   const [formData, setFormData] = useState<PaymentInfoData>(
     initialValue || {

@@ -194,6 +194,7 @@ export const FEATURE_ROUTE_MAP: Record<string, string> = {
   'PROMOTERS_AUDIT': 'promoters',
   'STORES_ANALYSIS': 'stores',
   'MANAGERS_DASHBOARD': 'managers',
+  'SALES_REPORT': 'sales',
   'APPRAISALS': 'appraisals',
   'CONSIGNMENT': 'consignment',
 }

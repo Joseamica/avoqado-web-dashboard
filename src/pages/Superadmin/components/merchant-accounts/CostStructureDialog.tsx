@@ -162,7 +162,7 @@ export const CostStructureDialog: React.FC<CostStructureDialogProps> = ({
           description: 'No se encontraron tasas para esta categoría. Puedes configurar manualmente.',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Error',

@@ -28,7 +28,7 @@ export function AdjustStockDialog({ open, onOpenChange, rawMaterial }: AdjustSto
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const { formatUnit, formatUnitWithQuantity } = useUnitTranslation()
+  const { formatUnit: _formatUnit, formatUnitWithQuantity } = useUnitTranslation()
 
   const {
     register,

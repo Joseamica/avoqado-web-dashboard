@@ -75,7 +75,7 @@ export default function InviteAccept() {
   const navigate = useNavigate()
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const { isAuthenticated, user, logout } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [invitationDetails, setInvitationDetails] = useState<InvitationDetails | null>(null)
@@ -185,6 +185,8 @@ export default function InviteAccept() {
       // Set flag to prevent showing DirectAcceptInvitation during auto-login
       setIsProcessingAutoLogin(true)
 
+      // Note: No localStorage cleanup needed - we use URL-based state now (Stripe/GitHub pattern)
+
       // SECURITY: Backend sets HTTP-only cookies for authentication
       // We no longer store tokens in localStorage (XSS vulnerability)
       // Just refresh the auth status to pick up the session from cookies
@@ -258,19 +260,35 @@ export default function InviteAccept() {
   }
 
   // Handle logout and continue with correct email
-  const handleLogoutAndContinue = () => {
-    // Save the current invitation URL to localStorage so we can return after logout
-    const currentPath = window.location.pathname
-    localStorage.setItem('pendingInvitationUrl', currentPath)
-
+  // FIXED: Navigate directly to invite page after logout (not to login page)
+  // This is important because new users don't have an account yet - they need
+  // to see the password creation form, not the login page
+  const handleLogoutAndContinue = async () => {
     // Show success message
     toast({
       title: t('emailMismatch.loggedOut'),
       description: t('emailMismatch.loggedOutDescription'),
     })
 
-    // Perform logout (will redirect to /login)
-    logout()
+    // Clear auth state manually (same as logout() but without navigation)
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('refreshToken')
+    localStorage.removeItem('user')
+    localStorage.removeItem('avoqado_current_venue_slug')
+    queryClient.clear()
+
+    // Call server logout in background (non-blocking)
+    try {
+      await api.post('/api/v1/dashboard/auth/logout')
+    } catch (error) {
+      console.warn('Server logout failed:', error)
+    }
+
+    // Reload the current invite page - now as logged out user
+    // This will show either:
+    // - Password form (new user)
+    // - "Login to accept" (existing user with password)
+    window.location.reload()
   }
 
   // Handle direct acceptance for users already logged in with matching email
@@ -282,6 +300,8 @@ export default function InviteAccept() {
       const response = await api.post(`/api/v1/invitations/${token}/accept`, {
         // Backend should detect existing session and just link the invitation
       })
+
+      // Note: No localStorage cleanup needed - we use URL-based state now (Stripe/GitHub pattern)
 
       toast({
         title: t('success.title'),
@@ -464,13 +484,16 @@ export default function InviteAccept() {
               </AlertDescription>
             </Alert>
             <Button
-              onClick={() => navigate('/login', {
-                state: {
-                  email: invitationDetails.email,
-                  returnTo: window.location.pathname,
-                  message: t('existingAccount.loginMessage', 'Inicia sesión para aceptar la invitación')
-                }
-              })}
+              onClick={() => {
+                // URL-based returnTo (Stripe/GitHub pattern) - AuthContext reads from URL params
+                const returnTo = encodeURIComponent(window.location.pathname)
+                navigate(`/login?returnTo=${returnTo}`, {
+                  state: {
+                    email: invitationDetails.email,
+                    message: t('existingAccount.loginMessage', 'Inicia sesión para aceptar la invitación')
+                  }
+                })
+              }}
               className="w-full"
             >
               {t('existingAccount.loginButton', 'Iniciar sesión y aceptar')}

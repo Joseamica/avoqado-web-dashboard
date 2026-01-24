@@ -6,14 +6,19 @@ and maintain visual coherence across the application.
 ## Table of Contents
 
 - [Pill-Style Tabs (MANDATORY)](#pill-style-tabs-mandatory)
+- [URL Hash-Based Tabs (MANDATORY)](#url-hash-based-tabs-mandatory)
 - [Stripe-Style Filters (MANDATORY)](#stripe-style-filters-mandatory)
+- [Clickable Elements Inside DataTable (MANDATORY)](#clickable-elements-inside-datatable-mandatory)
 - [Icon-Based Radio Group Selection](#icon-based-radio-group-selection)
 - [Horizontal Navigation (VenueEditLayout Pattern)](#horizontal-navigation-venueeditlayout-pattern)
 - [Multi-Step Wizard Dialog](#multi-step-wizard-dialog)
 - [Form Input Patterns](#form-input-patterns)
 - [Select/MultipleSelector Patterns](#selectmultipleselector-with-empty-state-and-create-button-mandatory)
+- [SearchableSelect Component](#searchable-dropdown-rule-mandatory)
 - [Searchable Multi-Select (Long Lists)](#searchable-multi-select-long-lists)
 - [Live Preview Layout (Bento Grid)](#live-preview-layout-bento-grid)
+- [Unit Translation (MANDATORY)](#unit-translation-mandatory)
+- [FullScreenModal (Table Detail View Pattern)](#fullscreenmodal-table-detail-view-pattern)
 
 ---
 
@@ -99,6 +104,129 @@ If you don't need count badges, simplify the trigger:
 - ✅ Page sections (Orders/History, Members/Invitations)
 - ✅ Detail views with multiple content sections
 - ❌ Do NOT use default Radix `TabsList` styling
+
+---
+
+## URL Hash-Based Tabs (MANDATORY)
+
+**⚠️ Tabs that represent page sections MUST persist state via URL hash** to survive page reloads and enable direct linking.
+
+**When to use:** Any page with tabs that users might want to bookmark, share, or return to after a reload.
+
+**Reference implementation:** `/src/pages/Commissions/CommissionsPage.tsx`, `/src/pages/Inventory/InventorySummary.tsx`
+
+### Why This Pattern?
+
+| Benefit | Description |
+|---------|-------------|
+| **Survives reload** | Tab state persists when user presses F5 or refreshes |
+| **Deep linking** | Users can share URLs like `/inventory/summary#recipe-based` |
+| **Browser history** | Back/forward buttons navigate between tabs |
+| **Bookmarks** | Users can bookmark specific tabs |
+
+### Code Example
+
+```typescript
+import { useState, useEffect } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+
+// Define valid tabs as const array for type safety
+const VALID_TABS = ['accounting', 'recipe-based'] as const
+type TabValue = typeof VALID_TABS[number]
+
+export default function InventorySummary() {
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  // Get tab from URL hash, default to first tab
+  const getTabFromHash = (): TabValue => {
+    const hash = location.hash.replace('#', '')
+    return VALID_TABS.includes(hash as TabValue) ? (hash as TabValue) : 'accounting'
+  }
+
+  const [activeTab, setActiveTab] = useState<TabValue>(getTabFromHash)
+
+  // Sync tab with URL hash on hash change (browser back/forward)
+  useEffect(() => {
+    const tabFromHash = getTabFromHash()
+    if (tabFromHash !== activeTab) {
+      setActiveTab(tabFromHash)
+    }
+  }, [location.hash])
+
+  // Update URL hash when tab changes
+  const handleTabChange = (value: string) => {
+    const tab = value as TabValue
+    setActiveTab(tab)
+    navigate(`${location.pathname}#${tab}`, { replace: true })
+  }
+
+  return (
+    <Tabs value={activeTab} onValueChange={handleTabChange}>
+      <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border">
+        <TabsTrigger value="accounting" className="...">
+          {t('inventory.accountingArticles')}
+          <span className="ml-2 ...">{accountingCount}</span>
+        </TabsTrigger>
+        <TabsTrigger value="recipe-based" className="...">
+          {t('inventory.recipeBased')}
+          <span className="ml-2 ...">{recipeCount}</span>
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="accounting">{/* Content */}</TabsContent>
+      <TabsContent value="recipe-based">{/* Content */}</TabsContent>
+    </Tabs>
+  )
+}
+```
+
+### Key Implementation Details
+
+| Aspect | Implementation |
+|--------|----------------|
+| **Type safety** | Use `as const` array + type to validate tab values |
+| **Default tab** | Return first valid tab if hash is invalid/empty |
+| **Hash sync** | `useEffect` syncs state when hash changes externally |
+| **Navigation** | `navigate(..., { replace: true })` prevents history spam |
+| **URL format** | `/venues/my-venue/inventory/summary#recipe-based` |
+
+### Common Mistakes
+
+```typescript
+// ❌ WRONG - Tab state lost on reload
+const [activeTab, setActiveTab] = useState('overview')
+
+<Tabs value={activeTab} onValueChange={setActiveTab}>
+  {/* Tab state lost when user presses F5 */}
+</Tabs>
+
+// ❌ WRONG - Missing hash sync for browser back/forward
+const [activeTab, setActiveTab] = useState(getTabFromHash())
+// User can't use browser back button to navigate tabs
+
+// ✅ CORRECT - Full implementation with hash sync
+const [activeTab, setActiveTab] = useState<TabValue>(getTabFromHash)
+
+useEffect(() => {
+  const tabFromHash = getTabFromHash()
+  if (tabFromHash !== activeTab) {
+    setActiveTab(tabFromHash)
+  }
+}, [location.hash])
+
+const handleTabChange = (value: string) => {
+  const tab = value as TabValue
+  setActiveTab(tab)
+  navigate(`${location.pathname}#${tab}`, { replace: true })
+}
+```
+
+### When NOT to Use
+
+- ❌ Tabs inside dialogs/modals (they close on navigation)
+- ❌ Ephemeral UI states (filters, collapsed sections)
+- ❌ Tabs that require form state preservation
 
 ---
 
@@ -530,6 +658,149 @@ const getFilterDisplayLabel = (selectedValues: string[], options: { value: strin
 - Checkboxes support Space to toggle
 - Focus traps work correctly in popovers
 - Clear button has aria-label for screen readers
+
+---
+
+## Clickable Elements Inside DataTable (MANDATORY)
+
+**⚠️ ALWAYS add underline styling to clickable elements inside DataTable cells to indicate interactivity. ALWAYS use `stopPropagation()` to prevent row click events.**
+
+**When to use:** Any clickable element inside a DataTable cell that performs an action different from the row click (e.g., opening a dialog, navigating to a sub-page, triggering a specific action).
+
+### Why This Pattern
+
+DataTable rows are often clickable themselves (to view details). When a cell contains an interactive element like a button or link that does something different:
+1. **Visual affordance**: Users need to know the element is clickable (underline indicates this)
+2. **Event isolation**: Clicking the element should NOT also trigger the row click (`stopPropagation()`)
+
+### Visual Specifications
+
+- **Underline**: Solid underline with offset (`underline underline-offset-4`)
+- **Decoration color**: Use 50% opacity for subtlety (`decoration-foreground/50` or `decoration-muted-foreground/50`)
+- **Cursor**: Always `cursor-pointer`
+- **No dotted underline**: Use solid underline, NOT `decoration-dotted`
+
+### Code Example - Clickable Values
+
+```typescript
+// In column definition
+{
+  accessorKey: 'currentStock',
+  header: t('columns.stock'),
+  cell: ({ row }) => {
+    const item = row.original
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={e => {
+          e.stopPropagation()  // ← CRITICAL: Prevents row click
+          setSelectedItem(item)
+          setDialogOpen(true)
+        }}
+        className="px-1"
+      >
+        <span className="text-sm font-semibold underline underline-offset-4 decoration-foreground/50 cursor-pointer">
+          {formatNumber(item.currentStock)}
+        </span>
+      </Button>
+    )
+  },
+},
+```
+
+### Code Example - Recipe Usage Button
+
+```typescript
+{
+  id: 'recipeUsage',
+  header: t('columns.usage'),
+  cell: ({ row }) => {
+    const material = row.original
+    const recipeCount = material.recipeCount || 0
+
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={e => {
+          e.stopPropagation()  // ← CRITICAL
+          setSelectedMaterial(material)
+          setRecipeUsageDialogOpen(true)
+        }}
+        className="gap-1 whitespace-nowrap px-1"
+      >
+        <ChefHat className="h-4 w-4 shrink-0" />
+        {recipeCount > 0 ? (
+          <span className="text-sm underline underline-offset-4 decoration-foreground/50">
+            {t('usage.inRecipes', { count: recipeCount })}
+          </span>
+        ) : (
+          <span className="text-sm text-muted-foreground underline underline-offset-4 decoration-muted-foreground/50">
+            {t('usage.notUsed')}
+          </span>
+        )}
+      </Button>
+    )
+  },
+},
+```
+
+### Key Classes Breakdown
+
+| Element | Classes | Purpose |
+|---------|---------|---------|
+| Active values | `underline underline-offset-4 decoration-foreground/50` | Visible underline with good spacing |
+| Muted values | `underline underline-offset-4 decoration-muted-foreground/50` | Subtle underline for secondary actions |
+| Button wrapper | `variant="ghost" size="sm" px-1` | Minimal styling, clickable area |
+
+### stopPropagation() Rule (CRITICAL)
+
+**⚠️ ALWAYS call `e.stopPropagation()` in the `onClick` handler of interactive elements inside DataTable cells.**
+
+```typescript
+// ❌ WRONG - Clicking button also triggers row click
+onClick={() => {
+  setDialogOpen(true)
+}}
+
+// ✅ CORRECT - Only button action fires
+onClick={e => {
+  e.stopPropagation()  // ← Add this FIRST
+  setDialogOpen(true)
+}}
+```
+
+**Why `stopPropagation()`?**
+- DataTable rows have their own click handlers (e.g., `onRowClick`)
+- Without it, clicking a cell button triggers BOTH the button action AND the row action
+- This causes confusing behavior (e.g., dialog opens AND navigation happens)
+
+### Real-World Usage
+
+**Examples in codebase:**
+
+- `/src/pages/Inventory/RawMaterials.tsx` (lines 478-530) - Stock values and recipe usage buttons
+
+**Where to apply:**
+
+- ✅ Stock/quantity values that open adjustment dialogs
+- ✅ Recipe usage indicators that open recipe lists
+- ✅ Status badges that open status change dialogs
+- ✅ Any cell value that triggers an action different from row click
+- ❌ Cell values that are purely display (no interaction)
+- ❌ Row actions in the "actions" column (those already have proper styling)
+
+### Checklist
+
+When adding clickable elements to DataTable cells:
+
+- [ ] Add `onClick` with `e.stopPropagation()` as first line
+- [ ] Add underline classes: `underline underline-offset-4 decoration-foreground/50`
+- [ ] Use `cursor-pointer` (usually inherited from Button)
+- [ ] Use `variant="ghost"` for Button wrapper to avoid visual clutter
+- [ ] Test that clicking the element does NOT also trigger row click
+- [ ] Use solid underline (NOT `decoration-dotted`)
 
 ---
 
@@ -1007,6 +1278,36 @@ src/pages/Feature/
 
 ## Form Input Patterns
 
+### Number Input Styling - Hide Spinners (MANDATORY)
+
+**⚠️ ALWAYS hide the spinner arrows on number inputs for a cleaner, more modern appearance.**
+
+Number inputs show increment/decrement arrows by default in most browsers. These should be hidden using Tailwind's arbitrary variant syntax.
+
+```typescript
+// ❌ WRONG - Shows spinner arrows
+<Input type="number" className="w-16" />
+
+// ✅ CORRECT - Hides spinner arrows
+<Input
+  type="number"
+  className="w-16 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+/>
+```
+
+**Classes breakdown:**
+- `[appearance:textfield]` - Hides spinners in Firefox
+- `[&::-webkit-outer-spin-button]:appearance-none` - Hides outer spinner in Chrome/Safari
+- `[&::-webkit-inner-spin-button]:appearance-none` - Hides inner spinner in Chrome/Safari
+
+**When to use:**
+- ✅ ALL number inputs in forms, tables, and dialogs
+- ✅ Quantity inputs in purchase orders, inventory
+- ✅ Price and numeric configuration fields
+- ❌ Never show spinner arrows (no exceptions)
+
+**Reference:** `/src/pages/Inventory/PurchaseOrders/components/LabelPrintDialog.tsx`
+
 ### Number Input with React Hook Form (CRITICAL)
 
 **⚠️ NEVER use `|| 0` or `{...field}` spread for number inputs** - this prevents users from clearing the field with backspace.
@@ -1449,3 +1750,843 @@ import { MultiSelectCombobox } from '@/components/multi-select-combobox'
 - ✅ Selecting items from a large catalog (Products, Ingredients)
 - ✅ Selecting categories or tags when there are many options
 - ✅ Any multi-select scenario where search is crucial
+
+---
+
+## Searchable Dropdown Rule (MANDATORY)
+
+**⚠️ MANDATORY: Dropdowns with more than 4 options MUST include a search/filter input.**
+
+**When to apply:**
+- ✅ Category selectors (typically 10-30 options)
+- ✅ Unit selectors (20+ measurement units)
+- ✅ Country/region selectors
+- ✅ Any dropdown with 5+ options
+
+**When NOT needed:**
+- ❌ Status filters (2-4 options: Active, Inactive, etc.)
+- ❌ Boolean selections (Yes/No, Enabled/Disabled)
+- ❌ Small fixed lists (payment methods, order types)
+
+### Preferred Approach: SearchableSelect Component
+
+**⚠️ USE THE REUSABLE COMPONENT** instead of implementing the Popover + Command pattern manually.
+
+```typescript
+import { SearchableSelect, type SearchableSelectOption } from '@/components/ui/searchable-select'
+
+// Transform options for SearchableSelect
+const categoryOptions = useMemo<SearchableSelectOption[]>(
+  () => CATEGORY_OPTIONS.map(cat => ({
+    value: cat.value,
+    label: t(`categories.${cat.value}`),
+    icon: cat.icon,  // Optional: supports React nodes
+  })),
+  [t]
+)
+
+// Usage
+<SearchableSelect
+  options={categoryOptions}
+  value={selectedCategory}
+  onValueChange={value => setValue('category', value)}
+  placeholder={t('selectCategory')}
+  searchPlaceholder={t('searchCategory')}
+  emptyMessage={t('noCategoryFound')}
+/>
+```
+
+**Component Props:**
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `options` | `SearchableSelectOption[]` | ✅ | Array of options with `value`, `label`, and optional `icon` |
+| `value` | `string` | ✅ | Current selected value |
+| `onValueChange` | `(value: string) => void` | ✅ | Callback when selection changes |
+| `placeholder` | `string` | | Placeholder when no selection |
+| `searchPlaceholder` | `string` | | Placeholder for search input |
+| `emptyMessage` | `string` | | Message when no results match search |
+| `className` | `string` | | Additional CSS classes for trigger button |
+| `disabled` | `boolean` | | Disable the dropdown |
+| `filterFn` | `(option, search) => boolean` | | Custom filter function (default: label search) |
+
+**Benefits:**
+- **Consistent UX**: Same look and behavior across the app
+- **Less code**: ~5 lines vs ~50 lines for manual implementation
+- **Built-in features**: Search, icons, scroll, modal support (for dialogs)
+- **Accessible**: Keyboard navigation, ARIA attributes
+
+**Reference:** `/src/components/ui/searchable-select.tsx`
+
+**Real-world usage:** `/src/pages/Inventory/components/RawMaterialDialog.tsx` (Category and Unit dropdowns)
+
+---
+
+### Manual Implementation (For Custom Cases)
+
+If you need custom behavior not supported by `SearchableSelect`, use `Popover` + `Command` + `ScrollArea`:
+
+```typescript
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Check, ChevronsUpDown } from 'lucide-react'
+
+const [open, setOpen] = useState(false)
+const [search, setSearch] = useState('')
+
+// Filter options based on search
+const filteredOptions = useMemo(() => {
+  if (!search) return options
+  return options.filter(option =>
+    option.label.toLowerCase().includes(search.toLowerCase())
+  )
+}, [options, search])
+
+<Popover open={open} onOpenChange={setOpen} modal={true}>
+  <PopoverTrigger asChild>
+    <Button
+      type="button"
+      variant="outline"
+      role="combobox"
+      aria-expanded={open}
+      className="w-full justify-between"
+    >
+      {selectedOption ? (
+        <span className="flex items-center gap-2">
+          {selectedOption.icon && <span>{selectedOption.icon}</span>}
+          <span>{selectedOption.label}</span>
+        </span>
+      ) : (
+        <span className="text-muted-foreground">{t('select')}</span>
+      )}
+      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+    </Button>
+  </PopoverTrigger>
+  <PopoverContent className="w-[300px] p-0" align="start">
+    <Command shouldFilter={false}>
+      <CommandInput
+        placeholder={t('search')}
+        value={search}
+        onValueChange={setSearch}
+      />
+      <CommandList>
+        <CommandEmpty>{t('noResults')}</CommandEmpty>
+        <ScrollArea className="h-[300px]">
+          <CommandGroup>
+            {filteredOptions.map(option => (
+              <CommandItem
+                key={option.value}
+                value={option.value}
+                onSelect={() => {
+                  setValue(option.value)
+                  setOpen(false)
+                  setSearch('')
+                }}
+                className="flex items-center gap-3 cursor-pointer"
+              >
+                <Check
+                  className={cn(
+                    'h-4 w-4',
+                    selectedValue === option.value ? 'opacity-100' : 'opacity-0'
+                  )}
+                />
+                {option.icon && <span>{option.icon}</span>}
+                <span>{option.label}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </ScrollArea>
+      </CommandList>
+    </Command>
+  </PopoverContent>
+</Popover>
+```
+
+### Key Points
+
+| Rule | Implementation |
+|------|----------------|
+| **When inside Dialog/Modal** | Use `modal={true}` on Popover |
+| **Filtering** | Use `shouldFilter={false}` on Command, filter manually with useMemo |
+| **Scroll support** | Wrap CommandGroup with `ScrollArea` |
+| **Selection indicator** | Use Check icon with conditional opacity |
+| **Clear on select** | Reset search to empty string after selection |
+
+### Real-World Usage
+
+**Examples in codebase:**
+- `/src/pages/Inventory/components/RawMaterialDialog.tsx` - Category and Unit searchable dropdowns
+
+---
+
+## Scrollable Select/Combobox with Mouse Wheel (CRITICAL)
+
+**⚠️ CRITICAL: When creating a Select or Combobox with scrollable options, you MUST use `ScrollArea` and `modal={true}` for mouse wheel scrolling to work.**
+
+### The Problem
+
+Radix UI's Popover component blocks mouse wheel scrolling when:
+1. The Popover is **inside a Dialog** (modal context)
+2. Using native CSS overflow (`overflow-y-auto`) instead of ScrollArea
+3. Using `modal={false}` (incorrect for nested modals)
+
+This is a known issue in Radix UI primitives that affects Command components inside Popovers within Dialogs.
+
+**User impact:** Users can only scroll by dragging the scrollbar, not with mouse wheel - very frustrating UX.
+
+### The Solution
+
+Use **two key fixes together**:
+
+1. **`modal={true}`** on the Popover (when inside Dialog)
+2. **`ScrollArea`** component from Radix UI (not CSS overflow)
+
+### Code Example - Material Combobox (Correct Pattern)
+
+```typescript
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Button } from '@/components/ui/button'
+import { Check, Search } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+interface ComboboxProps {
+  value: string
+  onChange: (value: string) => void
+  options: Array<{ id: string; name: string; unit: string }>
+  placeholder: string
+  emptyText: string
+}
+
+export function MaterialCombobox({ value, onChange, options, placeholder, emptyText }: ComboboxProps) {
+  const [open, setOpen] = useState(false)
+  const [searchValue, setSearchValue] = useState('')
+
+  const filteredOptions = useMemo(() => {
+    return options.filter((option) =>
+      option.name.toLowerCase().includes(searchValue.toLowerCase())
+    )
+  }, [options, searchValue])
+
+  const selectedOption = options.find((o) => o.id === value)
+
+  return (
+    {/* ✅ CRITICAL: modal={true} when Popover is inside Dialog */}
+    <Popover open={open} onOpenChange={setOpen} modal={true}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className={cn(
+            'w-full justify-between',
+            !value && 'text-muted-foreground'
+          )}
+        >
+          {selectedOption ? selectedOption.name : placeholder}
+          <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[300px] p-0" align="start">
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder={placeholder}
+            value={searchValue}
+            onValueChange={setSearchValue}
+          />
+          <CommandList>
+            <CommandEmpty>{emptyText}</CommandEmpty>
+            {/* ✅ CRITICAL: Use ScrollArea instead of overflow-y-auto div */}
+            <ScrollArea className="h-[300px]">
+              <CommandGroup>
+                {filteredOptions.map((option) => (
+                  <CommandItem
+                    key={option.id}
+                    value={option.id}
+                    onSelect={() => {
+                      onChange(option.id)
+                      setOpen(false)
+                      setSearchValue('')
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        'mr-2 h-4 w-4',
+                        option.id === value ? 'opacity-100' : 'opacity-0'
+                      )}
+                    />
+                    <div className="flex-1">
+                      <p className="font-medium">{option.name}</p>
+                      <p className="text-xs text-muted-foreground">{option.unit}</p>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </ScrollArea>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
+}
+```
+
+### ❌ Common Mistakes
+
+```typescript
+// ❌ WRONG - modal={false} doesn't work inside Dialog
+<Popover open={open} onOpenChange={setOpen} modal={false}>
+  <PopoverContent>
+    <Command>
+      <CommandList>
+        {/* ❌ WRONG - CSS overflow doesn't enable mouse wheel */}
+        <div className="max-h-[300px] overflow-y-auto">
+          <CommandGroup>
+            {/* items */}
+          </CommandGroup>
+        </div>
+      </CommandList>
+    </Command>
+  </PopoverContent>
+</Popover>
+
+// ❌ WRONG - No scrolling at all
+<Popover open={open} onOpenChange={setOpen}>
+  <PopoverContent>
+    <Command>
+      <CommandList className="max-h-[300px] overflow-y-auto">
+        {/* CommandList with overflow classes doesn't work */}
+        <CommandGroup>
+          {/* items */}
+        </CommandGroup>
+      </CommandList>
+    </Command>
+  </PopoverContent>
+</Popover>
+```
+
+### Why This Works
+
+According to [Radix UI documentation](https://github.com/radix-ui/primitives/issues/1159):
+
+1. **`modal={true}`**: When a Popover is inside a Dialog (which is modal), it needs to be modal too. This creates a new layer of modal interaction that maintains accessibility and allows proper event handling.
+
+2. **`ScrollArea`**: Radix UI's ScrollArea component properly handles wheel events, while native CSS `overflow` can be blocked by the portal system.
+
+3. **Portal behavior**: The combination prevents the Dialog's modal overlay from blocking scroll events on the nested Popover content.
+
+### Key Rules
+
+| Scenario | Popover modal prop | Scroll solution |
+|----------|-------------------|-----------------|
+| Popover inside Dialog | `modal={true}` ✅ | `ScrollArea` ✅ |
+| Popover standalone (not in Dialog) | `modal={false}` or omit | `ScrollArea` or CSS overflow |
+| Any long list in Command | N/A | Always use `ScrollArea` |
+
+### Real-World Usage
+
+**Examples in codebase:**
+
+- `/src/pages/Inventory/PurchaseOrders/components/PurchaseOrderWizard.tsx` - **Reference implementation** (Material combobox with mouse wheel scroll)
+
+**Where to apply:**
+
+- ✅ **ALWAYS** when creating Select/Combobox inside Dialog
+- ✅ **ALWAYS** when using Command component with long lists
+- ✅ Multi-select dropdowns in modal forms
+- ✅ Searchable selects in wizards
+
+**Checklist:**
+
+- [ ] Popover has `modal={true}` when inside Dialog
+- [ ] Long lists use `<ScrollArea className="h-[300px]">` wrapper
+- [ ] ScrollArea wraps CommandGroup, not CommandList
+- [ ] Tested mouse wheel scrolling works
+- [ ] No `overflow-y-auto` on divs inside Command
+
+### Related Issues & Sources
+
+This is a documented issue in the Radix UI ecosystem:
+
+- [CommandInput + scroll not working when inside a popover within a dialog](https://github.com/radix-ui/primitives/issues/3423) - Radix UI Primitives issue
+- [Dialog/Popover Scrolling issue when Popover inside Dialog](https://github.com/radix-ui/primitives/issues/1159) - Popover modal solution
+- [Can't scroll commandList inside a Dialog using mouse wheel](https://github.com/dip/cmdk/issues/272) - cmdk library issue
+- [Popover scrolling issue with mouse wheel](https://github.com/shadcn-ui/ui/discussions/4175) - shadcn/ui discussion
+- [Radix Popover + ScrollArea - CodeSandbox](https://codesandbox.io/s/radix-popover-scrollarea-fm9qyz) - Working example
+
+### Accessibility
+
+- Mouse wheel scrolling improves accessibility for users who can't easily drag scrollbars
+- ScrollArea component includes proper ARIA attributes
+- Keyboard navigation (Arrow keys) works independently of scroll method
+- Focus management works correctly with `modal={true}`
+
+---
+
+## Unit Translation (MANDATORY)
+
+**⚠️ ALWAYS translate unit enum values using `useUnitTranslation()` hook. NEVER display raw enum values (e.g., "KILOGRAM", "LITER") to users.**
+
+**When to use:** Any interface displaying measurement units from inventory raw materials, purchase orders, recipes, or stock movements.
+
+**Reference implementation:** `/src/pages/Inventory/RawMaterials.tsx` (line 55)
+
+### Why This Matters
+
+Users should see "kilogramos" or "kilograms" instead of "KILOGRAM". This improves UX by:
+- **Localized units**: Shows units in the user's language (Spanish/English)
+- **Professional appearance**: Avoids technical enum values in the UI
+- **Proper pluralization**: "1 kilogramo" vs "2 kilogramos"
+
+### The Hook
+
+```typescript
+import { useUnitTranslation } from '@/hooks/use-unit-translation'
+
+const { formatUnit, getShortLabel, getFullName, formatUnitWithQuantity } = useUnitTranslation()
+```
+
+### Available Functions
+
+| Function | Input | Output Example (ES) | Output Example (EN) | Use Case |
+|----------|-------|---------------------|---------------------|----------|
+| `formatUnit(unitEnum)` | `"KILOGRAM"` | `"kg (Kilogramo)"` | `"kg (Kilogram)"` | Labels with abbreviation |
+| `getShortLabel(unitEnum)` | `"KILOGRAM"` | `"kg"` | `"kg"` | Short form only |
+| `getFullName(unitEnum)` | `"KILOGRAM"` | `"kilogramo"` | `"kilogram"` | Full name only |
+| `formatUnitWithQuantity(qty, enum)` | `2, "KILOGRAM"` | `"kilogramos"` | `"kilograms"` | Full name with pluralization |
+| `formatUnitWithQuantity(qty, enum, true)` | `2, "KILOGRAM", true` | `"kgs"` | `"kgs"` | **Abbreviated** form with pluralization |
+
+### Code Examples
+
+#### ❌ WRONG - Raw enum displayed
+
+```typescript
+<TableCell>{item.quantityOrdered} {item.rawMaterial.unit}</TableCell>
+// Output: "2 KILOGRAM" ❌
+```
+
+#### ✅ CORRECT - With automatic pluralization (RECOMMENDED)
+
+```typescript
+const { formatUnitWithQuantity } = useUnitTranslation()
+
+<TableCell>{item.quantityOrdered} {formatUnitWithQuantity(item.quantityOrdered, item.rawMaterial.unit)}</TableCell>
+// Output: "1 kilogramo" ✅ or "2 kilogramos" ✅
+// Output: "1 kilogram" ✅ or "2 kilograms" ✅
+```
+
+#### ✅ CORRECT - Full name only (no pluralization)
+
+```typescript
+const { getFullName } = useUnitTranslation()
+
+<TableCell>{getFullName(item.rawMaterial.unit)}</TableCell>
+// Output: "kilogramo" ✅ (Spanish) or "kilogram" ✅ (English)
+// Use when displaying unit without quantity
+```
+
+#### ✅ CORRECT - Dialog with unit label (reactive pluralization)
+
+```typescript
+const { formatUnitWithQuantity } = useUnitTranslation()
+const [quantity, setQuantity] = useState(0)
+
+<div className="flex items-center gap-2">
+  <Input
+    type="number"
+    value={quantity}
+    onChange={(e) => setQuantity(Number(e.target.value))}
+  />
+  <span className="text-sm text-muted-foreground uppercase">
+    {rawMaterial.unit ? formatUnitWithQuantity(quantity, rawMaterial.unit) : ''}
+  </span>
+</div>
+// Shows "1 KILOGRAMO" or "2 KILOGRAMOS" reactively as user types ✅
+// Shows "1 KILOGRAM" or "2 KILOGRAMS" in English ✅
+```
+
+#### ✅ CORRECT - Abbreviated form for compact views (RECOMMENDED for tables)
+
+```typescript
+const { formatUnitWithQuantity } = useUnitTranslation()
+
+// In table "Cantidad" column
+<TableCell className="text-right">
+  {item.quantityOrdered} {formatUnitWithQuantity(item.quantityOrdered, item.rawMaterial.unit, true)}
+</TableCell>
+// Output: "2 kgs" ✅ or "1 kg" ✅ (Spanish)
+// Output: "2 kgs" ✅ or "1 kg" ✅ (English)
+
+// In dialog label next to input
+<div className="flex items-center gap-2">
+  <Input type="number" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} />
+  <span className="text-sm text-muted-foreground uppercase">
+    {formatUnitWithQuantity(quantity, rawMaterial.unit, true)}
+  </span>
+</div>
+// Output: "1 kg" or "2 kgs" reactively ✅
+```
+
+**When to use abbreviated form:**
+- ✅ Table columns with limited space (e.g., "Cantidad" column)
+- ✅ Dialog labels next to input fields
+- ✅ Compact views where full name would be too verbose
+- ❌ First-time user onboarding or configuration (use full name for clarity)
+
+### Real-World Usage
+
+**Examples in codebase:**
+
+- `/src/pages/Inventory/RawMaterials.tsx` (lines 482, 521) - **Reference implementation**
+- `/src/pages/Inventory/PurchaseOrders/PurchaseOrderDetailPage.tsx` (lines 449, 623, 627) - Purchase order receive dialog
+
+**Where to apply:**
+
+- ✅ Raw materials table (current stock, confirmed stock)
+- ✅ Purchase order items (quantity ordered/received)
+- ✅ Recipe ingredient lists
+- ✅ Stock adjustment dialogs
+- ✅ Stock movement history
+- ✅ Any UI displaying measurement units
+
+### Translation File Structure
+
+Units are translated in `/src/locales/[en|es]/inventory.json`:
+
+```json
+{
+  "units": {
+    "KILOGRAM": "kilogramo",
+    "KILOGRAM_plural": "kilogramos",
+    "KILOGRAM_abbr": "kg",
+    "KILOGRAM_abbr_plural": "kgs",
+    "LITER": "litro",
+    "LITER_plural": "litros",
+    "LITER_abbr": "L",
+    "LITER_abbr_plural": "L",
+    "UNIT": "unidad",
+    "UNIT_plural": "unidades",
+    "UNIT_abbr": "ud",
+    "UNIT_abbr_plural": "uds",
+    "GRAM": "gramo",
+    "GRAM_plural": "gramos",
+    "GRAM_abbr": "g",
+    "GRAM_abbr_plural": "gs"
+  }
+}
+```
+
+**Translation key patterns:**
+- `{UNIT}`: Full singular name (e.g., "kilogramo")
+- `{UNIT}_plural`: Full plural name (e.g., "kilogramos")
+- `{UNIT}_abbr`: Abbreviated singular (e.g., "kg")
+- `{UNIT}_abbr_plural`: Abbreviated plural (e.g., "kgs")
+
+### Checklist
+
+When displaying units in your component:
+
+- [ ] Import `useUnitTranslation()` hook
+- [ ] Use `formatUnitWithQuantity(qty, unit)` when displaying units WITH quantity (recommended)
+- [ ] Use `formatUnitWithQuantity(qty, unit, true)` for abbreviated form in compact views (tables, labels)
+- [ ] Use `getFullName(unit)` only when displaying unit WITHOUT quantity
+- [ ] Never display raw enum values like "KILOGRAM"
+- [ ] Test in both Spanish and English
+- [ ] Verify singular/plural forms work correctly:
+  - Full: "1 kilogramo" vs "2 kilogramos"
+  - Abbreviated: "1 kg" vs "2 kgs"
+
+### Common Mistakes
+
+❌ **Displaying enum directly**
+```typescript
+<span>{item.unit}</span> // Shows "KILOGRAM"
+```
+
+❌ **Hardcoding units**
+```typescript
+<span>kg</span> // Not localized
+```
+
+❌ **Wrong pluralization**
+```typescript
+<span>{qty} {unit}s</span> // "2 KILOGRAMs"
+```
+
+✅ **Correct approach (with pluralization)**
+```typescript
+const { formatUnitWithQuantity } = useUnitTranslation()
+<span>{qty} {formatUnitWithQuantity(qty, unit)}</span>
+// "1 kilogramo" or "2 kilogramos" ✅
+```
+
+---
+
+## FullScreenModal (Table Detail View Pattern)
+
+**When to use:** Instead of navigating from a table row to a detail route (e.g., `/promoters/:id`), use FullScreenModal to show detailed information in an overlay that slides up from the bottom.
+
+**Why this pattern:**
+- **Context preservation**: User stays on the same page, can easily close and continue browsing the table
+- **No route change**: Avoids additional navigation state, back button complexity
+- **Visual continuity**: Square-style UX where detail views feel like part of the current flow
+- **Mobile-friendly**: Slide-up animation is natural for mobile users
+
+**Pattern characteristics:**
+- Full-screen overlay covering everything (header, sidebar, content)
+- Slide-up animation from bottom to top (300ms)
+- Highest z-index (`z-[9999]`) to cover all UI elements
+- Sticky header with: close button (left), title (center), action buttons (right)
+- Scrollable content area
+- ESC key to close
+
+### Visual Specifications
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  [X Close]           Title                    [Save] [More]  │  ← Sticky header
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│                                                              │
+│                     Scrollable Content                       │
+│                                                              │
+│              (Charts, forms, details, etc.)                  │
+│                                                              │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- **Header Height**: 64px (`h-16`)
+- **Close Button**: 48x48px rounded-full (`h-12 w-12`), `variant="secondary"` (always shows hover state)
+- **Header Border**: Subtle border (`border-b border-border/30`)
+- **Animation**: `translate-y-full` → `translate-y-0` (300ms ease-out)
+- **Z-Index**: `z-[9999]` (covers everything)
+
+### When to Use FullScreenModal vs Route Navigation
+
+| Scenario | Pattern | Why |
+|----------|---------|-----|
+| **Table → Quick view** | FullScreenModal ✅ | User will return to table quickly |
+| **Table → Full edit page** | Route (`/:id`) | Complex editing with sub-navigation |
+| **Table → View + possible edit** | FullScreenModal ✅ | Keep context, show details first |
+| **Dashboard → Deep detail** | Route (`/:id`) | Needs URL sharing, bookmarking |
+| **Audit/Review workflows** | FullScreenModal ✅ | Review multiple items without losing place |
+
+### Code Example - Component Usage
+
+```typescript
+import { FullScreenModal } from '@/components/ui/full-screen-modal'
+import { Button } from '@/components/ui/button'
+import { useState } from 'react'
+
+export function MyTablePage() {
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
+
+  const handleRowClick = (item: Item) => {
+    setSelectedItem(item)
+    setModalOpen(true)
+  }
+
+  return (
+    <>
+      <DataTable
+        data={items}
+        columns={columns}
+        onRowClick={handleRowClick}
+      />
+
+      <FullScreenModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={selectedItem?.name || ''}
+        actions={
+          <>
+            <Button variant="outline" size="sm">
+              {t('export')}
+            </Button>
+            <Button size="sm">
+              {t('save')}
+            </Button>
+          </>
+        }
+      >
+        {selectedItem && (
+          <div className="p-6 max-w-7xl mx-auto space-y-6">
+            {/* Detail content: charts, info cards, forms, etc. */}
+            <PromoterCharts data={selectedItem} />
+            <DetailCards item={selectedItem} />
+          </div>
+        )}
+      </FullScreenModal>
+    </>
+  )
+}
+```
+
+### Component Props
+
+```typescript
+interface FullScreenModalProps {
+  /** Controls modal visibility */
+  open: boolean
+  /** Callback when modal should close (X button, ESC key) */
+  onClose: () => void
+  /** Title displayed in center of header */
+  title: string
+  /** Modal content */
+  children: React.ReactNode
+  /** Optional action buttons for the right side of the header */
+  actions?: React.ReactNode
+  /** Optional className for the content container */
+  contentClassName?: string
+}
+```
+
+### Component Implementation
+
+The component uses React Portal to render outside the DOM hierarchy, ensuring it covers all UI elements:
+
+```typescript
+import React, { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+
+export function FullScreenModal({
+  open,
+  onClose,
+  title,
+  children,
+  actions,
+  contentClassName,
+}: FullScreenModalProps) {
+  const [isVisible, setIsVisible] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+
+  useEffect(() => {
+    if (open) {
+      setIsVisible(true)
+      // Trigger animation after mount (next frame)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setIsAnimating(true)
+        })
+      })
+      document.body.style.overflow = 'hidden'
+    } else {
+      setIsAnimating(false)
+      // Wait for animation before unmounting
+      const timer = setTimeout(() => {
+        setIsVisible(false)
+        document.body.style.overflow = ''
+      }, 300)
+      return () => clearTimeout(timer)
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [open])
+
+  // ESC key handler
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && open) onClose()
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [open, onClose])
+
+  if (!isVisible) return null
+
+  return createPortal(
+    <div
+      className={cn(
+        'fixed inset-0 z-[9999] flex flex-col bg-background',
+        'transition-transform duration-300 ease-out',
+        isAnimating ? 'translate-y-0' : 'translate-y-full'
+      )}
+    >
+      {/* Header */}
+      <header className="sticky top-0 z-10 flex h-16 items-center justify-between bg-background px-4 border-b border-border/30">
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={onClose}
+          className="h-12 w-12 rounded-full"
+        >
+          <X className="h-6 w-6" />
+          <span className="sr-only">Cerrar</span>
+        </Button>
+
+        <h1 className="absolute left-1/2 -translate-x-1/2 text-lg font-semibold">
+          {title}
+        </h1>
+
+        <div className="flex items-center gap-2">
+          {actions}
+        </div>
+      </header>
+
+      {/* Content */}
+      <main className={cn('flex-1 overflow-y-auto', contentClassName)}>
+        {children}
+      </main>
+    </div>,
+    document.body
+  )
+}
+```
+
+### Key Implementation Details
+
+| Feature | Implementation | Why |
+|---------|----------------|-----|
+| **React Portal** | `createPortal(..., document.body)` | Renders outside React tree to cover sidebar/header |
+| **Double RAF** | `requestAnimationFrame` twice | Ensures DOM is ready before animation starts |
+| **Body scroll lock** | `document.body.style.overflow = 'hidden'` | Prevents background scrolling |
+| **Animation timing** | 300ms timeout matches CSS duration | Smooth unmount after exit animation |
+| **ESC key** | `document.addEventListener('keydown', ...)` | Standard modal UX |
+
+### Real-World Usage
+
+**Examples in codebase:**
+
+- `/src/components/ui/full-screen-modal.tsx` - **Component implementation**
+- `/src/pages/playtelecom/PromotersAudit/PromotersAuditPage.tsx` - **Reference usage** (promoter detail view)
+
+**Where to apply:**
+
+- ✅ Staff audit/attendance table → detail view
+- ✅ Transaction table → receipt/detail view
+- ✅ Order table → quick order review
+- ✅ Any table where clicking a row shows extended info
+- ❌ Complex edit flows requiring sub-navigation
+- ❌ Pages that need to be bookmarkable/shareable via URL
+- ❌ Multi-step wizards (use Dialog with steps instead)
+
+### Accessibility
+
+- **ESC key**: Closes modal (standard behavior)
+- **Focus trap**: Content is scrollable, header stays fixed
+- **Screen reader**: Close button has `sr-only` label
+- **Body scroll lock**: Prevents confusing scroll behavior
+- **High z-index**: Ensures modal is always on top
+
+### Migration Checklist
+
+When converting a `table → /:id` pattern to FullScreenModal:
+
+- [ ] Import `FullScreenModal` from `@/components/ui/full-screen-modal`
+- [ ] Add state: `const [selectedItem, setSelectedItem] = useState(null)`
+- [ ] Add state: `const [modalOpen, setModalOpen] = useState(false)`
+- [ ] Replace `clickableRow` with `onRowClick` handler
+- [ ] Move detail page content into `FullScreenModal` children
+- [ ] Add action buttons to `actions` prop if needed
+- [ ] Test ESC key closes modal
+- [ ] Test animation is smooth
+- [ ] Test scrolling works in content area

@@ -110,6 +110,9 @@ export const Recipes = lazyWithRetry(() => import('@/pages/Inventory/Recipes'))
 export const Pricing = lazyWithRetry(() => import('@/pages/Inventory/Pricing'))
 export const ModifierInventory = lazyWithRetry(() => import('@/pages/Inventory/ModifierInventory'))
 export const ModifierAnalytics = lazyWithRetry(() => import('@/pages/Inventory/ModifierAnalytics'))
+export const SuppliersPage = lazyWithRetry(() => import('@/pages/Inventory/Suppliers/SuppliersPage'))
+export const PurchaseOrdersPage = lazyWithRetry(() => import('@/pages/Inventory/PurchaseOrders/PurchaseOrdersPage'))
+export const PurchaseOrderDetailPage = lazyWithRetry(() => import('@/pages/Inventory/PurchaseOrders/PurchaseOrderDetailPage'))
 
 
 // Settings
@@ -170,7 +173,7 @@ export const PlayTelecomStock = lazyWithRetry(() => import('@/pages/playtelecom/
 export const PlayTelecomSales = lazyWithRetry(() => import('@/pages/playtelecom/Sales/SalesReport'))
 export const PlayTelecomStores = lazyWithRetry(() => import('@/pages/playtelecom/Stores/StoresAnalysis'))
 export const PlayTelecomManagers = lazyWithRetry(() => import('@/pages/playtelecom/Managers/ManagersDashboard'))
-export const PlayTelecomPromoters = lazyWithRetry(() => import('@/pages/playtelecom/Promoters/PromotersAudit'))
+export const PlayTelecomPromoters = lazyWithRetry(() => import('@/pages/playtelecom/PromotersAudit/PromotersAuditPage'))
 export const PlayTelecomUsers = lazyWithRetry(() => import('@/pages/playtelecom/Users/UsersManagement'))
 export const PlayTelecomTpvConfig = lazyWithRetry(() => import('@/pages/playtelecom/TpvConfig/TpvConfiguration'))
 

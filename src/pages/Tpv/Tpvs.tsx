@@ -191,7 +191,7 @@ export default function Tpvs() {
         title: 'Cuenta vinculada',
         description: 'La cuenta se ha asignado a la terminal',
       })
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -216,7 +216,7 @@ export default function Tpvs() {
         title: 'Cuenta desvinculada',
         description: 'La cuenta se ha removido de la terminal',
       })
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Error',

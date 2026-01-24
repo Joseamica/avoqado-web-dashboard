@@ -400,7 +400,7 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <Label>{t('recipes.ingredients.title')}</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={() => setAddIngredientOpen(true)}>
+                  <Button type="button" variant="ghost" size="sm" className="border border-border" onClick={() => setAddIngredientOpen(true)}>
                     <Plus className="h-4 w-4 mr-1" />
                     {t('recipes.addIngredient')}
                   </Button>

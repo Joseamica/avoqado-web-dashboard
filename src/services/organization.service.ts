@@ -365,3 +365,202 @@ export async function getVenueBenchmarks(
   const response = await api.get(url)
   return response.data
 }
+
+// =============================================================================
+// Organization Dashboard (PlayTelecom) Endpoints
+// =============================================================================
+
+export interface OnlineStaffMember {
+  staffId: string
+  staffName: string
+  venueId: string
+  venueName: string
+  clockInTime: string
+  role: string
+}
+
+export interface OnlineStaffResponse {
+  onlineCount: number
+  totalCount: number
+  percentageOnline: number
+  byVenue: Array<{
+    venueId: string
+    venueName: string
+    onlineCount: number
+    totalCount: number
+  }>
+  onlineStaff: OnlineStaffMember[]
+}
+
+/**
+ * Get online staff count and details (staff with active TimeEntry)
+ */
+export async function getOnlineStaff(orgId: string): Promise<OnlineStaffResponse> {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/staff/online`)
+  return response.data.data
+}
+
+export type ActivityType = 'sale' | 'checkin' | 'checkout' | 'gps_error' | 'alert' | 'other'
+export type ActivitySeverity = 'normal' | 'warning' | 'error'
+
+export interface ActivityEvent {
+  id: string
+  type: ActivityType
+  title: string
+  subtitle: string
+  timestamp: string
+  severity: ActivitySeverity
+  venueId: string
+  venueName: string
+  staffId?: string
+  staffName?: string
+  metadata?: Record<string, any>
+}
+
+export interface ActivityFeedResponse {
+  events: ActivityEvent[]
+  total: number
+}
+
+/**
+ * Get organization-wide activity feed (sales, check-ins, alerts)
+ */
+export async function getActivityFeed(orgId: string, limit: number = 50): Promise<ActivityFeedResponse> {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/activity-feed`, {
+    params: { limit },
+  })
+  return response.data.data
+}
+
+export interface StockStoreBreakdown {
+  storeId: string
+  storeName: string
+  available: number
+  value: number
+  alertLevel: 'OK' | 'WARNING' | 'CRITICAL'
+}
+
+export interface StockSummaryResponse {
+  totalPieces: number
+  totalValue: number
+  lowStockAlerts: number
+  criticalAlerts: number
+  storeBreakdown: StockStoreBreakdown[]
+}
+
+/**
+ * Get organization-wide stock summary
+ */
+export async function getStockSummary(orgId: string): Promise<StockSummaryResponse> {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/stock-summary`)
+  return response.data.data
+}
+
+export type AnomalyType = 'LOW_PERFORMANCE' | 'NO_CHECKINS' | 'LOW_STOCK' | 'PENDING_DEPOSITS'
+export type AnomalySeverity = 'CRITICAL' | 'WARNING' | 'INFO'
+
+export interface Anomaly {
+  id: string
+  type: AnomalyType
+  severity: AnomalySeverity
+  storeId: string
+  storeName: string
+  title: string
+  description: string
+}
+
+export interface AnomaliesResponse {
+  anomalies: Anomaly[]
+}
+
+/**
+ * Get cross-store operational anomalies
+ */
+export async function getAnomalies(orgId: string): Promise<AnomaliesResponse> {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/anomalies`)
+  return response.data.data
+}
+
+/**
+ * Chart data types
+ */
+export interface DayMetric {
+  day: string // e.g., "Lun", "Mar", "Mié"
+  date: string // ISO date
+  actual: number
+  target: number
+}
+
+export interface RevenueVsTargetResponse {
+  days: DayMetric[]
+  weekTotal: {
+    actual: number
+    target: number
+  }
+}
+
+export interface VolumeVsTargetResponse {
+  days: DayMetric[]
+  weekTotal: {
+    actual: number
+    target: number
+  }
+}
+
+/**
+ * Get revenue vs target chart data for current week
+ */
+export async function getRevenueVsTarget(orgId: string, venueId?: string): Promise<RevenueVsTargetResponse> {
+  const response = await api.get(
+    `/api/v1/dashboard/organizations/${orgId}/charts/revenue-vs-target`,
+    venueId ? { params: { venueId } } : undefined,
+  )
+  return response.data.data
+}
+
+/**
+ * Get volume vs target chart data for current week
+ */
+export async function getVolumeVsTarget(orgId: string, venueId?: string): Promise<VolumeVsTargetResponse> {
+  const response = await api.get(
+    `/api/v1/dashboard/organizations/${orgId}/charts/volume-vs-target`,
+    venueId ? { params: { venueId } } : undefined,
+  )
+  return response.data.data
+}
+
+/**
+ * Insights types
+ */
+export interface TopPromoterResponse {
+  staffId: string
+  staffName: string
+  venueId: string
+  venueName: string
+  salesCount: number
+}
+
+export interface WorstAttendanceResponse {
+  venueId: string
+  venueName: string
+  totalStaff: number
+  activeStaff: number
+  absences: number
+  attendanceRate: number
+}
+
+/**
+ * Get top promoter by sales count today
+ */
+export async function getTopPromoter(orgId: string): Promise<TopPromoterResponse | null> {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/insights/top-promoter`)
+  return response.data.data
+}
+
+/**
+ * Get worst attendance (store with lowest percentage of active staff)
+ */
+export async function getWorstAttendance(orgId: string): Promise<WorstAttendanceResponse | null> {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/insights/worst-attendance`)
+  return response.data.data
+}

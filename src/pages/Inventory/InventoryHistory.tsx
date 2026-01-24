@@ -3,13 +3,16 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { inventoryHistoryApi, GlobalInventoryMovement } from '@/services/inventory.service'
 import { useQuery } from '@tanstack/react-query'
 import { ColumnDef } from '@tanstack/react-table'
 import { format } from 'date-fns'
-import { ArrowDown, ArrowUp, Search, X } from 'lucide-react'
+import { es } from 'date-fns/locale'
+import { ArrowDown, ArrowUp, Search, X, Info } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FilterPill } from '@/components/filters/FilterPill'
@@ -22,60 +25,106 @@ import { Currency } from '@/utils/currency'
  * Translate common inventory adjustment reasons from English to Spanish
  * Handles both seed data and user-generated reasons
  */
-function translateReason(reason: string | null | undefined): string {
+function translateReason(reason: string | null | undefined, quantity?: number): string {
   if (!reason) return ''
-  
+
+  // Collapse sale reasons into a short, localized label.
+  if (/^sold\s+\d+x\s+/i.test(reason)) {
+    if (quantity === 1) return 'vendido'
+    if (typeof quantity === 'number') return 'vendidos'
+    return 'vendido'
+  }
+
   // Common translations mapping (short, concise labels)
   const translations: Record<string, string> = {
-    // Seed data
+    // Seed data / Initial stock
     'Stock inicial - Seed data': 'stock inicial',
     'Stock inicial - Demo venue': 'stock inicial',
     'Stock inicial': 'stock inicial',
+    'Initial stock': 'stock inicial',
+    'initial stock': 'stock inicial',
 
     // User-generated reasons (common patterns)
     'Stock Received': 'recibido',
     'Damaged Goods': 'dañado',
     'Lost Inventory': 'pérdida',
+    'Theft / Stolen': 'robo',
     'Manual adjustment from Inventory Summary': 'ajuste manual',
-    'adjustment': 'ajuste',
-    'ADJUSTMENT': 'ajuste',
-    'Adjustment': 'ajuste',
+    'Physical Count': 'reconteo',
+    adjustment: 'ajuste',
+    ADJUSTMENT: 'ajuste',
+    Adjustment: 'ajuste',
 
     // Movement types
-    'PURCHASE': 'recibido',
-    'COUNT': 'reconteo',
-    'LOSS': 'pérdida',
-    'USAGE': 'uso',
+    PURCHASE: 'recibido',
+    RECEIVED: 'recibido',
+    COUNT: 'reconteo',
+    LOSS: 'pérdida',
+    USAGE: 'uso',
+    SALE: 'venta',
+    RETURN: 'devolución',
+    TRANSFER: 'transferencia',
+    TRANSFER_IN: 'transferencia',
+    TRANSFER_OUT: 'transferencia',
+    WASTE: 'merma',
+    SPOILAGE: 'desperdicio',
 
     // Other common reasons
-    'theft': 'robo',
-    'spoilage': 'desperdicio',
-    'expired': 'expirado',
-    'damaged': 'dañado',
-    'lost': 'perdido',
-    'returned': 'devuelto',
+    'Customer Return': 'devolución',
+    'Supplier Return': 'devolución',
+    'Returned to supplier': 'devolución',
+    'Return to supplier': 'devolución',
+    theft: 'robo',
+    spoilage: 'desperdicio',
+    expired: 'expirado',
+    damaged: 'dañado',
+    lost: 'perdido',
+    returned: 'devolución',
   }
-  
+
   // Check for exact match first (case-sensitive for proper nouns)
   if (translations[reason]) {
     return translations[reason]
   }
-  
+
   // Check for case-insensitive match
   const lowerReason = reason.toLowerCase()
   const matchedKey = Object.keys(translations).find(key => key.toLowerCase() === lowerReason)
   if (matchedKey) {
     return translations[matchedKey]
   }
-  
+
   // Return original if no translation found
   return reason
+}
+
+const movementTypeLabel = (type: string) => {
+  const map: Record<string, string> = {
+    PURCHASE: 'Recibido',
+    RECEIVED: 'Recibido',
+    COUNT: 'Reconteo',
+    LOSS: 'Pérdida',
+    USAGE: 'Uso',
+    ADJUSTMENT: 'Ajuste',
+    RETURN: 'Devolución',
+    SALE: 'Venta',
+    TRANSFER: 'Transferencia',
+    TRANSFER_IN: 'Transferencia',
+    TRANSFER_OUT: 'Transferencia',
+    WASTE: 'Merma',
+    SPOILAGE: 'Desperdicio',
+  }
+  return map[type] || type
 }
 
 export default function InventoryHistory() {
   const { t } = useTranslation('inventory')
   const { venueId, venue } = useCurrentVenue()
-  const { formatUnitWithQuantity } = useUnitTranslation()
+  const { formatUnitWithQuantity: _formatUnitWithQuantity } = useUnitTranslation()
+
+  // Detail dialog state
+  const [selectedMovement, setSelectedMovement] = useState<GlobalInventoryMovement | null>(null)
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false)
 
   // Filters State - Multi-select arrays (ordered by column position)
   const [searchQuery, setSearchQuery] = useState('')
@@ -87,14 +136,7 @@ export default function InventoryHistory() {
   const [typeFilter, setTypeFilter] = useState<string[]>([])
 
   // Column visibility state
-  const [visibleColumns, setVisibleColumns] = useState<string[]>([
-    'createdAt',
-    'name',
-    'sku',
-    'provider',
-    'totalCost',
-    'adjustment',
-  ])
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(['createdAt', 'name', 'sku', 'provider', 'totalCost', 'adjustment'])
 
   // Fetch History Query
   const { data, isLoading } = useQuery({
@@ -106,14 +148,14 @@ export default function InventoryHistory() {
     enabled: !!venueId,
   })
 
-  const movements = (data as any)?.data || []
+  const movements = useMemo(() => (data as any)?.data || [], [data])
 
   // Extract unique filter options from data (ordered by column position)
   const typeOptions = useMemo(() => {
     const uniqueTypes = [...new Set(movements.map((m: GlobalInventoryMovement) => m.type))]
     return uniqueTypes.map(type => ({
       value: type as string,
-      label: type === 'PURCHASE' ? 'Recibido' : type === 'COUNT' ? 'Reconteo' : type === 'LOSS' ? 'Pérdida' : type === 'USAGE' ? 'Uso' : type === 'ADJUSTMENT' ? 'Ajuste' : type as string,
+      label: movementTypeLabel(type as string),
     }))
   }, [movements])
 
@@ -209,21 +251,31 @@ export default function InventoryHistory() {
         }
       }
 
-      // Total cost filter
+      // Total cost filter - only applies to PURCHASE/RECEIVED/COUNT movements
       if (totalCostFilter) {
-        const cost = movement.cost || 0
+        const movementType = (movement.type || '').toUpperCase()
+        const showCostTypes = ['PURCHASE', 'RECEIVED', 'COUNT']
+        if (!showCostTypes.includes(movementType)) {
+          return false // Exclude movements that don't show cost
+        }
+        const unitCost = movement.unitCost || movement.cost || 0
+        if (!unitCost) {
+          return false
+        }
+        const qty = movement.quantity ? Math.abs(movement.quantity) : Math.abs(movement.newStock - movement.previousStock)
+        const totalCost = movement.totalCost || qty * unitCost || 0
         switch (totalCostFilter.operator) {
           case 'gt':
-            if (cost <= (totalCostFilter.value || 0)) return false
+            if (totalCost <= (totalCostFilter.value || 0)) return false
             break
           case 'lt':
-            if (cost >= (totalCostFilter.value || 0)) return false
+            if (totalCost >= (totalCostFilter.value || 0)) return false
             break
           case 'eq':
-            if (cost !== (totalCostFilter.value || 0)) return false
+            if (totalCost !== (totalCostFilter.value || 0)) return false
             break
           case 'between':
-            if (cost < (totalCostFilter.value || 0) || cost > (totalCostFilter.value2 || 0)) return false
+            if (totalCost < (totalCostFilter.value || 0) || totalCost > (totalCostFilter.value2 || 0)) return false
             break
         }
       }
@@ -328,11 +380,7 @@ export default function InventoryHistory() {
         id: 'createdAt',
         accessorKey: 'createdAt',
         header: t('history.date', { defaultValue: 'Fecha' }),
-        cell: ({ row }) => (
-          <span className="font-semibold underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">
-           {format(new Date(row.original.createdAt), 'dd/MM/yy, HH:mm')}
-          </span>
-        ),
+        cell: ({ row }) => <span className="font-semibold">{format(new Date(row.original.createdAt), 'dd/MM/yy, HH:mm')}</span>,
       },
       {
         id: 'name',
@@ -361,8 +409,27 @@ export default function InventoryHistory() {
         accessorKey: 'totalCost',
         header: t('history.totalCost', { defaultValue: 'Coste total' }),
         cell: ({ row }) => {
-            const cost = (row.original as any).cost || 0
-            return <span className="font-medium">{cost > 0 ? `$${cost.toFixed(2)}` : '-'}</span>
+          const movement = row.original as any
+          const movementType = (movement.type || '').toUpperCase()
+
+          // Only show cost for:
+          // - PURCHASE/RECEIVED: acquisition cost
+          // - COUNT: value impact of recount adjustment
+          const showCostTypes = ['PURCHASE', 'RECEIVED', 'COUNT']
+          if (!showCostTypes.includes(movementType)) {
+            return <span className="text-muted-foreground">-</span>
+          }
+
+          const unitCost = movement.unitCost || movement.cost || 0
+          if (!unitCost) {
+            return <span className="text-muted-foreground">-</span>
+          }
+
+          // Calculate quantity for cost calculation
+          const qty = movement.quantity ? Math.abs(movement.quantity) : Math.abs(movement.newStock - movement.previousStock)
+
+          const totalCost = movement.totalCost || qty * unitCost
+          return <span className="font-medium">{totalCost > 0 ? Currency(totalCost) : '-'}</span>
         },
       },
       {
@@ -390,24 +457,15 @@ export default function InventoryHistory() {
           let reasonLabel = row.original.reason
           if (!reasonLabel) {
             // Only apply generic labels if no specific reason was provided
-            if (type === 'COUNT') reasonLabel = 'reconteo'
-            else if (type === 'PURCHASE') reasonLabel = 'recibido'
-            else if (type === 'LOSS') reasonLabel = 'pérdida'
-            else if (type === 'USAGE') reasonLabel = 'uso'
-            else if (type === 'ADJUSTMENT') reasonLabel = 'ajuste'
-            else reasonLabel = type.toLowerCase()
+            reasonLabel = movementTypeLabel(type).toLowerCase()
           } else {
             // Translate the reason to Spanish
-            reasonLabel = translateReason(reasonLabel)
+            reasonLabel = translateReason(reasonLabel, qty)
           }
 
           return (
             <div className="flex items-center gap-2">
-              {isPositive ? (
-                <ArrowUp className="h-4 w-4 text-foreground" />
-              ) : (
-                <ArrowDown className="h-4 w-4 text-foreground" />
-              )}
+              {isPositive ? <ArrowUp className="h-4 w-4 text-foreground" /> : <ArrowDown className="h-4 w-4 text-foreground" />}
               <span className="text-muted-foreground">
                 {qty} {reasonLabel}
               </span>
@@ -429,29 +487,27 @@ export default function InventoryHistory() {
       { id: 'totalCost', label: t('history.totalCost', { defaultValue: 'Coste total' }), visible: visibleColumns.includes('totalCost') },
       { id: 'adjustment', label: t('history.adjustment', { defaultValue: 'Ajuste' }), visible: visibleColumns.includes('adjustment') },
     ],
-    [t, visibleColumns]
+    [t, visibleColumns],
   )
 
   // Filter columns based on visibility
-  const filteredColumns = useMemo(
-    () => columns.filter(col => visibleColumns.includes(col.id as string)),
-    [columns, visibleColumns]
-  )
+  const filteredColumns = useMemo(() => columns.filter(col => visibleColumns.includes(col.id as string)), [columns, visibleColumns])
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-4">
       {/* Header */}
       <div className="flex items-center gap-2">
         <h1 className="text-2xl font-bold">{t('history.title', { defaultValue: 'Historial' })}</h1>
-        <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100 p-0 h-5 w-5 flex items-center justify-center rounded-full">
-            <span className="text-xs">★</span> 
+        <Badge
+          variant="secondary"
+          className="bg-blue-100 text-blue-700 hover:bg-blue-100 p-0 h-5 w-5 flex items-center justify-center rounded-full"
+        >
+          <span className="text-xs">★</span>
         </Badge>
       </div>
 
-      {/* Filters & Search */}
-      <div className="space-y-4">
-        {/* Filters Row */}
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
+      {/* Filters Row */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
           {/* Expandable Search Icon */}
           <div className="relative flex items-center">
             {isSearchOpen ? (
@@ -513,10 +569,7 @@ export default function InventoryHistory() {
             isActive={dateFilter !== null}
             onClear={() => setDateFilter(null)}
           >
-            <DateFilterContent
-              value={dateFilter}
-              onApply={setDateFilter}
-            />
+            <DateFilterContent value={dateFilter} onApply={setDateFilter} />
           </FilterPill>
 
           {/* 2. SKU (Column 3) */}
@@ -558,10 +611,7 @@ export default function InventoryHistory() {
             isActive={totalCostFilter !== null}
             onClear={() => setTotalCostFilter(null)}
           >
-            <AmountFilterContent
-              value={totalCostFilter}
-              onApply={setTotalCostFilter}
-            />
+            <AmountFilterContent value={totalCostFilter} onApply={setTotalCostFilter} />
           </FilterPill>
 
           {/* 5. Type (Adjustment column - last) */}
@@ -581,12 +631,7 @@ export default function InventoryHistory() {
 
           {/* Clear Filters Button */}
           {activeFiltersCount > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={resetFilters}
-              className="h-8 gap-1.5 rounded-full"
-            >
+            <Button variant="outline" size="sm" onClick={resetFilters} className="h-8 gap-1.5 rounded-full">
               <X className="h-3.5 w-3.5" />
               {t('filters.reset', { defaultValue: 'Borrar filtros' })}
             </Button>
@@ -594,31 +639,150 @@ export default function InventoryHistory() {
 
           {/* Action Buttons - Right Side */}
           <div className="ml-auto flex items-center gap-2">
-            <ColumnCustomizer
-              columns={columnOptions}
-              onApply={setVisibleColumns}
-            />
+            <ColumnCustomizer columns={columnOptions} onApply={setVisibleColumns} />
           </div>
         </div>
-      </div>
 
       {/* Table */}
-      <div className="rounded-none border-t border-border mt-6">
-        {/* We use standard shadcn table or custom one. Square's table is clean. */}
+      <div className="rounded-none border-border">
         {isLoading ? (
-            <div className="space-y-4 py-4">
-                 <Skeleton className="h-10 w-full" />
-                 <Skeleton className="h-10 w-full" />
-                 <Skeleton className="h-10 w-full" />
-            </div>
+          <div className="space-y-4 py-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
         ) : (
-             <DataTable
-                columns={filteredColumns}
-                data={filteredData}
-                rowCount={filteredData.length}
-            />
+          <DataTable
+            columns={filteredColumns}
+            data={filteredData}
+            rowCount={filteredData.length}
+            onRowClick={(movement) => {
+              setSelectedMovement(movement)
+              setDetailDialogOpen(true)
+            }}
+          />
         )}
       </div>
+
+      {/* Movement Detail Dialog - Square Style */}
+      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="text-center text-lg font-semibold">
+              {selectedMovement ? `Información de ${movementTypeLabel(selectedMovement.type).toLowerCase()}` : 'Detalles'}
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedMovement && (
+            <div className="space-y-6 pt-2">
+              {/* Details Grid */}
+              <div className="space-y-4">
+                {/* Fecha */}
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-muted-foreground">Fecha</span>
+                  <span className="text-sm text-foreground">
+                    {format(new Date(selectedMovement.createdAt), "EEEE d 'de' MMMM 'de' yyyy, HH:mm", { locale: es })}
+                  </span>
+                </div>
+
+                {/* Nombre */}
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-muted-foreground">Nombre</span>
+                  <span className="text-sm text-foreground">
+                    {selectedMovement.itemName || 'Sin nombre'}
+                  </span>
+                </div>
+
+                {/* SKU */}
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-muted-foreground">SKU</span>
+                  <span className="text-sm text-foreground">
+                    {selectedMovement.sku || '-'}
+                  </span>
+                </div>
+
+                {/* Punto de venta */}
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-muted-foreground">Punto de venta</span>
+                  <span className="text-sm text-foreground">
+                    {venue?.name || '-'}
+                  </span>
+                </div>
+
+                {/* Ajuste */}
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-muted-foreground">Ajuste</span>
+                  <span className="text-sm text-foreground">
+                    {(() => {
+                      const qty = Math.abs(selectedMovement.previousStock - selectedMovement.newStock)
+                      const isPositive = selectedMovement.newStock > selectedMovement.previousStock ||
+                        selectedMovement.type === 'PURCHASE'
+                      const reasonLabel = selectedMovement.reason
+                        ? translateReason(selectedMovement.reason, qty)
+                        : movementTypeLabel(selectedMovement.type).toLowerCase()
+
+                      // Format like Square: "10 recontado (menos que 42)"
+                      const direction = isPositive ? 'más que' : 'menos que'
+                      const previousValue = isPositive ? selectedMovement.previousStock : selectedMovement.previousStock
+
+                      return `${qty} ${reasonLabel} (${direction} ${previousValue})`
+                    })()}
+                  </span>
+                </div>
+
+                {/* Coste total - Only for PURCHASE/RECEIVED/COUNT */}
+                {['PURCHASE', 'RECEIVED', 'COUNT'].includes(selectedMovement.type.toUpperCase()) && (
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium text-muted-foreground">Coste total</span>
+                    <span className="text-sm text-foreground">
+                      {(() => {
+                        const movement = selectedMovement as any
+                        const unitCost = movement.unitCost || movement.cost || 0
+                        if (!unitCost) return '-'
+                        const qty = movement.quantity
+                          ? Math.abs(movement.quantity)
+                          : Math.abs(movement.newStock - movement.previousStock)
+                        const totalCost = movement.totalCost || (qty * unitCost)
+                        return totalCost > 0 ? Currency(totalCost) : '-'
+                      })()}
+                    </span>
+                  </div>
+                )}
+
+                {/* Proveedor - if available */}
+                {(selectedMovement as any).supplierName && (
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium text-muted-foreground">Proveedor</span>
+                    <span className="text-sm text-foreground">
+                      {(selectedMovement as any).supplierName}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Info Alert - For COUNT movements */}
+              {selectedMovement.type === 'COUNT' && (
+                <Alert className="bg-muted/50 border-muted">
+                  <Info className="h-4 w-4" />
+                  <AlertDescription className="text-sm">
+                    Los recuentos de existencias solo se pueden modificar si hay ajustes que aumenten el inventario. Esta acción disminuye el inventario.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Footer Button */}
+              <div className="flex justify-end pt-2">
+                <Button
+                  onClick={() => setDetailDialogOpen(false)}
+                  className="px-6"
+                >
+                  Listo
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

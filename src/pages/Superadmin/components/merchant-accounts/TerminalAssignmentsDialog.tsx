@@ -78,7 +78,7 @@ export const TerminalAssignmentsDialog: React.FC<TerminalAssignmentsDialogProps>
         title: 'Terminal desvinculada',
         description: 'La cuenta se ha removido de la terminal exitosamente',
       })
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -113,7 +113,7 @@ export const TerminalAssignmentsDialog: React.FC<TerminalAssignmentsDialogProps>
       })
       setShowAddForm(false)
       setSelectedTerminalId('')
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Error',

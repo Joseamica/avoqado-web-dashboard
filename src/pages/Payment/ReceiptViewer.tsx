@@ -3,6 +3,7 @@
  * Uses the new ModernReceiptDesign component for a beautiful, responsive experience
  */
 
+import { useEffect } from 'react'
 import api from '@/api'
 import { useQuery } from '@tanstack/react-query'
 import { useParams, useSearchParams } from 'react-router-dom'
@@ -18,8 +19,11 @@ export default function ReceiptViewer() {
   const { receiptId, accessKey } = useParams<{ receiptId?: string; accessKey?: string }>()
   const [searchParams] = useSearchParams()
   const { toast } = useToast()
-  const { t } = useTranslation('payment')
+  const { t, i18n } = useTranslation('payment')
   const { venueId } = useCurrentVenue()
+
+  // Check for language override via ?lang=es query param
+  const langParam = searchParams.get('lang')
 
   // Check if this is a refund receipt (indicated by ?refund=true query param)
   const isRefund = searchParams.get('refund') === 'true'
@@ -63,6 +67,25 @@ export default function ReceiptViewer() {
     enabled: !!identifier,
     retry: 2,
   })
+
+  // Apply language override for public receipt pages via ?lang=es param
+  useEffect(() => {
+    if (langParam && ['es', 'en'].includes(langParam) && i18n.language !== langParam) {
+      i18n.changeLanguage(langParam)
+    }
+  }, [langParam, i18n])
+
+  // Auto-detect language from venue country (for public receipts without lang param)
+  useEffect(() => {
+    if (!langParam && isPublicView && receipt?.dataSnapshot?.venue?.country) {
+      const country = receipt.dataSnapshot.venue.country.toLowerCase()
+      // Spanish-speaking countries
+      const spanishCountries = ['mx', 'mexico', 'méxico', 'es', 'spain', 'españa', 'ar', 'argentina', 'co', 'colombia', 'cl', 'chile', 'pe', 'peru', 'perú']
+      if (spanishCountries.some(c => country.includes(c)) && i18n.language !== 'es') {
+        i18n.changeLanguage('es')
+      }
+    }
+  }, [langParam, isPublicView, receipt?.dataSnapshot?.venue?.country, i18n])
 
   // Transform any query errors into a readable message
   const error = queryError

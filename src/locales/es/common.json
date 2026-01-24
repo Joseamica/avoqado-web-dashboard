@@ -70,9 +70,19 @@
   "logout": "Cerrar sesión",
   "compare": "Comparar",
   "apply": "Aplicar",
+  "clear": "Limpiar",
   "selectPlaceholder": "Selecciona una opción",
+  "filters": {
+    "min": "Mínimo",
+    "max": "Máximo",
+    "clearAll": "Limpiar filtros"
+  },
   "descending": "Descendente",
   "ascending": "Ascendente",
+  "sortAZ": "Nombre A → Z",
+  "sortZA": "Nombre Z → A",
+  "sortPriceAsc": "Precio menor a mayor",
+  "sortPriceDesc": "Precio mayor a menor",
   "actions": "Acciones",
   "comingSoon": "Próximamente",
   "dismiss": "Descartar",
@@ -488,5 +498,7 @@
     "description": "Ha ocurrido un error inesperado. Por favor, intenta de nuevo.",
     "goHome": "Ir al inicio",
     "retry": "Reintentar"
-  }
+  },
+  "yes": "Sí",
+  "no": "No"
 }

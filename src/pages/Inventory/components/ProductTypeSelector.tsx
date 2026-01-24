@@ -12,7 +12,7 @@ interface ProductTypeSelectorProps {
 }
 
 export function ProductTypeSelector({ selectedType, onSelect }: ProductTypeSelectorProps) {
-  const { t } = useTranslation()
+  const { t: _t } = useTranslation()
 
   const types = [
     {

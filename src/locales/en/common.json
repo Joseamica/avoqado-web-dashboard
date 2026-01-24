@@ -70,9 +70,19 @@
   "logout": "Logout",
   "compare": "Compare",
   "apply": "Apply",
+  "clear": "Clear",
   "selectPlaceholder": "Select an option",
+  "filters": {
+    "min": "Minimum",
+    "max": "Maximum",
+    "clearAll": "Clear filters"
+  },
   "descending": "Descending",
   "ascending": "Ascending",
+  "sortAZ": "Name A → Z",
+  "sortZA": "Name Z → A",
+  "sortPriceAsc": "Price low to high",
+  "sortPriceDesc": "Price high to low",
   "actions": "Actions",
   "comingSoon": "Coming Soon",
   "dismiss": "Dismiss",
@@ -485,5 +495,7 @@
     "description": "An unexpected error has occurred. Please try again.",
     "goHome": "Go to home",
     "retry": "Retry"
-  }
+  },
+  "yes": "Yes",
+  "no": "No"
 }

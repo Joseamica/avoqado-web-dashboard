@@ -40,11 +40,18 @@ export function useUnitTranslation() {
   )
 
   /**
-   * Get just the short label (kg, L, ml, etc.)
+   * Get just the short label (kg, lt, ml, etc.) using translations
    */
-  const getShortLabel = useCallback((unitEnum: string): string => {
-    return getUnitLabel(unitEnum)
-  }, [])
+  const getShortLabel = useCallback(
+    (unitEnum: string): string => {
+      if (!unitEnum) return ''
+      // Try to get translated abbreviation, fallback to static label
+      const translatedAbbr = t(`units.${unitEnum}_abbr`, { defaultValue: '' })
+      if (translatedAbbr) return translatedAbbr
+      return getUnitLabel(unitEnum)
+    },
+    [t],
+  )
 
   /**
    * Get just the translated full name (Kilogramo, Litro, etc.)
@@ -60,19 +67,22 @@ export function useUnitTranslation() {
    * Format a unit with quantity, handling pluralization
    * @param quantity - The quantity value
    * @param unitEnum - The unit enum value (e.g., 'KILOGRAM', 'LITER')
-   * @returns Formatted string like "304 Unidades" or "1 Unidad"
+   * @param abbreviated - Whether to use abbreviated form (e.g., "kg" instead of "kilogramo"). Defaults to true for compact display.
+   * @returns Formatted string like "kgs" (abbreviated, default) or "kilogramos" (full name)
    */
   const formatUnitWithQuantity = useCallback(
-    (quantity: number, unitEnum: string): string => {
+    (quantity: number, unitEnum: string, abbreviated: boolean = true): string => {
       if (!unitEnum) return ''
 
       const isPlural = quantity !== 1
-      const translationKey = isPlural ? `units.${unitEnum}_plural` : `units.${unitEnum}`
+      const suffix = abbreviated ? '_abbr' : ''
+      const pluralSuffix = isPlural ? '_plural' : ''
+      const translationKey = `units.${unitEnum}${suffix}${pluralSuffix}`
 
-      // Try to get plural translation, fallback to singular with 's' added
+      // Try to get translation, fallback to singular with 's' added
       const translatedName = isPlural
-        ? t(translationKey, t(`units.${unitEnum}`) + 's') // Fallback: add 's' to singular
-        : t(`units.${unitEnum}`, unitEnum)
+        ? t(translationKey, t(`units.${unitEnum}${suffix}`) + 's') // Fallback: add 's' to singular
+        : t(`units.${unitEnum}${suffix}`, unitEnum)
 
       return translatedName
     },

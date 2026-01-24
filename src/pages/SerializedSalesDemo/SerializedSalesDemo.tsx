@@ -137,7 +137,7 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 }
 
 export default function SerializedSalesDemo() {
-  const { t } = useTranslation()
+  const { t: _t } = useTranslation()
   const { venueId } = useCurrentVenue()
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('today')

@@ -315,7 +315,7 @@ const ModuleManagement: React.FC = () => {
         defaultConfig: parsedDefaultConfig,
         presets: parsedPresets,
       })
-    } catch (e) {
+    } catch (_e) {
       toast({
         title: 'Error de JSON',
         description: 'Verifica que la configuración y presets sean JSON válido.',
@@ -340,7 +340,7 @@ const ModuleManagement: React.FC = () => {
           presets: parsedPresets,
         },
       })
-    } catch (e) {
+    } catch (_e) {
       toast({
         title: 'Error de JSON',
         description: 'Verifica que la configuración y presets sean JSON válido.',

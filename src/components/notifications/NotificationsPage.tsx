@@ -29,7 +29,7 @@ interface NotificationsPageProps {
 export function NotificationsPage({ className }: NotificationsPageProps) {
   const { t } = useTranslation(['notifications', 'common'])
   const navigate = useNavigate()
-  const { venueSlug, fullBasePath } = useCurrentVenue()
+  const { venueSlug: _venueSlug, fullBasePath } = useCurrentVenue()
   const {
     notifications,
     unreadCount,

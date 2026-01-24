@@ -35,11 +35,7 @@ interface ModuleProtectedRouteProps {
   permission?: string
 }
 
-export function ModuleProtectedRoute({
-  requiredModule,
-  allowedRoles,
-  permission,
-}: ModuleProtectedRouteProps) {
+export function ModuleProtectedRoute({ requiredModule, allowedRoles, permission: _permission }: ModuleProtectedRouteProps) {
   const { checkModuleAccess, activeVenue, staffInfo, user, isLoading } = useAuth()
   const location = useLocation()
   const { slug } = useParams<{ slug: string }>()
@@ -99,24 +95,12 @@ export function ModuleProtectedRoute({
 
   // Redirect to venue home if module is not enabled
   if (!hasModuleAccess) {
-    return (
-      <Navigate
-        to={`/venues/${slug || activeVenue?.slug}/home`}
-        replace
-        state={{ from: location.pathname }}
-      />
-    )
+    return <Navigate to={`/venues/${slug || activeVenue?.slug}/home`} replace state={{ from: location.pathname }} />
   }
 
   // Redirect to playtelecom root if role is not allowed
   if (!hasRoleAccess) {
-    return (
-      <Navigate
-        to={`/venues/${slug || activeVenue?.slug}/playtelecom`}
-        replace
-        state={{ from: location.pathname }}
-      />
-    )
+    return <Navigate to={`/venues/${slug || activeVenue?.slug}/playtelecom`} replace state={{ from: location.pathname }} />
   }
 
   // Module is enabled and role is allowed - render nested routes

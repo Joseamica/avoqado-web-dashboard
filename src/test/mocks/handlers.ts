@@ -18,6 +18,9 @@ export const mockStore = {
   costStructures: new Map<string, any>(),
   venueConfigs: new Map<string, any>(),
   providers: new Map<string, any>(),
+  suppliers: new Map<string, any>(),
+  purchaseOrders: new Map<string, any>(),
+  supplierPricing: new Map<string, any>(),
 
   // Reset all stores
   reset() {
@@ -25,6 +28,9 @@ export const mockStore = {
     this.terminals.clear()
     this.costStructures.clear()
     this.venueConfigs.clear()
+    this.suppliers.clear()
+    this.purchaseOrders.clear()
+    this.supplierPricing.clear()
     merchantAccountIdCounter = 1
     terminalIdCounter = 1
     costStructureIdCounter = 1
@@ -168,11 +174,367 @@ export function createMockVenueConfig(merchantAccountId: string, venueId: string
   return config
 }
 
+export function createMockSupplier(overrides: Partial<any> = {}) {
+  const id = `sup_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  const supplier = {
+    id,
+    venueId: 'test-venue-id',
+    name: 'Test Supplier',
+    contactName: 'John Doe',
+    email: 'john@supplier.com',
+    phone: '+1234567890',
+    website: null,
+    address: null,
+    city: null,
+    state: null,
+    country: null,
+    zipCode: null,
+    taxId: null,
+    leadTimeDays: null,
+    minimumOrder: null,
+    rating: 4.5,
+    reliabilityScore: 0.95,
+    active: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    ...overrides,
+  }
+  mockStore.suppliers.set(id, supplier)
+  return supplier
+}
+
+export function createMockPurchaseOrder(overrides: Partial<any> = {}) {
+  const id = `po_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  const orderNumber = `PO${Date.now()}`
+  const po = {
+    id,
+    venueId: 'test-venue-id',
+    supplierId: 'sup_123',
+    orderNumber,
+    orderDate: new Date().toISOString(),
+    expectedDeliveryDate: null,
+    status: 'DRAFT',
+    subtotal: '100.00',
+    taxRate: 0.16,
+    taxAmount: '16.00',
+    total: '116.00',
+    notes: null,
+    createdById: 'user_123',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    supplier: null,
+    items: [],
+    ...overrides,
+  }
+  mockStore.purchaseOrders.set(id, po)
+  return po
+}
+
+// ============================================================================
+// SUPPLIERS HANDLERS
+// ============================================================================
+
+export const suppliersHandlers = [
+  // GET /suppliers
+  http.get(`${BASE_URL}/api/v1/dashboard/venues/:venueId/inventory/suppliers`, ({ params, request }) => {
+    const url = new URL(request.url)
+    const active = url.searchParams.get('active')
+    const search = url.searchParams.get('search')
+
+    let suppliers = Array.from(mockStore.suppliers.values()).filter(
+      (s) => s.venueId === params.venueId
+    )
+
+    // Apply active filter
+    if (active !== null) {
+      suppliers = suppliers.filter((s) => s.active === (active === 'true'))
+    }
+
+    // Apply search filter (case-insensitive name match)
+    if (search) {
+      suppliers = suppliers.filter((s) =>
+        s.name.toLowerCase().includes(search.toLowerCase())
+      )
+    }
+
+    return HttpResponse.json({ success: true, data: suppliers })
+  }),
+
+  // GET /suppliers/:id
+  http.get(
+    `${BASE_URL}/api/v1/dashboard/venues/:venueId/inventory/suppliers/:supplierId`,
+    ({ params }) => {
+      const supplier = mockStore.suppliers.get(params.supplierId as string)
+      if (!supplier) {
+        return HttpResponse.json({ success: false, error: 'Supplier not found' }, { status: 404 })
+      }
+      return HttpResponse.json({ success: true, data: supplier })
+    }
+  ),
+
+  // POST /suppliers
+  http.post(
+    `${BASE_URL}/api/v1/dashboard/venues/:venueId/inventory/suppliers`,
+    async ({ request, params }) => {
+      const body = (await request.json()) as any
+      const supplier = createMockSupplier({ ...body, venueId: params.venueId })
+      return HttpResponse.json({ success: true, data: supplier }, { status: 201 })
+    }
+  ),
+
+  // PUT /suppliers/:id
+  http.put(
+    `${BASE_URL}/api/v1/dashboard/venues/:venueId/inventory/suppliers/:supplierId`,
+    async ({ request, params }) => {
+      const body = (await request.json()) as any
+      const existing = mockStore.suppliers.get(params.supplierId as string)
+      if (!existing) {
+        return HttpResponse.json({ success: false, error: 'Supplier not found' }, { status: 404 })
+      }
+      const updated = { ...existing, ...body, updatedAt: new Date().toISOString() }
+      mockStore.suppliers.set(params.supplierId as string, updated)
+      return HttpResponse.json({ success: true, data: updated })
+    }
+  ),
+
+  // DELETE /suppliers/:id
+  http.delete(
+    `${BASE_URL}/api/v1/dashboard/venues/:venueId/inventory/suppliers/:supplierId`,
+    ({ params }) => {
+      const deleted = mockStore.suppliers.delete(params.supplierId as string)
+      if (!deleted) {
+        return HttpResponse.json({ success: false, error: 'Supplier not found' }, { status: 404 })
+      }
+      return HttpResponse.json({ success: true, message: 'Supplier deleted' })
+    }
+  ),
+
+  // POST /suppliers/:id/pricing
+  http.post(
+    `${BASE_URL}/api/v1/dashboard/venues/:venueId/inventory/suppliers/:supplierId/pricing`,
+    async ({ request, params }) => {
+      const body = (await request.json()) as any
+      const pricing = {
+        id: `pricing_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        supplierId: params.supplierId,
+        ...body,
+      }
+      mockStore.supplierPricing.set(pricing.id, pricing)
+      return HttpResponse.json({ success: true, data: pricing }, { status: 201 })
+    }
+  ),
+
+  // GET /raw-materials/:id/supplier-pricing
+  http.get(
+    `${BASE_URL}/api/v1/dashboard/venues/:venueId/inventory/raw-materials/:rawMaterialId/supplier-pricing`,
+    ({ params }) => {
+      const pricings = Array.from(mockStore.supplierPricing.values()).filter(
+        (p) => p.rawMaterialId === params.rawMaterialId
+      )
+      return HttpResponse.json({ success: true, data: pricings })
+    }
+  ),
+
+  // GET /raw-materials/:id/supplier-recommendations
+  http.get(
+    `${BASE_URL}/api/v1/dashboard/venues/:venueId/inventory/raw-materials/:rawMaterialId/supplier-recommendations`,
+    () => {
+      return HttpResponse.json({
+        success: true,
+        data: [
+          {
+            supplierId: 'sup_rec_1',
+            supplierName: 'Recommended Supplier 1',
+            unitPrice: 2.5,
+            rating: 4.8,
+          },
+        ],
+      })
+    }
+  ),
+
+  // GET /suppliers/:id/performance
+  http.get(
+    `${BASE_URL}/api/v1/dashboard/venues/:venueId/inventory/suppliers/:supplierId/performance`,
+    () => {
+      return HttpResponse.json({
+        success: true,
+        data: {
+          totalOrders: 10,
+          completedOrders: 8,
+          cancelledOrders: 1,
+          totalSpent: 5000.0,
+          averageLeadTime: 7,
+          onTimeDeliveryRate: 0.9,
+          lastOrderDate: new Date().toISOString(),
+        },
+      })
+    }
+  ),
+]
+
+// ============================================================================
+// PURCHASE ORDERS HANDLERS
+// ============================================================================
+
+export const purchaseOrdersHandlers = [
+  // GET /purchase-orders
+  http.get(
+    `${BASE_URL}/api/v1/dashboard/venues/:venueId/inventory/purchase-orders`,
+    ({ params, request }) => {
+      const url = new URL(request.url)
+      const supplierId = url.searchParams.get('supplierId')
+
+      let orders = Array.from(mockStore.purchaseOrders.values()).filter(
+        (po) => po.venueId === params.venueId
+      )
+
+      // Apply status filter (can be array of statuses)
+      // Axios sends arrays as status[]=value1&status[]=value2 or status=value1&status=value2
+      const statusValues = url.searchParams.getAll('status[]').length > 0
+        ? url.searchParams.getAll('status[]')
+        : url.searchParams.getAll('status')
+
+      if (statusValues.length > 0) {
+        orders = orders.filter((po) => statusValues.includes(po.status))
+      }
+
+      // Apply supplier filter
+      if (supplierId) {
+        orders = orders.filter((po) => po.supplierId === supplierId)
+      }
+
+      return HttpResponse.json({ success: true, data: orders })
+    }
+  ),
+
+  // GET /purchase-orders/stats (MUST come before /:poId to avoid matching "stats" as ID)
+  http.get(
+    `${BASE_URL}/api/v1/dashboard/venues/:venueId/inventory/purchase-orders/stats`,
+    () => {
+      return HttpResponse.json({
+        success: true,
+        data: {
+          totalOrders: 25,
+          draftOrders: 5,
+          pendingOrders: 10,
+          completedOrders: 8,
+          cancelledOrders: 2,
+          totalSpent: 15000.0,
+        },
+      })
+    }
+  ),
+
+  // GET /purchase-orders/:id
+  http.get(
+    `${BASE_URL}/api/v1/dashboard/venues/:venueId/inventory/purchase-orders/:poId`,
+    ({ params }) => {
+      const order = mockStore.purchaseOrders.get(params.poId as string)
+      if (!order) {
+        return HttpResponse.json(
+          { success: false, error: 'Purchase order not found' },
+          { status: 404 }
+        )
+      }
+      return HttpResponse.json({ success: true, data: order })
+    }
+  ),
+
+  // POST /purchase-orders
+  http.post(
+    `${BASE_URL}/api/v1/dashboard/venues/:venueId/inventory/purchase-orders`,
+    async ({ request, params }) => {
+      const body = (await request.json()) as any
+      const order = createMockPurchaseOrder({ ...body, venueId: params.venueId })
+      return HttpResponse.json({ success: true, data: order }, { status: 201 })
+    }
+  ),
+
+  // PUT /purchase-orders/:id
+  http.put(
+    `${BASE_URL}/api/v1/dashboard/venues/:venueId/inventory/purchase-orders/:poId`,
+    async ({ request, params }) => {
+      const body = (await request.json()) as any
+      const existing = mockStore.purchaseOrders.get(params.poId as string)
+      if (!existing) {
+        return HttpResponse.json(
+          { success: false, error: 'Purchase order not found' },
+          { status: 404 }
+        )
+      }
+      const updated = { ...existing, ...body, updatedAt: new Date().toISOString() }
+      mockStore.purchaseOrders.set(params.poId as string, updated)
+      return HttpResponse.json({ success: true, data: updated })
+    }
+  ),
+
+  // POST /purchase-orders/:id/approve
+  http.post(
+    `${BASE_URL}/api/v1/dashboard/venues/:venueId/inventory/purchase-orders/:poId/approve`,
+    ({ params }) => {
+      const order = mockStore.purchaseOrders.get(params.poId as string)
+      if (!order) {
+        return HttpResponse.json(
+          { success: false, error: 'Purchase order not found' },
+          { status: 404 }
+        )
+      }
+      order.status = 'APPROVED'
+      order.updatedAt = new Date().toISOString()
+      return HttpResponse.json({ success: true, data: order })
+    }
+  ),
+
+  // POST /purchase-orders/:id/receive
+  http.post(
+    `${BASE_URL}/api/v1/dashboard/venues/:venueId/inventory/purchase-orders/:poId/receive`,
+    async ({ request, params }) => {
+      const body = (await request.json()) as any
+      const order = mockStore.purchaseOrders.get(params.poId as string)
+      if (!order) {
+        return HttpResponse.json(
+          { success: false, error: 'Purchase order not found' },
+          { status: 404 }
+        )
+      }
+      order.status = body.partial ? 'PARTIALLY_RECEIVED' : 'RECEIVED'
+      order.updatedAt = new Date().toISOString()
+      return HttpResponse.json({ success: true, data: order })
+    }
+  ),
+
+  // POST /purchase-orders/:id/cancel
+  http.post(
+    `${BASE_URL}/api/v1/dashboard/venues/:venueId/inventory/purchase-orders/:poId/cancel`,
+    async ({ request, params }) => {
+      const body = (await request.json()) as any
+      const order = mockStore.purchaseOrders.get(params.poId as string)
+      if (!order) {
+        return HttpResponse.json(
+          { success: false, error: 'Purchase order not found' },
+          { status: 404 }
+        )
+      }
+      order.status = 'CANCELLED'
+      order.notes = body.reason
+      order.updatedAt = new Date().toISOString()
+      return HttpResponse.json({ success: true, data: order })
+    }
+  ),
+]
+
 // ============================================================================
 // API HANDLERS
 // ============================================================================
 
 export const handlers = [
+  // --------------------------------------------------------------------------
+  // Suppliers & Purchase Orders
+  // --------------------------------------------------------------------------
+  ...suppliersHandlers,
+  ...purchaseOrdersHandlers,
+
   // --------------------------------------------------------------------------
   // Payment Providers
   // --------------------------------------------------------------------------

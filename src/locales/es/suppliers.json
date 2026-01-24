@@ -1,0 +1,62 @@
+{
+  "title": "Proveedores",
+  "subtitle": "Gestiona tus proveedores y su información de contacto",
+  "create": "Crear Proveedor",
+  "edit": "Editar Proveedor",
+  "save": "Guardar",
+  "cancel": "Cancelar",
+  "columns": {
+    "name": "Nombre",
+    "contact": "Contacto",
+    "phone": "Teléfono",
+    "email": "Email",
+    "status": "Estado"
+  },
+  "statuses": {
+    "active": "Activo",
+    "inactive": "Inactivo"
+  },
+  "fields": {
+    "name": "Nombre del Proveedor",
+    "namePlaceholder": "Ingresa el nombre del proveedor",
+    "contactName": "Persona de Contacto",
+    "contactNamePlaceholder": "Ingresa el nombre de la persona de contacto",
+    "phone": "Número de Teléfono",
+    "phonePlaceholder": "+52 55 1234 5678",
+    "email": "Email",
+    "emailPlaceholder": "contacto@proveedor.com",
+    "zipCode": "Código Postal",
+    "zipCodePlaceholder": "12345",
+    "notes": "Notas",
+    "notesPlaceholder": "Notas adicionales sobre este proveedor"
+  },
+  "validation": {
+    "nameRequired": "El nombre del proveedor es requerido",
+    "emailInvalid": "Dirección de email inválida"
+  },
+  "search": {
+    "placeholder": "Buscar por nombre..."
+  },
+  "filters": {
+    "status": "Estado",
+    "selected": "seleccionados",
+    "clearAll": "Limpiar todos los filtros"
+  },
+  "delete": {
+    "success": "Proveedor eliminado exitosamente",
+    "error": "Error al eliminar el proveedor",
+    "confirm": {
+      "title": "Eliminar Proveedor",
+      "description": "¿Estás seguro de que deseas eliminar a {{name}}? Esta acción no se puede deshacer.",
+      "action": "Eliminar"
+    }
+  },
+  "createMessages": {
+    "success": "Proveedor creado exitosamente",
+    "error": "Error al crear el proveedor"
+  },
+  "updateMessages": {
+    "success": "Proveedor actualizado exitosamente",
+    "error": "Error al actualizar el proveedor"
+  }
+}
