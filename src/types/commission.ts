@@ -425,3 +425,34 @@ export interface MyCommissionsResponse {
 	stats: StaffCommissionStats
 	tierProgress: StaffTierProgress | null
 }
+
+// ============================================
+// Sales Goal Types
+// ============================================
+
+export type SalesGoalPeriod = 'DAILY' | 'WEEKLY' | 'MONTHLY'
+
+export interface SalesGoal {
+	id: string
+	venueId: string
+	staffId: string | null // null = venue-wide goal
+	goal: number
+	period: SalesGoalPeriod
+	currentSales: number
+	active: boolean
+	createdAt: string
+	updatedAt: string
+	staff?: StaffBasic | null
+}
+
+export interface CreateSalesGoalInput {
+	staffId?: string | null
+	goal: number
+	period: SalesGoalPeriod
+}
+
+export interface UpdateSalesGoalInput {
+	goal?: number
+	period?: SalesGoalPeriod
+	active?: boolean
+}

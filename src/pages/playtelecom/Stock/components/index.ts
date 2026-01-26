@@ -1,3 +1,5 @@
 export { StockVsSalesChart } from './StockVsSalesChart'
 export { LowStockAlerts } from './LowStockAlerts'
 export { BulkUploadSection } from './BulkUploadSection'
+export { CategoryManagement } from './CategoryManagement'
+export { BulkUploadDialog } from './BulkUploadDialog'

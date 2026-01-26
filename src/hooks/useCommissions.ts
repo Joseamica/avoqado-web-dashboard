@@ -14,6 +14,8 @@ import type {
 	CommissionFilters,
 	SummaryFilters,
 	PayoutFilters,
+	CreateSalesGoalInput,
+	UpdateSalesGoalInput,
 } from '@/types/commission'
 
 // ============================================
@@ -51,6 +53,9 @@ export const commissionKeys = {
 	// Payment Commission
 	paymentCommission: (venueId: string | null, paymentId: string) =>
 		[...commissionKeys.all, 'payment', venueId, paymentId] as const,
+	// Sales Goals
+	goals: (venueId: string | null) => [...commissionKeys.all, 'goals', venueId] as const,
+	goal: (venueId: string | null, goalId: string) => [...commissionKeys.goals(venueId), goalId] as const,
 }
 
 // ============================================
@@ -703,6 +708,87 @@ export function useGenerateSummaries() {
 	})
 }
 
+// ============================================
+// SALES GOAL HOOKS
+// ============================================
+
+/**
+ * Hook for fetching all sales goals for a venue
+ */
+export function useSalesGoals(includeInactive: boolean = false) {
+	const { venueId } = useCurrentVenue()
+
+	return useQuery({
+		queryKey: [...commissionKeys.goals(venueId), { includeInactive }],
+		queryFn: () => commissionService.getSalesGoals(venueId!, includeInactive),
+		enabled: !!venueId,
+		staleTime: 2 * 60 * 1000, // 2 minutes
+		gcTime: 10 * 60 * 1000,
+	})
+}
+
+/**
+ * Hook for fetching a single sales goal
+ */
+export function useSalesGoal(goalId: string | undefined) {
+	const { venueId } = useCurrentVenue()
+
+	return useQuery({
+		queryKey: commissionKeys.goal(venueId, goalId || ''),
+		queryFn: () => commissionService.getSalesGoal(venueId!, goalId!),
+		enabled: !!venueId && !!goalId,
+		staleTime: 2 * 60 * 1000,
+		gcTime: 10 * 60 * 1000,
+	})
+}
+
+/**
+ * Hook for creating a sales goal
+ */
+export function useCreateSalesGoal() {
+	const { venueId } = useCurrentVenue()
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: (data: CreateSalesGoalInput) => commissionService.createSalesGoal(venueId!, data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: commissionKeys.goals(venueId) })
+		},
+	})
+}
+
+/**
+ * Hook for updating a sales goal
+ */
+export function useUpdateSalesGoal() {
+	const { venueId } = useCurrentVenue()
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: ({ goalId, data }: { goalId: string; data: UpdateSalesGoalInput }) =>
+			commissionService.updateSalesGoal(venueId!, goalId, data),
+		onSuccess: (_, { goalId }) => {
+			queryClient.invalidateQueries({ queryKey: commissionKeys.goals(venueId) })
+			queryClient.invalidateQueries({ queryKey: commissionKeys.goal(venueId, goalId) })
+		},
+	})
+}
+
+/**
+ * Hook for deleting a sales goal
+ */
+export function useDeleteSalesGoal() {
+	const { venueId } = useCurrentVenue()
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: (goalId: string) => commissionService.deleteSalesGoal(venueId!, goalId),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: commissionKeys.goals(venueId) })
+		},
+	})
+}
+
 export default {
 	commissionKeys,
 	useCommissionConfigs,
@@ -744,4 +830,9 @@ export default {
 	useCommissionByPayment,
 	useCalculateCommission,
 	useGenerateSummaries,
+	useSalesGoals,
+	useSalesGoal,
+	useCreateSalesGoal,
+	useUpdateSalesGoal,
+	useDeleteSalesGoal,
 }

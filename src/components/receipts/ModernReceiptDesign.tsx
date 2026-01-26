@@ -26,6 +26,7 @@ import {
   Check,
   AlertCircle,
   RotateCcw,
+  Bitcoin,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
@@ -203,19 +204,32 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
     }
   }
 
-  const formatPaymentMethod = (method: string, cardBrand?: string, maskedPan?: string) => {
+  const formatPaymentMethod = (method: string, cardBrand?: string, maskedPan?: string, processorData?: any) => {
     const methods = {
       CASH: { text: t('receipt.methods.CASH'), icon: '💵' },
       CREDIT_CARD: { text: t('receipt.methods.CREDIT_CARD'), icon: '💳' },
       DEBIT_CARD: { text: t('receipt.methods.DEBIT_CARD'), icon: '💳' },
       DIGITAL_WALLET: { text: t('receipt.methods.DIGITAL_WALLET'), icon: '📱' },
       BANK_TRANSFER: { text: t('receipt.methods.BANK_TRANSFER'), icon: '🏦' },
+      CRYPTOCURRENCY: { text: t('receipt.methods.CRYPTOCURRENCY'), icon: '₿' },
     }
 
     const methodInfo = methods[method as keyof typeof methods] || { text: method, icon: '💳' }
 
     if ((method === 'CREDIT_CARD' || method === 'DEBIT_CARD') && maskedPan) {
       return `${methodInfo.icon} ${methodInfo.text} •••• ${maskedPan.slice(-4)}`
+    }
+
+    // For crypto payments, show the crypto currency and amount
+    if (method === 'CRYPTOCURRENCY' && processorData) {
+      const cryptoCurrency = processorData.cryptoCurrency || processorData.currency || ''
+      const cryptoAmount = processorData.cryptoAmount
+      if (cryptoCurrency && cryptoAmount) {
+        return `${methodInfo.icon} ${cryptoAmount} ${cryptoCurrency.toUpperCase()}`
+      }
+      if (cryptoCurrency) {
+        return `${methodInfo.icon} ${methodInfo.text} (${cryptoCurrency.toUpperCase()})`
+      }
     }
 
     return `${methodInfo.icon} ${methodInfo.text}`
@@ -501,18 +515,20 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
               </div>
 
               {/* Payment Method */}
-              <div className={`p-4 rounded-xl ${isRefund ? 'bg-linear-to-r from-red-50 dark:from-red-950/30 to-red-50/50 dark:to-red-950/20' : 'bg-linear-to-r from-muted/50 to-muted/30'}`}>
+              <div className={`p-4 rounded-xl ${isRefund ? 'bg-linear-to-r from-red-50 dark:from-red-950/30 to-red-50/50 dark:to-red-950/20' : payment?.method === 'CRYPTOCURRENCY' ? 'bg-linear-to-r from-orange-50 dark:from-orange-950/30 to-orange-50/50 dark:to-orange-950/20' : 'bg-linear-to-r from-muted/50 to-muted/30'}`}>
                 <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-full shadow-sm flex items-center justify-center ${isRefund ? 'bg-red-100 dark:bg-red-900/50' : 'bg-background'}`}>
+                  <div className={`w-12 h-12 rounded-full shadow-sm flex items-center justify-center ${isRefund ? 'bg-red-100 dark:bg-red-900/50' : payment?.method === 'CRYPTOCURRENCY' ? 'bg-orange-100 dark:bg-orange-900/50' : 'bg-background'}`}>
                     {isRefund ? (
                       <RotateCcw className="w-6 h-6 text-red-600 dark:text-red-400" />
+                    ) : payment?.method === 'CRYPTOCURRENCY' ? (
+                      <Bitcoin className="w-6 h-6 text-orange-600 dark:text-orange-400" />
                     ) : (
                       <CreditCard className="w-6 h-6 text-primary" />
                     )}
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-lg">
-                      {formatPaymentMethod(payment?.method || '', payment?.cardBrand, payment?.maskedPan)}
+                      {formatPaymentMethod(payment?.method || '', payment?.cardBrand, payment?.maskedPan, payment?.processorData)}
                     </p>
                     <div className="flex items-center gap-2 mt-1">
                       <div className={`w-2 h-2 rounded-full ${isRefund ? 'bg-red-500' : payment?.status === 'COMPLETED' ? 'bg-green-500' : 'bg-amber-500'}`} />

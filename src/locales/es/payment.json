@@ -59,6 +59,7 @@
     "debitCard": "Tarjeta de Débito",
     "digitalWallet": "Monedero Digital",
     "bankTransfer": "Transferencia Bancaria",
+    "cryptocurrency": "Criptomoneda",
     "other": "Otro"
   },
   "statuses": {
@@ -92,7 +93,8 @@
       "CREDIT_CARD": "Tarjeta de crédito",
       "DEBIT_CARD": "Tarjeta de débito",
       "DIGITAL_WALLET": "Billetera digital",
-      "BANK_TRANSFER": "Transferencia bancaria"
+      "BANK_TRANSFER": "Transferencia bancaria",
+      "CRYPTOCURRENCY": "Criptomoneda"
     },
     "labels": {
       "receipt": "Recibo",
