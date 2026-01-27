@@ -66,7 +66,8 @@
       "lastNameRequired": "Last name is required",
       "lastNameMax": "Last name cannot exceed 50 characters",
       "roleRequired": "Role is required",
-      "messageMax": "Message cannot exceed 500 characters"
+      "messageMax": "Message cannot exceed 500 characters",
+      "pinFormat": "PIN must be 4-10 digits"
     },
     "invitationError": "Failed to send invitation",
     "invitationNotFound": "Pending invitation not found",

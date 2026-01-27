@@ -1052,6 +1052,63 @@ navigate(`${fullBasePath}/settings`)
 
 **Reference:** `src/hooks/use-current-venue.tsx`
 
+### 15. FullScreenModal Form Pattern (MANDATORY)
+
+**Forms in FullScreenModal MUST follow the ProductWizardDialog design pattern.**
+
+**Visual Requirements:**
+1. **Header**: Dark background with Close (left), Title (center), Submit button (right)
+2. **Content**: Gray background (`contentClassName="bg-muted/30"`)
+3. **Form**: Organized in white cards with icon section headers
+4. **Inputs**: `className="h-12 text-base"` (transparent, NOT `bg-muted`)
+
+```typescript
+// ✅ CORRECT - Submit button in header, gray content background
+<FullScreenModal
+  open={isOpen}
+  onClose={() => setIsOpen(false)}
+  title="Create Item"
+  contentClassName="bg-muted/30"
+  actions={
+    <Button onClick={() => formRef.current?.submit()} disabled={!isValid}>
+      Save
+    </Button>
+  }
+>
+  <div className="max-w-2xl mx-auto px-6 py-8">
+    {/* Card sections with icon headers */}
+    <div className="rounded-2xl border border-border/50 bg-card p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 rounded-xl bg-primary/10">
+          <Package className="h-5 w-5 text-primary" />
+        </div>
+        <div>
+          <h3 className="font-semibold">Section Title</h3>
+          <p className="text-sm text-muted-foreground">Description</p>
+        </div>
+      </div>
+      <Input className="h-12 text-base" />
+    </div>
+  </div>
+</FullScreenModal>
+
+// ❌ WRONG - Submit at bottom, no gray background, bg-muted on inputs
+<FullScreenModal open={isOpen} onClose={...} title="...">
+  <Input className="bg-muted" />
+  <Button type="submit">Save</Button>  {/* Button at bottom */}
+</FullScreenModal>
+```
+
+**Key Points:**
+- Use `forwardRef` + `useImperativeHandle` to expose `submit()` method
+- Parent tracks `isSubmitting` and `isFormValid` states
+- Cards use `rounded-2xl border border-border/50 bg-card p-6`
+- Section icons: `bg-{color}/10` background with matching `text-{color}`
+
+**See:** [Complete FullScreenModal Form Pattern guide](docs/guides/ui-patterns.md#fullscreenmodal-form-pattern-mandatory)
+
+**Reference:** `src/pages/Inventory/components/ProductWizardDialog.tsx`, `src/pages/Team/components/InviteTeamMemberForm.tsx`
+
 ## Tech Stack
 
 - **Framework**: React 18 + TypeScript + Vite

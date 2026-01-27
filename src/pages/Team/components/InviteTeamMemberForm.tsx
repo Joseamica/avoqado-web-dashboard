@@ -1,12 +1,11 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Mail, Send, AlertCircle } from 'lucide-react'
+import { Mail, AlertCircle, Smartphone, CheckCircle2, UserPlus, Info } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -17,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,22 +29,28 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { StaffRole } from '@/types'
-import teamService, { InviteTeamMemberRequest } from '@/services/team.service'
+import teamService, { InviteTeamMemberRequest, InviteType } from '@/services/team.service'
+import { cn } from '@/lib/utils'
 
 type InviteTeamMemberFormData = InviteTeamMemberRequest
+
+export interface InviteTeamMemberFormRef {
+  submit: () => void
+}
 
 interface InviteTeamMemberFormProps {
   venueId: string
   onSuccess: () => void
+  onLoadingChange?: (isLoading: boolean) => void
+  onValidChange?: (isValid: boolean) => void
 }
 
 // Define schema creation function outside component to avoid recreation
-const createInviteSchema = (t: (key: string) => string) =>
+const createInviteSchema = (t: (key: string) => string, inviteType: InviteType) =>
   z.object({
-    email: z
-      .string()
-      .email(t('invite.validation.emailFormat'))
-      .min(1, t('invite.validation.emailRequired')),
+    email: inviteType === 'email'
+      ? z.string().email(t('invite.validation.emailFormat')).min(1, t('invite.validation.emailRequired'))
+      : z.string().optional(),
     firstName: z
       .string()
       .min(1, t('invite.validation.firstNameRequired'))
@@ -57,9 +61,14 @@ const createInviteSchema = (t: (key: string) => string) =>
       .max(50, t('invite.validation.lastNameMax')),
     role: z.nativeEnum(StaffRole, { required_error: t('invite.validation.roleRequired') }),
     message: z.string().max(500, t('invite.validation.messageMax')).optional(),
+    pin: inviteType === 'tpv-only'
+      ? z.string().regex(/^\d{4,10}$/, t('invite.validation.pinFormat'))
+      : z.string().optional(),
+    type: z.enum(['email', 'tpv-only']).optional(),
   })
 
-export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamMemberFormProps) {
+const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMemberFormProps>(
+  ({ venueId, onSuccess, onLoadingChange, onValidChange }, ref) => {
   const { t } = useTranslation('team')
   const { t: tCommon } = useTranslation()
   const { toast } = useToast()
@@ -69,6 +78,7 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
   const [pendingResendEmail, setPendingResendEmail] = useState<string | null>(null)
   const pendingInvitationIdRef = useRef<string | null>(null)
   const { getDisplayName: getRoleDisplayName } = useRoleConfig()
+  const [inviteType, setInviteType] = useState<InviteType>('email')
 
   const ROLE_OPTIONS = [
     { value: StaffRole.ADMIN, label: getRoleDisplayName(StaffRole.ADMIN), description: t('edit.roles.adminDesc') },
@@ -88,18 +98,43 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
     formState: { errors, isValid },
     reset,
   } = useForm<InviteTeamMemberFormData>({
-    resolver: zodResolver(createInviteSchema(t)),
-    mode: 'onBlur', // Changed from onChange to onBlur to prevent excessive validation
+    resolver: zodResolver(createInviteSchema(t, inviteType)),
+    mode: 'onBlur',
+    defaultValues: {
+      type: 'email',
+    },
   })
+
+  // Reset form when invite type changes
+  useEffect(() => {
+    reset({ type: inviteType })
+    setSelectedRole(undefined)
+  }, [inviteType, reset])
+
+  // Notify parent of validity changes
+  useEffect(() => {
+    onValidChange?.(isValid)
+  }, [isValid, onValidChange])
 
   const inviteMutation = useMutation({
     mutationFn: (data: InviteTeamMemberRequest) => teamService.inviteTeamMember(venueId, data),
     onSuccess: (data) => {
-      toast({
-        title: t('invite.invitationSent'),
-        description: t('invite.invitationSentDesc', { email: data.invitation.email }),
-      })
-      reset()
+      if (data.isTPVOnly) {
+        toast({
+          title: t('invite.tpvOnlyCreated', { defaultValue: 'Miembro TPV creado' }),
+          description: t('invite.tpvOnlyCreatedDesc', {
+            defaultValue: '{{name}} ahora puede acceder a la TPV con su PIN.',
+            name: `${getValues('firstName')} ${getValues('lastName')}`,
+          }),
+        })
+        queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
+      } else {
+        toast({
+          title: t('invite.invitationSent'),
+          description: t('invite.invitationSentDesc', { email: data.invitation.email }),
+        })
+      }
+      reset({ type: inviteType })
       setSelectedRole(undefined)
       onSuccess()
     },
@@ -107,9 +142,7 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
       const errorMessage = error.response?.data?.message || ''
       const invitationId = error.response?.data?.existingInvitationId
 
-      // Check if it's a "pending invitation exists" error
       if (errorMessage.includes('pending invitation') || errorMessage.includes('invitación pendiente')) {
-        // Store the invitation ID if provided, otherwise we'll need to look it up
         pendingInvitationIdRef.current = invitationId || null
         setPendingResendEmail(error.response?.data?.email || null)
         setShowResendDialog(true)
@@ -124,7 +157,11 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
     },
   })
 
-  // Mutation for resending invitation
+  // Notify parent of loading changes
+  useEffect(() => {
+    onLoadingChange?.(inviteMutation.isPending)
+  }, [inviteMutation.isPending, onLoadingChange])
+
   const resendInvitationMutation = useMutation({
     mutationFn: (invitationId: string) => teamService.resendInvitation(venueId, invitationId),
     onSuccess: () => {
@@ -151,8 +188,16 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
   })
 
   const onSubmit = (data: InviteTeamMemberFormData) => {
-    inviteMutation.mutate(data)
+    inviteMutation.mutate({
+      ...data,
+      type: inviteType,
+    })
   }
+
+  // Expose submit function to parent via ref
+  useImperativeHandle(ref, () => ({
+    submit: () => handleSubmit(onSubmit)(),
+  }))
 
   const handleRoleChange = (role: StaffRole) => {
     setSelectedRole(role)
@@ -161,10 +206,8 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
 
   const handleResendConfirm = async () => {
     if (pendingInvitationIdRef.current) {
-      // We have the invitation ID, resend directly
       resendInvitationMutation.mutate(pendingInvitationIdRef.current)
     } else {
-      // Fetch pending invitations to find the one with this email
       try {
         const response = await teamService.getPendingInvitations(venueId)
         const email = pendingResendEmail || getValues('email')
@@ -196,121 +239,216 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
   return (
     <>
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Email Field */}
-      <div className="space-y-2">
-        <Label htmlFor="email">{t('invite.emailLabel')} *</Label>
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="email"
-            type="email"
-            placeholder={t('invite.emailPlaceholder')}
-            className="pl-10"
-            data-autofocus
-            {...register('email')}
-          />
-        </div>
-        {errors.email && (
-          <p className="text-sm text-destructive">{errors.email.message}</p>
-        )}
-      </div>
-
-      {/* Name Fields */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="firstName">{t('invite.firstNameLabel')} *</Label>
-          <Input
-            id="firstName"
-            placeholder={t('invite.firstNamePlaceholder')}
-            {...register('firstName')}
-          />
-          {errors.firstName && (
-            <p className="text-sm text-destructive">{errors.firstName.message}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="lastName">{t('invite.lastNameLabel')} *</Label>
-          <Input
-            id="lastName"
-            placeholder={t('invite.lastNamePlaceholder')}
-            {...register('lastName')}
-          />
-          {errors.lastName && (
-            <p className="text-sm text-destructive">{errors.lastName.message}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Role Selection */}
-      <div className="space-y-2">
-        <Label>{t('invite.roleLabel')} *</Label>
-        <Select onValueChange={handleRoleChange} value={selectedRole}>
-          <SelectTrigger>
-            <SelectValue placeholder={t('invite.roleSelectPlaceholder')} />
-          </SelectTrigger>
-          <SelectContent className="max-w-[90vw] sm:max-w-md">
-            {ROLE_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.role && (
-          <p className="text-sm text-destructive">{errors.role.message}</p>
-        )}
-        {selectedRoleInfo && (
-          <div className="w-full max-w-full p-3 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-md overflow-hidden">
-            <p className="text-sm text-blue-800 dark:text-blue-200 break-words whitespace-normal overflow-wrap-anywhere">
-              <strong className="font-semibold">{selectedRoleInfo.label}:</strong>{' '}
-              <span className="inline">{selectedRoleInfo.description}</span>
-            </p>
+      {/* Invite Type Toggle Card */}
+      <div className="rounded-2xl border border-border/50 bg-card p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 rounded-xl bg-primary/10">
+            <UserPlus className="h-5 w-5 text-primary" />
           </div>
-        )}
+          <div>
+            <h3 className="font-semibold">{t('invite.typeLabel', { defaultValue: 'Tipo de invitación' })}</h3>
+            <p className="text-sm text-muted-foreground">{t('invite.typeSubtitle', { defaultValue: 'Selecciona cómo quieres agregar al miembro' })}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setInviteType('email')}
+            className={cn(
+              'flex items-center gap-3 p-4 rounded-xl border transition-all text-left',
+              inviteType === 'email'
+                ? 'border-primary bg-primary/5'
+                : 'border-transparent bg-muted hover:bg-muted/80'
+            )}
+          >
+            <div className={cn(
+              'p-2.5 rounded-xl',
+              inviteType === 'email' ? 'bg-primary/10' : 'bg-background'
+            )}>
+              <Mail className={cn('h-5 w-5', inviteType === 'email' ? 'text-primary' : 'text-muted-foreground')} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={cn('font-medium', inviteType === 'email' ? 'text-foreground' : 'text-muted-foreground')}>
+                {t('invite.typeEmail', { defaultValue: 'Con correo' })}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {t('invite.typeEmailDesc', { defaultValue: 'Enviar invitación por email' })}
+              </p>
+            </div>
+            {inviteType === 'email' && <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setInviteType('tpv-only')}
+            className={cn(
+              'flex items-center gap-3 p-4 rounded-xl border transition-all text-left',
+              inviteType === 'tpv-only'
+                ? 'border-primary bg-primary/5'
+                : 'border-transparent bg-muted hover:bg-muted/80'
+            )}
+          >
+            <div className={cn(
+              'p-2.5 rounded-xl',
+              inviteType === 'tpv-only' ? 'bg-primary/10' : 'bg-background'
+            )}>
+              <Smartphone className={cn('h-5 w-5', inviteType === 'tpv-only' ? 'text-primary' : 'text-muted-foreground')} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={cn('font-medium', inviteType === 'tpv-only' ? 'text-foreground' : 'text-muted-foreground')}>
+                {t('invite.typeTpvOnly', { defaultValue: 'Solo TPV' })}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {t('invite.typeTpvOnlyDesc', { defaultValue: 'Acceso con PIN, sin correo' })}
+              </p>
+            </div>
+            {inviteType === 'tpv-only' && <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />}
+          </button>
+        </div>
       </div>
 
-      {/* Message Field */}
-      <div className="space-y-2">
-        <Label htmlFor="message">{t('invite.messageLabel')}</Label>
-        <Textarea
-          id="message"
-          placeholder={t('invite.messagePlaceholder')}
-          rows={3}
-          {...register('message')}
-        />
-        {errors.message && (
-          <p className="text-sm text-destructive">{errors.message.message}</p>
-        )}
-      </div>
+      {/* Basic Information Card */}
+      <div className="rounded-2xl border border-border/50 bg-card p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 rounded-xl bg-blue-500/10">
+            <Info className="h-5 w-5 text-blue-500" />
+          </div>
+          <div>
+            <h3 className="font-semibold">{t('invite.basicInfoTitle', { defaultValue: 'Información básica' })}</h3>
+            <p className="text-sm text-muted-foreground">{t('invite.basicInfoSubtitle', { defaultValue: 'Datos del nuevo miembro del equipo' })}</p>
+          </div>
+        </div>
 
-      {/* Info Alert */}
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          {t('invite.infoAlert')}
-        </AlertDescription>
-      </Alert>
-
-      {/* Submit Button */}
-      <div className="flex justify-end space-x-3">
-        <Button
-          type="submit"
-          disabled={!isValid || inviteMutation.isPending}
-          className="min-w-[120px]"
-        >
-          {inviteMutation.isPending ? (
-            <>
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
-              {t('invite.sending')}
-            </>
-          ) : (
-            <>
-              <Send className="h-4 w-4 mr-2" />
-              {t('invite.sendButton')}
-            </>
+        <div className="space-y-4">
+          {/* Email Field - Only for email type */}
+          {inviteType === 'email' && (
+            <div className="space-y-2">
+              <Label htmlFor="email">{t('invite.emailLabel')} *</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder={t('invite.emailPlaceholder')}
+                className="h-12 text-base"
+                data-autofocus
+                {...register('email')}
+              />
+              {errors.email && (
+                <p className="text-sm text-destructive">{errors.email.message}</p>
+              )}
+            </div>
           )}
-        </Button>
+
+          {/* Name Fields */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">{t('invite.firstNameLabel')} *</Label>
+              <Input
+                id="firstName"
+                placeholder={t('invite.firstNamePlaceholder')}
+                className="h-12 text-base"
+                {...register('firstName')}
+              />
+              {errors.firstName && (
+                <p className="text-sm text-destructive">{errors.firstName.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="lastName">{t('invite.lastNameLabel')} *</Label>
+              <Input
+                id="lastName"
+                placeholder={t('invite.lastNamePlaceholder')}
+                className="h-12 text-base"
+                {...register('lastName')}
+              />
+              {errors.lastName && (
+                <p className="text-sm text-destructive">{errors.lastName.message}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Role Selection */}
+          <div className="space-y-2">
+            <Label>{t('invite.roleLabel')} *</Label>
+            <Select onValueChange={handleRoleChange} value={selectedRole}>
+              <SelectTrigger className="h-12 text-base">
+                <SelectValue placeholder={t('invite.roleSelectPlaceholder')} />
+              </SelectTrigger>
+              <SelectContent className="max-w-[90vw] sm:max-w-md">
+                {ROLE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.role && (
+              <p className="text-sm text-destructive">{errors.role.message}</p>
+            )}
+            {selectedRoleInfo && (
+              <div className="w-full p-3 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  <strong className="font-medium text-foreground">{selectedRoleInfo.label}:</strong>{' '}
+                  {selectedRoleInfo.description}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* PIN Field - Only for TPV-only type */}
+          {inviteType === 'tpv-only' && (
+            <div className="space-y-2">
+              <Label htmlFor="pin">{t('invite.pinLabel', { defaultValue: 'PIN de acceso' })} *</Label>
+              <Input
+                id="pin"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={10}
+                placeholder={t('invite.pinPlaceholder', { defaultValue: '4-10 dígitos' })}
+                className="h-12 text-base"
+                {...register('pin')}
+              />
+              {errors.pin && (
+                <p className="text-sm text-destructive">{errors.pin.message}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {t('invite.pinHelp', { defaultValue: 'Este PIN se usará para iniciar sesión en la TPV.' })}
+              </p>
+            </div>
+          )}
+
+          {/* Message Field */}
+          <div className="space-y-2">
+            <Label htmlFor="message">{t('invite.messageLabel')}</Label>
+            <Textarea
+              id="message"
+              placeholder={t('invite.messagePlaceholder')}
+              rows={3}
+              className="text-base resize-none"
+              {...register('message')}
+            />
+            {errors.message && (
+              <p className="text-sm text-destructive">{errors.message.message}</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Info Alert Card */}
+      <div className="rounded-2xl border border-border/50 bg-card p-6">
+        <div className="flex gap-3">
+          <AlertCircle className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-muted-foreground">
+            {inviteType === 'tpv-only'
+              ? t('invite.infoAlertTpvOnly', {
+                  defaultValue: 'Este miembro podrá acceder solo a la TPV usando su PIN. No tendrá acceso al dashboard web.',
+                })
+              : t('invite.infoAlert')
+            }
+          </p>
+        </div>
       </div>
     </form>
 
@@ -336,4 +474,8 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
     </AlertDialog>
     </>
   )
-}
+})
+
+InviteTeamMemberForm.displayName = 'InviteTeamMemberForm'
+
+export default InviteTeamMemberForm
