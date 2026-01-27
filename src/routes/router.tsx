@@ -62,6 +62,7 @@ import {
   Terms,
   TestingPayments,
   TpvUpdates,
+  PushNotifications,
   UserManagement,
   VenueManagement,
   VenueMerchantAccounts,
@@ -358,6 +359,10 @@ const router = createBrowserRouter(
                     {
                       path: 'tpv-updates',
                       element: <TpvUpdates />,
+                    },
+                    {
+                      path: 'push-notifications',
+                      element: <PushNotifications />,
                     },
                   ],
                 },
