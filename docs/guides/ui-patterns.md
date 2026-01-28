@@ -19,6 +19,7 @@ and maintain visual coherence across the application.
 - [Live Preview Layout (Bento Grid)](#live-preview-layout-bento-grid)
 - [Unit Translation (MANDATORY)](#unit-translation-mandatory)
 - [FullScreenModal (Table Detail View Pattern)](#fullscreenmodal-table-detail-view-pattern)
+- [FullScreenModal Form Pattern (MANDATORY)](#fullscreenmodal-form-pattern-mandatory)
 
 ---
 
@@ -2590,3 +2591,201 @@ When converting a `table → /:id` pattern to FullScreenModal:
 - [ ] Test ESC key closes modal
 - [ ] Test animation is smooth
 - [ ] Test scrolling works in content area
+
+---
+
+## FullScreenModal Form Pattern (MANDATORY)
+
+**⚠️ ALWAYS use this pattern for forms in FullScreenModal. Follow the visual design from ProductWizardDialog.**
+
+**When to use:** Any form that opens in a FullScreenModal (create, edit, invite flows).
+
+**Reference implementations:**
+- `/src/pages/Inventory/components/ProductWizardDialog.tsx` - Primary reference
+- `/src/pages/Team/components/InviteTeamMemberForm.tsx` - Team invite example
+
+### Visual Design Requirements
+
+The FullScreenModal form pattern follows these strict visual requirements:
+
+1. **Header (Dark/Black background)**
+   - Close button (X) on the left
+   - Title centered
+   - Action buttons (Submit/Save) on the right via `actions` prop
+
+2. **Content Area (Muted/Gray background)**
+   - Use `contentClassName="bg-muted/30"` for the gray background
+   - Form content organized in Cards with white/card background
+
+3. **Cards with Section Headers**
+   - Each logical section wrapped in a card with icon + title
+   - Cards have `rounded-2xl border border-border/50 bg-card p-6`
+   - Section header: Icon in colored background + Title + Subtitle
+
+4. **Inputs**
+   - Use `className="h-12 text-base"` (transparent background, visible border)
+   - NO `bg-muted` on inputs - they should be transparent showing card background
+
+### Code Example - Parent Component
+
+```typescript
+import { FullScreenModal } from '@/components/ui/full-screen-modal'
+import { Button } from '@/components/ui/button'
+import { useRef, useState } from 'react'
+import MyForm, { type MyFormRef } from './MyForm'
+
+export function ParentComponent() {
+  const [modalOpen, setModalOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isFormValid, setIsFormValid] = useState(false)
+  const formRef = useRef<MyFormRef>(null)
+
+  return (
+    <FullScreenModal
+      open={modalOpen}
+      onClose={() => setModalOpen(false)}
+      title="Create New Item"
+      contentClassName="bg-muted/30"  // ← Gray background for content
+      actions={
+        <Button
+          onClick={() => formRef.current?.submit()}
+          disabled={!isFormValid || isSubmitting}
+        >
+          {isSubmitting ? 'Saving...' : 'Save'}
+        </Button>
+      }
+    >
+      <div className="max-w-2xl mx-auto px-6 py-8">
+        <MyForm
+          ref={formRef}
+          onSuccess={() => setModalOpen(false)}
+          onLoadingChange={setIsSubmitting}
+          onValidChange={setIsFormValid}
+        />
+      </div>
+    </FullScreenModal>
+  )
+}
+```
+
+### Code Example - Form Component with forwardRef
+
+```typescript
+import { forwardRef, useImperativeHandle } from 'react'
+import { useForm } from 'react-hook-form'
+import { Package, Info } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+
+export interface MyFormRef {
+  submit: () => void
+}
+
+interface MyFormProps {
+  onSuccess: () => void
+  onLoadingChange?: (loading: boolean) => void
+  onValidChange?: (valid: boolean) => void
+}
+
+const MyForm = forwardRef<MyFormRef, MyFormProps>(
+  ({ onSuccess, onLoadingChange, onValidChange }, ref) => {
+    const { register, handleSubmit, formState: { isValid } } = useForm()
+
+    // Expose submit to parent
+    useImperativeHandle(ref, () => ({
+      submit: () => handleSubmit(onSubmit)(),
+    }))
+
+    // Notify parent of validity changes
+    useEffect(() => {
+      onValidChange?.(isValid)
+    }, [isValid, onValidChange])
+
+    const onSubmit = async (data) => {
+      onLoadingChange?.(true)
+      try {
+        await saveData(data)
+        onSuccess()
+      } finally {
+        onLoadingChange?.(false)
+      }
+    }
+
+    return (
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Section Card with Icon Header */}
+        <div className="rounded-2xl border border-border/50 bg-card p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 rounded-xl bg-primary/10">
+              <Package className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Basic Information</h3>
+              <p className="text-sm text-muted-foreground">Enter the item details</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name *</Label>
+              <Input
+                id="name"
+                placeholder="Enter name"
+                className="h-12 text-base"  // ← Standard input styling
+                {...register('name', { required: true })}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Another Section Card */}
+        <div className="rounded-2xl border border-border/50 bg-card p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 rounded-xl bg-blue-500/10">
+              <Info className="h-5 w-5 text-blue-500" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Additional Details</h3>
+              <p className="text-sm text-muted-foreground">Optional information</p>
+            </div>
+          </div>
+          {/* More fields... */}
+        </div>
+      </form>
+    )
+  }
+)
+```
+
+### Section Header Icon Colors
+
+Use different colors for section icons to create visual hierarchy:
+
+| Section Type | Icon Background | Icon Color |
+|--------------|-----------------|------------|
+| Primary/Main | `bg-primary/10` | `text-primary` |
+| Information | `bg-blue-500/10` | `text-blue-500` |
+| Settings | `bg-purple-500/10` | `text-purple-500` |
+| Warning/Alert | `bg-orange-500/10` | `text-orange-500` |
+| Success | `bg-green-500/10` | `text-green-500` |
+
+### Key Styling Classes
+
+| Element | Classes | Purpose |
+|---------|---------|---------|
+| Modal content | `contentClassName="bg-muted/30"` | Gray background |
+| Form container | `max-w-2xl mx-auto px-6 py-8` | Centered, padded |
+| Section card | `rounded-2xl border border-border/50 bg-card p-6` | White card |
+| Icon container | `p-2 rounded-xl bg-{color}/10` | Colored icon background |
+| Input | `h-12 text-base` | Larger, readable inputs |
+| Select trigger | `h-12 text-base` | Match input height |
+
+### Checklist for FullScreenModal Forms
+
+- [ ] Submit button in header via `actions` prop (NOT at bottom of form)
+- [ ] Content area has `contentClassName="bg-muted/30"`
+- [ ] Form uses `forwardRef` with `useImperativeHandle` to expose `submit()`
+- [ ] Parent tracks `isSubmitting` and `isFormValid` states
+- [ ] Each section wrapped in card with icon header
+- [ ] Inputs use `className="h-12 text-base"` (NO `bg-muted`)
+- [ ] Form container is `max-w-2xl mx-auto px-6 py-8`

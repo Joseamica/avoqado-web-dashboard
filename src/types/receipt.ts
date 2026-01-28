@@ -17,6 +17,7 @@ export interface ReceiptPayment {
   authorizationNumber?: string
   referenceNumber?: string
   splitType?: string
+  processorData?: Record<string, unknown>
 }
 
 export interface ReceiptVenue {

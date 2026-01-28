@@ -4,6 +4,7 @@
 	"tabs": {
 		"overview": "Resumen",
 		"ranking": "Ranking",
+		"goals": "Metas",
 		"config": "Configuración",
 		"approvals": "Aprobaciones",
 		"payouts": "Pagos"
@@ -267,6 +268,40 @@
 		"noCommissions": "Sin comisiones",
 		"noCommissionsDescription": "Este empleado aún no tiene comisiones calculadas"
 	},
+	"goals": {
+		"title": "Metas de Ventas",
+		"subtitle": "Define metas de ventas para tu equipo y monitorea su progreso",
+		"create": "Nueva Meta",
+		"edit": "Editar Meta",
+		"createDescription": "Crea una meta de ventas para el equipo o un empleado específico",
+		"editDescription": "Actualiza los parámetros de esta meta de ventas",
+		"deleteTitle": "Eliminar Meta",
+		"deleteConfirm": "¿Estás seguro de eliminar esta meta? Esta acción no se puede deshacer.",
+		"noGoals": "No hay metas configuradas",
+		"noGoalsDescription": "Crea metas de ventas para motivar a tu equipo y trackear su progreso",
+		"venueGoal": "Meta de toda la sucursal",
+		"selectStaff": "Seleccionar empleado...",
+		"assignTo": "Asignar a",
+		"assignToHint": "Selecciona un empleado o deja vacío para una meta general de la sucursal",
+		"goalAmount": "Meta de ventas",
+		"goalAmountHint": "El monto objetivo de ventas para este período",
+		"period": "Período",
+		"selectPeriod": "Seleccionar período",
+		"periodHint": "Cada cuándo se reinicia la meta",
+		"periods": {
+			"DAILY": "Diario",
+			"WEEKLY": "Semanal",
+			"MONTHLY": "Mensual"
+		},
+		"active": "Activa",
+		"activeDescription": "Las metas inactivas no se mostrarán en el TPV",
+		"inactive": "Inactiva",
+		"progress": "Progreso",
+		"current": "Vendido",
+		"target": "Meta",
+		"remaining": "Faltante",
+		"achieved": "Lograda"
+	},
 	"table": {
 		"staff": "Empleado",
 		"sales": "Ventas",
@@ -313,7 +348,10 @@
 		"payoutApproved": "Pago aprobado exitosamente",
 		"payoutProcessed": "Pago en proceso",
 		"payoutCompleted": "Pago completado exitosamente",
-		"payoutCancelled": "Pago cancelado"
+		"payoutCancelled": "Pago cancelado",
+		"goalCreated": "Meta creada exitosamente",
+		"goalUpdated": "Meta actualizada exitosamente",
+		"goalDeleted": "Meta eliminada exitosamente"
 	},
 	"empty": {
 		"noData": "Sin datos",
@@ -321,6 +359,7 @@
 	},
 	"actions": {
 		"save": "Guardar",
+		"saving": "Guardando...",
 		"cancel": "Cancelar",
 		"edit": "Editar",
 		"delete": "Eliminar",

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown, Clock, Mail, MoreHorizontal, Pencil, Trash2, UserPlus, Search, X } from 'lucide-react'
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,9 +46,10 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { useVenueDateTime } from '@/utils/datetime'
 
 import EditTeamMemberForm from './components/EditTeamMemberForm'
-import InviteTeamMemberForm from './components/InviteTeamMemberForm'
+import InviteTeamMemberForm, { type InviteTeamMemberFormRef } from './components/InviteTeamMemberForm'
 import { PermissionGate } from '@/components/PermissionGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
+import { FullScreenModal } from '@/components/ui/full-screen-modal'
 
 export default function Teams() {
   const { venueId } = useCurrentVenue()
@@ -109,6 +110,9 @@ export default function Teams() {
     pageSize: 20,
   })
   const [showInviteDialog, setShowInviteDialog] = useState(false)
+  const [isInviteSubmitting, setIsInviteSubmitting] = useState(false)
+  const [isInviteFormValid, setIsInviteFormValid] = useState(false)
+  const inviteFormRef = useRef<InviteTeamMemberFormRef>(null)
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null)
   const [removingMember, setRemovingMember] = useState<TeamMember | null>(null)
 
@@ -711,38 +715,45 @@ export default function Teams() {
         </div>
 
         <PermissionGate permission="teams:invite">
-          <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-            <DialogTrigger asChild>
-              <Button id="invite-member-button">
-                <UserPlus className="h-4 w-4 mr-2" />
-                {t('header.inviteButton')}
-              </Button>
-            </DialogTrigger>
-            {showInviteDialog && (
-              <DialogContent
-                className="max-w-md"
-                onCloseAutoFocus={e => {
-                  // Restore focus to the invite button for seamless keyboard flow
-                  e.preventDefault()
-                  const el = document.getElementById('invite-member-button') as HTMLButtonElement | null
-                  el?.focus()
-                }}
+          <Button id="invite-member-button" onClick={() => setShowInviteDialog(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            {t('header.inviteButton')}
+          </Button>
+          <FullScreenModal
+            open={showInviteDialog}
+            onClose={() => setShowInviteDialog(false)}
+            title={t('header.inviteDialog.title')}
+            contentClassName="bg-muted/30"
+            actions={
+              <Button
+                onClick={() => inviteFormRef.current?.submit()}
+                disabled={!isInviteFormValid || isInviteSubmitting}
               >
-                <DialogHeader>
-                  <DialogTitle>{t('header.inviteDialog.title')}</DialogTitle>
-                  <DialogDescription>{t('header.inviteDialog.desc')}</DialogDescription>
-                </DialogHeader>
-                <InviteTeamMemberForm
-                  venueId={venueId}
-                  onSuccess={() => {
-                    setShowInviteDialog(false)
-                    queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
-                    queryClient.invalidateQueries({ queryKey: ['team-invitations', venueId] })
-                  }}
-                />
-              </DialogContent>
-            )}
-          </Dialog>
+                {isInviteSubmitting ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
+                    {t('invite.sending')}
+                  </>
+                ) : (
+                  t('invite.sendButton')
+                )}
+              </Button>
+            }
+          >
+            <div className="max-w-2xl mx-auto px-6 py-8">
+              <InviteTeamMemberForm
+                ref={inviteFormRef}
+                venueId={venueId}
+                onSuccess={() => {
+                  setShowInviteDialog(false)
+                  queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
+                  queryClient.invalidateQueries({ queryKey: ['team-invitations', venueId] })
+                }}
+                onLoadingChange={setIsInviteSubmitting}
+                onValidChange={setIsInviteFormValid}
+              />
+            </div>
+          </FullScreenModal>
         </PermissionGate>
       </div>
 

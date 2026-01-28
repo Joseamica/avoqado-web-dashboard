@@ -27,6 +27,7 @@ import {
   Landmark,
   KeyRound,
   Upload,
+  Bell,
 } from 'lucide-react'
 
 import { useTranslation } from 'react-i18next'
@@ -69,6 +70,7 @@ const SuperadminSidebar: React.FC = () => {
         { name: 'Organizaciones', href: '/superadmin/organizations', icon: Landmark },
         { name: tSidebar('system'), href: '/superadmin/system', icon: Shield },
         { name: tSidebar('webhooks'), href: '/superadmin/webhooks', icon: Webhook },
+        { name: 'Push Notifications', href: '/superadmin/push-notifications', icon: Bell },
         { name: tSidebar('reports'), href: '/superadmin/reports', icon: FileText },
         { name: tSidebar('support'), href: '/superadmin/support', icon: Headphones },
       ],

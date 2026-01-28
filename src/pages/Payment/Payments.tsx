@@ -41,6 +41,7 @@ import { type ColumnDef } from '@tanstack/react-table'
 import {
   ArrowUpDown,
   Banknote,
+  Bitcoin,
   Download,
   Pencil,
   RotateCcw,
@@ -579,6 +580,7 @@ export default function Payments() {
           const payment = row.original
           // ANTERIOR: 'CARD', AHORA: 'CREDIT_CARD', 'DEBIT_CARD'
           const isCard = payment.method === 'CREDIT_CARD' || payment.method === 'DEBIT_CARD'
+          const isCrypto = (payment.method as string) === 'CRYPTOCURRENCY'
           const methodDisplay =
             payment.method === 'CASH'
               ? t('methods.cash')
@@ -590,6 +592,8 @@ export default function Payments() {
               ? t('methods.digitalWallet')
               : payment.method === 'BANK_TRANSFER'
               ? t('methods.bankTransfer')
+              : (payment.method as string) === 'CRYPTOCURRENCY'
+              ? t('methods.cryptocurrency')
               : payment.method === 'OTHER'
               ? t('methods.other')
               : t('methods.card')
@@ -602,12 +606,24 @@ export default function Payments() {
           const last4Digits = last4Raw ? String(last4Raw).replace(/\D/g, '').slice(-4) : ''
           const maskedLast4 = last4Digits || ''
 
+          // Crypto payment details from processorData
+          const cryptoCurrency = payment.processorData?.cryptoCurrency || payment.processorData?.currency || ''
+
           return (
             <div className="flex items-center gap-2">
               {isCard ? (
                 <>
                   <div className="shrink-0"> {getIcon(cardBrand)}</div>
                   <span className="text-sm text-muted-foreground dark:text-foreground">{maskedLast4}</span>
+                </>
+              ) : isCrypto ? (
+                <>
+                  <div className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md bg-orange-50 dark:bg-orange-950/50 border border-orange-200 dark:border-orange-800 shadow-sm">
+                    <Bitcoin className="h-3 w-3 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <span className="text-sm text-muted-foreground dark:text-foreground">
+                    {cryptoCurrency ? cryptoCurrency.toUpperCase() : methodDisplay}
+                  </span>
                 </>
               ) : (
                 <>

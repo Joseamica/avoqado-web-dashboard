@@ -59,6 +59,7 @@
     "debitCard": "Debit Card",
     "digitalWallet": "Digital Wallet",
     "bankTransfer": "Bank Transfer",
+    "cryptocurrency": "Cryptocurrency",
     "other": "Other"
   },
   "statuses": {
@@ -92,7 +93,8 @@
       "CREDIT_CARD": "Credit card",
       "DEBIT_CARD": "Debit card",
       "DIGITAL_WALLET": "Digital wallet",
-      "BANK_TRANSFER": "Bank transfer"
+      "BANK_TRANSFER": "Bank transfer",
+      "CRYPTOCURRENCY": "Cryptocurrency"
     },
     "labels": {
       "receipt": "Receipt",

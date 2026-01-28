@@ -13,20 +13,20 @@
  * Based on mockup: inventario.html
  */
 
+import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Package, Box, CheckCircle2 } from 'lucide-react'
-import { useMemo } from 'react'
-import { StockVsSalesChart, LowStockAlerts, BulkUploadSection } from './components'
+import { Package, Box, CheckCircle2, Plus, Upload, Settings2 } from 'lucide-react'
+import { StockVsSalesChart, LowStockAlerts, CategoryManagement, BulkUploadDialog } from './components'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import {
   getStockMetrics,
   getCategoryStock,
   getStockMovements,
-  processBulkUpload,
   type StockMovement,
 } from '@/services/stockDashboard.service'
 
@@ -58,6 +58,10 @@ export function StockControl() {
   const { t } = useTranslation(['playtelecom', 'common'])
   const { venueId, venue } = useCurrentVenue()
   const queryClient = useQueryClient()
+
+  // Dialog state
+  const [showCategoryManagement, setShowCategoryManagement] = useState(false)
+  const [showBulkUpload, setShowBulkUpload] = useState(false)
 
   // Fetch stock metrics
   const { data: metricsData, isLoading: isLoadingMetrics } = useQuery({
@@ -91,34 +95,10 @@ export function StockControl() {
     total: metricsData?.totalPieces || 0,
   }), [metricsData])
 
-  // Bulk upload mutation
-  const bulkUploadMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const csvContent = await file.text()
-      // Get first category as default (in real implementation, user would select)
-      const categoryId = categories[0]?.id || ''
-      return processBulkUpload(venueId!, { categoryId, csvContent })
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['stock', venueId] })
-    },
-  })
-
   // Handle stock request from low stock alerts
   const handleRequestStock = (productId: string) => {
     console.log('Requesting stock for product:', productId)
     // TODO: Implement stock request API
-  }
-
-  // Handle bulk upload
-  const handleUpload = async (file: File) => {
-    const result = await bulkUploadMutation.mutateAsync(file)
-    return {
-      total: result.created + result.duplicates.length + result.errors.length,
-      success: result.created,
-      errors: result.errors.length,
-      errorDetails: result.errors.map((err, idx) => ({ row: idx + 1, error: err })),
-    }
   }
 
   // Loading state
@@ -143,6 +123,28 @@ export function StockControl() {
 
   return (
     <div className="space-y-6">
+      {/* Header with Actions */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-xl font-semibold">
+            {t('playtelecom:stock.title', { defaultValue: 'Control de Inventario' })}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {t('playtelecom:stock.subtitle', { defaultValue: 'Gestiona categorías y números de serie' })}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setShowCategoryManagement(true)}>
+            <Settings2 className="w-4 h-4 mr-2" />
+            {t('playtelecom:stock.manageCategories', { defaultValue: 'Configurar Categorías' })}
+          </Button>
+          <Button onClick={() => setShowBulkUpload(true)}>
+            <Upload className="w-4 h-4 mr-2" />
+            {t('playtelecom:stock.uploadItems', { defaultValue: 'Cargar Items' })}
+          </Button>
+        </div>
+      </div>
+
       {/* Category Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {categories.length > 0 ? (
@@ -178,9 +180,13 @@ export function StockControl() {
         ) : (
           <GlassCard className="col-span-full p-8 text-center">
             <Package className="w-10 h-10 mx-auto mb-2 text-muted-foreground opacity-50" />
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-4">
               {t('playtelecom:stock.noCategories', { defaultValue: 'No hay categorías de stock configuradas' })}
             </p>
+            <Button onClick={() => setShowCategoryManagement(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              {t('playtelecom:stock.createFirstCategory', { defaultValue: 'Crear Primera Categoría' })}
+            </Button>
           </GlassCard>
         )}
       </div>
@@ -223,9 +229,6 @@ export function StockControl() {
         <StockVsSalesChart />
         <LowStockAlerts onRequestStock={handleRequestStock} />
       </div>
-
-      {/* Bulk Upload Section */}
-      <BulkUploadSection onUpload={handleUpload} />
 
       {/* Recent Movements Table */}
       <GlassCard className="p-6">
@@ -286,6 +289,18 @@ export function StockControl() {
           </table>
         </div>
       </GlassCard>
+
+      {/* Category Management Dialog */}
+      <CategoryManagement
+        open={showCategoryManagement}
+        onOpenChange={setShowCategoryManagement}
+      />
+
+      {/* Bulk Upload Dialog */}
+      <BulkUploadDialog
+        open={showBulkUpload}
+        onOpenChange={setShowBulkUpload}
+      />
     </div>
   )
 }

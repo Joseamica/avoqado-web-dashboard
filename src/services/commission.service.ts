@@ -24,6 +24,9 @@ import type {
 	SummaryFilters,
 	PayoutFilters,
 	PaymentCommission,
+	SalesGoal,
+	CreateSalesGoalInput,
+	UpdateSalesGoalInput,
 } from '@/types/commission'
 
 const BASE_URL = '/api/v1/dashboard/commissions'
@@ -385,6 +388,44 @@ export const commissionService = {
 	// Generate summaries for a period
 	async generateSummaries(venueId: string, startDate: string, endDate: string): Promise<{ generated: number }> {
 		const response = await api.post(`${BASE_URL}/venues/${venueId}/summaries/generate`, { startDate, endDate })
+		return response.data
+	},
+
+	// ============================================
+	// SALES GOAL OPERATIONS
+	// ============================================
+
+	// Get all sales goals for a venue
+	async getSalesGoals(venueId: string, includeInactive: boolean = false): Promise<SalesGoal[]> {
+		const params = new URLSearchParams()
+		if (includeInactive) {
+			params.append('includeInactive', 'true')
+		}
+		const response = await api.get(`${BASE_URL}/venues/${venueId}/goals?${params}`)
+		return normalizeArrayResponse<SalesGoal>(response.data)
+	},
+
+	// Get a single sales goal by ID
+	async getSalesGoal(venueId: string, goalId: string): Promise<SalesGoal> {
+		const response = await api.get(`${BASE_URL}/venues/${venueId}/goals/${goalId}`)
+		return response.data
+	},
+
+	// Create a new sales goal
+	async createSalesGoal(venueId: string, data: CreateSalesGoalInput): Promise<SalesGoal> {
+		const response = await api.post(`${BASE_URL}/venues/${venueId}/goals`, data)
+		return response.data
+	},
+
+	// Update a sales goal
+	async updateSalesGoal(venueId: string, goalId: string, data: UpdateSalesGoalInput): Promise<SalesGoal> {
+		const response = await api.patch(`${BASE_URL}/venues/${venueId}/goals/${goalId}`, data)
+		return response.data
+	},
+
+	// Delete a sales goal
+	async deleteSalesGoal(venueId: string, goalId: string): Promise<{ message: string }> {
+		const response = await api.delete(`${BASE_URL}/venues/${venueId}/goals/${goalId}`)
 		return response.data
 	},
 }

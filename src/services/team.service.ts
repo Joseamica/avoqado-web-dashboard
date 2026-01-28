@@ -56,12 +56,16 @@ export interface Invitation {
 }
 
 // Request DTOs
+export type InviteType = 'email' | 'tpv-only'
+
 export interface InviteTeamMemberRequest {
-  email: string
+  email?: string // Optional for TPV-only
   firstName: string
   lastName: string
   role: StaffRole
   message?: string
+  type?: InviteType // 'email' (default) or 'tpv-only'
+  pin?: string // Required for TPV-only
 }
 
 export interface UpdateTeamMemberRequest {
@@ -81,6 +85,8 @@ export interface InviteTeamMemberResponse {
     createdAt: string
   }
   emailSent: boolean
+  isTPVOnly: boolean
+  inviteLink?: string
 }
 
 // Team Management Service

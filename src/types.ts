@@ -610,6 +610,12 @@ export interface VenueSettings {
   enableShifts: boolean
   requirePinLogin: boolean
 
+  // Auto Clock-Out (HR automation)
+  autoClockOutEnabled: boolean
+  autoClockOutTime: string | null
+  maxShiftDurationEnabled: boolean
+  maxShiftDurationHours: number
+
   // Reviews
   autoReplyReviews: boolean
   notifyBadReviews: boolean
