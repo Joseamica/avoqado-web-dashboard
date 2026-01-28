@@ -51,6 +51,11 @@ const basicInfoFormSchema = z.object({
   currency: z.string().default('MXN'),
   enableShifts: z.boolean().default(true).optional(),
   requireClockInPhoto: z.boolean().default(false).optional(),
+  // Auto Clock-Out settings
+  autoClockOutEnabled: z.boolean().default(false).optional(),
+  autoClockOutTime: z.string().nullable().optional(),
+  maxShiftDurationEnabled: z.boolean().default(false).optional(),
+  maxShiftDurationHours: z.number().min(1).max(24).default(12).optional(),
 })
 
 type BasicInfoFormValues = z.infer<typeof basicInfoFormSchema>
@@ -123,6 +128,10 @@ export default function BasicInfo() {
       currency: 'MXN',
       enableShifts: true,
       requireClockInPhoto: false,
+      autoClockOutEnabled: false,
+      autoClockOutTime: null,
+      maxShiftDurationEnabled: false,
+      maxShiftDurationHours: 12,
     },
   })
 
@@ -140,6 +149,10 @@ export default function BasicInfo() {
         currency: venue.currency || 'MXN',
         enableShifts: venue.settings?.enableShifts ?? true,
         requireClockInPhoto: venue.settings?.requireClockInPhoto ?? false,
+        autoClockOutEnabled: venue.settings?.autoClockOutEnabled ?? false,
+        autoClockOutTime: venue.settings?.autoClockOutTime ?? null,
+        maxShiftDurationEnabled: venue.settings?.maxShiftDurationEnabled ?? false,
+        maxShiftDurationHours: venue.settings?.maxShiftDurationHours ?? 12,
       })
     }
   }, [venue, form])
@@ -272,6 +285,68 @@ export default function BasicInfo() {
       })
       queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
       console.error('Error toggling clock-in photo:', error)
+    },
+  })
+
+  // Mutation for auto clock-out at fixed time
+  const toggleAutoClockOut = useMutation({
+    mutationFn: async (data: { autoClockOutEnabled: boolean; autoClockOutTime?: string | null }) => {
+      await api.put(`/api/v1/dashboard/venues/${venueId}/settings`, data)
+      return data
+    },
+    onSuccess: (data) => {
+      form.setValue('autoClockOutEnabled', data.autoClockOutEnabled, { shouldDirty: false })
+      if (data.autoClockOutTime !== undefined) {
+        form.setValue('autoClockOutTime', data.autoClockOutTime, { shouldDirty: false })
+      }
+      toast({
+        title: data.autoClockOutEnabled ? 'Salida automática habilitada' : 'Salida automática deshabilitada',
+        description: data.autoClockOutEnabled
+          ? `Los turnos se cerrarán automáticamente a las ${data.autoClockOutTime || '03:00'}.`
+          : 'La salida automática por hora fija ha sido deshabilitada.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.message || 'Error al guardar la configuración'
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      })
+      queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
+      console.error('Error toggling auto clock-out:', error)
+    },
+  })
+
+  // Mutation for max shift duration
+  const toggleMaxShiftDuration = useMutation({
+    mutationFn: async (data: { maxShiftDurationEnabled: boolean; maxShiftDurationHours?: number }) => {
+      await api.put(`/api/v1/dashboard/venues/${venueId}/settings`, data)
+      return data
+    },
+    onSuccess: (data) => {
+      form.setValue('maxShiftDurationEnabled', data.maxShiftDurationEnabled, { shouldDirty: false })
+      if (data.maxShiftDurationHours !== undefined) {
+        form.setValue('maxShiftDurationHours', data.maxShiftDurationHours, { shouldDirty: false })
+      }
+      toast({
+        title: data.maxShiftDurationEnabled ? 'Duración máxima habilitada' : 'Duración máxima deshabilitada',
+        description: data.maxShiftDurationEnabled
+          ? `Los turnos se cerrarán automáticamente después de ${data.maxShiftDurationHours || 12} horas.`
+          : 'El límite de duración de turno ha sido deshabilitado.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.message || 'Error al guardar la configuración'
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      })
+      queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
+      console.error('Error toggling max shift duration:', error)
     },
   })
 
@@ -752,6 +827,114 @@ export default function BasicInfo() {
                         </FormItem>
                       )}
                     />
+                  </div>
+                </div>
+
+                {/* Auto Clock-Out Section - HR Automation (Square-style) */}
+                <div className="pt-6">
+                  <h4 className="text-sm font-medium mb-1">Salida Automática</h4>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Cierra turnos automáticamente para prevenir olvidos de marcaje.
+                  </p>
+                  <div className="space-y-3">
+                    {/* Fixed-time auto clock-out */}
+                    <div className="rounded-lg border p-4 shadow-sm space-y-3">
+                      <div className="flex flex-row items-center justify-between">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base cursor-pointer">Cierre por Hora Fija</FormLabel>
+                          <FormDescription>
+                            Cierra todos los turnos abiertos a una hora específica.
+                          </FormDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {toggleAutoClockOut.isPending && (
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          )}
+                          <Switch
+                            checked={form.watch('autoClockOutEnabled') ?? false}
+                            onCheckedChange={(checked) => {
+                              const currentTime = form.getValues('autoClockOutTime') || '03:00'
+                              toggleAutoClockOut.mutate({
+                                autoClockOutEnabled: checked,
+                                autoClockOutTime: checked ? currentTime : null,
+                              })
+                            }}
+                            disabled={!canEdit || toggleAutoClockOut.isPending}
+                          />
+                        </div>
+                      </div>
+                      {form.watch('autoClockOutEnabled') && (
+                        <div className="flex items-center gap-2 pt-2 border-t">
+                          <span className="text-sm text-muted-foreground">Hora de cierre:</span>
+                          <Input
+                            type="time"
+                            className="w-32"
+                            value={form.watch('autoClockOutTime') || '03:00'}
+                            onChange={(e) => {
+                              const newTime = e.target.value
+                              form.setValue('autoClockOutTime', newTime, { shouldDirty: false })
+                              toggleAutoClockOut.mutate({
+                                autoClockOutEnabled: true,
+                                autoClockOutTime: newTime,
+                              })
+                            }}
+                            disabled={!canEdit || toggleAutoClockOut.isPending}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Max shift duration */}
+                    <div className="rounded-lg border p-4 shadow-sm space-y-3">
+                      <div className="flex flex-row items-center justify-between">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base cursor-pointer">Duración Máxima de Turno</FormLabel>
+                          <FormDescription>
+                            Cierra turnos que excedan una cantidad de horas.
+                          </FormDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {toggleMaxShiftDuration.isPending && (
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          )}
+                          <Switch
+                            checked={form.watch('maxShiftDurationEnabled') ?? false}
+                            onCheckedChange={(checked) => {
+                              const currentHours = form.getValues('maxShiftDurationHours') || 12
+                              toggleMaxShiftDuration.mutate({
+                                maxShiftDurationEnabled: checked,
+                                maxShiftDurationHours: currentHours,
+                              })
+                            }}
+                            disabled={!canEdit || toggleMaxShiftDuration.isPending}
+                          />
+                        </div>
+                      </div>
+                      {form.watch('maxShiftDurationEnabled') && (
+                        <div className="flex items-center gap-2 pt-2 border-t">
+                          <span className="text-sm text-muted-foreground">Máximo de horas:</span>
+                          <Input
+                            type="number"
+                            className="w-20"
+                            min={1}
+                            max={24}
+                            value={form.watch('maxShiftDurationHours') || 12}
+                            onChange={(e) => {
+                              const newHours = parseInt(e.target.value, 10)
+                              if (newHours >= 1 && newHours <= 24) {
+                                form.setValue('maxShiftDurationHours', newHours, { shouldDirty: false })
+                                toggleMaxShiftDuration.mutate({
+                                  maxShiftDurationEnabled: true,
+                                  maxShiftDurationHours: newHours,
+                                })
+                              }
+                            }}
+                            disabled={!canEdit || toggleMaxShiftDuration.isPending}
+                          />
+                          <span className="text-sm text-muted-foreground">horas</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
