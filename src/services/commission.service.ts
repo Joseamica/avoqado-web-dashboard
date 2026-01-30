@@ -369,6 +369,13 @@ export const commissionService = {
 		return response.data.data
 	},
 
+	// Get commissions for multiple payments in a single request
+	async getCommissionsByPaymentIds(venueId: string, paymentIds: string[]): Promise<Record<string, PaymentCommission>> {
+		if (paymentIds.length === 0) return {}
+		const response = await api.post(`${BASE_URL}/venues/${venueId}/payments/commissions/batch`, { paymentIds })
+		return response.data.data
+	},
+
 	// ============================================
 	// CALCULATION TRIGGER
 	// ============================================

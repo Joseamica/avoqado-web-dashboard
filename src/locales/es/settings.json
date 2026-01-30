@@ -124,7 +124,8 @@
       "tpv_reports": "Reportes TPV",
       "tpv_products": "Productos TPV (Scan & Go)",
       "tpv_factory_reset": "Restablecer de Fábrica (CRÍTICO)",
-      "billing": "Facturación y Suscripciones"
+      "billing": "Facturación y Suscripciones",
+      "venue_crypto": "Pagos Crypto"
     },
     "actions": {
       "read": "Ver",
@@ -190,8 +191,41 @@
       "tpv-reports": "Reportes TPV",
       "tpv-products": "Productos TPV",
       "tpv-factory-reset": "Restablecer de Fábrica",
+      "venue-crypto": "Pagos Crypto",
       "billing": "Facturación"
     }
+  },
+  "crypto": {
+    "title": "Pagos con Criptomonedas",
+    "description": "Acepta pagos en Bitcoin, Ethereum, USDT y 10+ criptomonedas via B4Bit.",
+    "enableButton": "Activar pagos crypto",
+    "enabling": "Activando...",
+    "enableSuccess": "Dispositivo B4Bit creado",
+    "enableSuccessDesc": "Completa la configuración ingresando el Secret Key.",
+    "pendingSetup": "Configuración pendiente",
+    "pendingWarning": "Los pagos crypto no se procesarán hasta completar la configuración.",
+    "step1": "Paso 1: Dispositivo creado",
+    "deviceName": "Nombre",
+    "step2": "Paso 2: Ingresar Secret Key",
+    "showInstructions": "Ver instrucciones para obtener el Secret Key",
+    "hideInstructions": "Ocultar instrucciones",
+    "instruction1": "Ingresa al dashboard de B4Bit:",
+    "instruction2": "Ve a Dispositivos y selecciona el dispositivo creado.",
+    "instruction3": "Copia el \"Secret Key\" del dispositivo.",
+    "instruction4": "Pega el Secret Key en el campo de abajo.",
+    "secretKeyPlaceholder": "Pegar Secret Key aquí...",
+    "validateButton": "Validar y Activar",
+    "setupSuccess": "Configuración completada",
+    "setupSuccessDesc": "Los pagos crypto están activos.",
+    "step3": "Paso 3: Configurar Webhook URL en B4Bit",
+    "webhookInstructions": "Copia esta URL y pégala en la configuración de webhooks del dispositivo en B4Bit:",
+    "active": "Activo",
+    "inactive": "Desactivado",
+    "disableButton": "Desactivar pagos crypto",
+    "disableSuccess": "Crypto desactivado",
+    "reactivateButton": "Reactivar pagos crypto",
+    "reactivating": "Reactivando...",
+    "copied": "Copiado al portapapeles"
   },
   "roleDisplayNames": {
     "infoAlert": "Personaliza cómo se muestran los nombres de los roles en tu establecimiento. Esto solo afecta el nombre mostrado, no los permisos reales.",

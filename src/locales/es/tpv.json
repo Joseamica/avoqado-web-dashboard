@@ -404,7 +404,9 @@
     "showQuickPayment": "Mostrar Pago Rápido",
     "showQuickPaymentDesc": "Muestra el botón de pago rápido en la pantalla de inicio",
     "showOrderManagement": "Mostrar Órdenes",
-    "showOrderManagementDesc": "Muestra el botón de gestión de órdenes en la pantalla de inicio"
+    "showOrderManagementDesc": "Muestra el botón de gestión de órdenes en la pantalla de inicio",
+    "showCryptoOption": "Pago con Crypto",
+    "showCryptoOptionDesc": "Muestra la opción de pago con criptomonedas en la selección de método de pago"
   },
   "activation": {
     "title": "Activar Terminal",

@@ -19,6 +19,7 @@ import {
   Store,
   CreditCard,
   UtensilsCrossed,
+  Bitcoin,
 } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -221,6 +222,13 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
                 description={t('tpvSettings.showReceiptScreenDesc')}
                 checked={settings.showReceiptScreen}
                 onCheckedChange={checked => handleToggle('showReceiptScreen', checked)}
+              />
+              <SettingRow
+                icon={Bitcoin}
+                label={t('tpvSettings.showCryptoOption', 'Pago con Crypto')}
+                description={t('tpvSettings.showCryptoOptionDesc', 'Muestra la opción de pago con criptomonedas en la selección de método de pago')}
+                checked={settings.showCryptoOption}
+                onCheckedChange={checked => handleToggle('showCryptoOption', checked)}
               />
               {settings.showTipScreen && (
                 <div className="flex items-center justify-between py-3">

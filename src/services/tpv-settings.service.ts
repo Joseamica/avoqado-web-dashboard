@@ -24,6 +24,8 @@ export interface TpvSettings {
   // Home screen button visibility
   showQuickPayment: boolean      // Show "Pago rápido" button on home screen
   showOrderManagement: boolean   // Show "Órdenes" button on home screen
+  // Crypto payment option (B4Bit integration)
+  showCryptoOption: boolean      // Show crypto payment button in merchant selection
 }
 
 /**
@@ -49,6 +51,8 @@ const DEFAULT_TPV_SETTINGS: TpvSettings = {
   // Home screen buttons enabled by default
   showQuickPayment: true,
   showOrderManagement: true,
+  // Crypto payment disabled by default
+  showCryptoOption: false,
 }
 
 /**

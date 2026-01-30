@@ -80,6 +80,7 @@
     "description": "Since you're already logged in with the invited email, you can accept this invitation directly without creating a new account.",
     "accepting": "Accepting invitation...",
     "note": "This will add the team to your existing account",
+    "successTitle": "Invitation accepted",
     "successDescription": "Invitation accepted. Redirecting to new venue..."
   },
   "existsInDifferentOrg": {

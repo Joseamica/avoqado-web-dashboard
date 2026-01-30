@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { useForm } from 'react-hook-form'
 import { useToast } from '@/hooks/use-toast'
+import { CryptoConfigSection } from '@/pages/Settings/components/CryptoConfigSection'
 import { PosType } from '@/types'
 import api from '@/api'
 import { z } from 'zod'
@@ -246,6 +247,11 @@ export default function VenueIntegrations() {
           </Button>
         </CardContent>
       </Card>
+
+      <Separator />
+
+      {/* B4Bit Crypto Payments */}
+      <CryptoConfigSection />
     </div>
   )
 }
