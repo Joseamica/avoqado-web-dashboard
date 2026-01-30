@@ -41,6 +41,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
     defaultValues: {
       name: '',
       sku: '',
+      gtin: '',
       category: 'OTHER',
       currentStock: undefined,
       unit: 'KILOGRAM',
@@ -133,6 +134,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
       reset({
         name: rawMaterial.name,
         sku: rawMaterial.sku,
+        gtin: rawMaterial.gtin || '',
         category: rawMaterial.category,
         currentStock: Number(rawMaterial.currentStock),
         unit: rawMaterial.unit,
@@ -148,6 +150,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
       reset({
         name: '',
         sku: '',
+        gtin: '',
         category: 'OTHER',
         currentStock: undefined,
         unit: 'KILOGRAM',
@@ -330,6 +333,17 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
                 </TooltipProvider>
               </div>
               {errors.sku && <p className="text-xs text-destructive mt-1">{t('validation.required')}</p>}
+            </div>
+
+            {/* GTIN */}
+            <div>
+              <FieldLabel htmlFor="gtin" label={t('rawMaterials.fields.gtin')} helpKey="rawMaterials.fieldHelp.gtin" />
+              <Input
+                id="gtin"
+                {...register('gtin')}
+                className="h-12 text-base"
+                placeholder={t('rawMaterials.fields.gtinPlaceholder')}
+              />
             </div>
 
             {/* Category */}

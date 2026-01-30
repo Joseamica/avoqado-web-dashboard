@@ -473,6 +473,8 @@
       "skuPlaceholder": "SKU (e.g., TACO-001)",
       "skuRequired": "SKU is required.",
       "skuPattern": "SKU can only contain uppercase letters, numbers, hyphens and underscores.",
+      "gtin": "GTIN",
+      "gtinPlaceholder": "E.g.: 7501234567890",
       "namePlaceholder": "Enter a name",
       "descriptionOptional": "Description (optional)",
       "descriptionPlaceholder": "Enter a description",

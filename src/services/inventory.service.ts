@@ -10,6 +10,7 @@ export interface RawMaterial {
   name: string
   description?: string
   sku: string
+  gtin?: string | null
   category: string
   currentStock: number
   unit: string
@@ -34,6 +35,7 @@ export interface CreateRawMaterialDto {
   name: string
   description?: string
   sku: string
+  gtin?: string
   category: string
   currentStock: number
   unit: string

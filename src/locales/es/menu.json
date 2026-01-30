@@ -437,6 +437,8 @@
       "skuPlaceholder": "SKU (p.ej., TACO-001)",
       "skuRequired": "El SKU es requerido.",
       "skuPattern": "El SKU solo puede contener letras mayúsculas, números, guiones y guiones bajos.",
+      "gtin": "GTIN",
+      "gtinPlaceholder": "Ej: 7501234567890",
       "namePlaceholder": "Introduce un nombre",
       "descriptionOptional": "Descripción (opcional)",
       "descriptionPlaceholder": "Introduce una descripción",

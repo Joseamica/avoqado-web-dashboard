@@ -71,6 +71,8 @@
     "fields": {
       "name": "Name",
       "sku": "SKU",
+      "gtin": "GTIN",
+      "gtinPlaceholder": "E.g.: 7501234567890",
       "category": "Category",
       "currentStock": "Current Stock",
       "confirmedStock": "Confirmed",
@@ -186,6 +188,7 @@
     "autoGenerateSkuTooltip": "Auto-generate a unique SKU",
     "fieldHelp": {
       "sku": "Stock Keeping Unit - A unique code to identify and track this ingredient in your inventory system. Example: TOM-001, BEEF-500G",
+      "gtin": "Global Trade Item Number - Universal product barcode (UPC/EAN). Used to identify standard commercial products. Example: 7501234567890",
       "unit": "Unit of measurement for this ingredient. This defines how you'll track stock, make purchases, and calculate costs. Choose the unit that makes most sense for this ingredient.",
       "currentStock": "The quantity you currently have in inventory right now. This will be measured in the unit you selected above.",
       "minimumStock": "The absolute lowest quantity you want in stock. System triggers alerts when stock falls below this level.",

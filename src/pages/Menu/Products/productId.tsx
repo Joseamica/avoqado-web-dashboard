@@ -123,6 +123,7 @@ export default function ProductId() {
         type: formValues.type,
         imageUrl: imageUrl || formValues.imageUrl || data?.imageUrl || undefined,
         sku: formValues.sku,
+        gtin: formValues.gtin || undefined,
         categoryId: formValues.categoryId,
         modifierGroupIds: validModifierIds, // Only send valid modifier groups
         // Inventory tracking configuration
@@ -182,6 +183,7 @@ export default function ProductId() {
   const form = useForm({
     defaultValues: {
       sku: '',
+      gtin: '',
       name: '',
       description: '',
       price: '',
@@ -287,6 +289,7 @@ export default function ProductId() {
 
     form.reset({
       sku: data.sku || '',
+      gtin: data.gtin || '',
       name: data.name || '',
       description: data.description || '',
       price: (data.price ?? '').toString(),
@@ -439,6 +442,25 @@ export default function ProductId() {
                 </FormItem>
               )
             }}
+          />
+
+          {/* GTIN */}
+          <FormField
+            control={form.control}
+            name="gtin"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('products.create.gtin')}</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder={t('products.create.gtinPlaceholder')}
+                    className="max-w-96"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
 
           {/* Nombre */}

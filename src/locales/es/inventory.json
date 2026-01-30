@@ -71,6 +71,8 @@
     "fields": {
       "name": "Nombre",
       "sku": "SKU",
+      "gtin": "GTIN",
+      "gtinPlaceholder": "Ej: 7501234567890",
       "category": "Categoría",
       "currentStock": "Stock Actual",
       "confirmedStock": "Confirmado",
@@ -186,6 +188,7 @@
     "autoGenerateSkuTooltip": "Generar un SKU único automáticamente",
     "fieldHelp": {
       "sku": "Unidad de Mantenimiento de Inventario - Un código único para identificar y rastrear este ingrediente en tu sistema. Ejemplo: TOM-001, CARNE-500G",
+      "gtin": "Global Trade Item Number - Código de barras universal del producto (UPC/EAN). Se usa para identificar productos comerciales estándar. Ejemplo: 7501234567890",
       "unit": "Unidad de medida para este ingrediente. Define cómo rastrearás el stock, harás compras y calcularás costos. Elige la unidad que tenga más sentido para este ingrediente.",
       "currentStock": "La cantidad que tienes actualmente en inventario en este momento. Se medirá en la unidad que seleccionaste arriba.",
       "minimumStock": "La cantidad mínima absoluta que quieres tener en stock. El sistema genera alertas cuando el stock cae por debajo de este nivel.",

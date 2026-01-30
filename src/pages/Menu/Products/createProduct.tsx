@@ -90,6 +90,7 @@ export default function CreateProduct() {
   const form = useForm({
     defaultValues: {
       sku: '',
+      gtin: '',
       name: '',
       description: '',
       price: '',
@@ -252,6 +253,25 @@ export default function CreateProduct() {
                 </FormItem>
               )
             }}
+          />
+
+          {/* GTIN */}
+          <FormField
+            control={form.control}
+            name="gtin"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('products.create.gtin')}</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder={t('products.create.gtinPlaceholder')}
+                    className="max-w-96"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
 
           <FormField
