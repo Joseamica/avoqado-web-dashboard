@@ -69,6 +69,7 @@ import {
   Sparkles,
   BadgeCheck,
   ArrowRightLeft,
+  ArrowUpDown,
 } from 'lucide-react'
 import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -197,6 +198,16 @@ const STATUS_CONFIG: Record<
   },
 }
 
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  [VenueStatus.ONBOARDING]: [VenueStatus.PENDING_ACTIVATION, VenueStatus.ACTIVE, VenueStatus.TRIAL],
+  [VenueStatus.TRIAL]: [VenueStatus.ACTIVE, VenueStatus.SUSPENDED, VenueStatus.CLOSED],
+  [VenueStatus.PENDING_ACTIVATION]: [VenueStatus.ACTIVE],
+  [VenueStatus.ACTIVE]: [VenueStatus.SUSPENDED, VenueStatus.ADMIN_SUSPENDED, VenueStatus.CLOSED],
+  [VenueStatus.SUSPENDED]: [VenueStatus.ACTIVE],
+  [VenueStatus.ADMIN_SUSPENDED]: [VenueStatus.ACTIVE],
+  [VenueStatus.CLOSED]: [VenueStatus.ACTIVE],
+}
+
 const PLAN_CONFIG: Record<SubscriptionPlan, { label: string; icon: React.ReactNode; gradient: string }> = {
   [SubscriptionPlan.STARTER]: {
     label: 'Starter',
@@ -251,6 +262,7 @@ interface VenueCardProps {
   onTransfer: () => void
   onNavigateKYC: () => void
   onNavigateAdmin: () => void
+  onChangeStatus: () => void
 }
 
 const VenueCard: React.FC<VenueCardProps> = ({
@@ -262,6 +274,7 @@ const VenueCard: React.FC<VenueCardProps> = ({
   onTransfer,
   onNavigateKYC,
   onNavigateAdmin,
+  onChangeStatus,
 }) => {
   const statusConfig = STATUS_CONFIG[venue.status]
   const planConfig = PLAN_CONFIG[venue.subscriptionPlan] || {
@@ -340,6 +353,10 @@ const VenueCard: React.FC<VenueCardProps> = ({
                   Aprobar Venue
                 </DropdownMenuItem>
               )}
+              <DropdownMenuItem onClick={onChangeStatus} className="cursor-pointer">
+                <ArrowUpDown className="mr-2 h-4 w-4" />
+                Cambiar Estado
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={onNavigateAdmin} className="cursor-pointer">
                 <Settings className="mr-2 h-4 w-4" />
                 Administrar Features
@@ -443,6 +460,8 @@ const VenueManagement: React.FC = () => {
   const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false)
   const [targetOrgId, setTargetOrgId] = useState<string>('')
   const [reason, setReason] = useState('')
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false)
+  const [newStatus, setNewStatus] = useState<string>('')
 
   // Filter venues
   const filteredVenues = useMemo(() => {
@@ -535,6 +554,28 @@ const VenueManagement: React.FC = () => {
     },
   })
 
+  const changeStatusMutation = useMutation({
+    mutationFn: ({ venueId, status, reason }: { venueId: string; status: string; reason?: string }) =>
+      superadminAPI.changeVenueStatus(venueId, status, reason),
+    onSuccess: () => {
+      toast({
+        title: 'Estado actualizado',
+        description: `${selectedVenue?.name} ahora tiene estado ${STATUS_CONFIG[newStatus as VenueStatus]?.label || newStatus}.`,
+      })
+      queryClient.invalidateQueries({ queryKey: ['superadmin-venues'] })
+      setIsStatusDialogOpen(false)
+      setNewStatus('')
+      setReason('')
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error al cambiar estado',
+        description: error?.response?.data?.message || error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
   // Handlers
   const handleViewDetails = (venue: SuperadminVenue) => {
     setSelectedVenue(venue)
@@ -560,6 +601,13 @@ const VenueManagement: React.FC = () => {
     setSelectedVenue(venue)
     setTargetOrgId('')
     setIsTransferDialogOpen(true)
+  }
+
+  const handleChangeStatus = (venue: SuperadminVenue) => {
+    setSelectedVenue(venue)
+    setNewStatus('')
+    setReason('')
+    setIsStatusDialogOpen(true)
   }
 
   return (
@@ -700,6 +748,7 @@ const VenueManagement: React.FC = () => {
                 onApprove={() => handleApproveVenue(venue)}
                 onSuspend={() => handleSuspendVenue(venue)}
                 onTransfer={() => handleTransferVenue(venue)}
+                onChangeStatus={() => handleChangeStatus(venue)}
                 onNavigateKYC={() => navigate(`/superadmin/kyc/${venue.id}`)}
                 onNavigateAdmin={() => navigate(`/admin/venues/${venue.id}`)}
               />
@@ -886,6 +935,91 @@ const VenueManagement: React.FC = () => {
               className="cursor-pointer"
             >
               {transferMutation.isPending ? 'Transfiriendo...' : 'Transferir Venue'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Status Dialog */}
+      <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-500/5">
+                <ArrowUpDown className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div>
+                <DialogTitle>Cambiar Estado</DialogTitle>
+                <DialogDescription>
+                  Cambiar estado de <strong>{selectedVenue?.name}</strong>
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label className="text-muted-foreground text-xs">Estado actual</Label>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-muted/30">
+                {selectedVenue && (
+                  <>
+                    <StatusPulse status={STATUS_CONFIG[selectedVenue.status]?.pulseStatus || 'neutral'} />
+                    <span className="text-sm font-medium">
+                      {STATUS_CONFIG[selectedVenue.status]?.label || selectedVenue.status}
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>Nuevo estado</Label>
+              <Select value={newStatus} onValueChange={setNewStatus}>
+                <SelectTrigger className="bg-background cursor-pointer">
+                  <SelectValue placeholder="Selecciona un estado..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedVenue &&
+                    VALID_TRANSITIONS[selectedVenue.status]?.map((status: string) => (
+                      <SelectItem key={status} value={status} className="cursor-pointer">
+                        {STATUS_CONFIG[status as VenueStatus]?.label || status}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="status-reason">Razón (opcional)</Label>
+              <Input
+                id="status-reason"
+                placeholder="Ej: Activación tras revisión KYC..."
+                value={reason}
+                onChange={e => setReason(e.target.value)}
+                className="bg-background"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsStatusDialogOpen(false)}
+              disabled={changeStatusMutation.isPending}
+              className="cursor-pointer"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() =>
+                selectedVenue &&
+                newStatus &&
+                changeStatusMutation.mutate({
+                  venueId: selectedVenue.id,
+                  status: newStatus,
+                  reason: reason || undefined,
+                })
+              }
+              disabled={changeStatusMutation.isPending || !newStatus}
+              className="cursor-pointer"
+            >
+              {changeStatusMutation.isPending ? 'Cambiando...' : 'Cambiar Estado'}
             </Button>
           </DialogFooter>
         </DialogContent>

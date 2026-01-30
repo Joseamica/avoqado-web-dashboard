@@ -201,6 +201,13 @@ export async function approveVenue(venueId: string, reason?: string): Promise<vo
 }
 
 /**
+ * Change venue status
+ */
+export async function changeVenueStatus(venueId: string, status: string, reason?: string): Promise<void> {
+  await api.patch(`/api/v1/dashboard/superadmin/venues/${venueId}/status`, { status, reason })
+}
+
+/**
  * Suspend a venue
  */
 export async function suspendVenue(venueId: string, reason: string): Promise<void> {
@@ -806,6 +813,9 @@ export const superadminAPI = {
   },
   suspendVenue: async (venueId: string, reason: string): Promise<void> => {
     await suspendVenue(venueId, reason)
+  },
+  changeVenueStatus: async (venueId: string, status: string, reason?: string): Promise<void> => {
+    await changeVenueStatus(venueId, status, reason)
   },
   getAllFeatures: async (): Promise<SAPlatformFeature[]> => {
     return (await getAllFeatures()) as unknown as SAPlatformFeature[]
