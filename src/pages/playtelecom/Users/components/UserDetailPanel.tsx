@@ -18,6 +18,7 @@ import {
   Ban,
   UserCheck,
   RotateCcw,
+  KeyRound,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { RoleSelectionCards, type UserRole } from './RoleSelectionCards'
@@ -46,6 +47,7 @@ interface UserDetailPanelProps {
   stores: StoreOption[]
   onSave: (updates: Partial<UserDetail>) => void
   onStatusChange: (status: 'active' | 'inactive' | 'blocked') => void
+  onResetPassword?: () => void
   isSaving?: boolean
   className?: string
 }
@@ -56,6 +58,7 @@ export const UserDetailPanel: React.FC<UserDetailPanelProps> = ({
   stores,
   onSave,
   onStatusChange,
+  onResetPassword,
   isSaving = false,
   className,
 }) => {
@@ -211,6 +214,17 @@ export const UserDetailPanel: React.FC<UserDetailPanelProps> = ({
 
           {/* Quick Actions */}
           <div className="flex gap-2 mt-4 pt-4 border-t border-border/50">
+            {onResetPassword && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onResetPassword}
+                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-500/10"
+              >
+                <KeyRound className="w-3.5 h-3.5 mr-1" />
+                {t('playtelecom:users.resetPassword', { defaultValue: 'Reset Password' })}
+              </Button>
+            )}
             {user.status === 'active' ? (
               <Button
                 variant="outline"

@@ -1,111 +1,143 @@
 /**
- * TpvConfiguration - TPV Category Configuration
+ * TpvConfiguration - TPV Terminal Personalization
  *
- * Displays:
- * - Item category management for serialized products
- * - Price configuration
- * - Commission settings per category
- * - TPV button layout
+ * Layout: 8/4 grid
+ * - Left: Module toggles, Catalog editor, Evidence rules
+ * - Right: Phone preview (live)
  *
  * Access: ADMIN+ only
  */
 
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { GlassCard } from '@/components/ui/glass-card'
-import { useAuth } from '@/context/AuthContext'
-import { Package, Pencil, Percent, Plus, Settings, Trash2 } from 'lucide-react'
-import { useMemo } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Button } from '@/components/ui/button'
+import { Settings, RotateCcw, Save } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
+import { getItemCategories, type ItemCategory } from '@/services/itemCategory.service'
+import {
+  ModuleToggles,
+  CatalogEditor,
+  EvidenceRules,
+  PhonePreview,
+  type ModuleToggleState,
+  type EvidenceRulesState,
+  type CatalogItem,
+} from './components'
 
-// Placeholder data - will be replaced with real API calls
-const MOCK_CATEGORIES = [
-  {
-    id: '1',
-    name: 'Chip Telcel Negra',
-    sku: 'CHIP-NEG-001',
-    price: 150.0,
-    cost: 100.0,
-    commission: 10.0,
-    isActive: true,
-    color: '#1a1a1a',
-  },
-  {
-    id: '2',
-    name: 'Chip Telcel Blanca',
-    sku: 'CHIP-BLA-001',
-    price: 120.0,
-    cost: 80.0,
-    commission: 8.0,
-    isActive: true,
-    color: '#ffffff',
-  },
-  {
-    id: '3',
-    name: 'Chip Telcel Roja',
-    sku: 'CHIP-ROJ-001',
-    price: 180.0,
-    cost: 120.0,
-    commission: 12.0,
-    isActive: true,
-    color: '#ef4444',
-  },
-  {
-    id: '4',
-    name: 'Recarga Telcel $50',
-    sku: 'REC-050',
-    price: 50.0,
-    cost: 47.5,
-    commission: 2.5,
-    isActive: true,
-    color: '#3b82f6',
-  },
-  {
-    id: '5',
-    name: 'Recarga Telcel $100',
-    sku: 'REC-100',
-    price: 100.0,
-    cost: 95.0,
-    commission: 5.0,
-    isActive: true,
-    color: '#3b82f6',
-  },
-  {
-    id: '6',
-    name: 'Recarga Telcel $200',
-    sku: 'REC-200',
-    price: 200.0,
-    cost: 190.0,
-    commission: 10.0,
-    isActive: false,
-    color: '#3b82f6',
-  },
-]
+// Default module state
+const DEFAULT_MODULES: ModuleToggleState = {
+  attendanceTracking: true,
+  enableCashPayments: true,
+  enableCardPayments: true,
+  enableBarcodeScanner: true,
+}
+
+// Default evidence rules
+const DEFAULT_EVIDENCE: EvidenceRulesState = {
+  clockInPhotoRule: 'OBLIGATORIO',
+  depositPhotoRule: 'OBLIGATORIO_ALTA_CALIDAD',
+  facadePhotoRule: 'NUNCA',
+}
 
 export function TpvConfiguration() {
   const { t } = useTranslation(['playtelecom', 'common'])
   const { activeVenue } = useAuth()
+  const venueId = activeVenue?.id
+  const queryClient = useQueryClient()
 
-  // Format currency
-  const formatCurrency = useMemo(
-    () => (value: number) =>
-      new Intl.NumberFormat('es-MX', {
-        style: 'currency',
-        currency: activeVenue?.currency || 'MXN',
-        minimumFractionDigits: 2,
-      }).format(value),
-    [activeVenue?.currency],
-  )
+  // Fetch categories from API
+  const { data: categoriesData, isLoading: categoriesLoading } = useQuery({
+    queryKey: ['venue', venueId, 'item-categories'],
+    queryFn: () => getItemCategories(venueId!, { includeStats: true }),
+    enabled: !!venueId,
+    staleTime: 60000,
+  })
 
-  // Calculate totals
-  const stats = useMemo(
-    () => ({
-      totalCategories: MOCK_CATEGORIES.length,
-      activeCategories: MOCK_CATEGORIES.filter(c => c.isActive).length,
-      avgMargin: MOCK_CATEGORIES.reduce((acc, c) => acc + ((c.price - c.cost) / c.price) * 100, 0) / MOCK_CATEGORIES.length,
-    }),
-    [],
-  )
+  // Map API categories to CatalogItem format
+  const apiCategories: CatalogItem[] = useMemo(() => {
+    if (!categoriesData?.categories) return []
+    return categoriesData.categories.map((c: ItemCategory) => ({
+      id: c.id,
+      name: c.name,
+      description: c.description || '',
+      price: c.suggestedPrice ?? 0,
+      color: c.color || '#3b82f6',
+      isActive: c.active,
+      sortOrder: c.sortOrder,
+    }))
+  }, [categoriesData])
+
+  // State
+  const [modules, setModules] = useState<ModuleToggleState>(DEFAULT_MODULES)
+  const [evidence, setEvidence] = useState<EvidenceRulesState>(DEFAULT_EVIDENCE)
+  const [categories, setCategories] = useState<CatalogItem[]>([])
+  const [hasChanges, setHasChanges] = useState(false)
+
+  // Sync API categories into local state when loaded
+  useEffect(() => {
+    if (apiCategories.length > 0 && !hasChanges) {
+      setCategories(apiCategories)
+    }
+  }, [apiCategories, hasChanges])
+
+  // Save mutation
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      // Save config — currently the backend TpvSettings is stored as JSON on Terminal.config
+      // For now just log; the real save would call updateTerminalConfig
+      console.log('Saving config:', { modules, evidence, categories })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['venue', venueId, 'item-categories'] })
+      setHasChanges(false)
+    },
+  })
+
+  // Handlers
+  const handleModuleChange = useCallback((key: keyof ModuleToggleState, value: boolean) => {
+    setModules(prev => ({ ...prev, [key]: value }))
+    setHasChanges(true)
+  }, [])
+
+  const handleEvidenceChange = useCallback((key: keyof EvidenceRulesState, value: string) => {
+    setEvidence(prev => ({ ...prev, [key]: value as EvidenceRulesState[typeof key] }))
+    setHasChanges(true)
+  }, [])
+
+  const handleAddCategory = useCallback(() => {
+    // TODO: Open add category dialog
+    console.log('Add category')
+  }, [])
+
+  const handleRemoveCategory = useCallback((id: string) => {
+    setCategories(prev => prev.filter(c => c.id !== id))
+    setHasChanges(true)
+  }, [])
+
+  const handleReorderCategories = useCallback((reordered: Array<{ id: string; sortOrder: number }>) => {
+    setCategories(prev =>
+      prev.map(c => {
+        const match = reordered.find(r => r.id === c.id)
+        return match ? { ...c, sortOrder: match.sortOrder } : c
+      })
+    )
+    setHasChanges(true)
+  }, [])
+
+  const handleResetDefaults = useCallback(() => {
+    setModules(DEFAULT_MODULES)
+    setEvidence(DEFAULT_EVIDENCE)
+    setCategories(apiCategories.length > 0 ? apiCategories : [])
+    setHasChanges(false)
+  }, [apiCategories])
+
+  const handleSave = useCallback(() => {
+    saveMutation.mutate()
+  }, [saveMutation])
+
+  // Memoize categories for preview
+  const memoizedCategories = useMemo(() => categories, [categories])
 
   return (
     <div className="space-y-6">
@@ -116,149 +148,49 @@ export function TpvConfiguration() {
             <Settings className="w-5 h-5 text-orange-600 dark:text-orange-400" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold">{t('playtelecom:tpvConfig.title', { defaultValue: 'Configuración TPV' })}</h2>
+            <h2 className="text-lg font-semibold">
+              {t('playtelecom:tpvConfig.title', { defaultValue: 'Personalizacion de Terminal (TPV)' })}
+            </h2>
             <p className="text-sm text-muted-foreground">
-              {t('playtelecom:tpvConfig.subtitle', { defaultValue: 'Administra categorías y precios' })}
+              {t('playtelecom:tpvConfig.subtitle', { defaultValue: 'Define las reglas, modulos y productos visibles en la App Movil' })}
             </p>
           </div>
         </div>
-        <Button className="gap-2">
-          <Plus className="w-4 h-4" />
-          {t('playtelecom:tpvConfig.addCategory', { defaultValue: 'Nueva Categoría' })}
-        </Button>
+        <div className="flex gap-3">
+          <Button variant="outline" size="sm" onClick={handleResetDefaults} disabled={!hasChanges}>
+            <RotateCcw className="w-3.5 h-3.5 mr-1" />
+            {t('playtelecom:tpvConfig.resetDefaults', { defaultValue: 'Restaurar Defaults' })}
+          </Button>
+          <Button size="sm" onClick={handleSave} disabled={!hasChanges}>
+            <Save className="w-3.5 h-3.5 mr-1" />
+            {t('playtelecom:tpvConfig.saveSync', { defaultValue: 'Guardar y Sincronizar' })}
+          </Button>
+        </div>
       </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
-              <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">
-                {t('playtelecom:tpvConfig.totalCategories', { defaultValue: 'Total Categorías' })}
-              </p>
-              <p className="text-xl font-semibold">{stats.totalCategories}</p>
-            </div>
-          </div>
-        </GlassCard>
+      {/* Main layout: config (left) + preview (right) */}
+      <div className="grid grid-cols-12 gap-6">
+        {/* Left: Config sections */}
+        <div className="col-span-12 xl:col-span-8 space-y-6">
+          <ModuleToggles values={modules} onChange={handleModuleChange} />
+          <CatalogEditor
+            categories={memoizedCategories}
+            onAdd={handleAddCategory}
+            onRemove={handleRemoveCategory}
+            onReorder={handleReorderCategories}
+          />
+          <EvidenceRules values={evidence} onChange={handleEvidenceChange} />
+        </div>
 
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5">
-              <Package className="w-4 h-4 text-green-600 dark:text-green-400" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">
-                {t('playtelecom:tpvConfig.activeCategories', { defaultValue: 'Categorías Activas' })}
-              </p>
-              <p className="text-xl font-semibold">{stats.activeCategories}</p>
-            </div>
-          </div>
-        </GlassCard>
-
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
-              <Percent className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{t('playtelecom:tpvConfig.avgMargin', { defaultValue: 'Margen Promedio' })}</p>
-              <p className="text-xl font-semibold">{stats.avgMargin.toFixed(1)}%</p>
-            </div>
-          </div>
-        </GlassCard>
+        {/* Right: Phone preview */}
+        <div className="col-span-12 xl:col-span-4 hidden xl:flex">
+          <PhonePreview
+            modules={modules}
+            categories={memoizedCategories}
+            className="sticky top-6"
+          />
+        </div>
       </div>
-
-      {/* Categories Table */}
-      <GlassCard className="p-6">
-        <h3 className="text-lg font-semibold mb-4">{t('playtelecom:tpvConfig.categories', { defaultValue: 'Categorías de Productos' })}</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border/50">
-                <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">
-                  {t('playtelecom:tpvConfig.category', { defaultValue: 'Categoría' })}
-                </th>
-                <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">SKU</th>
-                <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">
-                  {t('playtelecom:tpvConfig.price', { defaultValue: 'Precio' })}
-                </th>
-                <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">
-                  {t('playtelecom:tpvConfig.cost', { defaultValue: 'Costo' })}
-                </th>
-                <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">
-                  {t('playtelecom:tpvConfig.margin', { defaultValue: 'Margen' })}
-                </th>
-                <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">
-                  {t('playtelecom:tpvConfig.commission', { defaultValue: 'Comisión' })}
-                </th>
-                <th className="text-center py-3 px-2 text-sm font-medium text-muted-foreground">
-                  {t('playtelecom:tpvConfig.status', { defaultValue: 'Estado' })}
-                </th>
-                <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">
-                  {t('playtelecom:tpvConfig.actions', { defaultValue: 'Acciones' })}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {MOCK_CATEGORIES.map(category => {
-                const margin = (((category.price - category.cost) / category.price) * 100).toFixed(1)
-                return (
-                  <tr key={category.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
-                    <td className="py-3 px-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded-full border border-border" style={{ backgroundColor: category.color }} />
-                        <span className="font-medium">{category.name}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-2">
-                      <code className="text-xs bg-muted/50 px-2 py-1 rounded">{category.sku}</code>
-                    </td>
-                    <td className="py-3 px-2 text-right font-medium">{formatCurrency(category.price)}</td>
-                    <td className="py-3 px-2 text-right text-muted-foreground">{formatCurrency(category.cost)}</td>
-                    <td className="py-3 px-2 text-right">
-                      <span className="text-green-600 dark:text-green-400">{margin}%</span>
-                    </td>
-                    <td className="py-3 px-2 text-right text-muted-foreground">{formatCurrency(category.commission)}</td>
-                    <td className="py-3 px-2 text-center">
-                      <Badge variant={category.isActive ? 'default' : 'secondary'}>{category.isActive ? 'Activo' : 'Inactivo'}</Badge>
-                    </td>
-                    <td className="py-3 px-2">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </GlassCard>
-
-      {/* TPV Preview */}
-      <GlassCard className="p-6">
-        <h3 className="text-lg font-semibold mb-4">{t('playtelecom:tpvConfig.preview', { defaultValue: 'Vista Previa TPV' })}</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {MOCK_CATEGORIES.filter(c => c.isActive).map(category => (
-            <button
-              key={category.id}
-              className="p-4 rounded-xl border border-border/50 bg-card hover:bg-muted/50 transition-colors text-left"
-              style={{ borderLeftColor: category.color, borderLeftWidth: 4 }}
-            >
-              <p className="font-medium text-sm truncate">{category.name}</p>
-              <p className="text-lg font-bold mt-1">{formatCurrency(category.price)}</p>
-            </button>
-          ))}
-        </div>
-      </GlassCard>
     </div>
   )
 }

@@ -1,56 +1,120 @@
 /**
- * ManagersDashboard - Manager Performance Oversight
+ * ManagersDashboard - Manager Performance & Attendance Oversight
  *
- * Displays:
- * - Manager performance metrics
- * - Stores under management
- * - Team productivity
- * - Goal tracking
+ * Layout:
+ * - Filters (period, state, store)
+ * - 4 KPI cards (store status, incidents, stock, cash in field)
+ * - 3 Charts (sales by SIM, goal progress, 7-day sales)
+ * - Attendance log with approve/reject + photo evidence modal
  *
  * Access: ADMIN+ only
  */
 
-import { Badge } from '@/components/ui/badge'
-import { GlassCard } from '@/components/ui/glass-card'
-import { useAuth } from '@/context/AuthContext'
-import { Store, Target, UserCog } from 'lucide-react'
-import { useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-
-// Placeholder data - will be replaced with real API calls
-const MOCK_MANAGERS = [
-  {
-    id: '1',
-    name: 'Roberto Sánchez',
-    stores: ['Plaza Centro', 'Sucursal Este'],
-    promoters: 8,
-    monthlySales: 125000.0,
-    target: 150000.0,
-    achievement: 83.3,
-  },
-  {
-    id: '2',
-    name: 'Ana Martínez',
-    stores: ['Sucursal Norte'],
-    promoters: 4,
-    monthlySales: 68000.0,
-    target: 75000.0,
-    achievement: 90.7,
-  },
-  {
-    id: '3',
-    name: 'Carlos López',
-    stores: ['Sucursal Sur', 'Kiosko Mall'],
-    promoters: 6,
-    monthlySales: 95000.0,
-    target: 100000.0,
-    achievement: 95.0,
-  },
-]
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '@/context/AuthContext'
+import { useOrganization, useOrganizationOverview, useStockSummary, useAnomalies, useOrganizationVenues, useRevenueVsTarget } from '@/hooks/useOrganization'
+import { getStaffAttendance, validateTimeEntry } from '@/services/organizationDashboard.service'
+import {
+  ManagerFilters,
+  ManagerKpiCards,
+  ManagerCharts,
+  AttendanceLog,
+  PhotoEvidenceModal,
+  type ManagerFilterValues,
+  type ManagerKpiData,
+  type AttendanceEntry,
+} from './components'
 
 export function ManagersDashboard() {
   const { t } = useTranslation(['playtelecom', 'common'])
   const { activeVenue } = useAuth()
+  const { organizationId } = useOrganization()
+
+  // Filters
+  const [filters, setFilters] = useState<ManagerFilterValues>({
+    period: 'week',
+    state: 'all',
+    store: 'all',
+  })
+
+  // Photo modal
+  const [photoEntry, setPhotoEntry] = useState<AttendanceEntry | null>(null)
+
+  const queryClient = useQueryClient()
+
+  // Map filter period to timeRange for organization hooks
+  const timeRange = useMemo((): '7d' | '30d' | '90d' => {
+    if (filters.period === 'today') return '7d'
+    if (filters.period === 'month') return '30d'
+    return '7d'
+  }, [filters.period])
+
+  const selectedVenueId = filters.store !== 'all' ? filters.store : undefined
+
+  // API hooks - pass filters
+  const { data: overview } = useOrganizationOverview(timeRange)
+  const { data: stockSummary } = useStockSummary()
+  const { data: anomalies } = useAnomalies()
+  const { data: venuesData } = useOrganizationVenues(timeRange)
+  const { data: revenueData } = useRevenueVsTarget({ venueId: selectedVenueId })
+
+  // Staff attendance from API
+  const { data: attendanceData } = useQuery({
+    queryKey: ['organization', organizationId, 'staff-attendance', filters],
+    queryFn: () => getStaffAttendance(organizationId!, {
+      period: filters.period,
+      venueId: filters.store !== 'all' ? filters.store : undefined,
+      status: filters.state !== 'all' ? filters.state : undefined,
+    }),
+    enabled: !!organizationId,
+    staleTime: 30000,
+  })
+
+  // Validate time entry mutation
+  const validateMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: 'APPROVED' | 'REJECTED' }) =>
+      validateTimeEntry(organizationId!, id, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['organization', organizationId, 'staff-attendance'] })
+    },
+  })
+
+  // Map API attendance data to AttendanceEntry format
+  const attendanceEntries: AttendanceEntry[] = useMemo(() => {
+    if (!attendanceData?.entries) return []
+    return attendanceData.entries
+      .filter(entry => entry.clockIn) // Only show staff who have clocked in
+      .map(entry => {
+        const clockInDate = new Date(entry.clockIn!)
+        const isLate = clockInDate.getHours() >= 10 || (clockInDate.getHours() === 9 && clockInDate.getMinutes() > 30)
+        const incidents: AttendanceEntry['incidents'] = []
+        if (isLate) incidents.push({ label: 'Retardo', severity: 'critical' })
+        if (!entry.clockInLatitude) incidents.push({ label: 'Sin GPS', severity: 'warning' })
+        if (incidents.length === 0) incidents.push({ label: 'Sin Incidencias', severity: 'ok' })
+
+        return {
+          id: entry.staffId,
+          timeEntryId: entry.id,
+          date: clockInDate.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }),
+          storeName: entry.venueName,
+          promoterName: entry.staffName,
+          clockIn: clockInDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase(),
+          clockOut: entry.clockOut
+            ? new Date(entry.clockOut).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()
+            : null,
+          clockInPhotoUrl: entry.clockInPhotoUrl,
+          clockInLat: entry.clockInLatitude,
+          clockInLon: entry.clockInLongitude,
+          validationStatus: entry.validationStatus,
+          sales: entry.sales ?? 0,
+          incidents,
+          isLate,
+          gpsWarning: !entry.clockInLatitude,
+        }
+      })
+  }, [attendanceData])
 
   // Format currency
   const formatCurrency = useMemo(
@@ -63,108 +127,131 @@ export function ManagersDashboard() {
     [activeVenue?.currency],
   )
 
+  // Derive KPI data from API
+  const kpiData: ManagerKpiData = useMemo(() => {
+    const anomalyList = anomalies?.anomalies ?? []
+    const punctualityCount = anomalyList.filter(a => a.type === 'NO_CHECKINS').length
+    const locationCount = anomalyList.filter(a => a.type === 'LOW_STOCK').length
+    const depositCount = anomalyList.filter(a => a.type === 'PENDING_DEPOSITS').length
+
+    // Stock by category from store breakdown
+    const defaultColors = ['#6366f1', '#0ea5e9', '#a855f7', '#f59e0b', '#10b981']
+    const stockCategories = stockSummary?.storeBreakdown
+      ? stockSummary.storeBreakdown.slice(0, 3).map((s, i) => ({
+          name: s.storeName,
+          count: s.available,
+          maxCount: Math.max(s.available + s.value, s.available * 1.5),
+          color: defaultColors[i % defaultColors.length],
+        }))
+      : []
+
+    return {
+      storesOpen: overview?.venueCount ?? 0,
+      storesClosed: venuesData ? Math.max(venuesData.length - (overview?.venueCount ?? 0), 0) : 0,
+      incidents: [
+        { label: t('playtelecom:managers.kpi.punctuality', { defaultValue: 'Puntualidad' }), count: punctualityCount, severity: 'critical' as const },
+        { label: t('playtelecom:managers.kpi.location', { defaultValue: 'Localizacion' }), count: locationCount, severity: 'warning' as const },
+        { label: t('playtelecom:managers.kpi.deposit', { defaultValue: 'Deposito' }), count: depositCount || 'OK', severity: depositCount ? 'warning' as const : 'ok' as const },
+      ],
+      stockByCategory: stockCategories,
+      totalCashInField: overview?.totalRevenue ?? 0,
+      cashCollectedPercent: overview?.totalRevenue && overview.totalOrders ? Math.min(Math.round((overview.totalRevenue / Math.max(overview.totalOrders * 200, 1)) * 100), 100) : 0,
+    }
+  }, [overview, stockSummary, anomalies, venuesData, t])
+
+  // Chart data - derive from stock summary categories
+  const salesBySIM = useMemo(() => {
+    if (!stockSummary?.storeBreakdown?.length) return []
+    const colors = ['#6366f1', '#0ea5e9', '#a855f7', '#f59e0b', '#10b981']
+    return stockSummary.storeBreakdown.slice(0, 5).map((s, i) => ({
+      label: s.storeName.slice(0, 8),
+      value: s.available,
+      color: colors[i % colors.length],
+    }))
+  }, [stockSummary])
+
+  const goals = useMemo(() => {
+    if (!venuesData?.length) return []
+    return venuesData.slice(0, 4).map(v => {
+      const revenue = v.metrics?.revenue ?? 0
+      const growth = v.metrics?.growth ?? 0
+      const percent = Math.min(Math.max(Math.round(growth + 50), 0), 100)
+      return {
+        storeName: v.name.length > 18 ? v.name.slice(0, 18) + '...' : v.name,
+        percent,
+        targetPercent: 90,
+      }
+    })
+  }, [venuesData])
+
+  const dailySales = useMemo(() => {
+    if (!revenueData?.days?.length) return []
+    const dayLabels = ['D', 'L', 'M', 'M', 'J', 'V', 'S']
+    return revenueData.days.map((d, i) => ({
+      day: dayLabels[new Date(d.date).getDay()] || dayLabels[i % 7],
+      value: d.actual,
+      isHighlight: i === revenueData.days.length - 1,
+    }))
+  }, [revenueData])
+
+  // Stores for filter dropdown - derive from venues API
+  const storeOptions = useMemo(() => {
+    if (!venuesData) return []
+    return venuesData.map(v => ({ id: v.id, name: v.name }))
+  }, [venuesData])
+
+  const handleFilterChange = useCallback((key: keyof ManagerFilterValues, value: string) => {
+    setFilters(prev => ({ ...prev, [key]: value }))
+  }, [])
+
+  const handleApprove = useCallback((id: string) => {
+    if (!id) return
+    validateMutation.mutate({ id, status: 'APPROVED' })
+  }, [validateMutation])
+
+  const handleReject = useCallback((id: string) => {
+    if (!id) return
+    validateMutation.mutate({ id, status: 'REJECTED' })
+  }, [validateMutation])
+
   return (
     <div className="space-y-6">
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
-              <UserCog className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">
-                {t('playtelecom:managers.totalManagers', { defaultValue: 'Gerentes Activos' })}
-              </p>
-              <p className="text-2xl font-semibold">{MOCK_MANAGERS.length}</p>
-            </div>
-          </div>
-        </GlassCard>
-
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
-              <Store className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">
-                {t('playtelecom:managers.totalStores', { defaultValue: 'Tiendas Supervisadas' })}
-              </p>
-              <p className="text-2xl font-semibold">{MOCK_MANAGERS.reduce((acc, m) => acc + m.stores.length, 0)}</p>
-            </div>
-          </div>
-        </GlassCard>
-
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5">
-              <Target className="w-5 h-5 text-green-600 dark:text-green-400" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">
-                {t('playtelecom:managers.avgAchievement', { defaultValue: 'Cumplimiento Promedio' })}
-              </p>
-              <p className="text-2xl font-semibold">
-                {(MOCK_MANAGERS.reduce((acc, m) => acc + m.achievement, 0) / MOCK_MANAGERS.length).toFixed(1)}%
-              </p>
-            </div>
-          </div>
-        </GlassCard>
+      {/* Header + Filters */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold tracking-tight">
+          {t('playtelecom:managers.title', { defaultValue: 'Dashboard Gerencial' })}
+        </h2>
+        <ManagerFilters
+          values={filters}
+          onChange={handleFilterChange}
+          stores={storeOptions}
+        />
       </div>
 
-      {/* Managers List */}
-      <GlassCard className="p-6">
-        <h3 className="text-lg font-semibold mb-4">{t('playtelecom:managers.performance', { defaultValue: 'Rendimiento de Gerentes' })}</h3>
-        <div className="space-y-4">
-          {MOCK_MANAGERS.map(manager => (
-            <div key={manager.id} className="p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <UserCog className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <h4 className="font-medium">{manager.name}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {manager.stores.length} tiendas · {manager.promoters} promotores
-                    </p>
-                  </div>
-                </div>
-                <Badge variant={manager.achievement >= 90 ? 'default' : manager.achievement >= 75 ? 'secondary' : 'outline'}>
-                  {manager.achievement.toFixed(1)}%
-                </Badge>
-              </div>
+      {/* KPI Cards */}
+      <ManagerKpiCards data={kpiData} formatCurrency={formatCurrency} />
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    {t('playtelecom:managers.monthlySales', { defaultValue: 'Ventas del Mes' })}
-                  </span>
-                  <span className="font-medium">{formatCurrency(manager.monthlySales)}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{t('playtelecom:managers.target', { defaultValue: 'Meta' })}</span>
-                  <span className="text-muted-foreground">{formatCurrency(manager.target)}</span>
-                </div>
-                <div className="relative h-2 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(manager.achievement, 100)}%` }}
-                  />
-                </div>
-              </div>
+      {/* Charts */}
+      <ManagerCharts
+        salesBySIM={salesBySIM}
+        goals={goals}
+        dailySales={dailySales}
+      />
 
-              <div className="mt-3 flex flex-wrap gap-1">
-                {manager.stores.map(store => (
-                  <Badge key={store} variant="outline" className="text-xs">
-                    {store}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </GlassCard>
+      {/* Attendance Log */}
+      <AttendanceLog
+        entries={attendanceEntries}
+        onApprove={handleApprove}
+        onReject={handleReject}
+        onViewPhoto={setPhotoEntry}
+      />
+
+      {/* Photo Evidence Modal */}
+      <PhotoEvidenceModal
+        entry={photoEntry}
+        open={!!photoEntry}
+        onClose={() => setPhotoEntry(null)}
+      />
     </div>
   )
 }

@@ -973,6 +973,150 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
     },
   },
 
+  SUPERVISOR_DASHBOARD: {
+    code: 'SUPERVISOR_DASHBOARD',
+    name: 'Dashboard Supervisor',
+    description: 'Panel de supervisión operativa con cobertura en tiempo real, transacciones y detalle por tienda',
+    category: 'analytics',
+    source: 'module_specific',
+
+    component: {
+      path: '@/pages/playtelecom/Supervisor/SupervisorDashboard',
+    },
+
+    routes: [{ path: 'supervisor', element: 'SupervisorDashboard', roles: [StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER] }],
+
+    configSchema: {
+      type: 'object',
+      properties: {
+        refreshInterval: {
+          type: 'number',
+          default: 30,
+          minimum: 10,
+          maximum: 300,
+          title: 'Intervalo de actualización (segundos)',
+          description: 'Frecuencia de actualización de transacciones en tiempo real',
+        },
+        showGaugeChart: {
+          type: 'boolean',
+          default: true,
+          title: 'Mostrar gauge de cobertura',
+          description: 'Mostrar gráfico semicircular de cobertura operacional',
+        },
+      },
+    },
+
+    defaultNavItem: {
+      label: 'Supervisor',
+      icon: 'Eye',
+    },
+  },
+
+  TPV_CONFIGURATION: {
+    code: 'TPV_CONFIGURATION',
+    name: 'Configuración TPV',
+    description: 'Configuración de terminales punto de venta: módulos, catálogo de SIMs, reglas de evidencia',
+    category: 'custom',
+    source: 'module_specific',
+
+    component: {
+      path: '@/pages/playtelecom/TpvConfig/TpvConfiguration',
+    },
+
+    routes: [{ path: 'tpv-config', element: 'TpvConfiguration', roles: [StaffRole.ADMIN, StaffRole.OWNER] }],
+
+    configSchema: {
+      type: 'object',
+      properties: {
+        showPhonePreview: {
+          type: 'boolean',
+          default: true,
+          title: 'Vista previa de teléfono',
+          description: 'Mostrar preview en vivo de la configuración del TPV',
+        },
+        allowCatalogReorder: {
+          type: 'boolean',
+          default: true,
+          title: 'Permitir reordenar catálogo',
+          description: 'Permitir drag & drop para reordenar categorías del catálogo',
+        },
+      },
+    },
+
+    defaultNavItem: {
+      label: 'Config TPV',
+      icon: 'Settings',
+    },
+  },
+
+  CLOSING_REPORT: {
+    code: 'CLOSING_REPORT',
+    name: 'Reporte de Cierre',
+    description: 'Reporte de cierre diario con detalle de ventas por tienda, promotor y tipo de venta con exportación Excel',
+    category: 'analytics',
+    source: 'module_specific',
+
+    component: {
+      path: '@/pages/playtelecom/Reporte/ReportePage',
+    },
+
+    routes: [{ path: 'reporte', element: 'ReportePage', roles: [StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER] }],
+
+    configSchema: {
+      type: 'object',
+      properties: {
+        enableExcelExport: {
+          type: 'boolean',
+          default: true,
+          title: 'Exportar a Excel',
+          description: 'Permitir descarga del reporte en formato .xlsx',
+        },
+      },
+    },
+
+    defaultNavItem: {
+      label: 'Reporte de Cierre',
+      icon: 'FileSpreadsheet',
+    },
+  },
+
+  USERS_MANAGEMENT: {
+    code: 'USERS_MANAGEMENT',
+    name: 'Gestión de Usuarios',
+    description: 'Administración de usuarios, zonas y permisos de la organización',
+    category: 'team',
+    source: 'module_specific',
+
+    component: {
+      path: '@/pages/playtelecom/Users/UsersManagement',
+    },
+
+    routes: [{ path: 'users', element: 'UsersManagement', roles: [StaffRole.ADMIN, StaffRole.OWNER] }],
+
+    configSchema: {
+      type: 'object',
+      properties: {
+        allowPasswordReset: {
+          type: 'boolean',
+          default: true,
+          title: 'Reset de contraseña',
+          description: 'Permitir a administradores resetear contraseñas de usuarios',
+        },
+        showZoneManagement: {
+          type: 'boolean',
+          default: true,
+          title: 'Gestión de zonas',
+          description: 'Mostrar panel de administración de zonas geográficas',
+        },
+      },
+    },
+
+    defaultNavItem: {
+      label: 'Usuarios',
+      icon: 'Users',
+    },
+  },
+
   // ============================================
   // MODULE SPECIFIC: JEWELRY
   // Features for jewelry businesses

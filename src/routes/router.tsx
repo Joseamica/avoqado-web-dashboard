@@ -43,6 +43,8 @@ import {
   PlayTelecomStores,
   PlayTelecomTpvConfig,
   PlayTelecomUsers,
+  PlayTelecomSupervisor,
+  PlayTelecomReporte,
   Privacy,
   ProfitAnalyticsDashboard,
   ReceiptViewer,
@@ -469,6 +471,26 @@ const router = createBrowserRouter(
                           ),
                           children: [{ index: true, element: <PlayTelecomTpvConfig /> }],
                         },
+                        {
+                          path: 'supervisor',
+                          element: (
+                            <ModuleProtectedRoute
+                              requiredModule="SERIALIZED_INVENTORY"
+                              allowedRoles={[StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                            />
+                          ),
+                          children: [{ index: true, element: <PlayTelecomSupervisor /> }],
+                        },
+                        {
+                          path: 'reporte',
+                          element: (
+                            <ModuleProtectedRoute
+                              requiredModule="SERIALIZED_INVENTORY"
+                              allowedRoles={[StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                            />
+                          ),
+                          children: [{ index: true, element: <PlayTelecomReporte /> }],
+                        },
                       ],
                     },
                   ],
@@ -622,6 +644,26 @@ const router = createBrowserRouter(
                         />
                       ),
                       children: [{ index: true, element: <PlayTelecomTpvConfig /> }],
+                    },
+                    {
+                      path: 'supervisor',
+                      element: (
+                        <ModuleProtectedRoute
+                          requiredModule="WHITE_LABEL_DASHBOARD"
+                          allowedRoles={[StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                        />
+                      ),
+                      children: [{ index: true, element: <PlayTelecomSupervisor /> }],
+                    },
+                    {
+                      path: 'reporte',
+                      element: (
+                        <ModuleProtectedRoute
+                          requiredModule="WHITE_LABEL_DASHBOARD"
+                          allowedRoles={[StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                        />
+                      ),
+                      children: [{ index: true, element: <PlayTelecomReporte /> }],
                     },
                   ],
                 },

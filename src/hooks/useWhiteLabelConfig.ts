@@ -195,6 +195,10 @@ export const FEATURE_ROUTE_MAP: Record<string, string> = {
   'STORES_ANALYSIS': 'stores',
   'MANAGERS_DASHBOARD': 'managers',
   'SALES_REPORT': 'sales',
+  'SUPERVISOR_DASHBOARD': 'supervisor',
+  'TPV_CONFIGURATION': 'tpv-config',
+  'CLOSING_REPORT': 'reporte',
+  'USERS_MANAGEMENT': 'users',
   'APPRAISALS': 'appraisals',
   'CONSIGNMENT': 'consignment',
 }

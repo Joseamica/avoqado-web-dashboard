@@ -30,6 +30,8 @@ const ROUTE_TITLE_MAP: Record<string, string> = {
   promoters: 'promoters',
   users: 'users',
   'tpv-config': 'tpvConfig',
+  supervisor: 'supervisor',
+  reporte: 'reporte',
 }
 
 export default function PlayTelecomLayout() {

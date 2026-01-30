@@ -206,3 +206,161 @@ export const getOrgStockSummary = async (orgId: string): Promise<OrgStockSummary
   const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/stock-summary`)
   return response.data.data
 }
+
+// ===========================================
+// ZONES
+// ===========================================
+
+export interface OrgZone {
+  id: string
+  name: string
+  slug: string
+  venues: Array<{ id: string; name: string }>
+  createdAt: string
+  updatedAt: string
+}
+
+export const getOrgZones = async (orgId: string): Promise<OrgZone[]> => {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/zones`)
+  return response.data.data.zones
+}
+
+export const createOrgZone = async (orgId: string, data: { name: string; slug: string }): Promise<OrgZone> => {
+  const response = await api.post(`/api/v1/dashboard/organizations/${orgId}/zones`, data)
+  return response.data.data.zone
+}
+
+export const updateOrgZone = async (orgId: string, zoneId: string, data: { name?: string; slug?: string }): Promise<OrgZone> => {
+  const response = await api.put(`/api/v1/dashboard/organizations/${orgId}/zones/${zoneId}`, data)
+  return response.data.data.zone
+}
+
+export const deleteOrgZone = async (orgId: string, zoneId: string): Promise<void> => {
+  await api.delete(`/api/v1/dashboard/organizations/${orgId}/zones/${zoneId}`)
+}
+
+// ===========================================
+// ADMIN RESET PASSWORD
+// ===========================================
+
+export interface ResetPasswordResult {
+  temporaryPassword: string
+}
+
+export const adminResetPassword = async (orgId: string, userId: string): Promise<ResetPasswordResult> => {
+  const response = await api.post(`/api/v1/dashboard/organizations/${orgId}/users/${userId}/reset-password`)
+  return response.data.data
+}
+
+// ===========================================
+// TIME ENTRY VALIDATION
+// ===========================================
+
+export const validateTimeEntry = async (
+  orgId: string,
+  timeEntryId: string,
+  data: { status: 'APPROVED' | 'REJECTED'; note?: string }
+): Promise<void> => {
+  await api.patch(`/api/v1/dashboard/organizations/${orgId}/time-entries/${timeEntryId}/validate`, data)
+}
+
+// ===========================================
+// CLOSING REPORT
+// ===========================================
+
+export interface ClosingReportRow {
+  rowNumber: number
+  city: string
+  storeName: string
+  iccid: string | null
+  saleType: string
+  promoter: string
+  date: string
+  amount: number
+}
+
+export interface ClosingReportData {
+  rows: ClosingReportRow[]
+  totalAmount: number
+}
+
+export const getClosingReportData = async (
+  orgId: string,
+  params?: { date?: string; venueId?: string }
+): Promise<ClosingReportData> => {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/reports/closing-report`, { params })
+  return response.data.data
+}
+
+export const downloadClosingReportXlsx = async (
+  orgId: string,
+  params?: { date?: string; venueId?: string }
+): Promise<Blob> => {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/reports/closing-report/export`, {
+    params,
+    responseType: 'blob',
+  })
+  return response.data
+}
+
+// ===========================================
+// STAFF ATTENDANCE (with filters)
+// ===========================================
+
+export interface StaffAttendanceEntry {
+  id: string | null
+  staffId: string
+  staffName: string
+  venueName: string
+  clockIn: string | null
+  clockOut: string | null
+  clockInPhotoUrl: string | null
+  clockInLatitude: number | null
+  clockInLongitude: number | null
+  validationStatus: 'PENDING' | 'APPROVED' | 'REJECTED'
+  status: 'ACTIVE' | 'INACTIVE'
+  sales: number
+}
+
+export const getStaffAttendance = async (
+  orgId: string,
+  params?: { period?: string; venueId?: string; status?: string }
+): Promise<{ entries: StaffAttendanceEntry[] }> => {
+  // Backend expects `date` param, not `period`. Convert period to date.
+  const queryParams: Record<string, string> = {}
+  if (params?.venueId) queryParams.venueId = params.venueId
+  if (params?.status) queryParams.status = params.status
+  if (params?.period) {
+    const now = new Date()
+    if (params.period === 'today') {
+      queryParams.date = now.toISOString().split('T')[0]
+    } else if (params.period === 'week') {
+      // Send today's date — backend only supports single-day attendance
+      queryParams.date = now.toISOString().split('T')[0]
+    } else if (params.period === 'month') {
+      queryParams.date = now.toISOString().split('T')[0]
+    }
+  }
+
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/staff/attendance`, { params: queryParams })
+  const data = response.data.data
+
+  // Backend returns { staff: [...] }, map to our StaffAttendanceEntry format
+  const staff = data.staff ?? data.entries ?? []
+  const entries: StaffAttendanceEntry[] = staff.map((s: any) => ({
+    id: s.timeEntryId ?? null,
+    staffId: s.id,
+    staffName: s.name || `${s.firstName ?? ''} ${s.lastName ?? ''}`.trim(),
+    venueName: s.venueName,
+    clockIn: s.checkInTime ?? null,
+    clockOut: s.checkOutTime ?? null,
+    clockInPhotoUrl: s.checkInPhotoUrl ?? null,
+    clockInLatitude: s.checkInLocation?.lat ?? null,
+    clockInLongitude: s.checkInLocation?.lng ?? null,
+    validationStatus: s.validationStatus ?? (s.status === 'ACTIVE' ? 'PENDING' : 'PENDING'),
+    status: s.status ?? 'INACTIVE',
+    sales: s.sales ?? 0,
+  }))
+
+  return { entries }
+}
