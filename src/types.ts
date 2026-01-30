@@ -814,6 +814,7 @@ export interface Product {
 
   // Basic info
   sku: string
+  gtin?: string | null
   name: string
   description: string | null
 

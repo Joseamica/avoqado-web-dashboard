@@ -52,6 +52,7 @@ export interface UpdateRawMaterialDto {
   name?: string
   description?: string
   sku?: string
+  gtin?: string | null
   category?: string
   currentStock?: number
   unit?: string
