@@ -42,6 +42,7 @@ import {
 } from '@/components/ui/tooltip'
 import { useToast } from '@/hooks/use-toast'
 import { superadminAPI } from '@/services/superadmin.service'
+import { getOrganizationsList, type OrganizationSimple } from '@/services/superadmin-organizations.service'
 import { SubscriptionPlan, VenueStatus, type SuperadminVenue } from '@/types/superadmin'
 import { Currency } from '@/utils/currency'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -67,6 +68,7 @@ import {
   Crown,
   Sparkles,
   BadgeCheck,
+  ArrowRightLeft,
 } from 'lucide-react'
 import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -246,6 +248,7 @@ interface VenueCardProps {
   onManageModules: () => void
   onApprove: () => void
   onSuspend: () => void
+  onTransfer: () => void
   onNavigateKYC: () => void
   onNavigateAdmin: () => void
 }
@@ -256,6 +259,7 @@ const VenueCard: React.FC<VenueCardProps> = ({
   onManageModules,
   onApprove,
   onSuspend,
+  onTransfer,
   onNavigateKYC,
   onNavigateAdmin,
 }) => {
@@ -340,6 +344,10 @@ const VenueCard: React.FC<VenueCardProps> = ({
                 <Settings className="mr-2 h-4 w-4" />
                 Administrar Features
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={onTransfer} className="cursor-pointer">
+                <ArrowRightLeft className="mr-2 h-4 w-4" />
+                Transferir Organizacion
+              </DropdownMenuItem>
               <DropdownMenuItem className="cursor-pointer">
                 <Zap className="mr-2 h-4 w-4" />
                 Ver Analíticas
@@ -419,13 +427,21 @@ const VenueManagement: React.FC = () => {
     queryFn: superadminAPI.getAllVenues,
   })
 
+  const { data: organizations = [] } = useQuery<OrganizationSimple[]>({
+    queryKey: ['superadmin-organizations-list'],
+    queryFn: getOrganizationsList,
+  })
+
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [orgFilter, setOrgFilter] = useState<string>('all')
   const [selectedVenue, setSelectedVenue] = useState<SuperadminVenue | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false)
   const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false)
   const [isModuleDialogOpen, setIsModuleDialogOpen] = useState(false)
+  const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false)
+  const [targetOrgId, setTargetOrgId] = useState<string>('')
   const [reason, setReason] = useState('')
 
   // Filter venues
@@ -436,9 +452,10 @@ const VenueManagement: React.FC = () => {
         venue.owner.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         venue.organization.name.toLowerCase().includes(searchTerm.toLowerCase())
       const matchesStatus = statusFilter === 'all' || venue.status === statusFilter
-      return matchesSearch && matchesStatus
+      const matchesOrg = orgFilter === 'all' || venue.organizationId === orgFilter
+      return matchesSearch && matchesStatus && matchesOrg
     })
-  }, [venues, searchTerm, statusFilter])
+  }, [venues, searchTerm, statusFilter, orgFilter])
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -497,6 +514,27 @@ const VenueManagement: React.FC = () => {
     },
   })
 
+  const transferMutation = useMutation({
+    mutationFn: ({ venueId, targetOrganizationId }: { venueId: string; targetOrganizationId: string }) =>
+      superadminAPI.transferVenue(venueId, targetOrganizationId),
+    onSuccess: (data) => {
+      toast({
+        title: 'Venue transferido',
+        description: data.message,
+      })
+      queryClient.invalidateQueries({ queryKey: ['superadmin-venues'] })
+      setIsTransferDialogOpen(false)
+      setTargetOrgId('')
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error al transferir',
+        description: error?.response?.data?.error || error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
   // Handlers
   const handleViewDetails = (venue: SuperadminVenue) => {
     setSelectedVenue(venue)
@@ -516,6 +554,12 @@ const VenueManagement: React.FC = () => {
   const handleSuspendVenue = (venue: SuperadminVenue) => {
     setSelectedVenue(venue)
     setIsSuspendDialogOpen(true)
+  }
+
+  const handleTransferVenue = (venue: SuperadminVenue) => {
+    setSelectedVenue(venue)
+    setTargetOrgId('')
+    setIsTransferDialogOpen(true)
   }
 
   return (
@@ -587,6 +631,21 @@ const VenueManagement: React.FC = () => {
                 className="pl-10 bg-background cursor-text"
               />
             </div>
+            <Select value={orgFilter} onValueChange={setOrgFilter}>
+              <SelectTrigger className="w-full sm:w-52 bg-background cursor-pointer">
+                <SelectValue placeholder="Filtrar por organizacion" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="cursor-pointer">
+                  Todas las organizaciones
+                </SelectItem>
+                {organizations.map(org => (
+                  <SelectItem key={org.id} value={org.id} className="cursor-pointer">
+                    {org.name} ({org.venueCount})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full sm:w-48 bg-background cursor-pointer">
                 <SelectValue placeholder="Filtrar por estado" />
@@ -640,6 +699,7 @@ const VenueManagement: React.FC = () => {
                 onManageModules={() => handleManageModules(venue)}
                 onApprove={() => handleApproveVenue(venue)}
                 onSuspend={() => handleSuspendVenue(venue)}
+                onTransfer={() => handleTransferVenue(venue)}
                 onNavigateKYC={() => navigate(`/superadmin/kyc/${venue.id}`)}
                 onNavigateAdmin={() => navigate(`/admin/venues/${venue.id}`)}
               />
@@ -760,6 +820,76 @@ const VenueManagement: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Transfer Venue Dialog */}
+      <Dialog open={isTransferDialogOpen} onOpenChange={setIsTransferDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+                <ArrowRightLeft className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <DialogTitle>Transferir Venue</DialogTitle>
+                <DialogDescription>
+                  Mover <strong>{selectedVenue?.name}</strong> de{' '}
+                  <strong>{selectedVenue?.organization.name}</strong> a otra organizacion.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label className="text-muted-foreground text-xs">Organizacion actual</Label>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-muted/30">
+                <Building2 className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium">{selectedVenue?.organization.name}</span>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>Organizacion destino</Label>
+              <Select value={targetOrgId} onValueChange={setTargetOrgId}>
+                <SelectTrigger className="bg-background cursor-pointer">
+                  <SelectValue placeholder="Selecciona una organizacion..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {organizations
+                    .filter(org => org.id !== selectedVenue?.organizationId)
+                    .map(org => (
+                      <SelectItem key={org.id} value={org.id} className="cursor-pointer">
+                        {org.name} ({org.venueCount} venues)
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsTransferDialogOpen(false)}
+              disabled={transferMutation.isPending}
+              className="cursor-pointer"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() =>
+                selectedVenue &&
+                targetOrgId &&
+                transferMutation.mutate({
+                  venueId: selectedVenue.id,
+                  targetOrganizationId: targetOrgId,
+                })
+              }
+              disabled={transferMutation.isPending || !targetOrgId}
+              className="cursor-pointer"
+            >
+              {transferMutation.isPending ? 'Transfiriendo...' : 'Transferir Venue'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Venue Module Management Dialog */}
       <VenueModuleManagementDialog

@@ -80,7 +80,8 @@
     "description": "Como ya iniciaste sesión con el correo invitado, puedes aceptar esta invitación directamente sin crear una cuenta nueva.",
     "accepting": "Aceptando invitación...",
     "note": "Esto agregará el equipo a tu cuenta existente",
-    "successDescription": "Invitación aceptada. Redirigiendo al nuevo local..."
+    "successTitle": "Invitacion aceptada",
+    "successDescription": "Invitacion aceptada. Redirigiendo al nuevo local..."
   },
   "existsInDifferentOrg": {
     "title": "Cuenta ya registrada",

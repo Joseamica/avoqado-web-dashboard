@@ -27,16 +27,14 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useSocketEvents } from '@/hooks/use-socket-events'
 import { useAuth } from '@/context/AuthContext'
-import { commissionKeys } from '@/hooks/useCommissions'
 import { commissionService } from '@/services/commission.service'
-import type { PaymentCommission } from '@/types/commission'
 import { Payment as PaymentType, StaffRole, PaymentMethod, PaymentStatus, PaymentRecordType } from '@/types'
 import { cn } from '@/lib/utils'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { exportToCSV, exportToExcel, generateFilename, formatCurrencyForExport } from '@/utils/export'
 import getIcon from '@/utils/getIcon'
-import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import {
   ArrowUpDown,
@@ -418,28 +416,27 @@ export default function Payments() {
     return filteredPayments.map((p: PaymentType) => p.id)
   }, [filteredPayments])
 
-  // Fetch commissions for each payment using useQueries (parallel requests)
-  const commissionQueries = useQueries({
-    queries: paymentIds.map((paymentId: string) => ({
-      queryKey: commissionKeys.paymentCommission(venueId, paymentId),
-      queryFn: () => commissionService.getCommissionByPaymentId(venueId!, paymentId),
-      enabled: !!venueId && !!paymentId,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 30 * 60 * 1000,
-    })),
+  // Fetch commissions for all payments in a single batch request
+  const { data: commissionsData } = useQuery({
+    queryKey: ['commissions-batch', venueId, paymentIds],
+    queryFn: () => commissionService.getCommissionsByPaymentIds(venueId!, paymentIds),
+    enabled: !!venueId && paymentIds.length > 0,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   })
 
   // Create lookup map from paymentId to commission amount
   const commissionByPaymentId = useMemo(() => {
     const map = new Map<string, number>()
-    commissionQueries.forEach((query, index) => {
-      const data = query.data as PaymentCommission | null
-      if (data?.netCommission) {
-        map.set(paymentIds[index], data.netCommission)
+    if (commissionsData) {
+      for (const [paymentId, commission] of Object.entries(commissionsData)) {
+        if (commission?.netCommission) {
+          map.set(paymentId, commission.netCommission)
+        }
       }
-    })
+    }
     return map
-  }, [commissionQueries, paymentIds])
+  }, [commissionsData])
 
   // ==================================================================
   // --- PRINCIPALES CAMBIOS EN LA DEFINICIÓN DE COLUMNAS ---

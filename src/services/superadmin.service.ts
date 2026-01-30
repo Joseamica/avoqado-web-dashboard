@@ -774,6 +774,22 @@ export async function deleteAppUpdate(id: string): Promise<void> {
   await api.delete(`/api/v1/superadmin/app-updates/${id}`)
 }
 
+// ===== VENUE TRANSFER API =====
+
+export interface TransferVenueResponse {
+  success: boolean
+  message: string
+  venue: any
+  staffMembersUpdated: number
+}
+
+export async function transferVenue(venueId: string, targetOrganizationId: string): Promise<TransferVenueResponse> {
+  const response = await api.patch(`/api/v1/dashboard/superadmin/venues/${venueId}/transfer`, {
+    targetOrganizationId,
+  })
+  return response.data
+}
+
 // Convenience API object (canonical import target for components expecting superadminAPI)
 export const superadminAPI = {
   getDashboardData: async (): Promise<SASuperadminDashboardData> => {
@@ -863,5 +879,9 @@ export const superadminAPI = {
   },
   deleteAppUpdate: async (id: string): Promise<void> => {
     await deleteAppUpdate(id)
+  },
+  // Venue Transfer
+  transferVenue: async (venueId: string, targetOrganizationId: string): Promise<TransferVenueResponse> => {
+    return await transferVenue(venueId, targetOrganizationId)
   },
 }

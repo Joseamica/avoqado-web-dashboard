@@ -304,7 +304,7 @@ export default function InviteAccept() {
       // Note: No localStorage cleanup needed - we use URL-based state now (Stripe/GitHub pattern)
 
       toast({
-        title: t('success.title'),
+        title: t('directAccept.successTitle'),
         description: t('directAccept.successDescription'),
       })
 
