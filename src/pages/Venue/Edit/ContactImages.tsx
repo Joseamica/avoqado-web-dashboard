@@ -5,12 +5,14 @@ import { Input } from '@/components/ui/input'
 import { ColorPicker } from '@/components/ui/color-picker'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Slider } from '@/components/ui/slider'
+
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
 import { StaffRole } from '@/types'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ZoomIn, ZoomOut, RotateCcw, RotateCw } from 'lucide-react'
 import { useCallback, useEffect, useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
@@ -21,7 +23,7 @@ import { useVenueEditActions } from '../VenueEditLayout'
 import Cropper from 'react-easy-crop'
 import { storage, buildStoragePath } from '@/firebase'
 import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage'
-import { getCroppedImg } from '@/utils/cropImage'
+import { getCroppedImgWithRotation } from '@/utils/cropImage'
 
 const contactImagesFormSchema = z.object({
   phone: z.string().min(1, { message: 'El teléfono es requerido.' }),
@@ -106,15 +108,30 @@ export default function ContactImages() {
     }
   }, [venue, form])
 
-  // Logo upload + crop
+  // Logo upload + crop with rotation
   const [uploading, setUploading] = useState(false)
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
+  const [rotation, setRotation] = useState(0)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
   const [imageForCrop, setImageForCrop] = useState<string | null>(null)
 
+  // Zoom constraints - allow zooming out significantly (0.1x) to fit any image
+  const MIN_ZOOM = 0.1
+  const MAX_ZOOM = 3
+
   const onCropComplete = useCallback((_: any, area: any) => setCroppedAreaPixels(area), [])
+
+  const handleRotateLeft = () => setRotation(prev => (prev - 90) % 360)
+  const handleRotateRight = () => setRotation(prev => (prev + 90) % 360)
+  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.1, MAX_ZOOM))
+  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.1, MIN_ZOOM))
+  const handleResetTransform = () => {
+    setZoom(1)
+    setRotation(0)
+    setCrop({ x: 0, y: 0 })
+  }
 
   useEffect(() => {
     if (venue?.logo) setImageUrl(venue.logo)
@@ -169,36 +186,48 @@ export default function ContactImages() {
 
   const handleCropConfirm = async () => {
     if (!imageForCrop || !croppedAreaPixels || !venueId) return
-    const croppedImage = await getCroppedImg(imageForCrop, croppedAreaPixels)
-    const blob = await fetch(croppedImage).then(r => r.blob())
+    try {
+      const croppedImage = await getCroppedImgWithRotation(imageForCrop, croppedAreaPixels, rotation)
+      const blob = await fetch(croppedImage).then(r => r.blob())
 
-    const fileName = `cropped_${Date.now()}.jpg`
-    const storageRef = ref(storage, buildStoragePath(`venues/${venueSlug}/logos/${fileName}`))
-    const uploadTask = uploadBytesResumable(storageRef, blob)
-    setUploading(true)
-    uploadTask.on(
-      'state_changed',
-      () => {},
-      error => {
-        console.error('Error uploading file:', error)
-        setUploading(false)
-      },
-      () => {
-        getDownloadURL(uploadTask.snapshot.ref).then(downloadURL => {
-          setImageUrl(downloadURL)
+      const fileName = `cropped_${Date.now()}.jpg`
+      const storageRef = ref(storage, buildStoragePath(`venues/${venueSlug}/logos/${fileName}`))
+      const uploadTask = uploadBytesResumable(storageRef, blob)
+      setUploading(true)
+      uploadTask.on(
+        'state_changed',
+        () => {},
+        error => {
+          console.error('Error uploading file:', error)
           setUploading(false)
-          setImageForCrop(null)
-          formRef.current.setValue('logo', downloadURL, { shouldDirty: true })
+        },
+        () => {
+          getDownloadURL(uploadTask.snapshot.ref).then(downloadURL => {
+            setImageUrl(downloadURL)
+            setUploading(false)
+            setImageForCrop(null)
+            setRotation(0)
+            setZoom(1)
+            formRef.current.setValue('logo', downloadURL, { shouldDirty: true })
 
-          saveVenueRef.current.mutate({ ...formRef.current.getValues(), logo: downloadURL })
+            saveVenueRef.current.mutate({ ...formRef.current.getValues(), logo: downloadURL })
 
-          toast({
-            title: t('edit.toast.logoUploadedTitle', { defaultValue: 'Logo actualizado' }),
-            description: t('edit.toast.logoUploadedDesc', { defaultValue: 'El logo se ha actualizado correctamente.' }),
+            toast({
+              title: t('edit.toast.logoUploadedTitle', { defaultValue: 'Logo actualizado' }),
+              description: t('edit.toast.logoUploadedDesc', { defaultValue: 'El logo se ha actualizado correctamente.' }),
+            })
           })
-        })
-      },
-    )
+        },
+      )
+    } catch (error) {
+      console.error('Error processing image:', error)
+      toast({
+        title: 'Error',
+        description: 'No se pudo procesar la imagen',
+        variant: 'destructive',
+      })
+      setUploading(false)
+    }
   }
 
   const handleFileRemove = () => {
@@ -285,9 +314,7 @@ export default function ContactImages() {
             <fieldset disabled={!canEdit} className={!canEdit ? 'opacity-80' : undefined}>
               <div className="space-y-1 mb-6">
                 <h3 className="text-lg font-semibold">{t('edit.sections.contact')}</h3>
-                <p className="text-sm text-muted-foreground">
-                  Contacto, imágenes y personalización visual de tu establecimiento
-                </p>
+                <p className="text-sm text-muted-foreground">Contacto, imágenes y personalización visual de tu establecimiento</p>
               </div>
               <Separator className="mb-6" />
 
@@ -425,30 +452,132 @@ export default function ContactImages() {
                       <div className="pb-4">
                         {imageUrl ? (
                           <div className="flex flex-col items-center space-y-2">
-                            <img src={imageUrl} alt={t('edit.logoAlt', { defaultValue: 'Logo' })} className="max-w-xs max-h-48 object-cover rounded-md" />
+                            <img
+                              src={imageUrl}
+                              alt={t('edit.logoAlt', { defaultValue: 'Logo' })}
+                              className="max-w-xs max-h-48 object-cover rounded-md"
+                            />
                             <Button type="button" variant="outline" onClick={handleFileRemove} disabled={uploading}>
                               {tCommon('remove', { defaultValue: 'Quitar' })}
                             </Button>
                           </div>
                         ) : imageForCrop ? (
-                          <div>
-                            <div className="relative w-full h-64 bg-muted">
+                          <div className="space-y-4">
+                            {/* Crop area */}
+                            <div className="relative w-full h-80 bg-muted rounded-lg overflow-hidden">
                               <Cropper
                                 image={imageForCrop}
                                 crop={crop}
                                 zoom={zoom}
+                                rotation={rotation}
                                 aspect={4 / 3}
+                                minZoom={MIN_ZOOM}
+                                maxZoom={MAX_ZOOM}
                                 onCropChange={setCrop}
                                 onZoomChange={setZoom}
+                                onRotationChange={setRotation}
                                 onCropComplete={onCropComplete}
+                                objectFit="contain"
+                                restrictPosition={false}
+                                showGrid={true}
                               />
                             </div>
-                            <div className="flex justify-between mt-4">
-                              <Button variant="outline" type="button" onClick={() => setImageForCrop(null)} disabled={uploading}>
+
+                            {/* Controls */}
+                            <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
+                              {/* Zoom slider */}
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-medium">Zoom</span>
+                                  <span className="text-xs text-muted-foreground">{Math.round(zoom * 100)}%</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={handleZoomOut}
+                                    disabled={zoom <= MIN_ZOOM}
+                                  >
+                                    <ZoomOut className="h-4 w-4" />
+                                  </Button>
+                                  <Slider
+                                    value={[zoom]}
+                                    min={MIN_ZOOM}
+                                    max={MAX_ZOOM}
+                                    step={0.01}
+                                    onValueChange={([value]) => setZoom(value)}
+                                    className="flex-1"
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={handleZoomIn}
+                                    disabled={zoom >= MAX_ZOOM}
+                                  >
+                                    <ZoomIn className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {/* Rotation controls */}
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-medium">Rotacion</span>
+                                  <span className="text-xs text-muted-foreground">{rotation}°</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleRotateLeft}
+                                    className="flex items-center gap-1"
+                                  >
+                                    <RotateCcw className="h-4 w-4" />
+                                    -90°
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleRotateRight}
+                                    className="flex items-center gap-1"
+                                  >
+                                    <RotateCw className="h-4 w-4" />
+                                    +90°
+                                  </Button>
+                                  <Button type="button" variant="ghost" size="sm" onClick={handleResetTransform} className="ml-auto">
+                                    Restablecer
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {/* Info text */}
+                              <p className="text-xs text-muted-foreground text-center">
+                                Arrastra para mover la imagen. Usa la rueda del mouse o el slider para hacer zoom.
+                              </p>
+                            </div>
+
+                            {/* Action buttons */}
+                            <div className="flex justify-between">
+                              <Button
+                                variant="outline"
+                                type="button"
+                                onClick={() => {
+                                  setImageForCrop(null)
+                                  setRotation(0)
+                                  setZoom(1)
+                                }}
+                                disabled={uploading}
+                              >
                                 {t('addDialog.upload.cancel', { defaultValue: 'Cancelar' })}
                               </Button>
                               <Button type="button" onClick={handleCropConfirm} disabled={uploading}>
-                                {t('addDialog.upload.confirm', { defaultValue: 'Confirmar' })}
+                                {uploading ? 'Subiendo...' : t('addDialog.upload.confirm', { defaultValue: 'Confirmar' })}
                               </Button>
                             </div>
                           </div>
@@ -469,7 +598,11 @@ export default function ContactImages() {
                     <FormLabel>{t('edit.labels.logo', { defaultValue: 'Logo' })}</FormLabel>
                     <div className="flex items-center gap-3">
                       {venue.logo ? (
-                        <img src={venue.logo} alt={t('edit.logoAlt', { defaultValue: 'Logo' })} className="h-16 w-16 object-cover rounded" />
+                        <img
+                          src={venue.logo}
+                          alt={t('edit.logoAlt', { defaultValue: 'Logo' })}
+                          className="h-16 w-16 object-cover rounded"
+                        />
                       ) : (
                         <span className="text-sm text-muted-foreground">{t('edit.noLogo')}</span>
                       )}
