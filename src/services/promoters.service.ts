@@ -145,21 +145,6 @@ export const getPromoterDetail = async (
 }
 
 /**
- * Get attendance calendar for a promoter
- */
-export const getPromoterAttendance = async (
-  venueId: string,
-  promoterId: string,
-  params?: { month?: string; year?: string }
-): Promise<AttendanceResponse> => {
-  const response = await api.get(
-    `/api/v1/dashboard/venues/${venueId}/promoters/${promoterId}/attendance`,
-    { params }
-  )
-  return response.data.data
-}
-
-/**
  * Get deposits for a promoter
  */
 export const getPromoterDeposits = async (
@@ -184,7 +169,7 @@ export const validateDeposit = async (
   data: { action: 'approve' | 'reject'; notes?: string }
 ): Promise<ValidateDepositResult> => {
   const response = await api.post(
-    `/api/v1/dashboard/venues/${venueId}/promoters/${promoterId}/deposits/${depositId}/validate`,
+    `/api/v1/dashboard/venues/${venueId}/promoters/${promoterId}/deposits/${depositId}/approve`,
     data
   )
   return response.data.data

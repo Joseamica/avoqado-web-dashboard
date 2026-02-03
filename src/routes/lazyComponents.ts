@@ -92,6 +92,7 @@ export { default as OrganizationManagement } from '@/pages/Superadmin/Organizati
 export { default as MasterTotpSetup } from '@/pages/Superadmin/MasterTotpSetup'
 export { default as TpvUpdates } from '@/pages/Superadmin/TpvUpdates'
 export { default as PushNotifications } from '@/pages/Superadmin/PushNotifications'
+export { default as OnboardingWizardPage } from '@/pages/Superadmin/Onboarding/OnboardingWizardPage'
 
 // Legal components
 export const Terms = lazyWithRetry(() => import('@/pages/Legal/Terms'))

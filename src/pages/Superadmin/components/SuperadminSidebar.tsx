@@ -28,6 +28,7 @@ import {
   KeyRound,
   Upload,
   Bell,
+  Wand2,
 } from 'lucide-react'
 
 import { useTranslation } from 'react-i18next'
@@ -48,6 +49,7 @@ const SuperadminSidebar: React.FC = () => {
       title: tSidebar('business'),
       items: [
         { name: tSidebar('venues'), href: '/superadmin/venues', icon: Building2 },
+        { name: 'Onboarding', href: '/superadmin/onboarding', icon: Wand2 },
         { name: tSidebar('terminals'), href: '/superadmin/terminals', icon: Smartphone },
         { name: tSidebar('revenue'), href: '/superadmin/revenue', icon: DollarSign },
         { name: 'Profit Analytics', href: '/superadmin/profit-analytics', icon: Calculator },

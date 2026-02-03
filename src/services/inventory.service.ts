@@ -701,14 +701,6 @@ export interface CostChangePreview {
 }
 
 export const costRecalculationApi = {
-  // Preview cost change impact before applying
-  previewCostChange: (rawMaterialId: string, proposedNewCost: number) =>
-    api.get<CostChangePreview>(`/api/v1/dashboard/raw-materials/${rawMaterialId}/preview-cost-change`, { params: { proposedNewCost } }),
-
-  // Trigger cost recalculation for affected recipes (called automatically when costPerUnit changes)
-  triggerRecalculation: (rawMaterialId: string, oldCost: number, newCost: number) =>
-    api.post(`/api/v1/dashboard/raw-materials/${rawMaterialId}/trigger-cost-recalculation`, { oldCost, newCost }),
-
   // Get recipes with stale costs (ingredients updated more recently than recipe)
   getStaleRecipes: (venueId: string) => api.get(`/api/v1/dashboard/venues/${venueId}/inventory/stale-recipes`),
 

@@ -177,17 +177,3 @@ export async function getSettlementCalendar(
   return res.data
 }
 
-/**
- * Project future balance based on historical patterns
- */
-export async function projectHistoricalBalance(
-  venueId: string,
-  params: {
-    projectionDays: number
-  },
-): Promise<{ success: boolean; data: HistoricalProjectionResult }> {
-  const res = await api.post(`/api/v1/dashboard/venues/${venueId}/available-balance/project`, params, {
-    withCredentials: true,
-  })
-  return res.data
-}

@@ -21,7 +21,7 @@ export const getTpvById = async (venueId: string, tpvId: string) => {
 }
 
 export const updateTpv = async (venueId: string, tpvId: string, data: { name?: string; status?: string }) => {
-  const response = await api.patch(`/api/v1/dashboard/venues/${venueId}/tpv/${tpvId}`, data)
+  const response = await api.put(`/api/v1/dashboard/venues/${venueId}/tpv/${tpvId}`, data)
   return response.data
 }
 
@@ -119,49 +119,6 @@ export const getCommandHistory = async (
     page: response.data.meta?.page || 1,
     pageSize: response.data.meta?.pageSize || 10,
   }
-}
-
-/**
- * Get a specific command by ID
- * @param terminalId Terminal ID
- * @param commandId Command ID
- * @returns Command details
- */
-export const getCommandById = async (terminalId: string, commandId: string): Promise<TpvCommand> => {
-  const response = await api.get(`/api/v1/dashboard/tpv/${terminalId}/commands/${commandId}`)
-  return response.data
-}
-
-/**
- * Cancel a pending command
- * @param terminalId Terminal ID
- * @param commandId Command ID
- * @returns Updated command
- */
-export const cancelCommand = async (terminalId: string, commandId: string): Promise<TpvCommand> => {
-  const response = await api.post(`/api/v1/dashboard/tpv/${terminalId}/commands/${commandId}/cancel`)
-  return response.data
-}
-
-// ============================================
-// Bulk Commands
-// ============================================
-
-/**
- * Send a command to multiple terminals
- * @param venueId Venue ID
- * @param terminalIds Array of terminal IDs
- * @param command Command type
- * @param payload Optional payload
- * @returns Array of command responses
- */
-export const sendBulkCommand = async (venueId: string, terminalIds: string[], command: TpvCommandType, payload?: TpvCommandPayload) => {
-  const response = await api.post(`/api/v1/dashboard/venues/${venueId}/tpvs/bulk-command`, {
-    terminalIds,
-    command,
-    payload,
-  })
-  return response.data
 }
 
 // ============================================

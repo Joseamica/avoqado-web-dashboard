@@ -4,7 +4,6 @@ import type {
 	CustomerWithOrders,
 	CustomerGroup,
 	CustomerStats,
-	CustomerGroupStats,
 	PaginatedCustomersResponse,
 	PaginatedCustomerGroupsResponse,
 	CreateCustomerRequest,
@@ -120,12 +119,6 @@ export const customerService = {
 	// Get specific customer group
 	async getCustomerGroup(venueId: string, groupId: string): Promise<CustomerGroup> {
 		const response = await api.get(`/api/v1/dashboard/venues/${venueId}/customer-groups/${groupId}`)
-		return response.data
-	},
-
-	// Get customer group statistics
-	async getCustomerGroupStats(venueId: string, groupId: string): Promise<CustomerGroupStats> {
-		const response = await api.get(`/api/v1/dashboard/venues/${venueId}/customer-groups/${groupId}/stats`)
 		return response.data
 	},
 

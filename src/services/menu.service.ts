@@ -59,20 +59,6 @@ export const reorderMenus = async (venueId: string, menus: { id: string; display
   await api.post(`/api/v1/dashboard/venues/${venueId}/menus/reorder`, menus)
 }
 
-/**
- * Assign a category to a menu
- */
-export const assignCategoryToMenu = async (venueId: string, menuId: string, categoryId: string): Promise<void> => {
-  await api.post(`/api/v1/dashboard/venues/${venueId}/menus/${menuId}/menucategories/${categoryId}`)
-}
-
-/**
- * Remove a category from a menu
- */
-export const removeCategoryFromMenu = async (venueId: string, menuId: string, categoryId: string): Promise<void> => {
-  await api.delete(`/api/v1/dashboard/venues/${venueId}/menus/${menuId}/menucategories/${categoryId}`)
-}
-
 // ==========================================
 // MENU CATEGORIES OPERATIONS
 // ==========================================

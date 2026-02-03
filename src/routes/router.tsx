@@ -65,6 +65,7 @@ import {
   TestingPayments,
   TpvUpdates,
   PushNotifications,
+  OnboardingWizardPage,
   UserManagement,
   VenueManagement,
   VenueMerchantAccounts,
@@ -365,6 +366,10 @@ const router = createBrowserRouter(
                     {
                       path: 'push-notifications',
                       element: <PushNotifications />,
+                    },
+                    {
+                      path: 'onboarding',
+                      element: <OnboardingWizardPage />,
                     },
                   ],
                 },

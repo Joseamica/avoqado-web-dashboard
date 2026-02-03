@@ -17,15 +17,13 @@ import {
   type SetOrgPaymentConfigData,
   type SetOrgPricingData,
   type AccountType,
-  type VenueInheritanceItem,
 } from '@/services/superadmin-organizations.service'
-import { getMerchantAccountsList, type MerchantAccountListItem } from '@/services/paymentProvider.service'
+import { getMerchantAccountsList } from '@/services/paymentProvider.service'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Building2,
   CreditCard,
   Check,
-  ArrowRight,
   Loader2,
   Mail,
   MoreHorizontal,

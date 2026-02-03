@@ -367,23 +367,6 @@ export async function exportProfitData(params: {
   return response.data
 }
 
-/**
- * Get profit projections
- */
-export async function getProfitProjections(params: {
-  venueId?: string
-  providerId?: string
-  projectionMonths: number
-}): Promise<{
-  projectedMonthlyProfit: number
-  projectedGrowthRate: number
-  confidenceLevel: number
-  assumptions: string[]
-}> {
-  const response = await api.get('/api/v1/dashboard/superadmin/profit/projections', { params })
-  return response.data.data
-}
-
 // Convenience API object for easy importing
 export const costManagementAPI = {
   getProfitMetrics,
@@ -400,7 +383,6 @@ export const costManagementAPI = {
   getMerchantAccountsList,
   getVenuesList,
   exportProfitData,
-  getProfitProjections,
 }
 
 export default costManagementAPI
