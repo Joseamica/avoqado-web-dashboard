@@ -73,7 +73,6 @@
   html {
     scrollbar-gutter: stable;
   }
-  html,
   body,
   #root {
     @apply overflow-x-hidden;

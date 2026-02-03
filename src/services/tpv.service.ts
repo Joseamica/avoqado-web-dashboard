@@ -1,11 +1,5 @@
 import api from '@/api'
-import {
-  SendCommandRequest,
-  TpvCommand,
-  TpvCommandPayload,
-  TpvCommandPriority,
-  TpvCommandType,
-} from '@/types/tpv-commands'
+import { SendCommandRequest, TpvCommand, TpvCommandPayload, TpvCommandPriority, TpvCommandType } from '@/types/tpv-commands'
 
 // ============================================
 // TPV List & Details
@@ -71,7 +65,7 @@ export const sendTpvCommand = async (
   terminalId: string,
   command: TpvCommandType | string,
   payload?: TpvCommandPayload,
-  priority?: TpvCommandPriority
+  priority?: TpvCommandPriority,
 ) => {
   const response = await api.post(`/api/v1/dashboard/tpv/${terminalId}/command`, {
     command,
@@ -107,7 +101,7 @@ export const getCommandHistory = async (
     pageSize?: number
     status?: string
     commandType?: TpvCommandType
-  }
+  },
 ): Promise<{ commands: TpvCommand[]; total: number; page: number; pageSize: number }> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/tpv-commands`, {
     params: {
@@ -161,12 +155,7 @@ export const cancelCommand = async (terminalId: string, commandId: string): Prom
  * @param payload Optional payload
  * @returns Array of command responses
  */
-export const sendBulkCommand = async (
-  venueId: string,
-  terminalIds: string[],
-  command: TpvCommandType,
-  payload?: TpvCommandPayload
-) => {
+export const sendBulkCommand = async (venueId: string, terminalIds: string[], command: TpvCommandType, payload?: TpvCommandPayload) => {
   const response = await api.post(`/api/v1/dashboard/venues/${venueId}/tpvs/bulk-command`, {
     terminalIds,
     command,

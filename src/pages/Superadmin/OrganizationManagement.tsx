@@ -14,10 +14,18 @@ import {
   type CreateOrganizationData,
   type UpdateOrganizationData,
   type ModuleForOrganization,
+  type SetOrgPaymentConfigData,
+  type SetOrgPricingData,
+  type AccountType,
+  type VenueInheritanceItem,
 } from '@/services/superadmin-organizations.service'
+import { getMerchantAccountsList, type MerchantAccountListItem } from '@/services/paymentProvider.service'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Building2,
+  CreditCard,
+  Check,
+  ArrowRight,
   Loader2,
   Mail,
   MoreHorizontal,
@@ -83,9 +91,10 @@ interface OrganizationCardProps {
   onEdit: (org: Organization) => void
   onDelete: (org: Organization) => void
   onManageModules: (org: Organization) => void
+  onPaymentConfig: (org: Organization) => void
 }
 
-const OrganizationCard: React.FC<OrganizationCardProps> = ({ organization, onEdit, onDelete, onManageModules }) => {
+const OrganizationCard: React.FC<OrganizationCardProps> = ({ organization, onEdit, onDelete, onManageModules, onPaymentConfig }) => {
   const businessTypeLabel = BUSINESS_TYPES.find(bt => bt.value === organization.type)?.label || organization.type
 
   return (
@@ -120,6 +129,10 @@ const OrganizationCard: React.FC<OrganizationCardProps> = ({ organization, onEdi
                 <DropdownMenuItem onClick={() => onManageModules(organization)} className="cursor-pointer">
                   <Package className="w-4 h-4 mr-2" />
                   Gestionar Módulos
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onPaymentConfig(organization)} className="cursor-pointer">
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Configurar Pagos
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -561,6 +574,502 @@ const ModuleManagementDialog: React.FC<ModuleManagementDialogProps> = ({ open, o
 }
 
 // ===========================================
+// PAYMENT CONFIG DIALOG
+// ===========================================
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
+interface PaymentConfigDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  organization: Organization | null
+}
+
+const ACCOUNT_TYPE_LABELS: Record<AccountType, { label: string; color: string }> = {
+  PRIMARY: { label: 'Primaria', color: 'text-emerald-600 bg-emerald-500/10' },
+  SECONDARY: { label: 'Secundaria', color: 'text-blue-600 bg-blue-500/10' },
+  TERTIARY: { label: 'Terciaria', color: 'text-purple-600 bg-purple-500/10' },
+}
+
+const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenChange, organization }) => {
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+
+  // Fetch org payment config
+  const { data: paymentData, isLoading } = useQuery({
+    queryKey: ['org-payment-config', organization?.id],
+    queryFn: () => organizationAPI.getOrganizationPaymentConfig(organization!.id),
+    enabled: !!organization && open,
+  })
+
+  // Fetch merchant accounts for dropdowns
+  const { data: merchantAccounts = [] } = useQuery({
+    queryKey: ['merchant-accounts-list'],
+    queryFn: () => getMerchantAccountsList({ active: true }),
+    enabled: open,
+  })
+
+  // Form state for payment config
+  const [configForm, setConfigForm] = useState<SetOrgPaymentConfigData>({
+    primaryAccountId: '',
+    secondaryAccountId: null,
+    tertiaryAccountId: null,
+    preferredProcessor: 'AUTO',
+  })
+
+  // Form state for pricing
+  const [pricingForm, setPricingForm] = useState<SetOrgPricingData>({
+    accountType: 'PRIMARY',
+    debitRate: 0,
+    creditRate: 0,
+    amexRate: 0,
+    internationalRate: 0,
+    effectiveFrom: new Date().toISOString(),
+  })
+
+  // Sync form when data loads
+  React.useEffect(() => {
+    if (paymentData?.paymentConfig) {
+      const pc = paymentData.paymentConfig
+      setConfigForm({
+        primaryAccountId: pc.primaryAccountId,
+        secondaryAccountId: pc.secondaryAccountId,
+        tertiaryAccountId: pc.tertiaryAccountId,
+        preferredProcessor: pc.preferredProcessor,
+      })
+    } else {
+      setConfigForm({ primaryAccountId: '', secondaryAccountId: null, tertiaryAccountId: null, preferredProcessor: 'AUTO' })
+    }
+  }, [paymentData])
+
+  // Save payment config mutation
+  const saveConfigMutation = useMutation({
+    mutationFn: (data: SetOrgPaymentConfigData) =>
+      organizationAPI.setOrganizationPaymentConfig(organization!.id, data),
+    onSuccess: () => {
+      toast({ title: 'Configuracion de pago guardada' })
+      queryClient.invalidateQueries({ queryKey: ['org-payment-config', organization?.id] })
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error al guardar configuracion',
+        description: error?.response?.data?.error || error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Delete payment config mutation
+  const deleteConfigMutation = useMutation({
+    mutationFn: () => organizationAPI.deleteOrganizationPaymentConfig(organization!.id),
+    onSuccess: () => {
+      toast({ title: 'Configuracion de pago eliminada' })
+      queryClient.invalidateQueries({ queryKey: ['org-payment-config', organization?.id] })
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error al eliminar configuracion',
+        description: error?.response?.data?.error || error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Save pricing mutation
+  const savePricingMutation = useMutation({
+    mutationFn: (data: SetOrgPricingData) =>
+      organizationAPI.setOrganizationPricing(organization!.id, data),
+    onSuccess: () => {
+      toast({ title: 'Tarifas guardadas' })
+      queryClient.invalidateQueries({ queryKey: ['org-payment-config', organization?.id] })
+      setPricingForm(prev => ({ ...prev, debitRate: 0, creditRate: 0, amexRate: 0, internationalRate: 0 }))
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error al guardar tarifas',
+        description: error?.response?.data?.error || error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Delete pricing mutation
+  const deletePricingMutation = useMutation({
+    mutationFn: (pricingId: string) =>
+      organizationAPI.deleteOrganizationPricing(organization!.id, pricingId),
+    onSuccess: () => {
+      toast({ title: 'Tarifa desactivada' })
+      queryClient.invalidateQueries({ queryKey: ['org-payment-config', organization?.id] })
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error al desactivar tarifa',
+        description: error?.response?.data?.error || error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
+  const handleSaveConfig = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!configForm.primaryAccountId) {
+      toast({ title: 'Selecciona una cuenta primaria', variant: 'destructive' })
+      return
+    }
+    saveConfigMutation.mutate(configForm)
+  }
+
+  const handleSavePricing = (e: React.FormEvent) => {
+    e.preventDefault()
+    savePricingMutation.mutate({
+      ...pricingForm,
+      effectiveFrom: new Date().toISOString(),
+    })
+  }
+
+  if (!organization) return null
+
+  const venueInheritance = paymentData?.venueInheritance || []
+  const pricingStructures = paymentData?.pricingStructures || []
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[850px] max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-amber-500/20 to-amber-500/5">
+              <CreditCard className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            Configuracion de Pagos - {organization.name}
+          </DialogTitle>
+          <DialogDescription>
+            Configura cuentas merchant y tarifas a nivel organizacion. Se heredan a todas las sucursales sin configuracion propia.
+          </DialogDescription>
+        </DialogHeader>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <Tabs defaultValue="config" className="flex-1 overflow-hidden flex flex-col">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="config">Cuentas Merchant</TabsTrigger>
+              <TabsTrigger value="pricing">Tarifas</TabsTrigger>
+              <TabsTrigger value="venues">Herencia ({venueInheritance.length})</TabsTrigger>
+            </TabsList>
+
+            {/* Tab 1: Merchant Account Config */}
+            <TabsContent value="config" className="flex-1 overflow-y-auto mt-4">
+              <form onSubmit={handleSaveConfig} className="space-y-4">
+                <GlassCard className="p-4 space-y-4">
+                  <div className="space-y-2">
+                    <Label>Cuenta Primaria *</Label>
+                    <Select
+                      value={configForm.primaryAccountId || undefined}
+                      onValueChange={v => setConfigForm(prev => ({ ...prev, primaryAccountId: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar cuenta primaria" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {merchantAccounts.map(acc => (
+                          <SelectItem key={acc.id} value={acc.id}>
+                            {acc.displayName || acc.alias || acc.externalMerchantId} — {acc.providerName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Cuenta Secundaria</Label>
+                      <Select
+                        value={configForm.secondaryAccountId || 'none'}
+                        onValueChange={v => setConfigForm(prev => ({ ...prev, secondaryAccountId: v === 'none' ? null : v }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Ninguna" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Ninguna</SelectItem>
+                          {merchantAccounts.map(acc => (
+                            <SelectItem key={acc.id} value={acc.id}>
+                              {acc.displayName || acc.alias || acc.externalMerchantId}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Cuenta Terciaria</Label>
+                      <Select
+                        value={configForm.tertiaryAccountId || 'none'}
+                        onValueChange={v => setConfigForm(prev => ({ ...prev, tertiaryAccountId: v === 'none' ? null : v }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Ninguna" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Ninguna</SelectItem>
+                          {merchantAccounts.map(acc => (
+                            <SelectItem key={acc.id} value={acc.id}>
+                              {acc.displayName || acc.alias || acc.externalMerchantId}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Procesador Preferido</Label>
+                    <Select
+                      value={configForm.preferredProcessor || 'AUTO'}
+                      onValueChange={v => setConfigForm(prev => ({ ...prev, preferredProcessor: v as any }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="AUTO">Automatico</SelectItem>
+                        <SelectItem value="LEGACY">Legacy (Blumon)</SelectItem>
+                        <SelectItem value="MENTA">Menta</SelectItem>
+                        <SelectItem value="CLIP">Clip</SelectItem>
+                        <SelectItem value="BANK_DIRECT">Transferencia Bancaria</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </GlassCard>
+
+                <div className="flex items-center justify-between">
+                  {paymentData?.paymentConfig && (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => deleteConfigMutation.mutate()}
+                      disabled={deleteConfigMutation.isPending}
+                    >
+                      {deleteConfigMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      Eliminar Config
+                    </Button>
+                  )}
+                  <Button
+                    type="submit"
+                    disabled={saveConfigMutation.isPending || !configForm.primaryAccountId}
+                    className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 ml-auto"
+                  >
+                    {saveConfigMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Guardar Cuentas
+                  </Button>
+                </div>
+              </form>
+            </TabsContent>
+
+            {/* Tab 2: Pricing */}
+            <TabsContent value="pricing" className="flex-1 overflow-y-auto mt-4 space-y-4">
+              {/* Existing pricing structures */}
+              {pricingStructures.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-muted-foreground">Tarifas Activas</h4>
+                  {pricingStructures.map(ps => (
+                    <GlassCard key={ps.id} className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Badge className={ACCOUNT_TYPE_LABELS[ps.accountType as AccountType]?.color || ''}>
+                            {ACCOUNT_TYPE_LABELS[ps.accountType as AccountType]?.label || ps.accountType}
+                          </Badge>
+                          <span className="text-sm font-mono">
+                            D:{(Number(ps.debitRate) * 100).toFixed(2)}% C:{(Number(ps.creditRate) * 100).toFixed(2)}% A:{(Number(ps.amexRate) * 100).toFixed(2)}% I:{(Number(ps.internationalRate) * 100).toFixed(2)}%
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deletePricingMutation.mutate(ps.id)}
+                          disabled={deletePricingMutation.isPending}
+                          className="text-red-500 hover:text-red-600"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                      {ps.contractReference && (
+                        <p className="text-xs text-muted-foreground mt-1">Ref: {ps.contractReference}</p>
+                      )}
+                    </GlassCard>
+                  ))}
+                </div>
+              )}
+
+              {/* New pricing form */}
+              <form onSubmit={handleSavePricing} className="space-y-4">
+                <GlassCard className="p-4 space-y-4">
+                  <h4 className="text-sm font-medium">Nueva Tarifa</h4>
+                  <div className="space-y-2">
+                    <Label>Tipo de Cuenta</Label>
+                    <Select
+                      value={pricingForm.accountType}
+                      onValueChange={v => setPricingForm(prev => ({ ...prev, accountType: v as AccountType }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PRIMARY">Primaria</SelectItem>
+                        <SelectItem value="SECONDARY">Secundaria</SelectItem>
+                        <SelectItem value="TERTIARY">Terciaria</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Tasa Debito (%)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        value={pricingForm.debitRate ? (pricingForm.debitRate * 100).toFixed(2) : ''}
+                        onChange={e => setPricingForm(prev => ({ ...prev, debitRate: Number(e.target.value) / 100 }))}
+                        placeholder="1.68"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Tasa Credito (%)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        value={pricingForm.creditRate ? (pricingForm.creditRate * 100).toFixed(2) : ''}
+                        onChange={e => setPricingForm(prev => ({ ...prev, creditRate: Number(e.target.value) / 100 }))}
+                        placeholder="2.30"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Tasa Amex (%)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        value={pricingForm.amexRate ? (pricingForm.amexRate * 100).toFixed(2) : ''}
+                        onChange={e => setPricingForm(prev => ({ ...prev, amexRate: Number(e.target.value) / 100 }))}
+                        placeholder="3.00"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Tasa Internacional (%)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        value={pricingForm.internationalRate ? (pricingForm.internationalRate * 100).toFixed(2) : ''}
+                        onChange={e => setPricingForm(prev => ({ ...prev, internationalRate: Number(e.target.value) / 100 }))}
+                        placeholder="3.30"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Referencia de Contrato</Label>
+                      <Input
+                        value={pricingForm.contractReference || ''}
+                        onChange={e => setPricingForm(prev => ({ ...prev, contractReference: e.target.value || null }))}
+                        placeholder="CONTRATO-2026-001"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Notas</Label>
+                      <Input
+                        value={pricingForm.notes || ''}
+                        onChange={e => setPricingForm(prev => ({ ...prev, notes: e.target.value || null }))}
+                        placeholder="Notas opcionales"
+                      />
+                    </div>
+                  </div>
+                </GlassCard>
+
+                <div className="flex justify-end">
+                  <Button
+                    type="submit"
+                    disabled={savePricingMutation.isPending}
+                    className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+                  >
+                    {savePricingMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Guardar Tarifas
+                  </Button>
+                </div>
+              </form>
+            </TabsContent>
+
+            {/* Tab 3: Venue Inheritance */}
+            <TabsContent value="venues" className="flex-1 overflow-y-auto mt-4">
+              {venueInheritance.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Esta organizacion no tiene sucursales
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {venueInheritance.map(v => (
+                    <GlassCard key={v.venueId} className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-medium">{v.venueName}</h4>
+                          <p className="text-xs text-muted-foreground font-mono">{v.venueSlug}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <InheritanceBadge label="Config" source={v.paymentConfig.source} hasOverride={v.paymentConfig.hasVenueOverride} />
+                          <InheritanceBadge label="Tarifas" source={v.pricing.source} hasOverride={v.pricing.hasVenueOverride} />
+                        </div>
+                      </div>
+                    </GlassCard>
+                  ))}
+                </div>
+              )}
+
+              <div className="pt-4 border-t mt-4">
+                <p className="text-xs text-muted-foreground">
+                  Las sucursales con configuracion propia ("Personalizado") no se ven afectadas por cambios a nivel organizacion.
+                </p>
+              </div>
+            </TabsContent>
+          </Tabs>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+const InheritanceBadge: React.FC<{ label: string; source: string; hasOverride: boolean }> = ({ label, source, hasOverride }) => {
+  if (source === 'none') {
+    return (
+      <Badge variant="outline" className="text-xs text-muted-foreground">
+        {label}: Sin config
+      </Badge>
+    )
+  }
+  if (hasOverride) {
+    return (
+      <Badge variant="secondary" className="text-xs text-blue-600 bg-blue-500/10">
+        {label}: Personalizado
+      </Badge>
+    )
+  }
+  return (
+    <Badge variant="secondary" className="text-xs text-emerald-600 bg-emerald-500/10">
+      <Check className="w-3 h-3 mr-1" />
+      {label}: Heredado
+    </Badge>
+  )
+}
+
+// ===========================================
 // MAIN COMPONENT
 // ===========================================
 
@@ -582,6 +1091,7 @@ const OrganizationManagement: React.FC = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isModuleDialogOpen, setIsModuleDialogOpen] = useState(false)
+  const [isPaymentConfigDialogOpen, setIsPaymentConfigDialogOpen] = useState(false)
 
   // Filtered organizations
   const filteredOrganizations = useMemo(() => {
@@ -671,6 +1181,11 @@ const OrganizationManagement: React.FC = () => {
   const handleManageModules = (org: Organization) => {
     setSelectedOrganization(org)
     setIsModuleDialogOpen(true)
+  }
+
+  const handlePaymentConfig = (org: Organization) => {
+    setSelectedOrganization(org)
+    setIsPaymentConfigDialogOpen(true)
   }
 
   const handleSaveCreate = (data: CreateOrganizationData | UpdateOrganizationData) => {
@@ -829,6 +1344,7 @@ const OrganizationManagement: React.FC = () => {
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onManageModules={handleManageModules}
+                onPaymentConfig={handlePaymentConfig}
               />
             ))}
           </div>
@@ -863,6 +1379,12 @@ const OrganizationManagement: React.FC = () => {
       <ModuleManagementDialog
         open={isModuleDialogOpen}
         onOpenChange={setIsModuleDialogOpen}
+        organization={selectedOrganization}
+      />
+
+      <PaymentConfigDialog
+        open={isPaymentConfigDialogOpen}
+        onOpenChange={setIsPaymentConfigDialogOpen}
         organization={selectedOrganization}
       />
     </div>

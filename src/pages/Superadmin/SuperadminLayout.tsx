@@ -6,8 +6,8 @@ import SuperadminHeader from './components/SuperadminHeader'
 
 const SuperadminLayout: React.FC = () => {
   return (
-    <div className={cn('min-h-screen bg-card')}>
-      <div className="flex min-h-screen">
+    <div className={cn('h-screen bg-card')}>
+      <div className="flex h-screen overflow-hidden">
         {/* Sidebar */}
         <div className="w-64 flex-shrink-0">
           <SuperadminSidebar />

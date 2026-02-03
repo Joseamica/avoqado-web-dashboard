@@ -227,6 +227,129 @@ export async function updateOrganizationModuleConfig(
   return response.data
 }
 
+// ===========================================
+// ORGANIZATION PAYMENT CONFIG
+// ===========================================
+
+export type AccountType = 'PRIMARY' | 'SECONDARY' | 'TERTIARY'
+export type PaymentProcessor = 'LEGACY' | 'MENTA' | 'CLIP' | 'BANK_DIRECT' | 'AUTO'
+
+export interface OrgPaymentConfigResponse {
+  paymentConfig: {
+    id: string
+    organizationId: string
+    primaryAccountId: string
+    secondaryAccountId: string | null
+    tertiaryAccountId: string | null
+    routingRules: any
+    preferredProcessor: PaymentProcessor
+    primaryAccount: { id: string; displayName: string | null; provider: { code: string; name: string } }
+    secondaryAccount: { id: string; displayName: string | null; provider: { code: string; name: string } } | null
+    tertiaryAccount: { id: string; displayName: string | null; provider: { code: string; name: string } } | null
+  } | null
+  pricingStructures: OrgPricingStructure[]
+  venueInheritance: VenueInheritanceItem[]
+}
+
+export interface OrgPricingStructure {
+  id: string
+  organizationId: string
+  accountType: AccountType
+  debitRate: number
+  creditRate: number
+  amexRate: number
+  internationalRate: number
+  fixedFeePerTransaction: number | null
+  monthlyServiceFee: number | null
+  effectiveFrom: string
+  effectiveTo: string | null
+  active: boolean
+  contractReference: string | null
+  notes: string | null
+}
+
+export interface VenueInheritanceItem {
+  venueId: string
+  venueName: string
+  venueSlug: string
+  paymentConfig: { source: 'venue' | 'organization' | 'none'; hasVenueOverride: boolean }
+  pricing: { source: 'venue' | 'organization' | 'none'; hasVenueOverride: boolean }
+}
+
+export interface SetOrgPaymentConfigData {
+  primaryAccountId: string
+  secondaryAccountId?: string | null
+  tertiaryAccountId?: string | null
+  routingRules?: any
+  preferredProcessor?: PaymentProcessor
+}
+
+export interface SetOrgPricingData {
+  accountType: AccountType
+  debitRate: number
+  creditRate: number
+  amexRate: number
+  internationalRate: number
+  fixedFeePerTransaction?: number | null
+  monthlyServiceFee?: number | null
+  minimumMonthlyVolume?: number | null
+  volumePenalty?: number | null
+  effectiveFrom: string
+  effectiveTo?: string | null
+  contractReference?: string | null
+  notes?: string | null
+}
+
+/**
+ * Get org payment config, pricing, and venue inheritance
+ */
+export async function getOrganizationPaymentConfig(organizationId: string): Promise<OrgPaymentConfigResponse> {
+  const response = await api.get(`/api/v1/dashboard/superadmin/organizations/${organizationId}/payment-config`)
+  return response.data
+}
+
+/**
+ * Set/update org payment config (merchant accounts)
+ */
+export async function setOrganizationPaymentConfig(organizationId: string, data: SetOrgPaymentConfigData) {
+  const response = await api.put(`/api/v1/dashboard/superadmin/organizations/${organizationId}/payment-config`, data)
+  return response.data
+}
+
+/**
+ * Delete org payment config
+ */
+export async function deleteOrganizationPaymentConfig(organizationId: string) {
+  const response = await api.delete(`/api/v1/dashboard/superadmin/organizations/${organizationId}/payment-config`)
+  return response.data
+}
+
+/**
+ * Set/update org pricing structure
+ */
+export async function setOrganizationPricing(organizationId: string, data: SetOrgPricingData) {
+  const response = await api.put(`/api/v1/dashboard/superadmin/organizations/${organizationId}/payment-config/pricing`, data)
+  return response.data
+}
+
+/**
+ * Delete (deactivate) a pricing structure
+ */
+export async function deleteOrganizationPricing(organizationId: string, pricingId: string) {
+  const response = await api.delete(
+    `/api/v1/dashboard/superadmin/organizations/${organizationId}/payment-config/pricing/${pricingId}`,
+  )
+  return response.data
+}
+
+/**
+ * Get venue inheritance status list
+ */
+export async function getVenueInheritanceStatus(organizationId: string): Promise<VenueInheritanceItem[]> {
+  const response = await api.get(`/api/v1/dashboard/superadmin/organizations/${organizationId}/payment-config/venues`)
+  return response.data
+}
+
 /**
  * Convenience export
  */
@@ -243,4 +366,11 @@ export const organizationAPI = {
   enableModuleForOrganization,
   disableModuleForOrganization,
   updateOrganizationModuleConfig,
+  // Payment Config
+  getOrganizationPaymentConfig,
+  setOrganizationPaymentConfig,
+  deleteOrganizationPaymentConfig,
+  setOrganizationPricing,
+  deleteOrganizationPricing,
+  getVenueInheritanceStatus,
 }

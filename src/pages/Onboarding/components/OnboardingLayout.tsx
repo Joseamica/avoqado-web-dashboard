@@ -49,7 +49,7 @@ export function OnboardingLayout({ children, currentStep, totalSteps, stepTitle 
       </header>
 
       {/* Main content area - responsive spacing and max-width */}
-      <main className="flex flex-1 flex-col overflow-x-hidden pb-4">
+      <main className="flex flex-1 flex-col pb-4">
         <div className="container mx-auto w-full max-w-5xl px-3 py-4 sm:px-4 sm:py-6 md:py-8">
           {/* Progress indicator - responsive spacing */}
           <div className="mb-4 sm:mb-6 md:mb-8">
