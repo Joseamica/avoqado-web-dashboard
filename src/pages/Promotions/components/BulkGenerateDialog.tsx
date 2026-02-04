@@ -73,7 +73,7 @@ export default function BulkGenerateDialog({ venueId, discounts, onSuccess }: Bu
 			setCopied(true)
 			toast({ title: t('coupons.bulkGenerate.result.copied') })
 			setTimeout(() => setCopied(false), 2000)
-		} catch (err) {
+		} catch (_err) {
 			toast({ title: tCommon('common.error'), variant: 'destructive' })
 		}
 	}

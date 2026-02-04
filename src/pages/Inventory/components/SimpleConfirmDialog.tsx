@@ -44,7 +44,7 @@ export function SimpleConfirmDialog({
   isLoading = false,
   variant = 'default',
 }: SimpleConfirmDialogProps) {
-  const { t } = useTranslation('inventory')
+  const { t: _t } = useTranslation('inventory')
   const { t: tCommon } = useTranslation('common')
 
   const resolvedConfirmLabel = confirmLabel ?? tCommon('continue')

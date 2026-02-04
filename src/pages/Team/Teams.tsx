@@ -436,7 +436,7 @@ export default function Teams() {
   )
 
   // Client-side search like Payments page - wrapped in useCallback to prevent recreation
-  const handleMemberSearch = useCallback((search: string, rows: TeamMember[]) => {
+  const _handleMemberSearch = useCallback((search: string, rows: TeamMember[]) => {
     if (!search) return rows
     const q = search.toLowerCase()
     return rows.filter(m => {

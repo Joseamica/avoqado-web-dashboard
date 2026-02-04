@@ -157,7 +157,7 @@ function formatPercent(value: number | string | null | undefined, decimals: numb
 // =============================================================================
 
 const SummaryCards: React.FC<{ summary: CreditAssessmentSummary | undefined; isLoading: boolean }> = ({ summary, isLoading }) => {
-  const { t } = useTranslation('superadmin')
+  const { t: _t } = useTranslation('superadmin')
 
   if (isLoading) {
     return (
@@ -286,7 +286,7 @@ const AssessmentRow: React.FC<{
   onSelect: (assessment: CreditAssessmentData) => void
   onCreateOffer: (assessment: CreditAssessmentData) => void
 }> = ({ assessment, onSelect, onCreateOffer }) => {
-  const { formatDate } = useVenueDateTime()
+  const { formatDate: _formatDate } = useVenueDateTime()
   const eligibility = getEligibilityBadge(assessment.eligibilityStatus)
   const EligibilityIcon = eligibility.icon
 
@@ -720,7 +720,7 @@ const CreateOfferDialog: React.FC<{
 // =============================================================================
 
 const CreditAssessment: React.FC = () => {
-  const { t } = useTranslation('superadmin')
+  const { t: _t } = useTranslation('superadmin')
   const { toast } = useToast()
   const queryClient = useQueryClient()
 

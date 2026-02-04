@@ -102,7 +102,7 @@ const getCategoryEmoji = (category: string | null | undefined): string => {
 export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTempIngredient }: AddIngredientDialogProps) {
   const { t } = useTranslation('inventory')
   const { t: tCommon } = useTranslation('common')
-  const { t: tMenu } = useTranslation('menu')
+  const { t: _tMenu } = useTranslation('menu')
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()

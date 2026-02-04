@@ -297,7 +297,7 @@ export default function InviteAccept() {
 
     try {
       // For logged-in users, we just need to link the invitation to their existing account
-      const response = await api.post(`/api/v1/invitations/${token}/accept`, {
+      await api.post(`/api/v1/invitations/${token}/accept`, {
         // Backend should detect existing session and just link the invitation
       })
 

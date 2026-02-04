@@ -93,7 +93,8 @@ const ReceiptError = ({ error }: { error: string }) => (
   </div>
 )
 
-// Receipt Status Badge
+// Receipt Status Badge - Currently unused, kept for future use
+ 
 const StatusBadge = ({ status }: { status: string }) => {
   const { t } = useTranslation('payment')
   const { t: tCommon } = useTranslation('common')
@@ -115,7 +116,7 @@ const StatusBadge = ({ status }: { status: string }) => {
       text: t('receipt.statuses.PENDING'),
     },
     ERROR: {
-      className: 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-200 border border-red-200 dark:border-red-800',
+      className: 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-200 border border-red-200 dark:border-amber-800',
       icon: AlertCircle,
       text: t('receipt.statuses.ERROR'),
     },
@@ -163,7 +164,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
   // Extract data
   const data = receipt?.dataSnapshot || receiptData
   const receiptAccessKey = receipt?.accessKey || accessKey
-  const receiptStatus = receipt?.status
+  const _receiptStatus = receipt?.status
   const publicUrl = receiptAccessKey ? ReceiptUrls.public(receiptAccessKey) : null
 
   // Loading state

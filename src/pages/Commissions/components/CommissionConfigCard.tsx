@@ -75,7 +75,7 @@ export default function CommissionConfigCard({ config }: CommissionConfigCardPro
 	const { t, i18n } = useTranslation('commissions')
 	const { t: tCommon } = useTranslation()
 	const navigate = useNavigate()
-	const { venueSlug, fullBasePath } = useCurrentVenue()
+	const { fullBasePath } = useCurrentVenue()
 	const { getDisplayName: getRoleDisplayName } = useRoleConfig()
 	const { toast } = useToast()
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false)

@@ -111,7 +111,7 @@ export default function Products() {
   const {
     data: products,
     isLoading,
-    dataUpdatedAt,
+    dataUpdatedAt: _dataUpdatedAt,
   } = useQuery({
     queryKey: ['products', venueId, 'orderBy:name'],
     queryFn: () => getProducts(venueId!, { orderBy: 'name' }),
@@ -321,7 +321,7 @@ export default function Products() {
       // Return context with snapshot, timestamp, and previous state
       return { previousProducts, timestamp, productId, previousActiveState }
     },
-    onError: (error, variables, context) => {
+    onError: (_error, _variables, _context) => {
       // ✅ FIX: Instead of blind rollback, invalidate queries to get fresh server state
       // This prevents restoring incorrect state if someone else modified it
       queryClient.invalidateQueries({ queryKey: ['products', venueId] })
@@ -333,7 +333,7 @@ export default function Products() {
         variant: 'destructive',
       })
     },
-    onSuccess: (data, variables, context) => {
+    onSuccess: (data, variables, _context) => {
       // Verify the operation completed successfully by checking current state
       const currentProducts = queryClient.getQueryData<Product[]>(['products', venueId])
       const currentProduct = currentProducts?.find(p => p.id === variables.productId)

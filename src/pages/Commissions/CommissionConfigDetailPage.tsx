@@ -80,7 +80,7 @@ export default function CommissionConfigDetailPage() {
 	const { configId } = useParams<{ configId: string }>()
 	const navigate = useNavigate()
 	const [searchParams, setSearchParams] = useSearchParams()
-	const { venueSlug, fullBasePath } = useCurrentVenue()
+	const { fullBasePath } = useCurrentVenue()
 	const { t, i18n } = useTranslation('commissions')
 	const { t: tCommon } = useTranslation()
 	const { toast } = useToast()

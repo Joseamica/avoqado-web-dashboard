@@ -156,7 +156,7 @@ export default function CreateGoalDialog({
 				})
 			}
 			onOpenChange(false)
-		} catch (error) {
+		} catch (_error) {
 			toast({
 				title: isEditing ? t('errors.updateError') : t('errors.createError'),
 				variant: 'destructive',

@@ -44,7 +44,7 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
   month = new Date(),
   className,
 }) => {
-  const { t } = useTranslation(['playtelecom', 'common'])
+  const { t: _t } = useTranslation(['playtelecom', 'common'])
 
   // Generate calendar grid
   const calendarDays = useMemo(() => {

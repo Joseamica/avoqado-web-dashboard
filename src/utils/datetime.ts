@@ -236,37 +236,39 @@ export const getYesterday = (timezone: string = 'America/Mexico_City'): DateRang
 /**
  * Get "last 7 days" date range in venue timezone
  *
- * **CRITICAL:** This returns exactly 7 days from NOW, not a calendar week.
- * This matches the backend's interpretation of "esta semana" / "this week".
+ * **CRITICAL:** This returns full days (midnight to 23:59:59), not exact timestamps.
+ * This ensures consistent results regardless of when the query runs.
  *
  * @example
  * // Current time in venue: Oct 29, 2025 14:30 CST
  * const range = getLast7Days('America/Mexico_City')
- * // Returns: Oct 22, 2025 14:30 CST → now (7 days ago)
+ * // Returns: Oct 23, 2025 00:00 CST → Oct 29, 2025 23:59 CST (7 full days)
  */
 export const getLast7Days = (timezone: string = 'America/Mexico_City'): DateRange => {
   const now = DateTime.now().setZone(timezone)
-  const sevenDaysAgo = now.minus({ days: 7 })
+  const sevenDaysAgo = now.minus({ days: 6 }).startOf('day') // 6 days ago + today = 7 days total
+  const endOfToday = now.endOf('day')
 
   return {
     from: sevenDaysAgo.toJSDate(),
-    to: now.toJSDate(),
+    to: endOfToday.toJSDate(),
   }
 }
 
 /**
  * Get "last 30 days" date range in venue timezone
  *
- * **CRITICAL:** This returns exactly 30 days from NOW, not a calendar month.
- * This matches the backend's interpretation of "este mes" / "this month".
+ * **CRITICAL:** This returns full days (midnight to 23:59:59), not exact timestamps.
+ * This ensures consistent results regardless of when the query runs.
  */
 export const getLast30Days = (timezone: string = 'America/Mexico_City'): DateRange => {
   const now = DateTime.now().setZone(timezone)
-  const thirtyDaysAgo = now.minus({ days: 30 })
+  const thirtyDaysAgo = now.minus({ days: 29 }).startOf('day') // 29 days ago + today = 30 days total
+  const endOfToday = now.endOf('day')
 
   return {
     from: thirtyDaysAgo.toJSDate(),
-    to: now.toJSDate(),
+    to: endOfToday.toJSDate(),
   }
 }
 
