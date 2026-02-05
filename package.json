@@ -71,7 +71,7 @@
     "dompurify": "^3.3.0",
     "exceljs": "^4.4.0",
     "firebase": "^12.4.0",
-    "i18next": "^25.6.0",
+    "i18next": "^25.7.3",
     "i18next-browser-languagedetector": "^7.2.0",
     "input-otp": "^1.4.2",
     "localforage": "^1.10.0",
