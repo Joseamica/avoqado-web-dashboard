@@ -13,7 +13,6 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -26,44 +25,39 @@ import {
 } from '@/components/ui/select'
 import { Calendar, Store, TrendingUp, Download, Receipt } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
-import { useOrganization, useOrganizationOverview, useStockSummary, useOrganizationVenues, useActivityFeed, useRevenueVsTarget } from '@/hooks/useOrganization'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { getStaffAttendance, getStorePerformance } from '@/services/organizationDashboard.service'
+import {
+  useStoresOverview,
+  useStoresStockSummary,
+  useStoresVenues,
+  useStoresActivityFeed,
+  useStoresRevenueVsTarget,
+  useStoresStorePerformance,
+  useStoresStaffAttendance,
+} from '@/hooks/useStoresAnalysis'
 import { cn } from '@/lib/utils'
 
 export function SupervisorDashboard() {
   const { t } = useTranslation(['playtelecom', 'common'])
   const { activeVenue } = useAuth()
   const { fullBasePath } = useCurrentVenue()
-  const { organizationId } = useOrganization()
 
   const [storeFilter, setStoreFilter] = useState('all')
 
-  const { data: overview } = useOrganizationOverview()
-  const { data: stockSummary } = useStockSummary()
-  const { data: venuesData } = useOrganizationVenues()
-  const { data: activityFeed } = useActivityFeed(20, { refetchInterval: 30000 })
-  const { data: revenueData } = useRevenueVsTarget()
-
-  // Store performance from org dashboard API
-  const { data: storePerformanceData } = useQuery({
-    queryKey: ['organization', organizationId, 'store-performance'],
-    queryFn: () => getStorePerformance(organizationId!),
-    enabled: !!organizationId,
-    staleTime: 60000,
-  })
-
-  // Staff attendance for store detail table
-  const { data: attendanceData } = useQuery({
-    queryKey: ['organization', organizationId, 'staff-attendance', 'supervisor', storeFilter],
-    queryFn: () => getStaffAttendance(organizationId!, {
-      period: 'today',
-      venueId: storeFilter !== 'all' ? storeFilter : undefined,
-    }),
-    enabled: !!organizationId,
-    staleTime: 30000,
+  // Use venue-level hooks for white-label access
+  const { data: overview } = useStoresOverview()
+  const { data: stockSummary } = useStoresStockSummary()
+  const { data: venuesResponse } = useStoresVenues()
+  const { data: activityFeed } = useStoresActivityFeed(20, { refetchInterval: 30000 })
+  const { data: revenueData } = useStoresRevenueVsTarget()
+  const { data: storePerformanceData } = useStoresStorePerformance()
+  const { data: attendanceData } = useStoresStaffAttendance({
+    filterVenueId: storeFilter !== 'all' ? storeFilter : undefined,
     refetchInterval: 30000,
   })
+
+  // Extract venues array from response
+  const venuesData = venuesResponse?.venues
 
   const formatCurrency = useMemo(
     () => (value: number) =>
@@ -77,16 +71,18 @@ export function SupervisorDashboard() {
 
   // Derive store detail rows from attendance API
   const storeDetailRows = useMemo(() => {
-    if (!attendanceData?.entries) return []
-    return attendanceData.entries.map(entry => ({
+    if (!attendanceData?.staff) return []
+    return attendanceData.staff.map(entry => ({
       store: entry.venueName,
-      promoter: entry.staffName,
-      clockIn: new Date(entry.clockIn).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase(),
-      clockOut: entry.clockOut
-        ? new Date(entry.clockOut).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()
+      promoter: entry.name,
+      clockIn: entry.checkInTime
+        ? new Date(entry.checkInTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()
         : '--:--',
-      sales: 0,
-      hasDepositPhoto: !!entry.clockInPhotoUrl,
+      clockOut: entry.checkOutTime
+        ? new Date(entry.checkOutTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()
+        : '--:--',
+      sales: entry.sales || 0,
+      hasDepositPhoto: !!entry.checkInPhotoUrl,
     }))
   }, [attendanceData])
 
@@ -95,25 +91,25 @@ export function SupervisorDashboard() {
     if (!activityFeed?.events) return []
     const colors = ['#6366f1', '#0ea5e9', '#a855f7', '#f59e0b', '#10b981']
     return activityFeed.events
-      .filter(e => e.type === 'sale' || e.type === 'checkout')
+      .filter(e => e.type === 'sale' || e.type === 'checkin')
       .slice(0, 10)
       .map((e, i) => ({
         id: `#${e.id.slice(-6).toUpperCase()}`,
         store: e.venueName || '',
         product: e.title,
-        iccid: e.metadata?.iccid || '--',
-        simType: e.metadata?.categoryName || 'SIM',
+        iccid: (e.metadata?.iccid as string) || '--',
+        simType: (e.metadata?.categoryName as string) || 'SIM',
         simColor: colors[i % colors.length],
         seller: e.staffName || '--',
-        amount: e.metadata?.amount || 0,
+        amount: (e.metadata?.amount as number) || 0,
       }))
   }, [activityFeed])
 
-  const storesOpen = overview?.venueCount ?? 0
-  const totalStores = venuesData?.length ?? storesOpen
+  const storesOpen = overview?.activeStores ?? 0
+  const totalStores = overview?.totalStores ?? venuesData?.length ?? storesOpen
   const storesClosed = Math.max(totalStores - storesOpen, 0)
   const coveragePercent = totalStores > 0 ? Math.round((storesOpen / totalStores) * 100) : 0
-  const cashInField = overview?.totalRevenue ?? 0
+  const cashInField = overview?.todaySales ?? 0
 
   // Chart data - derive from store performance
   const salesByStore = useMemo(() => {

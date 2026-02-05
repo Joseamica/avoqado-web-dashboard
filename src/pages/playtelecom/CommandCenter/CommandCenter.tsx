@@ -17,20 +17,20 @@
 import { useTranslation } from 'react-i18next'
 import { useState, useMemo } from 'react'
 import { useAuth } from '@/context/AuthContext'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 import {
-  useOrganization,
-  useOrganizationOverview,
-  useOrganizationVenues,
-  useOnlineStaff,
-  useActivityFeed,
-  useStockSummary,
-  useAnomalies,
-  useRevenueVsTarget,
-  useVolumeVsTarget,
-  useTopPromoter,
-  useWorstAttendance,
-} from '@/hooks/useOrganization'
-import type { ActivityEvent } from '@/services/organization.service'
+  useStoresOverview,
+  useStoresVenues,
+  useStoresOnlineStaff,
+  useStoresActivityFeed,
+  useStoresStockSummary,
+  useStoresAnomalies,
+  useStoresRevenueVsTarget,
+  useStoresVolumeVsTarget,
+  useStoresTopPromoter,
+  useStoresWorstAttendance,
+} from '@/hooks/useStoresAnalysis'
+import type { ActivityFeedEvent } from '@/services/storesAnalysis.service'
 import { GlassCard } from '@/components/ui/glass-card'
 import { LiveActivityFeed, InsightCard, GaugeChart } from '@/components/playtelecom'
 import { Badge } from '@/components/ui/badge'
@@ -47,7 +47,7 @@ import { DollarSign, AlertTriangle, Package, TrendingUp, TrendingDown, Award, Us
 import { cn } from '@/lib/utils'
 import { getIntlLocale } from '@/utils/i18n-locale'
 
-const ACTIVITY_TYPE_BADGE_CLASSES: Record<ActivityEvent['type'], string> = {
+const ACTIVITY_TYPE_BADGE_CLASSES: Record<ActivityFeedEvent['type'], string> = {
   sale: 'bg-green-500/10 text-green-600 dark:text-green-400',
   checkin: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
   checkout: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
@@ -59,8 +59,8 @@ const ACTIVITY_TYPE_BADGE_CLASSES: Record<ActivityEvent['type'], string> = {
 export default function CommandCenter() {
   const { t, i18n } = useTranslation(['playtelecom', 'common'])
   const { activeVenue } = useAuth()
+  const { venueId, venue } = useCurrentVenue()
   const intlLocale = getIntlLocale(i18n.language)
-  const { hasOrganization, organizationName } = useOrganization()
   const [selectedView, setSelectedView] = useState('global')
   const [selectedStore, setSelectedStore] = useState('all')
   const [selectedPeriod, setSelectedPeriod] = useState('today')
@@ -71,23 +71,26 @@ export default function CommandCenter() {
   const [activityDateFilter, setActivityDateFilter] = useState<DateFilter | null>(null)
   const chartVenueId = selectedView === 'global' ? undefined : selectedView
 
-  // Fetch organization-wide data
-  const { data: overview, isLoading: overviewLoading, refetch: refetchOverview } = useOrganizationOverview('7d')
-  const { data: venues, isLoading: venuesLoading, refetch: refetchVenues } = useOrganizationVenues('7d')
-  const { data: onlineStaff, isLoading: onlineStaffLoading, refetch: refetchOnlineStaff } = useOnlineStaff({ refetchInterval: 60000 })
-  const { data: activityFeed, isLoading: activityFeedLoading, refetch: refetchActivityFeed } = useActivityFeed(30, { refetchInterval: 60000 })
-  const { data: stockSummary, isLoading: stockLoading, refetch: refetchStockSummary } = useStockSummary()
-  const { data: anomaliesData, isLoading: anomaliesLoading, refetch: refetchAnomalies } = useAnomalies({ refetchInterval: 120000 })
-  const { data: revenueChartData, isLoading: revenueChartLoading, refetch: refetchRevenueChart } = useRevenueVsTarget({
+  // Fetch organization-wide data via venue-level endpoints (white-label access)
+  const { data: overview, isLoading: overviewLoading, refetch: refetchOverview } = useStoresOverview({ refetchInterval: 60000 })
+  const { data: venuesResponse, isLoading: venuesLoading, refetch: refetchVenues } = useStoresVenues({ refetchInterval: 60000 })
+  const { data: onlineStaff, isLoading: onlineStaffLoading, refetch: refetchOnlineStaff } = useStoresOnlineStaff({ refetchInterval: 60000 })
+  const { data: activityFeed, isLoading: activityFeedLoading, refetch: refetchActivityFeed } = useStoresActivityFeed(30, { refetchInterval: 60000 })
+  const { data: stockSummary, isLoading: stockLoading, refetch: refetchStockSummary } = useStoresStockSummary({ refetchInterval: 120000 })
+  const { data: anomaliesData, isLoading: anomaliesLoading, refetch: refetchAnomalies } = useStoresAnomalies({ refetchInterval: 120000 })
+  const { data: revenueChartData, isLoading: revenueChartLoading, refetch: refetchRevenueChart } = useStoresRevenueVsTarget({
     refetchInterval: 120000,
-    venueId: chartVenueId,
+    filterVenueId: chartVenueId,
   })
-  const { data: volumeChartData, isLoading: volumeChartLoading, refetch: refetchVolumeChart } = useVolumeVsTarget({
+  const { data: volumeChartData, isLoading: volumeChartLoading, refetch: refetchVolumeChart } = useStoresVolumeVsTarget({
     refetchInterval: 120000,
-    venueId: chartVenueId,
+    filterVenueId: chartVenueId,
   })
-  const { data: topPromoter, refetch: refetchTopPromoter } = useTopPromoter({ refetchInterval: 120000 })
-  const { data: worstAttendance, refetch: refetchWorstAttendance } = useWorstAttendance({ refetchInterval: 120000 })
+  const { data: topPromoter, refetch: refetchTopPromoter } = useStoresTopPromoter({ refetchInterval: 120000 })
+  const { data: worstAttendance, refetch: refetchWorstAttendance } = useStoresWorstAttendance({ refetchInterval: 120000 })
+
+  // Extract venues array from response
+  const venues = venuesResponse?.venues
 
   // Calculate KPIs from real organization data
   const kpis = useMemo(() => {
@@ -106,17 +109,17 @@ export default function CommandCenter() {
     }
 
     return {
-      totalSales: overview.totalRevenue || 0,
+      totalSales: overview.todaySales || 0,
       salesTarget: 135000, // TODO: Get from organization config
       moneyInStreet: 45200, // TODO: Calculate from pending orders
       stockSims: stockSummary?.totalPieces || 0,
       lowStockStores: stockSummary?.lowStockAlerts || 0,
-      anomalies: anomaliesData?.anomalies.length || 0,
-      criticalAnomalies: anomaliesData?.anomalies.filter(a => a.severity === 'CRITICAL').length || 0,
+      anomalies: anomaliesData?.anomalies?.length || 0,
+      criticalAnomalies: anomaliesData?.anomalies?.filter(a => a.severity === 'CRITICAL').length || 0,
       promotersOnline: onlineStaff?.onlineCount || 0,
       promotersTotal: onlineStaff?.totalCount || 0,
     }
-  }, [overview, venues, onlineStaff, stockSummary, anomaliesData])
+  }, [overview, onlineStaff, stockSummary, anomaliesData])
 
   // Format currency
   const formatCurrency = useMemo(
@@ -445,14 +448,14 @@ export default function CommandCenter() {
 
   const isLoading = overviewLoading || venuesLoading || stockLoading || anomaliesLoading || activityFeedLoading
 
-  // Show error if no organization
-  if (!hasOrganization) {
+  // Show error if no venue configured
+  if (!venueId) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-orange-500 dark:text-orange-400 mx-auto mb-4" />
-          <h3 className="text-lg font-bold text-foreground mb-2">Organización no configurada</h3>
-          <p className="text-sm text-muted-foreground">Esta página requiere que el venue esté asociado a una organización.</p>
+          <h3 className="text-lg font-bold text-foreground mb-2">Venue no configurado</h3>
+          <p className="text-sm text-muted-foreground">Esta página requiere un venue válido.</p>
         </div>
       </div>
     )
@@ -464,7 +467,7 @@ export default function CommandCenter() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-foreground tracking-tight">
-            {organizationName ? `${organizationName}: Operación Nacional` : 'Ojo de Dios: Operación Nacional'}
+            {venue?.name ? `${venue.name}: Operación Nacional` : 'Centro de Comando: Operación Nacional'}
           </h2>
           <p className="text-xs text-muted-foreground uppercase tracking-wide mt-1">
             Dashboard Maestro • En Tiempo Real

@@ -12,10 +12,18 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/context/AuthContext'
-import { useOrganization, useOrganizationOverview, useStockSummary, useAnomalies, useOrganizationVenues, useRevenueVsTarget } from '@/hooks/useOrganization'
-import { getStaffAttendance, validateTimeEntry } from '@/services/organizationDashboard.service'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
+import {
+  useStoresOverview,
+  useStoresStockSummary,
+  useStoresAnomalies,
+  useStoresVenues,
+  useStoresRevenueVsTarget,
+  useStoresStaffAttendance,
+} from '@/hooks/useStoresAnalysis'
+import { validateTimeEntry } from '@/services/storesAnalysis.service'
 import {
   ManagerFilters,
   ManagerKpiCards,
@@ -30,7 +38,7 @@ import {
 export function ManagersDashboard() {
   const { t } = useTranslation(['playtelecom', 'common'])
   const { activeVenue } = useAuth()
-  const { organizationId } = useOrganization()
+  const { venueId } = useCurrentVenue()
 
   // Filters
   const [filters, setFilters] = useState<ManagerFilterValues>({
@@ -44,74 +52,65 @@ export function ManagersDashboard() {
 
   const queryClient = useQueryClient()
 
-  // Map filter period to timeRange for organization hooks
-  const timeRange = useMemo((): '7d' | '30d' | '90d' => {
-    if (filters.period === 'today') return '7d'
-    if (filters.period === 'month') return '30d'
-    return '7d'
-  }, [filters.period])
-
   const selectedVenueId = filters.store !== 'all' ? filters.store : undefined
 
-  // API hooks - pass filters
-  const { data: overview } = useOrganizationOverview(timeRange)
-  const { data: stockSummary } = useStockSummary()
-  const { data: anomalies } = useAnomalies()
-  const { data: venuesData } = useOrganizationVenues(timeRange)
-  const { data: revenueData } = useRevenueVsTarget({ venueId: selectedVenueId })
+  // API hooks using venue-level endpoints (white-label access)
+  const { data: overview } = useStoresOverview()
+  const { data: stockSummary } = useStoresStockSummary()
+  const { data: anomalies } = useStoresAnomalies()
+  const { data: venuesResponse } = useStoresVenues()
+  const { data: revenueData } = useStoresRevenueVsTarget({ filterVenueId: selectedVenueId })
 
-  // Staff attendance from API
-  const { data: attendanceData } = useQuery({
-    queryKey: ['organization', organizationId, 'staff-attendance', filters],
-    queryFn: () => getStaffAttendance(organizationId!, {
-      period: filters.period,
-      venueId: filters.store !== 'all' ? filters.store : undefined,
-      status: filters.state !== 'all' ? filters.state : undefined,
-    }),
-    enabled: !!organizationId,
-    staleTime: 30000,
+  // Staff attendance using venue-level hook
+  const { data: attendanceData } = useStoresStaffAttendance({
+    filterVenueId: filters.store !== 'all' ? filters.store : undefined,
+    status: filters.state !== 'all' ? filters.state : undefined,
+    refetchInterval: 30000,
   })
+
+  // Extract venues array from response
+  const venuesData = venuesResponse?.venues
 
   // Validate time entry mutation
   const validateMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: 'APPROVED' | 'REJECTED' }) =>
-      validateTimeEntry(organizationId!, id, { status }),
+      validateTimeEntry(venueId!, id, { status }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['organization', organizationId, 'staff-attendance'] })
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'staff-attendance'] })
     },
   })
 
   // Map API attendance data to AttendanceEntry format
   const attendanceEntries: AttendanceEntry[] = useMemo(() => {
-    if (!attendanceData?.entries) return []
-    return attendanceData.entries
-      .filter(entry => entry.clockIn) // Only show staff who have clocked in
+    if (!attendanceData?.staff) return []
+    return attendanceData.staff
+      .filter(entry => entry.checkInTime) // Only show staff who have clocked in
       .map(entry => {
-        const clockInDate = new Date(entry.clockIn!)
+        const clockInDate = new Date(entry.checkInTime!)
         const isLate = clockInDate.getHours() >= 10 || (clockInDate.getHours() === 9 && clockInDate.getMinutes() > 30)
         const incidents: AttendanceEntry['incidents'] = []
         if (isLate) incidents.push({ label: 'Retardo', severity: 'critical' })
-        if (!entry.clockInLatitude) incidents.push({ label: 'Sin GPS', severity: 'warning' })
+        if (!entry.checkInLocation) incidents.push({ label: 'Sin GPS', severity: 'warning' })
         if (incidents.length === 0) incidents.push({ label: 'Sin Incidencias', severity: 'ok' })
 
         return {
-          id: entry.staffId,
+          id: entry.id,
           timeEntryId: entry.id,
           date: clockInDate.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }),
           storeName: entry.venueName,
-          promoterName: entry.staffName,
+          promoterName: entry.name,
           clockIn: clockInDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase(),
-          clockOut: entry.clockOut
-            ? new Date(entry.clockOut).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()
+          clockOut: entry.checkOutTime
+            ? new Date(entry.checkOutTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()
             : null,
-          clockInPhotoUrl: entry.clockInPhotoUrl,
-          clockInLat: entry.clockInLatitude,
-          clockInLon: entry.clockInLongitude,
-          validationStatus: entry.validationStatus,
+          clockInPhotoUrl: entry.checkInPhotoUrl,
+          clockInLat: entry.checkInLocation?.lat,
+          clockInLon: entry.checkInLocation?.lng,
+          validationStatus: undefined, // TODO: Add validationStatus to API response if needed
           sales: entry.sales ?? 0,
           incidents,
           isLate,
-          gpsWarning: !entry.clockInLatitude,
+          gpsWarning: !entry.checkInLocation,
         }
       })
   }, [attendanceData])
@@ -146,16 +145,16 @@ export function ManagersDashboard() {
       : []
 
     return {
-      storesOpen: overview?.venueCount ?? 0,
-      storesClosed: venuesData ? Math.max(venuesData.length - (overview?.venueCount ?? 0), 0) : 0,
+      storesOpen: overview?.activeStores ?? 0,
+      storesClosed: venuesData ? Math.max(venuesData.length - (overview?.activeStores ?? 0), 0) : overview?.totalStores ? overview.totalStores - (overview.activeStores ?? 0) : 0,
       incidents: [
         { label: t('playtelecom:managers.kpi.punctuality', { defaultValue: 'Puntualidad' }), count: punctualityCount, severity: 'critical' as const },
         { label: t('playtelecom:managers.kpi.location', { defaultValue: 'Localizacion' }), count: locationCount, severity: 'warning' as const },
         { label: t('playtelecom:managers.kpi.deposit', { defaultValue: 'Deposito' }), count: depositCount || 'OK', severity: depositCount ? 'warning' as const : 'ok' as const },
       ],
       stockByCategory: stockCategories,
-      totalCashInField: overview?.totalRevenue ?? 0,
-      cashCollectedPercent: overview?.totalRevenue && overview.totalOrders ? Math.min(Math.round((overview.totalRevenue / Math.max(overview.totalOrders * 200, 1)) * 100), 100) : 0,
+      totalCashInField: overview?.todaySales ?? 0,
+      cashCollectedPercent: overview?.todaySales && overview.unitsSold ? Math.min(Math.round((overview.todaySales / Math.max(overview.unitsSold * 200, 1)) * 100), 100) : 0,
     }
   }, [overview, stockSummary, anomalies, venuesData, t])
 
