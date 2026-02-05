@@ -14,7 +14,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Settings, RotateCcw, Save } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
-import { getItemCategories, type ItemCategory } from '@/services/itemCategory.service'
+import { getItemCategories, type ItemCategory } from '@/services/stockDashboard.service'
 import {
   ModuleToggles,
   CatalogEditor,

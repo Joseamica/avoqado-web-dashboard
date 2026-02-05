@@ -50,10 +50,12 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import {
   getItemCategories,
+  type ItemCategory,
+} from '@/services/stockDashboard.service'
+import {
   createItemCategory,
   updateItemCategory,
   deleteItemCategory,
-  type ItemCategory,
   type CreateItemCategoryDto,
   type UpdateItemCategoryDto,
 } from '@/services/itemCategory.service'

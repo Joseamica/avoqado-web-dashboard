@@ -65,6 +65,7 @@ export interface BulkUploadResult {
   created: number
   duplicates: string[]
   errors: string[]
+  total: number
 }
 
 export interface StockMovement {
@@ -77,6 +78,24 @@ export interface StockMovement {
 
 export interface StockMovementsResponse {
   movements: StockMovement[]
+}
+
+export interface ItemCategory {
+  id: string
+  name: string
+  description: string | null
+  color: string | null
+  sortOrder: number
+  requiresPreRegistration: boolean
+  suggestedPrice: number | null
+  barcodePattern: string | null
+  active: boolean
+  createdAt: string
+  updatedAt: string
+  // Stats (when includeStats=true)
+  totalItems?: number
+  availableItems?: number
+  soldItems?: number
 }
 
 // ===========================================
@@ -141,6 +160,29 @@ export const processBulkUpload = async (
 }
 
 /**
+ * Bulk upload items to a category
+ * Accepts either csvContent or serialNumbers array (compatible with itemCategory.service)
+ * For white-label routes - uses /stock/bulk-upload endpoint
+ */
+export const bulkUploadItems = async (
+  venueId: string,
+  categoryId: string,
+  data: { csvContent?: string; serialNumbers?: string[] },
+): Promise<BulkUploadResult> => {
+  // Convert serialNumbers to csvContent if provided
+  let csvContent = data.csvContent || ''
+  if (data.serialNumbers && data.serialNumbers.length > 0) {
+    csvContent = data.serialNumbers.join('\n')
+  }
+
+  const response = await api.post(`/api/v1/dashboard/venues/${venueId}/stock/bulk-upload`, {
+    categoryId,
+    csvContent,
+  })
+  return response.data.data
+}
+
+/**
  * Get recent stock movements
  */
 export const getStockMovements = async (
@@ -148,5 +190,25 @@ export const getStockMovements = async (
   params?: { limit?: number }
 ): Promise<StockMovementsResponse> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stock/movements`, { params })
+  return response.data.data
+}
+
+/**
+ * Get item categories for white-label stock dashboard
+ * Uses the /stock/item-categories endpoint which bypasses checkPermission
+ * and uses white-label role-based access instead
+ */
+export const getItemCategories = async (
+  venueId: string,
+  options: { includeStats?: boolean } = {},
+): Promise<{ categories: ItemCategory[] }> => {
+  const params = new URLSearchParams()
+  if (options.includeStats) {
+    params.append('includeStats', 'true')
+  }
+
+  const response = await api.get(
+    `/api/v1/dashboard/venues/${venueId}/stock/item-categories${params.toString() ? `?${params}` : ''}`,
+  )
   return response.data.data
 }
