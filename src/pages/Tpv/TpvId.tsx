@@ -126,7 +126,7 @@ export default function TpvId() {
   const { t, i18n } = useTranslation(['tpv', 'common'])
   const { tpvId } = useParams()
   const location = useLocation()
-  const { venueId, venueSlug, venue, fullBasePath } = useCurrentVenue()
+  const { venueId, venueSlug: _venueSlug, venue, fullBasePath } = useCurrentVenue()
   const venueTimezone = venue?.timezone || 'America/Mexico_City'
   const queryClient = useQueryClient()
   const { toast } = useToast()

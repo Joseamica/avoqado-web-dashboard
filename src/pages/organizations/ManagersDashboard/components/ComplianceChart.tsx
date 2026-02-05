@@ -56,7 +56,7 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>)
 }
 
 export const ComplianceChart: React.FC<ComplianceChartProps> = ({
-  managerId,
+  managerId: _managerId,
   className,
 }) => {
   const { t } = useTranslation(['playtelecom', 'common'])

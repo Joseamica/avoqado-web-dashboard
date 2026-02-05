@@ -82,7 +82,7 @@ function BasicInfoSkeleton() {
 
 export default function BasicInfo() {
   const { t } = useTranslation(['venue', 'common'])
-  const { venueId, venueSlug, fullBasePath } = useCurrentVenue()
+  const { venueId, venueSlug: _venueSlug, fullBasePath } = useCurrentVenue()
   const { user } = useAuth()
   const canEdit = [StaffRole.OWNER, StaffRole.ADMIN, StaffRole.SUPERADMIN].includes((user?.role as StaffRole) || ('' as any))
   const { setActions } = useVenueEditActions()

@@ -26,7 +26,7 @@ interface DepositValidationProps {
 }
 
 export function DepositValidation({
-  promoterId,
+  promoterId: _promoterId,
   promoterName,
   expectedAmount,
   declaredAmount,

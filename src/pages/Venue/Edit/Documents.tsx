@@ -52,7 +52,7 @@ interface DocumentConfig {
 
 export default function VenueDocuments() {
   const { t } = useTranslation('venue')
-  const { venueId, venueSlug, fullBasePath } = useCurrentVenue()
+  const { venueId, venueSlug: _venueSlug, fullBasePath } = useCurrentVenue()
   const { setActions } = useVenueEditActions()
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -105,7 +105,7 @@ export default function VenueDocuments() {
       // Refresh venue data to get updated URLs
       queryClient.invalidateQueries({ queryKey: ['venue-documents', venueId] })
     },
-    onError: (error: any, { documentKey }) => {
+    onError: (error: any, { documentKey: _documentKey }) => {
       toast({
         variant: 'destructive',
         title: t('edit.documents.uploadError', { defaultValue: 'Error al subir documento' }),

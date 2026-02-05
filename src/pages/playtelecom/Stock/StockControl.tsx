@@ -56,8 +56,8 @@ const STATUS_CONFIG = {
 
 export function StockControl() {
   const { t } = useTranslation(['playtelecom', 'common'])
-  const { venueId, venue } = useCurrentVenue()
-  const queryClient = useQueryClient()
+  const { venueId, venue: _venue } = useCurrentVenue()
+  const _queryClient = useQueryClient()
 
   // Dialog state
   const [showCategoryManagement, setShowCategoryManagement] = useState(false)

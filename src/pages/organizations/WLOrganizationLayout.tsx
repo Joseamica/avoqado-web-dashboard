@@ -36,7 +36,7 @@ const WLOrganizationLayout: React.FC = () => {
   const { t } = useTranslation(['organization', 'common'])
   const location = useLocation()
   const navigate = useNavigate()
-  const { organization, orgSlug, basePath, venues, isLoading } = useCurrentOrganization()
+  const { organization, orgSlug, basePath, venues, isLoading: _isLoading } = useCurrentOrganization()
 
   // Build breadcrumb from path
   const pathSegments = location.pathname

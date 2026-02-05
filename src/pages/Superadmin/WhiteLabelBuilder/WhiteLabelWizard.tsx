@@ -5,41 +5,31 @@
  * without writing JSON. Uses form-based UI.
  */
 
-import { useState, useCallback, useMemo, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { FEATURE_REGISTRY } from '@/config/feature-registry'
+import { getPreset } from '@/config/white-label-presets'
 import { cn } from '@/lib/utils'
-import {
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  Palette,
-  Puzzle,
-  Settings,
-  Eye,
-} from 'lucide-react'
+import { getModulesForVenue } from '@/services/superadmin-modules.service'
 import type {
+  EnabledFeature,
+  FeatureAccess,
+  FeatureInstanceConfig,
+  NavigationItem,
+  PresetName,
   WhiteLabelConfig,
   WhiteLabelTheme,
-  EnabledFeature,
-  NavigationItem,
-  FeatureInstanceConfig,
   WizardStep,
-  PresetName,
-  FeatureAccess,
 } from '@/types/white-label'
-import { getPreset } from '@/config/white-label-presets'
-import { FEATURE_REGISTRY } from '@/config/feature-registry'
-import { getModulesForVenue } from '@/services/superadmin-modules.service'
+import { Check, ChevronLeft, ChevronRight, Eye, Loader2, Palette, Puzzle, Settings } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
+import PreviewPanel from './components/PreviewPanel'
 import Step1Setup from './steps/Step1Setup'
 import Step2Features from './steps/Step2Features'
 import Step3Configuration from './steps/Step3Configuration'
 import Step4Preview from './steps/Step4Preview'
-import PreviewPanel from './components/PreviewPanel'
 
 // ============================================
 // Types
@@ -77,14 +67,8 @@ const STEPS: { id: WizardStep; icon: React.ElementType; labelKey: string }[] = [
 // Component
 // ============================================
 
-export default function WhiteLabelWizard({
-  onComplete,
-  onCancel,
-  initialVenueId = '',
-  initialVenueName = '',
-}: WhiteLabelWizardProps) {
+export default function WhiteLabelWizard({ onComplete, onCancel, initialVenueId = '', initialVenueName = '' }: WhiteLabelWizardProps) {
   const { t } = useTranslation('superadmin')
-  const queryClient = useQueryClient()
 
   // Current step
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
@@ -281,21 +265,18 @@ export default function WhiteLabelWizard({
     })
   }, [])
 
-  const handleFeatureConfigChange = useCallback(
-    (featureCode: string, config: Record<string, unknown>) => {
-      setState(prev => ({
-        ...prev,
-        featureConfigs: {
-          ...prev.featureConfigs,
-          [featureCode]: {
-            ...prev.featureConfigs[featureCode],
-            config,
-          },
+  const handleFeatureConfigChange = useCallback((featureCode: string, config: Record<string, unknown>) => {
+    setState(prev => ({
+      ...prev,
+      featureConfigs: {
+        ...prev.featureConfigs,
+        [featureCode]: {
+          ...prev.featureConfigs[featureCode],
+          config,
         },
-      }))
-    },
-    []
-  )
+      },
+    }))
+  }, [])
 
   const handleNavigationChange = useCallback((items: NavigationItem[]) => {
     setState(prev => ({
@@ -307,9 +288,7 @@ export default function WhiteLabelWizard({
   const handleAccessChange = useCallback((featureCode: string, access: FeatureAccess) => {
     setState(prev => ({
       ...prev,
-      enabledFeatures: prev.enabledFeatures.map(ef =>
-        ef.code === featureCode ? { ...ef, access } : ef
-      ),
+      enabledFeatures: prev.enabledFeatures.map(ef => (ef.code === featureCode ? { ...ef, access } : ef)),
     }))
   }, [])
 
@@ -377,7 +356,7 @@ export default function WhiteLabelWizard({
         setCurrentStepIndex(index)
       }
     },
-    [currentStepIndex]
+    [currentStepIndex],
   )
 
   // ============================================
@@ -443,12 +422,7 @@ export default function WhiteLabelWizard({
                 return (
                   <li key={step.id} className="flex items-center">
                     {index > 0 && (
-                      <div
-                        className={cn(
-                          'w-8 sm:w-12 h-0.5 mx-1 sm:mx-2',
-                          index <= currentStepIndex ? 'bg-primary' : 'bg-muted'
-                        )}
-                      />
+                      <div className={cn('w-8 sm:w-12 h-0.5 mx-1 sm:mx-2', index <= currentStepIndex ? 'bg-primary' : 'bg-muted')} />
                     )}
                     <button
                       onClick={() => goToStep(index)}
@@ -459,7 +433,7 @@ export default function WhiteLabelWizard({
                         !isActive && isCompleted && 'text-primary',
                         !isActive && !isCompleted && 'text-muted-foreground',
                         isClickable && 'cursor-pointer hover:bg-muted',
-                        !isClickable && 'cursor-not-allowed'
+                        !isClickable && 'cursor-not-allowed',
                       )}
                     >
                       <div
@@ -467,18 +441,12 @@ export default function WhiteLabelWizard({
                           'flex items-center justify-center w-8 h-8 rounded-full',
                           isActive && 'bg-primary text-primary-foreground',
                           !isActive && isCompleted && 'bg-primary/20 text-primary',
-                          !isActive && !isCompleted && 'bg-muted text-muted-foreground'
+                          !isActive && !isCompleted && 'bg-muted text-muted-foreground',
                         )}
                       >
-                        {isCompleted && !isActive ? (
-                          <Check className="w-4 h-4" />
-                        ) : (
-                          <Icon className="w-4 h-4" />
-                        )}
+                        {isCompleted && !isActive ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
                       </div>
-                      <span className="hidden sm:inline text-sm font-medium">
-                        {t(step.labelKey)}
-                      </span>
+                      <span className="hidden sm:inline text-sm font-medium">{t(step.labelKey)}</span>
                     </button>
                   </li>
                 )
@@ -487,12 +455,7 @@ export default function WhiteLabelWizard({
           </nav>
 
           {/* Preview Toggle Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowPreview(true)}
-            className="gap-2"
-          >
+          <Button variant="outline" size="sm" onClick={() => setShowPreview(true)} className="gap-2">
             <Eye className="w-4 h-4" />
             {t('whiteLabelWizard.showPreview')}
           </Button>
@@ -538,11 +501,7 @@ export default function WhiteLabelWizard({
             )}
 
             {currentStep.id === 'preview' && (
-              <Step4Preview
-                state={state}
-                onNavigationChange={handleNavigationChange}
-                errors={errors.preview}
-              />
+              <Step4Preview state={state} onNavigationChange={handleNavigationChange} errors={errors.preview} />
             )}
           </div>
         </div>
@@ -569,11 +528,7 @@ export default function WhiteLabelWizard({
 
         <div className="flex items-center gap-2">
           {currentStepIndex > 0 && (
-            <Button
-              variant="outline"
-              onClick={goToPreviousStep}
-              disabled={isSubmitting}
-            >
+            <Button variant="outline" onClick={goToPreviousStep} disabled={isSubmitting}>
               <ChevronLeft className="w-4 h-4 mr-1" />
               {t('whiteLabelWizard.back')}
             </Button>
@@ -614,19 +569,14 @@ export default function WhiteLabelWizard({
  * Generate navigation items from enabled features.
  * Preserves custom labels from existing navigation when features are toggled.
  */
-function generateNavigationFromFeatures(
-  features: EnabledFeature[],
-  existingNavigation: NavigationItem[] = []
-): NavigationItem[] {
+function generateNavigationFromFeatures(features: EnabledFeature[], existingNavigation: NavigationItem[] = []): NavigationItem[] {
   return features
     .map((feature, index) => {
       const def = FEATURE_REGISTRY[feature.code]
       if (!def) return null
 
       // Check if this feature already has a nav item with a custom label
-      const existingItem = existingNavigation.find(
-        nav => nav.featureCode === feature.code
-      )
+      const existingItem = existingNavigation.find(nav => nav.featureCode === feature.code)
 
       const navItem: NavigationItem = {
         id: existingItem?.id || `nav-${feature.code}`,

@@ -12,7 +12,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Share2,
   Download,
-  Mail,
   Copy,
   Star,
   MapPin,
@@ -93,8 +92,7 @@ const ReceiptError = ({ error }: { error: string }) => (
   </div>
 )
 
-// Receipt Status Badge - Currently unused, kept for future use
- 
+/* Receipt Status Badge - Currently unused, kept for future use
 const StatusBadge = ({ status }: { status: string }) => {
   const { t } = useTranslation('payment')
   const { t: tCommon } = useTranslation('common')
@@ -137,6 +135,7 @@ const StatusBadge = ({ status }: { status: string }) => {
     </Badge>
   )
 }
+*/
 
 // Main Component
 export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({

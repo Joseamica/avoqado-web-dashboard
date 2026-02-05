@@ -116,7 +116,7 @@ export default function DiscountDetail() {
   }, [discount?.name, discountId, setCustomSegment, clearCustomSegment])
 
   // Fetch form data for product/category names
-  const { productOptions, categoryOptions, customerGroupOptions, dayOptions } = useDiscountFormData(venueId)
+  const { productOptions, categoryOptions, customerGroupOptions, dayOptions: _dayOptions } = useDiscountFormData(venueId)
 
   // Map IDs to names
   const productNamesMap = useMemo(() => {

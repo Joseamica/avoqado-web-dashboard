@@ -28,7 +28,7 @@ export function CreateDiscountDialog({ venueId, onSuccess }: CreateDiscountDialo
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
 
-  const { productOptions, categoryOptions, customerGroupOptions, dayOptions, isLoading } = useDiscountFormData(venueId)
+  const { productOptions, categoryOptions, customerGroupOptions, dayOptions, isLoading: _isLoading } = useDiscountFormData(venueId)
 
   const form = useForm<CreateDiscountRequest & { active: boolean }>({
     defaultValues: {

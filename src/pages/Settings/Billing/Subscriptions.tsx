@@ -127,7 +127,7 @@ export default function Subscriptions() {
   })
 
   // Superadmin: Fetch all platform features (lazy loaded)
-  const { data: allPlatformFeatures, isLoading: isLoadingPlatformFeatures, error: platformFeaturesError } = useQuery({
+  const { data: allPlatformFeatures, isLoading: isLoadingPlatformFeatures, error: _platformFeaturesError } = useQuery({
     queryKey: ['superadmin', 'features'],
     queryFn: async () => {
       const service = await loadSuperadminService()

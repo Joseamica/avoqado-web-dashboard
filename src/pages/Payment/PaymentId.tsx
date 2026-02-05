@@ -520,7 +520,7 @@ export default function PaymentId() {
   })
 
   // Fetch commission info for this payment
-  const { data: commission, isLoading: isLoadingCommission } = useCommissionByPayment(paymentId)
+  const { data: commission, isLoading: _isLoadingCommission } = useCommissionByPayment(paymentId)
 
   const from = (location.state as any)?.from || `${fullBasePath}/payments`
 
@@ -697,7 +697,7 @@ export default function PaymentId() {
   }
 
   // Helper function to get shift info
-  const getShiftInfo = (paymentData: any) => {
+  const _getShiftInfo = (paymentData: any) => {
     // Primary path: payment.shift.id (from updated backend)
     if (paymentData?.shift?.id) {
       return paymentData.shift.id

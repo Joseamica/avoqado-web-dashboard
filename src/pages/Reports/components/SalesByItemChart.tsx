@@ -36,7 +36,7 @@ const GlassCard: React.FC<{
   </div>
 )
 
-export function SalesByItemChart({ data, reportType }: SalesByItemChartProps) {
+export function SalesByItemChart({ data, reportType: _reportType }: SalesByItemChartProps) {
   const { t } = useTranslation('reports')
 
   if (!data || data.length === 0) {
@@ -62,7 +62,7 @@ export function SalesByItemChart({ data, reportType }: SalesByItemChartProps) {
 
   // Chart dimensions
   const chartHeight = 200
-  const chartPadding = 40
+  const _chartPadding = 40
 
   // Calculate bar width based on number of data points
   const barWidth = Math.max(8, Math.min(40, (100 / normalizedData.length) - 2))
@@ -94,7 +94,7 @@ export function SalesByItemChart({ data, reportType }: SalesByItemChartProps) {
           {/* Bars */}
           <div className="absolute inset-0 flex items-end justify-around px-2">
             {normalizedData.map((item, index) => {
-              const heightPercent = (item.grossSales / maxValue) * 100
+              const _heightPercent = (item.grossSales / maxValue) * 100
               const heightPx = (item.grossSales / maxValue) * chartHeight
               return (
                 <TooltipProvider key={index}>

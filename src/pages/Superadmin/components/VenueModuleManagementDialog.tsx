@@ -134,7 +134,7 @@ const VenueModuleManagementDialog: React.FC<VenueModuleManagementDialogProps> = 
 
   // Separate inherited and venue-specific modules
   const inheritedModules = modules.filter(m => m.isInherited)
-  const venueSpecificModules = modules.filter(m => !m.isInherited || m.venueModule)
+  const _venueSpecificModules = modules.filter(m => !m.isInherited || m.venueModule)
 
   if (!venue) return null
 

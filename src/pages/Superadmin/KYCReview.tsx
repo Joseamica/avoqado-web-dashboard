@@ -30,7 +30,7 @@ import {
 import { superadminAPI } from '@/services/superadmin.service'
 import { useVenueDateTime } from '@/utils/datetime'
 
-interface KYCDocument {
+interface _KYCDocument {
   type: string
   url: string | null
   label: string

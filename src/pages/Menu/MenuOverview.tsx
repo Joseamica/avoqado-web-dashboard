@@ -185,7 +185,7 @@ function SortableProduct({
 export default function Overview() {
   const { t } = useTranslation('menu')
   const navigate = useNavigate()
-  const { venueId, venueSlug, fullBasePath } = useCurrentVenue()
+  const { venueId, venueSlug: _venueSlug, fullBasePath } = useCurrentVenue()
   const queryClient = useQueryClient()
   const { can } = useAccess()
 

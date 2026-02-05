@@ -20,7 +20,7 @@ export default function PreviewPanel({ state, currentStep }: PreviewPanelProps) 
   const { t } = useTranslation('superadmin')
 
   // Get icon component from lucide-react dynamically
-  const getIconComponent = (iconName: string) => {
+  const _getIconComponent = (_iconName: string) => {
     // This is a simplified version - in real app you'd use dynamic imports
     // For now, just show a placeholder
     return null

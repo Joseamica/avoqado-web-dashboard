@@ -70,7 +70,7 @@ type ViewMode = 'grid' | 'list'
 const TiendasList: React.FC = () => {
   const { t } = useTranslation(['organization', 'common'])
   const navigate = useNavigate()
-  const { organization, basePath, venues, isLoading, error } = useCurrentOrganization()
+  const { organization: _organization, basePath: _basePath, venues, isLoading, error } = useCurrentOrganization()
 
   // State
   const [searchTerm, setSearchTerm] = useState('')

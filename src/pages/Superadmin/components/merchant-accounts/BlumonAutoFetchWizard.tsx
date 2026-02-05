@@ -45,7 +45,7 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({ op
   const { t } = useTranslation('superadmin')
   const [step, setStep] = useState(initialVenueId ? 1 : 0) // Skip venue step if venueId provided
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<any>(null)
+  const [_result, setResult] = useState<any>(null)
 
   // Selected venue for superadmin context
   const [selectedVenueId, setSelectedVenueId] = useState<string>(initialVenueId || '')

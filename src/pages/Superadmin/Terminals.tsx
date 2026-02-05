@@ -137,7 +137,7 @@ const Terminals: React.FC = () => {
 
   const remoteActivateMutation = useMutation({
     mutationFn: terminalAPI.sendRemoteActivation,
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       queryClient.invalidateQueries({ queryKey: ['terminals'] })
       toast({
         title: `⚡ ${t('toast.remoteActivateSent')}`,

@@ -46,10 +46,10 @@ export function SupervisorDashboard() {
 
   // Use venue-level hooks for white-label access
   const { data: overview } = useStoresOverview()
-  const { data: stockSummary } = useStoresStockSummary()
+  const { data: _stockSummary } = useStoresStockSummary()
   const { data: venuesResponse } = useStoresVenues()
   const { data: activityFeed } = useStoresActivityFeed(20, { refetchInterval: 30000 })
-  const { data: revenueData } = useStoresRevenueVsTarget()
+  const { data: _revenueData } = useStoresRevenueVsTarget()
   const { data: storePerformanceData } = useStoresStorePerformance()
   const { data: attendanceData } = useStoresStaffAttendance({
     filterVenueId: storeFilter !== 'all' ? storeFilter : undefined,

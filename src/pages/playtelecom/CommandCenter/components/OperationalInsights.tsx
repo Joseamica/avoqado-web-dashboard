@@ -121,7 +121,7 @@ const getInsightIcon = (iconType: Insight['icon'], className: string) => {
   }
 }
 
-const getSeverityIcon = (severity: InsightSeverity, className: string) => {
+const _getSeverityIcon = (severity: InsightSeverity, className: string) => {
   switch (severity) {
     case 'warning':
       return <AlertTriangle className={className} />

@@ -20,6 +20,7 @@ import api from '@/api'
 import { z } from 'zod'
 import { useVenueEditActions } from '../VenueEditLayout'
 
+// eslint-disable-next-line unused-imports/no-unused-vars
 const posFormSchema = z.object({
   posType: z.nativeEnum(PosType).nullable().optional(),
 })

@@ -34,7 +34,7 @@ export function PaymentInfoStep({ onNext, onPrevious, isFirstStep, onSave, initi
   const [clabeError, setClabeError] = useState('')
   const [accountHolderError, setAccountHolderError] = useState('')
 
-  const validateClabe = (clabe: string): boolean => {
+  const _validateClabe = (clabe: string): boolean => {
     if (!clabe) return false
     if (clabe.length !== 18) return false
     if (!/^\d+$/.test(clabe)) return false

@@ -283,7 +283,7 @@ const VenuePricing: React.FC = () => {
           ) : (
             filteredVenues.map((venue) => {
               const structures = structuresByVenue.get(venue.id)
-              const hasAny = structures?.PRIMARY || structures?.SECONDARY || structures?.TERTIARY
+              const _hasAny = structures?.PRIMARY || structures?.SECONDARY || structures?.TERTIARY
 
               return (
                 <div

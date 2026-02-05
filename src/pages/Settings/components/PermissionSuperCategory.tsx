@@ -107,7 +107,7 @@ function PermissionCategoryGroup({
   }, [category.permissions, searchTerm])
 
   // Check selection state for this category
-  const { allSelected, noneSelected } = useMemo(() => {
+  const { allSelected, noneSelected: _noneSelected } = useMemo(() => {
     const selected = category.permissions.filter(p => selectedPermissions.has(p))
     return {
       allSelected: selected.length === category.permissions.length,

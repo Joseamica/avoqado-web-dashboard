@@ -391,7 +391,7 @@ export default function OrderId() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
 
-  const { venueId, venueSlug, venue, fullBasePath } = useCurrentVenue()
+  const { venueId, venueSlug: _venueSlug, venue, fullBasePath } = useCurrentVenue()
   const venueTimezone = venue?.timezone || 'America/Mexico_City'
   const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
 

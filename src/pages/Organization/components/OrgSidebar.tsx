@@ -55,9 +55,9 @@ const OrgSidebar: React.FC<OrgSidebarProps> = (props) => {
   const { t } = useTranslation('organization')
   const navigate = useNavigate()
   const { orgId } = useParams<{ orgId: string }>()
-  const { organization, isOwner } = useCurrentOrganization()
+  const { organization, isOwner: _isOwner } = useCurrentOrganization()
   const { user, allVenues } = useAuth()
-  const { venue: activeVenue, venueSlug } = useCurrentVenue()
+  const { venue: _activeVenue, venueSlug: _venueSlug } = useCurrentVenue()
   const { isMobile } = useSidebar()
 
   const [dropdownOpen, setDropdownOpen] = React.useState(false)
@@ -120,7 +120,7 @@ const OrgSidebar: React.FC<OrgSidebarProps> = (props) => {
   }, [allVenues, user?.role, orgId])
 
   // Check if user has multiple organizations
-  const hasMultipleOrgs = orgGroups.length > 1
+  const _hasMultipleOrgs = orgGroups.length > 1
 
   const navigationItems = useMemo(() => [
     {

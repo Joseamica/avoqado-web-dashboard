@@ -80,7 +80,7 @@ function PushNotifications() {
   const [notificationBody, setNotificationBody] = useState<string>('')
 
   // Fetch stats
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  const { data: stats, isLoading: _statsLoading } = useQuery({
     queryKey: ['pushStats'],
     queryFn: getPushStats,
   })

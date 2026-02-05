@@ -123,7 +123,7 @@ export function OnboardingWizard() {
   const { t } = useTranslation('onboarding')
   const { t: tCommon } = useTranslation('common')
   const navigate = useNavigate()
-  const location = useLocation()
+  const _location = useLocation()
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const { isAuthenticated, user, isLoading } = useAuth()

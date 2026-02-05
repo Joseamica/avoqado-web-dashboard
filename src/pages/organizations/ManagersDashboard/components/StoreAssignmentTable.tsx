@@ -7,12 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Store,
-  Users,
-  Star,
-  ExternalLink,
-} from 'lucide-react'
+import { Store, Users, Star, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ManagerInfo, ManagerDashboard } from '@/services/organizationDashboard.service'
 
@@ -35,7 +30,7 @@ const formatCurrency = (value: number) =>
   }).format(value)
 
 // Star rating component
-const StarRating: React.FC<{ rating: number }> = ({ rating }) => {
+const _StarRating: React.FC<{ rating: number }> = ({ rating }) => {
   const fullStars = Math.floor(rating)
   const hasHalfStar = rating % 1 >= 0.5
 
@@ -49,8 +44,8 @@ const StarRating: React.FC<{ rating: number }> = ({ rating }) => {
             i < fullStars
               ? 'text-yellow-500 fill-yellow-500'
               : i === fullStars && hasHalfStar
-              ? 'text-yellow-500 fill-yellow-500/50'
-              : 'text-muted-foreground/30'
+                ? 'text-yellow-500 fill-yellow-500/50'
+                : 'text-muted-foreground/30',
           )}
         />
       ))}
@@ -59,12 +54,7 @@ const StarRating: React.FC<{ rating: number }> = ({ rating }) => {
   )
 }
 
-export const StoreAssignmentTable: React.FC<StoreAssignmentTableProps> = ({
-  managerId,
-  stores,
-  managers,
-  className,
-}) => {
+export const StoreAssignmentTable: React.FC<StoreAssignmentTableProps> = ({ managerId, stores, managers: _managers, className }) => {
   const { t } = useTranslation(['playtelecom', 'common'])
 
   // Display stores from API when available, or show placeholder
@@ -92,9 +82,7 @@ export const StoreAssignmentTable: React.FC<StoreAssignmentTableProps> = ({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Store className="w-4 h-4 text-muted-foreground" />
-          <h3 className="text-lg font-semibold">
-            {t('playtelecom:managers.storeAssignments', { defaultValue: 'Tiendas Asignadas' })}
-          </h3>
+          <h3 className="text-lg font-semibold">{t('playtelecom:managers.storeAssignments', { defaultValue: 'Tiendas Asignadas' })}</h3>
         </div>
         <Badge variant="secondary">
           {displayStores.length} {displayStores.length === 1 ? 'tienda' : 'tiendas'}
@@ -124,10 +112,7 @@ export const StoreAssignmentTable: React.FC<StoreAssignmentTableProps> = ({
           </thead>
           <tbody>
             {displayStores.map(store => (
-              <tr
-                key={store.id}
-                className="border-b border-border/30 hover:bg-muted/30 transition-colors"
-              >
+              <tr key={store.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
                 <td className="py-4 px-2">
                   <div className="flex items-center gap-2">
                     <div className="p-2 rounded-lg bg-primary/10">
@@ -145,9 +130,7 @@ export const StoreAssignmentTable: React.FC<StoreAssignmentTableProps> = ({
                   </div>
                 </td>
                 <td className="py-4 px-2 text-right">
-                  <span className="font-semibold text-green-600 dark:text-green-400">
-                    {formatCurrency(store.monthlySales)}
-                  </span>
+                  <span className="font-semibold text-green-600 dark:text-green-400">{formatCurrency(store.monthlySales)}</span>
                 </td>
                 <td className="py-4 px-2 text-center">
                   <Badge
@@ -156,8 +139,8 @@ export const StoreAssignmentTable: React.FC<StoreAssignmentTableProps> = ({
                       store.performance >= 90
                         ? 'bg-green-500/10 text-green-600 border-green-500/20'
                         : store.performance >= 70
-                        ? 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20'
-                        : 'bg-red-500/10 text-red-600 border-red-500/20'
+                          ? 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20'
+                          : 'bg-red-500/10 text-red-600 border-red-500/20',
                     )}
                   >
                     {store.performance}%
@@ -187,9 +170,7 @@ export const StoreAssignmentTable: React.FC<StoreAssignmentTableProps> = ({
       {displayStores.length === 0 && managerId && (
         <div className="text-center py-8 text-muted-foreground">
           <Store className="w-8 h-8 mx-auto mb-2 opacity-50" />
-          <p className="text-sm">
-            {t('playtelecom:managers.noStores', { defaultValue: 'No hay tiendas asignadas' })}
-          </p>
+          <p className="text-sm">{t('playtelecom:managers.noStores', { defaultValue: 'No hay tiendas asignadas' })}</p>
         </div>
       )}
     </GlassCard>
