@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Upload,
@@ -95,7 +95,7 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
     versionCode: '', // Optional - auto-detected from APK
     environment: 'SANDBOX' as AppEnvironment,
     releaseNotes: '',
-    isRequired: false,
+    updateMode: 'NONE' as 'NONE' | 'BANNER' | 'FORCE',
     minAndroidSdk: '', // Optional - auto-detected from APK
   })
 
@@ -186,7 +186,7 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
         ...(formData.versionCode && { versionCode: parseInt(formData.versionCode, 10) }),
         environment: formData.environment,
         releaseNotes: formData.releaseNotes || undefined,
-        isRequired: formData.isRequired,
+        updateMode: formData.updateMode,
         ...(formData.minAndroidSdk && { minAndroidSdk: parseInt(formData.minAndroidSdk, 10) }),
         apkBase64,
       })
@@ -235,7 +235,7 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
       versionCode: '',
       environment: 'SANDBOX',
       releaseNotes: '',
-      isRequired: false,
+      updateMode: 'NONE',
       minAndroidSdk: '',
     })
     onClose()
@@ -376,20 +376,48 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
 
           {/* Options */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div>
-                <Label htmlFor="isRequired" className="cursor-pointer">
-                  Actualizacion Obligatoria
-                </Label>
-                <p className="text-xs text-muted-foreground">Forzar actualizacion</p>
-              </div>
-              <Switch
-                id="isRequired"
-                checked={formData.isRequired}
-                onCheckedChange={(checked) =>
-                  setFormData((prev) => ({ ...prev, isRequired: checked }))
+            <div className="space-y-2">
+              <Label htmlFor="updateMode">Modo de Notificación</Label>
+              <Select
+                value={formData.updateMode}
+                onValueChange={(value: 'NONE' | 'BANNER' | 'FORCE') =>
+                  setFormData((prev) => ({ ...prev, updateMode: value }))
                 }
-              />
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NONE">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-muted text-muted-foreground">
+                        Silencioso
+                      </Badge>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="BANNER">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-blue-500/10 text-blue-600">
+                        Banner
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">Recomendada</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="FORCE">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-red-500/10 text-red-600">
+                        Forzar
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">Bloquea app</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {formData.updateMode === 'NONE' && 'Sin notificación, usuario debe buscar manualmente'}
+                {formData.updateMode === 'BANNER' && 'Banner persistente, usuario puede ignorar'}
+                {formData.updateMode === 'FORCE' && 'Bloquea la app hasta actualizar (crítico)'}
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="minAndroidSdk">
@@ -453,7 +481,7 @@ function EditDialog({ update, isOpen, onClose, onSuccess }: EditDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState<AppUpdateUpdateInput>({
     releaseNotes: update?.releaseNotes || '',
-    isRequired: update?.isRequired || false,
+    updateMode: update?.updateMode || 'NONE',
     isActive: update?.isActive ?? true,
     minAndroidSdk: update?.minAndroidSdk || 27,
   })
@@ -482,16 +510,16 @@ function EditDialog({ update, isOpen, onClose, onSuccess }: EditDialogProps) {
   }
 
   // Update form when update prop changes
-  useState(() => {
+  useEffect(() => {
     if (update) {
       setFormData({
         releaseNotes: update.releaseNotes || '',
-        isRequired: update.isRequired,
+        updateMode: update.updateMode || 'NONE',
         isActive: update.isActive,
         minAndroidSdk: update.minAndroidSdk,
       })
     }
-  })
+  }, [update])
 
   if (!update) return null
 
@@ -516,18 +544,29 @@ function EditDialog({ update, isOpen, onClose, onSuccess }: EditDialogProps) {
             />
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border p-3">
-            <div>
-              <Label htmlFor="editIsRequired" className="cursor-pointer">
-                Actualizacion Obligatoria
-              </Label>
-              <p className="text-xs text-muted-foreground">Forzar actualizacion en TPV</p>
-            </div>
-            <Switch
-              id="editIsRequired"
-              checked={formData.isRequired}
-              onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, isRequired: checked }))}
-            />
+          <div className="space-y-2">
+            <Label htmlFor="editUpdateMode">Modo de Notificación</Label>
+            <Select
+              value={formData.updateMode}
+              onValueChange={(value: 'NONE' | 'BANNER' | 'FORCE') =>
+                setFormData((prev) => ({ ...prev, updateMode: value }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NONE">
+                  <Badge variant="outline" className="bg-muted text-muted-foreground">Silencioso</Badge>
+                </SelectItem>
+                <SelectItem value="BANNER">
+                  <Badge variant="outline" className="bg-blue-500/10 text-blue-600">Banner</Badge>
+                </SelectItem>
+                <SelectItem value="FORCE">
+                  <Badge variant="outline" className="bg-red-500/10 text-red-600">Forzar</Badge>
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex items-center justify-between rounded-lg border p-3">
@@ -735,10 +774,16 @@ function UpdatesTable({
                     Inactiva
                   </Badge>
                 )}
-                {update.isRequired && (
-                  <Badge variant="outline" className="bg-amber-500/10 text-amber-600 w-fit">
+                {update.updateMode === 'BANNER' && (
+                  <Badge variant="outline" className="bg-blue-500/10 text-blue-600 w-fit">
                     <AlertTriangle className="h-3 w-3 mr-1" />
-                    Obligatoria
+                    Banner
+                  </Badge>
+                )}
+                {update.updateMode === 'FORCE' && (
+                  <Badge variant="outline" className="bg-red-500/10 text-red-600 w-fit">
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    Forzar
                   </Badge>
                 )}
               </div>

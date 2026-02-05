@@ -51,7 +51,8 @@ export const ProtectedRoute = () => {
     )
   }
   if (!user && !isAuthenticated) {
-    return <Navigate to="/login" replace state={{ from: location }} />
+    const returnTo = encodeURIComponent(location.pathname + location.search)
+    return <Navigate to={`/login?returnTo=${returnTo}`} replace />
   }
 
   return <Outlet />

@@ -85,7 +85,6 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
       ...formData,
       rememberMe,
     }
-    console.log('[LOGIN] 🚀 Submitting login form')
     // No need for try/catch here since login is handled by React Query mutation
     // which has its own error handling in the AuthContext
     login(loginData)

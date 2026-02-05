@@ -407,25 +407,16 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       } else if (data.inventoryMethod === 'RECIPE' && data.recipe) {
         // ✅ FIX: Try UPDATE first, fallback to CREATE if recipe doesn't exist
         // This is more robust than checking existence first (EAFP pattern)
-
-        console.log('🔍 DEBUG [MUTATION] - Recipe data received:', data.recipe)
-        console.log('🔍 DEBUG [MUTATION] - Recipe ingredients:', data.recipe.ingredients)
-        console.log('🔍 DEBUG [MUTATION] - Recipe ingredients count:', data.recipe.ingredients?.length || 0)
-
         const updatePayload = {
           ...data.recipe,
           lines: data.recipe.ingredients,
         }
-        console.log('🔍 DEBUG [MUTATION] - UPDATE payload:', updatePayload)
-        console.log('🔍 DEBUG [MUTATION] - UPDATE payload.lines:', updatePayload.lines)
 
         try {
           return await recipesApi.update(venueId, targetProductId, updatePayload)
         } catch (error: any) {
           // Recipe doesn't exist (404), use CREATE
           if (error.response?.status === 404) {
-            console.log('🔍 DEBUG [MUTATION] - Recipe not found (404), creating new recipe')
-            console.log('🔍 DEBUG [MUTATION] - CREATE payload:', data.recipe)
             return productWizardApi.configureRecipe(venueId, targetProductId, data.recipe)
           }
           throw error
@@ -559,8 +550,6 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // Load existing product data into step1Form in edit mode
   useEffect(() => {
     if (open && mode === 'edit' && existingProduct && !isLoadingProduct && !hasLoadedExistingData) {
-      console.log('🔄 Loading existing product into step1Form:', existingProduct)
-
       // Populate step1Form with existing product data
       step1Form.setValue('name', existingProduct.name || '')
       step1Form.setValue('description', existingProduct.description || '')
@@ -591,21 +580,17 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     if (open && mode === 'edit' && existingProductData && !isLoadingExistingData) {
       const { inventoryMethod, details } = existingProductData
 
-      console.log('🔄 Loading existing inventory data:', { inventoryMethod, details })
-
       // ✅ WORLD-CLASS: inventoryMethod column is the SOURCE OF TRUTH
       // Recipe data should only be loaded if inventoryMethod === 'RECIPE'
       // This ensures the UI matches the database state, not orphaned recipe data
 
       if (inventoryMethod) {
-        console.log('✅ Setting useInventory=true, inventoryMethod=', inventoryMethod)
         step2Form.setValue('useInventory', true)
         step2Form.setValue('inventoryMethod', inventoryMethod as InventoryMethod)
         setSelectedInventoryMethod(inventoryMethod as InventoryMethod)
 
         // Load QUANTITY data
         if (inventoryMethod === 'QUANTITY' && details) {
-          console.log('📦 Loading QUANTITY data:', details)
           step3SimpleForm.setValue('initialStock', details.currentStock || 0)
           step3SimpleForm.setValue('costPerUnit', details.costPerUnit || 0)
           step3SimpleForm.setValue('reorderPoint', details.reorderPoint || 10)
@@ -613,11 +598,6 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
         // Load RECIPE data (only if inventoryMethod is RECIPE)
         if (inventoryMethod === 'RECIPE' && existingRecipeData && existingRecipeData.lines && existingRecipeData.lines.length > 0) {
-          console.log('🍔 Loading RECIPE data')
-          console.log('🔍 DEBUG [LOAD] - existingRecipeData:', existingRecipeData)
-          console.log('🔍 DEBUG [LOAD] - existingRecipeData.lines:', existingRecipeData.lines)
-          console.log('🔍 DEBUG [LOAD] - existingRecipeData.lines.length:', existingRecipeData.lines.length)
-
           step3RecipeForm.setValue('portionYield', existingRecipeData.portionYield || 1)
           step3RecipeForm.setValue('prepTime', existingRecipeData.prepTime)
           step3RecipeForm.setValue('cookTime', existingRecipeData.cookTime)
@@ -633,24 +613,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
             substituteNotes: line.substituteNotes,
           }))
 
-          console.log('🔍 DEBUG [LOAD] - Mapped ingredients:', ingredients)
-          console.log('🔍 DEBUG [LOAD] - Ingredients count:', ingredients.length)
-
           step3RecipeForm.setValue('ingredients', ingredients)
-
-          // Verify it was set
-          const verifyIngredients = step3RecipeForm.getValues('ingredients')
-          console.log('🔍 DEBUG [LOAD] - Form ingredients after setValue:', verifyIngredients)
-          console.log('🔍 DEBUG [LOAD] - Form ingredients count after setValue:', verifyIngredients?.length || 0)
-        } else {
-          console.log('🔍 DEBUG [LOAD] - RECIPE data NOT loaded. Conditions:')
-          console.log('  - inventoryMethod === RECIPE:', inventoryMethod === 'RECIPE')
-          console.log('  - existingRecipeData:', !!existingRecipeData)
-          console.log('  - existingRecipeData?.lines:', !!existingRecipeData?.lines)
-          console.log('  - existingRecipeData?.lines?.length:', existingRecipeData?.lines?.length)
         }
       } else {
-        console.log('❌ Setting useInventory=false (no inventory method)')
         step2Form.setValue('useInventory', false)
         step2Form.setValue('inventoryMethod', 'QUANTITY' as InventoryMethod) // Keep a default to avoid undefined
       }
@@ -666,19 +631,11 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // (single-step wizard - recipe config is inline with the rest of the form)
   useEffect(() => {
     if (open && mode === 'edit' && selectedInventoryMethod === 'RECIPE' && existingRecipeData) {
-      console.log('🔍 DEBUG [LATE LOAD] - Checking recipe data')
-      console.log('🔍 DEBUG [LATE LOAD] - existingRecipeData:', existingRecipeData)
-      console.log('🔍 DEBUG [LATE LOAD] - existingRecipeData.lines:', existingRecipeData.lines)
-
       // Check if ingredients are already loaded
       const currentIngredients = step3RecipeForm.getValues('ingredients')
-      console.log('🔍 DEBUG [LATE LOAD] - Current form ingredients:', currentIngredients)
-      console.log('🔍 DEBUG [LATE LOAD] - Current form ingredients length:', currentIngredients?.length || 0)
 
       // Only load if ingredients are empty AND recipe data exists
       if ((!currentIngredients || currentIngredients.length === 0) && existingRecipeData.lines && existingRecipeData.lines.length > 0) {
-        console.log('🔍 DEBUG [LATE LOAD] - Form is empty, loading recipe data now')
-
         step3RecipeForm.setValue('portionYield', existingRecipeData.portionYield || 1)
         step3RecipeForm.setValue('prepTime', existingRecipeData.prepTime)
         step3RecipeForm.setValue('cookTime', existingRecipeData.cookTime)
@@ -694,20 +651,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
           substituteNotes: line.substituteNotes,
         }))
 
-        console.log('🔍 DEBUG [LATE LOAD] - Mapped ingredients:', ingredients)
-        console.log('🔍 DEBUG [LATE LOAD] - Mapped ingredients length:', ingredients.length)
-
         step3RecipeForm.setValue('ingredients', ingredients)
-
-        const verifyIngredients = step3RecipeForm.getValues('ingredients')
-        console.log('🔍 DEBUG [LATE LOAD] - Verified ingredients after setValue:', verifyIngredients)
-        console.log('🔍 DEBUG [LATE LOAD] - Verified ingredients length:', verifyIngredients?.length || 0)
-      } else {
-        console.log('🔍 DEBUG [LATE LOAD] - Skipping load. Reasons:')
-        console.log('  - currentIngredients exists:', !!currentIngredients)
-        console.log('  - currentIngredients.length:', currentIngredients?.length || 0)
-        console.log('  - existingRecipeData.lines exists:', !!existingRecipeData.lines)
-        console.log('  - existingRecipeData.lines.length:', existingRecipeData.lines?.length || 0)
       }
     }
   }, [open, mode, selectedInventoryMethod, existingRecipeData, step3RecipeForm])
@@ -718,35 +662,18 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     // ✅ FIX: Explicitly map ingredients to ensure all required fields are present
     // ✅ FIX: Filter out ingredients with invalid rawMaterialId
 
-    console.log('🔍 DEBUG [CLEAN FUNCTION] - Input ingredients:', recipeData.ingredients)
-    console.log('🔍 DEBUG [CLEAN FUNCTION] - Input ingredients count:', recipeData.ingredients?.length || 0)
-
     const validIngredients = recipeData.ingredients
       .filter(ingredient => {
         // Only include ingredients with valid rawMaterialId
-        const isValid =
-          ingredient.rawMaterialId && typeof ingredient.rawMaterialId === 'string' && ingredient.rawMaterialId.trim().length > 0
-
-        if (!isValid) {
-          console.log('🔍 DEBUG [CLEAN FUNCTION] - Invalid ingredient filtered out:', ingredient)
-        }
-
-        return isValid
+        return ingredient.rawMaterialId && typeof ingredient.rawMaterialId === 'string' && ingredient.rawMaterialId.trim().length > 0
       })
-      .map(ingredient => {
-        const mapped = {
-          rawMaterialId: ingredient.rawMaterialId.trim(),
-          quantity: ingredient.quantity,
-          unit: ingredient.unit,
-          isOptional: ingredient.isOptional ?? false,
-          ...(ingredient.substituteNotes && { substituteNotes: ingredient.substituteNotes }),
-        }
-        console.log('🔍 DEBUG [CLEAN FUNCTION] - Mapped ingredient:', mapped)
-        return mapped
-      })
-
-    console.log('🔍 DEBUG [CLEAN FUNCTION] - Valid ingredients after filter/map:', validIngredients)
-    console.log('🔍 DEBUG [CLEAN FUNCTION] - Valid ingredients count:', validIngredients.length)
+      .map(ingredient => ({
+        rawMaterialId: ingredient.rawMaterialId.trim(),
+        quantity: ingredient.quantity,
+        unit: ingredient.unit,
+        isOptional: ingredient.isOptional ?? false,
+        ...(ingredient.substituteNotes && { substituteNotes: ingredient.substituteNotes }),
+      }))
 
     const cleanedData: any = {
       portionYield: recipeData.portionYield,
@@ -803,13 +730,6 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     // Get inventory selection from step2Form (now part of step 1)
     const inventoryData = step2Form.getValues()
     setStep2Data(inventoryData)
-
-    console.log('📝 Step 1 Submit (single step):', {
-      mode,
-      productId,
-      useInventory: inventoryData.useInventory,
-      inventoryMethod: inventoryData.inventoryMethod,
-    })
 
     // If not using inventory, complete the wizard
     if (!inventoryData.useInventory) {

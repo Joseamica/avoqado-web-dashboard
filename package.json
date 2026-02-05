@@ -14,7 +14,7 @@
     "vite": "vite",
     "check:endpoints": "node scripts/check-endpoints.js",
     "check:endpoints:verbose": "node scripts/check-endpoints.js --verbose",
-    "pre-deploy": "npm run lint:fix && npm run lint -- --quiet && npm run check:endpoints && npm run build",
+    "pre-deploy": "bash scripts/pre-deploy-check.sh",
     "deploy": "npm run build && wrangler pages deploy",
     "deploy:preview": "npm run build && wrangler pages deploy --env preview",
     "check:unused": "unimported",

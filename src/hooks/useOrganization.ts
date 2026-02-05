@@ -38,8 +38,6 @@ export function useOrganization() {
   const organizationId = useMemo(() => {
     // TODO: Add organization to ActiveVenue type when backend is updated
     const orgId = (activeVenue as any)?.organizationId || (activeVenue as any)?.organization?.id
-    console.log('[useOrganization] activeVenue:', activeVenue)
-    console.log('[useOrganization] organizationId:', orgId)
     return orgId
   }, [activeVenue])
 

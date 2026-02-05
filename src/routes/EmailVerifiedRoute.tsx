@@ -22,9 +22,10 @@ export const EmailVerifiedRoute = () => {
     }
   }, [isAuthenticated, user, hasShownToast, toast, t])
 
-  // If not authenticated, redirect to login
+  // If not authenticated, redirect to login with returnTo to preserve the route
   if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace state={{ from: location }} />
+    const returnTo = encodeURIComponent(location.pathname + location.search)
+    return <Navigate to={`/login?returnTo=${returnTo}`} replace />
   }
 
   // If authenticated but email not verified, redirect to signup

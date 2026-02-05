@@ -11,7 +11,8 @@ export const SuperProtectedRoute = ({ allowedRoles }: { allowedRoles?: StaffRole
   const { t } = useTranslation()
 
   if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace state={{ from: location }} />
+    const returnTo = encodeURIComponent(location.pathname + location.search)
+    return <Navigate to={`/login?returnTo=${returnTo}`} replace />
   }
 
   // Si el usuario no tiene el rol requerido, mostrar un mensaje de error dentro del layout

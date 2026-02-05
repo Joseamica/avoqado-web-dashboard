@@ -54,9 +54,6 @@ export function SalesByItemChart({ data, reportType: _reportType }: SalesByItemC
       : Number(d.itemsSold) || 0,
   }))
 
-  // Debug: Log data to console
-  console.log('Chart data:', normalizedData.slice(0, 3))
-
   // Calculate max value for scaling
   const maxValue = Math.max(...normalizedData.map(d => d.grossSales), 1)
 

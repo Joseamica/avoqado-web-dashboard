@@ -533,15 +533,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     },
   })
 
-  // Debug logging for mobile troubleshooting
-  useEffect(() => {
-    console.log('[AUTH] State update:', {
-      isAuthenticated,
-      isStatusLoading,
-      hasUser: !!user,
-      loginPending: loginMutation.isPending,
-    })
-  }, [isAuthenticated, isStatusLoading, user, loginMutation.isPending])
 
   const signupMutation = useMutation({
     mutationFn: (signupData: SignupData) => authService.signup(signupData),
@@ -648,11 +639,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log('[AUTH] 🚪 Step 8: Toast shown')
 
       // 7. Clear cache AFTER navigation started (components are unmounting)
-      // Use setTimeout to ensure navigation has started and components are unmounting
+      // Use setTimeout with delay to ensure navigation completes and prevents flash
       setTimeout(() => {
         queryClient.clear()
         console.log('[AUTH] 🚪 Step 9: Query cache cleared (after navigation)')
-      }, 0)
+      }, 100)
 
       // 8. Notify server in background (non-blocking)
       console.log('[AUTH] 🚪 Step 10: Calling server logout...')
@@ -663,9 +654,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Silently ignore - user is already logged out locally
         console.warn('[AUTH] 🚪 Step 10: Server logout failed (user already logged out locally):', error)
       } finally {
-        // FLASH FIX: Reset flag after logout completes (or fails)
-        isLoggingOutRef.current = false
-        console.log('[AUTH] ✅ Logout complete, isLoggingOutRef = false')
+        // FLASH FIX: Keep isLoggingOutRef true longer to prevent LoadingScreen flash
+        // Reset after a delay to ensure all re-renders from cache clear have completed
+        setTimeout(() => {
+          isLoggingOutRef.current = false
+          console.log('[AUTH] ✅ Logout complete, isLoggingOutRef = false')
+        }, 500)
       }
     },
     [navigate, queryClient, toast, t, location.pathname],
@@ -851,7 +845,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // 1. During logout (isLoggingOutRef) - prevents flash when clearing cache
   // 2. When session hint exists on mount - optimistic rendering for page reload
   //    The status query runs in background; if session is invalid, routing will redirect to login
-  const shouldSkipLoadingScreen = isLoggingOutRef.current || hasSessionHintOnMount.current
+  // 3. When on /login page - no need to show "verifying session" on login page
+  const isOnLoginPage = location.pathname === '/login'
+  const shouldSkipLoadingScreen = isLoggingOutRef.current || hasSessionHintOnMount.current || isOnLoginPage
 
   if ((isStatusLoading || isLiveDemoInitializing) && !shouldSkipLoadingScreen) {
     const retryMessage =

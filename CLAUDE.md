@@ -1342,6 +1342,25 @@ gh workflow run ci-cd.yml --field environment=demo
 - **Troubleshooting**: [Render Loops](docs/troubleshooting/render-loops.md)
 - **Cross-repo docs**: [avoqado-server/docs/README.md](../avoqado-server/docs/README.md)
 
+## Cross-Repo Compatibility (TPV Android)
+
+**⚠️ IMPORTANTE**: Cuando cambios afectan al TPV, considerar tiempos de deploy.
+
+| Repo | Deploy time |
+|------|-------------|
+| Backend (avoqado-server) | Minutos |
+| Dashboard (este repo) | Minutos |
+| **TPV (avoqado-tpv)** | **3-5 días** (requiere firma PAX) |
+
+**Regla**: Si un feature del dashboard afecta configuración que el TPV usa:
+1. Verificar que el backend ya soporta el cambio
+2. El TPV puede tardar días en reflejar nuevas opciones
+3. No asumir que TPV tiene la última versión
+
+**Ver documentación completa:** `avoqado-tpv/CLAUDE.md` sección 12.
+
+---
+
 ## Contributing
 
 **Before deploying:**
