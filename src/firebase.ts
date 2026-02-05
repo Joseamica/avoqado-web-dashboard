@@ -33,12 +33,6 @@ let storage
 
 try {
   app = initializeApp(firebaseConfig)
-  console.log('✅ Firebase app initialized successfully')
-  console.log('📦 App name:', app.name)
-  // console.log('📦 App options:', {
-  //   projectId: app.options.projectId,
-  //   storageBucket: app.options.storageBucket,
-  // })
 } catch (error) {
   console.error('❌ Firebase app initialization failed:', error)
   if (error instanceof Error) {
@@ -53,8 +47,6 @@ if (app) {
   try {
     // Firebase v12: Pass bucket URL explicitly
     storage = getStorage(app, 'gs://avoqado-d0a24.appspot.com')
-    console.log('✅ Firebase Storage initialized successfully')
-    console.log('📦 Storage bucket:', storage.app.options.storageBucket)
   } catch (error) {
     console.warn('⚠️ Firebase Storage initialization failed. Storage features will be disabled.')
     console.error('Storage initialization error:', error)

@@ -10,18 +10,28 @@ import { useTranslation } from 'react-i18next'
  *
  * Only allows access to:
  * - SUPERADMIN (can access any organization)
- * - OWNER (can only access their own organization)
+ * - OWNER (can only access organizations where they have a venue with OWNER role)
  *
  * Validates that:
  * 1. User is authenticated
  * 2. User has OWNER or SUPERADMIN role
- * 3. For OWNER: the URL orgId matches user's organizationId
+ * 3. For OWNER: user has a venue with OWNER role in the requested organization
  */
 export const OwnerProtectedRoute = () => {
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, allVenues, isLoading } = useAuth()
   const location = useLocation()
   const params = useParams<{ orgId: string }>()
   const { t } = useTranslation('organization')
+
+  // Wait for auth to fully load before making permission decisions
+  // This prevents redirects based on empty allVenues during initial load
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
 
   // If not authenticated, redirect to login
   if (!isAuthenticated || !user) {
@@ -47,11 +57,25 @@ export const OwnerProtectedRoute = () => {
     )
   }
 
-  // For OWNER: validate they're accessing their own organization
-  const urlOrgId = params.orgId
-  const userOrgId = user.organizationId
+  // SUPERADMIN can access any organization
+  if (isSuperAdmin) {
+    return <Outlet />
+  }
 
-  if (isOwner && urlOrgId && urlOrgId !== userOrgId) {
+  // For OWNER: validate they have OWNER role in a venue of the requested organization
+  // This supports multi-org scenarios where a user can be OWNER in multiple organizations
+  const urlOrgId = params.orgId
+
+  // Check if user has a venue with OWNER role in the requested organization
+  const isOwnerInRequestedOrg = allVenues.some(
+    venue => venue.organizationId === urlOrgId && venue.role === StaffRole.OWNER
+  )
+
+  if (urlOrgId && !isOwnerInRequestedOrg) {
+    // Find an organization where the user IS owner
+    const ownerVenue = allVenues.find(v => v.role === StaffRole.OWNER)
+    const fallbackOrgId = ownerVenue?.organizationId
+
     return (
       <div className="container py-8 mx-auto">
         <Alert variant="destructive" className="mb-4">
@@ -60,15 +84,22 @@ export const OwnerProtectedRoute = () => {
           <AlertDescription>{t('notYourOrganization')}</AlertDescription>
         </Alert>
         <div className="flex justify-center mt-4">
-          <Navigate to={`/organizations/${userOrgId}`} replace />
+          {fallbackOrgId ? (
+            <Navigate to={`/organizations/${fallbackOrgId}`} replace />
+          ) : (
+            <Navigate to="/" replace />
+          )}
         </div>
       </div>
     )
   }
 
-  // If no orgId in URL but user has one, redirect to their org
-  if (!urlOrgId && userOrgId) {
-    return <Navigate to={`/organizations/${userOrgId}`} replace />
+  // If no orgId in URL, redirect to user's first OWNER organization
+  if (!urlOrgId) {
+    const ownerVenue = allVenues.find(v => v.role === StaffRole.OWNER)
+    if (ownerVenue?.organizationId) {
+      return <Navigate to={`/organizations/${ownerVenue.organizationId}`} replace />
+    }
   }
 
   // All checks passed, render children

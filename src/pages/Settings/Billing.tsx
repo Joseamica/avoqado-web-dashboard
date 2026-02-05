@@ -18,8 +18,10 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useSocket } from '@/context/SocketContext'
+import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { StaffRole } from '@/types'
 import {
   addVenueFeatures,
   downloadInvoice,
@@ -40,10 +42,20 @@ import { PaymentMethodsSection } from './components/PaymentMethodsSection'
 export default function Billing() {
   const { t, i18n } = useTranslation('billing')
   const { venueId } = useCurrentVenue()
+  const { staffInfo } = useAuth()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { socket } = useSocket()
   const { formatDate: formatDateVenue } = useVenueDateTime()
+
+  // Only users with billing access (ADMIN and above) can view this page
+  // IMPORTANT: Use staffInfo.role (venue-specific) not user.role (highest across all venues)
+  const canViewBilling = staffInfo?.role && [
+    StaffRole.SUPERADMIN,
+    StaffRole.OWNER,
+    StaffRole.ADMIN,
+    StaffRole.MANAGER,
+  ].includes(staffInfo.role as StaffRole)
   const [cancelingFeatureId, setCancelingFeatureId] = useState<string | null>(null)
   const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null)
   const [subscribingFeatureCode, setSubscribingFeatureCode] = useState<string | null>(null)
@@ -61,21 +73,21 @@ export default function Billing() {
   // Invoice sorting
   const [invoiceSort, setInvoiceSort] = useState<string>('date-desc') // date-desc, date-asc, amount-desc, amount-asc
 
-  // Fetch venue features status
+  // Fetch venue features status (only for users with billing access)
   const { data: featuresStatus, isLoading: loadingFeatures } = useQuery<VenueFeatureStatus>({
     queryKey: ['venueFeatures', venueId],
     queryFn: () => getVenueFeatures(venueId),
-    enabled: !!venueId,
+    enabled: !!venueId && canViewBilling,
   })
 
-  // Fetch invoices
+  // Fetch invoices (only for users with billing access)
   const { data: invoices, isLoading: loadingInvoices } = useQuery<StripeInvoice[]>({
     queryKey: ['venueInvoices', venueId],
     queryFn: () => getVenueInvoices(venueId),
-    enabled: !!venueId,
+    enabled: !!venueId && canViewBilling,
   })
 
-  // Fetch payment methods (for subscription dialog validation)
+  // Fetch payment methods (for subscription dialog validation, only for users with billing access)
   const { data: paymentMethods } = useQuery<
     Array<{
       id: string
@@ -92,7 +104,7 @@ export default function Billing() {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payment-methods`)
       return response.data.data
     },
-    enabled: !!venueId,
+    enabled: !!venueId && canViewBilling,
   })
 
   // Socket.IO listener for real-time subscription updates
@@ -401,6 +413,20 @@ export default function Billing() {
         </div>
       )
     }
+  }
+
+  // Show access denied for users without billing access
+  if (!canViewBilling) {
+    return (
+      <div className="p-8">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <p className="font-medium">{t('accessDenied', { defaultValue: 'No tienes permisos para ver esta seccion' })}</p>
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
   }
 
   if (loadingFeatures) {

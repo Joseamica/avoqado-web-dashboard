@@ -109,15 +109,27 @@ interface ChatResponse {
 }
 
 // Funciones de utilidad para localStorage
-const STORAGE_KEYS = {
+// Chat-specific storage keys (cleared on logout)
+const CHAT_STORAGE_KEYS = {
   CONVERSATION: 'avoqado_chat_history',
   DAILY_USAGE: 'avoqado_chat_daily_usage',
   CONVERSATIONS_LIST: 'avoqado_chat_conversations',
   CURRENT_CONVERSATION: 'avoqado_current_conversation_id',
-  CURRENT_VENUE: 'avoqado_current_venue_slug', // Nuevo: track venue actual
 }
 
-const CHAT_STORAGE_PREFIXES = Object.values(STORAGE_KEYS)
+// User preference keys (NOT cleared on logout - Stripe/Shopify pattern)
+const USER_PREF_KEYS = {
+  CURRENT_VENUE: 'avoqado_current_venue_slug',
+}
+
+// Combined for internal use
+const STORAGE_KEYS = {
+  ...CHAT_STORAGE_KEYS,
+  ...USER_PREF_KEYS,
+}
+
+// Only chat keys should be cleared on logout
+const CHAT_STORAGE_PREFIXES = Object.values(CHAT_STORAGE_KEYS)
 
 // Función para obtener venue actual desde URL o contexto
 const getCurrentVenueSlug = (): string | null => {
@@ -128,30 +140,11 @@ const getCurrentVenueSlug = (): string | null => {
 }
 
 // Función para obtener usuario actual
+// Note: Since we use HTTP-only cookies for auth, we can't access the token in JavaScript
+// The userId should be passed as a parameter when available, otherwise chat history is venue-specific only
 const getCurrentUserId = (): string | null => {
-  // Try to get user from localStorage auth data
-  try {
-    const authToken = localStorage.getItem('authToken')
-    if (authToken) {
-      // Parse JWT to get user ID (basic decode, just for user identification)
-      const payload = JSON.parse(atob(authToken.split('.')[1]))
-      return payload.userId || payload.sub || null
-    }
-  } catch (error) {
-    console.warn('Could not extract user ID from token:', error)
-  }
-
-  // Fallback: try to get from any auth context in localStorage
-  try {
-    const authData = localStorage.getItem('authData') || localStorage.getItem('user')
-    if (authData) {
-      const parsed = JSON.parse(authData)
-      return parsed.id || parsed.userId || null
-    }
-  } catch (error) {
-    console.warn('Could not get user from localStorage:', error)
-  }
-
+  // We no longer store auth tokens in localStorage (HTTP-only cookies are more secure)
+  // This function returns null - callers should pass userId explicitly when available
   return null
 }
 
@@ -772,14 +765,14 @@ const generateConversationTitleWithLLM = async (history: ConversationEntry[]): P
     devLog('🤖 Attempting LLM title generation:', {
       url: '/api/v1/dashboard/assistant/generate-title',
       summaryLength: conversationSummary.length,
-      hasAuthToken: !!localStorage.getItem('authToken'),
     })
 
+    // Use credentials: 'include' to send HTTP-only auth cookies
     const response = await fetch('/api/v1/dashboard/assistant/generate-title', {
       method: 'POST',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('authToken')}`,
       },
       body: JSON.stringify({
         conversationSummary,

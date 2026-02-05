@@ -39,6 +39,15 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { NavUser } from '@/components/Sidebar/nav-user'
 import { cn } from '@/lib/utils'
+import { StaffRole, Venue } from '@/types'
+
+// Type for grouped venues by organization
+interface OrgGroup {
+  orgId: string
+  orgName: string
+  venues: Venue[]
+  isCurrentOrg: boolean
+}
 
 type OrgSidebarProps = React.ComponentProps<typeof Sidebar>
 
@@ -52,6 +61,66 @@ const OrgSidebar: React.FC<OrgSidebarProps> = (props) => {
   const { isMobile } = useSidebar()
 
   const [dropdownOpen, setDropdownOpen] = React.useState(false)
+
+  // Group venues by organization - only show orgs where user is OWNER (or SUPERADMIN sees all)
+  // Also collect standalone venues (where user has access but not OWNER in that org)
+  const { orgGroups, standaloneVenues } = useMemo(() => {
+    const isSuperadmin = user?.role === StaffRole.SUPERADMIN
+
+    // Find organizations where user has OWNER role
+    const orgsWithOwnerAccess = new Set<string>()
+    allVenues.forEach(venue => {
+      if (isSuperadmin || venue.role === StaffRole.OWNER) {
+        orgsWithOwnerAccess.add(venue.organizationId || 'unknown')
+      }
+    })
+
+    // Group venues by organizationId - only include orgs where user is OWNER
+    const groups = new Map<string, OrgGroup>()
+    const standalone: Venue[] = []
+
+    allVenues.forEach(venue => {
+      const venueOrgId = venue.organizationId || 'unknown'
+
+      // If user is OWNER in this org, add to grouped orgs
+      if (orgsWithOwnerAccess.has(venueOrgId)) {
+        const venueOrgName = venue.organization?.name || 'Unknown Organization'
+
+        if (!groups.has(venueOrgId)) {
+          groups.set(venueOrgId, {
+            orgId: venueOrgId,
+            orgName: venueOrgName,
+            venues: [],
+            isCurrentOrg: venueOrgId === orgId,
+          })
+        }
+        groups.get(venueOrgId)!.venues.push(venue)
+      } else {
+        // User has access to this venue but not OWNER in the org - standalone venue
+        standalone.push(venue)
+      }
+    })
+
+    // Sort: current org first, then alphabetically
+    const sortedGroups = Array.from(groups.values())
+      .sort((a, b) => {
+        if (a.isCurrentOrg) return -1
+        if (b.isCurrentOrg) return 1
+        return a.orgName.localeCompare(b.orgName)
+      })
+      .map(group => ({
+        ...group,
+        venues: group.venues.sort((a, b) => a.name.localeCompare(b.name)),
+      }))
+
+    // Sort standalone venues alphabetically
+    const sortedStandalone = standalone.sort((a, b) => a.name.localeCompare(b.name))
+
+    return { orgGroups: sortedGroups, standaloneVenues: sortedStandalone }
+  }, [allVenues, user?.role, orgId])
+
+  // Check if user has multiple organizations
+  const hasMultipleOrgs = orgGroups.length > 1
 
   const navigationItems = useMemo(() => [
     {
@@ -79,6 +148,11 @@ const OrgSidebar: React.FC<OrgSidebarProps> = (props) => {
   const handleVenueClick = (slug: string) => {
     setDropdownOpen(false)
     navigate(`/venues/${slug}/home`)
+  }
+
+  const handleOrgClick = (targetOrgId: string) => {
+    setDropdownOpen(false)
+    navigate(`/organizations/${targetOrgId}`)
   }
 
   // Map app User -> NavUser expected shape
@@ -111,47 +185,83 @@ const OrgSidebar: React.FC<OrgSidebarProps> = (props) => {
                       {organization?.name || t('myOrganization')}
                     </span>
                     <span className="text-xs truncate text-muted-foreground">
-                      {organization?.venueCount || 0} {t('venues')}
+                      {organization?.venueCount || 0} {t('venuesLabel')}
                     </span>
                   </div>
                   <ChevronsUpDown className="ml-auto" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
-                className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+                className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg max-h-[70vh] overflow-y-auto"
                 align="start"
                 side={isMobile ? 'bottom' : 'right'}
                 sideOffset={5}
               >
-                {/* Current Organization */}
-                <DropdownMenuItem className="gap-2 p-2 bg-accent cursor-default">
-                  <div className="flex justify-center items-center bg-gradient-to-r from-amber-400 to-pink-500 rounded-lg size-6">
-                    <Building2 className="size-4 text-primary-foreground" />
-                  </div>
-                  <span className="flex-1 font-medium">
-                    {organization?.name || t('myOrganization')}
-                  </span>
-                  <span className="text-xs text-muted-foreground">{t('common:venuesSwitcher.current')}</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                {/* Organizations and their venues grouped */}
+                {orgGroups.map((group, groupIndex) => (
+                  <div key={group.orgId}>
+                    {groupIndex > 0 && <DropdownMenuSeparator />}
 
-                {/* Venues List */}
-                <DropdownMenuLabel className="text-xs text-muted-foreground">
-                  {t('common:venuesSwitcher.title')}
-                </DropdownMenuLabel>
-                {allVenues.map((venue) => (
-                  <DropdownMenuItem
-                    key={venue.id}
-                    onClick={() => handleVenueClick(venue.slug)}
-                    className="gap-2 p-2 cursor-pointer"
-                  >
-                    <Avatar className="flex justify-center items-center rounded-lg aspect-square size-6">
-                      <AvatarImage src={venue?.logo} alt={`${venue?.name} Logo`} />
-                      <AvatarFallback>{venue?.name?.charAt(0).toLocaleUpperCase() || 'V'}</AvatarFallback>
-                    </Avatar>
-                    <span className="flex-1 truncate">{venue?.name}</span>
-                  </DropdownMenuItem>
+                    {/* Organization Header */}
+                    <DropdownMenuItem
+                      onClick={() => handleOrgClick(group.orgId)}
+                      className={cn(
+                        "gap-2 p-2 cursor-pointer",
+                        group.isCurrentOrg && "bg-accent"
+                      )}
+                    >
+                      <div className="flex justify-center items-center bg-gradient-to-r from-amber-400 to-pink-500 rounded-lg size-6">
+                        <Building2 className="size-4 text-primary-foreground" />
+                      </div>
+                      <span className="flex-1 font-medium truncate">
+                        {group.orgName}
+                      </span>
+                      {group.isCurrentOrg && (
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {t('common:venuesSwitcher.current')}
+                        </span>
+                      )}
+                    </DropdownMenuItem>
+
+                    {/* Venues in this organization */}
+                    {group.venues.map((venue) => (
+                      <DropdownMenuItem
+                        key={venue.id}
+                        onClick={() => handleVenueClick(venue.slug)}
+                        className="gap-2 p-2 pl-6 cursor-pointer"
+                      >
+                        <Avatar className="flex justify-center items-center rounded-lg aspect-square size-6">
+                          <AvatarImage src={venue?.logo} alt={`${venue?.name} Logo`} />
+                          <AvatarFallback>{venue?.name?.charAt(0).toLocaleUpperCase() || 'V'}</AvatarFallback>
+                        </Avatar>
+                        <span className="flex-1 truncate">{venue?.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
                 ))}
+
+                {/* Standalone venues (where user has access but not OWNER in that org) */}
+                {standaloneVenues.length > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-xs text-muted-foreground">
+                      {t('common:venuesSwitcher.otherVenues', 'Otras sucursales')}
+                    </DropdownMenuLabel>
+                    {standaloneVenues.map((venue) => (
+                      <DropdownMenuItem
+                        key={venue.id}
+                        onClick={() => handleVenueClick(venue.slug)}
+                        className="gap-2 p-2 cursor-pointer"
+                      >
+                        <Avatar className="flex justify-center items-center rounded-lg aspect-square size-6">
+                          <AvatarImage src={venue?.logo} alt={`${venue?.name} Logo`} />
+                          <AvatarFallback>{venue?.name?.charAt(0).toLocaleUpperCase() || 'V'}</AvatarFallback>
+                        </Avatar>
+                        <span className="flex-1 truncate">{venue?.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>

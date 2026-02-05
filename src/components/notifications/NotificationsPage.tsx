@@ -161,7 +161,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
             {/* Filter Toggle */}
             <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
               <Filter className="h-4 w-4 mr-2" />
-              {t('common:filters')}
+              {t('common:filters.label')}
             </Button>
 
             {/* Mark All as Read */}

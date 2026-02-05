@@ -9,6 +9,8 @@ import {
   type TimeRange,
 } from '@/services/organization.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { useAuth } from '@/context/AuthContext'
+import { StaffRole } from '@/types'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -41,26 +43,36 @@ const OrganizationDashboard: React.FC = () => {
   const { orgId } = useParams<{ orgId: string }>()
   const navigate = useNavigate()
   const [timeRange, setTimeRange] = useState<TimeRange>('30d')
+  const { user, allVenues } = useAuth()
+
+  // Organization analytics require OWNER or SUPERADMIN role IN THIS ORGANIZATION
+  // SUPERADMIN can access any org, OWNER can only access their own org
+  // Check if user has a venue in this org with OWNER role, or is SUPERADMIN
+  const isSuperadmin = user?.role === StaffRole.SUPERADMIN
+  const isOwnerInThisOrg = allVenues.some(
+    venue => venue.organizationId === orgId && venue.role === StaffRole.OWNER
+  )
+  const canViewOrgAnalytics = isSuperadmin || isOwnerInThisOrg
 
   // Enhanced overview with comparisons
   const { data: overview, isLoading: isLoadingOverview } = useQuery({
     queryKey: ['organization', 'enhanced-overview', orgId, timeRange],
     queryFn: () => getEnhancedOverview(orgId!, { timeRange }),
-    enabled: !!orgId,
+    enabled: !!orgId && canViewOrgAnalytics,
   })
 
   // Revenue trends for chart
   const { data: trends, isLoading: isLoadingTrends } = useQuery({
     queryKey: ['organization', 'revenue-trends', orgId, timeRange],
     queryFn: () => getRevenueTrends(orgId!, { timeRange }),
-    enabled: !!orgId,
+    enabled: !!orgId && canViewOrgAnalytics,
   })
 
   // Top items
   const { data: topItems, isLoading: isLoadingTopItems } = useQuery({
     queryKey: ['organization', 'top-items', orgId, timeRange],
     queryFn: () => getTopItems(orgId!, { timeRange }, 10),
-    enabled: !!orgId,
+    enabled: !!orgId && canViewOrgAnalytics,
   })
 
   const formatCurrency = (amount: number) => {

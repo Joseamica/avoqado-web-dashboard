@@ -68,14 +68,23 @@ import { PaymentMethodsSection } from '../components/PaymentMethodsSection'
 export default function Subscriptions() {
   const { t, i18n } = useTranslation('billing')
   const { venueId, venue } = useCurrentVenue()
-  const { user } = useAuth()
+  const { staffInfo } = useAuth()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { socket } = useSocket()
   const { formatDate } = useVenueDateTime()
 
   // Check if user is superadmin
-  const isSuperadmin = user?.role === StaffRole.SUPERADMIN
+  // IMPORTANT: Use staffInfo.role (venue-specific) not user.role (highest across all venues)
+  const isSuperadmin = staffInfo?.role === StaffRole.SUPERADMIN
+
+  // Only users with billing access (ADMIN and above) can view subscriptions
+  const canViewBilling = staffInfo?.role && [
+    StaffRole.SUPERADMIN,
+    StaffRole.OWNER,
+    StaffRole.ADMIN,
+    StaffRole.MANAGER,
+  ].includes(staffInfo.role as StaffRole)
 
   const [cancelingFeatureId, setCancelingFeatureId] = useState<string | null>(null)
   const [subscribingFeatureCode, setSubscribingFeatureCode] = useState<string | null>(null)
@@ -90,14 +99,14 @@ export default function Subscriptions() {
   const [enableFeatureCode, setEnableFeatureCode] = useState<string>('')
   const [disablingFeatureCode, setDisablingFeatureCode] = useState<string | null>(null)
 
-  // Fetch venue features status
+  // Fetch venue features status (only for users with billing access)
   const { data: featuresStatus, isLoading: loadingFeatures } = useQuery<VenueFeatureStatus>({
     queryKey: ['venueFeatures', venueId],
     queryFn: () => getVenueFeatures(venueId),
-    enabled: !!venueId,
+    enabled: !!venueId && canViewBilling,
   })
 
-  // Fetch payment methods (for subscription dialog validation)
+  // Fetch payment methods (for subscription dialog validation, only for users with billing access)
   const { data: paymentMethods } = useQuery<
     Array<{
       id: string
@@ -114,7 +123,7 @@ export default function Subscriptions() {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payment-methods`)
       return response.data.data
     },
-    enabled: !!venueId,
+    enabled: !!venueId && canViewBilling,
   })
 
   // Superadmin: Fetch all platform features (lazy loaded)

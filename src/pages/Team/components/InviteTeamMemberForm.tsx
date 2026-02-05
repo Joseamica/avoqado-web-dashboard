@@ -3,10 +3,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Mail, AlertCircle, Smartphone, CheckCircle2, UserPlus, Info } from 'lucide-react'
+import { Mail, AlertCircle, Smartphone, CheckCircle2, UserPlus, Info, Building2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { useAuth } from '@/context/AuthContext'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -65,6 +67,7 @@ const createInviteSchema = (t: (key: string) => string, inviteType: InviteType) 
       ? z.string().regex(/^\d{4,10}$/, t('invite.validation.pinFormat'))
       : z.string().optional(),
     type: z.enum(['email', 'tpv-only']).optional(),
+    inviteToAllVenues: z.boolean().optional(),
   })
 
 const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMemberFormProps>(
@@ -73,14 +76,25 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
   const { t: tCommon } = useTranslation()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { user, allVenues } = useAuth()
   const [selectedRole, setSelectedRole] = useState<StaffRole | undefined>()
   const [showResendDialog, setShowResendDialog] = useState(false)
   const [pendingResendEmail, setPendingResendEmail] = useState<string | null>(null)
   const pendingInvitationIdRef = useRef<string | null>(null)
   const { getDisplayName: getRoleDisplayName } = useRoleConfig()
   const [inviteType, setInviteType] = useState<InviteType>('email')
+  const [inviteToAllVenues, setInviteToAllVenues] = useState(false)
+
+  // Only OWNER and SUPERADMIN can invite as OWNER
+  const canInviteAsOwner = user?.role === StaffRole.OWNER || user?.role === StaffRole.SUPERADMIN
 
   const ROLE_OPTIONS = [
+    // OWNER option only visible for OWNER/SUPERADMIN users
+    ...(canInviteAsOwner ? [{
+      value: StaffRole.OWNER,
+      label: getRoleDisplayName(StaffRole.OWNER),
+      description: t('edit.roles.ownerDesc', { defaultValue: 'Control total de la organización y todos los establecimientos' }),
+    }] : []),
     { value: StaffRole.ADMIN, label: getRoleDisplayName(StaffRole.ADMIN), description: t('edit.roles.adminDesc') },
     { value: StaffRole.MANAGER, label: getRoleDisplayName(StaffRole.MANAGER), description: t('edit.roles.managerDesc') },
     { value: StaffRole.WAITER, label: getRoleDisplayName(StaffRole.WAITER), description: t('edit.roles.waiterDesc') },
@@ -191,6 +205,7 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
     inviteMutation.mutate({
       ...data,
       type: inviteType,
+      inviteToAllVenues: selectedRole === StaffRole.OWNER ? inviteToAllVenues : undefined,
     })
   }
 
@@ -202,6 +217,10 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
   const handleRoleChange = (role: StaffRole) => {
     setSelectedRole(role)
     setValue('role', role, { shouldValidate: true })
+    // Reset "invite to all venues" when changing role (only applies to OWNER)
+    if (role !== StaffRole.OWNER) {
+      setInviteToAllVenues(false)
+    }
   }
 
   const handleResendConfirm = async () => {
@@ -392,6 +411,36 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
                   <strong className="font-medium text-foreground">{selectedRoleInfo.label}:</strong>{' '}
                   {selectedRoleInfo.description}
                 </p>
+              </div>
+            )}
+
+            {/* Invite to all venues option - only for OWNER role with multiple venues */}
+            {selectedRole === StaffRole.OWNER && allVenues.length > 1 && (
+              <div className="mt-4 p-4 rounded-xl border border-primary/20 bg-primary/5">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id="inviteToAllVenues"
+                    checked={inviteToAllVenues}
+                    onCheckedChange={(checked) => setInviteToAllVenues(checked === true)}
+                    className="mt-0.5"
+                  />
+                  <div className="flex-1">
+                    <label
+                      htmlFor="inviteToAllVenues"
+                      className="text-sm font-medium cursor-pointer flex items-center gap-2"
+                    >
+                      <Building2 className="h-4 w-4 text-primary" />
+                      {t('invite.inviteToAllVenues', { defaultValue: 'Dar acceso a todos los establecimientos' })}
+                    </label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {t('invite.inviteToAllVenuesDesc', {
+                        defaultValue: 'El socio tendrá acceso como {{role}} a los {{count}} establecimientos de la organización.',
+                        role: getRoleDisplayName(StaffRole.OWNER),
+                        count: allVenues.length,
+                      })}
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
           </div>

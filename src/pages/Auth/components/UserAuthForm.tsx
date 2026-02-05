@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { SubmitHandler, useForm } from 'react-hook-form'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AlertCircle, Eye, EyeOff } from 'lucide-react'
 
@@ -18,9 +18,9 @@ type Inputs = LoginDto
 
 export function UserAuthForm({ className, ...props }: React.ComponentProps<'form'>) {
   const { t } = useTranslation('auth')
-  const navigate = useNavigate()
-  const location = useLocation()
-  const { login, loginWithGoogle, isAuthenticated, isLoading, loginError, clearLoginError } = useAuth()
+  // NOTE: Redirect logic moved to AuthContext - it handles ALL login redirects synchronously
+  // after refetch completes to avoid race conditions with useEffect-based redirects
+  const { login, loginWithGoogle, isLoading, loginError, clearLoginError } = useAuth()
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [shouldShake, setShouldShake] = useState(false)
   const [errorCount, setErrorCount] = useState(0)
@@ -29,47 +29,6 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
     // Load remember me preference from localStorage
     return localStorage.getItem('rememberMe') === 'true'
   })
-
-  // Check for URL-based returnTo (Stripe/GitHub pattern) - AuthContext handles this redirect
-  const searchParams = new URLSearchParams(location.search)
-  const hasReturnTo = searchParams.has('returnTo')
-
-  // Fallback to React Router's state.from pattern for protected routes
-  const from = (location.state as any)?.from?.pathname || '/'
-
-  useEffect(() => {
-    // Skip redirect if returnTo is in URL - AuthContext handles that case
-    // This prevents race condition where UserAuthForm redirects to '/' overriding AuthContext's redirect
-    if (hasReturnTo) {
-      console.log('[LOGIN] ⏩ Skipping redirect - returnTo in URL, AuthContext will handle')
-      return
-    }
-
-    // Wait for both authentication AND loading to complete before redirecting
-    // This prevents race conditions on slower mobile devices where the redirect
-    // would fire before the status query returned the new auth state
-    if (isAuthenticated && !isLoading) {
-      console.log('[LOGIN] ✅ Redirecting to:', from)
-      navigate(from, { replace: true })
-    }
-  }, [isAuthenticated, isLoading, navigate, from, hasReturnTo])
-
-  // MOBILE FALLBACK: If isLoading stays true for >5s after authentication,
-  // force redirect anyway (network timeout, race condition, etc.)
-  useEffect(() => {
-    // Skip if returnTo is in URL - AuthContext handles that case
-    if (hasReturnTo) return
-
-    if (isAuthenticated && isLoading) {
-      console.log('[LOGIN] ⚠️ Authenticated but still loading, setting 5s fallback timeout')
-      const timeoutId = setTimeout(() => {
-        console.log('[LOGIN] ⏰ Fallback timeout triggered - forcing redirect')
-        navigate(from, { replace: true })
-      }, 5000)
-
-      return () => clearTimeout(timeoutId)
-    }
-  }, [isAuthenticated, isLoading, navigate, from, hasReturnTo])
 
   // Increment error count when login error occurs (triggers shake even for same error message)
   useEffect(() => {
@@ -143,9 +102,15 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
   }
 
   return (
-    <form className={cn('flex flex-col gap-6', shouldShake && 'animate-shake', className)} {...props} onSubmit={handleSubmit(onSubmit)}>
+    <form
+      className={cn('flex flex-col gap-6', shouldShake && 'animate-shake', className)}
+      {...props}
+      onSubmit={handleSubmit(onSubmit)}
+      aria-labelledby="login-title"
+      aria-busy={isLoading}
+    >
       <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="text-2xl font-bold">{t('login.title')}</h1>
+        <h1 id="login-title" className="text-2xl font-bold">{t('login.title')}</h1>
         <p className="text-muted-foreground text-sm text-balance">{t('login.subtitle')}</p>
         {isDemoEnvironment && (
           <div className="mt-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-md">
@@ -171,18 +136,28 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
             autoComplete="email"
             autoCorrect="off"
             disabled={isLoading}
+            aria-invalid={errors.email ? 'true' : 'false'}
+            aria-describedby={errors.email ? 'email-error' : undefined}
             className={cn('w-full', errors.email && 'border-red-500')}
             onChange={e => {
               register('email').onChange(e)
               handleInputChange()
             }}
           />
-          {errors.email && <span style={{ color: 'red', fontSize: '12px', paddingLeft: 5 }}>{errors.email.message}</span>}
+          {errors.email && (
+            <span id="email-error" role="alert" className="text-destructive text-xs pl-1">
+              {errors.email.message}
+            </span>
+          )}
         </div>
         <div className="grid gap-3">
           <div className="flex items-center">
             <Label htmlFor="password">{t('login.passwordLabel')}</Label>
-            <Link to="/auth/forgot-password" className="ml-auto text-sm underline-offset-4 hover:underline">
+            <Link
+              to="/auth/forgot-password"
+              className="ml-auto text-sm underline-offset-4 hover:underline"
+              tabIndex={-1}
+            >
               {t('login.forgotPassword')}
             </Link>
           </div>
@@ -194,6 +169,8 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
               autoComplete="current-password"
               placeholder="********"
               disabled={isLoading}
+              aria-invalid={errors.password ? 'true' : 'false'}
+              aria-describedby={errors.password ? 'password-error' : undefined}
               className={cn('w-full pr-10', errors.password && 'border-red-500')}
               onChange={e => {
                 register('password').onChange(e)
@@ -206,16 +183,25 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               disabled={isLoading}
               aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
+              aria-pressed={showPassword}
             >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showPassword ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
             </button>
           </div>
-          {errors.password && <span style={{ color: 'red', fontSize: '12px', paddingLeft: 5 }}>{errors.password.message}</span>}
+          {errors.password && (
+            <span id="password-error" role="alert" className="text-destructive text-xs pl-1">
+              {errors.password.message}
+            </span>
+          )}
         </div>
         {/* Inline login error message (Stripe pattern) */}
         {loginError && (
-          <div className="flex items-center gap-2 px-3 py-2.5 -mt-3 rounded-md bg-destructive/10 border border-destructive/20">
-            <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="flex items-center gap-2 px-3 py-2.5 -mt-3 rounded-md bg-destructive/10 border border-destructive/20"
+          >
+            <AlertCircle className="h-4 w-4 text-destructive shrink-0" aria-hidden="true" />
             <span className="text-destructive text-xs">{loginError}</span>
           </div>
         )}
@@ -230,16 +216,21 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
             }}
             disabled={isLoading}
           />
-          <label
+          <Label
             htmlFor="rememberMe"
             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
           >
             {t('login.rememberMe')}
-          </label>
+          </Label>
         </div>
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading && <Icons.spinner className="mr-2 w-4 h-4 animate-spin" />}
-          {t('login.signInButton')}
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isLoading}
+          aria-disabled={isLoading}
+        >
+          {isLoading && <Icons.spinner className="mr-2 w-4 h-4 animate-spin" aria-hidden="true" />}
+          {isLoading ? t('login.signingIn', { defaultValue: 'Iniciando sesión...' }) : t('login.signInButton')}
         </Button>
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
@@ -251,9 +242,9 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
         </div>
         <Button variant="outline" className="w-full" type="button" disabled={isLoading || isGoogleLoading} onClick={handleGoogleLogin}>
           {isGoogleLoading ? (
-            <Icons.spinner className="mr-2 w-4 h-4 animate-spin" />
+            <Icons.spinner className="mr-2 w-4 h-4 animate-spin" aria-hidden="true" />
           ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="mr-2 w-4 h-4">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="mr-2 w-4 h-4" aria-hidden="true">
               <path
                 d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"
                 fill="currentColor"

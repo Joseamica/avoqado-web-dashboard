@@ -4,18 +4,36 @@ import { X, Sparkles, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ConversionWizard } from './ConversionWizard'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useAuth } from '@/context/AuthContext'
+import { StaffRole } from '@/types'
 
 export function DemoBanner() {
   const { t } = useTranslation() // Uses default namespace (translation = common.json)
   const [isDismissed, setIsDismissed] = useState(false)
   const [wizardOpen, setWizardOpen] = useState(false)
   const { venue } = useCurrentVenue()
+  const { allVenues } = useAuth()
+
+  // Get the ACTUAL role for this venue from allVenues (reliable source)
+  // This avoids race condition where staffInfo.role might be a fallback value
+  const actualVenueRole = venue?.id
+    ? allVenues.find(v => v.id === venue.id)?.role
+    : null
+
+  // Only show banner to users who can convert (ADMIN and above)
+  // IMPORTANT: Use actualVenueRole from allVenues, not staffInfo.role which may be stale
+  const canConvert = actualVenueRole && [
+    StaffRole.SUPERADMIN,
+    StaffRole.OWNER,
+    StaffRole.ADMIN,
+  ].includes(actualVenueRole as StaffRole)
 
   const handleConvert = () => {
     setWizardOpen(true)
   }
 
-  if (isDismissed) {
+  // Don't show to users without convert permission or if dismissed
+  if (!canConvert || isDismissed) {
     return null
   }
 
