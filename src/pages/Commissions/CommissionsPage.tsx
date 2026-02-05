@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { PermissionGate } from '@/components/PermissionGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useCommissionStats, useCommissionConfigs, usePendingCommissionSummaries, useCommissionPayouts } from '@/hooks/useCommissions'
-import { usePermissions } from '@/hooks/usePermissions'
+import { useAccess } from '@/hooks/use-access'
 import CommissionKPICards from './components/CommissionKPICards'
 import TeamCommissionTable from './components/TeamCommissionTable'
 import TeamCommissionRanking from './components/TeamCommissionRanking'
@@ -24,7 +24,7 @@ export default function CommissionsPage() {
 	const { t } = useTranslation('commissions')
 	const location = useLocation()
 	const navigate = useNavigate()
-	const { can } = usePermissions()
+	const { can } = useAccess()
 	const [showCreateDialog, setShowCreateDialog] = useState(false)
 
 	// Check permissions

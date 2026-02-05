@@ -1,9 +1,20 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
-import { usePermissions } from '@/hooks/usePermissions'
+import { useAccess } from '@/hooks/use-access'
 import { AlertCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+
+/**
+ * PermissionProtectedRoute - Route guard based on permissions
+ *
+ * This component checks if the user has the required permissions to access a route.
+ * The backend is the SINGLE SOURCE OF TRUTH for permission resolution:
+ * - Normal venues: Checks core permissions directly
+ * - White-label venues: Backend automatically filters permissions based on feature access
+ *
+ * Frontend just calls can() - no need to know about white-label features.
+ */
 
 interface PermissionProtectedRouteProps {
   permission?: string
@@ -18,17 +29,31 @@ export const PermissionProtectedRoute = ({
   requireAll = false,
   fallbackPath,
 }: PermissionProtectedRouteProps) => {
-  const { can, canAny, canAll } = usePermissions()
+  const { can, canAny, canAll, isLoading, role } = useAccess()
   const location = useLocation()
   const { t } = useTranslation()
 
-  // Determine if user has required permissions
+  // While loading permissions, render outlet to avoid flash of "Access Denied"
+  // This is safe because backend will still enforce permissions on API calls
+  if (isLoading) {
+    return <Outlet />
+  }
+
+  // SUPERADMIN always has access
+  if (role === 'SUPERADMIN') {
+    return <Outlet />
+  }
+
+  // Check permissions - backend already handles white-label filtering
   let hasPermission = false
 
   if (permission) {
     hasPermission = can(permission)
   } else if (permissions) {
     hasPermission = requireAll ? canAll(permissions) : canAny(permissions)
+  } else {
+    // No permission specified = allow access
+    hasPermission = true
   }
 
   // If user doesn't have permission, show access denied or redirect

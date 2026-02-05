@@ -4,11 +4,27 @@ Complete guide to the granular permission system that controls what users can SE
 
 ## Overview
 
-The dashboard implements a **granular permission system** that works alongside route protection to control UI elements within pages. This is **Layer 3** of the security model:
+The dashboard implements a **centralized permission system** where the **backend is the SINGLE SOURCE OF TRUTH**. The frontend fetches resolved permissions from the backend and uses them for UI control only.
+
+**Security model layers:**
 
 - **Layer 1**: Route authentication (`ProtectedRoute`)
 - **Layer 2**: Route permissions (`PermissionProtectedRoute`)
-- **Layer 3**: Component permissions (`usePermissions` + `PermissionGate`) ← THIS GUIDE
+- **Layer 3**: Component permissions (`useAccess` + `PermissionGate`) ← THIS GUIDE
+
+**Architecture:**
+```
+Backend (Single Source of Truth)
+├── /api/v1/me/access → Returns resolved permissions
+├── PERMISSION_TO_FEATURE_MAP → Maps permissions to white-label features
+├── access.service.ts → Filters permissions based on white-label config
+└── verifyAccess middleware → Enforces on API routes
+
+Frontend (UI Only - No mapping logic)
+├── useAccess() → Fetches from /me/access
+├── can('permission') → Just checks, no mapping needed
+└── PermissionGate → UI visibility only (NOT security)
+```
 
 ## Permission Format
 
@@ -32,14 +48,17 @@ Permissions follow the `"resource:action"` pattern:
 
 ### Files
 
-- **`src/lib/permissions/defaultPermissions.ts`**
-  Default permissions by role (VIEWER, WAITER, MANAGER, etc.)
+- **`src/hooks/use-access.ts`**
+  Unified React hook for permission checks (replaces usePermissions)
 
-- **`src/hooks/usePermissions.ts`**
-  React hook for permission checks
+- **`src/services/access.service.ts`**
+  API client that fetches from `/me/access` endpoint
 
 - **`src/components/PermissionGate.tsx`**
   Component for conditional rendering based on permissions
+
+- **`src/lib/permissions/defaultPermissions.ts`**
+  Legacy defaults (backend is now source of truth)
 
 - **`src/types.ts`**
   Type definitions - `SessionVenue.permissions?: string[]`
@@ -47,33 +66,28 @@ Permissions follow the `"resource:action"` pattern:
 ### Data Model
 
 ```typescript
-interface SessionVenue {
-  id: string
-  name: string
-  slug: string
-  role: StaffRole              // User's role in this venue
-  permissions?: string[]       // Custom permission overrides
-}
-
-interface User {
-  id: string
-  email: string
-  firstName: string
-  lastName: string
-  role: StaffRole              // Global role (SUPERADMIN only)
-  venues: SessionVenue[]       // Venues user has access to
+// Response from /api/v1/me/access
+interface UserAccess {
+  userId: string
+  venueId: string
+  organizationId: string
+  role: StaffRole
+  corePermissions: string[]      // Resolved permissions (already filtered for white-label)
+  whiteLabelEnabled: boolean
+  enabledFeatures: string[]
+  featureAccess: Record<string, FeatureAccessResult>
 }
 ```
 
-## usePermissions Hook
+## useAccess Hook
 
 ### Basic Usage
 
 ```typescript
-import { usePermissions } from '@/hooks/usePermissions'
+import { useAccess } from '@/hooks/use-access'
 
 function TpvPage() {
-  const { can } = usePermissions()
+  const { can } = useAccess()
 
   return (
     <>
@@ -98,13 +112,18 @@ function TpvPage() {
 
 ```typescript
 const {
-  can,           // (permission: string) => boolean
-  canAny,        // (permissions: string[]) => boolean
-  canAll,        // (permissions: string[]) => boolean
-  cannot,        // (permission: string) => boolean
-  permissions,   // string[] - All user permissions (resolved)
-  role,          // StaffRole - User's role
-} = usePermissions()
+  can,              // (permission: string) => boolean
+  canAny,           // (permissions: string[]) => boolean
+  canAll,           // (permissions: string[]) => boolean
+  canFeature,       // (featureCode: string) => boolean (white-label features)
+  getDataScope,     // (featureCode: string) => 'venue' | 'user-venues' | 'organization'
+  role,             // StaffRole - User's role
+  isWhiteLabelEnabled,  // boolean
+  enabledFeatures,  // string[] - List of enabled feature codes
+  isLoading,        // boolean - Loading state
+  error,            // Error | null
+  refresh,          // () => void - Manually refresh permissions
+} = useAccess()
 ```
 
 ### Examples
@@ -132,15 +151,21 @@ if (canAll(['admin:write', 'admin:delete'])) {
 
 **Negative check:**
 ```typescript
-if (cannot('tpv:delete')) {
+if (!can('tpv:delete')) {
   // Show "Contact admin to delete" message
 }
 ```
 
-**Get all permissions:**
+**White-label feature check:**
 ```typescript
-console.log(permissions)
-// ['home:read', 'menu:*', 'orders:create', 'tpv:read', ...]
+// Check if user can access a white-label feature
+if (canFeature('STORES_ANALYSIS')) {
+  // Show stores analysis button
+}
+
+// Get data scope for a feature
+const scope = getDataScope('COMMAND_CENTER')
+// → 'venue' | 'user-venues' | 'organization'
 ```
 
 ## PermissionGate Component
@@ -466,34 +491,31 @@ For roles with wildcard defaults (ADMIN, OWNER, SUPERADMIN), custom permissions 
 
 ### Permission Resolution Logic
 
-**Location**: `src/hooks/usePermissions.ts` (lines 25-72)
+**IMPORTANT: Backend is the single source of truth.**
+
+The backend (`access.service.ts`) handles all permission resolution:
+
+1. **Fetches user's role** in the target venue
+2. **Gets custom permissions** from `VenueRolePermission` table
+3. **Applies override/merge logic** (wildcard roles use override, others use merge)
+4. **For white-label venues**: Filters permissions based on enabled features using `PERMISSION_TO_FEATURE_MAP`
+5. **Returns resolved permissions** via `/me/access` endpoint
+
+**Frontend just calls `can('permission')`** - no mapping or resolution logic needed.
 
 ```typescript
-// 1. Get default permissions for role
-const defaultPermissions = DEFAULT_PERMISSIONS[user.role]
+// Backend does all the work
+// Example: User is MANAGER in a white-label venue with AVOQADO_TEAM feature disabled
 
-// 2. SUPERADMIN exception (always wildcard)
-if (user.role === 'SUPERADMIN') {
-  return ['*:*']
-}
+// Backend resolution:
+// 1. Default MANAGER permissions include 'teams:read', 'teams:write'
+// 2. PERMISSION_TO_FEATURE_MAP maps 'teams:*' → 'AVOQADO_TEAM'
+// 3. AVOQADO_TEAM is disabled → 'teams:read', 'teams:write' are filtered out
+// 4. /me/access returns corePermissions WITHOUT team permissions
 
-// 3. Get custom permissions from database
-const customPermissions = venueStaff?.permissions || []
-
-// 4. Determine mode: MERGE or OVERRIDE
-const hasWildcardDefaults = defaultPermissions.includes('*:*')
-const hasCustomPermissions = customPermissions.length > 0
-
-if (hasWildcardDefaults && hasCustomPermissions) {
-  // OVERRIDE mode: custom permissions replace defaults
-  basePermissions = customPermissions
-} else {
-  // MERGE mode: combine defaults + custom
-  basePermissions = [...defaultPermissions, ...customPermissions]
-}
-
-// 5. Resolve implicit dependencies (e.g., orders:read implies products:read)
-return resolvePermissions(basePermissions)
+// Frontend:
+const { can } = useAccess()
+can('teams:read')  // false - backend already filtered it out
 ```
 
 ## Permission Flow
@@ -501,14 +523,21 @@ return resolvePermissions(basePermissions)
 ### Full Stack Check
 
 ```
-1. User clicks "Create Terminal" button
-   └─ Frontend: PermissionGate checks 'tpv:create'
-       ├─ Has permission? → Show button
-       └─ No permission? → Hide button
+1. Page load
+   └─ Frontend: useAccess() fetches GET /me/access?venueId=xxx
+       └─ Backend: access.service.ts resolves ALL permissions
+           ├─ Gets role, custom permissions, white-label config
+           ├─ Filters permissions for white-label if needed
+           └─ Returns { corePermissions, featureAccess, ... }
 
-2. User submits create form
+2. User sees "Create Terminal" button
+   └─ Frontend: PermissionGate checks can('tpv:create')
+       ├─ Permission in corePermissions? → Show button
+       └─ Not in corePermissions? → Hide button
+
+3. User submits create form
    └─ Frontend: API call to POST /api/v1/dashboard/venues/{venueId}/tpvs
-       └─ Backend: checkPermission('tpv:create') middleware
+       └─ Backend: verifyAccess({ permission: 'tpv:create' }) middleware
            ├─ Has permission? → Process request
            └─ No permission? → 403 Forbidden error
 ```
@@ -524,9 +553,10 @@ return resolvePermissions(basePermissions)
 - Improve user experience
 
 **Backend Permissions:**
+- **SINGLE SOURCE OF TRUTH**
 - Enforce security
 - Prevent API abuse
-- Audit access attempts
+- Handle white-label feature mapping
 - Protect against tampering
 
 **Example: Direct API call bypass**
@@ -544,7 +574,7 @@ fetch('/api/v1/dashboard/venues/123/tpvs/456', { method: 'DELETE' })
 
 // Backend blocks it:
 router.delete('/venues/:id/tpvs/:tpvId',
-  checkPermission('tpv:delete'),  // ← REQUIRED!
+  verifyAccess({ permission: 'tpv:delete' }),  // ← REQUIRED!
   tpvController.delete
 )
 // → 403 Forbidden
@@ -556,11 +586,10 @@ router.delete('/venues/:id/tpvs/:tpvId',
 
 **Example: Adding "Reports" feature**
 
-**1. Add permissions to defaults** (`src/lib/permissions/defaultPermissions.ts`):
+**1. Add permissions to backend** (`avoqado-server/src/lib/permissions.ts`):
 
 ```typescript
-import { StaffRole } from '@/types'
-
+// Backend is the SINGLE SOURCE OF TRUTH
 export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   [StaffRole.VIEWER]: [
     'home:read',
@@ -578,7 +607,36 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
 }
 ```
 
-**2. Use PermissionGate in component:**
+**2. If this is a white-label feature**, add to `PERMISSION_TO_FEATURE_MAP` (`avoqado-server/src/services/access/access.service.ts`):
+
+```typescript
+const PERMISSION_TO_FEATURE_MAP: Record<string, string> = {
+  // ... existing mappings
+  'reports:read': 'AVOQADO_REPORTS',
+  'reports:create': 'AVOQADO_REPORTS',
+  'reports:export': 'AVOQADO_REPORTS',
+}
+```
+
+**3. Add backend route protection:**
+
+```typescript
+import { verifyAccess } from '@/middlewares/verifyAccess.middleware'
+
+router.post('/venues/:venueId/reports',
+  authenticateTokenMiddleware,
+  verifyAccess({ permission: 'reports:create' }),  // ← Backend validation
+  reportController.create
+)
+
+router.get('/venues/:venueId/reports/:id/export',
+  authenticateTokenMiddleware,
+  verifyAccess({ permission: 'reports:export' }),
+  reportController.export
+)
+```
+
+**4. Use PermissionGate in frontend component:**
 
 ```typescript
 // src/pages/Reports/Reports.tsx
@@ -603,7 +661,7 @@ function ReportsPage() {
 }
 ```
 
-**3. Add route protection** (`src/routes/router.tsx`):
+**5. Add route protection** (`src/routes/router.tsx`):
 
 ```typescript
 import { PermissionProtectedRoute } from '@/routes/PermissionProtectedRoute'
@@ -614,24 +672,7 @@ import { PermissionProtectedRoute } from '@/routes/PermissionProtectedRoute'
 </Route>
 ```
 
-**4. Add backend protection:**
-
-See backend CLAUDE.md for implementation:
-```typescript
-router.post('/venues/:venueId/reports',
-  authenticateTokenMiddleware,
-  checkPermission('reports:create'),  // ← Backend validation
-  reportController.create
-)
-
-router.get('/venues/:venueId/reports/:id/export',
-  authenticateTokenMiddleware,
-  checkPermission('reports:export'),
-  reportController.export
-)
-```
-
-**5. Keep in sync:** Ensure frontend `DEFAULT_PERMISSIONS` matches backend!
+**Note:** Frontend no longer needs to maintain its own `DEFAULT_PERMISSIONS` - backend handles all resolution.
 
 ## Common Patterns
 
@@ -719,28 +760,33 @@ return (
 
 ## Best Practices
 
-1. **Use PermissionGate for declarative UI**
+1. **Backend is the single source of truth**
+   All permission definitions and resolution logic live in the backend.
+   Frontend just calls `can('permission')` - no mapping needed.
+
+2. **Use PermissionGate for declarative UI**
    More readable than conditional rendering with `can()`
 
-2. **Keep frontend/backend permissions synced**
-   Same permissions in `defaultPermissions.ts` (frontend) and backend CLAUDE.md
+3. **Always add backend protection first**
+   Frontend is UX only, backend is security.
+   Use `verifyAccess({ permission: '...' })` middleware.
 
-3. **Test with different roles**
+4. **For white-label features, update PERMISSION_TO_FEATURE_MAP**
+   In `avoqado-server/src/services/access/access.service.ts`
+
+5. **Test with different roles**
    Verify VIEWER can't see MANAGER buttons, WAITER can't access ADMIN pages
 
-4. **Never skip backend validation**
-   Frontend is UX, backend is security
+6. **Test white-label scenarios**
+   Verify permissions are filtered when features are disabled
 
-5. **Document new permissions**
-   Update this file and backend CLAUDE.md when adding permissions
-
-6. **Prefer specific permissions over wildcards**
+7. **Prefer specific permissions over wildcards**
    Use `menu:create` not `menu:*` for granular control
 
-7. **Use descriptive permission names**
+8. **Use descriptive permission names**
    `analytics:export` is better than `analytics:download`
 
-8. **Group related permissions**
+9. **Group related permissions**
    If you have `reports:create`, also define `reports:read`, `reports:update`, `reports:delete`
 
 ## Future: Admin Permission Management UI
@@ -812,8 +858,64 @@ See backend CLAUDE.md for API endpoint examples (`GET /staff/:id/permissions`, `
 - **Debug**: Check `StaffVenue.permissions` in database
 - **Fix**: Remove custom permissions or set to empty array to restore wildcard
 
+## Centralized Permission Architecture
+
+### Why Centralized?
+
+Before centralization, there were two parallel permission systems:
+- Core permissions (`resource:action`) with frontend resolution
+- White-label features with separate `PERMISSION_TO_FEATURE_MAP` in frontend
+
+This caused:
+- Duplicate code and logic drift
+- Frontend could show UI for features that backend would deny
+- Complex white-label permission mapping in multiple places
+
+### New Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ BACKEND (Single Source of Truth)                                │
+│                                                                  │
+│ 1. access.service.ts:                                           │
+│    - Resolves permissions from VenueRolePermission              │
+│    - Contains PERMISSION_TO_FEATURE_MAP                         │
+│    - Filters permissions for white-label venues                 │
+│                                                                  │
+│ 2. /api/v1/me/access endpoint:                                  │
+│    - Returns already-resolved permissions                       │
+│    - Frontend doesn't need to know about white-label            │
+│                                                                  │
+│ 3. verifyAccess middleware:                                     │
+│    - Enforces permissions on API routes                         │
+│    - Uses same access.service.ts                                │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ FRONTEND (UI Only)                                              │
+│                                                                  │
+│ 1. useAccess() hook:                                            │
+│    - Fetches from /me/access                                    │
+│    - Caches with React Query (5 min staleTime)                  │
+│    - Provides can(), canAny(), canAll()                         │
+│                                                                  │
+│ 2. PermissionGate component:                                    │
+│    - Uses useAccess() internally                                │
+│    - Just checks, no mapping logic                              │
+│                                                                  │
+│ 3. PermissionProtectedRoute:                                    │
+│    - Uses useAccess() for route protection                      │
+│    - Shows "Access Denied" or redirects                         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Verification Script
+
+Run `bash scripts/check-permission-migration.sh` in avoqado-server to verify centralization is complete.
+
 ## Related Documentation
 
 - [Routing System](./routing.md) - Route-level permission protection
 - [Architecture Overview](./overview.md) - Role hierarchy and data models
-- [Development Guide](../guides/development.md) - Testing permissions
+- [Backend Permission System](../../../avoqado-server/docs/PERMISSIONS_SYSTEM.md) - Backend implementation details

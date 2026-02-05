@@ -12,7 +12,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { useDebounce } from '@/hooks/useDebounce'
-import { usePermissions } from '@/hooks/usePermissions'
+import { useAccess } from '@/hooks/use-access'
 import { useToast } from '@/hooks/use-toast'
 import teamService, { type Invitation, type PaginatedTeamResponse } from '@/services/team.service'
 import { TeamMember, StaffRole } from '@/types'
@@ -55,7 +55,7 @@ export default function Teams() {
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const { staffInfo } = useAuth()
-  const { can } = usePermissions()
+  const { can } = useAccess()
   const queryClient = useQueryClient()
   const { t, i18n } = useTranslation('team')
   const { t: tCommon } = useTranslation()
