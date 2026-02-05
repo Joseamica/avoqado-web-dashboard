@@ -18,22 +18,20 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Download, Table2, Loader2 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
-import { useOrganization } from '@/hooks/useOrganization'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { getClosingReportData, downloadClosingReportXlsx } from '@/services/organizationDashboard.service'
+import { getClosingReportData, downloadClosingReportXlsx } from '@/services/storesAnalysis.service'
 import { cn } from '@/lib/utils'
 
 export function ReportePage() {
   const { t } = useTranslation(['playtelecom', 'common'])
   const navigate = useNavigate()
   const { activeVenue } = useAuth()
-  const { fullBasePath } = useCurrentVenue()
-  const { organizationId } = useOrganization()
+  const { fullBasePath, venueId } = useCurrentVenue()
 
   const { data: reportData, isLoading } = useQuery({
-    queryKey: ['organization', organizationId, 'closing-report'],
-    queryFn: () => getClosingReportData(organizationId!),
-    enabled: !!organizationId,
+    queryKey: ['stores-analysis', venueId, 'closing-report'],
+    queryFn: () => getClosingReportData(venueId!),
+    enabled: !!venueId,
     staleTime: 60000,
   })
 
@@ -55,9 +53,9 @@ export function ReportePage() {
   }, [navigate, fullBasePath])
 
   const handleDownload = useCallback(async () => {
-    if (!organizationId) return
+    if (!venueId) return
     try {
-      const blob = await downloadClosingReportXlsx(organizationId)
+      const blob = await downloadClosingReportXlsx(venueId)
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -67,7 +65,7 @@ export function ReportePage() {
     } catch (err) {
       console.error('Download failed:', err)
     }
-  }, [organizationId])
+  }, [venueId])
 
   const saleTypeColor = (type: string) => {
     if (type.includes('Portabilidad')) return 'bg-purple-900/40 text-purple-300 border-purple-800'
@@ -136,12 +134,12 @@ export function ReportePage() {
                   </td>
                 </tr>
               ) : rows.map(row => (
-                <tr key={row.rowNumber} className="hover:bg-muted/20 transition">
+                <tr key={row.row} className="hover:bg-muted/20 transition">
                   <td className="text-center border border-border/30 px-3 py-2 text-xs font-mono text-muted-foreground bg-muted/30">
-                    {row.rowNumber}
+                    {row.row}
                   </td>
                   <td className="border border-border/30 px-3 py-2 text-sm">{row.city}</td>
-                  <td className="border border-border/30 px-3 py-2 text-sm">{row.storeName}</td>
+                  <td className="border border-border/30 px-3 py-2 text-sm">{row.store}</td>
                   <td className="border border-border/30 px-3 py-2 font-mono text-xs">{row.iccid ?? '--'}</td>
                   <td className="border border-border/30 px-3 py-2">
                     <Badge className={cn('text-xs', saleTypeColor(row.saleType))}>

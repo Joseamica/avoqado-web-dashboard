@@ -43,7 +43,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
-import { getItemCategories, bulkUploadItems } from '@/services/itemCategory.service'
+import { getItemCategories, bulkUploadItems } from '@/services/stockDashboard.service'
 
 interface BulkUploadDialogProps {
   open: boolean

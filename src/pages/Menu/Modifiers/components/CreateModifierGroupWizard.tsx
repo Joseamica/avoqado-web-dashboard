@@ -33,7 +33,7 @@ import { Progress } from '@/components/ui/progress'
 import { Switch } from '@/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { usePermissions } from '@/hooks/usePermissions'
+import { useAccess } from '@/hooks/use-access'
 import { useToast } from '@/hooks/use-toast'
 import { assignModifierGroupToProduct, createModifierGroup as createModifierGroupService, getProducts } from '@/services/menu.service'
 
@@ -113,7 +113,7 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
   const navigate = useNavigate()
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const { can } = usePermissions()
+  const { can } = useAccess()
   const [currentStep, setCurrentStep] = useState<WizardStep>(1)
 
   const canCreate = can('menu:create')

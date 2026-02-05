@@ -13,8 +13,36 @@
  * - Default navigation item
  */
 
-import type { FeatureDefinition, FeatureCategory } from '@/types/white-label'
+import type { FeatureDefinition, FeatureCategory, FeatureAccess } from '@/types/white-label'
 import { StaffRole } from '@/types'
+
+// ============================================
+// Default Access Configurations
+// ============================================
+
+/** Management roles (OWNER, ADMIN, MANAGER) with user-venues scope */
+const ACCESS_MANAGEMENT: FeatureAccess = {
+  allowedRoles: [StaffRole.OWNER, StaffRole.ADMIN, StaffRole.MANAGER],
+  dataScope: 'user-venues',
+}
+
+/** Admin-only (OWNER, ADMIN) with organization scope */
+const ACCESS_ADMIN_ONLY: FeatureAccess = {
+  allowedRoles: [StaffRole.OWNER, StaffRole.ADMIN],
+  dataScope: 'organization',
+}
+
+/** Owner-only with organization scope */
+const ACCESS_OWNER_ONLY: FeatureAccess = {
+  allowedRoles: [StaffRole.OWNER],
+  dataScope: 'organization',
+}
+
+/** All staff roles with venue scope - for features everyone needs */
+const ACCESS_ALL_VENUE: FeatureAccess = {
+  allowedRoles: [StaffRole.OWNER, StaffRole.ADMIN, StaffRole.MANAGER, StaffRole.CASHIER, StaffRole.WAITER, StaffRole.KITCHEN, StaffRole.HOST, StaffRole.VIEWER],
+  dataScope: 'venue',
+}
 
 // ============================================
 // Feature Registry
@@ -61,6 +89,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Dashboard',
       icon: 'LayoutDashboard',
     },
+
+    defaultAccess: ACCESS_ALL_VENUE,
   },
 
   AVOQADO_ORDERS: {
@@ -101,6 +131,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Órdenes',
       icon: 'ClipboardList',
     },
+
+    defaultAccess: ACCESS_MANAGEMENT,
   },
 
   AVOQADO_PAYMENTS: {
@@ -139,6 +171,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Pagos',
       icon: 'CreditCard',
     },
+
+    defaultAccess: ACCESS_MANAGEMENT,
   },
 
   AVOQADO_MENU: {
@@ -179,6 +213,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Menú',
       icon: 'UtensilsCrossed',
     },
+
+    defaultAccess: ACCESS_MANAGEMENT,
   },
 
   AVOQADO_INVENTORY: {
@@ -218,6 +254,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Inventario',
       icon: 'Warehouse',
     },
+
+    defaultAccess: ACCESS_MANAGEMENT,
   },
 
   AVOQADO_TEAM: {
@@ -257,6 +295,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Equipo',
       icon: 'Users',
     },
+
+    defaultAccess: ACCESS_ADMIN_ONLY,
   },
 
   AVOQADO_CUSTOMERS: {
@@ -295,6 +335,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Clientes',
       icon: 'UserCircle',
     },
+
+    defaultAccess: ACCESS_MANAGEMENT,
   },
 
   AVOQADO_TPVS: {
@@ -333,6 +375,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Terminales',
       icon: 'Smartphone',
     },
+
+    defaultAccess: ACCESS_ADMIN_ONLY,
   },
 
   AVOQADO_BALANCE: {
@@ -368,6 +412,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Balance',
       icon: 'Wallet',
     },
+
+    defaultAccess: ACCESS_OWNER_ONLY,
   },
 
   AVOQADO_PROMOTIONS: {
@@ -407,6 +453,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Promociones',
       icon: 'Tag',
     },
+
+    defaultAccess: ACCESS_MANAGEMENT,
   },
 
   AVOQADO_ANALYTICS: {
@@ -442,6 +490,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Analítica',
       icon: 'TrendingUp',
     },
+
+    defaultAccess: ACCESS_MANAGEMENT,
   },
 
   AVOQADO_SHIFTS: {
@@ -480,6 +530,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Turnos',
       icon: 'Clock',
     },
+
+    defaultAccess: ACCESS_MANAGEMENT,
   },
 
   AVOQADO_COMMISSIONS: {
@@ -527,6 +579,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Comisiones',
       icon: 'DollarSign',
     },
+
+    defaultAccess: ACCESS_MANAGEMENT,
   },
 
   // NOTE: AVOQADO_TIPS is commented out because the page doesn't exist yet
@@ -592,6 +646,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Lealtad',
       icon: 'Award',
     },
+
+    defaultAccess: ACCESS_MANAGEMENT,
   },
 
   AVOQADO_REVIEWS: {
@@ -636,6 +692,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Reseñas',
       icon: 'Star',
     },
+
+    defaultAccess: ACCESS_MANAGEMENT,
   },
 
   AVOQADO_REPORTS: {
@@ -676,6 +734,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Reportes',
       icon: 'BarChart3',
     },
+
+    defaultAccess: ACCESS_MANAGEMENT,
   },
 
   // ============================================
@@ -726,6 +786,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Centro de Comando',
       icon: 'LayoutDashboard',
     },
+
+    defaultAccess: ACCESS_MANAGEMENT,
   },
 
   SERIALIZED_STOCK: {
@@ -781,6 +843,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Inventario',
       icon: 'Package',
     },
+
+    defaultAccess: ACCESS_MANAGEMENT,
   },
 
   PROMOTERS_AUDIT: {
@@ -834,6 +898,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Promotores',
       icon: 'Users',
     },
+
+    defaultAccess: ACCESS_MANAGEMENT,
   },
 
   STORES_ANALYSIS: {
@@ -879,6 +945,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Tiendas',
       icon: 'Store',
     },
+
+    defaultAccess: ACCESS_MANAGEMENT,
   },
 
   MANAGERS_DASHBOARD: {
@@ -922,6 +990,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Gerentes',
       icon: 'UserCog',
     },
+
+    defaultAccess: ACCESS_ADMIN_ONLY,
   },
 
   SALES_REPORT: {
@@ -971,6 +1041,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Reporte de Ventas',
       icon: 'Receipt',
     },
+
+    defaultAccess: ACCESS_MANAGEMENT,
   },
 
   SUPERVISOR_DASHBOARD: {
@@ -1010,6 +1082,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Supervisor',
       icon: 'Eye',
     },
+
+    defaultAccess: ACCESS_MANAGEMENT,
   },
 
   TPV_CONFIGURATION: {
@@ -1047,6 +1121,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Config TPV',
       icon: 'Settings',
     },
+
+    defaultAccess: ACCESS_ADMIN_ONLY,
   },
 
   CLOSING_REPORT: {
@@ -1078,6 +1154,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Reporte de Cierre',
       icon: 'FileSpreadsheet',
     },
+
+    defaultAccess: ACCESS_MANAGEMENT,
   },
 
   USERS_MANAGEMENT: {
@@ -1115,6 +1193,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Usuarios',
       icon: 'Users',
     },
+
+    defaultAccess: ACCESS_ADMIN_ONLY,
   },
 
   // ============================================
@@ -1167,6 +1247,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Avalúos',
       icon: 'Gem',
     },
+
+    defaultAccess: ACCESS_MANAGEMENT,
   },
 
   CONSIGNMENT: {
@@ -1208,6 +1290,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       label: 'Consignación',
       icon: 'Handshake',
     },
+
+    defaultAccess: ACCESS_MANAGEMENT,
   },
 }
 

@@ -111,7 +111,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
   }, [venues, isSuperadmin, isOwner, orgId, organization?.name])
 
   // Check if we have multiple organizations (for UI decisions)
-  const hasMultipleOrgs = venueGroups.length > 1
+  const _hasMultipleOrgs = venueGroups.length > 1
 
   // Usar el venue actual del contexto, url, localStorage, o fallback al default
   const currentVenueSlug = location.pathname.split('/')[2] || '' // Obtener slug de la URL actual

@@ -33,6 +33,8 @@ import { useRoleConfig } from '@/hooks/use-role-config'
 import { StaffRole } from '@/types'
 import teamService, { InviteTeamMemberRequest, InviteType } from '@/services/team.service'
 import { cn } from '@/lib/utils'
+import { useWhiteLabelConfig } from '@/hooks/useWhiteLabelConfig'
+import { RoleAccessPreview } from './RoleAccessPreview'
 
 type InviteTeamMemberFormData = InviteTeamMemberRequest
 
@@ -84,6 +86,7 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
   const { getDisplayName: getRoleDisplayName } = useRoleConfig()
   const [inviteType, setInviteType] = useState<InviteType>('email')
   const [inviteToAllVenues, setInviteToAllVenues] = useState(false)
+  const { isWhiteLabelEnabled, enabledFeatures } = useWhiteLabelConfig()
 
   // Only OWNER and SUPERADMIN can invite as OWNER
   const canInviteAsOwner = user?.role === StaffRole.OWNER || user?.role === StaffRole.SUPERADMIN
@@ -442,6 +445,14 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* White-Label Feature Access Preview */}
+            {selectedRole && isWhiteLabelEnabled && enabledFeatures.length > 0 && (
+              <RoleAccessPreview
+                role={selectedRole}
+                enabledFeatures={enabledFeatures}
+              />
             )}
           </div>
 

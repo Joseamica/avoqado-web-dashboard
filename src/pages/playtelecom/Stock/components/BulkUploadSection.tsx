@@ -2,20 +2,12 @@
  * BulkUploadSection - CSV drag & drop for bulk stock upload
  */
 
-import React, { useState, useCallback } from 'react'
-import { useTranslation } from 'react-i18next'
-import { GlassCard } from '@/components/ui/glass-card'
 import { Button } from '@/components/ui/button'
-import {
-  Upload,
-  FileSpreadsheet,
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
-  Download,
-  Loader2,
-} from 'lucide-react'
+import { GlassCard } from '@/components/ui/glass-card'
 import { cn } from '@/lib/utils'
+import { AlertTriangle, CheckCircle2, Download, FileSpreadsheet, Loader2, Upload, XCircle } from 'lucide-react'
+import React, { useCallback, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface UploadResult {
   total: number
@@ -30,11 +22,7 @@ interface BulkUploadSectionProps {
   className?: string
 }
 
-export const BulkUploadSection: React.FC<BulkUploadSectionProps> = ({
-  onUpload,
-  onDownloadTemplate,
-  className,
-}) => {
+export const BulkUploadSection: React.FC<BulkUploadSectionProps> = ({ onUpload, onDownloadTemplate: _onDownloadTemplate, className }) => {
   const { t } = useTranslation(['playtelecom', 'common'])
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -87,7 +75,7 @@ export const BulkUploadSection: React.FC<BulkUploadSectionProps> = ({
           { row: 67, error: 'Categoría no existe' },
           { row: 89, error: 'Serial duplicado' },
           { row: 112, error: 'Falta número de serie' },
-        ]
+        ],
       }
       setUploadResult(result)
     } finally {
@@ -124,15 +112,9 @@ export const BulkUploadSection: React.FC<BulkUploadSectionProps> = ({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Upload className="w-4 h-4 text-muted-foreground" />
-          <h3 className="text-lg font-semibold">
-            {t('playtelecom:stock.upload.title', { defaultValue: 'Carga Masiva' })}
-          </h3>
+          <h3 className="text-lg font-semibold">{t('playtelecom:stock.upload.title', { defaultValue: 'Carga Masiva' })}</h3>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleDownloadTemplate}
-        >
+        <Button variant="outline" size="sm" onClick={handleDownloadTemplate}>
           <Download className="w-4 h-4 mr-1" />
           {t('playtelecom:stock.upload.template', { defaultValue: 'Plantilla' })}
         </Button>
@@ -140,12 +122,12 @@ export const BulkUploadSection: React.FC<BulkUploadSectionProps> = ({
 
       {/* Upload result */}
       {uploadResult && (
-        <div className={cn(
-          'mb-4 p-4 rounded-xl border',
-          uploadResult.errors === 0
-            ? 'bg-green-500/10 border-green-500/30'
-            : 'bg-yellow-500/10 border-yellow-500/30'
-        )}>
+        <div
+          className={cn(
+            'mb-4 p-4 rounded-xl border',
+            uploadResult.errors === 0 ? 'bg-green-500/10 border-green-500/30' : 'bg-yellow-500/10 border-yellow-500/30',
+          )}
+        >
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               {uploadResult.errors === 0 ? (
@@ -183,7 +165,9 @@ export const BulkUploadSection: React.FC<BulkUploadSectionProps> = ({
                 {uploadResult.errorDetails.map((err, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-xs text-muted-foreground">
                     <XCircle className="w-3 h-3 text-red-500 shrink-0" />
-                    <span>Fila {err.row}: {err.error}</span>
+                    <span>
+                      Fila {err.row}: {err.error}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -200,9 +184,7 @@ export const BulkUploadSection: React.FC<BulkUploadSectionProps> = ({
           onDrop={handleDrop}
           className={cn(
             'border-2 border-dashed rounded-xl p-8 text-center transition-all',
-            isDragging
-              ? 'border-primary bg-primary/5'
-              : 'border-border/50 hover:border-border'
+            isDragging ? 'border-primary bg-primary/5' : 'border-border/50 hover:border-border',
           )}
         >
           {selectedFile ? (
@@ -211,25 +193,14 @@ export const BulkUploadSection: React.FC<BulkUploadSectionProps> = ({
                 <FileSpreadsheet className="w-8 h-8 text-green-600 dark:text-green-400" />
                 <div className="text-left">
                   <p className="font-medium">{selectedFile.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {(selectedFile.size / 1024).toFixed(1)} KB
-                  </p>
+                  <p className="text-xs text-muted-foreground">{(selectedFile.size / 1024).toFixed(1)} KB</p>
                 </div>
               </div>
               <div className="flex items-center justify-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={resetUpload}
-                  disabled={isUploading}
-                >
+                <Button variant="outline" size="sm" onClick={resetUpload} disabled={isUploading}>
                   {t('common:cancel', { defaultValue: 'Cancelar' })}
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={handleUpload}
-                  disabled={isUploading}
-                >
+                <Button size="sm" onClick={handleUpload} disabled={isUploading}>
                   {isUploading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-1 animate-spin" />
@@ -247,19 +218,11 @@ export const BulkUploadSection: React.FC<BulkUploadSectionProps> = ({
           ) : (
             <>
               <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
-              <p className="font-medium mb-1">
-                {t('playtelecom:stock.upload.dragDrop', { defaultValue: 'Arrastra un archivo CSV aquí' })}
-              </p>
+              <p className="font-medium mb-1">{t('playtelecom:stock.upload.dragDrop', { defaultValue: 'Arrastra un archivo CSV aquí' })}</p>
               <p className="text-sm text-muted-foreground mb-4">
                 {t('playtelecom:stock.upload.orClick', { defaultValue: 'o haz clic para seleccionar' })}
               </p>
-              <input
-                type="file"
-                accept=".csv"
-                onChange={handleFileSelect}
-                className="hidden"
-                id="csv-upload"
-              />
+              <input type="file" accept=".csv" onChange={handleFileSelect} className="hidden" id="csv-upload" />
               <label htmlFor="csv-upload">
                 <Button variant="outline" asChild>
                   <span>
@@ -276,10 +239,8 @@ export const BulkUploadSection: React.FC<BulkUploadSectionProps> = ({
       {/* Instructions */}
       <div className="mt-4 p-3 rounded-lg bg-muted/30">
         <p className="text-xs text-muted-foreground">
-          <strong className="text-foreground">
-            {t('playtelecom:stock.upload.format', { defaultValue: 'Formato requerido' })}:
-          </strong>{' '}
-          CSV con columnas: serial, category, batch_id, notes (opcional)
+          <strong className="text-foreground">{t('playtelecom:stock.upload.format', { defaultValue: 'Formato requerido' })}:</strong> CSV
+          con columnas: serial, category, batch_id, notes (opcional)
         </p>
       </div>
     </GlassCard>

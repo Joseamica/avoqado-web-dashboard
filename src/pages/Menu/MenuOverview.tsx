@@ -3,7 +3,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { usePermissions } from '@/hooks/usePermissions'
+import { useAccess } from '@/hooks/use-access'
 import * as menuService from '@/services/menu.service'
 import { Menu, MenuCategory, Product } from '@/types'
 import { InventoryBadge } from '@/components/inventory/InventoryBadge'
@@ -187,7 +187,7 @@ export default function Overview() {
   const navigate = useNavigate()
   const { venueId, venueSlug, fullBasePath } = useCurrentVenue()
   const queryClient = useQueryClient()
-  const { can } = usePermissions()
+  const { can } = useAccess()
 
   const [activeId, setActiveId] = useState<string | null>(null)
   const [menuOrder, setMenuOrder] = useState<string[]>([])

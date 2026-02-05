@@ -504,12 +504,12 @@ const router = createBrowserRouter(
                 // White-Label Module-Specific Features (accessed via /venues/:slug)
                 {
                   path: 'command-center',
-                  element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" />,
+                  element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" featureCode="COMMAND_CENTER" />,
                   children: [{ index: true, element: <PlayTelecomCommandCenter /> }],
                 },
                 {
                   path: 'stock',
-                  element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" />,
+                  element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" featureCode="SERIALIZED_STOCK" />,
                   children: [{ index: true, element: <PlayTelecomStock /> }],
                 },
                 {
@@ -517,7 +517,7 @@ const router = createBrowserRouter(
                   element: (
                     <ModuleProtectedRoute
                       requiredModule="WHITE_LABEL_DASHBOARD"
-                      allowedRoles={[StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                      featureCode="PROMOTERS_AUDIT"
                     />
                   ),
                   children: [{ index: true, element: <PlayTelecomPromoters /> }],
@@ -527,7 +527,7 @@ const router = createBrowserRouter(
                   element: (
                     <ModuleProtectedRoute
                       requiredModule="WHITE_LABEL_DASHBOARD"
-                      allowedRoles={[StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                      featureCode="STORES_ANALYSIS"
                     />
                   ),
                   children: [{ index: true, element: <PlayTelecomStores /> }],
@@ -605,7 +605,7 @@ const router = createBrowserRouter(
                       element: (
                         <ModuleProtectedRoute
                           requiredModule="WHITE_LABEL_DASHBOARD"
-                          allowedRoles={[StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                          featureCode="PROMOTERS_AUDIT"
                         />
                       ),
                       children: [{ index: true, element: <PlayTelecomPromoters /> }],
@@ -615,7 +615,7 @@ const router = createBrowserRouter(
                       element: (
                         <ModuleProtectedRoute
                           requiredModule="WHITE_LABEL_DASHBOARD"
-                          allowedRoles={[StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                          featureCode="STORES_ANALYSIS"
                         />
                       ),
                       children: [{ index: true, element: <PlayTelecomStores /> }],
@@ -625,7 +625,7 @@ const router = createBrowserRouter(
                       element: (
                         <ModuleProtectedRoute
                           requiredModule="WHITE_LABEL_DASHBOARD"
-                          allowedRoles={[StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                          featureCode="MANAGERS_DASHBOARD"
                         />
                       ),
                       children: [{ index: true, element: <PlayTelecomManagers /> }],
@@ -635,7 +635,7 @@ const router = createBrowserRouter(
                       element: (
                         <ModuleProtectedRoute
                           requiredModule="WHITE_LABEL_DASHBOARD"
-                          allowedRoles={[StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                          featureCode="USERS_MANAGEMENT"
                         />
                       ),
                       children: [{ index: true, element: <PlayTelecomUsers /> }],
@@ -645,7 +645,7 @@ const router = createBrowserRouter(
                       element: (
                         <ModuleProtectedRoute
                           requiredModule="WHITE_LABEL_DASHBOARD"
-                          allowedRoles={[StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                          featureCode="TPV_CONFIGURATION"
                         />
                       ),
                       children: [{ index: true, element: <PlayTelecomTpvConfig /> }],
@@ -655,7 +655,7 @@ const router = createBrowserRouter(
                       element: (
                         <ModuleProtectedRoute
                           requiredModule="WHITE_LABEL_DASHBOARD"
-                          allowedRoles={[StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                          featureCode="SUPERVISOR_DASHBOARD"
                         />
                       ),
                       children: [{ index: true, element: <PlayTelecomSupervisor /> }],
@@ -665,7 +665,7 @@ const router = createBrowserRouter(
                       element: (
                         <ModuleProtectedRoute
                           requiredModule="WHITE_LABEL_DASHBOARD"
-                          allowedRoles={[StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                          featureCode="CLOSING_REPORT"
                         />
                       ),
                       children: [{ index: true, element: <PlayTelecomReporte /> }],

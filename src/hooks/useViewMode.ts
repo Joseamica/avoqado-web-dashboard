@@ -22,7 +22,7 @@ export type ViewMode = 'traditional' | 'whitelabel'
 export const useViewMode = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { venue, venueSlug } = useCurrentVenue()
+  const { venue, venueSlug, fullBasePath } = useCurrentVenue()
 
   // Detect current mode from URL
   // White-label: /wl/venues/:slug/* or /wl/organizations/:slug/*
@@ -32,9 +32,23 @@ export const useViewMode = () => {
   // Check if white-label is available for current venue
   const hasWhiteLabel = venue?.modules?.some(m => m.module.code === 'WHITE_LABEL_DASHBOARD' && m.enabled) ?? false
 
+  // Pages that only exist in white-label mode (not in traditional /venues/:slug routes)
+  const whiteLabelOnlyPages = [
+    'supervisor',
+    'managers',
+    'users',
+    'tpv-config',
+    'reporte',
+    'command-center',
+    'promoters',
+    'stores',
+    'stock',
+    'sales',
+  ]
+
   /**
    * Switch between traditional and white-label views
-   * Preserves the current page path (e.g., /home, /settings, etc.)
+   * Handles pages that only exist in one mode by redirecting to home
    */
   const switchView = (targetMode: ViewMode) => {
     if (!venueSlug) return
@@ -46,9 +60,20 @@ export const useViewMode = () => {
       const newPath = currentPath.replace(/^\/venues\//, '/wl/venues/')
       navigate(newPath, { replace: true })
     } else if (targetMode === 'traditional' && currentMode === 'whitelabel') {
-      // /wl/venues/slug/page → /venues/slug/page
-      const newPath = currentPath.replace(/^\/wl\/venues\//, '/venues/')
-      navigate(newPath, { replace: true })
+      // Check if current page exists in traditional mode
+      // Extract the page path after /wl/venues/:slug/
+      const pageMatch = currentPath.match(/^\/wl\/venues\/[^/]+\/(.*)$/)
+      const currentPage = pageMatch?.[1]?.split('/')[0] || ''
+
+      if (whiteLabelOnlyPages.includes(currentPage)) {
+        // Page doesn't exist in traditional mode, go to home
+        const traditionalBasePath = fullBasePath.replace(/^\/wl(\/venues)?/, '/venues')
+        navigate(`${traditionalBasePath}/home`, { replace: true })
+      } else {
+        // /wl/venues/slug/page → /venues/slug/page
+        const newPath = currentPath.replace(/^\/wl\/venues\//, '/venues/')
+        navigate(newPath, { replace: true })
+      }
     }
   }
 

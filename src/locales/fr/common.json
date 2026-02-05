@@ -111,7 +111,12 @@
     "addVenue": "Ajouter un établissement",
     "selectVenue": "Sélectionner un établissement",
     "current": "(actuel)",
-    "inactive": "Inactifs"
+    "inactive": "Inactifs",
+    "corporation": "Corporation",
+    "suspended": "Suspendu",
+    "adminSuspended": "Suspendu par l'admin",
+    "closed": "Fermé",
+    "otherVenues": "Autres établissements"
   },
   "layout": {
     "noVenuesAssigned": "Aucune venue assignée",

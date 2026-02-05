@@ -30,22 +30,64 @@ import { AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tool
 import { Store, TrendingUp, Package, Users, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useAuth } from '@/context/AuthContext'
 import { useQuery } from '@tanstack/react-query'
-import { getOrganizationVenues, getRevenueVsTarget } from '@/services/organization.service'
-import { getCommandCenterSummary, getSalesTrend } from '@/services/commandCenter.service'
-import { getSerializedInventorySummary } from '@/services/serializedInventory.service'
+import { useAccess } from '@/hooks/use-access'
+import {
+  getVenues as getStoresAnalysisVenues,
+  getRevenueVsTarget as getStoresRevenueVsTarget,
+  getStoreSummary,
+  getStoreSalesTrend,
+  getStoreInventorySummary,
+} from '@/services/storesAnalysis.service'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 export function StoresAnalysis() {
   const { venue } = useCurrentVenue()
+  const { allVenues } = useAuth()
+  const { getDataScope } = useAccess()
   const [selectedStore, setSelectedStore] = useState<string>('')
 
-  const { data: venuesData, isLoading: venuesLoading } = useQuery({
-    queryKey: ['organization', 'venues', venue?.organizationId],
-    queryFn: () => getOrganizationVenues(venue!.organizationId),
-    enabled: !!venue?.organizationId,
+  // Get dataScope from white-label config for this feature
+  const dataScope = getDataScope('STORES_ANALYSIS')
+  const venueId = venue?.id
+
+  // Fetch venues from white-label stores analysis endpoint (uses venue-level access control)
+  const { data: storesAnalysisVenues, isLoading: storesVenuesLoading } = useQuery({
+    queryKey: ['stores-analysis', 'venues', venueId],
+    queryFn: () => getStoresAnalysisVenues(venueId!),
+    enabled: !!venueId,
   })
+
+  // Determine which venues to show based on dataScope
+  const venuesData = useMemo(() => {
+    // If we have data from stores analysis endpoint, use it
+    if (storesAnalysisVenues?.venues) {
+      // Map the response to match expected format
+      return storesAnalysisVenues.venues.map(v => ({
+        id: v.id,
+        name: v.name,
+        slug: v.slug,
+        status: v.alertLevel === 'CRITICAL' ? 'INACTIVE' : 'ACTIVE',
+        organizationId: venue?.organizationId || '',
+      }))
+    }
+
+    // Fallback based on dataScope
+    switch (dataScope) {
+      case 'venue':
+        return venue ? [venue] : []
+      case 'user-venues':
+        return allVenues.filter(v => v.organizationId === venue?.organizationId)
+      case 'organization':
+        return allVenues.filter(v => v.organizationId === venue?.organizationId)
+      default:
+        return venue ? [venue] : []
+    }
+  }, [dataScope, venue, allVenues, storesAnalysisVenues])
+
+  const venuesLoading = storesVenuesLoading
 
   useEffect(() => {
     if (!venuesData?.length) return
@@ -61,28 +103,31 @@ export function StoresAnalysis() {
 
   const currentStoreId = currentStore?.id || null
 
+  // Fetch store summary data (centralized under STORES_ANALYSIS)
   const { data: summaryData, isLoading: summaryLoading } = useQuery({
-    queryKey: ['command-center-summary', currentStoreId],
-    queryFn: () => getCommandCenterSummary(currentStoreId!),
-    enabled: !!currentStoreId,
+    queryKey: ['stores-analysis', 'store-summary', venueId, currentStoreId],
+    queryFn: () => getStoreSummary(venueId!, currentStoreId!),
+    enabled: !!venueId && !!currentStoreId,
   })
 
+  // Fetch sales trend data (centralized under STORES_ANALYSIS)
   const { data: salesTrendData, isLoading: salesTrendLoading } = useQuery({
-    queryKey: ['sales-trend', currentStoreId],
-    queryFn: () => getSalesTrend(currentStoreId!, { days: 7 }),
-    enabled: !!currentStoreId,
+    queryKey: ['stores-analysis', 'store-sales-trend', venueId, currentStoreId],
+    queryFn: () => getStoreSalesTrend(venueId!, currentStoreId!, { days: 7 }),
+    enabled: !!venueId && !!currentStoreId,
   })
 
+  // Fetch inventory summary data (centralized under STORES_ANALYSIS)
   const { data: serializedSummary } = useQuery({
-    queryKey: ['serialized-inventory-summary', currentStoreId],
-    queryFn: () => getSerializedInventorySummary(currentStoreId!),
-    enabled: !!currentStoreId,
+    queryKey: ['stores-analysis', 'store-inventory-summary', venueId, currentStoreId],
+    queryFn: () => getStoreInventorySummary(venueId!, currentStoreId!),
+    enabled: !!venueId && !!currentStoreId,
   })
 
   const { data: revenueVsTarget } = useQuery({
-    queryKey: ['revenue-vs-target', venue?.organizationId, currentStoreId],
-    queryFn: () => getRevenueVsTarget(venue!.organizationId, currentStoreId!),
-    enabled: !!venue?.organizationId && !!currentStoreId,
+    queryKey: ['stores-analysis', 'revenue-vs-target', venueId, currentStoreId],
+    queryFn: () => getStoresRevenueVsTarget(venueId!, currentStoreId!),
+    enabled: !!venueId && !!currentStoreId,
   })
 
   const attendanceData: AttendanceDay[] = []

@@ -338,7 +338,7 @@ describe('NotificationContext Reducer', () => {
 describe('Socket Handler Error Boundaries', () => {
   it('should handle browser notification failure gracefully', () => {
     // Simulate what happens in the socket handler when browser notification fails
-    const notification = {
+    const _notification = {
       id: 'test-id',
       title: 'Test',
       message: 'Test message',

@@ -29,7 +29,7 @@ import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/api'
-import { getOrganizationVenues } from '@/services/organization.service'
+import accessService from '@/services/access.service'
 
 // Types
 interface TimeEntryData {
@@ -185,12 +185,13 @@ export default function PromotersAuditPage() {
     enabled: !!venue?.organizationId,
   })
 
-  // Get all venues in organization for filter options
-  const { data: venuesData } = useQuery({
-    queryKey: ['org-venues', venue?.organizationId],
-    queryFn: () => getOrganizationVenues(venue!.organizationId),
+  // Get all venues the user has access to for filter options
+  const { data: venuesResponse } = useQuery({
+    queryKey: ['user-venues'],
+    queryFn: () => accessService.getVenues(),
     enabled: !!venue?.organizationId,
   })
+  const venuesData = venuesResponse?.venues
 
   // Filter options
   const storeOptions = useMemo(() => {

@@ -2,8 +2,9 @@
  * ModuleProtectedRoute - Route guard for module-gated functionality
  *
  * Wraps routes that require a specific module to be enabled for the venue.
- * Optionally restricts access to specific roles.
- * Redirects to home page with toast notification if module is not enabled or role is not allowed.
+ * Supports two modes for role-based access:
+ * 1. White-label mode: Uses `featureCode` to check permissions from white-label configuration
+ * 2. Static mode: Uses `allowedRoles` for traditional role checking
  *
  * Usage:
  * ```tsx
@@ -12,7 +13,12 @@
  *   <Route path="playtelecom" element={<CommandCenter />} />
  * </Route>
  *
- * // Module + Role protection
+ * // White-label feature protection (recommended for white-label routes)
+ * <Route element={<ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" featureCode="SUPERVISOR_DASHBOARD" />}>
+ *   <Route path="supervisor" element={<SupervisorDashboard />} />
+ * </Route>
+ *
+ * // Static role protection (fallback when white-label is not configured)
  * <Route element={<ModuleProtectedRoute requiredModule="SERIALIZED_INVENTORY" allowedRoles={['MANAGER', 'ADMIN', 'OWNER']} />}>
  *   <Route path="stores" element={<StoresAnalysis />} />
  * </Route>
@@ -22,25 +28,31 @@
 import { Navigate, Outlet, useLocation, useParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { StaffRole } from '@/types'
+import { useAccess } from '@/hooks/use-access'
 
 interface ModuleProtectedRouteProps {
-  /** Module code to check (e.g., 'SERIALIZED_INVENTORY') */
+  /** Module code to check (e.g., 'SERIALIZED_INVENTORY', 'WHITE_LABEL_DASHBOARD') */
   requiredModule: string
-  /** Optional: Restrict to specific roles */
+  /** Optional: White-label feature code for permission checking (e.g., 'SUPERVISOR_DASHBOARD') */
+  featureCode?: string
+  /** Optional: Restrict to specific roles (fallback when white-label not configured) */
   allowedRoles?: StaffRole[]
   /** Optional: Additional permission check */
   permission?: string
 }
 
-export function ModuleProtectedRoute({ requiredModule, allowedRoles, permission: _permission }: ModuleProtectedRouteProps) {
+export function ModuleProtectedRoute({ requiredModule, featureCode, allowedRoles, permission: _permission }: ModuleProtectedRouteProps) {
   const { checkModuleAccess, activeVenue, staffInfo, user, isLoading } = useAuth()
+  const { canFeature, isLoading: isAccessLoading, role } = useAccess()
   const location = useLocation()
   const { slug } = useParams<{ slug: string }>()
   const { toast } = useToast()
   const { t } = useTranslation()
+
+  const isSuperAdmin = role === 'SUPERADMIN'
 
   // Check module access using checkModuleAccess (VenueModule table)
   const hasModuleAccess = checkModuleAccess(requiredModule)
@@ -48,16 +60,26 @@ export function ModuleProtectedRoute({ requiredModule, allowedRoles, permission:
   // Get effective role (venue-specific role from staffInfo)
   const effectiveRole = staffInfo?.role || user?.role
 
-  // Check role access if allowedRoles specified
-  const hasRoleAccess = !allowedRoles || (effectiveRole && allowedRoles.includes(effectiveRole as StaffRole))
+  // Check role access: prioritize white-label feature permissions over static allowedRoles
+  const hasRoleAccess = useMemo(() => {
+    // If featureCode is provided, use white-label access check
+    // canFeature returns true if white-label is disabled (allowing normal dashboard mode)
+    if (featureCode) {
+      return canFeature(featureCode)
+    }
 
-  // Determine if we're waiting for venue to load
-  // This prevents premature redirects when activeVenue hasn't been set yet
-  const isVenueLoading = isLoading || (slug && !activeVenue)
+    // Fallback to static allowedRoles if no featureCode
+    return !allowedRoles || (effectiveRole && allowedRoles.includes(effectiveRole as StaffRole))
+  }, [featureCode, canFeature, allowedRoles, effectiveRole])
+
+  // Determine if we're waiting for venue or access to load
+  // This prevents premature redirects when activeVenue or permissions haven't been set yet
+  const isVenueLoading = isLoading || isAccessLoading || (slug && !activeVenue)
 
   // Show toast when redirecting due to missing module
   // Only show when we're NOT loading and activeVenue is set
   useEffect(() => {
+    if (isSuperAdmin) return
     if (!isVenueLoading && !hasModuleAccess && activeVenue) {
       toast({
         title: t('common:module_not_available', { defaultValue: 'Module not available' }),
@@ -68,10 +90,11 @@ export function ModuleProtectedRoute({ requiredModule, allowedRoles, permission:
         variant: 'destructive',
       })
     }
-  }, [isVenueLoading, hasModuleAccess, requiredModule, activeVenue, toast, t])
+  }, [isVenueLoading, isSuperAdmin, hasModuleAccess, requiredModule, activeVenue, toast, t])
 
   // Show toast when redirecting due to insufficient role
   useEffect(() => {
+    if (isSuperAdmin) return
     if (!isVenueLoading && hasModuleAccess && !hasRoleAccess && activeVenue) {
       toast({
         title: t('common:access_denied', { defaultValue: 'Access denied' }),
@@ -81,7 +104,12 @@ export function ModuleProtectedRoute({ requiredModule, allowedRoles, permission:
         variant: 'destructive',
       })
     }
-  }, [isVenueLoading, hasModuleAccess, hasRoleAccess, activeVenue, toast, t])
+  }, [isVenueLoading, isSuperAdmin, hasModuleAccess, hasRoleAccess, activeVenue, toast, t])
+
+  // SUPERADMIN always has access to everything
+  if (isSuperAdmin) {
+    return <Outlet />
+  }
 
   // Show loading state while venue is being resolved
   // This prevents redirecting before we know if the module is enabled

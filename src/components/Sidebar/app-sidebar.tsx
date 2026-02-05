@@ -36,7 +36,7 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } fr
 import { useAuth } from '@/context/AuthContext'
 import { SessionVenue, User, Venue } from '@/types'
 import { useTranslation } from 'react-i18next'
-import { usePermissions } from '@/hooks/usePermissions'
+import { useAccess } from '@/hooks/use-access'
 import { canAccessOperationalFeatures } from '@/lib/kyc-utils'
 import { useWhiteLabelConfig, getFeatureRoute } from '@/hooks/useWhiteLabelConfig'
 
@@ -94,7 +94,7 @@ const FEATURE_CODE_TO_TRANSLATION_KEY: Record<string, string> = {
 export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sidebar> & { user: User }) {
   const { allVenues, activeVenue, staffInfo, checkFeatureAccess } = useAuth()
   const { t } = useTranslation(['translation', 'sidebar'])
-  const { can } = usePermissions()
+  const { can, canFeature } = useAccess()
 
   // Use venue-specific role from staffInfo (properly derived from active venue)
   const effectiveRole = staffInfo?.role || user.role
@@ -120,7 +120,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     // ========== White-Label Mode: Show only configured dashboard items ==========
     // Uses direct routes (not /wl/) - white-label just filters the sidebar
     if (isWhiteLabelMode && isWhiteLabelEnabled && wlNavigation.length > 0) {
-      // Filter navigation to only show enabled features
+      // Filter navigation to only show enabled features that the user can access
       // Also filter out items without featureCode (legacy data)
       const enabledNavItems = wlNavigation.filter(navItem => {
         const featureCode = navItem.featureCode || ''
@@ -128,7 +128,11 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         // If no featureCode, we can't verify - filter it out
         if (!featureCode) return false
 
-        return isFeatureEnabled(featureCode)
+        // Check if feature is enabled
+        if (!isFeatureEnabled(featureCode)) return false
+
+        // Check if user has access based on role and feature access config
+        return canFeature(featureCode)
       })
 
       const whiteLabelItems = enabledNavItems.map(navItem => {
@@ -171,6 +175,10 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     }
 
     // ========== Normal Avoqado Dashboard Mode ==========
+    // For white-label venues in "Full" mode, only show features that are enabled
+    // This prevents showing features like Products/Menu that aren't configured
+    const isWhiteLabelVenue = isWhiteLabelEnabled
+
     // Define all possible items with their required permissions and features
     const allItems = [
       { title: t('sidebar:routes.home'), isActive: true, url: 'home', icon: Home, permission: 'home:read', locked: false },
@@ -256,10 +264,39 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       { title: t('sidebar:routes.reviews'), isActive: true, url: 'reviews', icon: Star, permission: 'reviews:read', locked: false },
     ]
 
+    // Map of standard sidebar URLs to their white-label feature codes
+    // Used to filter sidebar items for white-label venues in "Full" mode
+    const urlToWhiteLabelFeature: Record<string, string> = {
+      'menumaker/overview': 'AVOQADO_MENU',
+      'team': 'AVOQADO_TEAM',
+      'reviews': 'AVOQADO_REVIEWS',
+      'tpv': 'AVOQADO_TPVS',
+      'commissions': 'AVOQADO_COMMISSIONS',
+      'available-balance': 'AVOQADO_BALANCE',
+      'shifts': 'AVOQADO_SHIFTS',
+    }
+
     // Filter items based on permissions AND active features
     const filteredItems = allItems.filter(item => {
       // Check permission
       if (!can(item.permission)) return false
+
+      // For white-label venues in "Full" mode, check BOTH:
+      // 1. Feature is enabled in white-label config
+      // 2. User's role has access to the feature
+      if (isWhiteLabelVenue) {
+        const whiteLabelFeatureCode = urlToWhiteLabelFeature[item.url]
+        if (whiteLabelFeatureCode) {
+          // Check if feature is enabled
+          if (!isFeatureEnabled(whiteLabelFeatureCode)) {
+            return false
+          }
+          // Check if user's role can access this feature
+          if (!canFeature(whiteLabelFeatureCode)) {
+            return false
+          }
+        }
+      }
 
       // Check required feature (if specified)
       if ('requiredFeature' in item && item.requiredFeature) {
@@ -277,16 +314,18 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     // Sales submenu (Ventas) - Orders and Transactions grouped together
     // Following Square's "Orders & payments" pattern for better UX
     const salesSubItems = [
-      { title: t('sidebar:salesMenu.orders', { defaultValue: 'Órdenes' }), url: 'orders', permission: 'orders:read' },
-      { title: t('sidebar:salesMenu.transactions', { defaultValue: 'Transacciones' }), url: 'payments', permission: 'payments:read' },
+      { title: t('sidebar:salesMenu.orders', { defaultValue: 'Órdenes' }), url: 'orders', permission: 'orders:read', whiteLabelFeature: 'AVOQADO_ORDERS' },
+      { title: t('sidebar:salesMenu.transactions', { defaultValue: 'Transacciones' }), url: 'payments', permission: 'payments:read', whiteLabelFeature: 'AVOQADO_PAYMENTS' },
     ].filter(item => {
       // Check permission
       if (item.permission && !can(item.permission)) return false
+      // For white-label venues, check if feature is enabled
+      if (isWhiteLabelVenue && item.whiteLabelFeature && !isFeatureEnabled(item.whiteLabelFeature)) return false
       return true
     })
 
     // Only show Sales menu if user has at least one subitem
-    if (salesSubItems.length > 0) {
+    if (salesSubItems.length > 0 && (!isWhiteLabelVenue || isFeatureEnabled('AVOQADO_ORDERS') || isFeatureEnabled('AVOQADO_PAYMENTS'))) {
       // Find index after Inventory to insert Sales menu
       const inventoryIndex = filteredItems.findIndex(item => item.url === 'inventory/raw-materials')
       const insertIndex = inventoryIndex !== -1 ? inventoryIndex + 1 : filteredItems.length
@@ -315,8 +354,8 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       return true
     })
 
-    // Only show Customers menu if user has at least one subitem
-    if (customersSubItems.length > 0) {
+    // Only show Customers menu if user has at least one subitem AND (not white-label OR customers feature enabled)
+    if (customersSubItems.length > 0 && (!isWhiteLabelVenue || isFeatureEnabled('AVOQADO_CUSTOMERS'))) {
       // Find index after Reviews to insert Customers menu
       const reviewsIndex = filteredItems.findIndex(item => item.url === 'reviews')
       const insertIndex = reviewsIndex !== -1 ? reviewsIndex + 1 : filteredItems.length
@@ -336,8 +375,8 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       { title: t('sidebar:promotionsMenu.coupons'), url: 'promotions/coupons', permission: 'coupons:read' },
     ].filter(item => !item.permission || can(item.permission))
 
-    // Only show Promotions menu if user has at least one subitem
-    if (promotionsSubItems.length > 0) {
+    // Only show Promotions menu if user has at least one subitem AND (not white-label OR promotions feature enabled)
+    if (promotionsSubItems.length > 0 && (!isWhiteLabelVenue || isFeatureEnabled('AVOQADO_PROMOTIONS'))) {
       // Find index after Customers menu to insert Promotions menu
       const customersIndex = filteredItems.findIndex(item => item.url === '#customers')
       const insertIndex = customersIndex !== -1 ? customersIndex + 1 : filteredItems.length
@@ -367,8 +406,8 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       { title: t('sidebar:reportsMenu.modifiers'), url: 'reports/modifiers', permission: 'reports:read' },
     ].filter(item => !item.permission || can(item.permission))
 
-    // Only show Reports menu if user has at least one subitem
-    if (reportsSubItems.length > 0) {
+    // Only show Reports menu if user has at least one subitem AND (not white-label OR reports feature enabled)
+    if (reportsSubItems.length > 0 && (!isWhiteLabelVenue || isFeatureEnabled('AVOQADO_REPORTS'))) {
       // Find index after Promotions menu to insert Reports menu
       const promotionsIndex = filteredItems.findIndex(item => item.url === '#promotions')
       const insertIndex = promotionsIndex !== -1 ? promotionsIndex + 1 : filteredItems.length
@@ -436,10 +475,12 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     hasKYCAccess,
     checkFeatureAccess,
     activeVenue,
+    location.pathname,
     isWhiteLabelMode,
     isWhiteLabelEnabled,
     wlNavigation,
     isFeatureEnabled,
+    canFeature,
   ])
 
   const superAdminRoutes = React.useMemo(

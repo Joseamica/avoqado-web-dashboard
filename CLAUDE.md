@@ -283,17 +283,31 @@ const filteredData = useMemo(
 
 ### 3. Permissions
 
-**Both frontend AND backend validation required.**
+**Backend is the SINGLE SOURCE OF TRUTH. Frontend just calls `can('permission')`.**
 
 ```typescript
-// UI control (hide/show)
+// UI control (hide/show) - uses useAccess hook
+import { useAccess } from '@/hooks/use-access'
+
+const { can } = useAccess()
+{can('tpv:create') && <Button>Create</Button>}
+
+// Or use PermissionGate component
 <PermissionGate permission="tpv:create">
   <Button>Create</Button>
 </PermissionGate>
 
-// Backend MUST validate too
-router.post('/tpvs', checkPermission('tpv:create'), controller.create)
+// Backend validates with verifyAccess middleware
+router.post('/tpvs', verifyAccess({ permission: 'tpv:create' }), controller.create)
 ```
+
+**🔴 MANDATORY: When adding NEW features with permissions:**
+
+1. **Add permission to backend** (`avoqado-server/src/lib/permissions.ts` - `DEFAULT_PERMISSIONS`)
+2. **If white-label feature**: Add mapping in `avoqado-server/src/services/access/access.service.ts` (`PERMISSION_TO_FEATURE_MAP`)
+3. **Add route protection** in backend with `verifyAccess({ permission: '...' })`
+4. **Use in frontend** with `can()` or `<PermissionGate>` - no mapping needed
+5. **Update docs** if adding new permission categories
 
 **See:** [Permission system guide](docs/architecture/permissions.md)
 
@@ -1225,7 +1239,9 @@ const { staffInfo } = useAuth()
 
 ### Creating a New Feature with Permissions
 
-1. **Add permission to defaults** (`src/lib/permissions/defaultPermissions.ts`):
+**🔴 IMPORTANT: Backend is the single source of truth. Start there.**
+
+1. **Add permission to BACKEND** (`avoqado-server/src/lib/permissions.ts`):
    ```typescript
    [StaffRole.MANAGER]: [
      // ... existing
@@ -1234,26 +1250,36 @@ const { staffInfo } = useAuth()
    ]
    ```
 
-2. **Protect route** (`src/routes/router.tsx`):
+2. **If white-label feature, add to PERMISSION_TO_FEATURE_MAP** (`avoqado-server/src/services/access/access.service.ts`):
+   ```typescript
+   const PERMISSION_TO_FEATURE_MAP = {
+     // ... existing
+     'reports:read': 'AVOQADO_REPORTS',
+     'reports:create': 'AVOQADO_REPORTS',
+     'reports:export': 'AVOQADO_REPORTS',
+   }
+   ```
+
+3. **Add backend route protection**:
+   ```typescript
+   router.post('/reports', verifyAccess({ permission: 'reports:create' }), controller.create)
+   ```
+
+4. **Protect frontend route** (`src/routes/router.tsx`):
    ```typescript
    <Route element={<PermissionProtectedRoute permission="reports:read" />}>
      <Route path="reports" element={<ReportsPage />} />
    </Route>
    ```
 
-3. **Use PermissionGate in component**:
+5. **Use PermissionGate in component** (just calls `can()` - no mapping needed):
    ```typescript
    <PermissionGate permission="reports:create">
      <Button onClick={createReport}>Create Report</Button>
    </PermissionGate>
    ```
 
-4. **Add backend protection** (see backend CLAUDE.md):
-   ```typescript
-   router.post('/reports', checkPermission('reports:create'), controller.create)
-   ```
-
-5. **Keep in sync**: Frontend and backend permissions MUST match!
+**Note:** Frontend no longer needs its own `DEFAULT_PERMISSIONS` - backend handles all resolution.
 
 ### Adding Translations
 

@@ -31,7 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
-import { usePermissions } from '@/hooks/usePermissions'
+import { useAccess } from '@/hooks/use-access'
 import { tpvSettingsService, TpvSettings, TpvSettingsUpdate } from '@/services/tpv-settings.service'
 
 interface TpvSettingsFormProps {
@@ -44,7 +44,7 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
   const { t } = useTranslation('tpv')
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const { can } = usePermissions()
+  const { can } = useAccess()
 
   const canUpdate = can('tpv-settings:update')
 

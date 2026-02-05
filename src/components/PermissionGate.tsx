@@ -1,5 +1,5 @@
 import { ReactNode } from 'react'
-import { usePermissions } from '@/hooks/usePermissions'
+import { useAccess } from '@/hooks/use-access'
 
 interface PermissionGateProps {
   /**
@@ -69,7 +69,7 @@ export function PermissionGate({
   fallback = null,
   children,
 }: PermissionGateProps) {
-  const { can, canAny, canAll } = usePermissions()
+  const { can, canAny, canAll } = useAccess()
 
   // Single permission check
   if (permission) {

@@ -55,7 +55,7 @@ import { MapPin } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { ReceiptUrls } from '@/constants/receipt'
-import { usePermissions } from '@/hooks/usePermissions'
+import { useAccess } from '@/hooks/use-access'
 import { useCommissionByPayment } from '@/hooks/useCommissions'
 import { useAuth } from '@/context/AuthContext'
 import { StaffRole, PaymentMethod, PaymentStatus, PaymentRecordType } from '@/types'
@@ -476,7 +476,7 @@ export default function PaymentId() {
   const { toast } = useToast()
   const { venueId, venue, fullBasePath } = useCurrentVenue()
   const venueTimezone = venue?.timezone || 'America/Mexico_City'
-  const { can } = usePermissions()
+  const { can } = useAccess()
   const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
 
   const canEdit = user?.role === StaffRole.SUPERADMIN

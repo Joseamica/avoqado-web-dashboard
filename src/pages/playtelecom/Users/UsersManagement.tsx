@@ -13,9 +13,8 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { UserPlus } from 'lucide-react'
-import { useOrganization } from '@/hooks/useOrganization'
-import { getOrganizationTeam } from '@/services/organization.service'
-import { getOrgZones, adminResetPassword } from '@/services/organizationDashboard.service'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { getTeam, getZones, adminResetPassword } from '@/services/storesAnalysis.service'
 import { useToast } from '@/hooks/use-toast'
 import {
   UserSidebar,
@@ -28,7 +27,7 @@ import {
 
 export function UsersManagement() {
   const { t } = useTranslation(['playtelecom', 'common'])
-  const { organizationId } = useOrganization()
+  const { venueId } = useCurrentVenue()
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
@@ -36,23 +35,23 @@ export function UsersManagement() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
-  // Fetch team members
+  // Fetch team members via venue-level endpoint
   const { data: teamMembers = [] } = useQuery({
-    queryKey: ['organization', organizationId, 'team'],
-    queryFn: () => getOrganizationTeam(organizationId!),
-    enabled: !!organizationId,
+    queryKey: ['stores-analysis', venueId, 'team'],
+    queryFn: () => getTeam(venueId!),
+    enabled: !!venueId,
   })
 
-  // Fetch zones
+  // Fetch zones via venue-level endpoint
   const { data: orgZones = [] } = useQuery({
-    queryKey: ['organization', organizationId, 'zones'],
-    queryFn: () => getOrgZones(organizationId!),
-    enabled: !!organizationId,
+    queryKey: ['stores-analysis', venueId, 'zones'],
+    queryFn: () => getZones(venueId!),
+    enabled: !!venueId,
   })
 
   // Reset password mutation
   const resetPasswordMutation = useMutation({
-    mutationFn: (userId: string) => adminResetPassword(organizationId!, userId),
+    mutationFn: (userId: string) => adminResetPassword(venueId!, userId),
     onSuccess: (data) => {
       toast({
         title: t('playtelecom:users.resetPasswordSuccess', { defaultValue: 'Password reseteado' }),
@@ -101,9 +100,8 @@ export function UsersManagement() {
       phone: member.phone || undefined,
       role: mapRole(member.venues),
       status: 'active' as const,
-      createdAt: member.createdAt,
       selectedZone: null,
-      selectedStores: member.venues.map(v => v.venueId),
+      selectedStores: member.venues.map(v => v.id),
       permissions: [],
       auditLog: [],
     })),
@@ -133,9 +131,9 @@ export function UsersManagement() {
     // TODO: call API to update user
     setTimeout(() => {
       setIsSaving(false)
-      queryClient.invalidateQueries({ queryKey: ['organization', organizationId, 'team'] })
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'team'] })
     }, 1000)
-  }, [organizationId, queryClient])
+  }, [venueId, queryClient])
 
   // Handle status change
   const handleStatusChange = useCallback((status: 'active' | 'inactive' | 'blocked') => {
