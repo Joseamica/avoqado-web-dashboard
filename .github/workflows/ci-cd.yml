@@ -55,7 +55,7 @@ jobs:
 
       # ✅ OPTIMIZATION: Cache node_modules for 2-3 min savings
       - name: 📦 Cache node_modules
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         id: npm-cache
         with:
           path: node_modules
@@ -100,7 +100,7 @@ jobs:
 
       # ✅ OPTIMIZATION: Upload artifacts to reuse in deploy jobs
       - name: 📤 Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: dashboard-build-${{ github.sha }}
           path: dist/
@@ -124,7 +124,7 @@ jobs:
 
       # ✅ OPTIMIZATION: Download pre-built artifacts instead of rebuilding!
       - name: 📥 Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: dashboard-build-${{ github.sha }}
           path: dist/
@@ -183,7 +183,7 @@ jobs:
 
       # ✅ OPTIMIZATION: Reuse build artifacts
       - name: 📥 Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: dashboard-build-${{ github.sha }}
           path: dist/
@@ -233,7 +233,7 @@ jobs:
 
       # ✅ OPTIMIZATION: Reuse build artifacts
       - name: 📥 Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: dashboard-build-${{ github.sha }}
           path: dist/
