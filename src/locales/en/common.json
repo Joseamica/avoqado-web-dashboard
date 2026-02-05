@@ -178,6 +178,9 @@
     "current": "(current)",
     "inactive": "Inactive",
     "corporation": "Corporation",
+    "suspended": "Suspended",
+    "adminSuspended": "Suspended by Admin",
+    "closed": "Closed",
     "otherVenues": "Other venues"
   },
   "layout": {
