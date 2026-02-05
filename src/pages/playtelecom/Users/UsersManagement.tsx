@@ -100,7 +100,6 @@ export function UsersManagement() {
       phone: member.phone || undefined,
       role: mapRole(member.venues),
       status: 'active' as const,
-      createdAt: member.createdAt,
       selectedZone: null,
       selectedStores: member.venues.map(v => v.id),
       permissions: [],

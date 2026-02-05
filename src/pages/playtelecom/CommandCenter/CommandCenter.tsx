@@ -74,15 +74,15 @@ export default function CommandCenter() {
   // Fetch organization-wide data via venue-level endpoints (white-label access)
   const { data: overview, isLoading: overviewLoading, refetch: refetchOverview } = useStoresOverview({ refetchInterval: 60000 })
   const { data: venuesResponse, isLoading: venuesLoading, refetch: refetchVenues } = useStoresVenues({ refetchInterval: 60000 })
-  const { data: onlineStaff, isLoading: onlineStaffLoading, refetch: refetchOnlineStaff } = useStoresOnlineStaff({ refetchInterval: 60000 })
+  const { data: onlineStaff, isLoading: _onlineStaffLoading, refetch: refetchOnlineStaff } = useStoresOnlineStaff({ refetchInterval: 60000 })
   const { data: activityFeed, isLoading: activityFeedLoading, refetch: refetchActivityFeed } = useStoresActivityFeed(30, { refetchInterval: 60000 })
   const { data: stockSummary, isLoading: stockLoading, refetch: refetchStockSummary } = useStoresStockSummary({ refetchInterval: 120000 })
   const { data: anomaliesData, isLoading: anomaliesLoading, refetch: refetchAnomalies } = useStoresAnomalies({ refetchInterval: 120000 })
-  const { data: revenueChartData, isLoading: revenueChartLoading, refetch: refetchRevenueChart } = useStoresRevenueVsTarget({
+  const { data: revenueChartData, isLoading: _revenueChartLoading, refetch: refetchRevenueChart } = useStoresRevenueVsTarget({
     refetchInterval: 120000,
     filterVenueId: chartVenueId,
   })
-  const { data: volumeChartData, isLoading: volumeChartLoading, refetch: refetchVolumeChart } = useStoresVolumeVsTarget({
+  const { data: volumeChartData, isLoading: _volumeChartLoading, refetch: refetchVolumeChart } = useStoresVolumeVsTarget({
     refetchInterval: 120000,
     filterVenueId: chartVenueId,
   })
@@ -116,8 +116,8 @@ export default function CommandCenter() {
       lowStockStores: stockSummary?.lowStockAlerts || 0,
       anomalies: anomaliesData?.anomalies?.length || 0,
       criticalAnomalies: anomaliesData?.anomalies?.filter(a => a.severity === 'CRITICAL').length || 0,
-      promotersOnline: onlineStaff?.onlineCount || 0,
-      promotersTotal: onlineStaff?.totalCount || 0,
+      promotersOnline: onlineStaff?.activeCount || 0,
+      promotersTotal: onlineStaff?.total || 0,
     }
   }, [overview, onlineStaff, stockSummary, anomaliesData])
 
@@ -156,7 +156,7 @@ export default function CommandCenter() {
     }))
   }, [volumeChartData])
 
-  const activityTypeLabels = useMemo<Record<ActivityEvent['type'], string>>(
+  const activityTypeLabels = useMemo<Record<ActivityFeedEvent['type'], string>>(
     () => ({
       sale: t('commandCenter.activity.types.sale', { defaultValue: 'Sale' }),
       checkin: t('commandCenter.activity.types.checkin', { defaultValue: 'Check-in' }),
@@ -168,7 +168,7 @@ export default function CommandCenter() {
     [t, i18n.language],
   )
 
-  const activityEvents = useMemo<ActivityEvent[]>(() => activityFeed?.events || [], [activityFeed])
+  const activityEvents = useMemo<ActivityFeedEvent[]>(() => activityFeed?.events || [], [activityFeed])
 
   const liveActivities = useMemo(
     () =>
@@ -432,16 +432,16 @@ export default function CommandCenter() {
     }
 
     // Sort venues by revenue (descending)
-    const sortedByRevenue = [...venues].sort((a, b) => (b.metrics?.revenue || 0) - (a.metrics?.revenue || 0))
+    const sortedByRevenue = [...venues].sort((a, b) => (b.todaySales || 0) - (a.todaySales || 0))
 
     return {
       topStore: sortedByRevenue[0] || null,
       worstStore: venues.length > 1 ? sortedByRevenue[sortedByRevenue.length - 1] : null,
-      topPromoter: topPromoter
-        ? { name: topPromoter.staffName, sales: topPromoter.salesCount }
+      topPromoter: topPromoter?.promoter
+        ? { name: topPromoter.promoter.name, sales: topPromoter.promoter.salesCount }
         : { name: 'Sin datos', sales: 0 },
-      worstAttendance: worstAttendance
-        ? { storeName: worstAttendance.venueName, absences: worstAttendance.absences }
+      worstAttendance: worstAttendance?.venue
+        ? { storeName: worstAttendance.venue.name, absences: Math.round((1 - worstAttendance.venue.attendanceRate) * 100) }
         : { storeName: 'Sin datos', absences: 0 },
     }
   }, [venues, topPromoter, worstAttendance])
@@ -818,7 +818,7 @@ export default function CommandCenter() {
             icon={Award}
             title="Tienda Líder (Ventas)"
             subtitle={operationalInsights.topStore?.name || 'Sin datos'}
-            value={operationalInsights.topStore ? formatCurrency(operationalInsights.topStore.metrics?.revenue || 0) : '--'}
+            value={operationalInsights.topStore ? formatCurrency(operationalInsights.topStore.todaySales || 0) : '--'}
             type="success"
           />
 
@@ -827,7 +827,7 @@ export default function CommandCenter() {
             icon={TrendingDown}
             title="Menor Venta"
             subtitle={operationalInsights.worstStore?.name || 'Sin datos'}
-            value={operationalInsights.worstStore ? formatCurrency(operationalInsights.worstStore.metrics?.revenue || 0) : '--'}
+            value={operationalInsights.worstStore ? formatCurrency(operationalInsights.worstStore.todaySales || 0) : '--'}
             type="danger"
           />
 

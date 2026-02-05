@@ -48,7 +48,7 @@ interface UseCurrentOrganizationReturn {
 export const useCurrentOrganization = (): UseCurrentOrganizationReturn => {
   const params = useParams<{ orgId?: string; orgSlug?: string }>()
   const location = useLocation()
-  const { user, isAuthenticated, staffInfo, allVenues } = useAuth()
+  const { user, isAuthenticated, staffInfo: _staffInfo, allVenues } = useAuth()
   const { venue } = useCurrentVenue()
 
   // Get orgSlug from URL params (new /wl/organizations/:orgSlug routes)
@@ -63,7 +63,7 @@ export const useCurrentOrganization = (): UseCurrentOrganizationReturn => {
   const orgId = orgIdFromUrl || orgIdFromVenue || orgIdFromUser || null
 
   // Check if we're on an organization route (not a venue route)
-  const isOnOrgRoute = location.pathname.startsWith('/organizations/') || location.pathname.startsWith('/wl/organizations/')
+  const _isOnOrgRoute = location.pathname.startsWith('/organizations/') || location.pathname.startsWith('/wl/organizations/')
 
   // TWO DIFFERENT ROLE CHECKS:
   // 1. isOwner (user.role): For UI decisions like venue grouping in switcher

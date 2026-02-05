@@ -129,9 +129,9 @@ export function ManagersDashboard() {
   // Derive KPI data from API
   const kpiData: ManagerKpiData = useMemo(() => {
     const anomalyList = anomalies?.anomalies ?? []
-    const punctualityCount = anomalyList.filter(a => a.type === 'NO_CHECKINS').length
-    const locationCount = anomalyList.filter(a => a.type === 'LOW_STOCK').length
-    const depositCount = anomalyList.filter(a => a.type === 'PENDING_DEPOSITS').length
+    const punctualityCount = anomalyList.filter(a => a.type === 'ATTENDANCE_ISSUE').length
+    const locationCount = anomalyList.filter(a => a.type === 'STOCK_ALERT').length
+    const depositCount = anomalyList.filter(a => a.type === 'DEPOSIT_PENDING').length
 
     // Stock by category from store breakdown
     const defaultColors = ['#6366f1', '#0ea5e9', '#a855f7', '#f59e0b', '#10b981']
@@ -172,8 +172,10 @@ export function ManagersDashboard() {
   const goals = useMemo(() => {
     if (!venuesData?.length) return []
     return venuesData.slice(0, 4).map(v => {
-      const revenue = v.metrics?.revenue ?? 0
-      const growth = v.metrics?.growth ?? 0
+      const todaySales = v.todaySales ?? 0
+      // Calculate growth as percentage of weekly average
+      const weeklyAvg = (v.weekSales ?? 0) / 7
+      const growth = weeklyAvg > 0 ? ((todaySales - weeklyAvg) / weeklyAvg) * 100 : 0
       const percent = Math.min(Math.max(Math.round(growth + 50), 0), 100)
       return {
         storeName: v.name.length > 18 ? v.name.slice(0, 18) + '...' : v.name,

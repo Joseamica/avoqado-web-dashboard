@@ -34,7 +34,7 @@ export interface UserDetail {
   role: UserRole
   status: 'active' | 'inactive' | 'blocked'
   avatarUrl?: string
-  createdAt: string
+  createdAt?: string
   selectedZone: string | null
   selectedStores: string[]
   permissions: string[]

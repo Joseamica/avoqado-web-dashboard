@@ -95,7 +95,7 @@ const ReceiptError = ({ error }: { error: string }) => (
 
 // Receipt Status Badge - Currently unused, kept for future use
  
-const _StatusBadge = ({ status }: { status: string }) => {
+const StatusBadge = ({ status }: { status: string }) => {
   const { t } = useTranslation('payment')
   const { t: tCommon } = useTranslation('common')
   const configs = {
