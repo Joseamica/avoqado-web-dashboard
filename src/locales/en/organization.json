@@ -1,7 +1,7 @@
 {
   "myOrganization": "My Organization",
   "organization": "Organization",
-  "venues": "venues",
+  "venuesLabel": "venues",
   "viewDashboard": "View Dashboard",
   "sidebar": {
     "overview": "Overview",

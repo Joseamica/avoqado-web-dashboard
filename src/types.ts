@@ -1657,6 +1657,16 @@ export interface SessionVenue {
     }
     active: boolean
   }>
+  // Modules enabled for this venue (for module-based access control like WHITE_LABEL_DASHBOARD)
+  modules?: Array<{
+    module: {
+      id: string
+      code: string
+      name: string
+    }
+    enabled: boolean
+    config?: Record<string, unknown>
+  }>
 }
 
 // ==========================================

@@ -3,6 +3,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useQuery } from '@tanstack/react-query'
 import { getOrganizationStats, OrganizationStats, OrganizationVenue, getOrganizationVenues } from '@/services/organization.service'
 import { useCurrentVenue } from './use-current-venue'
+import { StaffRole } from '@/types'
 
 interface UseCurrentOrganizationReturn {
   organization: OrganizationStats | null
@@ -47,7 +48,7 @@ interface UseCurrentOrganizationReturn {
 export const useCurrentOrganization = (): UseCurrentOrganizationReturn => {
   const params = useParams<{ orgId?: string; orgSlug?: string }>()
   const location = useLocation()
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, staffInfo, allVenues } = useAuth()
   const { venue } = useCurrentVenue()
 
   // Get orgSlug from URL params (new /wl/organizations/:orgSlug routes)
@@ -61,14 +62,40 @@ export const useCurrentOrganization = (): UseCurrentOrganizationReturn => {
   // Priority: URL param > venue's org > user's org
   const orgId = orgIdFromUrl || orgIdFromVenue || orgIdFromUser || null
 
-  // Check if user is OWNER or SUPERADMIN
-  const isOwner = user?.role === 'OWNER' || user?.role === 'SUPERADMIN'
+  // Check if we're on an organization route (not a venue route)
+  const isOnOrgRoute = location.pathname.startsWith('/organizations/') || location.pathname.startsWith('/wl/organizations/')
+
+  // TWO DIFFERENT ROLE CHECKS:
+  // 1. isOwner (user.role): For UI decisions like venue grouping in switcher
+  //    - Based on user's HIGHEST role across all venues
+  //    - A user who is OWNER somewhere should see all their venues grouped
+  // 2. canFetchOrgData: For API call permissions
+  //    - If on org route: Check if user is OWNER in the TARGET organization
+  //    - If on venue route: Check current venue's role
+  const isOwner = !!user?.role && (user.role === 'OWNER' || user.role === 'SUPERADMIN')
+
+  // Check if user is SUPERADMIN
+  const isSuperadmin = user?.role === StaffRole.SUPERADMIN
+
+  // Check if user is OWNER in the organization being viewed (for org routes)
+  const isOwnerInTargetOrg = orgId ? allVenues.some(
+    v => v.organizationId === orgId && v.role === StaffRole.OWNER
+  ) : false
+
+  // For API calls, determine if we can fetch org data:
+  // - SUPERADMIN can always fetch
+  // - Others: must be OWNER in the TARGET organization (checked via allVenues)
+  // IMPORTANT: We always use isOwnerInTargetOrg instead of currentVenueRole because:
+  // - staffInfo might not be loaded yet (race condition)
+  // - user.role is the HIGHEST role across all venues, not the current venue's role
+  // - allVenues is always available from AuthContext and contains accurate role per venue
+  const canFetchOrgData = isSuperadmin || isOwnerInTargetOrg
 
   // Only fetch organization stats if:
   // 1. User is authenticated
-  // 2. User is OWNER or SUPERADMIN
+  // 2. User has permission to fetch org data for this organization
   // 3. We have an orgId or orgSlug
-  const shouldFetch = isAuthenticated && isOwner && (!!orgId || !!orgSlugFromUrl)
+  const shouldFetch = isAuthenticated && canFetchOrgData && (!!orgId || !!orgSlugFromUrl)
 
   // Fetch organization stats
   const {

@@ -8,6 +8,18 @@ export interface LoginDto {
   rememberMe?: boolean
 }
 
+// Pending invitation returned when user has no active venues
+export interface PendingInvitation {
+  id: string
+  token: string
+  role: string
+  venueId: string | null
+  venueName: string | null
+  organizationId: string
+  organizationName: string
+  expiresAt: string
+}
+
 export interface AuthResponse {
   message: string
   staff: {
@@ -27,6 +39,8 @@ export interface AuthResponse {
       }
     }[]
   }
+  // Enterprise pattern: returned when user has no active venues but has pending invitations
+  pendingInvitations?: PendingInvitation[]
 }
 
 export interface AuthStatusResponse {

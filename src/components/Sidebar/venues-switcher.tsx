@@ -39,7 +39,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
   const isCollapsed = sidebarState === 'collapsed' && !isMobile
   const navigate = useNavigate()
   const location = useLocation()
-  const { checkVenueAccess, user, switchVenue, isLoading } = useAuth()
+  const { checkVenueAccess, user, switchVenue, isLoading, isAuthenticated } = useAuth()
   const { venue: activeVenue } = useCurrentVenue()
   const { organization, orgId, isOwner } = useCurrentOrganization()
   const { t } = useTranslation()
@@ -130,11 +130,13 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
   const currentVenue = (venueFromSlug || activeVenue || venueFromStorage || defaultVenue) as Venue | SessionVenue
 
   // Persistir el venue actual en localStorage cuando cambie (para recuperarlo después de login/logout/refresh)
+  // Only update when user is authenticated to avoid race condition during logout
   useEffect(() => {
+    if (!isAuthenticated) return
     if (currentVenue?.slug) {
       localStorage.setItem('avoqado_current_venue_slug', currentVenue.slug)
     }
-  }, [currentVenue?.slug])
+  }, [currentVenue?.slug, isAuthenticated])
 
   const handleVenueChange = async (venue: Venue | SessionVenue) => {
     if (venue.slug === currentVenue.slug) return // Evitar cambio innecesario
@@ -214,10 +216,15 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                   }
                 }
 
+                // Show org header if:
+                // - SUPERADMIN: Always show all org headers (they have full access)
+                // - OWNER/others: Only show if 2+ venues in org (having 1 venue = venue-level access)
+                const showOrgHeader = isSuperadmin || group.venues.length > 1
+
                 return (
                   <div key={group.orgId}>
-                    {/* Organization Header - Clickable for OWNER/SUPERADMIN */}
-                    {(hasMultipleOrgs || canViewOrganization) && (
+                    {/* Organization Header - Only show if 2+ venues in org or user has org access */}
+                    {showOrgHeader && (
                       <>
                         {groupIndex > 0 && <DropdownMenuSeparator />}
                         <DropdownMenuItem
@@ -235,10 +242,13 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                       </>
                     )}
 
-                    {/* Venues Label */}
-                    {!hasMultipleOrgs && !canViewOrganization && (
+                    {/* Venues Label - Only show if no org headers at all */}
+                    {!venueGroups.some(g => g.venues.length > 1 || (canViewOrganization && g.orgId === orgId)) && groupIndex === 0 && (
                       <DropdownMenuLabel className="text-xs text-muted-foreground">{t('venuesSwitcher.title')}</DropdownMenuLabel>
                     )}
+
+                    {/* Separator between single-venue orgs (when no header is shown) */}
+                    {!showOrgHeader && groupIndex > 0 && <DropdownMenuSeparator />}
 
                     {/* Venues in this organization */}
                     {group.venues.map((venue) => {
@@ -251,7 +261,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                         <DropdownMenuItem
                           key={venue.id}
                           onClick={() => handleVenueChange(venue)}
-                          className={`gap-2 p-2 ${(hasMultipleOrgs || canViewOrganization) ? 'pl-4' : ''} ${isActive ? 'bg-accent' : ''} ${
+                          className={`gap-2 p-2 ${showOrgHeader ? 'pl-4' : ''} ${isActive ? 'bg-accent' : ''} ${
                             !hasAccess ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                           }`}
                           disabled={!hasAccess || isLoading}

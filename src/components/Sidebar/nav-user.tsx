@@ -84,22 +84,20 @@ export function NavUser({
               <DropdownMenuItem asChild className="cursor-pointer">
                 <Link to="account">
                   <BadgeCheck />
-                  {t('userMenu.account', { defaultValue: 'Account' })}
+                  {t('common:userMenu.account')}
                 </Link>
               </DropdownMenuItem>
-              {/* <DropdownMenuItem>
-                <CreditCard />
-                Billing
-              </DropdownMenuItem> */}
-              <DropdownMenuItem className="cursor-pointer">
-                <Bell />
-                <Link to="notifications">{t('userMenu.notifications', { defaultValue: 'Notifications' })}</Link>
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link to="notifications">
+                  <Bell />
+                  {t('common:userMenu.notifications')}
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="cursor-pointer" onClick={() => logout()}>
               <LogOut />
-              {t('userMenu.logout', { defaultValue: 'Log out' })}
+              {t('common:userMenu.logout')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

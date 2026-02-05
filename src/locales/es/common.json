@@ -34,7 +34,6 @@
   "toggle_theme": "Cambiar tema",
   "refresh": "Actualizar",
   "settings": "Configuración",
-  "filters": "Filtros",
   "pagination": {
     "selectedRows": "{{selected}} de {{total}} fila(s) seleccionada(s).",
     "rowsPerPage": "Filas por página",
@@ -73,6 +72,7 @@
   "clear": "Limpiar",
   "selectPlaceholder": "Selecciona una opción",
   "filters": {
+    "label": "Filtros",
     "min": "Mínimo",
     "max": "Máximo",
     "clearAll": "Limpiar filtros"
@@ -180,7 +180,8 @@
     "corporation": "Corporación",
     "suspended": "Suspendido",
     "adminSuspended": "Suspendido por Admin",
-    "closed": "Cerrado"
+    "closed": "Cerrado",
+    "otherVenues": "Otras sucursales"
   },
   "layout": {
     "noVenuesAssigned": "No tienes sucursales asignadas",
@@ -500,5 +501,12 @@
     "retry": "Reintentar"
   },
   "yes": "Sí",
-  "no": "No"
+  "no": "No",
+  "userMenu": {
+    "account": "Cuenta",
+    "notifications": "Notificaciones",
+    "logout": "Cerrar sesión",
+    "logoutSuccess": "Sesión cerrada",
+    "logoutSuccessDesc": "Has cerrado sesión correctamente"
+  }
 }

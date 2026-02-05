@@ -66,6 +66,7 @@ export interface InviteTeamMemberRequest {
   message?: string
   type?: InviteType // 'email' (default) or 'tpv-only'
   pin?: string // Required for TPV-only
+  inviteToAllVenues?: boolean // When true, creates StaffVenue for all org venues (OWNER role only)
 }
 
 export interface UpdateTeamMemberRequest {

@@ -6,9 +6,22 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 export const ProtectedRoute = () => {
-  const { user, isAuthenticated, logout } = useAuth() || {}
+  const { user, isAuthenticated, isLoading, logout } = useAuth() || {}
   const location = useLocation()
   const { t } = useTranslation('superadmin')
+
+  // OPTIMISTIC AUTH: Check if user has a session hint (was logged in before)
+  // This allows us to render protected content while auth status is being verified
+  // If the session is invalid, the auth context will handle the redirect
+  const hasSessionHint = typeof window !== 'undefined'
+    ? localStorage.getItem('avoqado_session_hint') === 'true'
+    : false
+
+  // FLASH FIX: If loading and we have a session hint, render content optimistically
+  // Don't redirect to login while we're still verifying the session
+  if (isLoading && hasSessionHint) {
+    return <Outlet />
+  }
 
   // FAANG Pattern: Validate email verification FIRST (before venue check)
   if (isAuthenticated && user && !user.emailVerified) {

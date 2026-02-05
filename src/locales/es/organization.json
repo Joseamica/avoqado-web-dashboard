@@ -1,7 +1,7 @@
 {
   "myOrganization": "Mi Organización",
   "organization": "Organización",
-  "venues": "sucursales",
+  "venuesLabel": "sucursales",
   "viewDashboard": "Ver Dashboard",
   "sidebar": {
     "overview": "Resumen",

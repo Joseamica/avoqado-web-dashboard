@@ -72,6 +72,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const hasAttemptedLiveDemoLogin = useRef(false)
   const retryCountRef = useRef(0)
 
+  // FLASH FIX: Track logout in progress to prevent LoadingScreen flash
+  // When logging out, queryClient.clear() causes isStatusLoading to become true momentarily
+  // This ref prevents showing LoadingScreen during that transition
+  const isLoggingOutRef = useRef(false)
+
+  // OPTIMISTIC AUTH: Check if user was previously logged in
+  // Since we use HTTP-only cookies (more secure), we can't check the actual token
+  // Instead, we store a simple flag 'avoqado_session_hint' when user logs in
+  // This is NOT a security measure - just a UX hint to skip loading screen on reload
+  const sessionHintOnMount = typeof window !== 'undefined' ? localStorage.getItem('avoqado_session_hint') === 'true' : false
+  const hasSessionHintOnMount = useRef(sessionHintOnMount)
+
   // Get auth status first
   // staleTime reduced from 5min to 1min to ensure KYC status changes reflect faster
   const { data: statusData, isLoading: isStatusLoading } = useQuery({
@@ -180,9 +192,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return user?.venues?.[0]?.role
   }, [user?.role, user?.venues, activeVenue])
 
+  // IMPORTANT: Use user.venues for all users (backend already combines direct + OWNER org venues)
+  // Only SUPERADMIN uses statusData.allVenues (all system venues)
+  // This was a bug where OWNER users would see different venues based on current venue role
   const allVenues = useMemo(
-    () => (user?.role === 'SUPERADMIN' || userRole === StaffRole.OWNER ? statusData?.allVenues : user?.venues) ?? [],
-    [user, userRole, statusData?.allVenues],
+    () => (user?.role === 'SUPERADMIN' ? statusData?.allVenues : user?.venues) ?? [],
+    [user?.role, user?.venues, statusData?.allVenues],
   )
 
   // Función para obtener venue por slug
@@ -241,7 +256,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // SUPERADMIN users should have access to all venues and superadmin routes
     if (userVenues.length > 0 || user.role === 'SUPERADMIN') {
-      const defaultVenue = userVenues[0] || allVenues[0] // Use first available venue for SUPERADMIN
+      // STRIPE/SHOPIFY PATTERN: Smart venue selection for login redirect
+      // Priority: 1) Last accessed venue, 2) Highest role venue, 3) First venue
+      const getSmartDefaultVenue = () => {
+        // 1. Check localStorage for last used venue (Stripe pattern)
+        const lastUsedSlug = localStorage.getItem('avoqado_current_venue_slug')
+        if (lastUsedSlug) {
+          const lastUsedVenue = userVenues.find((v: any) => v.slug === lastUsedSlug)
+          if (lastUsedVenue) return lastUsedVenue
+        }
+
+        // 2. Find venue with highest role (OWNER > ADMIN > MANAGER > etc.)
+        const roleHierarchy: Record<string, number> = {
+          SUPERADMIN: 100,
+          OWNER: 90,
+          ADMIN: 80,
+          MANAGER: 70,
+          CASHIER: 60,
+          WAITER: 50,
+          KITCHEN: 40,
+          HOST: 30,
+          VIEWER: 10,
+        }
+        const sortedByRole = [...userVenues].sort((a: any, b: any) => {
+          const roleA = roleHierarchy[a.role] || 0
+          const roleB = roleHierarchy[b.role] || 0
+          return roleB - roleA // Higher role first
+        })
+        if (sortedByRole.length > 0) return sortedByRole[0]
+
+        // 3. Fallback to first venue
+        return userVenues[0] || allVenues[0]
+      }
+
+      const defaultVenue = getSmartDefaultVenue()
 
       // Redirigir desde rutas base a la home del venue por defecto (unless SUPERADMIN going to /superadmin)
       if (location.pathname === '/' || location.pathname === '/login') {
@@ -308,16 +356,114 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // --- MUTACIONES ---
   const loginMutation = useMutation({
     mutationFn: (credentials: LoginData) => authService.login(credentials),
-    onSuccess: async () => {
+    onSuccess: async data => {
       console.log('[AUTH] ✅ Login successful - showing toast')
+
+      // Enterprise pattern: Handle users with no active venues but pending invitations
+      // Instead of blocking login, we allow them to login and redirect to accept the invitation
+      if (data?.pendingInvitations && data.pendingInvitations.length > 0) {
+        console.log('[AUTH] 🎫 User has pending invitations, redirecting to accept first one')
+        const firstInvitation = data.pendingInvitations[0]
+
+        // Show informative toast about the invitation
+        toast({
+          title: t('toast.pending_invitation_title', { defaultValue: 'Tienes una invitación pendiente' }),
+          description: t('toast.pending_invitation_desc', {
+            defaultValue: `Te han invitado a unirte a ${firstInvitation.organizationName}`,
+            org: firstInvitation.organizationName,
+          }),
+        })
+
+        // Redirect to invitation acceptance page
+        navigate(`/invite/${firstInvitation.token}`, { replace: true })
+        setLoginError(null)
+        return
+      }
+
+      console.log('[AUTH] 🔄 Fetching fresh auth status...')
+      // CRITICAL FIX: Use fetchQuery instead of refetchQueries
+      // In TanStack Query v5, refetchQueries returns Promise<void>, NOT the data
+      // fetchQuery directly returns the data, guaranteeing we have fresh data for redirect
+      const freshStatus = await queryClient.fetchQuery({
+        queryKey: ['status'],
+        queryFn: authService.getAuthStatus,
+        staleTime: 0, // Force fresh fetch, ignore any cached data
+      })
+      console.log('[AUTH] ✅ Fresh auth status received:', { authenticated: freshStatus?.authenticated, hasUser: !!freshStatus?.user })
+      const freshUser = freshStatus?.user
+
+      if (freshUser) {
+        console.log('[AUTH] 🚀 Executing explicit redirect after login')
+
+        // OPTIMISTIC AUTH: Set session hint for future page reloads
+        // This is NOT a security measure - just a UX hint to skip loading screen
+        localStorage.setItem('avoqado_session_hint', 'true')
+
+        // 1. Check returnTo parameter first (Stripe/GitHub pattern)
+        const searchParams = new URLSearchParams(location.search)
+        const returnTo = searchParams.get('returnTo')
+        if (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')) {
+          console.log('[AUTH] ↩️ Redirecting to returnTo:', returnTo)
+          toast({ title: t('toast.login_success') })
+          navigate(returnTo, { replace: true })
+          setLoginError(null)
+          return
+        }
+
+        // 2. SUPERADMIN → /superadmin
+        if (freshUser.role === 'SUPERADMIN') {
+          console.log('[AUTH] 👑 SUPERADMIN redirect to /superadmin')
+          toast({ title: t('toast.login_success') })
+          navigate('/superadmin', { replace: true })
+          setLoginError(null)
+          return
+        }
+
+        const userVenues = freshUser.venues || []
+
+        // 3. OWNER without venues → /onboarding
+        if (userVenues.length === 0) {
+          console.log('[AUTH] 🆕 No venues, redirect to /onboarding')
+          toast({ title: t('toast.login_success') })
+          navigate('/onboarding', { replace: true })
+          setLoginError(null)
+          return
+        }
+
+        // 4. Normal user with venues → smart venue selection (Stripe/Shopify pattern)
+        // Priority: 1) Last accessed venue from localStorage, 2) Highest role venue, 3) First venue
+        const getSmartVenue = () => {
+          // Check localStorage for last used venue
+          const lastUsedSlug = localStorage.getItem('avoqado_current_venue_slug')
+          if (lastUsedSlug) {
+            const lastUsedVenue = userVenues.find((v: any) => v.slug === lastUsedSlug)
+            if (lastUsedVenue) return lastUsedVenue
+          }
+
+          // Find venue with highest role
+          const roleHierarchy: Record<string, number> = {
+            SUPERADMIN: 100, OWNER: 90, ADMIN: 80, MANAGER: 70,
+            CASHIER: 60, WAITER: 50, KITCHEN: 40, HOST: 30, VIEWER: 10,
+          }
+          const sorted = [...userVenues].sort((a: any, b: any) =>
+            (roleHierarchy[b.role] || 0) - (roleHierarchy[a.role] || 0)
+          )
+          return sorted[0] || userVenues[0]
+        }
+
+        const defaultVenue = getSmartVenue()
+        const basePath = getVenueBasePath(defaultVenue)
+        console.log('[AUTH] 🏠 Redirect to smart venue:', defaultVenue.slug, `${basePath}/home`)
+        toast({ title: t('toast.login_success') })
+        navigate(`${basePath}/home`, { replace: true })
+        setLoginError(null)
+        return
+      }
+
+      // Fallback: Si freshUser es null, el useEffect manejará el redirect
+      console.log('[AUTH] ⚠️ freshUser is null, falling back to useEffect')
       toast({ title: t('toast.login_success') })
-      console.log('[AUTH] 🔄 Refetching auth status...')
-      // CRITICAL FIX: AWAIT refetchQueries to ensure auth state updates before redirect
-      // This prevents race conditions on mobile where redirect fires before new auth state arrives
-      // Without await, isLoading stays true in mobile and blocks navigation
-      await queryClient.refetchQueries({ queryKey: ['status'] })
-      console.log('[AUTH] ✅ Auth status refetch complete')
-      setLoginError(null) // Clear any previous login errors
+      setLoginError(null)
     },
     onError: (error: any, variables) => {
       // FAANG Pattern: Detect network errors first (server down, no internet)
@@ -443,35 +589,87 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   })
 
   // FAANG Pattern: Optimistic Logout
-  // Clean local state FIRST (always works), then notify server in background
-  // This ensures user can always logout even if server is down
-  // Optional returnTo parameter enables URL-based state preservation (Stripe/GitHub pattern)
-  const logout = useCallback(async (returnTo?: string) => {
-    // 1. Clear local state IMMEDIATELY (no server dependency)
-    localStorage.removeItem('authToken')
-    localStorage.removeItem('refreshToken')
-    localStorage.removeItem('user')
-    localStorage.removeItem('avoqado_current_venue_slug') // Clear saved venue to prevent cross-session bleed
-    // DEPRECATED: Remove legacy localStorage-based invitation flow
-    localStorage.removeItem('pendingInvitationUrl')
-    sessionStorage.removeItem('inviteRedirected')
-    clearAllChatStorage()
-    queryClient.clear()
-    setActiveVenue(null)
+  // Order is CRITICAL to prevent UI flash AND unnecessary 401 errors:
+  // 1. Set auth state to unauthenticated IMMEDIATELY (stops all auth-dependent renders)
+  // 2. Clear local state
+  // 3. Cancel in-flight queries
+  // 4. Clear query cache
+  // 5. Remove localStorage/sessionStorage
+  // 6. Navigate to login
+  // 7. Server logout (background, non-blocking)
+  const logout = useCallback(
+    async (returnTo?: string) => {
+      console.log('[AUTH] 🚪 Step 0: Logout initiated', { returnTo, currentPath: location.pathname })
 
-    // 2. Navigate to login with optional returnTo (URL-based state - industry standard)
-    // This replaces the localStorage-based pattern with the Stripe/GitHub approach
-    const loginUrl = returnTo ? `/login?returnTo=${encodeURIComponent(returnTo)}` : '/login'
-    navigate(loginUrl, { replace: true })
+      // FLASH FIX: Set flag to prevent LoadingScreen from showing during logout
+      isLoggingOutRef.current = true
+      console.log('[AUTH] 🚪 Step 1: isLoggingOutRef = true')
 
-    // 3. Notify server in background (non-blocking)
-    try {
-      await authService.logout()
-    } catch (error) {
-      // Silently ignore - user is already logged out locally
-      console.warn('Server logout failed (user already logged out locally):', error)
-    }
-  }, [navigate, queryClient])
+      // Reset optimistic auth flag since session is being cleared
+      hasSessionHintOnMount.current = false
+      console.log('[AUTH] 🚪 Step 2: hasSessionHintOnMount = false')
+
+      // 1. CRITICAL: Set auth state to unauthenticated IMMEDIATELY
+      // This prevents any component from seeing stale auth state during logout transition
+      // Components checking isAuthenticated/user will see "logged out" right away
+      queryClient.setQueryData(['status'], { authenticated: false, user: null, allVenues: [] })
+      console.log('[AUTH] 🚪 Step 3: setQueryData status = unauthenticated')
+
+      // 2. Clear local state
+      setActiveVenue(null)
+      console.log('[AUTH] 🚪 Step 4: setActiveVenue = null')
+
+      // 3. Cancel all in-flight queries
+      // This stops pending requests that would otherwise return 401
+      console.log('[AUTH] 🚪 Step 5: Cancelling queries...')
+      await queryClient.cancelQueries()
+      console.log('[AUTH] 🚪 Step 5: Queries cancelled')
+
+      // 4. Remove localStorage and sessionStorage items BEFORE navigation
+      // NOTE: We preserve 'avoqado_current_venue_slug' (Stripe/Shopify pattern)
+      // This allows users to return to their last venue after re-login
+      localStorage.removeItem('pendingInvitationUrl')
+      localStorage.removeItem('avoqado_session_hint')
+      sessionStorage.removeItem('inviteRedirected')
+      clearAllChatStorage()
+      console.log('[AUTH] 🚪 Step 6: localStorage/sessionStorage cleared')
+
+      // 5. Navigate to login BEFORE clearing cache
+      // This unmounts components first, preventing them from refetching when cache is cleared
+      const loginUrl = returnTo ? `/login?returnTo=${encodeURIComponent(returnTo)}` : '/login'
+      console.log('[AUTH] 🚪 Step 7: Navigating to', loginUrl)
+      navigate(loginUrl, { replace: true })
+
+      // 6. Show logout success toast (user sees this on login page)
+      toast({
+        title: t('common:userMenu.logoutSuccess'),
+        description: t('common:userMenu.logoutSuccessDesc'),
+      })
+      console.log('[AUTH] 🚪 Step 8: Toast shown')
+
+      // 7. Clear cache AFTER navigation started (components are unmounting)
+      // Use setTimeout to ensure navigation has started and components are unmounting
+      setTimeout(() => {
+        queryClient.clear()
+        console.log('[AUTH] 🚪 Step 9: Query cache cleared (after navigation)')
+      }, 0)
+
+      // 8. Notify server in background (non-blocking)
+      console.log('[AUTH] 🚪 Step 10: Calling server logout...')
+      try {
+        await authService.logout()
+        console.log('[AUTH] 🚪 Step 10: Server logout success')
+      } catch (error) {
+        // Silently ignore - user is already logged out locally
+        console.warn('[AUTH] 🚪 Step 10: Server logout failed (user already logged out locally):', error)
+      } finally {
+        // FLASH FIX: Reset flag after logout completes (or fails)
+        isLoggingOutRef.current = false
+        console.log('[AUTH] ✅ Logout complete, isLoggingOutRef = false')
+      }
+    },
+    [navigate, queryClient, toast, t, location.pathname],
+  )
 
   const switchVenueMutation = useMutation({
     mutationFn: (newVenueSlug: string) => {
@@ -649,13 +847,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   )
 
   // Show loading screen with retry info
-  if (isStatusLoading || isLiveDemoInitializing) {
+  // FLASH FIX: Skip LoadingScreen in these cases:
+  // 1. During logout (isLoggingOutRef) - prevents flash when clearing cache
+  // 2. When session hint exists on mount - optimistic rendering for page reload
+  //    The status query runs in background; if session is invalid, routing will redirect to login
+  const shouldSkipLoadingScreen = isLoggingOutRef.current || hasSessionHintOnMount.current
+
+  if ((isStatusLoading || isLiveDemoInitializing) && !shouldSkipLoadingScreen) {
     const retryMessage =
       isLiveDemoInitializing && retryCountRef.current > 0
         ? `Initializing live demo... (attempt ${retryCountRef.current + 1}/3)`
         : isLiveDemoInitializing
-        ? 'Initializing live demo...'
-        : t('common:verifying_session')
+          ? 'Initializing live demo...'
+          : t('common:verifying_session')
+    console.log('[AUTH] 📊 SHOWING LoadingScreen with message:', retryMessage)
     return <LoadingScreen message={retryMessage} />
   }
 

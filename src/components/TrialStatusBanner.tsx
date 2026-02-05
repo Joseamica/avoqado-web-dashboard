@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { X, Clock, AlertTriangle, CreditCard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useAuth } from '@/context/AuthContext'
 import { getVenueFeatures, getBillingPortalUrl } from '@/services/features.service'
-import { VenueFeature } from '@/types'
+import { VenueFeature, StaffRole } from '@/types'
 
 interface TrialStatus {
   feature: VenueFeature
@@ -15,15 +16,35 @@ interface TrialStatus {
 
 export function TrialStatusBanner() {
   const { t } = useTranslation()
-  const { venueId } = useCurrentVenue()
+  const { venueId, venue } = useCurrentVenue()
+  const { staffInfo, allVenues } = useAuth()
   const [isDismissed, setIsDismissed] = useState(false)
   const [features, setFeatures] = useState<VenueFeature[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isRedirecting, setIsRedirecting] = useState(false)
 
+  // Get the ACTUAL role for this venue from allVenues (reliable source)
+  // This avoids race condition where staffInfo.role might be a fallback value
+  const actualVenueRole = venueId
+    ? allVenues.find(v => v.id === venueId)?.role
+    : null
+
+  // Only fetch features for users with billing access (ADMIN and above)
+  // CASHIER, WAITER, KITCHEN, HOST, VIEWER don't need to see trial status
+  // IMPORTANT: Use actualVenueRole from allVenues, not staffInfo.role which may be stale
+  const canViewBilling = actualVenueRole && [
+    StaffRole.SUPERADMIN,
+    StaffRole.OWNER,
+    StaffRole.ADMIN,
+    StaffRole.MANAGER,
+  ].includes(actualVenueRole as StaffRole)
+
   // Fetch venue features on mount
   useEffect(() => {
-    if (!venueId) return
+    if (!venueId || !canViewBilling) {
+      setIsLoading(false)
+      return
+    }
 
     const fetchFeatures = async () => {
       try {
@@ -44,7 +65,7 @@ export function TrialStatusBanner() {
     }
 
     fetchFeatures()
-  }, [venueId])
+  }, [venueId, canViewBilling])
 
   // Calculate trial status for each feature with an active trial
   const trialStatuses = useMemo(() => {

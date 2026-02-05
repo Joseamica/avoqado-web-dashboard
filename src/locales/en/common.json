@@ -34,7 +34,6 @@
   "toggle_theme": "Toggle theme",
   "refresh": "Refresh",
   "settings": "Settings",
-  "filters": "Filters",
   "pagination": {
     "selectedRows": "{{selected}} of {{total}} row(s) selected.",
     "rowsPerPage": "Rows per page",
@@ -73,6 +72,7 @@
   "clear": "Clear",
   "selectPlaceholder": "Select an option",
   "filters": {
+    "label": "Filters",
     "min": "Minimum",
     "max": "Maximum",
     "clearAll": "Clear filters"
@@ -177,7 +177,8 @@
     "selectVenue": "Select venue",
     "current": "(current)",
     "inactive": "Inactive",
-    "corporation": "Corporation"
+    "corporation": "Corporation",
+    "otherVenues": "Other venues"
   },
   "layout": {
     "noVenuesAssigned": "No venues assigned",
@@ -497,5 +498,12 @@
     "retry": "Retry"
   },
   "yes": "Yes",
-  "no": "No"
+  "no": "No",
+  "userMenu": {
+    "account": "Account",
+    "notifications": "Notifications",
+    "logout": "Log out",
+    "logoutSuccess": "Logged out",
+    "logoutSuccessDesc": "You have been logged out successfully"
+  }
 }

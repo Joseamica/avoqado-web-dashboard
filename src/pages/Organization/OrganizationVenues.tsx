@@ -7,8 +7,10 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useDebounce } from '@/hooks/useDebounce'
+import { useAuth } from '@/context/AuthContext'
 import { getOrganizationVenues, type TimeRange } from '@/services/organization.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { StaffRole } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 import { ExternalLink, LayoutGrid, List, Search, Store, TrendingDown, TrendingUp } from 'lucide-react'
 import React, { useMemo, useState } from 'react'
@@ -20,15 +22,24 @@ const OrganizationVenues: React.FC = () => {
   const localeCode = getIntlLocale(i18n.language)
   const { orgId } = useParams<{ orgId: string }>()
   const navigate = useNavigate()
+  const { staffInfo } = useAuth()
   const [timeRange, setTimeRange] = useState<TimeRange>('30d')
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
   const debouncedSearch = useDebounce(searchTerm, 300)
 
+  // Only OWNER, ADMIN, and SUPERADMIN can view organization venues
+  // IMPORTANT: Use staffInfo.role (venue-specific) not user.role (highest across all venues)
+  const canViewOrgVenues = staffInfo?.role && [
+    StaffRole.SUPERADMIN,
+    StaffRole.OWNER,
+    StaffRole.ADMIN,
+  ].includes(staffInfo.role as StaffRole)
+
   const { data: venues, isLoading } = useQuery({
     queryKey: ['organization', 'venues', orgId, timeRange],
     queryFn: () => getOrganizationVenues(orgId!, { timeRange }),
-    enabled: !!orgId,
+    enabled: !!orgId && canViewOrgVenues,
   })
 
   const filteredVenues = useMemo(() => {
