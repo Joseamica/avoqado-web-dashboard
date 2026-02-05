@@ -16,8 +16,8 @@ interface TrialStatus {
 
 export function TrialStatusBanner() {
   const { t } = useTranslation()
-  const { venueId, venue } = useCurrentVenue()
-  const { staffInfo, allVenues } = useAuth()
+  const { venueId, venue: _venue } = useCurrentVenue()
+  const { staffInfo: _staffInfo, allVenues } = useAuth()
   const [isDismissed, setIsDismissed] = useState(false)
   const [features, setFeatures] = useState<VenueFeature[]>([])
   const [isLoading, setIsLoading] = useState(true)
