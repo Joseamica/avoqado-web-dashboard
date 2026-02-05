@@ -34,12 +34,28 @@ export type FeatureSource = 'avoqado_core' | 'module_specific' | 'custom'
 /** Category of a feature */
 export type FeatureCategory = 'analytics' | 'sales' | 'inventory' | 'team' | 'custom'
 
+/** Data scope determines what data a user can see for a feature */
+export type DataScope = 'venue' | 'user-venues' | 'organization'
+
+/**
+ * Access control configuration for a white-label feature
+ * Determines which roles can access the feature and what data they can see
+ */
+export interface FeatureAccess {
+  /** Roles that can access this feature (e.g., ['OWNER', 'ADMIN', 'MANAGER']) */
+  allowedRoles: StaffRole[]
+  /** Data scope for this feature */
+  dataScope: DataScope
+}
+
 /** A feature enabled in the white-label config */
 export interface EnabledFeature {
   /** Feature code (e.g., 'AVOQADO_COMMISSIONS') */
   code: string
   /** Where the feature comes from */
   source: FeatureSource
+  /** Access control configuration (optional, uses defaults if not specified) */
+  access?: FeatureAccess
 }
 
 /** Configuration for a specific feature instance */
@@ -197,6 +213,9 @@ export interface FeatureDefinition {
 
   /** Feature dependencies (other feature codes) */
   dependencies?: string[]
+
+  /** Default access control for this feature (used when not overridden in config) */
+  defaultAccess: FeatureAccess
 }
 
 // ============================================
@@ -333,3 +352,38 @@ export const DEFAULT_THEME: WhiteLabelTheme = {
   primaryColor: '#000000',
   brandName: 'Dashboard',
 }
+
+/**
+ * Default feature access used when no explicit access is configured
+ * Allows OWNER, ADMIN, MANAGER by default with user-venues scope
+ */
+export const DEFAULT_FEATURE_ACCESS: FeatureAccess = {
+  allowedRoles: ['OWNER', 'ADMIN', 'MANAGER'] as StaffRole[],
+  dataScope: 'user-venues',
+}
+
+/**
+ * Feature access presets for common scenarios
+ */
+export const FEATURE_ACCESS_PRESETS = {
+  /** All management roles (OWNER, ADMIN, MANAGER) with user-venues scope */
+  MANAGEMENT: {
+    allowedRoles: ['OWNER', 'ADMIN', 'MANAGER'] as StaffRole[],
+    dataScope: 'user-venues' as DataScope,
+  },
+  /** Admin-only (OWNER, ADMIN) with organization scope */
+  ADMIN_ONLY: {
+    allowedRoles: ['OWNER', 'ADMIN'] as StaffRole[],
+    dataScope: 'organization' as DataScope,
+  },
+  /** Owner-only with organization scope */
+  OWNER_ONLY: {
+    allowedRoles: ['OWNER'] as StaffRole[],
+    dataScope: 'organization' as DataScope,
+  },
+  /** All roles with venue scope */
+  ALL_ROLES_VENUE: {
+    allowedRoles: ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'WAITER', 'KITCHEN', 'HOST', 'VIEWER'] as StaffRole[],
+    dataScope: 'venue' as DataScope,
+  },
+} as const

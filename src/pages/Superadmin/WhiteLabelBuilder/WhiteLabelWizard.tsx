@@ -29,6 +29,7 @@ import type {
   FeatureInstanceConfig,
   WizardStep,
   PresetName,
+  FeatureAccess,
 } from '@/types/white-label'
 import { getPreset } from '@/config/white-label-presets'
 import { FEATURE_REGISTRY } from '@/config/feature-registry'
@@ -303,6 +304,15 @@ export default function WhiteLabelWizard({
     }))
   }, [])
 
+  const handleAccessChange = useCallback((featureCode: string, access: FeatureAccess) => {
+    setState(prev => ({
+      ...prev,
+      enabledFeatures: prev.enabledFeatures.map(ef =>
+        ef.code === featureCode ? { ...ef, access } : ef
+      ),
+    }))
+  }, [])
+
   // ============================================
   // Navigation
   // ============================================
@@ -522,6 +532,7 @@ export default function WhiteLabelWizard({
                 enabledFeatures={state.enabledFeatures}
                 featureConfigs={state.featureConfigs}
                 onConfigChange={handleFeatureConfigChange}
+                onAccessChange={handleAccessChange}
                 errors={errors.configuration}
               />
             )}
