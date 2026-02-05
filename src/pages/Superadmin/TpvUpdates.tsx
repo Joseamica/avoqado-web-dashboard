@@ -1,3 +1,10 @@
+/**
+ * TPV Updates Page
+ *
+ * Manage APK versions for TPV distribution via Avoqado Updates.
+ * Design: Modern Dashboard Design System (GlassCard, MetricCard, Pill Tabs)
+ */
+
 import { useState, useRef, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -16,6 +23,7 @@ import {
   Clock,
   FileText,
   HardDrive,
+  Loader2,
 } from 'lucide-react'
 import {
   superadminAPI,
@@ -23,16 +31,15 @@ import {
   type AppEnvironment,
   type AppUpdateUpdateInput,
 } from '@/services/superadmin.service'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 import {
   Dialog,
   DialogContent,
@@ -58,6 +65,40 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
+// ============================================================================
+// DESIGN SYSTEM COMPONENTS
+// ============================================================================
+
+const GlassCard: React.FC<{
+  children: React.ReactNode
+  className?: string
+}> = ({ children, className }) => (
+  <div
+    className={cn(
+      'relative rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm',
+      'shadow-sm transition-all duration-300',
+      className,
+    )}
+  >
+    {children}
+  </div>
+)
+
+type AccentColor = 'green' | 'blue' | 'purple' | 'orange' | 'red' | 'yellow'
+
+const ACCENT_COLORS: Record<AccentColor, string> = {
+  green: 'from-green-500/20 to-green-500/5 text-green-600 dark:text-green-400',
+  blue: 'from-blue-500/20 to-blue-500/5 text-blue-600 dark:text-blue-400',
+  purple: 'from-purple-500/20 to-purple-500/5 text-purple-600 dark:text-purple-400',
+  orange: 'from-orange-500/20 to-orange-500/5 text-orange-600 dark:text-orange-400',
+  red: 'from-red-500/20 to-red-500/5 text-red-600 dark:text-red-400',
+  yellow: 'from-yellow-500/20 to-yellow-500/5 text-yellow-600 dark:text-yellow-400',
+}
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
 function formatFileSize(bytes: string | number): string {
   const numBytes = typeof bytes === 'string' ? parseInt(bytes, 10) : bytes
   if (numBytes === 0) return '0 Bytes'
@@ -77,6 +118,10 @@ function formatDate(dateString: string): string {
   })
 }
 
+// ============================================================================
+// UPLOAD DIALOG
+// ============================================================================
+
 interface UploadDialogProps {
   isOpen: boolean
   onClose: () => void
@@ -91,43 +136,34 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [apkBase64Cache, setApkBase64Cache] = useState<string | null>(null)
   const [formData, setFormData] = useState({
-    versionName: '', // Optional - auto-detected from APK
-    versionCode: '', // Optional - auto-detected from APK
+    versionName: '',
+    versionCode: '',
     environment: 'SANDBOX' as AppEnvironment,
     releaseNotes: '',
     updateMode: 'NONE' as 'NONE' | 'BANNER' | 'FORCE',
-    minAndroidSdk: '', // Optional - auto-detected from APK
+    minAndroidSdk: '',
   })
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       if (!file.name.endsWith('.apk')) {
-        toast({
-          title: 'Archivo invalido',
-          description: 'Solo se permiten archivos APK',
-          variant: 'destructive',
-        })
+        toast({ title: 'Archivo invalido', description: 'Solo se permiten archivos APK', variant: 'destructive' })
         return
       }
       setSelectedFile(file)
       setIsPreviewing(true)
 
       try {
-        // Convert to base64 and cache for later upload
         const base64 = await fileToBase64(file)
         setApkBase64Cache(base64)
-
-        // Call preview endpoint to get metadata
         const preview = await superadminAPI.previewApkMetadata(base64)
 
-        // Auto-fill form with detected values
-        setFormData((prev) => ({
+        setFormData(prev => ({
           ...prev,
           versionName: preview.versionName,
           versionCode: preview.versionCode.toString(),
           minAndroidSdk: preview.minSdkVersion.toString(),
-          // Auto-select environment based on package name
           environment: preview.detectedEnvironment || prev.environment,
         }))
 
@@ -141,7 +177,6 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
           description: error.response?.data?.error || error.message || 'No se pudo leer el APK',
           variant: 'destructive',
         })
-        // Clear file if preview fails
         setSelectedFile(null)
         setApkBase64Cache(null)
       } finally {
@@ -155,33 +190,25 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
       const reader = new FileReader()
       reader.readAsDataURL(file)
       reader.onload = () => {
-        // Remove data URL prefix (data:application/vnd.android.package-archive;base64,)
         const result = reader.result as string
         const base64 = result.split(',')[1]
         resolve(base64)
       }
-      reader.onerror = (error) => reject(error)
+      reader.onerror = error => reject(error)
     })
   }
 
   const handleSubmit = async () => {
     if (!selectedFile || !apkBase64Cache) {
-      toast({
-        title: 'Error',
-        description: 'Selecciona un archivo APK',
-        variant: 'destructive',
-      })
+      toast({ title: 'Error', description: 'Selecciona un archivo APK', variant: 'destructive' })
       return
     }
 
     setIsUploading(true)
 
     try {
-      // Use cached base64 from preview
       const apkBase64 = apkBase64Cache
-
       const result = await superadminAPI.createAppUpdate({
-        // Only include version fields if user provided them
         ...(formData.versionName && { versionName: formData.versionName }),
         ...(formData.versionCode && { versionCode: parseInt(formData.versionCode, 10) }),
         environment: formData.environment,
@@ -191,7 +218,6 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
         apkBase64,
       })
 
-      // Show success with auto-detected info
       const { autoDetected } = result
       const detectedInfo = autoDetected?.apkMetadata
       const wasAutoDetected = autoDetected?.versionCode || autoDetected?.versionName
@@ -203,14 +229,9 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
           : `Version ${result.data.versionName} (${result.data.versionCode}) disponible para ${formData.environment}`,
       })
 
-      // Show warnings if any
       if (result.warnings?.length) {
-        result.warnings.forEach((warning) => {
-          toast({
-            title: 'Advertencia',
-            description: warning,
-            variant: 'default',
-          })
+        result.warnings.forEach(warning => {
+          toast({ title: 'Advertencia', description: warning, variant: 'default' })
         })
       }
 
@@ -230,14 +251,7 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
   const handleClose = () => {
     setSelectedFile(null)
     setApkBase64Cache(null)
-    setFormData({
-      versionName: '',
-      versionCode: '',
-      environment: 'SANDBOX',
-      releaseNotes: '',
-      updateMode: 'NONE',
-      minAndroidSdk: '',
-    })
+    setFormData({ versionName: '', versionCode: '', environment: 'SANDBOX', releaseNotes: '', updateMode: 'NONE', minAndroidSdk: '' })
     onClose()
   }
 
@@ -246,7 +260,9 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5" />
+            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+              <Upload className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
             Subir Nueva Version APK
           </DialogTitle>
           <DialogDescription>
@@ -259,102 +275,74 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
           <div className="space-y-2">
             <Label>Archivo APK</Label>
             <div
-              className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+              className="border-2 border-dashed border-border rounded-2xl p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
               onClick={() => fileInputRef.current?.click()}
             >
               {isPreviewing ? (
-                <div className="flex items-center justify-center gap-2">
-                  <RefreshCw className="h-8 w-8 text-blue-500 animate-spin" />
+                <div className="flex items-center justify-center gap-3">
+                  <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+                    <Loader2 className="h-5 w-5 text-blue-600 dark:text-blue-400 animate-spin" />
+                  </div>
                   <div className="text-left">
-                    <p className="font-medium">Analizando APK...</p>
-                    <p className="text-sm text-muted-foreground">
-                      Extrayendo metadata del AndroidManifest
-                    </p>
+                    <p className="font-medium text-sm">Analizando APK...</p>
+                    <p className="text-xs text-muted-foreground">Extrayendo metadata del AndroidManifest</p>
                   </div>
                 </div>
               ) : selectedFile ? (
-                <div className="flex items-center justify-center gap-2">
-                  <Package className="h-8 w-8 text-green-500" />
+                <div className="flex items-center justify-center gap-3">
+                  <div className="p-2 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5">
+                    <Package className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  </div>
                   <div className="text-left">
-                    <p className="font-medium">{selectedFile.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatFileSize(selectedFile.size)}
-                    </p>
+                    <p className="font-medium text-sm">{selectedFile.name}</p>
+                    <p className="text-xs text-muted-foreground">{formatFileSize(selectedFile.size)}</p>
                   </div>
                 </div>
               ) : (
                 <>
                   <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Click para seleccionar o arrastra un archivo APK
-                  </p>
+                  <p className="text-sm text-muted-foreground">Click para seleccionar o arrastra un archivo APK</p>
                 </>
               )}
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".apk"
-              className="hidden"
-              onChange={handleFileChange}
-            />
+            <input ref={fileInputRef} type="file" accept=".apk" className="hidden" onChange={handleFileChange} />
           </div>
 
-          {/* Version Info - Optional, auto-detected from APK */}
+          {/* Version Info */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="versionName">
                 Version Name
-                <span className="text-muted-foreground text-xs ml-1">(auto-detectado)</span>
+                <span className="text-muted-foreground text-xs ml-1">(auto)</span>
               </Label>
-              <Input
-                id="versionName"
-                placeholder="Auto-detectado del APK"
-                value={formData.versionName}
-                onChange={(e) => setFormData((prev) => ({ ...prev, versionName: e.target.value }))}
-              />
+              <Input id="versionName" placeholder="Auto-detectado" value={formData.versionName} onChange={e => setFormData(prev => ({ ...prev, versionName: e.target.value }))} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="versionCode">
                 Version Code
-                <span className="text-muted-foreground text-xs ml-1">(auto-detectado)</span>
+                <span className="text-muted-foreground text-xs ml-1">(auto)</span>
               </Label>
-              <Input
-                id="versionCode"
-                type="number"
-                placeholder="Auto-detectado del APK"
-                value={formData.versionCode}
-                onChange={(e) => setFormData((prev) => ({ ...prev, versionCode: e.target.value }))}
-              />
+              <Input id="versionCode" type="number" placeholder="Auto-detectado" value={formData.versionCode} onChange={e => setFormData(prev => ({ ...prev, versionCode: e.target.value }))} />
             </div>
           </div>
 
           {/* Environment */}
           <div className="space-y-2">
             <Label>Ambiente</Label>
-            <Select
-              value={formData.environment}
-              onValueChange={(value: AppEnvironment) =>
-                setFormData((prev) => ({ ...prev, environment: value }))
-              }
-            >
+            <Select value={formData.environment} onValueChange={(value: AppEnvironment) => setFormData(prev => ({ ...prev, environment: value }))}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="SANDBOX">
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600">
-                      SANDBOX
-                    </Badge>
+                    <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 rounded-full">SANDBOX</Badge>
                     <span className="text-muted-foreground">- Desarrollo/Testing</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="PRODUCTION">
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="bg-green-500/10 text-green-600">
-                      PRODUCTION
-                    </Badge>
+                    <Badge variant="outline" className="bg-green-500/10 text-green-600 rounded-full">PRODUCTION</Badge>
                     <span className="text-muted-foreground">- Terminales de produccion</span>
                   </div>
                 </SelectItem>
@@ -369,7 +357,7 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
               id="releaseNotes"
               placeholder="- Correcion de errores&#10;- Nueva funcionalidad..."
               value={formData.releaseNotes}
-              onChange={(e) => setFormData((prev) => ({ ...prev, releaseNotes: e.target.value }))}
+              onChange={e => setFormData(prev => ({ ...prev, releaseNotes: e.target.value }))}
               rows={3}
             />
           </div>
@@ -377,46 +365,33 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
           {/* Options */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="updateMode">Modo de Notificación</Label>
-              <Select
-                value={formData.updateMode}
-                onValueChange={(value: 'NONE' | 'BANNER' | 'FORCE') =>
-                  setFormData((prev) => ({ ...prev, updateMode: value }))
-                }
-              >
+              <Label htmlFor="updateMode">Modo de Notificacion</Label>
+              <Select value={formData.updateMode} onValueChange={(value: 'NONE' | 'BANNER' | 'FORCE') => setFormData(prev => ({ ...prev, updateMode: value }))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="NONE">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="bg-muted text-muted-foreground">
-                        Silencioso
-                      </Badge>
-                    </div>
+                    <Badge variant="outline" className="bg-muted text-muted-foreground rounded-full">Silencioso</Badge>
                   </SelectItem>
                   <SelectItem value="BANNER">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="bg-blue-500/10 text-blue-600">
-                        Banner
-                      </Badge>
+                      <Badge variant="outline" className="bg-blue-500/10 text-blue-600 rounded-full">Banner</Badge>
                       <span className="text-xs text-muted-foreground">Recomendada</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="FORCE">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="bg-red-500/10 text-red-600">
-                        Forzar
-                      </Badge>
+                      <Badge variant="outline" className="bg-red-500/10 text-red-600 rounded-full">Forzar</Badge>
                       <span className="text-xs text-muted-foreground">Bloquea app</span>
                     </div>
                   </SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                {formData.updateMode === 'NONE' && 'Sin notificación, usuario debe buscar manualmente'}
+                {formData.updateMode === 'NONE' && 'Sin notificacion, usuario debe buscar manualmente'}
                 {formData.updateMode === 'BANNER' && 'Banner persistente, usuario puede ignorar'}
-                {formData.updateMode === 'FORCE' && 'Bloquea la app hasta actualizar (crítico)'}
+                {formData.updateMode === 'FORCE' && 'Bloquea la app hasta actualizar (critico)'}
               </p>
             </div>
             <div className="space-y-2">
@@ -424,36 +399,29 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
                 Min Android SDK
                 <span className="text-muted-foreground text-xs ml-1">(auto)</span>
               </Label>
-              <Input
-                id="minAndroidSdk"
-                type="number"
-                placeholder="Auto-detectado"
-                value={formData.minAndroidSdk}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, minAndroidSdk: e.target.value }))
-                }
-              />
+              <Input id="minAndroidSdk" type="number" placeholder="Auto-detectado" value={formData.minAndroidSdk} onChange={e => setFormData(prev => ({ ...prev, minAndroidSdk: e.target.value }))} />
             </div>
           </div>
 
-          {/* Info about auto-detection */}
-          <Alert className="border-blue-500/20 bg-blue-500/5">
-            <Package className="h-4 w-4 text-blue-500" />
-            <AlertDescription className="text-xs text-muted-foreground">
-              Los campos de version se auto-detectan del APK. Solo ingresalos manualmente si deseas
-              sobrescribir los valores del AndroidManifest.
-            </AlertDescription>
-          </Alert>
+          {/* Info */}
+          <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-3 flex items-start gap-3">
+            <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/5 mt-0.5">
+              <Package className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Los campos de version se auto-detectan del APK. Solo ingresalos manualmente si deseas sobrescribir los valores del AndroidManifest.
+            </p>
+          </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={isUploading}>
+          <Button variant="outline" onClick={handleClose} disabled={isUploading} className="rounded-full cursor-pointer">
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={isUploading || isPreviewing || !selectedFile}>
+          <Button onClick={handleSubmit} disabled={isUploading || isPreviewing || !selectedFile} className="rounded-full cursor-pointer">
             {isUploading ? (
               <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Subiendo...
               </>
             ) : (
@@ -468,6 +436,10 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
     </Dialog>
   )
 }
+
+// ============================================================================
+// EDIT DIALOG
+// ============================================================================
 
 interface EditDialogProps {
   update: AppUpdate | null
@@ -488,28 +460,19 @@ function EditDialog({ update, isOpen, onClose, onSuccess }: EditDialogProps) {
 
   const handleSubmit = async () => {
     if (!update) return
-
     setIsSubmitting(true)
     try {
       await superadminAPI.updateAppUpdate(update.id, formData)
-      toast({
-        title: 'Actualizacion guardada',
-        description: `Version ${update.versionName} actualizada correctamente`,
-      })
+      toast({ title: 'Actualizacion guardada', description: `Version ${update.versionName} actualizada correctamente` })
       onSuccess()
       onClose()
     } catch (error: any) {
-      toast({
-        title: 'Error al actualizar',
-        description: error.response?.data?.message || error.message,
-        variant: 'destructive',
-      })
+      toast({ title: 'Error al actualizar', description: error.response?.data?.message || error.message, variant: 'destructive' })
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  // Update form when update prop changes
   useEffect(() => {
     if (update) {
       setFormData({
@@ -528,7 +491,9 @@ function EditDialog({ update, isOpen, onClose, onSuccess }: EditDialogProps) {
       <DialogContent className="sm:max-w-[450px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Edit className="h-5 w-5" />
+            <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+              <Edit className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            </div>
             Editar Version {update.versionName}
           </DialogTitle>
         </DialogHeader>
@@ -539,49 +504,41 @@ function EditDialog({ update, isOpen, onClose, onSuccess }: EditDialogProps) {
             <Textarea
               id="editReleaseNotes"
               value={formData.releaseNotes || ''}
-              onChange={(e) => setFormData((prev) => ({ ...prev, releaseNotes: e.target.value }))}
+              onChange={e => setFormData(prev => ({ ...prev, releaseNotes: e.target.value }))}
               rows={3}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="editUpdateMode">Modo de Notificación</Label>
-            <Select
-              value={formData.updateMode}
-              onValueChange={(value: 'NONE' | 'BANNER' | 'FORCE') =>
-                setFormData((prev) => ({ ...prev, updateMode: value }))
-              }
-            >
+            <Label htmlFor="editUpdateMode">Modo de Notificacion</Label>
+            <Select value={formData.updateMode} onValueChange={(value: 'NONE' | 'BANNER' | 'FORCE') => setFormData(prev => ({ ...prev, updateMode: value }))}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="NONE">
-                  <Badge variant="outline" className="bg-muted text-muted-foreground">Silencioso</Badge>
+                  <Badge variant="outline" className="bg-muted text-muted-foreground rounded-full">Silencioso</Badge>
                 </SelectItem>
                 <SelectItem value="BANNER">
-                  <Badge variant="outline" className="bg-blue-500/10 text-blue-600">Banner</Badge>
+                  <Badge variant="outline" className="bg-blue-500/10 text-blue-600 rounded-full">Banner</Badge>
                 </SelectItem>
                 <SelectItem value="FORCE">
-                  <Badge variant="outline" className="bg-red-500/10 text-red-600">Forzar</Badge>
+                  <Badge variant="outline" className="bg-red-500/10 text-red-600 rounded-full">Forzar</Badge>
                 </SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border p-3">
+          <div className="flex items-center justify-between rounded-2xl border border-border/50 p-4 cursor-pointer hover:bg-muted/50" onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}>
             <div>
-              <Label htmlFor="editIsActive" className="cursor-pointer">
-                Activa
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Disponible para descarga en terminales
-              </p>
+              <Label htmlFor="editIsActive" className="cursor-pointer text-sm font-medium">Activa</Label>
+              <p className="text-xs text-muted-foreground">Disponible para descarga en terminales</p>
             </div>
             <Switch
               id="editIsActive"
               checked={formData.isActive}
-              onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, isActive: checked }))}
+              onClick={e => e.stopPropagation()}
+              className="cursor-pointer"
             />
           </div>
 
@@ -591,21 +548,19 @@ function EditDialog({ update, isOpen, onClose, onSuccess }: EditDialogProps) {
               id="editMinAndroidSdk"
               type="number"
               value={formData.minAndroidSdk}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, minAndroidSdk: parseInt(e.target.value, 10) }))
-              }
+              onChange={e => setFormData(prev => ({ ...prev, minAndroidSdk: parseInt(e.target.value, 10) }))}
             />
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting} className="rounded-full cursor-pointer">
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
+          <Button onClick={handleSubmit} disabled={isSubmitting} className="rounded-full cursor-pointer">
             {isSubmitting ? (
               <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Guardando...
               </>
             ) : (
@@ -617,6 +572,10 @@ function EditDialog({ update, isOpen, onClose, onSuccess }: EditDialogProps) {
     </Dialog>
   )
 }
+
+// ============================================================================
+// DELETE DIALOG
+// ============================================================================
 
 interface DeleteDialogProps {
   update: AppUpdate | null
@@ -631,22 +590,14 @@ function DeleteDialog({ update, isOpen, onClose, onSuccess }: DeleteDialogProps)
 
   const handleDelete = async () => {
     if (!update) return
-
     setIsDeleting(true)
     try {
       await superadminAPI.deleteAppUpdate(update.id)
-      toast({
-        title: 'Version eliminada',
-        description: `Version ${update.versionName} eliminada correctamente`,
-      })
+      toast({ title: 'Version eliminada', description: `Version ${update.versionName} eliminada correctamente` })
       onSuccess()
       onClose()
     } catch (error: any) {
-      toast({
-        title: 'Error al eliminar',
-        description: error.response?.data?.message || error.message,
-        variant: 'destructive',
-      })
+      toast({ title: 'Error al eliminar', description: error.response?.data?.message || error.message, variant: 'destructive' })
     } finally {
       setIsDeleting(false)
     }
@@ -663,27 +614,28 @@ function DeleteDialog({ update, isOpen, onClose, onSuccess }: DeleteDialogProps)
             Eliminar Version
           </DialogTitle>
           <DialogDescription>
-            Estas seguro de que deseas eliminar la version <strong>{update.versionName}</strong> (
-            {update.versionCode})?
+            Estas seguro de que deseas eliminar la version <strong>{update.versionName}</strong> ({update.versionCode})?
           </DialogDescription>
         </DialogHeader>
 
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Accion irreversible</AlertTitle>
-          <AlertDescription>
-            Esta accion eliminara el APK de Firebase Storage y no se puede deshacer.
-          </AlertDescription>
-        </Alert>
+        <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-3 flex items-start gap-3">
+          <div className="p-1.5 rounded-lg bg-gradient-to-br from-red-500/20 to-red-500/5 mt-0.5">
+            <AlertTriangle className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-red-600 dark:text-red-400">Accion irreversible</p>
+            <p className="text-xs text-muted-foreground">Esta accion eliminara el APK de Firebase Storage y no se puede deshacer.</p>
+          </div>
+        </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isDeleting}>
+          <Button variant="outline" onClick={onClose} disabled={isDeleting} className="rounded-full cursor-pointer">
             Cancelar
           </Button>
-          <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+          <Button variant="destructive" onClick={handleDelete} disabled={isDeleting} className="rounded-full cursor-pointer">
             {isDeleting ? (
               <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Eliminando...
               </>
             ) : (
@@ -698,6 +650,10 @@ function DeleteDialog({ update, isOpen, onClose, onSuccess }: DeleteDialogProps)
     </Dialog>
   )
 }
+
+// ============================================================================
+// UPDATES TABLE
+// ============================================================================
 
 function UpdatesTable({
   updates,
@@ -714,7 +670,7 @@ function UpdatesTable({
     return (
       <div className="space-y-3">
         {[...Array(3)].map((_, i) => (
-          <Skeleton key={i} className="h-16 w-full" />
+          <Skeleton key={i} className="h-16 w-full rounded-xl" />
         ))}
       </div>
     )
@@ -722,119 +678,126 @@ function UpdatesTable({
 
   if (updates.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-        <p>No hay versiones disponibles</p>
-        <p className="text-sm">Sube un APK para comenzar</p>
+      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+        <Package className="h-8 w-8 mb-3 opacity-40" />
+        <p className="text-sm">No hay versiones disponibles</p>
+        <p className="text-xs mt-1">Sube un APK para comenzar</p>
       </div>
     )
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Version</TableHead>
-          <TableHead>Estado</TableHead>
-          <TableHead>Tamano</TableHead>
-          <TableHead>Subido por</TableHead>
-          <TableHead>Fecha</TableHead>
-          <TableHead className="text-right">Acciones</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {updates.map((update) => (
-          <TableRow key={update.id}>
-            <TableCell>
-              <div className="flex items-center gap-2">
-                <Package className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">
-                    v{update.versionName}{' '}
-                    <span className="text-muted-foreground">({update.versionCode})</span>
-                  </p>
-                  {update.releaseNotes && (
-                    <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                      {update.releaseNotes}
+    <div className="rounded-xl border border-border/50 overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="text-xs uppercase tracking-wider">Version</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider">Estado</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider">Tamano</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider">Subido por</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider">Fecha</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-right">Acciones</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {updates.map(update => (
+            <TableRow key={update.id}>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+                    <Package className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">
+                      v{update.versionName}{' '}
+                      <span className="text-muted-foreground">({update.versionCode})</span>
                     </p>
+                    {update.releaseNotes && (
+                      <p className="text-xs text-muted-foreground truncate max-w-[200px]">{update.releaseNotes}</p>
+                    )}
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="flex flex-col gap-1">
+                  {update.isActive ? (
+                    <Badge variant="outline" className="bg-green-500/10 text-green-600 w-fit rounded-full">
+                      <Check className="h-3 w-3 mr-1" />
+                      Activa
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-muted text-muted-foreground w-fit rounded-full">
+                      <X className="h-3 w-3 mr-1" />
+                      Inactiva
+                    </Badge>
+                  )}
+                  {update.updateMode === 'BANNER' && (
+                    <Badge variant="outline" className="bg-blue-500/10 text-blue-600 w-fit rounded-full">
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      Banner
+                    </Badge>
+                  )}
+                  {update.updateMode === 'FORCE' && (
+                    <Badge variant="outline" className="bg-red-500/10 text-red-600 w-fit rounded-full">
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      Forzar
+                    </Badge>
                   )}
                 </div>
-              </div>
-            </TableCell>
-            <TableCell>
-              <div className="flex flex-col gap-1">
-                {update.isActive ? (
-                  <Badge variant="outline" className="bg-green-500/10 text-green-600 w-fit">
-                    <Check className="h-3 w-3 mr-1" />
-                    Activa
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="bg-muted text-muted-foreground w-fit">
-                    <X className="h-3 w-3 mr-1" />
-                    Inactiva
-                  </Badge>
-                )}
-                {update.updateMode === 'BANNER' && (
-                  <Badge variant="outline" className="bg-blue-500/10 text-blue-600 w-fit">
-                    <AlertTriangle className="h-3 w-3 mr-1" />
-                    Banner
-                  </Badge>
-                )}
-                {update.updateMode === 'FORCE' && (
-                  <Badge variant="outline" className="bg-red-500/10 text-red-600 w-fit">
-                    <AlertTriangle className="h-3 w-3 mr-1" />
-                    Forzar
-                  </Badge>
-                )}
-              </div>
-            </TableCell>
-            <TableCell>
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <HardDrive className="h-3 w-3" />
-                {formatFileSize(update.fileSize)}
-              </div>
-            </TableCell>
-            <TableCell>
-              <div className="text-sm">
-                {update.uploadedBy.firstName} {update.uploadedBy.lastName}
-              </div>
-            </TableCell>
-            <TableCell>
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <Clock className="h-3 w-3" />
-                {formatDate(update.createdAt)}
-              </div>
-            </TableCell>
-            <TableCell className="text-right">
-              <div className="flex items-center justify-end gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => window.open(update.downloadUrl, '_blank')}
-                  title="Descargar APK"
-                >
-                  <Download className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => onEdit(update)} title="Editar">
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-destructive hover:text-destructive"
-                  onClick={() => onDelete(update)}
-                  title="Eliminar"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <HardDrive className="h-3 w-3" />
+                  {formatFileSize(update.fileSize)}
+                </div>
+              </TableCell>
+              <TableCell>
+                <p className="text-sm">
+                  {update.uploadedBy.firstName} {update.uploadedBy.lastName}
+                </p>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  {formatDate(update.createdAt)}
+                </div>
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex items-center justify-end gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full cursor-pointer"
+                    onClick={() => window.open(update.downloadUrl, '_blank')}
+                    title="Descargar APK"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full cursor-pointer" onClick={() => onEdit(update)} title="Editar">
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full cursor-pointer text-destructive hover:text-destructive"
+                    onClick={() => onDelete(update)}
+                    title="Eliminar"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   )
 }
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
 
 export default function TpvUpdates() {
   const queryClient = useQueryClient()
@@ -866,164 +829,149 @@ export default function TpvUpdates() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Smartphone className="h-6 w-6" />
-            TPV Updates (Avoqado)
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Gestiona las versiones del APK TPV distribuidas via Avoqado
-          </p>
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+            <Smartphone className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">TPV Updates</h1>
+            <p className="text-sm text-muted-foreground mt-1">Gestiona las versiones del APK TPV distribuidas via Avoqado</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={handleRefresh} title="Actualizar">
+          <Button variant="outline" size="icon" onClick={handleRefresh} title="Actualizar" className="rounded-full cursor-pointer">
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <Button onClick={() => setIsUploadOpen(true)}>
+          <Button onClick={() => setIsUploadOpen(true)} className="rounded-full cursor-pointer">
             <Plus className="h-4 w-4 mr-2" />
             Subir APK
           </Button>
         </div>
       </div>
 
-      {/* Info Alert */}
-      <Alert className="border-blue-500/50 bg-blue-500/10">
-        <Shield className="h-4 w-4 text-blue-500" />
-        <AlertTitle className="text-blue-600">Sistema Dual de Actualizaciones</AlertTitle>
-        <AlertDescription className="text-blue-600/80">
-          Las terminales TPV tienen dos fuentes de actualizacion: <strong>Blumon (Proveedor)</strong>{' '}
-          para actualizaciones oficiales firmadas por PAX, y <strong>Avoqado (Interno)</strong> para
-          distribucion rapida de versiones. Esta pagina gestiona las actualizaciones internas de
-          Avoqado.
-        </AlertDescription>
-      </Alert>
+      {/* Info Banner */}
+      <GlassCard className="p-4 border-blue-500/20 bg-blue-500/5">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+            <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Sistema Dual de Actualizaciones</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Las terminales TPV tienen dos fuentes de actualizacion: <strong>Blumon (Proveedor)</strong>{' '}
+              para actualizaciones oficiales firmadas por PAX, y <strong>Avoqado (Interno)</strong> para distribucion rapida de versiones.
+            </p>
+          </div>
+        </div>
+      </GlassCard>
 
       {/* Latest Versions Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Badge variant="outline" className="bg-green-500/10 text-green-600">
-                PRODUCTION
-              </Badge>
-              Ultima Version
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {latestProduction ? (
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-2xl font-bold">v{latestProduction.versionName}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Code: {latestProduction.versionCode}
-                  </p>
-                </div>
-                <div className="text-right text-sm text-muted-foreground">
-                  <p>{formatDate(latestProduction.createdAt)}</p>
-                  <p>{formatFileSize(latestProduction.fileSize)}</p>
-                </div>
+        <GlassCard className="p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5">
+              <Package className="w-4 h-4 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-sm">Production</h3>
+                <Badge variant="outline" className="bg-green-500/10 text-green-600 rounded-full text-xs">PROD</Badge>
               </div>
-            ) : (
-              <p className="text-muted-foreground">Sin versiones disponibles</p>
-            )}
-          </CardContent>
-        </Card>
+              <p className="text-xs text-muted-foreground">Ultima version</p>
+            </div>
+          </div>
+          {latestProduction ? (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold tracking-tight">v{latestProduction.versionName}</p>
+                <p className="text-xs text-muted-foreground">Code: {latestProduction.versionCode}</p>
+              </div>
+              <div className="text-right text-xs text-muted-foreground">
+                <p>{formatDate(latestProduction.createdAt)}</p>
+                <p>{formatFileSize(latestProduction.fileSize)}</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Sin versiones disponibles</p>
+          )}
+        </GlassCard>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600">
-                SANDBOX
-              </Badge>
-              Ultima Version
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {latestSandbox ? (
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-2xl font-bold">v{latestSandbox.versionName}</p>
-                  <p className="text-sm text-muted-foreground">Code: {latestSandbox.versionCode}</p>
-                </div>
-                <div className="text-right text-sm text-muted-foreground">
-                  <p>{formatDate(latestSandbox.createdAt)}</p>
-                  <p>{formatFileSize(latestSandbox.fileSize)}</p>
-                </div>
+        <GlassCard className="p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-yellow-500/20 to-yellow-500/5">
+              <Package className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-sm">Sandbox</h3>
+                <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 rounded-full text-xs">SAND</Badge>
               </div>
-            ) : (
-              <p className="text-muted-foreground">Sin versiones disponibles</p>
-            )}
-          </CardContent>
-        </Card>
+              <p className="text-xs text-muted-foreground">Ultima version</p>
+            </div>
+          </div>
+          {latestSandbox ? (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold tracking-tight">v{latestSandbox.versionName}</p>
+                <p className="text-xs text-muted-foreground">Code: {latestSandbox.versionCode}</p>
+              </div>
+              <div className="text-right text-xs text-muted-foreground">
+                <p>{formatDate(latestSandbox.createdAt)}</p>
+                <p>{formatFileSize(latestSandbox.fileSize)}</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Sin versiones disponibles</p>
+          )}
+        </GlassCard>
       </div>
 
       {/* Updates List */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Historial de Versiones
-          </CardTitle>
-          <CardDescription>
-            Todas las versiones del APK subidas para distribucion
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AppEnvironment)}>
-            <TabsList className="mb-4">
-              <TabsTrigger value="PRODUCTION" className="gap-2">
-                <Badge variant="outline" className="bg-green-500/10 text-green-600 text-xs">
-                  PROD
-                </Badge>
+      <GlassCard className="overflow-hidden">
+        <div className="p-6 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+              <FileText className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-sm">Historial de Versiones</h3>
+              <p className="text-xs text-muted-foreground">Todas las versiones del APK subidas para distribucion</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 pb-6">
+          <Tabs value={activeTab} onValueChange={v => setActiveTab(v as AppEnvironment)}>
+            <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border mb-4">
+              <TabsTrigger
+                value="PRODUCTION"
+                className="rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground cursor-pointer"
+              >
                 Produccion
               </TabsTrigger>
-              <TabsTrigger value="SANDBOX" className="gap-2">
-                <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 text-xs">
-                  SAND
-                </Badge>
+              <TabsTrigger
+                value="SANDBOX"
+                className="rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground cursor-pointer"
+              >
                 Sandbox
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="PRODUCTION">
-              <UpdatesTable
-                updates={updates}
-                isLoading={isLoading}
-                onEdit={setEditingUpdate}
-                onDelete={setDeletingUpdate}
-              />
+              <UpdatesTable updates={updates} isLoading={isLoading} onEdit={setEditingUpdate} onDelete={setDeletingUpdate} />
             </TabsContent>
 
             <TabsContent value="SANDBOX">
-              <UpdatesTable
-                updates={updates}
-                isLoading={isLoading}
-                onEdit={setEditingUpdate}
-                onDelete={setDeletingUpdate}
-              />
+              <UpdatesTable updates={updates} isLoading={isLoading} onEdit={setEditingUpdate} onDelete={setDeletingUpdate} />
             </TabsContent>
           </Tabs>
-        </CardContent>
-      </Card>
+        </div>
+      </GlassCard>
 
       {/* Dialogs */}
-      <UploadDialog
-        isOpen={isUploadOpen}
-        onClose={() => setIsUploadOpen(false)}
-        onSuccess={handleRefresh}
-      />
-      <EditDialog
-        update={editingUpdate}
-        isOpen={!!editingUpdate}
-        onClose={() => setEditingUpdate(null)}
-        onSuccess={handleRefresh}
-      />
-      <DeleteDialog
-        update={deletingUpdate}
-        isOpen={!!deletingUpdate}
-        onClose={() => setDeletingUpdate(null)}
-        onSuccess={handleRefresh}
-      />
+      <UploadDialog isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} onSuccess={handleRefresh} />
+      <EditDialog update={editingUpdate} isOpen={!!editingUpdate} onClose={() => setEditingUpdate(null)} onSuccess={handleRefresh} />
+      <DeleteDialog update={deletingUpdate} isOpen={!!deletingUpdate} onClose={() => setDeletingUpdate(null)} onSuccess={handleRefresh} />
     </div>
   )
 }

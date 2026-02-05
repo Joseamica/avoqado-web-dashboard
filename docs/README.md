@@ -38,6 +38,9 @@
 |----------|-------------|
 | [ui-patterns.md](./guides/ui-patterns.md) | Icon selections, horizontal nav, common patterns |
 | [performance.md](./guides/performance.md) | React performance, memoization |
+| [DESIGN_SYSTEM_GUIDE.md](./guides/DESIGN_SYSTEM_GUIDE.md) | GlassCard, StatusPulse, MetricCard, Bento grid |
+| [TIMEZONE_GUIDE.md](./guides/TIMEZONE_GUIDE.md) | Venue timezone handling (Luxon, currency, backend sync) |
+| [REALTIME_GUIDE.md](./guides/REALTIME_GUIDE.md) | Socket.IO events, hooks, room management |
 
 ---
 
@@ -75,4 +78,10 @@ For features that span multiple repos, see the central documentation hub:
 
 ---
 
-**Last Updated:** 2025-01-06
+## Archive
+
+Completed plans and one-time analyses are stored in [`_archive/`](./_archive/). These are kept for reference but are no longer actively maintained.
+
+---
+
+**Last Updated:** 2026-02-05

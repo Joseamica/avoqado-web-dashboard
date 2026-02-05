@@ -115,7 +115,7 @@ const OrganizationCard: React.FC<OrganizationCardProps> = ({ organization, onEdi
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full cursor-pointer">
                   <MoreHorizontal className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -174,16 +174,16 @@ const OrganizationCard: React.FC<OrganizationCardProps> = ({ organization, onEdi
 
         {/* Tags */}
         <div className="flex flex-wrap gap-1.5">
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline" className="text-xs rounded-full">
             {businessTypeLabel}
           </Badge>
           {organization.enabledModules.slice(0, 2).map(mod => (
-            <Badge key={mod.code} variant="secondary" className="text-xs">
+            <Badge key={mod.code} variant="secondary" className="text-xs rounded-full">
               {mod.name}
             </Badge>
           ))}
           {organization.enabledModules.length > 2 && (
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="text-xs rounded-full">
               +{organization.enabledModules.length - 2}
             </Badge>
           )}
@@ -351,10 +351,10 @@ const OrganizationDialog: React.FC<OrganizationDialogProps> = ({ open, onOpenCha
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="rounded-full cursor-pointer">
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading} className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700">
+            <Button type="submit" disabled={isLoading} className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 rounded-full cursor-pointer">
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {isEdit ? 'Guardar' : 'Crear'}
             </Button>
@@ -406,13 +406,14 @@ const DeleteDialog: React.FC<DeleteDialogProps> = ({ open, onOpenChange, organiz
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-full cursor-pointer">
             Cancelar
           </Button>
           <Button
             variant="destructive"
             onClick={onConfirm}
             disabled={!canDelete || isLoading}
+            className="rounded-full cursor-pointer"
           >
             {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Eliminar
@@ -535,7 +536,7 @@ const ModuleManagementDialog: React.FC<ModuleManagementDialogProps> = ({ open, o
                       <div>
                         <div className="flex items-center gap-2">
                           <h4 className="font-medium text-sm">{module.name}</h4>
-                          <Badge variant="outline" className="text-xs font-mono">
+                          <Badge variant="outline" className="text-xs font-mono rounded-full">
                             {module.code}
                           </Badge>
                         </div>
@@ -751,10 +752,19 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
           </div>
         ) : (
           <Tabs defaultValue="config" className="flex-1 overflow-hidden flex flex-col">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="config">Cuentas Merchant</TabsTrigger>
-              <TabsTrigger value="pricing">Tarifas</TabsTrigger>
-              <TabsTrigger value="venues">Herencia ({venueInheritance.length})</TabsTrigger>
+            <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border w-full">
+              <TabsTrigger value="config" className="flex-1 rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground cursor-pointer">
+                Cuentas Merchant
+              </TabsTrigger>
+              <TabsTrigger value="pricing" className="flex-1 rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground cursor-pointer">
+                Tarifas
+              </TabsTrigger>
+              <TabsTrigger value="venues" className="group flex-1 rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground cursor-pointer">
+                <span>Herencia</span>
+                <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
+                  {venueInheritance.length}
+                </span>
+              </TabsTrigger>
             </TabsList>
 
             {/* Tab 1: Merchant Account Config */}
@@ -849,6 +859,7 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
                       size="sm"
                       onClick={() => deleteConfigMutation.mutate()}
                       disabled={deleteConfigMutation.isPending}
+                      className="rounded-full cursor-pointer"
                     >
                       {deleteConfigMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                       Eliminar Config
@@ -857,7 +868,7 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
                   <Button
                     type="submit"
                     disabled={saveConfigMutation.isPending || !configForm.primaryAccountId}
-                    className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 ml-auto"
+                    className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 ml-auto rounded-full cursor-pointer"
                   >
                     {saveConfigMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                     Guardar Cuentas
@@ -876,7 +887,7 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
                     <GlassCard key={ps.id} className="p-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Badge className={ACCOUNT_TYPE_LABELS[ps.accountType as AccountType]?.color || ''}>
+                          <Badge className={cn('rounded-full', ACCOUNT_TYPE_LABELS[ps.accountType as AccountType]?.color || '')}>
                             {ACCOUNT_TYPE_LABELS[ps.accountType as AccountType]?.label || ps.accountType}
                           </Badge>
                           <span className="text-sm font-mono">
@@ -885,10 +896,10 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
                         </div>
                         <Button
                           variant="ghost"
-                          size="sm"
+                          size="icon"
                           onClick={() => deletePricingMutation.mutate(ps.id)}
                           disabled={deletePricingMutation.isPending}
-                          className="text-red-500 hover:text-red-600"
+                          className="text-red-500 hover:text-red-600 h-8 w-8 rounded-full cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
@@ -997,7 +1008,7 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
                   <Button
                     type="submit"
                     disabled={savePricingMutation.isPending}
-                    className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+                    className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 rounded-full cursor-pointer"
                   >
                     {savePricingMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                     Guardar Tarifas
@@ -1047,20 +1058,20 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
 const InheritanceBadge: React.FC<{ label: string; source: string; hasOverride: boolean }> = ({ label, source, hasOverride }) => {
   if (source === 'none') {
     return (
-      <Badge variant="outline" className="text-xs text-muted-foreground">
+      <Badge variant="outline" className="text-xs text-muted-foreground rounded-full">
         {label}: Sin config
       </Badge>
     )
   }
   if (hasOverride) {
     return (
-      <Badge variant="secondary" className="text-xs text-blue-600 bg-blue-500/10">
+      <Badge variant="secondary" className="text-xs text-blue-600 bg-blue-500/10 rounded-full">
         {label}: Personalizado
       </Badge>
     )
   }
   return (
-    <Badge variant="secondary" className="text-xs text-emerald-600 bg-emerald-500/10">
+    <Badge variant="secondary" className="text-xs text-emerald-600 bg-emerald-500/10 rounded-full">
       <Check className="w-3 h-3 mr-1" />
       {label}: Heredado
     </Badge>
@@ -1212,7 +1223,7 @@ const OrganizationManagement: React.FC = () => {
         </div>
         <Button
           onClick={() => setIsCreateDialogOpen(true)}
-          className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+          className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 rounded-full cursor-pointer"
         >
           <Plus className="w-4 h-4 mr-2" />
           Nueva Organización
@@ -1279,7 +1290,7 @@ const OrganizationManagement: React.FC = () => {
               placeholder="Buscar organizaciones..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-10 rounded-full"
             />
           </div>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -1319,7 +1330,7 @@ const OrganizationManagement: React.FC = () => {
               : 'No hay organizaciones registradas. Crea una para comenzar.'}
           </p>
           {!searchTerm && typeFilter === 'all' && (
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Button onClick={() => setIsCreateDialogOpen(true)} className="rounded-full cursor-pointer">
               <Plus className="w-4 h-4 mr-2" />
               Nueva Organización
             </Button>
@@ -1331,7 +1342,7 @@ const OrganizationManagement: React.FC = () => {
             <p className="text-sm text-muted-foreground">
               Mostrando {filteredOrganizations.length} de {organizations.length} organizaciones
             </p>
-            <Badge variant="outline">{filteredOrganizations.length} resultados</Badge>
+            <Badge variant="outline" className="rounded-full">{filteredOrganizations.length} resultados</Badge>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -92,6 +92,10 @@ export { default as OrganizationManagement } from '@/pages/Superadmin/Organizati
 export { default as MasterTotpSetup } from '@/pages/Superadmin/MasterTotpSetup'
 export { default as TpvUpdates } from '@/pages/Superadmin/TpvUpdates'
 export { default as PushNotifications } from '@/pages/Superadmin/PushNotifications'
+export { default as MarketingPage } from '@/pages/Superadmin/Marketing/MarketingPage'
+export { default as CampaignEditor } from '@/pages/Superadmin/Marketing/CampaignEditor'
+export { default as CampaignDetail } from '@/pages/Superadmin/Marketing/CampaignDetail'
+export { default as TemplatesPage } from '@/pages/Superadmin/Marketing/TemplatesPage'
 export { default as OnboardingWizardPage } from '@/pages/Superadmin/Onboarding/OnboardingWizardPage'
 
 // Legal components

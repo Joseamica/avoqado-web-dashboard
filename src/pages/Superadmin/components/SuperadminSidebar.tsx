@@ -29,6 +29,7 @@ import {
   Upload,
   Bell,
   Wand2,
+  Mail,
 } from 'lucide-react'
 
 import { useTranslation } from 'react-i18next'
@@ -73,6 +74,7 @@ const SuperadminSidebar: React.FC = () => {
         { name: tSidebar('system'), href: '/superadmin/system', icon: Shield },
         { name: tSidebar('webhooks'), href: '/superadmin/webhooks', icon: Webhook },
         { name: 'Push Notifications', href: '/superadmin/push-notifications', icon: Bell },
+        { name: 'Marketing', href: '/superadmin/marketing', icon: Mail },
         { name: tSidebar('reports'), href: '/superadmin/reports', icon: FileText },
         { name: tSidebar('support'), href: '/superadmin/support', icon: Headphones },
       ],
