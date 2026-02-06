@@ -127,7 +127,7 @@ const OnboardingWizardPage: React.FC = () => {
                 <div
                   className={cn(
                     'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all',
-                    index < currentStep && 'bg-green-500 text-white',
+                    index < currentStep && 'bg-green-500 text-primary-foreground',
                     index === currentStep && 'bg-foreground text-background ring-4 ring-foreground/20',
                     index > currentStep && 'bg-muted text-muted-foreground',
                   )}
