@@ -278,45 +278,29 @@ export default function RawMaterials() {
       }
 
       const targetMaterial = rawMaterials[materialIndex]
-      console.log('Target material:', { id: targetMaterial.id, name: targetMaterial.name, sku: targetMaterial.sku })
 
       // Calculate which page the material is on
       const pageSize = pagination.pageSize
       const targetPage = Math.floor(materialIndex / pageSize)
       const rowIndexInPage = materialIndex % pageSize
 
-      console.log('Pagination info:', {
-        materialIndex,
-        pageSize,
-        currentPage: pagination.pageIndex,
-        targetPage,
-        rowIndexInPage,
-      })
-
       // If material is on a different page, change to that page
       if (targetPage !== pagination.pageIndex) {
-        console.log(`Material is on page ${targetPage}, switching from page ${pagination.pageIndex}...`)
         setPagination({ ...pagination, pageIndex: targetPage })
         // Don't remove highlight param yet - let it retry after page changes
         return
       }
 
-      console.log('Material is on current page, proceeding to highlight...')
-
       // Small delay to ensure table is rendered
       const timeoutId = setTimeout(() => {
         try {
-          console.log('Searching for row in DOM...')
           // Find the row element - use row index within current page
           const rowElements = document.querySelectorAll('tbody tr')
-          console.log('Total rows found:', rowElements.length)
-          console.log('Looking for row at index:', rowIndexInPage)
 
           // Use the row index within the current page
           const row = Array.from(rowElements)[rowIndexInPage] as HTMLElement
 
           if (row) {
-            console.log('Row found! Highlighting...')
             try {
               // Scroll into view
               row.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -341,7 +325,6 @@ export default function RawMaterials() {
               // Remove animation after 3 seconds
               setTimeout(() => {
                 try {
-                  console.log('Removing highlight animation')
                   row.classList.remove('animate-pulse')
                   row.style.backgroundColor = ''
                   row.style.boxShadow = ''
@@ -362,15 +345,6 @@ export default function RawMaterials() {
               setSearchParams(newParams, { replace: true })
             }
           } else {
-            console.warn('Row element not found in DOM')
-            console.log(
-              'Row index in page:',
-              rowIndexInPage,
-              'Available rows:',
-              rowElements.length,
-              'Material global index:',
-              materialIndex,
-            )
             // Remove highlight param if row not found
             const newParams = new URLSearchParams(searchParams)
             newParams.delete('highlight')

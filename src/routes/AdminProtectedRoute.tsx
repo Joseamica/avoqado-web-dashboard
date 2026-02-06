@@ -22,9 +22,10 @@ export const AdminProtectedRoute = ({ requiredRole = AdminAccessLevel.ADMIN }: A
   const location = useLocation()
   const { t } = useTranslation()
 
-  // Si no está autenticado, redireccionar al login
+  // Si no está autenticado, redireccionar al login con returnTo para preservar la ruta
   if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace state={{ from: location }} />
+    const returnTo = encodeURIComponent(location.pathname + location.search)
+    return <Navigate to={`/login?returnTo=${returnTo}`} replace />
   }
 
   // Use staffInfo.role which is properly derived from venue-specific role

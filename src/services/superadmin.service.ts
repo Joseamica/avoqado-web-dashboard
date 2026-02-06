@@ -641,6 +641,7 @@ export async function updateVenueModuleConfig(venueId: string, moduleCode: strin
 // ===== APP UPDATES TYPES =====
 
 export type AppEnvironment = 'SANDBOX' | 'PRODUCTION'
+export type UpdateMode = 'NONE' | 'BANNER' | 'FORCE'
 
 export interface AppUpdate {
   id: string
@@ -648,7 +649,7 @@ export interface AppUpdate {
   versionCode: number
   environment: AppEnvironment
   releaseNotes: string | null
-  isRequired: boolean
+  updateMode: UpdateMode
   downloadUrl: string
   fileSize: string // BigInt as string
   checksum: string
@@ -669,7 +670,7 @@ export interface AppUpdateCreateInput {
   versionCode?: number // Optional - auto-detected from APK if not provided
   environment: AppEnvironment
   releaseNotes?: string
-  isRequired?: boolean
+  updateMode?: UpdateMode // NONE=silent, BANNER=recommended, FORCE=blocking
   minAndroidSdk?: number // Optional - auto-detected from APK if not provided
   apkBase64: string
 }
@@ -693,7 +694,7 @@ export interface AppUpdateCreateResponse {
 
 export interface AppUpdateUpdateInput {
   releaseNotes?: string
-  isRequired?: boolean
+  updateMode?: UpdateMode
   isActive?: boolean
   minAndroidSdk?: number
 }
@@ -738,7 +739,7 @@ export async function createAppUpdate(data: AppUpdateCreateInput): Promise<AppUp
   if (data.versionName !== undefined) payload.versionName = data.versionName
   if (data.versionCode !== undefined) payload.versionCode = data.versionCode
   if (data.releaseNotes !== undefined) payload.releaseNotes = data.releaseNotes
-  if (data.isRequired !== undefined) payload.isRequired = data.isRequired
+  if (data.updateMode !== undefined) payload.updateMode = data.updateMode
   if (data.minAndroidSdk !== undefined) payload.minAndroidSdk = data.minAndroidSdk
 
   const response = await api.post('/api/v1/superadmin/app-updates', payload)

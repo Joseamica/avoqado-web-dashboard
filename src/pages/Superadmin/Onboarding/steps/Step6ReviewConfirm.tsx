@@ -1,7 +1,12 @@
 import React from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { CheckCircle2, XCircle, MinusCircle, Loader2, AlertTriangle, ExternalLink, Eye, Power, Plus, RotateCcw } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import {
+  CheckCircle2, XCircle, MinusCircle, Loader2, AlertTriangle,
+  ExternalLink, Eye, Power, Plus, RotateCcw,
+  Building2, Store, CreditCard, Monitor, Banknote, Users, Sparkles, ClipboardCheck,
+} from 'lucide-react'
 import type { WizardState, StepResult, WizardResponse } from '../onboarding.types'
 
 interface Props {
@@ -12,9 +17,19 @@ interface Props {
   onReset?: () => void
 }
 
-const SummarySection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <div className="rounded-xl border border-border/50 bg-card/80 backdrop-blur-sm p-4 space-y-2">
-    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{title}</h4>
+const SummarySection: React.FC<{
+  title: string
+  icon: React.ReactNode
+  gradient: string
+  children: React.ReactNode
+}> = ({ title, icon, gradient, children }) => (
+  <div className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-4 space-y-2">
+    <div className="flex items-center gap-3 mb-2">
+      <div className={`p-1.5 rounded-lg bg-gradient-to-br ${gradient}`}>
+        {icon}
+      </div>
+      <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{title}</h4>
+    </div>
     {children}
   </div>
 )
@@ -28,17 +43,28 @@ const Field: React.FC<{ label: string; value?: string | number | null }> = ({ la
   ) : null
 
 const statusIcon = (status: string) => {
-  if (status === 'success') return <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+  if (status === 'success') return <CheckCircle2 className="w-4 h-4 text-green-500" />
   if (status === 'error') return <XCircle className="w-4 h-4 text-destructive" />
   return <MinusCircle className="w-4 h-4 text-muted-foreground" />
 }
 
-const STEP_LINKS: Record<string, { label: string; path: (venueId?: string) => string }> = {
-  settlement: { label: 'Configurar liquidacion', path: () => '/superadmin/settlement-terms' },
-  terminal: { label: 'Agregar terminal', path: () => '/superadmin/terminals' },
-  features: { label: 'Configurar features', path: (vid) => vid ? `/superadmin/venues/${vid}` : '/superadmin/venues' },
-  modules: { label: 'Configurar modulos', path: (vid) => vid ? `/superadmin/venues/${vid}` : '/superadmin/venues' },
-  invitations: { label: 'Gestionar equipo', path: (vid) => vid ? `/superadmin/venues/${vid}` : '/superadmin/venues' },
+const getStepLink = (step: string, venueSlug?: string): { label: string; path: string } | null => {
+  switch (step) {
+    case 'settlement':
+      return { label: 'Configurar liquidacion', path: '/superadmin/settlement-terms' }
+    case 'terminal':
+      return { label: 'Agregar terminal', path: '/superadmin/terminals' }
+    case 'features':
+      return { label: 'Configurar features', path: '/superadmin/features' }
+    case 'modules':
+      return { label: 'Configurar modulos', path: '/superadmin/modules' }
+    case 'invitations':
+      return venueSlug
+        ? { label: 'Gestionar equipo', path: `/venues/${venueSlug}/team` }
+        : { label: 'Gestionar equipo', path: '/superadmin/venues' }
+    default:
+      return null
+  }
 }
 
 export const Step6ReviewConfirm: React.FC<Props> = ({ state, results, response, loading, onReset }) => {
@@ -56,25 +82,33 @@ export const Step6ReviewConfirm: React.FC<Props> = ({ state, results, response, 
     const skippedCount = results.filter((r) => r.status === 'skipped').length
     const errorCount = results.filter((r) => r.status === 'error').length
     const total = results.length
-    const venueId = response?.venueId
+    const venueSlug = response?.venueSlug
 
     return (
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Resultado</h3>
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5">
+            <ClipboardCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
+          </div>
+          <div>
+            <h3 className="font-semibold">Resultado</h3>
+            <p className="text-sm text-muted-foreground">Resumen de la creacion del venue</p>
+          </div>
+        </div>
 
         {/* Completeness indicator */}
-        <div className="rounded-xl border border-border p-4 space-y-3">
+        <div className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-4 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">{successCount}/{total} pasos completados</span>
             <div className="flex gap-2">
-              {successCount > 0 && <Badge variant="default">{successCount} exitosos</Badge>}
-              {skippedCount > 0 && <Badge variant="secondary">{skippedCount} omitidos</Badge>}
-              {errorCount > 0 && <Badge variant="destructive">{errorCount} errores</Badge>}
+              {successCount > 0 && <Badge className="rounded-full">{successCount} exitosos</Badge>}
+              {skippedCount > 0 && <Badge variant="secondary" className="rounded-full">{skippedCount} omitidos</Badge>}
+              {errorCount > 0 && <Badge variant="destructive" className="rounded-full">{errorCount} errores</Badge>}
             </div>
           </div>
           <div className="w-full bg-muted rounded-full h-2">
             <div
-              className="bg-emerald-500 h-2 rounded-full transition-all"
+              className="bg-green-500 h-2 rounded-full transition-all"
               style={{ width: `${(successCount / total) * 100}%` }}
             />
           </div>
@@ -82,10 +116,10 @@ export const Step6ReviewConfirm: React.FC<Props> = ({ state, results, response, 
 
         {/* Skipped/error banner */}
         {(skippedCount > 0 || errorCount > 0) && (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20 p-3">
+          <div className="rounded-2xl border border-orange-500/20 bg-orange-500/5 p-3">
             <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="w-4 h-4 text-amber-600" />
-              <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+              <AlertTriangle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+              <p className="text-sm font-medium text-orange-600 dark:text-orange-400">
                 Algunos pasos requieren atencion
               </p>
             </div>
@@ -97,51 +131,57 @@ export const Step6ReviewConfirm: React.FC<Props> = ({ state, results, response, 
 
         {/* Step results with direct links */}
         <div className="space-y-2">
-          {results.map((r) => (
-            <div key={r.step} className="flex items-center gap-3 p-3 rounded-lg border border-border">
-              {statusIcon(r.status)}
-              <span className="text-sm font-medium capitalize">{r.step}</span>
-              <Badge variant={r.status === 'success' ? 'default' : r.status === 'error' ? 'destructive' : 'secondary'}>
-                {r.status}
-              </Badge>
-              {r.message && <span className="text-xs text-muted-foreground ml-auto truncate max-w-[300px]">{r.message}</span>}
-              {(r.status === 'skipped' || r.status === 'error') && STEP_LINKS[r.step] && (
-                <a
-                  href={STEP_LINKS[r.step].path(venueId)}
-                  className="ml-auto flex items-center gap-1 text-xs text-primary hover:underline shrink-0"
+          {results.map((r) => {
+            const link = (r.status === 'skipped' || r.status === 'error') ? getStepLink(r.step, venueSlug) : null
+            return (
+              <div key={r.step} className="flex items-center gap-3 p-3 rounded-xl border border-border/50 bg-card/80 backdrop-blur-sm">
+                {statusIcon(r.status)}
+                <span className="text-sm font-medium capitalize">{r.step}</span>
+                <Badge
+                  variant={r.status === 'success' ? 'default' : r.status === 'error' ? 'destructive' : 'secondary'}
+                  className="rounded-full"
                 >
-                  {STEP_LINKS[r.step].label}
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              )}
-            </div>
-          ))}
+                  {r.status}
+                </Badge>
+                {r.message && <span className="text-xs text-muted-foreground ml-auto truncate max-w-[300px]">{r.message}</span>}
+                {link && (
+                  <Link
+                    to={link.path}
+                    className="ml-auto flex items-center gap-1 text-xs text-primary hover:underline shrink-0"
+                  >
+                    {link.label}
+                    <ExternalLink className="w-3 h-3" />
+                  </Link>
+                )}
+              </div>
+            )
+          })}
         </div>
 
         {/* Quick Actions */}
-        <div className="rounded-xl border border-border p-4 space-y-3">
+        <div className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-4 space-y-3">
           <h4 className="text-sm font-semibold">Acciones rapidas</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <a href={`/venues/${response?.venueSlug}`}>
-              <Button variant="outline" size="sm" className="w-full">
+            <Link to={`/venues/${venueSlug}`}>
+              <Button variant="outline" size="sm" className="w-full rounded-full cursor-pointer">
                 <Eye className="w-4 h-4 mr-1" />
                 Ver venue
               </Button>
-            </a>
-            <a href={`/superadmin/venues/${venueId}`}>
-              <Button variant="outline" size="sm" className="w-full">
+            </Link>
+            <Link to="/superadmin/venues">
+              <Button variant="outline" size="sm" className="w-full rounded-full cursor-pointer">
                 <Power className="w-4 h-4 mr-1" />
-                Activar
+                Venues
               </Button>
-            </a>
-            <a href={`/venues/${response?.venueSlug}/menu/products`}>
-              <Button variant="outline" size="sm" className="w-full">
+            </Link>
+            <Link to={`/venues/${venueSlug}/menumaker/products`}>
+              <Button variant="outline" size="sm" className="w-full rounded-full cursor-pointer">
                 <Plus className="w-4 h-4 mr-1" />
                 Productos
               </Button>
-            </a>
+            </Link>
             {onReset && (
-              <Button variant="outline" size="sm" className="w-full" onClick={onReset}>
+              <Button variant="outline" size="sm" className="w-full rounded-full cursor-pointer" onClick={onReset}>
                 <RotateCcw className="w-4 h-4 mr-1" />
                 Nuevo venue
               </Button>
@@ -160,24 +200,40 @@ export const Step6ReviewConfirm: React.FC<Props> = ({ state, results, response, 
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Revision</h3>
+      <div className="flex items-center gap-3">
+        <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+          <ClipboardCheck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+        </div>
+        <div>
+          <h3 className="font-semibold">Revision</h3>
+          <p className="text-sm text-muted-foreground">Verifica los datos antes de crear el venue</p>
+        </div>
+      </div>
 
       {showSettlementWarning && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20 p-3 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-          <p className="text-sm text-amber-700 dark:text-amber-400">
+        <div className="rounded-2xl border border-orange-500/20 bg-orange-500/5 p-3 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-orange-600 dark:text-orange-400 shrink-0" />
+          <p className="text-sm text-orange-600 dark:text-orange-400">
             No hay cuenta merchant vinculada. La liquidacion no se podra configurar automaticamente.
           </p>
         </div>
       )}
 
-      <SummarySection title="Organizacion">
+      <SummarySection
+        title="Organizacion"
+        icon={<Building2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />}
+        gradient="from-blue-500/20 to-blue-500/5"
+      >
         <Field label="Modo" value={state.organization.mode === 'new' ? 'Nueva' : 'Existente'} />
         {state.organization.mode === 'new' && <Field label="Nombre" value={state.organization.name} />}
         {state.organization.mode === 'existing' && <Field label="ID" value={state.organization.id} />}
       </SummarySection>
 
-      <SummarySection title="Venue">
+      <SummarySection
+        title="Venue"
+        icon={<Store className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />}
+        gradient="from-purple-500/20 to-purple-500/5"
+      >
         <Field label="Nombre" value={state.venue.name} />
         <Field label="Slug" value={state.venue.slug} />
         <Field label="Tipo" value={state.venue.venueType} />
@@ -186,7 +242,11 @@ export const Step6ReviewConfirm: React.FC<Props> = ({ state, results, response, 
         <Field label="RFC" value={state.venue.rfc} />
       </SummarySection>
 
-      <SummarySection title="Pagos">
+      <SummarySection
+        title="Pagos"
+        icon={<CreditCard className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />}
+        gradient="from-green-500/20 to-green-500/5"
+      >
         {state.pricing.useOrgConfig ? (
           <p className="text-sm">Usando configuracion organizacional</p>
         ) : (
@@ -199,23 +259,27 @@ export const Step6ReviewConfirm: React.FC<Props> = ({ state, results, response, 
         )}
         {state.pricing.merchantAccountId ? (
           <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
-            <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-            <span className="text-xs text-emerald-600">Merchant account vinculado</span>
+            <CheckCircle2 className="w-3 h-3 text-green-500" />
+            <span className="text-xs text-green-600 dark:text-green-400">Merchant account vinculado</span>
           </div>
         ) : state.pricing.createOrgConfig?.primaryAccountId ? (
           <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
-            <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-            <span className="text-xs text-emerald-600">Se creara config org con merchant</span>
+            <CheckCircle2 className="w-3 h-3 text-green-500" />
+            <span className="text-xs text-green-600 dark:text-green-400">Se creara config org con merchant</span>
           </div>
         ) : !state.pricing.useOrgConfig ? (
           <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
-            <AlertTriangle className="w-3 h-3 text-amber-500" />
-            <span className="text-xs text-amber-600">Sin merchant account</span>
+            <AlertTriangle className="w-3 h-3 text-orange-500" />
+            <span className="text-xs text-orange-600 dark:text-orange-400">Sin merchant account</span>
           </div>
         ) : null}
       </SummarySection>
 
-      <SummarySection title="Terminal">
+      <SummarySection
+        title="Terminal"
+        icon={<Monitor className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />}
+        gradient="from-orange-500/20 to-orange-500/5"
+      >
         {state.terminal ? (
           <>
             <Field label="Serie" value={state.terminal.serialNumber} />
@@ -227,7 +291,11 @@ export const Step6ReviewConfirm: React.FC<Props> = ({ state, results, response, 
         )}
       </SummarySection>
 
-      <SummarySection title="Liquidacion">
+      <SummarySection
+        title="Liquidacion"
+        icon={<Banknote className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />}
+        gradient="from-green-500/20 to-green-500/5"
+      >
         <Field label="Debito" value={`${state.settlement.debitDays} dias`} />
         <Field label="Credito" value={`${state.settlement.creditDays} dias`} />
         <Field label="AMEX" value={`${state.settlement.amexDays} dias`} />
@@ -235,7 +303,11 @@ export const Step6ReviewConfirm: React.FC<Props> = ({ state, results, response, 
         <Field label="Corte" value={`${state.settlement.cutoffTime} ${state.settlement.cutoffTimezone}`} />
       </SummarySection>
 
-      <SummarySection title="Equipo">
+      <SummarySection
+        title="Equipo"
+        icon={<Users className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />}
+        gradient="from-purple-500/20 to-purple-500/5"
+      >
         {state.team.owner.email ? (
           <>
             <Field label="Owner" value={`${state.team.owner.firstName} ${state.team.owner.lastName} (${state.team.owner.email})`} />
@@ -249,7 +321,11 @@ export const Step6ReviewConfirm: React.FC<Props> = ({ state, results, response, 
       </SummarySection>
 
       {(state.features.length > 0 || state.modules.length > 0) && (
-        <SummarySection title="Features y Modulos">
+        <SummarySection
+          title="Features y Modulos"
+          icon={<Sparkles className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />}
+          gradient="from-orange-500/20 to-orange-500/5"
+        >
           {state.features.length > 0 && <Field label="Features" value={state.features.join(', ')} />}
           {state.modules.length > 0 && <Field label="Modulos" value={state.modules.map((m) => m.code).join(', ')} />}
         </SummarySection>

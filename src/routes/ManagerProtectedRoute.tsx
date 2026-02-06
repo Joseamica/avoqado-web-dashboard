@@ -27,9 +27,10 @@ export const ManagerProtectedRoute = ({ allowViewer = false }: ManagerProtectedR
   const location = useLocation()
   const { t } = useTranslation()
 
-  // If not authenticated, redirect to login
+  // If not authenticated, redirect to login with returnTo to preserve the route
   if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace state={{ from: location }} />
+    const returnTo = encodeURIComponent(location.pathname + location.search)
+    return <Navigate to={`/login?returnTo=${returnTo}`} replace />
   }
 
   // Check if user has MANAGER level or higher

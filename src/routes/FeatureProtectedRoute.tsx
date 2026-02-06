@@ -31,14 +31,6 @@ export function FeatureProtectedRoute({ requiredFeature }: FeatureProtectedRoute
 
   const hasFeatureAccess = checkFeatureAccess(requiredFeature)
 
-  // Debug logging
-  console.log('[FeatureProtectedRoute]', {
-    requiredFeature,
-    hasFeatureAccess,
-    activeVenueFeatures: activeVenue?.features,
-    path: location.pathname,
-  })
-
   // Show toast when redirecting due to missing feature
   useEffect(() => {
     if (!hasFeatureAccess && activeVenue) {

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, CheckCircle2, AlertCircle, Zap, Link2 } from 'lucide-react'
+import { Loader2, CheckCircle2, AlertCircle, Zap, Link2, Monitor, Cpu } from 'lucide-react'
 import type { TerminalData, PricingData } from '../onboarding.types'
 import { blumonAutoFetch } from '../onboarding.service'
 
@@ -77,11 +77,21 @@ export const Step3TerminalMerchant: React.FC<Props> = ({ terminal, venueType, me
 
   return (
     <div className="space-y-6">
+      {/* Header with toggle */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Terminal y Merchant</h3>
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+            <Monitor className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div>
+            <h3 className="font-semibold">Terminal y Merchant</h3>
+            <p className="text-sm text-muted-foreground">Configura el terminal fisico y cuenta merchant</p>
+          </div>
+        </div>
         <Button
           variant="outline"
           size="sm"
+          className="rounded-full cursor-pointer"
           onClick={() =>
             onChange(
               hasTerminal ? null : { serialNumber: '', brand: 'PAX', model: '', name: '', environment: 'SANDBOX' },
@@ -94,18 +104,18 @@ export const Step3TerminalMerchant: React.FC<Props> = ({ terminal, venueType, me
 
       {/* Merchant Account Status Indicator */}
       {effectiveMerchantId && (
-        <div className="rounded-lg border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20 p-4">
+        <div className="rounded-2xl border border-green-500/20 bg-green-500/5 p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Link2 className="w-4 h-4 text-emerald-600" />
+              <Link2 className="w-4 h-4 text-green-600 dark:text-green-400" />
               <div>
-                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                <p className="text-sm font-medium text-green-600 dark:text-green-400">
                   Merchant Account Vinculado
                 </p>
                 <p className="text-xs text-muted-foreground">{effectiveMerchantName}</p>
               </div>
             </div>
-            <Badge variant="outline" className="text-emerald-600 border-emerald-500/50">
+            <Badge variant="outline" className="rounded-full bg-green-500/10 text-green-600 border-green-500/50">
               Listo para liquidaciones
             </Badge>
           </div>
@@ -113,10 +123,10 @@ export const Step3TerminalMerchant: React.FC<Props> = ({ terminal, venueType, me
       )}
 
       {!effectiveMerchantId && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20 p-3">
+        <div className="rounded-2xl border border-orange-500/20 bg-orange-500/5 p-3">
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-600" />
-            <p className="text-sm text-amber-700 dark:text-amber-400">
+            <AlertCircle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+            <p className="text-sm text-orange-600 dark:text-orange-400">
               Sin merchant account vinculado. Usa Auto-Fetch o selecciona uno en el paso anterior.
             </p>
           </div>
@@ -130,78 +140,102 @@ export const Step3TerminalMerchant: React.FC<Props> = ({ terminal, venueType, me
       )}
 
       {hasTerminal && terminal && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>Numero de serie</Label>
-              <Input
-                value={terminal.serialNumber}
-                onChange={(e) => setField('serialNumber', e.target.value)}
-                placeholder="0821234567"
-              />
-            </div>
-            <div>
-              <Label>Nombre (opcional)</Label>
-              <Input
-                value={terminal.name || ''}
-                onChange={(e) => setField('name', e.target.value)}
-                placeholder="Terminal Caja 1"
-              />
-            </div>
-            <div>
-              <Label>Marca</Label>
-              <Select value={terminal.brand} onValueChange={(v) => setField('brand', v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PAX">PAX</SelectItem>
-                  <SelectItem value="Verifone">Verifone</SelectItem>
-                  <SelectItem value="Ingenico">Ingenico</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Modelo</Label>
-              <Input
-                value={terminal.model}
-                onChange={(e) => setField('model', e.target.value)}
-                placeholder="A910S"
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label>Ambiente</Label>
-            <RadioGroup
-              value={terminal.environment}
-              onValueChange={(v) => setField('environment', v)}
-              className="flex gap-4 mt-1"
-            >
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="SANDBOX" id="env-sandbox" />
-                <Label htmlFor="env-sandbox">Sandbox</Label>
+        <>
+          {/* Terminal Details Card */}
+          <div className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+                <Cpu className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="PRODUCTION" id="env-prod" />
-                <Label htmlFor="env-prod">Produccion</Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          {/* Blumon Auto-Fetch */}
-          <div className="rounded-lg border border-border p-4 space-y-3">
-            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium">Blumon Auto-Fetch</p>
-                <p className="text-xs text-muted-foreground">
-                  Conecta con Blumon para obtener credenciales y crear la cuenta merchant automaticamente.
-                </p>
+                <h3 className="font-semibold">Datos del Terminal</h3>
+                <p className="text-sm text-muted-foreground">Informacion del dispositivo fisico</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Numero de serie</Label>
+                  <Input
+                    className="h-12 text-base"
+                    value={terminal.serialNumber}
+                    onChange={(e) => setField('serialNumber', e.target.value)}
+                    placeholder="0821234567"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Nombre (opcional)</Label>
+                  <Input
+                    className="h-12 text-base"
+                    value={terminal.name || ''}
+                    onChange={(e) => setField('name', e.target.value)}
+                    placeholder="Terminal Caja 1"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Marca</Label>
+                  <Select value={terminal.brand} onValueChange={(v) => setField('brand', v)}>
+                    <SelectTrigger className="h-12 text-base">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PAX">PAX</SelectItem>
+                      <SelectItem value="Verifone">Verifone</SelectItem>
+                      <SelectItem value="Ingenico">Ingenico</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Modelo</Label>
+                  <Input
+                    className="h-12 text-base"
+                    value={terminal.model}
+                    onChange={(e) => setField('model', e.target.value)}
+                    placeholder="A910S"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Ambiente</Label>
+                <RadioGroup
+                  value={terminal.environment}
+                  onValueChange={(v) => setField('environment', v)}
+                  className="flex gap-4 mt-1"
+                >
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="SANDBOX" id="env-sandbox" />
+                    <Label htmlFor="env-sandbox">Sandbox</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="PRODUCTION" id="env-prod" />
+                    <Label htmlFor="env-prod">Produccion</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            </div>
+          </div>
+
+          {/* Blumon Auto-Fetch Card */}
+          <div className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-500/5">
+                  <Zap className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Blumon Auto-Fetch</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Conecta con Blumon para obtener credenciales y crear la cuenta merchant automaticamente.
+                  </p>
+                </div>
               </div>
               <Button
                 size="sm"
                 disabled={!canAutoFetch || autoFetchLoading}
                 onClick={handleAutoFetch}
+                className="rounded-full cursor-pointer"
               >
                 {autoFetchLoading ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -220,10 +254,10 @@ export const Step3TerminalMerchant: React.FC<Props> = ({ terminal, venueType, me
 
             {autoFetchResult && (
               <div
-                className={`rounded-lg p-3 text-sm space-y-2 ${
+                className={`rounded-2xl p-3 text-sm space-y-2 ${
                   autoFetchResult.success
-                    ? 'border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400'
-                    : 'border border-destructive/30 bg-destructive/10 text-destructive'
+                    ? 'border border-green-500/20 bg-green-500/5 text-green-600 dark:text-green-400'
+                    : 'border border-destructive/20 bg-destructive/5 text-destructive'
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -242,7 +276,7 @@ export const Step3TerminalMerchant: React.FC<Props> = ({ terminal, venueType, me
               </div>
             )}
           </div>
-        </div>
+        </>
       )}
     </div>
   )

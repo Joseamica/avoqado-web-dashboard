@@ -65,6 +65,10 @@ import {
   TestingPayments,
   TpvUpdates,
   PushNotifications,
+  MarketingPage,
+  CampaignEditor,
+  CampaignDetail,
+  TemplatesPage,
   OnboardingWizardPage,
   UserManagement,
   VenueManagement,
@@ -366,6 +370,26 @@ const router = createBrowserRouter(
                     {
                       path: 'push-notifications',
                       element: <PushNotifications />,
+                    },
+                    {
+                      path: 'marketing',
+                      element: <MarketingPage />,
+                    },
+                    {
+                      path: 'marketing/new',
+                      element: <CampaignEditor />,
+                    },
+                    {
+                      path: 'marketing/:campaignId',
+                      element: <CampaignDetail />,
+                    },
+                    {
+                      path: 'marketing/:campaignId/edit',
+                      element: <CampaignEditor />,
+                    },
+                    {
+                      path: 'marketing/templates',
+                      element: <TemplatesPage />,
                     },
                     {
                       path: 'onboarding',

@@ -378,13 +378,6 @@ export default function SalesByItem() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 
-  // Debug: Log API response
-  console.log('API Response:', {
-    byPeriod: apiResponse?.byPeriod?.slice(0, 3),
-    totals: apiResponse?.totals,
-    itemsCount: apiResponse?.items?.length,
-  })
-
   // Sort items
   const sortedItems = useMemo(() => {
     if (!apiResponse?.items) return []
