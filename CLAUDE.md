@@ -13,6 +13,8 @@
 
 When rules conflict: `.claude/rules/` wins > this file > `docs/guides/` > `docs/`
 
+**Maintaining this file:** Short rules (1-3 lines) go directly here. Detailed content (code examples, tables, >10 lines) goes in `docs/` or `.claude/rules/`. Keep this file under ~200 lines — it loads every session.
+
 ---
 
 ## Identity & Tech Stack

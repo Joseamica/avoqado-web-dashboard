@@ -25,12 +25,7 @@ import {
   HardDrive,
   Loader2,
 } from 'lucide-react'
-import {
-  superadminAPI,
-  type AppUpdate,
-  type AppEnvironment,
-  type AppUpdateUpdateInput,
-} from '@/services/superadmin.service'
+import { superadminAPI, type AppUpdate, type AppEnvironment, type AppUpdateUpdateInput } from '@/services/superadmin.service'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -40,30 +35,11 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { FullScreenModal } from '@/components/ui/full-screen-modal'
 
 // ============================================================================
 // DESIGN SYSTEM COMPONENTS
@@ -256,133 +232,220 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <FullScreenModal
+      open={isOpen}
+      onClose={handleClose}
+      title="Subir Nueva Version APK"
+      contentClassName="bg-muted/30"
+      actions={
+        <Button
+          size="sm"
+          className="rounded-full cursor-pointer"
+          onClick={handleSubmit}
+          disabled={isUploading || isPreviewing || !selectedFile}
+        >
+          {isUploading ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Subiendo...
+            </>
+          ) : (
+            <>
+              <Upload className="h-4 w-4 mr-2" />
+              Subir APK
+            </>
+          )}
+        </Button>
+      }
+    >
+      <div className="max-w-2xl mx-auto px-6 py-8 space-y-6">
+        {/* File Upload Card */}
+        <div className="rounded-2xl border border-border/50 bg-card p-6">
+          <div className="flex items-center gap-3 mb-6">
             <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
               <Upload className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
-            Subir Nueva Version APK
-          </DialogTitle>
-          <DialogDescription>
-            Sube un APK de la aplicacion TPV para distribucion via Avoqado Updates
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          {/* File Upload */}
-          <div className="space-y-2">
-            <Label>Archivo APK</Label>
-            <div
-              className="border-2 border-dashed border-border rounded-2xl p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {isPreviewing ? (
-                <div className="flex items-center justify-center gap-3">
-                  <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
-                    <Loader2 className="h-5 w-5 text-blue-600 dark:text-blue-400 animate-spin" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium text-sm">Analizando APK...</p>
-                    <p className="text-xs text-muted-foreground">Extrayendo metadata del AndroidManifest</p>
-                  </div>
-                </div>
-              ) : selectedFile ? (
-                <div className="flex items-center justify-center gap-3">
-                  <div className="p-2 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5">
-                    <Package className="h-5 w-5 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium text-sm">{selectedFile.name}</p>
-                    <p className="text-xs text-muted-foreground">{formatFileSize(selectedFile.size)}</p>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">Click para seleccionar o arrastra un archivo APK</p>
-                </>
-              )}
+            <div>
+              <h3 className="font-semibold">Archivo APK</h3>
+              <p className="text-sm text-muted-foreground">Selecciona el archivo APK para distribucion</p>
             </div>
-            <input ref={fileInputRef} type="file" accept=".apk" className="hidden" onChange={handleFileChange} />
           </div>
 
-          {/* Version Info */}
-          <div className="grid grid-cols-2 gap-4">
+          <div
+            className="border-2 border-dashed border-border rounded-2xl p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {isPreviewing ? (
+              <div className="flex items-center justify-center gap-3">
+                <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+                  <Loader2 className="h-5 w-5 text-blue-600 dark:text-blue-400 animate-spin" />
+                </div>
+                <div className="text-left">
+                  <p className="font-medium text-sm">Analizando APK...</p>
+                  <p className="text-xs text-muted-foreground">Extrayendo metadata del AndroidManifest</p>
+                </div>
+              </div>
+            ) : selectedFile ? (
+              <div className="flex items-center justify-center gap-3">
+                <div className="p-2 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5">
+                  <Package className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div className="text-left">
+                  <p className="font-medium text-sm">{selectedFile.name}</p>
+                  <p className="text-xs text-muted-foreground">{formatFileSize(selectedFile.size)}</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground">Click para seleccionar o arrastra un archivo APK</p>
+              </>
+            )}
+          </div>
+          <input ref={fileInputRef} type="file" accept=".apk" className="hidden" onChange={handleFileChange} />
+        </div>
+
+        {/* Version Info Card */}
+        <div className="rounded-2xl border border-border/50 bg-card p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+              <Package className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Informacion de Version</h3>
+              <p className="text-sm text-muted-foreground">Los campos se auto-detectan del APK</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="versionName">
+                  Version Name
+                  <span className="text-muted-foreground text-xs ml-1">(auto)</span>
+                </Label>
+                <Input
+                  id="versionName"
+                  className="h-12 text-base"
+                  placeholder="Auto-detectado"
+                  value={formData.versionName}
+                  onChange={e => setFormData(prev => ({ ...prev, versionName: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="versionCode">
+                  Version Code
+                  <span className="text-muted-foreground text-xs ml-1">(auto)</span>
+                </Label>
+                <Input
+                  id="versionCode"
+                  className="h-12 text-base"
+                  type="number"
+                  placeholder="Auto-detectado"
+                  value={formData.versionCode}
+                  onChange={e => setFormData(prev => ({ ...prev, versionCode: e.target.value }))}
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="versionName">
-                Version Name
+              <Label>Ambiente</Label>
+              <Select
+                value={formData.environment}
+                onValueChange={(value: AppEnvironment) => setFormData(prev => ({ ...prev, environment: value }))}
+              >
+                <SelectTrigger className="h-12 text-base">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SANDBOX">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 rounded-full">
+                        SANDBOX
+                      </Badge>
+                      <span className="text-muted-foreground">- Desarrollo/Testing</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="PRODUCTION">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-green-500/10 text-green-600 rounded-full">
+                        PRODUCTION
+                      </Badge>
+                      <span className="text-muted-foreground">- Terminales de produccion</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="minAndroidSdk">
+                Min Android SDK
                 <span className="text-muted-foreground text-xs ml-1">(auto)</span>
               </Label>
-              <Input id="versionName" placeholder="Auto-detectado" value={formData.versionName} onChange={e => setFormData(prev => ({ ...prev, versionName: e.target.value }))} />
+              <Input
+                id="minAndroidSdk"
+                className="h-12 text-base"
+                type="number"
+                placeholder="Auto-detectado"
+                value={formData.minAndroidSdk}
+                onChange={e => setFormData(prev => ({ ...prev, minAndroidSdk: e.target.value }))}
+              />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="versionCode">
-                Version Code
-                <span className="text-muted-foreground text-xs ml-1">(auto)</span>
-              </Label>
-              <Input id="versionCode" type="number" placeholder="Auto-detectado" value={formData.versionCode} onChange={e => setFormData(prev => ({ ...prev, versionCode: e.target.value }))} />
+
+            <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-3 flex items-start gap-3">
+              <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/5 mt-0.5">
+                <Package className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Los campos de version se auto-detectan del APK. Solo ingresalos manualmente si deseas sobrescribir los valores del
+                AndroidManifest.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Distribution Card */}
+        <div className="rounded-2xl border border-border/50 bg-card p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-500/5">
+              <Smartphone className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Distribucion</h3>
+              <p className="text-sm text-muted-foreground">Modo de notificacion y notas de version</p>
             </div>
           </div>
 
-          {/* Environment */}
-          <div className="space-y-2">
-            <Label>Ambiente</Label>
-            <Select value={formData.environment} onValueChange={(value: AppEnvironment) => setFormData(prev => ({ ...prev, environment: value }))}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="SANDBOX">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 rounded-full">SANDBOX</Badge>
-                    <span className="text-muted-foreground">- Desarrollo/Testing</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="PRODUCTION">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="bg-green-500/10 text-green-600 rounded-full">PRODUCTION</Badge>
-                    <span className="text-muted-foreground">- Terminales de produccion</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Release Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="releaseNotes">Notas de Version</Label>
-            <Textarea
-              id="releaseNotes"
-              placeholder="- Correcion de errores&#10;- Nueva funcionalidad..."
-              value={formData.releaseNotes}
-              onChange={e => setFormData(prev => ({ ...prev, releaseNotes: e.target.value }))}
-              rows={3}
-            />
-          </div>
-
-          {/* Options */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="updateMode">Modo de Notificacion</Label>
-              <Select value={formData.updateMode} onValueChange={(value: 'NONE' | 'BANNER' | 'FORCE') => setFormData(prev => ({ ...prev, updateMode: value }))}>
-                <SelectTrigger>
+              <Select
+                value={formData.updateMode}
+                onValueChange={(value: 'NONE' | 'BANNER' | 'FORCE') => setFormData(prev => ({ ...prev, updateMode: value }))}
+              >
+                <SelectTrigger className="h-12 text-base">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="NONE">
-                    <Badge variant="outline" className="bg-muted text-muted-foreground rounded-full">Silencioso</Badge>
+                    <Badge variant="outline" className="bg-muted text-muted-foreground rounded-full">
+                      Silencioso
+                    </Badge>
                   </SelectItem>
                   <SelectItem value="BANNER">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="bg-blue-500/10 text-blue-600 rounded-full">Banner</Badge>
+                      <Badge variant="outline" className="bg-blue-500/10 text-blue-600 rounded-full">
+                        Banner
+                      </Badge>
                       <span className="text-xs text-muted-foreground">Recomendada</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="FORCE">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="bg-red-500/10 text-red-600 rounded-full">Forzar</Badge>
+                      <Badge variant="outline" className="bg-red-500/10 text-red-600 rounded-full">
+                        Forzar
+                      </Badge>
                       <span className="text-xs text-muted-foreground">Bloquea app</span>
                     </div>
                   </SelectItem>
@@ -394,46 +457,22 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
                 {formData.updateMode === 'FORCE' && 'Bloquea la app hasta actualizar (critico)'}
               </p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="minAndroidSdk">
-                Min Android SDK
-                <span className="text-muted-foreground text-xs ml-1">(auto)</span>
-              </Label>
-              <Input id="minAndroidSdk" type="number" placeholder="Auto-detectado" value={formData.minAndroidSdk} onChange={e => setFormData(prev => ({ ...prev, minAndroidSdk: e.target.value }))} />
-            </div>
-          </div>
 
-          {/* Info */}
-          <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-3 flex items-start gap-3">
-            <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/5 mt-0.5">
-              <Package className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+            <div className="space-y-2">
+              <Label htmlFor="releaseNotes">Notas de Version</Label>
+              <Textarea
+                id="releaseNotes"
+                className="text-base"
+                placeholder="- Correcion de errores&#10;- Nueva funcionalidad..."
+                value={formData.releaseNotes}
+                onChange={e => setFormData(prev => ({ ...prev, releaseNotes: e.target.value }))}
+                rows={4}
+              />
             </div>
-            <p className="text-xs text-muted-foreground">
-              Los campos de version se auto-detectan del APK. Solo ingresalos manualmente si deseas sobrescribir los valores del AndroidManifest.
-            </p>
           </div>
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={isUploading} className="rounded-full cursor-pointer">
-            Cancelar
-          </Button>
-          <Button onClick={handleSubmit} disabled={isUploading || isPreviewing || !selectedFile} className="rounded-full cursor-pointer">
-            {isUploading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Subiendo...
-              </>
-            ) : (
-              <>
-                <Upload className="h-4 w-4 mr-2" />
-                Subir APK
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </FullScreenModal>
   )
 }
 
@@ -487,89 +526,115 @@ function EditDialog({ update, isOpen, onClose, onSuccess }: EditDialogProps) {
   if (!update) return null
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[450px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <FullScreenModal
+      open={isOpen}
+      onClose={onClose}
+      title={`Editar Version ${update.versionName}`}
+      contentClassName="bg-muted/30"
+      actions={
+        <Button size="sm" className="rounded-full cursor-pointer" onClick={handleSubmit} disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Guardando...
+            </>
+          ) : (
+            'Guardar Cambios'
+          )}
+        </Button>
+      }
+    >
+      <div className="max-w-2xl mx-auto px-6 py-8 space-y-6">
+        {/* Settings Card */}
+        <div className="rounded-2xl border border-border/50 bg-card p-6">
+          <div className="flex items-center gap-3 mb-6">
             <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
               <Edit className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             </div>
-            Editar Version {update.versionName}
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="editReleaseNotes">Notas de Version</Label>
-            <Textarea
-              id="editReleaseNotes"
-              value={formData.releaseNotes || ''}
-              onChange={e => setFormData(prev => ({ ...prev, releaseNotes: e.target.value }))}
-              rows={3}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="editUpdateMode">Modo de Notificacion</Label>
-            <Select value={formData.updateMode} onValueChange={(value: 'NONE' | 'BANNER' | 'FORCE') => setFormData(prev => ({ ...prev, updateMode: value }))}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="NONE">
-                  <Badge variant="outline" className="bg-muted text-muted-foreground rounded-full">Silencioso</Badge>
-                </SelectItem>
-                <SelectItem value="BANNER">
-                  <Badge variant="outline" className="bg-blue-500/10 text-blue-600 rounded-full">Banner</Badge>
-                </SelectItem>
-                <SelectItem value="FORCE">
-                  <Badge variant="outline" className="bg-red-500/10 text-red-600 rounded-full">Forzar</Badge>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center justify-between rounded-2xl border border-border/50 p-4 cursor-pointer hover:bg-muted/50" onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}>
             <div>
-              <Label htmlFor="editIsActive" className="cursor-pointer text-sm font-medium">Activa</Label>
-              <p className="text-xs text-muted-foreground">Disponible para descarga en terminales</p>
+              <h3 className="font-semibold">Configuracion</h3>
+              <p className="text-sm text-muted-foreground">Modo de actualizacion y SDK minimo</p>
             </div>
-            <Switch
-              id="editIsActive"
-              checked={formData.isActive}
-              onClick={e => e.stopPropagation()}
-              className="cursor-pointer"
-            />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="editMinAndroidSdk">Min Android SDK</Label>
-            <Input
-              id="editMinAndroidSdk"
-              type="number"
-              value={formData.minAndroidSdk}
-              onChange={e => setFormData(prev => ({ ...prev, minAndroidSdk: parseInt(e.target.value, 10) }))}
-            />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="editUpdateMode">Modo de Notificacion</Label>
+              <Select
+                value={formData.updateMode}
+                onValueChange={(value: 'NONE' | 'BANNER' | 'FORCE') => setFormData(prev => ({ ...prev, updateMode: value }))}
+              >
+                <SelectTrigger className="h-12 text-base">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NONE">
+                    <Badge variant="outline" className="bg-muted text-muted-foreground rounded-full">
+                      Silencioso
+                    </Badge>
+                  </SelectItem>
+                  <SelectItem value="BANNER">
+                    <Badge variant="outline" className="bg-blue-500/10 text-blue-600 rounded-full">
+                      Banner
+                    </Badge>
+                  </SelectItem>
+                  <SelectItem value="FORCE">
+                    <Badge variant="outline" className="bg-red-500/10 text-red-600 rounded-full">
+                      Forzar
+                    </Badge>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div
+              className="flex items-center justify-between rounded-2xl border border-border/50 p-4 cursor-pointer hover:bg-muted/50"
+              onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
+            >
+              <div>
+                <Label htmlFor="editIsActive" className="cursor-pointer text-sm font-medium">
+                  Activa
+                </Label>
+                <p className="text-xs text-muted-foreground">Disponible para descarga en terminales</p>
+              </div>
+              <Switch id="editIsActive" checked={formData.isActive} onClick={e => e.stopPropagation()} className="cursor-pointer" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="editMinAndroidSdk">Min Android SDK</Label>
+              <Input
+                id="editMinAndroidSdk"
+                className="h-12 text-base"
+                type="number"
+                value={formData.minAndroidSdk}
+                onChange={e => setFormData(prev => ({ ...prev, minAndroidSdk: parseInt(e.target.value, 10) }))}
+              />
+            </div>
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting} className="rounded-full cursor-pointer">
-            Cancelar
-          </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting} className="rounded-full cursor-pointer">
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Guardando...
-              </>
-            ) : (
-              'Guardar Cambios'
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        {/* Release Notes Card */}
+        <div className="rounded-2xl border border-border/50 bg-card p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+              <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Notas de Version</h3>
+              <p className="text-sm text-muted-foreground">Cambios incluidos en esta version</p>
+            </div>
+          </div>
+
+          <Textarea
+            id="editReleaseNotes"
+            className="text-base"
+            value={formData.releaseNotes || ''}
+            onChange={e => setFormData(prev => ({ ...prev, releaseNotes: e.target.value }))}
+            rows={5}
+          />
+        </div>
+      </div>
+    </FullScreenModal>
   )
 }
 
@@ -709,12 +774,9 @@ function UpdatesTable({
                   </div>
                   <div>
                     <p className="font-medium text-sm">
-                      v{update.versionName}{' '}
-                      <span className="text-muted-foreground">({update.versionCode})</span>
+                      v{update.versionName} <span className="text-muted-foreground">({update.versionCode})</span>
                     </p>
-                    {update.releaseNotes && (
-                      <p className="text-xs text-muted-foreground truncate max-w-[200px]">{update.releaseNotes}</p>
-                    )}
+                    {update.releaseNotes && <p className="text-xs text-muted-foreground truncate max-w-[200px]">{update.releaseNotes}</p>}
                   </div>
                 </div>
               </TableCell>
@@ -773,7 +835,13 @@ function UpdatesTable({
                   >
                     <Download className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full cursor-pointer" onClick={() => onEdit(update)} title="Editar">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full cursor-pointer"
+                    onClick={() => onEdit(update)}
+                    title="Editar"
+                  >
                     <Edit className="h-4 w-4" />
                   </Button>
                   <Button
@@ -806,7 +874,7 @@ export default function TpvUpdates() {
   const [editingUpdate, setEditingUpdate] = useState<AppUpdate | null>(null)
   const [deletingUpdate, setDeletingUpdate] = useState<AppUpdate | null>(null)
 
-  const { data: updates = [], isLoading } = useQuery({
+  const { data: updates = [], isLoading, isFetching } = useQuery({
     queryKey: ['superadmin', 'app-updates', activeTab],
     queryFn: () => superadminAPI.getAppUpdates({ environment: activeTab }),
   })
@@ -839,8 +907,8 @@ export default function TpvUpdates() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={handleRefresh} title="Actualizar" className="rounded-full cursor-pointer">
-            <RefreshCw className="h-4 w-4" />
+          <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isFetching} title="Actualizar" className="rounded-full cursor-pointer">
+            <RefreshCw className={cn('h-4 w-4', isFetching && 'animate-spin')} />
           </Button>
           <Button onClick={() => setIsUploadOpen(true)} className="rounded-full cursor-pointer">
             <Plus className="h-4 w-4 mr-2" />
@@ -858,8 +926,8 @@ export default function TpvUpdates() {
           <div>
             <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Sistema Dual de Actualizaciones</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Las terminales TPV tienen dos fuentes de actualizacion: <strong>Blumon (Proveedor)</strong>{' '}
-              para actualizaciones oficiales firmadas por PAX, y <strong>Avoqado (Interno)</strong> para distribucion rapida de versiones.
+              Las terminales TPV tienen dos fuentes de actualizacion: <strong>Blumon (Proveedor)</strong> para actualizaciones oficiales
+              firmadas por PAX, y <strong>Avoqado (Interno)</strong> para distribucion rapida de versiones.
             </p>
           </div>
         </div>
@@ -875,7 +943,9 @@ export default function TpvUpdates() {
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-sm">Production</h3>
-                <Badge variant="outline" className="bg-green-500/10 text-green-600 rounded-full text-xs">PROD</Badge>
+                <Badge variant="outline" className="bg-green-500/10 text-green-600 rounded-full text-xs">
+                  PROD
+                </Badge>
               </div>
               <p className="text-xs text-muted-foreground">Ultima version</p>
             </div>
@@ -904,7 +974,9 @@ export default function TpvUpdates() {
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-sm">Sandbox</h3>
-                <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 rounded-full text-xs">SAND</Badge>
+                <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 rounded-full text-xs">
+                  SAND
+                </Badge>
               </div>
               <p className="text-xs text-muted-foreground">Ultima version</p>
             </div>
