@@ -55,9 +55,20 @@ All SUPERADMIN-only UI elements in `/dashboard/` routes use the amber-to-pink gr
 - NOT used in `/superadmin/*` routes (those have their own styling)
 - **Reference**: `src/pages/Tpv/Tpvs.tsx`
 
-## FullScreenModal Forms
+## FullScreenModal for Create/Edit/Upload (MANDATORY)
 
-Forms in FullScreenModal MUST follow ProductWizardDialog pattern.
+**ALL create, edit, and upload flows MUST use FullScreenModal — NEVER use regular Dialog.**
+
+Regular Dialog is only appropriate for:
+- Delete/destructive confirmations → use `AlertDialog`
+- Quick inline confirmations (yes/no) → use `AlertDialog`
+- Tiny single-field prompts (rare)
+
+Everything else (create forms, edit forms, file uploads, wizards, detail views) → `FullScreenModal`.
+
+### Form Pattern Inside FullScreenModal
+
+Follow the ProductWizardDialog pattern:
 
 - Header: Close (left), Title (center), Submit button (right) via `actions` prop
 - Content: `contentClassName="bg-muted/30"` gray background

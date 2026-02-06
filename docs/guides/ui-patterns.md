@@ -18,6 +18,7 @@ and maintain visual coherence across the application.
 - [Searchable Multi-Select (Long Lists)](#searchable-multi-select-long-lists)
 - [Live Preview Layout (Bento Grid)](#live-preview-layout-bento-grid)
 - [Unit Translation (MANDATORY)](#unit-translation-mandatory)
+- [FullScreenModal — When to Use (MANDATORY)](#fullscreenmodal--when-to-use-mandatory)
 - [FullScreenModal (Table Detail View Pattern)](#fullscreenmodal-table-detail-view-pattern)
 - [FullScreenModal Form Pattern (MANDATORY)](#fullscreenmodal-form-pattern-mandatory)
 
@@ -2326,6 +2327,26 @@ const { formatUnitWithQuantity } = useUnitTranslation()
 
 ---
 
+## FullScreenModal — When to Use (MANDATORY)
+
+**FullScreenModal is the DEFAULT for all create, edit, upload, and detail-view flows.** Use it instead of regular `Dialog` for any form or content view that goes beyond a simple yes/no confirmation.
+
+### FullScreenModal vs Dialog vs AlertDialog
+
+| Use Case | Component | Examples |
+|----------|-----------|---------|
+| **Create forms** | FullScreenModal | New campaign, new template, new organization, upload APK |
+| **Edit forms** | FullScreenModal | Edit campaign, edit template, edit pricing, edit TPV update |
+| **Upload flows** | FullScreenModal | File upload with preview, image upload |
+| **Detail views** | FullScreenModal | Campaign detail, table row detail |
+| **Multi-step wizards** | FullScreenModal | Product wizard, onboarding |
+| **Delete confirmations** | AlertDialog | "Are you sure you want to delete?" |
+| **Quick yes/no prompts** | AlertDialog | "Cancel this operation?" |
+
+**Rule of thumb:** If it has form fields or content worth scrolling, it's a FullScreenModal. If it's a 1-2 sentence confirmation, it's an AlertDialog. Regular `Dialog` should almost never be used.
+
+---
+
 ## FullScreenModal (Table Detail View Pattern)
 
 **When to use:** Instead of navigating from a table row to a detail route (e.g., `/promoters/:id`), use FullScreenModal to show detailed information in an overlay that slides up from the bottom.
@@ -2371,10 +2392,11 @@ const { formatUnitWithQuantity } = useUnitTranslation()
 | Scenario | Pattern | Why |
 |----------|---------|-----|
 | **Table → Quick view** | FullScreenModal ✅ | User will return to table quickly |
-| **Table → Full edit page** | Route (`/:id`) | Complex editing with sub-navigation |
 | **Table → View + possible edit** | FullScreenModal ✅ | Keep context, show details first |
-| **Dashboard → Deep detail** | Route (`/:id`) | Needs URL sharing, bookmarking |
+| **Create / Edit forms** | FullScreenModal ✅ | Consistent UX, header with actions |
+| **Upload flows** | FullScreenModal ✅ | Space for preview + form fields |
 | **Audit/Review workflows** | FullScreenModal ✅ | Review multiple items without losing place |
+| **Dashboard → Deep detail with sub-nav** | Route (`/:id`) | Only when needing nested routes |
 
 ### Code Example - Component Usage
 
@@ -2596,9 +2618,11 @@ When converting a `table → /:id` pattern to FullScreenModal:
 
 ## FullScreenModal Form Pattern (MANDATORY)
 
-**⚠️ ALWAYS use this pattern for forms in FullScreenModal. Follow the visual design from ProductWizardDialog.**
+**⚠️ ALL create, edit, and upload forms MUST use FullScreenModal — NEVER use regular Dialog for these flows.**
 
-**When to use:** Any form that opens in a FullScreenModal (create, edit, invite flows).
+Follow the visual design from ProductWizardDialog.
+
+**When to use:** Any create, edit, upload, or invite flow. See the [decision table above](#fullscreenmodal--when-to-use-mandatory) for the complete rule.
 
 **Reference implementations:**
 - `/src/pages/Inventory/components/ProductWizardDialog.tsx` - Primary reference
