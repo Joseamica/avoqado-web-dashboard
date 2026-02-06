@@ -87,7 +87,7 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
   const [pinConflicts, setPinConflicts] = useState<(PinConflict & { newPin: string; resolved: boolean; saving: boolean })[]>([])
   const [showPinConflictsDialog, setShowPinConflictsDialog] = useState(false)
   const [conflictSummary, setConflictSummary] = useState<{ total: number; assigned: number } | null>(null)
-  const { getDisplayName: getRoleDisplayName } = useRoleConfig()
+  const { getDisplayName: getRoleDisplayName, isRoleActive } = useRoleConfig()
   const [inviteType, setInviteType] = useState<InviteType>('email')
   const [inviteToAllVenues, setInviteToAllVenues] = useState(false)
   const { isWhiteLabelEnabled, enabledFeatures } = useWhiteLabelConfig()
@@ -95,7 +95,7 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
   // Only OWNER and SUPERADMIN can invite as OWNER
   const canInviteAsOwner = user?.role === StaffRole.OWNER || user?.role === StaffRole.SUPERADMIN
 
-  const ROLE_OPTIONS = [
+  const ALL_ROLE_OPTIONS = [
     // OWNER option only visible for OWNER/SUPERADMIN users
     ...(canInviteAsOwner ? [{
       value: StaffRole.OWNER,
@@ -110,6 +110,9 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
     { value: StaffRole.HOST, label: getRoleDisplayName(StaffRole.HOST), description: t('edit.roles.hostDesc') },
     { value: StaffRole.VIEWER, label: getRoleDisplayName(StaffRole.VIEWER), description: t('edit.roles.viewerDesc') },
   ]
+
+  // Filter out roles that are marked as inactive in the venue's role config
+  const ROLE_OPTIONS = ALL_ROLE_OPTIONS.filter(option => isRoleActive(option.value))
 
   const {
     register,

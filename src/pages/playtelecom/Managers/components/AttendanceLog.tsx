@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Check, X, Image, MapPin } from 'lucide-react'
+import { Check, X, Image, MapPin, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface AttendanceEntry {
@@ -19,6 +19,7 @@ export interface AttendanceEntry {
   clockIn: string | null
   clockOut: string | null
   clockInPhotoUrl: string | null
+  clockOutPhotoUrl: string | null
   clockInLat: number | null
   clockInLon: number | null
   validationStatus: 'PENDING' | 'APPROVED' | 'REJECTED'
@@ -26,16 +27,18 @@ export interface AttendanceEntry {
   incidents: Array<{ label: string; severity: 'ok' | 'warning' | 'critical' }>
   isLate?: boolean
   gpsWarning?: boolean
+  checkOutPhotoUrl?: string | null
 }
 
 interface AttendanceLogProps {
   entries: AttendanceEntry[]
-  onApprove: (id: string) => void
+  onApprove: (entry: AttendanceEntry) => void
   onReject: (id: string) => void
+  onResetValidation: (id: string) => void
   onViewPhoto: (entry: AttendanceEntry) => void
 }
 
-export function AttendanceLog({ entries, onApprove, onReject, onViewPhoto }: AttendanceLogProps) {
+export function AttendanceLog({ entries, onApprove, onReject, onResetValidation, onViewPhoto }: AttendanceLogProps) {
   const { t } = useTranslation('playtelecom')
 
   return (
@@ -120,13 +123,13 @@ export function AttendanceLog({ entries, onApprove, onReject, onViewPhoto }: Att
                         </div>
                       )}
                     </div>
-                    {entry.validationStatus === 'PENDING' && entry.clockIn && entry.timeEntryId && (
+                    {entry.validationStatus === 'PENDING' && entry.clockIn && entry.clockOut && entry.timeEntryId && (
                       <div className="flex gap-1 bg-muted/50 rounded p-1 border border-border/50">
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6 text-green-500 hover:text-green-600 hover:bg-green-500/10"
-                          onClick={() => onApprove(entry.timeEntryId!)}
+                          onClick={() => onApprove(entry)}
                         >
                           <Check className="w-3.5 h-3.5" />
                         </Button>
@@ -141,14 +144,40 @@ export function AttendanceLog({ entries, onApprove, onReject, onViewPhoto }: Att
                       </div>
                     )}
                     {entry.validationStatus === 'APPROVED' && (
-                      <Badge variant="default" className="text-[10px] bg-green-500/20 text-green-400 border-green-500/30">
-                        <Check className="w-3 h-3 mr-0.5" />
-                      </Badge>
+                      <div className="flex items-center gap-1">
+                        <Badge variant="default" className="text-[10px] bg-green-500/20 text-green-400 border-green-500/30">
+                          <Check className="w-3 h-3 mr-0.5" />
+                        </Badge>
+                        {entry.timeEntryId && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 text-muted-foreground hover:text-foreground"
+                            onClick={() => onResetValidation(entry.timeEntryId!)}
+                            title={t('managers.attendance.undo', { defaultValue: 'Deshacer' })}
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </div>
                     )}
                     {entry.validationStatus === 'REJECTED' && (
-                      <Badge variant="destructive" className="text-[10px]">
-                        <X className="w-3 h-3 mr-0.5" />
-                      </Badge>
+                      <div className="flex items-center gap-1">
+                        <Badge variant="destructive" className="text-[10px]">
+                          <X className="w-3 h-3 mr-0.5" />
+                        </Badge>
+                        {entry.timeEntryId && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 text-muted-foreground hover:text-foreground"
+                            onClick={() => onResetValidation(entry.timeEntryId!)}
+                            title={t('managers.attendance.undo', { defaultValue: 'Deshacer' })}
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </div>
                 </td>

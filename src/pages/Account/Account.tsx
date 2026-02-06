@@ -27,12 +27,17 @@ export default function Account() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
 
-  const form = useForm({
+  const profileForm = useForm({
     defaultValues: {
       email: user?.email || '',
       firstName: user?.firstName || '',
       lastName: user?.lastName || '',
       phone: user?.phone || '',
+    },
+  })
+
+  const passwordForm = useForm({
+    defaultValues: {
       old_password: '',
       password: '',
     },
@@ -65,8 +70,7 @@ export default function Account() {
         description: t('toast.success.description'),
       })
       // Clear password fields after successful update
-      form.setValue('old_password', '')
-      form.setValue('password', '')
+      passwordForm.reset()
       queryClient.invalidateQueries({ queryKey: ['user'] })
       setIsDialogOpen(false)
     },
@@ -79,7 +83,11 @@ export default function Account() {
     },
   })
 
-  const onSubmit = (formValues: any) => {
+  const onProfileSubmit = (formValues: any) => {
+    editProfile.mutate(formValues)
+  }
+
+  const onPasswordSubmit = (formValues: any) => {
     editProfile.mutate(formValues)
   }
 
@@ -162,12 +170,12 @@ export default function Account() {
               <CardDescription>{t('editProfile.description')}</CardDescription>
             </CardHeader>
             <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <Form {...profileForm}>
+                <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* First Name */}
                     <FormField
-                      control={form.control}
+                      control={profileForm.control}
                       name="firstName"
                       render={({ field }) => (
                         <FormItem>
@@ -182,7 +190,7 @@ export default function Account() {
 
                     {/* Last Name */}
                     <FormField
-                      control={form.control}
+                      control={profileForm.control}
                       name="lastName"
                       render={({ field }) => (
                         <FormItem>
@@ -198,7 +206,7 @@ export default function Account() {
 
                   {/* Email */}
                   <FormField
-                    control={form.control}
+                    control={profileForm.control}
                     name="email"
                     render={({ field }) => (
                       <FormItem>
@@ -213,7 +221,7 @@ export default function Account() {
 
                   {/* Phone */}
                   <FormField
-                    control={form.control}
+                    control={profileForm.control}
                     name="phone"
                     render={({ field }) => (
                       <FormItem>
@@ -245,7 +253,7 @@ export default function Account() {
                     <Button type="submit" disabled={editProfile.isPending}>
                       {editProfile.isPending ? t('common:saving') : t('common:save')}
                     </Button>
-                    <Button type="button" variant="outline" onClick={() => form.reset()} disabled={editProfile.isPending}>
+                    <Button type="button" variant="outline" onClick={() => profileForm.reset()} disabled={editProfile.isPending}>
                       {t('common:cancel')}
                     </Button>
                   </div>
@@ -257,14 +265,20 @@ export default function Account() {
       </div>
 
       {/* Diálogo para cambiar contraseña */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog
+        open={isDialogOpen}
+        onOpenChange={open => {
+          setIsDialogOpen(open)
+          if (!open) passwordForm.reset()
+        }}
+      >
         <DialogContent
           onOpenAutoFocus={e => {
             // Prevent default auto-focus to avoid focusing while aria-hidden toggles
             e.preventDefault()
             // Focus the first field after the dialog is fully mounted
             setTimeout(() => {
-              form.setFocus('old_password')
+              passwordForm.setFocus('old_password')
             }, 0)
           }}
           onCloseAutoFocus={e => {
@@ -274,15 +288,21 @@ export default function Account() {
             triggerRef.current?.focus()
           }}
         >
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <Form {...passwordForm}>
+            <form
+              onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') e.stopPropagation()
+              }}
+              className="space-y-6"
+            >
               <DialogHeader>
                 <DialogTitle>{t('password.dialog.title')}</DialogTitle>
               </DialogHeader>
 
               {/* Password fields */}
               <FormField
-                control={form.control}
+                control={passwordForm.control}
                 name="old_password"
                 rules={{ required: t('password.dialog.currentPasswordRequired') }}
                 render={({ field }) => (
@@ -297,7 +317,7 @@ export default function Account() {
               />
 
               <FormField
-                control={form.control}
+                control={passwordForm.control}
                 name="password"
                 rules={{ required: t('password.dialog.newPasswordRequired') }}
                 render={({ field }) => (

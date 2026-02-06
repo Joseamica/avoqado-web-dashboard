@@ -1,5 +1,5 @@
 export { UserSidebar, type UserListItem } from './UserSidebar'
-export { RoleSelectionCards, type UserRole } from './RoleSelectionCards'
+export { RoleSelectionCards } from './RoleSelectionCards'
 export { ScopeConfiguration, type Zone, type StoreOption } from './ScopeConfiguration'
 export { PermissionMatrix, type PermissionCategory } from './PermissionMatrix'
 export { AuditLogTerminal, type AuditLogEntry } from './AuditLogTerminal'

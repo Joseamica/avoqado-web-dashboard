@@ -30,12 +30,15 @@ import {
 export function useStoresOverview(options?: {
   enabled?: boolean
   refetchInterval?: number
+  startDate?: string
+  endDate?: string
+  filterVenueId?: string
 }) {
   const { venueId } = useCurrentVenue()
 
   return useQuery({
-    queryKey: ['stores-analysis', venueId, 'overview'],
-    queryFn: () => getOverview(venueId!),
+    queryKey: ['stores-analysis', venueId, 'overview', options?.startDate, options?.endDate, options?.filterVenueId],
+    queryFn: () => getOverview(venueId!, options?.startDate, options?.endDate, options?.filterVenueId),
     enabled: options?.enabled !== false && !!venueId,
     staleTime: 60000,
     refetchInterval: options?.refetchInterval,
@@ -198,13 +201,30 @@ export function useStoresActivityFeed(
   options?: {
     enabled?: boolean
     refetchInterval?: number
-  }
+    startDate?: string
+    endDate?: string
+    filterVenueId?: string
+  },
 ) {
   const { venueId } = useCurrentVenue()
 
   return useQuery({
-    queryKey: ['stores-analysis', venueId, 'activity-feed', limit],
-    queryFn: () => getActivityFeed(venueId!, { limit }),
+    queryKey: [
+      'stores-analysis',
+      venueId,
+      'activity-feed',
+      limit,
+      options?.startDate,
+      options?.endDate,
+      options?.filterVenueId,
+    ],
+    queryFn: () =>
+      getActivityFeed(venueId!, {
+        limit,
+        startDate: options?.startDate,
+        endDate: options?.endDate,
+        filterVenueId: options?.filterVenueId,
+      }),
     enabled: options?.enabled !== false && !!venueId,
     staleTime: 30000,
     refetchInterval: options?.refetchInterval || 60000,
@@ -218,12 +238,14 @@ export function useStoresStorePerformance(options?: {
   enabled?: boolean
   refetchInterval?: number
   limit?: number
+  startDate?: string
+  endDate?: string
 }) {
   const { venueId } = useCurrentVenue()
 
   return useQuery({
-    queryKey: ['stores-analysis', venueId, 'store-performance', options?.limit || 10],
-    queryFn: () => getStorePerformance(venueId!, { limit: options?.limit }),
+    queryKey: ['stores-analysis', venueId, 'store-performance', options?.limit || 10, options?.startDate, options?.endDate],
+    queryFn: () => getStorePerformance(venueId!, { limit: options?.limit, startDate: options?.startDate, endDate: options?.endDate }),
     enabled: options?.enabled !== false && !!venueId,
     staleTime: 60000,
     refetchInterval: options?.refetchInterval,

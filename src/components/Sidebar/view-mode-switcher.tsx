@@ -36,10 +36,10 @@ export function ViewModeSwitcher() {
               ? 'bg-background text-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground'
           )}
-          title="Full Dashboard"
+          title="Avoqado Dashboard"
         >
           <LayoutGrid className="w-3 h-3" />
-          {!isCollapsed && <span>Full</span>}
+          {!isCollapsed && <span>Avoqado</span>}
         </button>
         <button
           onClick={() => switchView('whitelabel')}

@@ -23,13 +23,14 @@ import {
   useStoresRevenueVsTarget,
   useStoresStaffAttendance,
 } from '@/hooks/useStoresAnalysis'
-import { validateTimeEntry } from '@/services/storesAnalysis.service'
+import { validateTimeEntry, resetTimeEntryValidation } from '@/services/storesAnalysis.service'
 import {
   ManagerFilters,
   ManagerKpiCards,
   ManagerCharts,
   AttendanceLog,
   PhotoEvidenceModal,
+  DepositApprovalDialog,
   type ManagerFilterValues,
   type ManagerKpiData,
   type AttendanceEntry,
@@ -50,12 +51,15 @@ export function ManagersDashboard() {
   // Photo modal
   const [photoEntry, setPhotoEntry] = useState<AttendanceEntry | null>(null)
 
+  // Deposit approval dialog
+  const [depositEntry, setDepositEntry] = useState<AttendanceEntry | null>(null)
+
   const queryClient = useQueryClient()
 
   const selectedVenueId = filters.store !== 'all' ? filters.store : undefined
 
   // API hooks using venue-level endpoints (white-label access)
-  const { data: overview } = useStoresOverview()
+  const { data: overview } = useStoresOverview({ filterVenueId: selectedVenueId })
   const { data: stockSummary } = useStoresStockSummary()
   const { data: anomalies } = useStoresAnomalies()
   const { data: venuesResponse } = useStoresVenues()
@@ -73,10 +77,21 @@ export function ManagersDashboard() {
 
   // Validate time entry mutation
   const validateMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: 'APPROVED' | 'REJECTED' }) =>
-      validateTimeEntry(venueId!, id, { status }),
+    mutationFn: ({ id, status, depositAmount }: { id: string; status: 'APPROVED' | 'REJECTED'; depositAmount?: number }) =>
+      validateTimeEntry(venueId!, id, { status, depositAmount }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'staff-attendance'] })
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'overview'] })
+      setDepositEntry(null)
+    },
+  })
+
+  // Reset time entry validation mutation
+  const resetMutation = useMutation({
+    mutationFn: (id: string) => resetTimeEntryValidation(venueId!, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'staff-attendance'] })
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'overview'] })
     },
   })
 
@@ -94,8 +109,8 @@ export function ManagersDashboard() {
         if (incidents.length === 0) incidents.push({ label: 'Sin Incidencias', severity: 'ok' })
 
         return {
-          id: entry.id,
-          timeEntryId: entry.id,
+          id: entry.timeEntryId || entry.id,
+          timeEntryId: entry.timeEntryId || null,
           date: clockInDate.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }),
           storeName: entry.venueName,
           promoterName: entry.name,
@@ -104,9 +119,11 @@ export function ManagersDashboard() {
             ? new Date(entry.checkOutTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()
             : null,
           clockInPhotoUrl: entry.checkInPhotoUrl,
+          clockOutPhotoUrl: entry.checkOutPhotoUrl,
+          checkOutPhotoUrl: entry.checkOutPhotoUrl,
           clockInLat: entry.checkInLocation?.lat,
           clockInLon: entry.checkInLocation?.lng,
-          validationStatus: undefined, // TODO: Add validationStatus to API response if needed
+          validationStatus: entry.validationStatus ?? 'PENDING',
           sales: entry.sales ?? 0,
           incidents,
           isLate,
@@ -153,8 +170,10 @@ export function ManagersDashboard() {
         { label: t('playtelecom:managers.kpi.deposit', { defaultValue: 'Deposito' }), count: depositCount || 'OK', severity: depositCount ? 'warning' as const : 'ok' as const },
       ],
       stockByCategory: stockCategories,
-      totalCashInField: overview?.todaySales ?? 0,
-      cashCollectedPercent: overview?.todaySales && overview.unitsSold ? Math.min(Math.round((overview.todaySales / Math.max(overview.unitsSold * 200, 1)) * 100), 100) : 0,
+      totalCashInField: (overview?.todayCashSales ?? 0) - (overview?.approvedDeposits ?? 0),
+      cashCollectedPercent: overview?.todayCashSales
+        ? Math.min(Math.round(((overview.approvedDeposits ?? 0) / Math.max(overview.todayCashSales, 1)) * 100), 100)
+        : 0,
     }
   }, [overview, stockSummary, anomalies, venuesData, t])
 
@@ -205,15 +224,31 @@ export function ManagersDashboard() {
     setFilters(prev => ({ ...prev, [key]: value }))
   }, [])
 
-  const handleApprove = useCallback((id: string) => {
+  const handleApprove = useCallback((entry: AttendanceEntry) => {
+    if (!entry.timeEntryId) return
+    if (entry.clockOut && entry.sales > 0) {
+      // Has checkout + cash sales → must verify bank deposit before approving
+      setDepositEntry(entry)
+    } else {
+      // No checkout yet or no cash sales → approve directly
+      validateMutation.mutate({ id: entry.timeEntryId, status: 'APPROVED' })
+    }
+  }, [validateMutation])
+
+  const handleConfirmDeposit = useCallback((id: string, amount: number) => {
     if (!id) return
-    validateMutation.mutate({ id, status: 'APPROVED' })
+    validateMutation.mutate({ id, status: 'APPROVED', depositAmount: amount })
   }, [validateMutation])
 
   const handleReject = useCallback((id: string) => {
     if (!id) return
     validateMutation.mutate({ id, status: 'REJECTED' })
   }, [validateMutation])
+
+  const handleResetValidation = useCallback((id: string) => {
+    if (!id) return
+    resetMutation.mutate(id)
+  }, [resetMutation])
 
   return (
     <div className="space-y-6">
@@ -244,6 +279,7 @@ export function ManagersDashboard() {
         entries={attendanceEntries}
         onApprove={handleApprove}
         onReject={handleReject}
+        onResetValidation={handleResetValidation}
         onViewPhoto={setPhotoEntry}
       />
 
@@ -252,6 +288,16 @@ export function ManagersDashboard() {
         entry={photoEntry}
         open={!!photoEntry}
         onClose={() => setPhotoEntry(null)}
+      />
+
+      {/* Deposit Approval Dialog */}
+      <DepositApprovalDialog
+        open={!!depositEntry}
+        onOpenChange={open => { if (!open) setDepositEntry(null) }}
+        entry={depositEntry}
+        expectedAmount={depositEntry?.sales ?? 0}
+        onConfirm={handleConfirmDeposit}
+        isPending={validateMutation.isPending}
       />
     </div>
   )
