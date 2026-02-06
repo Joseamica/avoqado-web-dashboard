@@ -183,7 +183,8 @@
       "establishment": "Establecimiento"
     },
     "labels": {
-      "pin": "PIN de Acceso"
+      "pin": "PIN de Acceso",
+      "pinNotAssigned": "Sin PIN asignado en este venue"
     },
     "errors": {
       "memberNotFoundTitle": "Miembro no encontrado",

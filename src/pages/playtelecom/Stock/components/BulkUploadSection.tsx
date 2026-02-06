@@ -63,20 +63,7 @@ export const BulkUploadSection: React.FC<BulkUploadSectionProps> = ({ onUpload, 
 
     setIsUploading(true)
     try {
-      // Simulate upload for demo
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      const result: UploadResult = {
-        total: 150,
-        success: 145,
-        errors: 5,
-        errorDetails: [
-          { row: 23, error: 'Serial duplicado' },
-          { row: 45, error: 'Formato inválido' },
-          { row: 67, error: 'Categoría no existe' },
-          { row: 89, error: 'Serial duplicado' },
-          { row: 112, error: 'Falta número de serie' },
-        ],
-      }
+      const result = await onUpload(selectedFile)
       setUploadResult(result)
     } finally {
       setIsUploading(false)

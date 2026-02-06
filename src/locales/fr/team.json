@@ -150,7 +150,8 @@
       "establishment": "Établissement"
     },
     "labels": {
-      "pin": "PIN d'Accès"
+      "pin": "PIN d'Accès",
+      "pinNotAssigned": "Aucun PIN attribué dans ce venue"
     },
     "errors": {
       "memberNotFoundTitle": "Membre non trouvé",
