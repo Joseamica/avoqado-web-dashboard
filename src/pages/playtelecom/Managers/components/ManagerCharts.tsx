@@ -57,7 +57,11 @@ export function ManagerCharts({ salesBySIM, goals, dailySales }: ManagerChartsPr
                   minHeight: '4px',
                 }}
               />
-              <span className="text-[10px] mt-2 font-bold" style={{ color: item.color }}>
+              <span
+                className="text-[10px] mt-2 font-bold max-w-full truncate"
+                style={{ color: item.color }}
+                title={item.label}
+              >
                 {item.label}
               </span>
             </div>
@@ -76,9 +80,9 @@ export function ManagerCharts({ salesBySIM, goals, dailySales }: ManagerChartsPr
             const textColor = goal.percent >= 80 ? 'text-green-400' : goal.percent >= 50 ? 'text-amber-400' : 'text-red-400'
             return (
               <div key={i}>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="font-semibold">{goal.storeName}</span>
-                  <span className={cn('font-bold', textColor)}>{goal.percent}%</span>
+                <div className="flex justify-between text-xs mb-1 gap-2">
+                  <span className="font-semibold truncate" title={goal.storeName}>{goal.storeName}</span>
+                  <span className={cn('font-bold shrink-0', textColor)}>{goal.percent}%</span>
                 </div>
                 <div className="h-3 bg-muted rounded-full overflow-hidden relative">
                   <div
@@ -104,16 +108,20 @@ export function ManagerCharts({ salesBySIM, goals, dailySales }: ManagerChartsPr
         </h4>
         <div className="flex-1 flex items-end justify-between gap-2 min-h-[140px]">
           {dailySales.map((day, i) => (
-            <div
-              key={i}
-              className={cn(
-                'w-full rounded-t-sm transition-colors',
-                day.isHighlight
-                  ? 'bg-green-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
-                  : 'bg-muted-foreground/30 hover:bg-green-500'
-              )}
-              style={{ height: `${(day.value / maxDaily) * 100}%`, minHeight: '4px' }}
-            />
+            <div key={i} className="w-full h-full flex flex-col items-center justify-end group">
+              <div className="text-[10px] font-bold mb-1 opacity-0 group-hover:opacity-100 transition">
+                {day.value}
+              </div>
+              <div
+                className={cn(
+                  'w-full rounded-t-sm transition-colors',
+                  day.isHighlight
+                    ? 'bg-green-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                    : 'bg-muted-foreground/30 group-hover:bg-green-500'
+                )}
+                style={{ height: `${(day.value / maxDaily) * 100}%`, minHeight: '4px' }}
+              />
+            </div>
           ))}
         </div>
         <div className="flex justify-between mt-2 text-[10px] text-muted-foreground font-bold uppercase">

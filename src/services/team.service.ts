@@ -75,6 +75,13 @@ export interface UpdateTeamMemberRequest {
   pin?: string | null
 }
 
+export interface PinConflict {
+  venueId: string
+  venueName: string
+  staffVenueId: string
+  conflictWith: string
+}
+
 export interface InviteTeamMemberResponse {
   message: string
   invitation: {
@@ -88,6 +95,8 @@ export interface InviteTeamMemberResponse {
   emailSent: boolean
   isTPVOnly: boolean
   inviteLink?: string
+  pinConflicts?: PinConflict[]
+  venuesAssigned?: number
 }
 
 // Team Management Service

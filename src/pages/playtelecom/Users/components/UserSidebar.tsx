@@ -8,21 +8,18 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import {
-  Search,
-  Users,
-  UserCheck,
-  UserX,
-  User,
-} from 'lucide-react'
+import { Search, Users, UserCheck, UserX, UserPlus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useRoleConfig } from '@/hooks/use-role-config'
+import { getRoleBadgeColor } from '@/utils/role-permissions'
+import { type StaffRole } from '@/types'
 
 export interface UserListItem {
   id: string
   name: string
   email: string
   role: string
-  status: 'active' | 'inactive' | 'blocked'
+  status: 'active' | 'inactive'
   avatarUrl?: string
 }
 
@@ -30,10 +27,11 @@ interface UserSidebarProps {
   users: UserListItem[]
   selectedUserId: string | null
   onSelectUser: (userId: string) => void
+  onInvite?: () => void
   className?: string
 }
 
-type StatusFilter = 'all' | 'active' | 'inactive' | 'blocked'
+type StatusFilter = 'all' | 'active' | 'inactive'
 
 const STATUS_FILTERS: { value: StatusFilter; icon: React.ElementType; labelKey: string }[] = [
   { value: 'all', icon: Users, labelKey: 'all' },
@@ -41,107 +39,153 @@ const STATUS_FILTERS: { value: StatusFilter; icon: React.ElementType; labelKey: 
   { value: 'inactive', icon: UserX, labelKey: 'inactive' },
 ]
 
-const ROLE_COLORS: Record<string, string> = {
-  ADMIN: 'bg-red-500/10 text-red-600 dark:text-red-400',
-  MANAGER: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-  CASHIER: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
-  WAITER: 'bg-green-500/10 text-green-600 dark:text-green-400',
+/** Inline role badge with custom color support */
+const RoleBadge: React.FC<{
+  role: string
+  getDisplayName: (role: StaffRole | string) => string
+  getColor: (role: StaffRole | string) => string | null
+}> = ({ role, getDisplayName, getColor }) => {
+  const customColor = getColor(role)
+  const fallbackClasses = getRoleBadgeColor(role as StaffRole)
+
+  return (
+    <span
+      className={cn(
+        'max-w-full shrink-0 inline-flex items-center h-5 px-2 text-[10px] font-medium rounded-full leading-none',
+        customColor ? 'border border-current/20' : fallbackClasses,
+      )}
+      title={getDisplayName(role)}
+      style={
+        customColor
+          ? { backgroundColor: `${customColor}20`, color: customColor, borderColor: `${customColor}40` }
+          : undefined
+      }
+    >
+      <span className="truncate">{getDisplayName(role)}</span>
+    </span>
+  )
 }
 
-export const UserSidebar: React.FC<UserSidebarProps> = ({
-  users,
-  selectedUserId,
-  onSelectUser,
-  className,
-}) => {
+export const UserSidebar: React.FC<UserSidebarProps> = ({ users, selectedUserId, onSelectUser, onInvite, className }) => {
   const { t } = useTranslation(['playtelecom', 'common'])
+  const { getDisplayName, getColor } = useRoleConfig()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
 
-  // Filter users based on search and status
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
-      // Status filter
-      if (statusFilter !== 'all' && user.status !== statusFilter) {
-        return false
-      }
-      // Search filter
+      if (statusFilter !== 'all' && user.status !== statusFilter) return false
       if (searchTerm) {
         const term = searchTerm.toLowerCase()
-        return (
-          user.name.toLowerCase().includes(term) ||
-          user.email.toLowerCase().includes(term)
-        )
+        return user.name.toLowerCase().includes(term) || user.email.toLowerCase().includes(term)
       }
       return true
     })
   }, [users, searchTerm, statusFilter])
 
-  // Count by status
-  const statusCounts = useMemo(() => ({
-    all: users.length,
-    active: users.filter(u => u.status === 'active').length,
-    inactive: users.filter(u => u.status === 'inactive').length,
-    blocked: users.filter(u => u.status === 'blocked').length,
-  }), [users])
+  const statusCounts = useMemo(
+    () => ({
+      all: users.length,
+      active: users.filter(u => u.status === 'active').length,
+      inactive: users.filter(u => u.status === 'inactive').length,
+    }),
+    [users],
+  )
 
   return (
-    <div className={cn('flex flex-col h-full bg-muted/30 border-r border-border/50', className)}>
+    <div
+      className={cn(
+        'flex flex-col h-full rounded-2xl border border-border/60 bg-gradient-to-b from-card via-card/95 to-card/90 backdrop-blur-sm shadow-sm overflow-hidden',
+        className,
+      )}
+    >
       {/* Header */}
-      <div className="p-4 border-b border-border/50">
-        <div className="flex items-center gap-2 mb-3">
-          <Users className="w-4 h-4 text-muted-foreground" />
-          <h3 className="font-medium text-sm">
-            {t('playtelecom:users.userList', { defaultValue: 'Lista de Usuarios' })}
-          </h3>
-          <Badge variant="secondary" className="ml-auto">
-            {filteredUsers.length}
-          </Badge>
+      <div className="shrink-0 p-4 space-y-4">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h3 className="font-semibold text-xl leading-6">
+              {t('playtelecom:users.userList', { defaultValue: 'Usuarios' })}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              {statusCounts.active} {t('playtelecom:users.filter.active', { defaultValue: 'active' })} · {statusCounts.inactive}{' '}
+              {t('playtelecom:users.filter.inactive', { defaultValue: 'inactive' })}
+            </p>
+          </div>
+          <Button size="sm" className="h-10 gap-1.5 text-sm rounded-xl cursor-pointer px-3" onClick={onInvite}>
+            <UserPlus className="w-4 h-4" />
+            {t('playtelecom:users.invite', { defaultValue: 'Invitar Usuario' })}
+          </Button>
         </div>
 
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder={t('playtelecom:users.searchPlaceholder', { defaultValue: 'Buscar usuario...' })}
+            placeholder={t('playtelecom:users.searchPlaceholder', { defaultValue: 'Buscar...' })}
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="pl-9 h-9 text-sm"
+            className="pl-9 pr-9 h-10 text-base rounded-xl border-border/70"
           />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => setSearchTerm('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-6 h-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 cursor-pointer"
+              aria-label={t('common:clear', { defaultValue: 'Limpiar' })}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Status Filter Pills */}
+        <div className="grid grid-cols-3 gap-1.5 rounded-xl bg-muted/40 p-1">
+          {STATUS_FILTERS.map(filter => {
+            const Icon = filter.icon
+            const isActive = statusFilter === filter.value
+            return (
+              <button
+                key={filter.value}
+                className={cn(
+                  'flex items-center justify-center gap-1 h-8 px-2 text-xs rounded-lg transition-colors cursor-pointer',
+                  isActive
+                    ? 'bg-background text-foreground font-medium border border-border/80 shadow-sm'
+                    : 'text-muted-foreground hover:bg-background/60 hover:text-foreground',
+                )}
+                onClick={() => setStatusFilter(filter.value)}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {t(`playtelecom:users.filter.${filter.labelKey}`, { defaultValue: filter.labelKey })}
+                <Badge
+                  variant="secondary"
+                  className={cn(
+                    'h-4 min-w-4 px-1 text-[10px] rounded-full',
+                    isActive ? 'bg-muted text-foreground' : 'bg-muted/70 text-muted-foreground',
+                  )}
+                >
+                  {statusCounts[filter.value]}
+                </Badge>
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] text-muted-foreground">
+            {t('playtelecom:users.filtering', { defaultValue: 'Mostrando' })}
+          </span>
+          <Badge variant="secondary" className="text-[11px] h-5 px-2 rounded-full">
+            {filteredUsers.length}
+          </Badge>
         </div>
       </div>
 
-      {/* Status Filter Pills */}
-      <div className="px-4 py-3 flex gap-1 border-b border-border/50">
-        {STATUS_FILTERS.map(filter => {
-          const Icon = filter.icon
-          const isActive = statusFilter === filter.value
-          return (
-            <Button
-              key={filter.value}
-              variant={isActive ? 'default' : 'ghost'}
-              size="sm"
-              className={cn(
-                'h-7 px-2 text-xs gap-1',
-                isActive && 'bg-primary text-primary-foreground'
-              )}
-              onClick={() => setStatusFilter(filter.value)}
-            >
-              <Icon className="w-3 h-3" />
-              <span className="hidden sm:inline">
-                {t(`playtelecom:users.filter.${filter.labelKey}`, { defaultValue: filter.labelKey })}
-              </span>
-              <span className="text-xs opacity-70">
-                ({statusCounts[filter.value]})
-              </span>
-            </Button>
-          )
-        })}
-      </div>
+      {/* Divider */}
+      <div className="h-px bg-border/50 mx-3" />
 
       {/* User List */}
       <ScrollArea className="flex-1">
-        <div className="p-2">
+        <div className="p-2 space-y-0.5">
           {filteredUsers.map(user => {
             const isSelected = selectedUserId === user.id
             return (
@@ -149,64 +193,55 @@ export const UserSidebar: React.FC<UserSidebarProps> = ({
                 key={user.id}
                 onClick={() => onSelectUser(user.id)}
                 className={cn(
-                  'w-full text-left p-3 rounded-lg mb-1 transition-all',
-                  'hover:bg-muted/50',
-                  isSelected && 'bg-primary/10 border border-primary/20'
+                  'w-full text-left px-3 py-2.5 rounded-xl transition-all cursor-pointer group',
+                  'hover:bg-muted/50 hover:-translate-y-[1px]',
+                  isSelected ? 'bg-primary/10 ring-1 ring-primary/25 shadow-sm' : 'bg-transparent',
                 )}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-start gap-2.5">
                   {/* Avatar */}
-                  <div className="relative">
-                    <div className={cn(
-                      'w-10 h-10 rounded-full flex items-center justify-center',
-                      'bg-gradient-to-br from-primary/20 to-primary/5'
-                    )}>
+                  <div className="relative shrink-0">
+                    <div
+                      className={cn(
+                        'w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium',
+                        isSelected
+                          ? 'bg-primary/15 text-primary'
+                          : 'bg-muted/80 text-muted-foreground group-hover:bg-muted',
+                      )}
+                    >
                       {user.avatarUrl ? (
-                        <img
-                          src={user.avatarUrl}
-                          alt={user.name}
-                          className="w-full h-full rounded-full object-cover"
-                        />
+                        <img src={user.avatarUrl} alt={user.name} className="w-full h-full rounded-full object-cover" />
                       ) : (
-                        <User className="w-5 h-5 text-primary" />
+                        <span>{user.name.charAt(0).toUpperCase()}</span>
                       )}
                     </div>
-                    {/* Status dot */}
-                    <span className={cn(
-                      'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background',
-                      user.status === 'active' && 'bg-green-500',
-                      user.status === 'inactive' && 'bg-gray-400',
-                      user.status === 'blocked' && 'bg-red-500'
-                    )} />
+                    <span
+                      className={cn(
+                        'absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-[1.5px] border-card',
+                        user.status === 'active' ? 'bg-green-500' : 'bg-muted-foreground/40',
+                      )}
+                    />
                   </div>
 
                   {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{user.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <p className="font-semibold text-[15px] truncate leading-tight">{user.name}</p>
+                    <div className="min-w-0 max-w-full">
+                      <RoleBadge role={user.role} getDisplayName={getDisplayName} getColor={getColor} />
+                    </div>
+                    <p className="text-xs text-muted-foreground whitespace-normal break-all leading-[1.2]">
+                      {user.email}
+                    </p>
                   </div>
-
-                  {/* Role Badge */}
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      'text-[10px] px-1.5 py-0',
-                      ROLE_COLORS[user.role] || 'bg-muted'
-                    )}
-                  >
-                    {user.role}
-                  </Badge>
                 </div>
               </button>
             )
           })}
 
           {filteredUsers.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">
-                {t('playtelecom:users.noResults', { defaultValue: 'No se encontraron usuarios' })}
-              </p>
+            <div className="text-center py-10 text-muted-foreground">
+              <Users className="w-7 h-7 mx-auto mb-2 opacity-20" />
+              <p className="text-xs">{t('playtelecom:users.noResults', { defaultValue: 'Sin resultados' })}</p>
             </div>
           )}
         </div>

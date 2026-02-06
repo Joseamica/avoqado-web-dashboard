@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Mail, Calendar, DollarSign, ShoppingCart, Star, Edit3, UserMinus, Trash2, Shield, Clock, TrendingUp } from 'lucide-react'
+import { ArrowLeft, Mail, Calendar, DollarSign, ShoppingCart, Star, Edit3, UserMinus, Trash2, Shield, Clock, TrendingUp, Eye, EyeOff } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -49,6 +49,7 @@ export default function TeamId() {
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showRemoveDialog, setShowRemoveDialog] = useState(false)
   const [showHardDeleteDialog, setShowHardDeleteDialog] = useState(false)
+  const [showPin, setShowPin] = useState(false)
 
   // SUPERADMIN check for hard delete
   const isSuperadmin = staffInfo?.role === StaffRole.SUPERADMIN
@@ -286,15 +287,35 @@ export default function TeamId() {
                 </div>
               </div>
 
-              {memberDetails.pin && (
-                <div className="flex items-center space-x-3">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="text-sm">{t('detail.labels.pin')}</div>
-                    <div className="text-xs text-muted-foreground">••••</div>
-                  </div>
+              <div className="flex items-center space-x-3">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <div className="flex-1">
+                  <div className="text-sm">{t('detail.labels.pin')}</div>
+                  {memberDetails.pin ? (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-muted-foreground font-mono">
+                        {isSuperadmin && showPin ? memberDetails.pin : '••••'}
+                      </span>
+                      {isSuperadmin && (
+                        <button
+                          onClick={() => setShowPin(!showPin)}
+                          className="p-0.5 rounded hover:bg-muted transition-colors cursor-pointer"
+                        >
+                          {showPin ? (
+                            <EyeOff className="h-3 w-3 text-muted-foreground" />
+                          ) : (
+                            <Eye className="h-3 w-3 text-muted-foreground" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-orange-600 dark:text-orange-400">
+                      {t('detail.labels.pinNotAssigned')}
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
         </div>

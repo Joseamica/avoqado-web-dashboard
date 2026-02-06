@@ -13,6 +13,7 @@ import api from '@/api'
 
 export interface VisionGlobalSummary {
   todaySales: number
+  todayCashSales: number
   weekSales: number
   monthSales: number
   unitsSold: number
@@ -21,6 +22,7 @@ export interface VisionGlobalSummary {
   totalPromoters: number
   activeStores: number
   totalStores: number
+  approvedDeposits: number
 }
 
 export interface StorePerformance {
@@ -151,8 +153,12 @@ export interface WorstAttendanceResponse {
  * Get overview/vision global summary
  * Uses venue-level endpoint for white-label access control
  */
-export const getOverview = async (venueId: string): Promise<VisionGlobalSummary> => {
-  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/overview`)
+export const getOverview = async (venueId: string, startDate?: string, endDate?: string, filterVenueId?: string): Promise<VisionGlobalSummary> => {
+  const params: Record<string, string> = {}
+  if (startDate) params.startDate = startDate
+  if (endDate) params.endDate = endDate
+  if (filterVenueId) params.filterVenueId = filterVenueId
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/overview`, { params })
   return response.data.data
 }
 
@@ -233,7 +239,7 @@ export const getOnlineStaff = async (venueId: string): Promise<OnlineStaffRespon
  */
 export const getActivityFeed = async (
   venueId: string,
-  params?: { limit?: number }
+  params?: { limit?: number; startDate?: string; endDate?: string; filterVenueId?: string }
 ): Promise<ActivityFeedResponse> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/activity-feed`, { params })
   return response.data.data
@@ -256,6 +262,8 @@ export interface StorePerformanceRanking {
   trend: 'up' | 'down' | 'stable'
   rank: number
   performance?: number
+  goalAmount?: number
+  goalPeriod?: 'DAILY' | 'WEEKLY' | 'MONTHLY'
 }
 
 export interface StorePerformanceRankingResponse {
@@ -264,12 +272,14 @@ export interface StorePerformanceRankingResponse {
 
 export interface StaffAttendanceEntry {
   id: string
+  timeEntryId: string | null
   name: string
   email: string
   avatar?: string | null
   venueId: string
   venueName: string
   status: 'ACTIVE' | 'INACTIVE'
+  validationStatus: 'PENDING' | 'APPROVED' | 'REJECTED'
   checkInTime?: string | null
   checkInLocation?: { lat: number; lng: number } | null
   checkInPhotoUrl?: string | null
@@ -291,7 +301,7 @@ export interface StaffAttendanceResponse {
  */
 export const getStorePerformance = async (
   venueId: string,
-  params?: { limit?: number }
+  params?: { limit?: number; startDate?: string; endDate?: string }
 ): Promise<StorePerformanceRankingResponse> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/store-performance`, { params })
   return response.data.data
@@ -302,7 +312,7 @@ export const getStorePerformance = async (
  */
 export const getStaffAttendance = async (
   venueId: string,
-  params?: { date?: string; venueId?: string; status?: string }
+  params?: { date?: string; venueId?: string; status?: string; startDate?: string; endDate?: string }
 ): Promise<StaffAttendanceResponse> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/staff-attendance`, { params })
   return response.data.data
@@ -314,11 +324,24 @@ export const getStaffAttendance = async (
 export const validateTimeEntry = async (
   venueId: string,
   timeEntryId: string,
-  data: { status: 'APPROVED' | 'REJECTED'; note?: string }
+  data: { status: 'APPROVED' | 'REJECTED'; note?: string; depositAmount?: number }
 ): Promise<{ id: string; validationStatus: string }> => {
   const response = await api.post(
     `/api/v1/dashboard/venues/${venueId}/stores-analysis/time-entry/${timeEntryId}/validate`,
     data
+  )
+  return response.data.data
+}
+
+/**
+ * Reset a time entry validation back to PENDING
+ */
+export const resetTimeEntryValidation = async (
+  venueId: string,
+  timeEntryId: string,
+): Promise<{ id: string; validationStatus: string }> => {
+  const response = await api.post(
+    `/api/v1/dashboard/venues/${venueId}/stores-analysis/time-entry/${timeEntryId}/reset-validation`
   )
   return response.data.data
 }
@@ -403,9 +426,11 @@ export interface TeamMember {
   orgRole: string
   venues: Array<{
     id: string
+    staffVenueId: string
     name: string
     slug: string
     role: string
+    active: boolean
   }>
 }
 
@@ -425,6 +450,37 @@ export const adminResetPassword = async (
   userId: string
 ): Promise<{ temporaryPassword: string; message: string }> => {
   const response = await api.post(`/api/v1/dashboard/venues/${venueId}/stores-analysis/admin/reset-password/${userId}`)
+  return response.data.data
+}
+
+export interface ActivityLogEntry {
+  id: string
+  action: string
+  performedBy: string
+  data: Record<string, unknown> | null
+  createdAt: string
+}
+
+/**
+ * Get activity logs for a staff member
+ */
+export const getStaffActivityLog = async (
+  venueId: string,
+  staffId: string
+): Promise<ActivityLogEntry[]> => {
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/team/${staffId}/activity`)
+  return response.data.data
+}
+
+/**
+ * Sync venue assignments for a staff member
+ */
+export const syncStaffVenues = async (
+  venueId: string,
+  staffId: string,
+  venueIds: string[]
+): Promise<{ added: number; removed: number }> => {
+  const response = await api.patch(`/api/v1/dashboard/venues/${venueId}/stores-analysis/team/${staffId}/venues`, { venueIds })
   return response.data.data
 }
 

@@ -82,7 +82,7 @@ const PRESETS: Preset[] = [
 export const DateRangePicker: FC<DateRangePickerProps> & {
   filePath: string
 } = ({
-  initialDateFrom = new Date(new Date().setHours(0, 0, 0, 0)),
+  initialDateFrom,
   initialDateTo,
   initialCompareFrom,
   initialCompareTo,
@@ -96,17 +96,21 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
   const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
   const [isOpen, setIsOpen] = useState(false)
 
+  // Default to "today" in venue timezone if no initial date provided
+  const defaultFrom = initialDateFrom ?? getToday(venueTimezone).from
+  const defaultTo = initialDateTo ?? initialDateFrom ?? getToday(venueTimezone).to
+
   const [range, setRange] = useState<DateRange>({
-    from: getDateAdjustedForTimezone(initialDateFrom),
-    to: initialDateTo ? getDateAdjustedForTimezone(initialDateTo) : getDateAdjustedForTimezone(initialDateFrom),
+    from: getDateAdjustedForTimezone(defaultFrom),
+    to: getDateAdjustedForTimezone(defaultTo),
   })
   const [rangeCompare, setRangeCompare] = useState<DateRange | undefined>(
     initialCompareFrom
       ? {
-          from: new Date(new Date(initialCompareFrom).setHours(0, 0, 0, 0)),
+          from: getDateAdjustedForTimezone(initialCompareFrom),
           to: initialCompareTo
-            ? new Date(new Date(initialCompareTo).setHours(0, 0, 0, 0))
-            : new Date(new Date(initialCompareFrom).setHours(0, 0, 0, 0)),
+            ? getDateAdjustedForTimezone(initialCompareTo)
+            : getDateAdjustedForTimezone(initialCompareFrom),
         }
       : undefined,
   )
@@ -241,13 +245,13 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
   const adjustRangeToEndOfDay = (range: DateRange): DateRange => {
     if (!range.to) return range
 
-    // Set time to end of day: 23:59:59.999
-    const endOfDay = new Date(range.to)
-    endOfDay.setHours(23, 59, 59, 999)
+    // Get the date in venue timezone, then set to end of that day
+    const dt = DateTime.fromJSDate(range.to).setZone(venueTimezone)
+    const endOfDayVenue = dt.endOf('day')
 
     return {
       from: range.from,
-      to: endOfDay,
+      to: endOfDayVenue.toJSDate(),
     }
   }
 
@@ -274,18 +278,14 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
     for (const preset of PRESETS) {
       const presetRange = getPresetRange(preset.name, venueTimezone)
 
-      const normalizedRangeFrom = new Date(range.from)
-      normalizedRangeFrom.setHours(0, 0, 0, 0)
-      const normalizedPresetFrom = new Date(presetRange.from.setHours(0, 0, 0, 0))
+      // Compare date parts only (YYYY-MM-DD) to avoid timezone offset issues
+      const rangeFromDate = range.from.toISOString().split('T')[0]
+      const presetFromDate = presetRange.from.toISOString().split('T')[0]
 
-      const normalizedRangeTo = new Date(range.to ?? 0)
-      normalizedRangeTo.setHours(0, 0, 0, 0)
-      const normalizedPresetTo = new Date(presetRange.to?.setHours(0, 0, 0, 0) ?? 0)
+      const rangeToDate = range.to ? range.to.toISOString().split('T')[0] : ''
+      const presetToDate = presetRange.to ? presetRange.to.toISOString().split('T')[0] : ''
 
-      if (
-        normalizedRangeFrom.getTime() === normalizedPresetFrom.getTime() &&
-        normalizedRangeTo.getTime() === normalizedPresetTo.getTime()
-      ) {
+      if (rangeFromDate === presetFromDate && rangeToDate === presetToDate) {
         setSelectedPreset(preset.name)
         return
       }
@@ -296,14 +296,8 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
 
   const resetValues = (): void => {
     setRange({
-      from: typeof initialDateFrom === 'string' ? getDateAdjustedForTimezone(initialDateFrom) : initialDateFrom,
-      to: initialDateTo
-        ? typeof initialDateTo === 'string'
-          ? getDateAdjustedForTimezone(initialDateTo)
-          : initialDateTo
-        : typeof initialDateFrom === 'string'
-        ? getDateAdjustedForTimezone(initialDateFrom)
-        : initialDateFrom,
+      from: getDateAdjustedForTimezone(defaultFrom),
+      to: getDateAdjustedForTimezone(defaultTo),
     })
     setRangeCompare(
       initialCompareFrom
@@ -326,8 +320,8 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
   // while NOT interfering with manual date selection when popover is open
   useEffect(() => {
     if (!isOpen) {
-      const newFrom = getDateAdjustedForTimezone(initialDateFrom)
-      const newTo = initialDateTo ? getDateAdjustedForTimezone(initialDateTo) : getDateAdjustedForTimezone(initialDateFrom)
+      const newFrom = getDateAdjustedForTimezone(defaultFrom)
+      const newTo = getDateAdjustedForTimezone(defaultTo)
 
       // Only update if dates actually changed (avoid unnecessary re-renders)
       if (range.from.getTime() !== newFrom.getTime() || range.to?.getTime() !== newTo.getTime()) {

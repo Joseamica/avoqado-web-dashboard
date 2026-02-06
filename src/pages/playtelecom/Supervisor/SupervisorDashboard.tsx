@@ -23,7 +23,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Calendar, Store, TrendingUp, Download, Receipt } from 'lucide-react'
+import { Store, TrendingUp, Download, Receipt } from 'lucide-react'
+import { DateRangePicker } from '@/components/date-range-picker'
+import { getIntlLocale } from '@/utils/i18n-locale'
+import { getToday } from '@/utils/datetime'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import {
@@ -38,20 +41,38 @@ import {
 import { cn } from '@/lib/utils'
 
 export function SupervisorDashboard() {
-  const { t } = useTranslation(['playtelecom', 'common'])
+  const { t, i18n } = useTranslation(['playtelecom', 'common'])
   const { activeVenue } = useAuth()
   const { fullBasePath } = useCurrentVenue()
+  const localeCode = getIntlLocale(i18n.language)
+
+  const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
 
   const [storeFilter, setStoreFilter] = useState('all')
+  const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date }>(() => getToday(venueTimezone))
 
-  // Use venue-level hooks for white-label access
-  const { data: overview } = useStoresOverview()
+  // Derive ISO date strings from selected range for API calls
+  const startDateISO = selectedRange.from.toISOString()
+  const endDateISO = selectedRange.to.toISOString()
+
+  // Use venue-level hooks for white-label access — pass date range to filter data
+  const { data: overview } = useStoresOverview({
+    startDate: startDateISO,
+    endDate: endDateISO,
+    filterVenueId: storeFilter !== 'all' ? storeFilter : undefined,
+  })
   const { data: _stockSummary } = useStoresStockSummary()
   const { data: venuesResponse } = useStoresVenues()
-  const { data: activityFeed } = useStoresActivityFeed(20, { refetchInterval: 30000 })
+  const { data: activityFeed } = useStoresActivityFeed(20, {
+    refetchInterval: 30000,
+    startDate: startDateISO,
+    endDate: endDateISO,
+    filterVenueId: storeFilter !== 'all' ? storeFilter : undefined,
+  })
   const { data: _revenueData } = useStoresRevenueVsTarget()
-  const { data: storePerformanceData } = useStoresStorePerformance()
+  const { data: storePerformanceData } = useStoresStorePerformance({ startDate: startDateISO, endDate: endDateISO })
   const { data: attendanceData } = useStoresStaffAttendance({
+    date: selectedRange.from.toISOString().split('T')[0],
     filterVenueId: storeFilter !== 'all' ? storeFilter : undefined,
     refetchInterval: 30000,
   })
@@ -109,12 +130,13 @@ export function SupervisorDashboard() {
   const totalStores = overview?.totalStores ?? venuesData?.length ?? storesOpen
   const storesClosed = Math.max(totalStores - storesOpen, 0)
   const coveragePercent = totalStores > 0 ? Math.round((storesOpen / totalStores) * 100) : 0
-  const cashInField = overview?.todaySales ?? 0
+  const cashInField = (overview?.todayCashSales ?? 0) - (overview?.approvedDeposits ?? 0)
 
   // Chart data - derive from store performance
   const salesByStore = useMemo(() => {
     if (!storePerformanceData?.stores?.length) return []
-    const total = storePerformanceData.stores.reduce((a, s) => a + s.todaySales, 0) || 1
+    const total = storePerformanceData.stores.reduce((a, s) => a + s.todaySales, 0)
+    if (total === 0) return [] // No sales → show empty state
     const colors = ['#10b981', '#3b82f6', '#64748b', '#f59e0b', '#a855f7']
     return storePerformanceData.stores.slice(0, 5).map((s, i) => ({
       label: s.name.length > 10 ? s.name.slice(0, 10) : s.name,
@@ -128,9 +150,12 @@ export function SupervisorDashboard() {
     return storePerformanceData.stores.slice(0, 4).map(s => {
       const perf = Number.isFinite(s.performance) ? s.performance : 0
       return {
-        store: s.name.length > 18 ? s.name.slice(0, 18) + '...' : s.name,
-        percent: Math.min(perf, 100),
+        store: s.name,
+        percent: Math.min(perf, 150), // Allow up to 150% for overachievers
+        barPercent: Math.min(perf, 100), // Bar capped at 100%
         color: perf >= 70 ? 'bg-green-500' : 'bg-amber-500',
+        hasGoal: s.goalAmount != null,
+        goalPeriod: s.goalPeriod,
       }
     })
   }, [storePerformanceData])
@@ -138,7 +163,7 @@ export function SupervisorDashboard() {
   const promoterRanking = useMemo(() => {
     if (!storePerformanceData?.stores?.length) return []
     return storePerformanceData.stores.slice(0, 5).map((s, i) => ({
-      name: s.name.slice(0, 8),
+      name: s.name,
       amount: s.todaySales,
       isYou: i === 0,
     }))
@@ -159,19 +184,19 @@ export function SupervisorDashboard() {
           {t('playtelecom:supervisor.title', { defaultValue: 'Tablero Operativo' })}
         </h2>
         <div className="flex gap-3">
-          <div className="flex items-center gap-2 bg-card border border-green-500/30 hover:border-green-500 rounded-lg px-3 py-1.5 transition-colors">
-            <Calendar className="w-4 h-4 text-green-400" />
-            <div className="flex flex-col">
-              <span className="text-[8px] font-bold text-muted-foreground uppercase leading-none">
-                {t('playtelecom:supervisor.date', { defaultValue: 'Fecha' })}
-              </span>
-              <input
-                type="date"
-                defaultValue={new Date().toISOString().split('T')[0]}
-                className="bg-transparent border-none text-xs font-semibold focus:outline-none p-0 cursor-pointer"
-              />
-            </div>
-          </div>
+          <DateRangePicker
+            showCompare={false}
+            onUpdate={({ range }) => {
+              setSelectedRange({
+                from: range.from,
+                to: range.to ?? range.from,
+              })
+            }}
+            initialDateFrom={selectedRange.from}
+            initialDateTo={selectedRange.to}
+            align="end"
+            locale={localeCode}
+          />
           <div className="flex items-center gap-2 bg-card border border-green-500/30 hover:border-green-500 rounded-lg px-3 py-1.5 transition-colors">
             <Store className="w-4 h-4 text-green-400" />
             <div className="flex flex-col">
@@ -263,48 +288,6 @@ export function SupervisorDashboard() {
         </GlassCard>
       </div>
 
-      {/* Store Detail Table */}
-      <GlassCard className="overflow-hidden">
-        <div className="bg-card/80 px-6 py-3 border-b border-border/50">
-          <h3 className="font-semibold text-sm uppercase flex items-center gap-2">
-            <Store className="w-4 h-4 text-primary" />
-            {t('playtelecom:supervisor.storeDetail', { defaultValue: 'Detalle por Tienda' })}
-          </h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-muted/30 text-xs uppercase font-bold text-muted-foreground">
-              <tr>
-                <th className="px-6 py-3">{t('playtelecom:supervisor.store', { defaultValue: 'Tienda' })}</th>
-                <th className="px-6 py-3">{t('playtelecom:supervisor.promoter', { defaultValue: 'Promotor' })}</th>
-                <th className="px-6 py-3">{t('playtelecom:supervisor.entry', { defaultValue: 'Entrada' })}</th>
-                <th className="px-6 py-3">{t('playtelecom:supervisor.exit', { defaultValue: 'Salida' })}</th>
-                <th className="px-6 py-3 text-right">{t('playtelecom:supervisor.sale', { defaultValue: 'Venta' })}</th>
-                <th className="px-6 py-3 text-center">{t('playtelecom:supervisor.depositPhoto', { defaultValue: 'Deposito (Foto)' })}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/30">
-              {storeDetailRows.map((row, i) => (
-                <tr key={i} className="hover:bg-muted/20 transition">
-                  <td className="px-6 py-4 font-medium">{row.store}</td>
-                  <td className="px-6 py-4 text-muted-foreground">{row.promoter}</td>
-                  <td className="px-6 py-4 text-green-400 font-mono font-semibold">{row.clockIn}</td>
-                  <td className="px-6 py-4 text-muted-foreground font-mono">{row.clockOut}</td>
-                  <td className="px-6 py-4 text-right font-semibold font-mono">{formatCurrency(row.sales)}</td>
-                  <td className="px-6 py-4 text-center">
-                    {row.hasDepositPhoto ? (
-                      <Badge className="bg-green-500/10 text-green-400 border-green-500/20">OK</Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-muted-foreground">--</Badge>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </GlassCard>
-
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Pie - Sales by Store */}
@@ -312,31 +295,39 @@ export function SupervisorDashboard() {
           <h4 className="text-xs font-bold text-muted-foreground uppercase mb-4 self-start">
             {t('playtelecom:supervisor.salesByStore', { defaultValue: 'Ventas x Tienda' })}
           </h4>
-          <div className="relative w-36 h-36">
-            <div
-              className="w-full h-full rounded-full shadow-lg"
-              style={{
-                background: `conic-gradient(${salesByStore.map((s, i) => {
-                  const start = salesByStore.slice(0, i).reduce((a, x) => a + x.percent, 0)
-                  return `${s.color} ${start}% ${start + s.percent}%`
-                }).join(', ')})`,
-              }}
-            />
-            <div className="absolute inset-4 bg-card rounded-full flex items-center justify-center">
-              <div className="text-center">
-                <span className="block font-bold text-lg">100%</span>
-                <span className="text-[9px] font-bold text-muted-foreground uppercase">Total</span>
+          {salesByStore.length > 0 ? (
+            <>
+              <div className="relative w-36 h-36">
+                <div
+                  className="w-full h-full rounded-full shadow-lg"
+                  style={{
+                    background: `conic-gradient(${salesByStore.map((s, i) => {
+                      const start = salesByStore.slice(0, i).reduce((a, x) => a + x.percent, 0)
+                      return `${s.color} ${start}% ${start + s.percent}%`
+                    }).join(', ')})`,
+                  }}
+                />
+                <div className="absolute inset-4 bg-card rounded-full flex items-center justify-center">
+                  <div className="text-center">
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase">Total</span>
+                  </div>
+                </div>
               </div>
+              <div className="flex gap-3 mt-4 text-[10px] text-muted-foreground">
+                {salesByStore.map((s, i) => (
+                  <span key={i} className="flex items-center">
+                    <span className="w-2 h-2 rounded-full mr-1" style={{ backgroundColor: s.color }} />
+                    {s.label} {s.percent}%
+                  </span>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center flex-1 text-muted-foreground">
+              <Store className="w-8 h-8 mb-2 opacity-40" />
+              <p className="text-sm">{t('playtelecom:supervisor.noSalesData', { defaultValue: 'Sin ventas registradas' })}</p>
             </div>
-          </div>
-          <div className="flex gap-3 mt-4 text-[10px] text-muted-foreground">
-            {salesByStore.map((s, i) => (
-              <span key={i} className="flex items-center">
-                <span className="w-2 h-2 rounded-full mr-1" style={{ backgroundColor: s.color }} />
-                {s.label}
-              </span>
-            ))}
-          </div>
+          )}
         </GlassCard>
 
         {/* Progress - Sales vs Target */}
@@ -344,22 +335,35 @@ export function SupervisorDashboard() {
           <h4 className="text-xs font-bold text-muted-foreground uppercase mb-4">
             {t('playtelecom:supervisor.salesVsTarget', { defaultValue: 'Ventas vs Meta' })}
           </h4>
-          <div className="space-y-6">
-            {salesVsTarget.map((item, i) => (
-              <div key={i}>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="font-medium">{item.store}</span>
-                  <span className={cn('font-bold', item.percent >= 70 ? 'text-green-400' : 'text-amber-400')}>
-                    {item.percent}%
-                  </span>
+          {salesVsTarget.length > 0 ? (
+            <div className="space-y-6">
+              {salesVsTarget.map((item, i) => (
+                <div key={i}>
+                  <div className="flex justify-between text-xs mb-1 gap-2">
+                    <span className="font-medium truncate min-w-0">{item.store}</span>
+                    {item.hasGoal ? (
+                      <span className={cn('font-bold shrink-0', item.percent >= 70 ? 'text-green-400' : 'text-amber-400')}>
+                        {item.percent}%
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground shrink-0 text-[10px]">
+                        {t('playtelecom:supervisor.noGoal', { defaultValue: 'Sin meta' })}
+                      </span>
+                    )}
+                  </div>
+                  <div className="h-3 bg-muted rounded-full overflow-hidden relative">
+                    <div className={cn('h-full rounded-full', item.color)} style={{ width: `${item.barPercent}%` }} />
+                    <div className="absolute top-0 bottom-0 w-[2px] bg-foreground/30" style={{ left: '90%' }} />
+                  </div>
                 </div>
-                <div className="h-3 bg-muted rounded-full overflow-hidden relative">
-                  <div className={cn('h-full rounded-full', item.color)} style={{ width: `${item.percent}%` }} />
-                  <div className="absolute top-0 bottom-0 w-[2px] bg-foreground/30" style={{ left: '90%' }} />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center flex-1 text-muted-foreground">
+              <Store className="w-8 h-8 mb-2 opacity-40" />
+              <p className="text-sm">{t('playtelecom:supervisor.noGoalData', { defaultValue: 'Sin metas configuradas' })}</p>
+            </div>
+          )}
         </GlassCard>
 
         {/* Bar - Promoter Ranking */}
@@ -386,9 +390,9 @@ export function SupervisorDashboard() {
                   style={{ height: `${(p.amount / maxPromoterAmount) * 100}%`, minHeight: '8px' }}
                 />
                 <span className={cn(
-                  'text-[10px] mt-2 font-bold',
+                  'text-[10px] mt-2 font-bold max-w-full truncate',
                   p.isYou ? 'bg-green-500/20 px-2 rounded-full' : 'text-muted-foreground'
-                )}>
+                )} title={p.name}>
                   {p.name}
                 </span>
               </div>
@@ -396,6 +400,57 @@ export function SupervisorDashboard() {
           </div>
         </GlassCard>
       </div>
+
+      {/* Store Detail Table */}
+      <GlassCard className="overflow-hidden">
+        <div className="bg-card/80 px-6 py-3 border-b border-border/50">
+          <h3 className="font-semibold text-sm uppercase flex items-center gap-2">
+            <Store className="w-4 h-4 text-primary" />
+            {t('playtelecom:supervisor.storeDetail', { defaultValue: 'Detalle por Tienda' })}
+          </h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-muted/30 text-xs uppercase font-bold text-muted-foreground">
+              <tr>
+                <th className="px-6 py-3">{t('playtelecom:supervisor.store', { defaultValue: 'Tienda' })}</th>
+                <th className="px-6 py-3">{t('playtelecom:supervisor.promoter', { defaultValue: 'Promotor' })}</th>
+                <th className="px-6 py-3">{t('playtelecom:supervisor.entry', { defaultValue: 'Entrada' })}</th>
+                <th className="px-6 py-3">{t('playtelecom:supervisor.exit', { defaultValue: 'Salida' })}</th>
+                <th className="px-6 py-3 text-right">{t('playtelecom:supervisor.sale', { defaultValue: 'Venta' })}</th>
+                <th className="px-6 py-3 text-center">{t('playtelecom:supervisor.depositPhoto', { defaultValue: 'Deposito (Foto)' })}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/30">
+              {storeDetailRows.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                    <Store className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                    <p className="text-sm">{t('playtelecom:supervisor.noStoreActivity', { defaultValue: 'Sin actividad registrada para este periodo' })}</p>
+                  </td>
+                </tr>
+              ) : (
+                storeDetailRows.map((row, i) => (
+                  <tr key={i} className="hover:bg-muted/20 transition">
+                    <td className="px-6 py-4 font-medium">{row.store}</td>
+                    <td className="px-6 py-4 text-muted-foreground">{row.promoter}</td>
+                    <td className="px-6 py-4 text-green-400 font-mono font-semibold">{row.clockIn}</td>
+                    <td className="px-6 py-4 text-muted-foreground font-mono">{row.clockOut}</td>
+                    <td className="px-6 py-4 text-right font-semibold font-mono">{formatCurrency(row.sales)}</td>
+                    <td className="px-6 py-4 text-center">
+                      {row.hasDepositPhoto ? (
+                        <Badge className="bg-green-500/10 text-green-400 border-green-500/20">OK</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-muted-foreground">--</Badge>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </GlassCard>
 
       {/* Real-time Transactions */}
       <GlassCard className="overflow-hidden">
@@ -422,30 +477,39 @@ export function SupervisorDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
-              {transactions.map((tx, i) => (
-                <tr key={i} className="hover:bg-muted/20 transition group">
-                  <td className="px-6 py-3 font-mono text-primary group-hover:text-foreground transition-colors">{tx.id}</td>
-                  <td className="px-6 py-3 text-muted-foreground">{tx.store}</td>
-                  <td className="px-6 py-3">
-                    <div className="font-medium">{tx.product}</div>
-                    <div className="text-[10px] font-mono text-muted-foreground">{tx.iccid}</div>
+              {transactions.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                    <Receipt className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                    <p className="text-sm">{t('playtelecom:supervisor.noTransactions', { defaultValue: 'Sin transacciones en este periodo' })}</p>
                   </td>
-                  <td className="px-6 py-3">
-                    <Badge
-                      className="text-[10px]"
-                      style={{
-                        backgroundColor: `${tx.simColor}20`,
-                        color: tx.simColor,
-                        borderColor: `${tx.simColor}50`,
-                      }}
-                    >
-                      {tx.simType}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-3 text-muted-foreground">{tx.seller}</td>
-                  <td className="px-6 py-3 text-right text-green-400 font-bold font-mono">{formatCurrency(tx.amount)}</td>
                 </tr>
-              ))}
+              ) : (
+                transactions.map((tx, i) => (
+                  <tr key={i} className="hover:bg-muted/20 transition group">
+                    <td className="px-6 py-3 font-mono text-primary group-hover:text-foreground transition-colors">{tx.id}</td>
+                    <td className="px-6 py-3 text-muted-foreground">{tx.store}</td>
+                    <td className="px-6 py-3">
+                      <div className="font-medium">{tx.product}</div>
+                      <div className="text-[10px] font-mono text-muted-foreground">{tx.iccid}</div>
+                    </td>
+                    <td className="px-6 py-3">
+                      <Badge
+                        className="text-[10px]"
+                        style={{
+                          backgroundColor: `${tx.simColor}20`,
+                          color: tx.simColor,
+                          borderColor: `${tx.simColor}50`,
+                        }}
+                      >
+                        {tx.simType}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-3 text-muted-foreground">{tx.seller}</td>
+                    <td className="px-6 py-3 text-right text-green-400 font-bold font-mono">{formatCurrency(tx.amount)}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

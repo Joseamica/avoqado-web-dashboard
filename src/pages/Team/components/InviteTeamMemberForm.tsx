@@ -3,9 +3,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Mail, AlertCircle, Smartphone, CheckCircle2, UserPlus, Info, Building2 } from 'lucide-react'
+import { Mail, AlertCircle, Smartphone, CheckCircle2, UserPlus, Info, Building2, AlertTriangle, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useAuth } from '@/context/AuthContext'
@@ -31,7 +32,7 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { StaffRole } from '@/types'
-import teamService, { InviteTeamMemberRequest, InviteType } from '@/services/team.service'
+import teamService, { InviteTeamMemberRequest, InviteType, PinConflict } from '@/services/team.service'
 import { cn } from '@/lib/utils'
 import { useWhiteLabelConfig } from '@/hooks/useWhiteLabelConfig'
 import { RoleAccessPreview } from './RoleAccessPreview'
@@ -83,7 +84,10 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
   const [showResendDialog, setShowResendDialog] = useState(false)
   const [pendingResendEmail, setPendingResendEmail] = useState<string | null>(null)
   const pendingInvitationIdRef = useRef<string | null>(null)
-  const { getDisplayName: getRoleDisplayName } = useRoleConfig()
+  const [pinConflicts, setPinConflicts] = useState<(PinConflict & { newPin: string; resolved: boolean; saving: boolean })[]>([])
+  const [showPinConflictsDialog, setShowPinConflictsDialog] = useState(false)
+  const [conflictSummary, setConflictSummary] = useState<{ total: number; assigned: number } | null>(null)
+  const { getDisplayName: getRoleDisplayName, isRoleActive } = useRoleConfig()
   const [inviteType, setInviteType] = useState<InviteType>('email')
   const [inviteToAllVenues, setInviteToAllVenues] = useState(false)
   const { isWhiteLabelEnabled, enabledFeatures } = useWhiteLabelConfig()
@@ -91,7 +95,7 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
   // Only OWNER and SUPERADMIN can invite as OWNER
   const canInviteAsOwner = user?.role === StaffRole.OWNER || user?.role === StaffRole.SUPERADMIN
 
-  const ROLE_OPTIONS = [
+  const ALL_ROLE_OPTIONS = [
     // OWNER option only visible for OWNER/SUPERADMIN users
     ...(canInviteAsOwner ? [{
       value: StaffRole.OWNER,
@@ -106,6 +110,9 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
     { value: StaffRole.HOST, label: getRoleDisplayName(StaffRole.HOST), description: t('edit.roles.hostDesc') },
     { value: StaffRole.VIEWER, label: getRoleDisplayName(StaffRole.VIEWER), description: t('edit.roles.viewerDesc') },
   ]
+
+  // Filter out roles that are marked as inactive in the venue's role config
+  const ROLE_OPTIONS = ALL_ROLE_OPTIONS.filter(option => isRoleActive(option.value))
 
   const {
     register,
@@ -139,12 +146,30 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
       if (data.isTPVOnly) {
         toast({
           title: t('invite.tpvOnlyCreated', { defaultValue: 'Miembro TPV creado' }),
-          description: t('invite.tpvOnlyCreatedDesc', {
-            defaultValue: '{{name}} ahora puede acceder a la TPV con su PIN.',
-            name: `${getValues('firstName')} ${getValues('lastName')}`,
-          }),
+          description: data.venuesAssigned && data.venuesAssigned > 1
+            ? t('invite.tpvOnlyCreatedAllVenues', {
+                defaultValue: '{{name}} fue asignado a {{count}} venues.',
+                name: `${getValues('firstName')} ${getValues('lastName')}`,
+                count: data.venuesAssigned,
+              })
+            : t('invite.tpvOnlyCreatedDesc', {
+                defaultValue: '{{name}} ahora puede acceder a la TPV con su PIN.',
+                name: `${getValues('firstName')} ${getValues('lastName')}`,
+              }),
         })
         queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
+
+        // Handle PIN conflicts
+        if (data.pinConflicts && data.pinConflicts.length > 0) {
+          setPinConflicts(data.pinConflicts.map(c => ({ ...c, newPin: '', resolved: false, saving: false })))
+          setConflictSummary({
+            total: data.venuesAssigned || 0,
+            assigned: (data.venuesAssigned || 0) - data.pinConflicts.length,
+          })
+          setShowPinConflictsDialog(true)
+          // Don't close the parent modal yet — let user resolve conflicts first
+          return
+        }
       } else {
         toast({
           title: t('invite.invitationSent'),
@@ -511,6 +536,115 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
         </div>
       </div>
     </form>
+
+    {/* PIN Conflicts Resolution Dialog */}
+    <AlertDialog open={showPinConflictsDialog} onOpenChange={(open) => {
+      if (!open) {
+        setShowPinConflictsDialog(false)
+        reset({ type: inviteType })
+        setSelectedRole(undefined)
+        onSuccess()
+      }
+    }}>
+      <AlertDialogContent className="max-w-lg">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-orange-500" />
+            {t('invite.pinConflicts.title', { defaultValue: 'PIN en conflicto' })}
+          </AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-3">
+              {conflictSummary && (
+                <p>
+                  {t('invite.pinConflicts.summary', {
+                    defaultValue: 'PIN asignado en {{assigned}} de {{total}} venues. En {{conflicts}} venues el PIN ya está en uso por otro miembro.',
+                    assigned: conflictSummary.assigned,
+                    total: conflictSummary.total,
+                    conflicts: pinConflicts.length,
+                  })}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {t('invite.pinConflicts.hint', { defaultValue: 'Tip: Usa PINs de 6+ dígitos para evitar conflictos.' })}
+              </p>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <div className="space-y-3 max-h-[300px] overflow-y-auto">
+          {pinConflicts.map((conflict, idx) => (
+            <div key={conflict.venueId} className="rounded-xl border border-border/50 bg-muted/30 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">{conflict.venueName}</span>
+                {conflict.resolved && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {t('invite.pinConflicts.inUseBy', {
+                  defaultValue: 'PIN en uso por {{name}}',
+                  name: conflict.conflictWith,
+                })}
+              </p>
+              {!conflict.resolved && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={10}
+                    placeholder={t('invite.pinConflicts.newPinPlaceholder', { defaultValue: 'Nuevo PIN' })}
+                    className="h-9 text-sm flex-1"
+                    value={conflict.newPin}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '')
+                      setPinConflicts(prev => prev.map((c, i) => i === idx ? { ...c, newPin: val } : c))
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    className="rounded-full cursor-pointer"
+                    disabled={!/^\d{4,10}$/.test(conflict.newPin) || conflict.saving}
+                    onClick={async () => {
+                      setPinConflicts(prev => prev.map((c, i) => i === idx ? { ...c, saving: true } : c))
+                      try {
+                        await teamService.updateTeamMember(conflict.venueId, conflict.staffVenueId, { pin: conflict.newPin })
+                        setPinConflicts(prev => prev.map((c, i) => i === idx ? { ...c, resolved: true, saving: false } : c))
+                        toast({ title: t('invite.pinConflicts.assigned', { defaultValue: 'PIN asignado en {{venue}}', venue: conflict.venueName }) })
+                      } catch (err: any) {
+                        setPinConflicts(prev => prev.map((c, i) => i === idx ? { ...c, saving: false } : c))
+                        toast({
+                          title: tCommon('error'),
+                          description: err.response?.data?.message || err.response?.data?.error || t('invite.pinConflicts.assignError', { defaultValue: 'Error al asignar PIN' }),
+                          variant: 'destructive',
+                        })
+                      }
+                    }}
+                  >
+                    {conflict.saving ? <Loader2 className="h-3 w-3 animate-spin" /> : t('invite.pinConflicts.assign', { defaultValue: 'Asignar' })}
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <AlertDialogFooter>
+          <AlertDialogAction
+            className="rounded-full cursor-pointer"
+            onClick={() => {
+              setShowPinConflictsDialog(false)
+              reset({ type: inviteType })
+              setSelectedRole(undefined)
+              onSuccess()
+            }}
+          >
+            {pinConflicts.every(c => c.resolved)
+              ? t('invite.pinConflicts.done', { defaultValue: 'Listo' })
+              : t('invite.pinConflicts.resolveLater', { defaultValue: 'Resolver después' })
+            }
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
 
     {/* Resend Invitation Confirmation Dialog */}
     <AlertDialog open={showResendDialog} onOpenChange={setShowResendDialog}>

@@ -1,6 +1,9 @@
 /**
  * UserDetailPanel - Main editing panel for user management
- * Combines role selection, scope configuration, permissions, and audit log
+ * Combines role selection, scope configuration (venues), and audit log
+ *
+ * Note: Permissions are per-ROLE not per-user in the backend.
+ * The PermissionMatrix is shown read-only to indicate which permissions the role grants.
  */
 
 import React, { useState } from 'react'
@@ -9,21 +12,12 @@ import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import {
-  User,
-  Mail,
-  Phone,
-  Calendar,
-  Save,
-  Ban,
-  UserCheck,
-  RotateCcw,
-  KeyRound,
-} from 'lucide-react'
+import { User, Mail, Phone, Calendar, Save, Ban, UserCheck, RotateCcw, KeyRound, ShieldAlert } from 'lucide-react'
+import { type StaffRole } from '@/types'
 import { cn } from '@/lib/utils'
-import { RoleSelectionCards, type UserRole } from './RoleSelectionCards'
+import { useRoleConfig } from '@/hooks/use-role-config'
+import { RoleSelectionCards } from './RoleSelectionCards'
 import { ScopeConfiguration, type Zone, type StoreOption } from './ScopeConfiguration'
-import { PermissionMatrix } from './PermissionMatrix'
 import { AuditLogTerminal, type AuditLogEntry } from './AuditLogTerminal'
 
 export interface UserDetail {
@@ -31,8 +25,8 @@ export interface UserDetail {
   name: string
   email: string
   phone?: string
-  role: UserRole
-  status: 'active' | 'inactive' | 'blocked'
+  role: string
+  status: 'active' | 'inactive'
   avatarUrl?: string
   createdAt?: string
   selectedZone: string | null
@@ -41,14 +35,24 @@ export interface UserDetail {
   auditLog: AuditLogEntry[]
 }
 
+/** Spanish status labels */
+const STATUS_LABELS: Record<string, string> = {
+  active: 'Activo',
+  inactive: 'Inactivo',
+}
+
 interface UserDetailPanelProps {
   user: UserDetail | null
   zones: Zone[]
   stores: StoreOption[]
   onSave: (updates: Partial<UserDetail>) => void
-  onStatusChange: (status: 'active' | 'inactive' | 'blocked') => void
+  onStatusChange: (status: 'active' | 'inactive') => void
   onResetPassword?: () => void
   isSaving?: boolean
+  /** Whether the current user can edit this user (role hierarchy check) */
+  canEdit?: boolean
+  /** Roles the current user is allowed to assign */
+  assignableRoles?: StaffRole[]
   className?: string
 }
 
@@ -60,30 +64,28 @@ export const UserDetailPanel: React.FC<UserDetailPanelProps> = ({
   onStatusChange,
   onResetPassword,
   isSaving = false,
+  canEdit = true,
+  assignableRoles,
   className,
 }) => {
   const { t } = useTranslation(['playtelecom', 'common'])
+  const { getDisplayName } = useRoleConfig()
 
-  // Local state for editing
-  const [selectedRole, setSelectedRole] = useState<UserRole>(user?.role || 'PROMOTOR')
+  const [selectedRole, setSelectedRole] = useState<string>(user?.role || 'VIEWER')
   const [selectedZone, setSelectedZone] = useState<string | null>(user?.selectedZone || null)
   const [selectedStores, setSelectedStores] = useState<string[]>(user?.selectedStores || [])
-  const [permissions, setPermissions] = useState<string[]>(user?.permissions || [])
   const [hasChanges, setHasChanges] = useState(false)
 
-  // Update local state when user changes
   React.useEffect(() => {
     if (user) {
       setSelectedRole(user.role)
       setSelectedZone(user.selectedZone)
       setSelectedStores(user.selectedStores)
-      setPermissions(user.permissions)
       setHasChanges(false)
     }
   }, [user?.id])
 
-  // Track changes
-  const handleRoleChange = (role: UserRole) => {
+  const handleRoleChange = (role: string) => {
     setSelectedRole(role)
     setHasChanges(true)
   }
@@ -98,46 +100,36 @@ export const UserDetailPanel: React.FC<UserDetailPanelProps> = ({
     setHasChanges(true)
   }
 
-  const handlePermissionToggle = (permissionId: string, enabled: boolean) => {
-    setPermissions(prev =>
-      enabled
-        ? [...prev, permissionId]
-        : prev.filter(id => id !== permissionId)
-    )
-    setHasChanges(true)
-  }
-
-  // Save changes
   const handleSave = () => {
-    onSave({
-      role: selectedRole,
-      selectedZone,
-      selectedStores,
-      permissions,
-    })
+    onSave({ role: selectedRole, selectedZone, selectedStores })
     setHasChanges(false)
   }
 
-  // Reset changes
   const handleReset = () => {
     if (user) {
       setSelectedRole(user.role)
       setSelectedZone(user.selectedZone)
       setSelectedStores(user.selectedStores)
-      setPermissions(user.permissions)
       setHasChanges(false)
     }
   }
 
   if (!user) {
     return (
-      <div className={cn('flex items-center justify-center h-full', className)}>
+      <div
+        className={cn(
+          'flex items-center justify-center h-full rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm',
+          className,
+        )}
+      >
         <div className="text-center">
-          <User className="w-12 h-12 mx-auto mb-4 text-muted-foreground/30" />
-          <h3 className="text-lg font-medium text-muted-foreground">
+          <div className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-muted/40 flex items-center justify-center">
+            <User className="w-5 h-5 text-muted-foreground/30" />
+          </div>
+          <h3 className="text-sm font-medium text-muted-foreground">
             {t('playtelecom:users.selectUserPrompt', { defaultValue: 'Selecciona un usuario' })}
           </h3>
-          <p className="text-sm text-muted-foreground/70 mt-1">
+          <p className="text-xs text-muted-foreground/50 mt-1 max-w-[220px] mx-auto">
             {t('playtelecom:users.selectUserHint', {
               defaultValue: 'Selecciona un usuario de la lista para ver y editar sus permisos',
             })}
@@ -148,179 +140,169 @@ export const UserDetailPanel: React.FC<UserDetailPanelProps> = ({
   }
 
   return (
-    <ScrollArea className={cn('h-full', className)}>
-      <div className="p-6 space-y-6">
-        {/* User Header */}
-        <GlassCard className="p-4">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              {/* Avatar */}
-              <div className="relative">
-                <div className={cn(
-                  'w-16 h-16 rounded-full flex items-center justify-center',
-                  'bg-gradient-to-br from-primary/20 to-primary/5'
-                )}>
-                  {user.avatarUrl ? (
-                    <img
-                      src={user.avatarUrl}
-                      alt={user.name}
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  ) : (
-                    <User className="w-8 h-8 text-primary" />
-                  )}
+    <div className={cn('h-full rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden', className)}>
+      <ScrollArea className="h-full">
+        <div className="p-5 space-y-4">
+          {/* User Header */}
+          <GlassCard className="p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                {/* Avatar */}
+                <div className="relative shrink-0">
+                  <div className="w-11 h-11 rounded-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 text-sm font-semibold text-primary">
+                    {user.avatarUrl ? (
+                      <img src={user.avatarUrl} alt={user.name} className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      <span>{user.name.charAt(0).toUpperCase()}</span>
+                    )}
+                  </div>
+                  <span
+                    className={cn(
+                      'absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-card',
+                      user.status === 'active' ? 'bg-green-500' : 'bg-muted-foreground/40',
+                    )}
+                  />
                 </div>
-                {/* Status dot */}
-                <span className={cn(
-                  'absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-background',
-                  user.status === 'active' && 'bg-green-500',
-                  user.status === 'inactive' && 'bg-gray-400',
-                  user.status === 'blocked' && 'bg-red-500'
-                )} />
+
+                {/* Info */}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-semibold truncate">{user.name}</h2>
+                    <Badge variant="outline" className="text-[10px] shrink-0">
+                      {getDisplayName(user.role)}
+                    </Badge>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Mail className="w-3 h-3 shrink-0" />
+                      <span className="truncate">{user.email}</span>
+                    </span>
+                    {user.phone && (
+                      <span className="flex items-center gap-1">
+                        <Phone className="w-3 h-3 shrink-0" />
+                        {user.phone}
+                      </span>
+                    )}
+                    {user.createdAt && (
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3 shrink-0" />
+                        {user.createdAt}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              {/* Info */}
-              <div>
-                <h2 className="text-xl font-semibold">{user.name}</h2>
-                <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Mail className="w-3.5 h-3.5" />
-                    {user.email}
-                  </span>
-                  {user.phone && (
-                    <span className="flex items-center gap-1">
-                      <Phone className="w-3.5 h-3.5" />
-                      {user.phone}
-                    </span>
-                  )}
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5" />
-                    {user.createdAt}
-                  </span>
-                </div>
-              </div>
+              {/* Status Badge */}
+              <Badge
+                variant={user.status === 'active' ? 'default' : 'secondary'}
+                className="shrink-0 text-xs"
+              >
+                {user.status === 'active' ? <UserCheck className="w-3 h-3 mr-1" /> : <Ban className="w-3 h-3 mr-1" />}
+                {t(`playtelecom:users.status.${user.status}`, { defaultValue: STATUS_LABELS[user.status] || user.status })}
+              </Badge>
             </div>
 
-            {/* Status Badge */}
-            <Badge
-              variant={user.status === 'active' ? 'default' : user.status === 'blocked' ? 'destructive' : 'secondary'}
-              className="shrink-0"
-            >
-              {user.status === 'active' && <UserCheck className="w-3 h-3 mr-1" />}
-              {user.status === 'blocked' && <Ban className="w-3 h-3 mr-1" />}
-              {t(`playtelecom:users.status.${user.status}`, { defaultValue: user.status })}
-            </Badge>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="flex gap-2 mt-4 pt-4 border-t border-border/50">
-            {onResetPassword && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onResetPassword}
-                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-500/10"
-              >
-                <KeyRound className="w-3.5 h-3.5 mr-1" />
-                {t('playtelecom:users.resetPassword', { defaultValue: 'Reset Password' })}
-              </Button>
-            )}
-            {user.status === 'active' ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onStatusChange('inactive')}
-                className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 dark:hover:bg-yellow-500/10"
-              >
-                <Ban className="w-3.5 h-3.5 mr-1" />
-                {t('playtelecom:users.deactivate', { defaultValue: 'Desactivar' })}
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onStatusChange('active')}
-                className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-500/10"
-              >
-                <UserCheck className="w-3.5 h-3.5 mr-1" />
-                {t('playtelecom:users.activate', { defaultValue: 'Activar' })}
-              </Button>
-            )}
-            {user.status !== 'blocked' && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onStatusChange('blocked')}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-500/10"
-              >
-                <Ban className="w-3.5 h-3.5 mr-1" />
-                {t('playtelecom:users.block', { defaultValue: 'Bloquear' })}
-              </Button>
-            )}
-          </div>
-        </GlassCard>
-
-        {/* Role Selection */}
-        <RoleSelectionCards
-          selectedRole={selectedRole}
-          onSelectRole={handleRoleChange}
-          disabled={user.status === 'blocked'}
-        />
-
-        {/* Scope Configuration */}
-        <ScopeConfiguration
-          zones={zones}
-          stores={stores}
-          selectedZone={selectedZone}
-          selectedStores={selectedStores}
-          onZoneChange={handleZoneChange}
-          onStoresChange={handleStoresChange}
-          disabled={user.status === 'blocked'}
-        />
-
-        {/* Permission Matrix */}
-        <PermissionMatrix
-          enabledPermissions={permissions}
-          onTogglePermission={handlePermissionToggle}
-          disabled={user.status === 'blocked'}
-        />
-
-        {/* Audit Log */}
-        <AuditLogTerminal entries={user.auditLog} maxHeight={180} />
-
-        {/* Save Bar */}
-        {hasChanges && (
-          <div className="sticky bottom-0 py-4 bg-gradient-to-t from-background via-background to-transparent">
-            <GlassCard className="p-4 flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                {t('playtelecom:users.unsavedChanges', { defaultValue: 'Tienes cambios sin guardar' })}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleReset}
-                  disabled={isSaving}
-                >
-                  <RotateCcw className="w-3.5 h-3.5 mr-1" />
-                  {t('common:reset', { defaultValue: 'Restablecer' })}
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleSave}
-                  disabled={isSaving}
-                >
-                  <Save className="w-3.5 h-3.5 mr-1" />
-                  {isSaving
-                    ? t('common:saving', { defaultValue: 'Guardando...' })
-                    : t('common:saveChanges', { defaultValue: 'Guardar Cambios' })}
-                </Button>
+            {/* Quick Actions */}
+            {canEdit && (
+              <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-border/50">
+                {onResetPassword && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onResetPassword}
+                    className="h-7 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-500/10 dark:text-blue-400 dark:hover:text-blue-300 cursor-pointer"
+                  >
+                    <KeyRound className="w-3 h-3 mr-1" />
+                    {t('playtelecom:users.resetPassword', { defaultValue: 'Restablecer Contrase\u00f1a' })}
+                  </Button>
+                )}
+                {user.status === 'active' ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onStatusChange('inactive')}
+                    className="h-7 text-xs text-yellow-600 hover:text-yellow-700 hover:bg-yellow-500/10 dark:text-yellow-400 dark:hover:text-yellow-300 cursor-pointer"
+                  >
+                    <Ban className="w-3 h-3 mr-1" />
+                    {t('playtelecom:users.deactivate', { defaultValue: 'Desactivar' })}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onStatusChange('active')}
+                    className="h-7 text-xs text-green-600 hover:text-green-700 hover:bg-green-500/10 dark:text-green-400 dark:hover:text-green-300 cursor-pointer"
+                  >
+                    <UserCheck className="w-3 h-3 mr-1" />
+                    {t('playtelecom:users.activate', { defaultValue: 'Activar' })}
+                  </Button>
+                )}
               </div>
+            )}
+          </GlassCard>
+
+          {/* No-edit banner */}
+          {!canEdit && (
+            <GlassCard className="p-3 flex items-center gap-3 border-yellow-500/30 bg-yellow-500/5">
+              <ShieldAlert className="w-4 h-4 text-yellow-600 dark:text-yellow-400 shrink-0" />
+              <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                {t('playtelecom:users.cannotEditHigherRole', {
+                  defaultValue: 'No puedes modificar a este usuario porque tiene un rol igual o superior al tuyo',
+                })}
+              </p>
             </GlassCard>
-          </div>
-        )}
-      </div>
-    </ScrollArea>
+          )}
+
+          {/* Role Selection */}
+          <RoleSelectionCards
+            selectedRole={selectedRole}
+            onSelectRole={handleRoleChange}
+            disabled={!canEdit}
+            allowedRoles={assignableRoles}
+          />
+
+          {/* Scope Configuration - Venues assigned to user */}
+          <ScopeConfiguration
+            zones={zones}
+            stores={stores}
+            selectedZone={selectedZone}
+            selectedStores={selectedStores}
+            onZoneChange={handleZoneChange}
+            onStoresChange={handleStoresChange}
+            disabled={!canEdit}
+          />
+
+          {/* Audit Log */}
+          <AuditLogTerminal entries={user.auditLog} maxHeight={180} />
+
+          {/* Save Bar */}
+          {hasChanges && canEdit && (
+            <div className="sticky bottom-0 py-3 bg-gradient-to-t from-card via-card/95 to-transparent">
+              <GlassCard className="p-3 flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  {t('playtelecom:users.unsavedChanges', { defaultValue: 'Tienes cambios sin guardar' })}
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleReset} disabled={isSaving} className="h-7 text-xs cursor-pointer">
+                    <RotateCcw className="w-3 h-3 mr-1" />
+                    {t('common:reset', { defaultValue: 'Restablecer' })}
+                  </Button>
+                  <Button size="sm" onClick={handleSave} disabled={isSaving} className="h-7 text-xs cursor-pointer">
+                    <Save className="w-3 h-3 mr-1" />
+                    {isSaving
+                      ? t('common:saving', { defaultValue: 'Guardando...' })
+                      : t('common:saveChanges', { defaultValue: 'Guardar Cambios' })}
+                  </Button>
+                </div>
+              </GlassCard>
+            </div>
+          )}
+
+          <div className="h-2" />
+        </div>
+      </ScrollArea>
+    </div>
   )
 }
 

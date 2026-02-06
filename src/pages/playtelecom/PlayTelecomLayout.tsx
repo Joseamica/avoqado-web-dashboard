@@ -89,8 +89,8 @@ export default function PlayTelecomLayout() {
       </div>
 
       {/* Main content area */}
-      <div className="flex-1 overflow-auto">
-        <div className="p-6">
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full overflow-auto p-6">
           <Outlet />
         </div>
       </div>

@@ -2,7 +2,7 @@
  * ManagersDashboard - Manager Performance & Attendance Oversight
  *
  * Layout:
- * - Filters (period, state, store)
+ * - Filters (date range, validation status, store)
  * - 4 KPI cards (store status, incidents, stock, cash in field)
  * - 3 Charts (sales by SIM, goal progress, 7-day sales)
  * - Attendance log with approve/reject + photo evidence modal
@@ -16,6 +16,17 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { ShieldCheck, Store } from 'lucide-react'
+import { DateRangePicker } from '@/components/date-range-picker'
+import { getIntlLocale } from '@/utils/i18n-locale'
+import { getToday } from '@/utils/datetime'
+import {
   useStoresOverview,
   useStoresStockSummary,
   useStoresAnomalies,
@@ -23,48 +34,67 @@ import {
   useStoresRevenueVsTarget,
   useStoresStaffAttendance,
 } from '@/hooks/useStoresAnalysis'
-import { validateTimeEntry } from '@/services/storesAnalysis.service'
+import { validateTimeEntry, resetTimeEntryValidation } from '@/services/storesAnalysis.service'
 import {
-  ManagerFilters,
   ManagerKpiCards,
   ManagerCharts,
   AttendanceLog,
   PhotoEvidenceModal,
-  type ManagerFilterValues,
+  DepositApprovalDialog,
   type ManagerKpiData,
   type AttendanceEntry,
 } from './components'
 
 export function ManagersDashboard() {
-  const { t } = useTranslation(['playtelecom', 'common'])
+  const { t, i18n } = useTranslation(['playtelecom', 'common'])
   const { activeVenue } = useAuth()
   const { venueId } = useCurrentVenue()
+  const localeCode = getIntlLocale(i18n.language)
 
-  // Filters
-  const [filters, setFilters] = useState<ManagerFilterValues>({
-    period: 'week',
-    state: 'all',
-    store: 'all',
-  })
+  const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
+
+  // Date range filter — uses venue timezone so VPN/remote users see correct dates
+  const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date }>(() => getToday(venueTimezone))
+
+  // Validation status filter
+  const [statusFilter, setStatusFilter] = useState('all')
+  // Store filter
+  const [storeFilter, setStoreFilter] = useState('all')
 
   // Photo modal
   const [photoEntry, setPhotoEntry] = useState<AttendanceEntry | null>(null)
 
+  // Deposit approval dialog
+  const [depositEntry, setDepositEntry] = useState<AttendanceEntry | null>(null)
+
   const queryClient = useQueryClient()
 
-  const selectedVenueId = filters.store !== 'all' ? filters.store : undefined
+  // Derive ISO date strings from selected range for API calls
+  const startDateISO = selectedRange.from.toISOString()
+  const endDateISO = selectedRange.to.toISOString()
+
+  const selectedVenueId = storeFilter !== 'all' ? storeFilter : undefined
 
   // API hooks using venue-level endpoints (white-label access)
-  const { data: overview } = useStoresOverview()
+  const { data: overview } = useStoresOverview({
+    startDate: startDateISO,
+    endDate: endDateISO,
+    filterVenueId: selectedVenueId,
+  })
   const { data: stockSummary } = useStoresStockSummary()
   const { data: anomalies } = useStoresAnomalies()
   const { data: venuesResponse } = useStoresVenues()
   const { data: revenueData } = useStoresRevenueVsTarget({ filterVenueId: selectedVenueId })
 
-  // Staff attendance using venue-level hook
+  // Staff attendance using venue-level hook — pass YYYY-MM-DD strings (venue local dates)
+  const startDateLocal = `${selectedRange.from.getFullYear()}-${String(selectedRange.from.getMonth() + 1).padStart(2, '0')}-${String(selectedRange.from.getDate()).padStart(2, '0')}`
+  const endDateLocal = `${selectedRange.to.getFullYear()}-${String(selectedRange.to.getMonth() + 1).padStart(2, '0')}-${String(selectedRange.to.getDate()).padStart(2, '0')}`
+
   const { data: attendanceData } = useStoresStaffAttendance({
-    filterVenueId: filters.store !== 'all' ? filters.store : undefined,
-    status: filters.state !== 'all' ? filters.state : undefined,
+    startDate: startDateLocal,
+    endDate: endDateLocal,
+    filterVenueId: selectedVenueId,
+    status: statusFilter !== 'all' ? statusFilter : undefined,
     refetchInterval: 30000,
   })
 
@@ -73,14 +103,26 @@ export function ManagersDashboard() {
 
   // Validate time entry mutation
   const validateMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: 'APPROVED' | 'REJECTED' }) =>
-      validateTimeEntry(venueId!, id, { status }),
+    mutationFn: ({ id, status, depositAmount }: { id: string; status: 'APPROVED' | 'REJECTED'; depositAmount?: number }) =>
+      validateTimeEntry(venueId!, id, { status, depositAmount }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'staff-attendance'] })
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'overview'] })
+      setDepositEntry(null)
+    },
+  })
+
+  // Reset time entry validation mutation
+  const resetMutation = useMutation({
+    mutationFn: (id: string) => resetTimeEntryValidation(venueId!, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'staff-attendance'] })
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'overview'] })
     },
   })
 
   // Map API attendance data to AttendanceEntry format
+  // DB stores UTC, browser converts to venue timezone for display
   const attendanceEntries: AttendanceEntry[] = useMemo(() => {
     if (!attendanceData?.staff) return []
     return attendanceData.staff
@@ -94,9 +136,9 @@ export function ManagersDashboard() {
         if (incidents.length === 0) incidents.push({ label: 'Sin Incidencias', severity: 'ok' })
 
         return {
-          id: entry.id,
-          timeEntryId: entry.id,
-          date: clockInDate.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }),
+          id: entry.timeEntryId || entry.id,
+          timeEntryId: entry.timeEntryId || null,
+          date: clockInDate.toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'short' }),
           storeName: entry.venueName,
           promoterName: entry.name,
           clockIn: clockInDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase(),
@@ -104,9 +146,11 @@ export function ManagersDashboard() {
             ? new Date(entry.checkOutTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()
             : null,
           clockInPhotoUrl: entry.checkInPhotoUrl,
+          clockOutPhotoUrl: entry.checkOutPhotoUrl,
+          checkOutPhotoUrl: entry.checkOutPhotoUrl,
           clockInLat: entry.checkInLocation?.lat,
           clockInLon: entry.checkInLocation?.lng,
-          validationStatus: undefined, // TODO: Add validationStatus to API response if needed
+          validationStatus: entry.validationStatus ?? 'PENDING',
           sales: entry.sales ?? 0,
           incidents,
           isLate,
@@ -153,8 +197,10 @@ export function ManagersDashboard() {
         { label: t('playtelecom:managers.kpi.deposit', { defaultValue: 'Deposito' }), count: depositCount || 'OK', severity: depositCount ? 'warning' as const : 'ok' as const },
       ],
       stockByCategory: stockCategories,
-      totalCashInField: overview?.todaySales ?? 0,
-      cashCollectedPercent: overview?.todaySales && overview.unitsSold ? Math.min(Math.round((overview.todaySales / Math.max(overview.unitsSold * 200, 1)) * 100), 100) : 0,
+      totalCashInField: (overview?.todayCashSales ?? 0) - (overview?.approvedDeposits ?? 0),
+      cashCollectedPercent: overview?.todayCashSales
+        ? Math.min(Math.round(((overview.approvedDeposits ?? 0) / Math.max(overview.todayCashSales, 1)) * 100), 100)
+        : 0,
     }
   }, [overview, stockSummary, anomalies, venuesData, t])
 
@@ -163,7 +209,7 @@ export function ManagersDashboard() {
     if (!stockSummary?.storeBreakdown?.length) return []
     const colors = ['#6366f1', '#0ea5e9', '#a855f7', '#f59e0b', '#10b981']
     return stockSummary.storeBreakdown.slice(0, 5).map((s, i) => ({
-      label: s.storeName.slice(0, 8),
+      label: s.storeName,
       value: s.available,
       color: colors[i % colors.length],
     }))
@@ -178,7 +224,7 @@ export function ManagersDashboard() {
       const growth = weeklyAvg > 0 ? ((todaySales - weeklyAvg) / weeklyAvg) * 100 : 0
       const percent = Math.min(Math.max(Math.round(growth + 50), 0), 100)
       return {
-        storeName: v.name.length > 18 ? v.name.slice(0, 18) + '...' : v.name,
+        storeName: v.name,
         percent,
         targetPercent: 90,
       }
@@ -187,12 +233,18 @@ export function ManagersDashboard() {
 
   const dailySales = useMemo(() => {
     if (!revenueData?.days?.length) return []
-    const dayLabels = ['D', 'L', 'M', 'M', 'J', 'V', 'S']
-    return revenueData.days.map((d, i) => ({
-      day: dayLabels[new Date(d.date).getDay()] || dayLabels[i % 7],
-      value: d.actual,
-      isHighlight: i === revenueData.days.length - 1,
-    }))
+    const dayLabels = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab']
+    const mapped = revenueData.days.map((d, i) => {
+      const dow = new Date(d.date).getDay()
+      return {
+        day: dayLabels[dow] || dayLabels[i % 7],
+        value: d.actual,
+        isHighlight: i === revenueData.days.length - 1,
+        _sortKey: dow === 0 ? 6 : dow - 1, // Mon=0 … Sun=6
+      }
+    })
+    mapped.sort((a, b) => a._sortKey - b._sortKey)
+    return mapped
   }, [revenueData])
 
   // Stores for filter dropdown - derive from venues API
@@ -201,19 +253,31 @@ export function ManagersDashboard() {
     return venuesData.map(v => ({ id: v.id, name: v.name }))
   }, [venuesData])
 
-  const handleFilterChange = useCallback((key: keyof ManagerFilterValues, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }))
-  }, [])
+  const handleApprove = useCallback((entry: AttendanceEntry) => {
+    if (!entry.timeEntryId) return
+    if (entry.clockOut && entry.sales > 0) {
+      // Has checkout + cash sales → must verify bank deposit before approving
+      setDepositEntry(entry)
+    } else {
+      // No checkout yet or no cash sales → approve directly
+      validateMutation.mutate({ id: entry.timeEntryId, status: 'APPROVED' })
+    }
+  }, [validateMutation])
 
-  const handleApprove = useCallback((id: string) => {
+  const handleConfirmDeposit = useCallback((id: string, amount: number) => {
     if (!id) return
-    validateMutation.mutate({ id, status: 'APPROVED' })
+    validateMutation.mutate({ id, status: 'APPROVED', depositAmount: amount })
   }, [validateMutation])
 
   const handleReject = useCallback((id: string) => {
     if (!id) return
     validateMutation.mutate({ id, status: 'REJECTED' })
   }, [validateMutation])
+
+  const handleResetValidation = useCallback((id: string) => {
+    if (!id) return
+    resetMutation.mutate(id)
+  }, [resetMutation])
 
   return (
     <div className="space-y-6">
@@ -222,11 +286,63 @@ export function ManagersDashboard() {
         <h2 className="text-xl font-bold tracking-tight">
           {t('playtelecom:managers.title', { defaultValue: 'Dashboard Gerencial' })}
         </h2>
-        <ManagerFilters
-          values={filters}
-          onChange={handleFilterChange}
-          stores={storeOptions}
-        />
+        <div className="flex gap-3">
+          <DateRangePicker
+            showCompare={false}
+            onUpdate={({ range }) => {
+              setSelectedRange({
+                from: range.from,
+                to: range.to ?? range.from,
+              })
+            }}
+            initialDateFrom={selectedRange.from}
+            initialDateTo={selectedRange.to}
+            align="end"
+            locale={localeCode}
+          />
+
+          {/* Validation Status */}
+          <div className="flex items-center gap-2 bg-card border border-primary/30 hover:border-primary rounded-lg px-3 py-1.5 transition-colors">
+            <ShieldCheck className="w-4 h-4 text-primary" />
+            <div className="flex flex-col">
+              <span className="text-[8px] font-bold text-muted-foreground uppercase leading-none">
+                {t('playtelecom:managers.filters.status', { defaultValue: 'Estado' })}
+              </span>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="border-0 bg-transparent h-5 text-xs font-semibold w-[100px] p-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('playtelecom:managers.filters.all', { defaultValue: 'Todos' })}</SelectItem>
+                  <SelectItem value="PENDING">{t('playtelecom:managers.filters.pending', { defaultValue: 'Pendiente' })}</SelectItem>
+                  <SelectItem value="APPROVED">{t('playtelecom:managers.filters.approved', { defaultValue: 'Aprobado' })}</SelectItem>
+                  <SelectItem value="REJECTED">{t('playtelecom:managers.filters.rejected', { defaultValue: 'Rechazado' })}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Store */}
+          <div className="flex items-center gap-2 bg-card border border-primary/30 hover:border-primary rounded-lg px-3 py-1.5 transition-colors">
+            <Store className="w-4 h-4 text-primary" />
+            <div className="flex flex-col">
+              <span className="text-[8px] font-bold text-muted-foreground uppercase leading-none">
+                {t('playtelecom:managers.filters.store', { defaultValue: 'Tienda' })}
+              </span>
+              <Select value={storeFilter} onValueChange={setStoreFilter}>
+                <SelectTrigger className="border-0 bg-transparent h-5 text-xs font-semibold w-[130px] p-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('playtelecom:managers.filters.allStores', { defaultValue: 'Todas' })}</SelectItem>
+                  {storeOptions.map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -244,6 +360,7 @@ export function ManagersDashboard() {
         entries={attendanceEntries}
         onApprove={handleApprove}
         onReject={handleReject}
+        onResetValidation={handleResetValidation}
         onViewPhoto={setPhotoEntry}
       />
 
@@ -252,6 +369,16 @@ export function ManagersDashboard() {
         entry={photoEntry}
         open={!!photoEntry}
         onClose={() => setPhotoEntry(null)}
+      />
+
+      {/* Deposit Approval Dialog */}
+      <DepositApprovalDialog
+        open={!!depositEntry}
+        onOpenChange={open => { if (!open) setDepositEntry(null) }}
+        entry={depositEntry}
+        expectedAmount={depositEntry?.sales ?? 0}
+        onConfirm={handleConfirmDeposit}
+        isPending={validateMutation.isPending}
       />
     </div>
   )

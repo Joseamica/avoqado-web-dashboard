@@ -32,6 +32,29 @@ export interface PermissionCategory {
   }[]
 }
 
+/** Spanish labels for permission categories */
+const CATEGORY_LABELS: Record<string, string> = {
+  sales: 'Ventas',
+  inventory: 'Inventario',
+  team: 'Equipo',
+  reports: 'Reportes',
+  payments: 'Pagos',
+  settings: 'Configuraci\u00f3n',
+}
+
+/** Spanish labels for permission actions */
+const ACTION_LABELS: Record<string, string> = {
+  view: 'Ver',
+  create: 'Crear',
+  edit: 'Editar',
+  cancel: 'Cancelar',
+  transfer: 'Transferir',
+  manage: 'Gestionar',
+  approve: 'Aprobar',
+  export: 'Exportar',
+  refund: 'Reembolsar',
+}
+
 const PERMISSION_CATEGORIES: PermissionCategory[] = [
   {
     id: 'sales',
@@ -155,7 +178,7 @@ export const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
                 </div>
                 <span className="text-sm font-medium">
                   {t(`playtelecom:users.permissionCategories.${category.labelKey}`, {
-                    defaultValue: category.labelKey,
+                    defaultValue: CATEGORY_LABELS[category.labelKey] || category.labelKey,
                   })}
                 </span>
                 <span className="text-xs text-muted-foreground ml-auto">
@@ -186,7 +209,7 @@ export const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
                         )} />
                         <span className="text-sm">
                           {t(`playtelecom:users.permissionActions.${permission.labelKey}`, {
-                            defaultValue: permission.labelKey,
+                            defaultValue: ACTION_LABELS[permission.labelKey] || permission.labelKey,
                           })}
                         </span>
                       </div>

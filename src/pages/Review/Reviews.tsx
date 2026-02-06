@@ -115,13 +115,11 @@ export default function ReviewSummary() {
   const { filteredAndSortedReviews, totalCount } = useMemo(() => {
     let result = [...reviews]
 
-    // Date range filter
+    // Date range filter — dates from DateRangePicker already have correct UTC boundaries
     if (selectedRange) {
       result = result.filter(review => {
         const reviewDate = new Date(review.createdAt)
-        const toDateEndOfDay = new Date(selectedRange.to)
-        toDateEndOfDay.setHours(23, 59, 59, 999)
-        return reviewDate >= selectedRange.from && reviewDate <= toDateEndOfDay
+        return reviewDate >= selectedRange.from && reviewDate <= selectedRange.to
       })
     }
 
