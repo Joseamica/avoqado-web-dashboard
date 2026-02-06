@@ -312,7 +312,7 @@ export const getStorePerformance = async (
  */
 export const getStaffAttendance = async (
   venueId: string,
-  params?: { date?: string; venueId?: string; status?: string }
+  params?: { date?: string; venueId?: string; status?: string; startDate?: string; endDate?: string }
 ): Promise<StaffAttendanceResponse> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/staff-attendance`, { params })
   return response.data.data

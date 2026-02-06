@@ -26,6 +26,7 @@ import {
 import { Store, TrendingUp, Download, Receipt } from 'lucide-react'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { getToday } from '@/utils/datetime'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import {
@@ -45,11 +46,10 @@ export function SupervisorDashboard() {
   const { fullBasePath } = useCurrentVenue()
   const localeCode = getIntlLocale(i18n.language)
 
+  const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
+
   const [storeFilter, setStoreFilter] = useState('all')
-  const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date }>({
-    from: new Date(new Date().setHours(0, 0, 0, 0)),
-    to: new Date(new Date().setHours(23, 59, 59, 999)),
-  })
+  const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date }>(() => getToday(venueTimezone))
 
   // Derive ISO date strings from selected range for API calls
   const startDateISO = selectedRange.from.toISOString()

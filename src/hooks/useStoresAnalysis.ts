@@ -259,15 +259,19 @@ export function useStoresStaffAttendance(options?: {
   enabled?: boolean
   refetchInterval?: number
   date?: string
+  startDate?: string
+  endDate?: string
   filterVenueId?: string
   status?: string
 }) {
   const { venueId } = useCurrentVenue()
 
   return useQuery({
-    queryKey: ['stores-analysis', venueId, 'staff-attendance', options?.date, options?.filterVenueId, options?.status],
+    queryKey: ['stores-analysis', venueId, 'staff-attendance', options?.date, options?.startDate, options?.endDate, options?.filterVenueId, options?.status],
     queryFn: () => getStaffAttendance(venueId!, {
       date: options?.date,
+      startDate: options?.startDate,
+      endDate: options?.endDate,
       venueId: options?.filterVenueId,
       status: options?.status,
     }),

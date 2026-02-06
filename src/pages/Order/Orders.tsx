@@ -39,7 +39,8 @@ import * as orderService from '@/services/order.service'
 import { teamService, type TeamMember } from '@/services/team.service'
 import { Order, OrderStatus, OrderType as OrderTypeEnum, StaffRole } from '@/types'
 import { Currency } from '@/utils/currency'
-import { useVenueDateTime } from '@/utils/datetime'
+import { useVenueDateTime, formatDateInTimeZone } from '@/utils/datetime'
+import { DateTime } from 'luxon'
 import { exportToCSV, exportToExcel, formatCurrencyForExport, generateFilename } from '@/utils/export'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
@@ -69,7 +70,8 @@ export default function Orders() {
   const location = useLocation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { user, checkFeatureAccess } = useAuth()
+  const { user, checkFeatureAccess, activeVenue } = useAuth()
+  const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
   const isSuperAdmin = user?.role === StaffRole.SUPERADMIN
   const hasChatbot = checkFeatureAccess('CHATBOT')
 
@@ -820,17 +822,15 @@ export default function Orders() {
           case 'between': {
             const startDate = new Date(dateFilter.value as string)
             const endDate = new Date(dateFilter.value2 as string)
-            // Set endDate to end of day
-            endDate.setHours(23, 59, 59, 999)
-            return orderDate >= startDate && orderDate <= endDate
+            // Use venue timezone end of day via Luxon
+            const endDateVenue = DateTime.fromJSDate(endDate).setZone(venueTimezone).endOf('day')
+            return orderDate >= startDate && orderDate <= endDateVenue.toJSDate()
           }
           case 'on': {
-            const targetDate = new Date(dateFilter.value as string)
-            return (
-              orderDate.getFullYear() === targetDate.getFullYear() &&
-              orderDate.getMonth() === targetDate.getMonth() &&
-              orderDate.getDate() === targetDate.getDate()
-            )
+            // Compare dates in venue timezone (YYYY-MM-DD)
+            const orderDateStr = formatDateInTimeZone(orderDate, venueTimezone, 'iso')
+            const targetDateStr = formatDateInTimeZone(new Date(dateFilter.value as string), venueTimezone, 'iso')
+            return orderDateStr === targetDateStr
           }
           default:
             return true

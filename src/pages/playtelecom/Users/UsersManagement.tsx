@@ -110,11 +110,9 @@ export function UsersManagement() {
       queryClient.invalidateQueries({ queryKey: teamQueryKey(venueId) })
       queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'activity'] })
     },
-    onError: () => {
-      toast({
-        title: t('playtelecom:users.roleUpdateError', { defaultValue: 'Error al actualizar rol' }),
-        variant: 'destructive',
-      })
+    onError: (error: any) => {
+      const msg = error?.response?.data?.message || t('playtelecom:users.roleUpdateError', { defaultValue: 'Error al actualizar rol' })
+      toast({ title: msg, variant: 'destructive' })
     },
   })
 
@@ -131,11 +129,9 @@ export function UsersManagement() {
       queryClient.invalidateQueries({ queryKey: teamQueryKey(venueId) })
       queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'activity'] })
     },
-    onError: () => {
-      toast({
-        title: t('playtelecom:users.statusUpdateError', { defaultValue: 'Error al cambiar estado' }),
-        variant: 'destructive',
-      })
+    onError: (error: any) => {
+      const msg = error?.response?.data?.message || t('playtelecom:users.statusUpdateError', { defaultValue: 'Error al cambiar estado' })
+      toast({ title: msg, variant: 'destructive' })
     },
   })
 
