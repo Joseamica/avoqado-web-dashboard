@@ -114,7 +114,16 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
   const _hasMultipleOrgs = venueGroups.length > 1
 
   // Usar el venue actual del contexto, url, localStorage, o fallback al default
-  const currentVenueSlug = location.pathname.split('/')[2] || '' // Obtener slug de la URL actual
+  const currentVenueSlug = (() => {
+    const path = location.pathname
+    const venueMatch = path.match(/^\/venues\/([^/]+)/)
+    if (venueMatch) return venueMatch[1]
+
+    const wlVenueMatch = path.match(/^\/wl\/venues\/([^/]+)/)
+    if (wlVenueMatch) return wlVenueMatch[1]
+
+    return ''
+  })()
 
   // Buscar el venue en este orden de prioridad:
   // 1. Desde la URL actual (si estamos en /venues/[slug]/...)

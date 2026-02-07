@@ -9,6 +9,7 @@
 
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '@/context/AuthContext'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -43,6 +44,8 @@ export const EntryEvidenceCard: React.FC<EntryEvidenceCardProps> = ({
   className,
 }) => {
   const { t } = useTranslation(['playtelecom', 'common'])
+  const { activeVenue } = useAuth()
+  const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
 
   if (!evidence) {
     return (
@@ -62,6 +65,7 @@ export const EntryEvidenceCard: React.FC<EntryEvidenceCardProps> = ({
     return new Date(timeStr).toLocaleTimeString('es-MX', {
       hour: '2-digit',
       minute: '2-digit',
+      timeZone: venueTimezone,
     })
   }
 

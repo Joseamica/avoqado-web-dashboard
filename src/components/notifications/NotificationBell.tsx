@@ -17,7 +17,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
   const { notifications, markAsRead, markAllAsRead, loading } = useNotifications()
   const { t } = useTranslation('notifications')
   // BUG #6 FIX: Use fullBasePath for white-label compatibility
-  // fullBasePath returns /venues/:slug in normal mode, /wl/:slug in white-label mode
+  // fullBasePath returns /venues/:slug in normal mode, /wl/venues/:slug in white-label mode
   // venueSlug is used to verify we're in a valid venue context
   const { fullBasePath, venueSlug } = useCurrentVenue()
 

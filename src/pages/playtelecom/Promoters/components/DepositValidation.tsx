@@ -10,6 +10,7 @@
 
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '@/context/AuthContext'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -81,6 +82,8 @@ export const DepositValidation: React.FC<DepositValidationProps> = ({
   className,
 }) => {
   const { t } = useTranslation(['playtelecom', 'common'])
+  const { activeVenue } = useAuth()
+  const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [rejectReason, setRejectReason] = useState('')
 
@@ -97,6 +100,7 @@ export const DepositValidation: React.FC<DepositValidationProps> = ({
       month: 'short',
       hour: '2-digit',
       minute: '2-digit',
+      timeZone: venueTimezone,
     })
 
   const pendingCount = deposits.filter(d => d.status === 'pending').length

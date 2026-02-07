@@ -23,6 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Package, Box, CheckCircle2, Plus, Upload, Settings2 } from 'lucide-react'
 import { StockVsSalesChart, LowStockAlerts, CategoryManagement, BulkUploadDialog } from './components'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useAuth } from '@/context/AuthContext'
 import {
   getStockMetrics,
   getCategoryStock,
@@ -57,6 +58,8 @@ const STATUS_CONFIG = {
 export function StockControl() {
   const { t } = useTranslation(['playtelecom', 'common'])
   const { venueId, venue: _venue } = useCurrentVenue()
+  const { activeVenue } = useAuth()
+  const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
   const _queryClient = useQueryClient()
 
   // Dialog state
@@ -273,6 +276,7 @@ export function StockControl() {
                         {new Date(movement.timestamp).toLocaleString('es-MX', {
                           dateStyle: 'short',
                           timeStyle: 'short',
+                          timeZone: venueTimezone,
                         })}
                       </td>
                     </tr>

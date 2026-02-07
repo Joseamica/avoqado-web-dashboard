@@ -10,6 +10,7 @@
 
 import React, { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '@/context/AuthContext'
 import { GlassCard } from '@/components/ui/glass-card'
 import { cn } from '@/lib/utils'
 import { Calendar, CheckCircle2, XCircle, Clock } from 'lucide-react'
@@ -45,6 +46,8 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
   className,
 }) => {
   const { t: _t } = useTranslation(['playtelecom', 'common'])
+  const { activeVenue } = useAuth()
+  const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
 
   // Generate calendar grid
   const calendarDays = useMemo(() => {
@@ -90,7 +93,7 @@ export const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({
     }
   }, [data])
 
-  const monthName = month.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })
+  const monthName = month.toLocaleDateString('es-MX', { month: 'long', year: 'numeric', timeZone: venueTimezone })
 
   return (
     <GlassCard className={cn('p-4', className)}>

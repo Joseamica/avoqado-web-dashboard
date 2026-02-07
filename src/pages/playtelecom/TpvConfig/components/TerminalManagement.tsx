@@ -58,7 +58,7 @@ function getStatusBadge(status: string) {
 }
 
 function isLocked(terminal: Terminal): boolean {
-  return (terminal.config as any)?.locked === true || terminal.status === ('LOCKED' as TerminalStatus)
+  return terminal.isLocked === true
 }
 
 function isInMaintenance(terminal: Terminal): boolean {

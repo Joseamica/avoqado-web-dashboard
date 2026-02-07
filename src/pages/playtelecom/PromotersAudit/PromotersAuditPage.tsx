@@ -27,6 +27,7 @@ import { DepositValidation } from './components/DepositValidation'
 import { AllCheckInsDialog } from './components/AllCheckInsDialog'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useAuth } from '@/context/AuthContext'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/api'
 import accessService from '@/services/access.service'
@@ -64,6 +65,8 @@ interface PromoterRow {
 
 export default function PromotersAuditPage() {
   const { venue } = useCurrentVenue()
+  const { activeVenue } = useAuth()
+  const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
 
   // Filters
   const [storeFilter, setStoreFilter] = useState<string[]>([])
@@ -217,7 +220,7 @@ export default function PromotersAuditPage() {
     if (!value) return undefined
     const date = new Date(value)
     if (Number.isNaN(date.getTime())) return undefined
-    return date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+    return date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: venueTimezone })
   }
 
   const getEntryDate = (entry: TimeEntryData) => {

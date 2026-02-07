@@ -9,6 +9,7 @@
  */
 
 import React, { useState } from 'react'
+import { useAuth } from '@/context/AuthContext'
 import {
   Dialog,
   DialogContent,
@@ -62,6 +63,8 @@ export function AllCheckInsDialog({
   timeEntries,
 }: AllCheckInsDialogProps) {
   const [zoomedImage, setZoomedImage] = useState<string | null>(null)
+  const { activeVenue } = useAuth()
+  const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
 
   return (
     <>
@@ -111,9 +114,10 @@ export function AllCheckInsDialog({
               const checkInTime = new Date(entry.clockInTime).toLocaleTimeString('es-MX', {
                 hour: '2-digit',
                 minute: '2-digit',
+                timeZone: venueTimezone,
               })
               const checkOutTime = entry.clockOutTime
-                ? new Date(entry.clockOutTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+                ? new Date(entry.clockOutTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: venueTimezone })
                 : null
 
               const checkInMapUrl = entry.clockInLocation

@@ -37,7 +37,7 @@ interface AuthContextType {
   checkFeatureAccess: (featureCode: string) => boolean // VenueFeature (billing)
   checkModuleAccess: (moduleCode: string) => boolean // VenueModule (configurable modules like SERIALIZED_INVENTORY)
   getVenueBySlug: (slug: string) => Venue | null // Nueva función para obtener venue por slug
-  getVenueBasePath: (venue: Venue) => string // Returns /wl/:slug or /venues/:slug based on WHITE_LABEL_DASHBOARD module
+  getVenueBasePath: (venue: Venue) => string // Returns /wl/venues/:slug or /venues/:slug based on WHITE_LABEL_DASHBOARD module
   allVenues: Venue[]
   staffInfo: any | null
   loginError: string | null // Error message for login failures
@@ -209,7 +209,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   )
 
   // --- FUNCIÓN 'getVenueBasePath' ---
-  // Returns /wl/:slug if WHITE_LABEL_DASHBOARD module is enabled, otherwise /venues/:slug
+  // Returns /wl/venues/:slug if WHITE_LABEL_DASHBOARD module is enabled, otherwise /venues/:slug
   // This ensures venue switcher and login redirect to the correct dashboard
   const getVenueBasePath = useCallback((venue: Venue): string => {
     // Check if venue has WHITE_LABEL_DASHBOARD module enabled
@@ -296,7 +296,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (user.role === 'SUPERADMIN') {
           navigate('/superadmin', { replace: true })
         } else {
-          // Use getVenueBasePath to redirect to /wl/:slug if WHITE_LABEL_DASHBOARD is enabled
+          // Use getVenueBasePath to redirect to /wl/venues/:slug if WHITE_LABEL_DASHBOARD is enabled
           const basePath = getVenueBasePath(defaultVenue)
           navigate(`${basePath}/home`, { replace: true })
         }

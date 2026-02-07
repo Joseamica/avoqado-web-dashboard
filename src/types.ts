@@ -1551,6 +1551,9 @@ export interface Terminal {
   // Status
   status: TerminalStatus
   lastHeartbeat: string | null
+  isLocked: boolean
+  lockedAt?: string | null
+  lockedBy?: string | null
 
   // Configuration
   config: any | null

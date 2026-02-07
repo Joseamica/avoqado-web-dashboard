@@ -150,25 +150,25 @@ function HomeScreen({ modules, t }: { modules: ModuleToggleState; t: (key: strin
 /** Login/PIN screen with check-in overlay dialog */
 function LoginScreenWithCheckin({ t }: { t: (key: string, opts?: any) => string }) {
   return (
-    <div className="relative flex-1 bg-zinc-100 dark:bg-zinc-50">
+    <div className="relative flex-1 bg-background">
       {/* PIN screen background */}
       <div className="flex flex-col items-center pt-6 px-4">
-        <p className="text-[13px] font-semibold text-zinc-800">
+        <p className="text-[13px] font-semibold text-foreground">
           {t('tpvConfig.preview.enterPin', { defaultValue: 'Ingresa tu PIN' })}
         </p>
         {/* PIN input */}
-        <div className="mt-3 w-full h-8 rounded-lg border border-zinc-300 bg-white flex items-center px-3 justify-between">
+        <div className="mt-3 w-full h-8 rounded-lg border border-border bg-muted flex items-center px-3 justify-between">
           <div className="flex gap-1">
             {[0, 1, 2, 3].map(i => (
-              <div key={i} className="w-1.5 h-1.5 rounded-full bg-zinc-800" />
+              <div key={i} className="w-1.5 h-1.5 rounded-full bg-foreground" />
             ))}
           </div>
-          <svg className="w-3.5 h-3.5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <svg className="w-3.5 h-3.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </div>
-        <p className="text-[8px] text-zinc-400 mt-1">0/10</p>
+        <p className="text-[8px] text-muted-foreground mt-1">0/10</p>
 
         {/* Numpad grid (simplified) */}
         <div className="grid grid-cols-3 gap-1.5 mt-3 w-full">
@@ -177,11 +177,11 @@ function LoginScreenWithCheckin({ t }: { t: (key: string, opts?: any) => string 
               key={i}
               className={cn(
                 'aspect-square rounded-full flex items-center justify-center text-[11px] font-medium',
-                key ? 'bg-zinc-200 text-zinc-700' : 'bg-transparent',
+                key ? 'bg-muted text-foreground' : 'bg-transparent',
               )}
             >
               {key === '' ? (
-                <svg className="w-3.5 h-3.5 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <svg className="w-3.5 h-3.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9.75L14.25 12m0 0l2.25 2.25M14.25 12l2.25-2.25M14.25 12L12 14.25m-2.58 4.92l-6.375-6.375a1.125 1.125 0 010-1.59L9.42 4.83c.21-.211.497-.33.795-.33H19.5a2.25 2.25 0 012.25 2.25v10.5a2.25 2.25 0 01-2.25 2.25h-9.284c-.298 0-.585-.119-.795-.33z" />
                 </svg>
               ) : key}
@@ -215,6 +215,63 @@ function LoginScreenWithCheckin({ t }: { t: (key: string, opts?: any) => string 
   )
 }
 
+/** Payment method selection screen — "Seleccionar Cuenta" */
+function PaymentScreen({ modules, t }: { modules: ModuleToggleState; t: (key: string, opts?: any) => string }) {
+  const methods: { key: string; label: string }[] = []
+  if (modules.enableCardPayments) methods.push({ key: 'card', label: t('tpvConfig.preview.payCard', { defaultValue: 'Tarjeta' }) })
+  if (modules.enableCashPayments) methods.push({ key: 'cash', label: t('tpvConfig.preview.payCash', { defaultValue: 'Efectivo' }) })
+
+  return (
+    <div className="flex-1 flex flex-col bg-background">
+      {/* Header — dark bar */}
+      <div className="bg-zinc-800 dark:bg-zinc-900 px-3 py-2.5">
+        <div className="flex items-center gap-2">
+          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          </svg>
+          <div>
+            <p className="text-[11px] font-semibold text-white">
+              {t('tpvConfig.preview.selectAccount', { defaultValue: 'Seleccionar Cuenta' })}
+            </p>
+            <p className="text-[8px] text-zinc-400">
+              {t('tpvConfig.preview.step2', { defaultValue: 'Paso 2 de 2 · Total: $100.00' })}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Amount display — centered */}
+      <div className="flex-1 flex items-center justify-center bg-background">
+        <div className="bg-card rounded-2xl px-8 py-6 border border-border/50">
+          <p className="text-3xl font-light text-foreground tracking-tight">$100.00</p>
+        </div>
+      </div>
+
+      {/* Payment method tabs at bottom */}
+      <div className="px-3 pb-3">
+        <p className="text-[8px] text-muted-foreground text-center mb-1.5">
+          {t('tpvConfig.preview.paymentMethod', { defaultValue: 'Metodo de pago' })}
+        </p>
+        <div className="flex gap-1">
+          {methods.map((m, i) => (
+            <div
+              key={m.key}
+              className={cn(
+                'flex-1 py-2 rounded-lg text-center text-[10px] font-semibold',
+                i === 0
+                  ? 'bg-card border border-border text-foreground shadow-sm'
+                  : 'bg-transparent text-muted-foreground',
+              )}
+            >
+              {m.label}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function PhonePreview({ modules, className }: PhonePreviewProps) {
   const { t } = useTranslation('playtelecom')
 
@@ -242,6 +299,18 @@ export function PhonePreview({ modules, className }: PhonePreviewProps) {
           </p>
           <PaxFrame>
             <LoginScreenWithCheckin t={t} />
+          </PaxFrame>
+        </div>
+      )}
+
+      {/* Third PAX — Payment method selection (when card or cash payments are ON) */}
+      {(modules.enableCardPayments || modules.enableCashPayments) && (
+        <div className="flex flex-col items-center mt-8">
+          <p className="text-[9px] font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
+            {t('tpvConfig.preview.paymentLabel', { defaultValue: 'Pantalla de Pago' })}
+          </p>
+          <PaxFrame>
+            <PaymentScreen modules={modules} t={t} />
           </PaxFrame>
         </div>
       )}

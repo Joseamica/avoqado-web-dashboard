@@ -10,9 +10,9 @@ interface UseCurrentVenueReturn {
   hasVenueAccess: boolean
   /** Whether we're in white-label mode (/wl/ routes) */
   isWhiteLabelMode: boolean
-  /** Base path for venue routes: '/wl' or '/venues' depending on current URL */
+  /** Base path for venue routes: '/wl/venues' or '/venues' depending on current URL */
   venueBasePath: string
-  /** Full base path including slug: '/wl/{slug}' or '/venues/{slug}' */
+  /** Full base path including slug: '/wl/venues/{slug}' or '/venues/{slug}' */
   fullBasePath: string
 }
 
@@ -32,7 +32,7 @@ export const useCurrentVenue = (): UseCurrentVenueReturn => {
   const isWhiteLabelMode = location.pathname.startsWith('/wl/')
 
   // Base path for venue routes (without slug)
-  const venueBasePath = isWhiteLabelMode ? '/wl' : '/venues'
+  const venueBasePath = isWhiteLabelMode ? '/wl/venues' : '/venues'
 
   // Full base path including the venue slug
   const slug = venue?.slug || venueSlugParam

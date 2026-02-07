@@ -107,7 +107,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
 
   const location = useLocation()
 
-  // Detect white-label mode from URL: /wl/:slug/* activates white-label mode
+  // Detect white-label mode from URL: /wl/venues/:slug/* activates white-label mode
   // This replaces localStorage-based toggle - now the URL determines the mode
   const isWhiteLabelMode = React.useMemo(() => {
     // Check if we're in /wl/ route

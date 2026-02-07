@@ -4,6 +4,7 @@
 
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '@/context/AuthContext'
 import { GlassCard } from '@/components/ui/glass-card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
@@ -49,6 +50,8 @@ export const AuditLogTerminal: React.FC<AuditLogTerminalProps> = ({
   className,
 }) => {
   const { t } = useTranslation(['playtelecom', 'common'])
+  const { activeVenue } = useAuth()
+  const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
 
   return (
     <div className={cn('space-y-3', className)}>
@@ -93,7 +96,7 @@ export const AuditLogTerminal: React.FC<AuditLogTerminalProps> = ({
                     >
                       {/* Timestamp */}
                       <span className="text-gray-500 shrink-0 select-none">
-                        [{formatTimestamp(entry.timestamp)}]
+                        [{formatTimestamp(entry.timestamp, venueTimezone)}]
                       </span>
 
                       {/* Icon */}
@@ -134,7 +137,7 @@ export const AuditLogTerminal: React.FC<AuditLogTerminalProps> = ({
 }
 
 // Format timestamp for terminal display
-function formatTimestamp(isoString: string): string {
+function formatTimestamp(isoString: string, timeZone = 'America/Mexico_City'): string {
   try {
     const date = new Date(isoString)
     return date.toLocaleString('es-MX', {
@@ -142,6 +145,7 @@ function formatTimestamp(isoString: string): string {
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
+      timeZone,
     })
   } catch {
     return isoString

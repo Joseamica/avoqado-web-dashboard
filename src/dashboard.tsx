@@ -68,25 +68,11 @@ function DashboardContent() {
   // Verificar autorización al montar y cuando cambia el slug
   useEffect(() => {
     if (venueSlug) {
-      // Para usuarios privilegiados, asumir que tienen acceso pero verificar de todos modos
-      // para actualizar el estado interno
-      if (isPrivilegedUser) {
-        // Forzar la autorización para estos roles
-        authorizeVenue(venueSlug)
-        setIsVenueSwitching(true)
-
-        // Aún así dar un tiempo para que se actualice el estado
-        const timer = setTimeout(() => {
-          setIsVenueSwitching(false)
-        }, 1000)
-
-        return () => clearTimeout(timer)
-      } else {
-        // Para otros usuarios, comprobar acceso normalmente
-        authorizeVenue(venueSlug)
-      }
+      // Para usuarios privilegiados y no privilegiados, solo sincronizar autorización.
+      // El estado de switching se maneja exclusivamente en el efecto de cambio real de slug.
+      authorizeVenue(venueSlug)
     }
-  }, [venueSlug, authorizeVenue, isPrivilegedUser])
+  }, [venueSlug, authorizeVenue])
 
   // Detectar cambios en el venueSlug para identificar venue switching
   useEffect(() => {
@@ -162,9 +148,9 @@ function DashboardContent() {
       // Redirigir al último venue válido en 500ms para dar tiempo de procesamiento
       setTimeout(() => {
         const currentPath = location.pathname
-        // Handle both /venues/:slug and /wl/:slug routes
+        // Handle both /venues/:slug and /wl/venues/:slug routes
         const newPath = currentPath.startsWith('/wl/')
-          ? currentPath.replace(/wl\/[^/]+/, `wl/${lastAccessibleVenueSlug}`)
+          ? currentPath.replace(/wl\/venues\/[^/]+/, `wl/venues/${lastAccessibleVenueSlug}`)
           : currentPath.replace(/venues\/[^/]+/, `venues/${lastAccessibleVenueSlug}`)
         navigate(newPath, { replace: true })
       }, 100)

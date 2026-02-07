@@ -62,6 +62,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useDebounce } from '@/hooks/useDebounce'
 import { getLast30Days, useVenueDateTime } from '@/utils/datetime'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import * as saleVerificationService from '@/services/saleVerification.service'
 import type {
   SaleVerification,
@@ -475,9 +476,10 @@ export function SalesReport() {
               <Receipt className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-lg font-bold tracking-tight">
-                {t('playtelecom:sales.title')}
-              </h2>
+              <PageTitleWithInfo
+                title={t('playtelecom:sales.title')}
+                className="text-lg font-bold tracking-tight"
+              />
               <p className="text-xs text-muted-foreground">
                 {t('playtelecom:sales.transactionAnalysis', { defaultValue: 'Análisis transaccional y validación de registros' })}
               </p>

@@ -71,22 +71,22 @@ describe('NotificationBell URL Building', () => {
       })
     })
 
-    describe('White-label mode (/wl/:slug)', () => {
-      const fullBasePath = '/wl/restaurant-chain'
+    describe('White-label mode (/wl/venues/:slug)', () => {
+      const fullBasePath = '/wl/venues/restaurant-chain'
 
       it('should build correct URL for relative path "orders"', () => {
         const url = buildNotificationUrl('orders', fullBasePath)
-        expect(url).toBe('/wl/restaurant-chain/orders')
+        expect(url).toBe('/wl/venues/restaurant-chain/orders')
       })
 
       it('should build correct URL for relative path "payments/456"', () => {
         const url = buildNotificationUrl('payments/456', fullBasePath)
-        expect(url).toBe('/wl/restaurant-chain/payments/456')
+        expect(url).toBe('/wl/venues/restaurant-chain/payments/456')
       })
 
       it('should build correct URL for relative path "inventory/products"', () => {
         const url = buildNotificationUrl('inventory/products', fullBasePath)
-        expect(url).toBe('/wl/restaurant-chain/inventory/products')
+        expect(url).toBe('/wl/venues/restaurant-chain/inventory/products')
       })
 
       it('should preserve absolute paths (cross-context navigation)', () => {
@@ -124,8 +124,8 @@ describe('NotificationBell URL Building', () => {
       })
 
       it('should handle complex nested paths', () => {
-        const url = buildNotificationUrl('inventory/categories/123/products/456', '/wl/chain')
-        expect(url).toBe('/wl/chain/inventory/categories/123/products/456')
+        const url = buildNotificationUrl('inventory/categories/123/products/456', '/wl/venues/chain')
+        expect(url).toBe('/wl/venues/chain/inventory/categories/123/products/456')
       })
     })
   })
@@ -137,8 +137,8 @@ describe('NotificationBell URL Building', () => {
     })
 
     it('should build correct URL in white-label mode', () => {
-      const url = buildViewAllUrl('/wl/restaurant-chain')
-      expect(url).toBe('/wl/restaurant-chain/notifications')
+      const url = buildViewAllUrl('/wl/venues/restaurant-chain')
+      expect(url).toBe('/wl/venues/restaurant-chain/notifications')
     })
 
     it('should fallback to /notifications when fullBasePath is undefined', () => {
@@ -154,7 +154,7 @@ describe('NotificationBell URL Building', () => {
 
   describe('Real-world notification scenarios', () => {
     const regularPath = '/venues/avoqado-cafe'
-    const whiteLabelPath = '/wl/coffee-chain'
+    const whiteLabelPath = '/wl/venues/coffee-chain'
 
     describe('Payment notifications', () => {
       it('should link to payment detail in regular mode', () => {
@@ -164,7 +164,7 @@ describe('NotificationBell URL Building', () => {
 
       it('should link to payment detail in white-label mode', () => {
         const url = buildNotificationUrl('payments/pay_abc123', whiteLabelPath)
-        expect(url).toBe('/wl/coffee-chain/payments/pay_abc123')
+        expect(url).toBe('/wl/venues/coffee-chain/payments/pay_abc123')
       })
     })
 
@@ -176,7 +176,7 @@ describe('NotificationBell URL Building', () => {
 
       it('should link to orders list in white-label mode', () => {
         const url = buildNotificationUrl('orders', whiteLabelPath)
-        expect(url).toBe('/wl/coffee-chain/orders')
+        expect(url).toBe('/wl/venues/coffee-chain/orders')
       })
     })
 
@@ -188,7 +188,7 @@ describe('NotificationBell URL Building', () => {
 
       it('should link to specific product', () => {
         const url = buildNotificationUrl('inventory/products/prod_123', whiteLabelPath)
-        expect(url).toBe('/wl/coffee-chain/inventory/products/prod_123')
+        expect(url).toBe('/wl/venues/coffee-chain/inventory/products/prod_123')
       })
     })
 

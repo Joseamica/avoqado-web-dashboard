@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import {
   Select,
   SelectContent,
@@ -23,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Store, TrendingUp, Download, Receipt } from 'lucide-react'
+import { Store, TrendingUp, TrendingDown, Download, Receipt } from 'lucide-react'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { getToday } from '@/utils/datetime'
@@ -50,15 +51,29 @@ export function SupervisorDashboard() {
 
   const [storeFilter, setStoreFilter] = useState('all')
   const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date }>(() => getToday(venueTimezone))
+  const [hoveredPieIndex, setHoveredPieIndex] = useState<number | null>(null)
 
   // Derive ISO date strings from selected range for API calls
   const startDateISO = selectedRange.from.toISOString()
   const endDateISO = selectedRange.to.toISOString()
 
+  // Previous day range for "vs dia anterior" comparison
+  const prevDayDates = useMemo(() => {
+    const prev = new Date(selectedRange.from)
+    prev.setDate(prev.getDate() - 1)
+    const end = new Date(prev.getTime() + 86400000 - 1)
+    return { start: prev.toISOString(), end: end.toISOString() }
+  }, [selectedRange.from])
+
   // Use venue-level hooks for white-label access — pass date range to filter data
   const { data: overview } = useStoresOverview({
     startDate: startDateISO,
     endDate: endDateISO,
+    filterVenueId: storeFilter !== 'all' ? storeFilter : undefined,
+  })
+  const { data: previousOverview } = useStoresOverview({
+    startDate: prevDayDates.start,
+    endDate: prevDayDates.end,
     filterVenueId: storeFilter !== 'all' ? storeFilter : undefined,
   })
   const { data: _stockSummary } = useStoresStockSummary()
@@ -97,10 +112,10 @@ export function SupervisorDashboard() {
       store: entry.venueName,
       promoter: entry.name,
       clockIn: entry.checkInTime
-        ? new Date(entry.checkInTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()
+        ? new Date(entry.checkInTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: venueTimezone }).toUpperCase()
         : '--:--',
       clockOut: entry.checkOutTime
-        ? new Date(entry.checkOutTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()
+        ? new Date(entry.checkOutTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: venueTimezone }).toUpperCase()
         : '--:--',
       sales: entry.sales || 0,
       hasDepositPhoto: !!entry.checkInPhotoUrl,
@@ -131,6 +146,13 @@ export function SupervisorDashboard() {
   const storesClosed = Math.max(totalStores - storesOpen, 0)
   const coveragePercent = totalStores > 0 ? Math.round((storesOpen / totalStores) * 100) : 0
   const cashInField = (overview?.todayCashSales ?? 0) - (overview?.approvedDeposits ?? 0)
+  const previousCashInField = (previousOverview?.todayCashSales ?? 0) - (previousOverview?.approvedDeposits ?? 0)
+  const cashChangePercent = previousCashInField > 0
+    ? Math.round(((cashInField - previousCashInField) / previousCashInField) * 100)
+    : null
+  const depositPercent = (overview?.todayCashSales ?? 0) > 0
+    ? Math.round(((overview?.approvedDeposits ?? 0) / overview!.todayCashSales) * 100)
+    : 0
 
   // Chart data - derive from store performance
   const salesByStore = useMemo(() => {
@@ -140,10 +162,13 @@ export function SupervisorDashboard() {
     const colors = ['#10b981', '#3b82f6', '#64748b', '#f59e0b', '#a855f7']
     return storePerformanceData.stores.slice(0, 5).map((s, i) => ({
       label: s.name.length > 10 ? s.name.slice(0, 10) : s.name,
+      fullName: s.name,
       percent: Math.round((s.todaySales / total) * 100),
+      amount: s.todaySales,
       color: colors[i % colors.length],
     }))
   }, [storePerformanceData])
+  const totalSalesByStore = salesByStore.reduce((a, s) => a + s.amount, 0)
 
   const salesVsTarget = useMemo(() => {
     if (!storePerformanceData?.stores?.length) return []
@@ -156,6 +181,8 @@ export function SupervisorDashboard() {
         color: perf >= 70 ? 'bg-green-500' : 'bg-amber-500',
         hasGoal: s.goalAmount != null,
         goalPeriod: s.goalPeriod,
+        amount: s.todaySales,
+        goalAmount: s.goalAmount ?? 0,
       }
     })
   }, [storePerformanceData])
@@ -180,9 +207,10 @@ export function SupervisorDashboard() {
     <div className="space-y-6">
       {/* Header + Filters */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold tracking-tight">
-          {t('playtelecom:supervisor.title', { defaultValue: 'Tablero Operativo' })}
-        </h2>
+        <PageTitleWithInfo
+          title={t('playtelecom:supervisor.title', { defaultValue: 'Tablero Operativo' })}
+          className="text-xl font-bold tracking-tight"
+        />
         <div className="flex gap-3">
           <DateRangePicker
             showCompare={false}
@@ -251,7 +279,7 @@ export function SupervisorDashboard() {
           </div>
 
           {/* Simple gauge */}
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center group/gauge relative">
             <div className="relative w-[140px] h-[70px] overflow-hidden">
               <div className="absolute w-[140px] h-[140px] bg-muted rounded-full top-0" />
               <div
@@ -264,27 +292,55 @@ export function SupervisorDashboard() {
               <div className="absolute w-[110px] h-[110px] bg-card rounded-full top-[15px] left-[15px] z-10" />
             </div>
             <span className="text-xl font-black -mt-8 z-20">{coveragePercent}%</span>
-            <span className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">
+            <span className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider group-hover/gauge:hidden">
               {t('playtelecom:supervisor.compliance', { defaultValue: 'Cumplimiento' })}
+            </span>
+            <span className="text-[10px] text-foreground mt-1 font-semibold hidden group-hover/gauge:inline">
+              {storesOpen} / {totalStores} {t('playtelecom:supervisor.stores', { defaultValue: 'tiendas' })}
             </span>
           </div>
         </GlassCard>
 
         {/* Cash in Field */}
-        <GlassCard className="p-5 flex flex-col justify-center relative overflow-hidden">
+        <GlassCard className="p-5 flex flex-col justify-center relative overflow-hidden group/cash">
           <div className="absolute top-4 right-4 p-3 rounded-xl bg-green-500/10">
-            <TrendingUp className="w-6 h-6 text-green-500" />
+            {cashChangePercent != null && cashChangePercent < 0 ? (
+              <TrendingDown className="w-6 h-6 text-red-500" />
+            ) : (
+              <TrendingUp className="w-6 h-6 text-green-500" />
+            )}
           </div>
           <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mb-2">
             {t('playtelecom:supervisor.cashInField', { defaultValue: 'Efectivo Total en Calle' })}
           </p>
           <h3 className="text-4xl font-black">{formatCurrency(cashInField)}</h3>
-          <div className="w-full bg-muted h-1.5 mt-4 rounded-full overflow-hidden">
-            <div className="bg-green-500 h-full w-[70%]" />
+          {/* Progress bar: % of cash that has been deposited */}
+          <div className="w-full bg-muted h-1.5 mt-4 rounded-full overflow-hidden relative">
+            <div className="bg-green-500 h-full transition-all" style={{ width: `${Math.min(depositPercent, 100)}%` }} />
           </div>
-          <p className="text-xs text-green-400 mt-2 font-semibold flex items-center">
-            <TrendingUp className="w-3.5 h-3.5 mr-1" /> +15% vs dia anterior
-          </p>
+          <div className="flex items-center justify-between mt-1.5">
+            <p className="text-[10px] text-muted-foreground">
+              {t('playtelecom:supervisor.deposited', { defaultValue: 'Depositado' })}: {depositPercent}%
+            </p>
+            {/* Hover tooltip: show breakdown */}
+            <p className="text-[10px] text-muted-foreground opacity-0 group-hover/cash:opacity-100 transition-opacity">
+              {formatCurrency(overview?.approvedDeposits ?? 0)} / {formatCurrency(overview?.todayCashSales ?? 0)}
+            </p>
+          </div>
+          {cashChangePercent != null ? (
+            <p className={cn('text-xs mt-1 font-semibold flex items-center', cashChangePercent >= 0 ? 'text-green-400' : 'text-red-400')}>
+              {cashChangePercent >= 0 ? (
+                <TrendingUp className="w-3.5 h-3.5 mr-1" />
+              ) : (
+                <TrendingDown className="w-3.5 h-3.5 mr-1" />
+              )}
+              {cashChangePercent >= 0 ? '+' : ''}{cashChangePercent}% {t('playtelecom:supervisor.vsPrevDay', { defaultValue: 'vs dia anterior' })}
+            </p>
+          ) : (
+            <p className="text-[10px] text-muted-foreground mt-1">
+              {t('playtelecom:supervisor.noPrevData', { defaultValue: 'Sin datos del dia anterior' })}
+            </p>
+          )}
         </GlassCard>
       </div>
 
@@ -307,16 +363,34 @@ export function SupervisorDashboard() {
                     }).join(', ')})`,
                   }}
                 />
-                <div className="absolute inset-4 bg-card rounded-full flex items-center justify-center">
-                  <div className="text-center">
-                    <span className="text-[9px] font-bold text-muted-foreground uppercase">Total</span>
+                <div className="absolute inset-4 bg-card rounded-full flex items-center justify-center transition-all">
+                  <div className="text-center px-1">
+                    {hoveredPieIndex != null ? (
+                      <>
+                        <span className="text-sm font-black block leading-tight">{formatCurrency(salesByStore[hoveredPieIndex].amount)}</span>
+                        <span className="text-[8px] text-muted-foreground block truncate max-w-[80px]">{salesByStore[hoveredPieIndex].fullName}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-sm font-black block leading-tight">{formatCurrency(totalSalesByStore)}</span>
+                        <span className="text-[8px] text-muted-foreground uppercase">Total</span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
-              <div className="flex gap-3 mt-4 text-[10px] text-muted-foreground">
+              <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-4 text-[10px] text-muted-foreground">
                 {salesByStore.map((s, i) => (
-                  <span key={i} className="flex items-center">
-                    <span className="w-2 h-2 rounded-full mr-1" style={{ backgroundColor: s.color }} />
+                  <span
+                    key={i}
+                    className={cn(
+                      'flex items-center cursor-pointer transition-all rounded-full px-1.5 py-0.5',
+                      hoveredPieIndex === i ? 'bg-muted text-foreground scale-105' : 'hover:text-foreground',
+                    )}
+                    onMouseEnter={() => setHoveredPieIndex(i)}
+                    onMouseLeave={() => setHoveredPieIndex(null)}
+                  >
+                    <span className="w-2 h-2 rounded-full mr-1 shrink-0" style={{ backgroundColor: s.color }} />
                     {s.label} {s.percent}%
                   </span>
                 ))}
@@ -338,22 +412,32 @@ export function SupervisorDashboard() {
           {salesVsTarget.length > 0 ? (
             <div className="space-y-6">
               {salesVsTarget.map((item, i) => (
-                <div key={i}>
+                <div key={i} className="group/bar relative">
                   <div className="flex justify-between text-xs mb-1 gap-2">
                     <span className="font-medium truncate min-w-0">{item.store}</span>
                     {item.hasGoal ? (
-                      <span className={cn('font-bold shrink-0', item.percent >= 70 ? 'text-green-400' : 'text-amber-400')}>
-                        {item.percent}%
-                      </span>
+                      <>
+                        <span className={cn('font-bold shrink-0 group-hover/bar:hidden', item.percent >= 70 ? 'text-green-400' : 'text-amber-400')}>
+                          {item.percent}%
+                        </span>
+                        <span className="hidden group-hover/bar:inline text-[10px] font-bold shrink-0 text-foreground">
+                          {formatCurrency(item.amount)} / {formatCurrency(item.goalAmount)}
+                        </span>
+                      </>
                     ) : (
-                      <span className="text-muted-foreground shrink-0 text-[10px]">
-                        {t('playtelecom:supervisor.noGoal', { defaultValue: 'Sin meta' })}
-                      </span>
+                      <>
+                        <span className="text-muted-foreground shrink-0 text-[10px] group-hover/bar:hidden">
+                          {t('playtelecom:supervisor.noGoal', { defaultValue: 'Sin meta' })}
+                        </span>
+                        <span className="hidden group-hover/bar:inline text-[10px] font-bold shrink-0 text-foreground">
+                          {formatCurrency(item.amount)}
+                        </span>
+                      </>
                     )}
                   </div>
                   <div className="h-3 bg-muted rounded-full overflow-hidden relative">
-                    <div className={cn('h-full rounded-full', item.color)} style={{ width: `${item.barPercent}%` }} />
-                    <div className="absolute top-0 bottom-0 w-[2px] bg-foreground/30" style={{ left: '90%' }} />
+                    <div className={cn('h-full rounded-full transition-all', item.color)} style={{ width: `${item.barPercent}%` }} />
+                    {item.hasGoal && <div className="absolute top-0 bottom-0 w-[2px] bg-foreground/30" style={{ left: '90%' }} />}
                   </div>
                 </div>
               ))}

@@ -26,10 +26,9 @@ export interface TpvSettings {
   showOrderManagement: boolean   // Show "Órdenes" button on home screen
   // Crypto payment option (B4Bit integration)
   showCryptoOption: boolean      // Show crypto payment button in merchant selection
-  // Evidence rules (PlayTelecom config TPV)
-  clockInPhotoRule?: 'OBLIGATORIO' | 'OPCIONAL' | 'DESACTIVADO'
-  depositPhotoRule?: 'OBLIGATORIO' | 'OBLIGATORIO_ALTA_CALIDAD'
-  facadePhotoRule?: 'ALEATORIO' | 'SIEMPRE' | 'NUNCA'
+  // Evidence rules (PlayTelecom — boolean toggles)
+  requireDepositPhoto?: boolean
+  requireFacadePhoto?: boolean
   // Module toggles for TPV
   enableCashPayments?: boolean
   enableCardPayments?: boolean
@@ -78,9 +77,8 @@ export interface VenueTpvSettings {
   enableCashPayments: boolean
   enableCardPayments: boolean
   enableBarcodeScanner: boolean
-  clockInPhotoRule: 'OBLIGATORIO' | 'OPCIONAL' | 'DESACTIVADO'
-  depositPhotoRule: 'OBLIGATORIO' | 'OBLIGATORIO_ALTA_CALIDAD'
-  facadePhotoRule: 'ALEATORIO' | 'SIEMPRE' | 'NUNCA'
+  requireDepositPhoto: boolean
+  requireFacadePhoto: boolean
 }
 
 const DEFAULT_VENUE_TPV_SETTINGS: VenueTpvSettings = {
@@ -88,9 +86,8 @@ const DEFAULT_VENUE_TPV_SETTINGS: VenueTpvSettings = {
   enableCashPayments: true,
   enableCardPayments: true,
   enableBarcodeScanner: true,
-  clockInPhotoRule: 'OBLIGATORIO',
-  depositPhotoRule: 'OBLIGATORIO_ALTA_CALIDAD',
-  facadePhotoRule: 'NUNCA',
+  requireDepositPhoto: false,
+  requireFacadePhoto: false,
 }
 
 /**

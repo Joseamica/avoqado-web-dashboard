@@ -25,10 +25,12 @@ import {
   type ModuleToggleState,
   type EvidenceRulesState,
 } from './components'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 
 // Default module state (matches backend defaults)
 const DEFAULT_MODULES: ModuleToggleState = {
   attendanceTracking: false,
+  requireFacadePhoto: false,
   enableCashPayments: true,
   enableCardPayments: true,
   enableBarcodeScanner: true,
@@ -36,9 +38,7 @@ const DEFAULT_MODULES: ModuleToggleState = {
 
 // Default evidence rules (matches backend defaults)
 const DEFAULT_EVIDENCE: EvidenceRulesState = {
-  clockInPhotoRule: 'OBLIGATORIO',
-  depositPhotoRule: 'OBLIGATORIO_ALTA_CALIDAD',
-  facadePhotoRule: 'NUNCA',
+  requireDepositPhoto: false,
 }
 
 /** Map API response to component state */
@@ -49,14 +49,13 @@ function settingsToState(settings: VenueTpvSettings): {
   return {
     modules: {
       attendanceTracking: settings.attendanceTracking,
+      requireFacadePhoto: settings.requireFacadePhoto,
       enableCashPayments: settings.enableCashPayments,
       enableCardPayments: settings.enableCardPayments,
       enableBarcodeScanner: settings.enableBarcodeScanner,
     },
     evidence: {
-      clockInPhotoRule: settings.clockInPhotoRule,
-      depositPhotoRule: settings.depositPhotoRule,
-      facadePhotoRule: settings.facadePhotoRule,
+      requireDepositPhoto: settings.requireDepositPhoto,
     },
   }
 }
@@ -69,10 +68,7 @@ export function TpvConfiguration() {
   const { toast } = useToast()
 
   // Fetch venue-level TPV settings
-  const {
-    data: tpvSettings,
-    isLoading: settingsLoading,
-  } = useQuery({
+  const { data: tpvSettings, isLoading: settingsLoading } = useQuery({
     queryKey: ['venue', venueId, 'tpv-settings'],
     queryFn: () => tpvSettingsService.getVenueSettings(venueId!),
     enabled: !!venueId,
@@ -111,7 +107,8 @@ export function TpvConfiguration() {
       })
     },
     onError: (error: any) => {
-      const msg = error?.response?.data?.message || t('playtelecom:tpvConfig.saveError', { defaultValue: 'Error al guardar la configuracion' })
+      const msg =
+        error?.response?.data?.message || t('playtelecom:tpvConfig.saveError', { defaultValue: 'Error al guardar la configuracion' })
       toast({ title: msg, variant: 'destructive' })
     },
   })
@@ -122,8 +119,8 @@ export function TpvConfiguration() {
     setHasChanges(true)
   }, [])
 
-  const handleEvidenceChange = useCallback((key: keyof EvidenceRulesState, value: string) => {
-    setEvidence(prev => ({ ...prev, [key]: value as EvidenceRulesState[typeof key] }))
+  const handleEvidenceChange = useCallback((key: keyof EvidenceRulesState, value: boolean) => {
+    setEvidence(prev => ({ ...prev, [key]: value }))
     setHasChanges(true)
   }, [])
 
@@ -140,6 +137,10 @@ export function TpvConfiguration() {
   return (
     <div className="space-y-6">
       {/* Header */}
+      <PageTitleWithInfo
+        title={t('playtelecom:tpvConfig.title', { defaultValue: 'Personalizacion de Terminal (TPV)' })}
+        className="text-xl font-bold tracking-tight"
+      />
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-500/5">
@@ -160,11 +161,7 @@ export function TpvConfiguration() {
             {t('playtelecom:tpvConfig.resetDefaults', { defaultValue: 'Restaurar Defaults' })}
           </Button>
           <Button size="sm" onClick={handleSave} disabled={!hasChanges || saveMutation.isPending}>
-            {saveMutation.isPending ? (
-              <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
-            ) : (
-              <Save className="w-3.5 h-3.5 mr-1" />
-            )}
+            {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1" />}
             {t('playtelecom:tpvConfig.saveSync', { defaultValue: 'Guardar y Sincronizar' })}
           </Button>
         </div>
@@ -187,10 +184,7 @@ export function TpvConfiguration() {
 
           {/* Right: Phone preview */}
           <div className="col-span-12 xl:col-span-4 hidden xl:flex">
-            <PhonePreview
-              modules={modules}
-              className="sticky top-6"
-            />
+            <PhonePreview modules={modules} className="sticky top-6" />
           </div>
         </div>
       )}
