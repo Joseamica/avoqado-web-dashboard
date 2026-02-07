@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getOrganizationStats, OrganizationStats, OrganizationVenue, getOrganizationVenues } from '@/services/organization.service'
 import { useCurrentVenue } from './use-current-venue'
 import { StaffRole } from '@/types'
+import { useMemo } from 'react'
 
 interface UseCurrentOrganizationReturn {
   organization: OrganizationStats | null
@@ -56,11 +57,24 @@ export const useCurrentOrganization = (): UseCurrentOrganizationReturn => {
 
   // Get orgId from URL params (legacy /organizations/:orgId routes) or from venue/user context
   const orgIdFromUrl = params.orgId
+  const orgIdFromSlug = useMemo(() => {
+    if (!orgSlugFromUrl) return null
+
+    const matchingVenue = allVenues.find(venue => {
+      if (venue.organizationId === orgSlugFromUrl) return true
+      if (venue.organization?.id === orgSlugFromUrl) return true
+
+      const orgWithSlug = venue.organization as (typeof venue.organization & { slug?: string }) | undefined
+      return orgWithSlug?.slug === orgSlugFromUrl
+    })
+
+    return matchingVenue?.organizationId || null
+  }, [orgSlugFromUrl, allVenues])
   const orgIdFromVenue = venue?.organizationId
   const orgIdFromUser = user?.organizationId
 
-  // Priority: URL param > venue's org > user's org
-  const orgId = orgIdFromUrl || orgIdFromVenue || orgIdFromUser || null
+  // Priority: URL param > orgSlug mapping > venue's org > user's org
+  const orgId = orgIdFromUrl || orgIdFromSlug || orgIdFromVenue || orgIdFromUser || null
 
   // Check if we're on an organization route (not a venue route)
   const _isOnOrgRoute = location.pathname.startsWith('/organizations/') || location.pathname.startsWith('/wl/organizations/')
@@ -124,7 +138,8 @@ export const useCurrentOrganization = (): UseCurrentOrganizationReturn => {
 
   // Determine orgSlug: from URL or from organization data (future: when org has slug field)
   // For now, use URL param or fall back to orgId
-  const orgSlug = orgSlugFromUrl || orgId
+  const orgSlugFromData = (organization as (OrganizationStats & { slug?: string }) | undefined)?.slug || null
+  const orgSlug = orgSlugFromUrl || orgSlugFromData || orgId
 
   // Build base path for organization-level navigation
   // If we're in /wl/organizations/:orgSlug, use that pattern

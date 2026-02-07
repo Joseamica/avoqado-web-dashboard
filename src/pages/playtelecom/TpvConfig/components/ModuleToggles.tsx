@@ -1,16 +1,18 @@
 /**
- * ModuleToggles - 4 toggle cards for TPV modules
- * Attendance, Cash Payments, Card Payments, Barcode Scanner
+ * ModuleToggles - Toggle cards for TPV modules
+ * Attendance (with facade photo sub-toggle), Cash, Card, Barcode Scanner
  */
 
 import { useTranslation } from 'react-i18next'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Switch } from '@/components/ui/switch'
-import { Clock, Banknote, CreditCard, ScanBarcode } from 'lucide-react'
+import { Clock, Banknote, CreditCard, ScanBarcode, Store, Camera } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface ModuleToggleState {
   attendanceTracking: boolean
+  requireFacadePhoto: boolean
+  requireDepositPhoto: boolean
   enableCashPayments: boolean
   enableCardPayments: boolean
   enableBarcodeScanner: boolean
@@ -71,24 +73,85 @@ export function ModuleToggles({ values, onChange }: ModuleTogglesProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {MODULES.map(mod => {
           const Icon = mod.icon
+          const isAttendance = mod.key === 'attendanceTracking'
+
           return (
             <div
               key={mod.key}
-              className="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-card/50"
+              className="rounded-xl border border-border/50 bg-card/50 overflow-hidden"
             >
-              <div className="flex items-center gap-3">
-                <div className={cn('p-2 rounded-lg bg-gradient-to-br', mod.colorClass)}>
-                  <Icon className="w-5 h-5" />
+              {/* Main toggle */}
+              <div className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-3">
+                  <div className={cn('p-2 rounded-lg bg-gradient-to-br', mod.colorClass)}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">{t(mod.labelKey, { defaultValue: mod.labelDefault })}</p>
+                    <p className="text-[10px] text-muted-foreground">{t(mod.descKey, { defaultValue: mod.descDefault })}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold">{t(mod.labelKey, { defaultValue: mod.labelDefault })}</p>
-                  <p className="text-[10px] text-muted-foreground">{t(mod.descKey, { defaultValue: mod.descDefault })}</p>
-                </div>
+                <Switch
+                  checked={values[mod.key]}
+                  onCheckedChange={(checked) => onChange(mod.key, checked)}
+                />
               </div>
-              <Switch
-                checked={values[mod.key]}
-                onCheckedChange={(checked) => onChange(mod.key, checked)}
-              />
+
+              {/* Sub-toggles inside attendance card */}
+              {isAttendance && (
+                <>
+                  <div
+                    className={cn(
+                      'flex items-center justify-between px-4 py-3 border-t border-border/30 bg-muted/30 transition-opacity',
+                      !values.attendanceTracking && 'opacity-40 pointer-events-none',
+                    )}
+                  >
+                    <div className="flex items-center gap-2.5 pl-7">
+                      <div className="p-1.5 rounded-lg bg-gradient-to-br from-amber-500/20 to-amber-500/5 text-amber-600 dark:text-amber-400">
+                        <Store className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold">
+                          {t('tpvConfig.modules.facadePhoto', { defaultValue: 'Foto de Fachada/Tienda' })}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {t('tpvConfig.modules.facadePhotoDesc', { defaultValue: 'Foto panoramica de la tienda al iniciar turno' })}
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={values.requireFacadePhoto}
+                      disabled={!values.attendanceTracking}
+                      onCheckedChange={(checked) => onChange('requireFacadePhoto', checked)}
+                    />
+                  </div>
+                  <div
+                    className={cn(
+                      'flex items-center justify-between px-4 py-3 border-t border-border/30 bg-muted/30 transition-opacity',
+                      !values.attendanceTracking && 'opacity-40 pointer-events-none',
+                    )}
+                  >
+                    <div className="flex items-center gap-2.5 pl-7">
+                      <div className="p-1.5 rounded-lg bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 text-emerald-600 dark:text-emerald-400">
+                        <Camera className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold">
+                          {t('tpvConfig.modules.depositPhoto', { defaultValue: 'Foto de Voucher Bancario' })}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {t('tpvConfig.modules.depositPhotoDesc', { defaultValue: 'Foto del comprobante de deposito al registrar salida' })}
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={values.requireDepositPhoto}
+                      disabled={!values.attendanceTracking}
+                      onCheckedChange={(checked) => onChange('requireDepositPhoto', checked)}
+                    />
+                  </div>
+                </>
+              )}
             </div>
           )
         })}

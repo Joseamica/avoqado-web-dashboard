@@ -5,7 +5,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { SidebarInset, SidebarProvider, SidebarTrigger } from './components/ui/sidebar'
 import { ThemeToggle } from './components/theme-toggle'
 import { useAuth } from './context/AuthContext'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { ChatBubble } from './components/Chatbot'
 import { DemoBanner } from './components/DemoBanner'
 import { TrialStatusBanner } from './components/TrialStatusBanner'
@@ -50,62 +50,45 @@ function DashboardContent() {
   const { venue, venueSlug, isLoading, hasVenueAccess } = useCurrentVenue()
   const { customSegments } = useBreadcrumb()
 
-  // Estado para manejar el cambio de venues y prevenir parpadeo de "acceso denegado"
-  const [isVenueSwitching, setIsVenueSwitching] = useState(false)
+  // Record the last venue slug where the user had access, to recover from invalid deep links.
   const [lastAccessibleVenueSlug, setLastAccessibleVenueSlug] = useState<string | null>(null)
-  const prevVenueSlugRef = useRef(venueSlug)
 
-  // Verificar si el usuario es SUPERADMIN o OWNER - ellos tienen acceso a más venues
-  const isPrivilegedUser = user?.role === StaffRole.SUPERADMIN || user?.role === StaffRole.OWNER
+  // SUPERADMIN tiene acceso global entre venues; OWNER queda limitado a su scope backend.
+  const hasGlobalVenueAccess = user?.role === StaffRole.SUPERADMIN
 
   // Cuando el usuario accede a un venue al que tiene permisos, recordarlo como último válido
   useEffect(() => {
-    if (venueSlug && hasVenueAccess && !isVenueSwitching) {
+    if (venueSlug && hasVenueAccess) {
       setLastAccessibleVenueSlug(venueSlug)
     }
-  }, [venueSlug, hasVenueAccess, isVenueSwitching])
+  }, [venueSlug, hasVenueAccess])
 
   // Verificar autorización al montar y cuando cambia el slug
   useEffect(() => {
     if (venueSlug) {
-      // Para usuarios privilegiados, asumir que tienen acceso pero verificar de todos modos
-      // para actualizar el estado interno
-      if (isPrivilegedUser) {
-        // Forzar la autorización para estos roles
-        authorizeVenue(venueSlug)
-        setIsVenueSwitching(true)
-
-        // Aún así dar un tiempo para que se actualice el estado
-        const timer = setTimeout(() => {
-          setIsVenueSwitching(false)
-        }, 1000)
-
-        return () => clearTimeout(timer)
-      } else {
-        // Para otros usuarios, comprobar acceso normalmente
-        authorizeVenue(venueSlug)
-      }
+      authorizeVenue(venueSlug)
     }
-  }, [venueSlug, authorizeVenue, isPrivilegedUser])
+  }, [venueSlug, authorizeVenue])
 
-  // Detectar cambios en el venueSlug para identificar venue switching
+  // Restore to the last valid venue without artificial delays.
   useEffect(() => {
-    // Si el slug cambió, estamos en una transición
-    if (prevVenueSlugRef.current !== venueSlug) {
-      // Activar el estado de switching durante más tiempo (1 segundo)
-      setIsVenueSwitching(true)
-
-      // Dar tiempo extra para que se actualice el estado y los permisos
-      const timer = setTimeout(() => {
-        setIsVenueSwitching(false)
-      }, 1000)
-
-      // Actualizar la referencia para la próxima comparación
-      prevVenueSlugRef.current = venueSlug
-
-      return () => clearTimeout(timer)
+    if (!venueSlug || hasVenueAccess || hasGlobalVenueAccess || isLoading) {
+      return
     }
-  }, [venueSlug, setIsVenueSwitching])
+
+    if (!lastAccessibleVenueSlug || lastAccessibleVenueSlug === venueSlug) {
+      return
+    }
+
+    const currentPath = location.pathname
+    const newPath = currentPath.startsWith('/wl/')
+      ? currentPath.replace(/wl\/venues\/[^/]+/, `wl/venues/${lastAccessibleVenueSlug}`)
+      : currentPath.replace(/venues\/[^/]+/, `venues/${lastAccessibleVenueSlug}`)
+
+    if (newPath !== currentPath) {
+      navigate(newPath, { replace: true })
+    }
+  }, [venueSlug, hasVenueAccess, hasGlobalVenueAccess, isLoading, lastAccessibleVenueSlug, location.pathname, navigate])
 
   // Mutation para reactivar venue suspendido
   const reactivateVenueMutation = useMutation({
@@ -153,23 +136,10 @@ function DashboardContent() {
     )
   }
 
-  // Los usuarios SUPERADMIN y OWNER tienen acceso especial a venues
-  // Si estamos en un proceso de venue switching, dar tiempo para que se actualice el estado
-  // Si no tiene acceso al venue pero es privilegiado (SUPERADMIN/OWNER), aun así mostrar contenido
-  if (venueSlug && !hasVenueAccess && !isVenueSwitching && !isPrivilegedUser) {
-    // Si tenemos un último venue válido y estamos en un usuario privilegiado, redirigir a ese venue
+  // Si el usuario NO tiene acceso al slug, restaurar al último venue válido o mostrar acceso denegado.
+  if (venueSlug && !hasVenueAccess && !hasGlobalVenueAccess) {
+    // Mientras se restaura al último slug válido, mostrar estado de transición.
     if (lastAccessibleVenueSlug && lastAccessibleVenueSlug !== venueSlug) {
-      // Redirigir al último venue válido en 500ms para dar tiempo de procesamiento
-      setTimeout(() => {
-        const currentPath = location.pathname
-        // Handle both /venues/:slug and /wl/:slug routes
-        const newPath = currentPath.startsWith('/wl/')
-          ? currentPath.replace(/wl\/[^/]+/, `wl/${lastAccessibleVenueSlug}`)
-          : currentPath.replace(/venues\/[^/]+/, `venues/${lastAccessibleVenueSlug}`)
-        navigate(newPath, { replace: true })
-      }, 100)
-
-      // Mientras tanto, mostrar pantalla de carga
       return (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
@@ -185,9 +155,7 @@ function DashboardContent() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-foreground mb-2">{t('dashboardShell.accessDenied')}</h2>
-          <p className="text-muted-foreground">
-            {isPrivilegedUser ? t('dashboardShell.processingChange') : t('dashboardShell.noPermission')}
-          </p>
+          <p className="text-muted-foreground">{t('dashboardShell.noPermission')}</p>
         </div>
       </div>
     )

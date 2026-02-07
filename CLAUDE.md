@@ -81,12 +81,28 @@ const { data } = useQuery({
 
 ## Multi-Tenant Architecture
 
-- Routes: `/venues/:slug/[feature]` (regular) or `/wl/:slug/[feature]` (white-label)
+- Routes: `/venues/:slug/[feature]` (regular) or `/wl/venues/:slug/[feature]` (white-label)
 - AuthContext manages venue switching and access control
 - Each venue has role-based permissions + feature flags
 - Control Plane (`/superadmin/`) manages ALL venues globally
 - Application Plane (`/venues/:slug/`) is the per-venue experience
 - **Feature Registry**: New pages that could be used in white-label dashboards MUST be added to `src/config/feature-registry.ts`. Not needed for internal/system pages (Auth, Onboarding, Superadmin, Settings). See: `docs/features/WHITE_LABEL_DASHBOARD.md`
+
+### Auth & Routing Invariants
+
+- **Canonical white-label venue route**: always `/wl/venues/:slug` (never `/wl/:slug`).
+- **KYC redirects must be venue-scoped**: use `/:mode/:slug/kyc-required` under venue routes (`/venues/:slug/*` and `/wl/venues/:slug/*`).
+- **SUPERADMIN is global**: can access all modules/features/orgs/venues.
+- **OWNER is org-scoped**: OWNER access applies only inside organizations where the user is OWNER (not global by highest role).
+- **Route guards must use effective venue role**: prefer `staffInfo.role` / `useAccess().role` over raw `user.role` for venue-level authorization.
+
+### Recent Auth Hardening (2026-02)
+
+- Fixed KYC guard redirect to route-aware destination for standard + white-label venue paths.
+- Unified white-label path generation to `/wl/venues/:slug`.
+- Added orgSlug-compatible owner guard behavior for `/wl/organizations/:orgSlug`.
+- Hardened invitation acceptance flow to reliably establish session before redirecting from invite flow.
+- Reduced stale venue context risk by prioritizing URL slug over stale `activeVenue` in venue resolution.
 
 ## Role Hierarchy
 

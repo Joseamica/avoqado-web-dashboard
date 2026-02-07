@@ -16,7 +16,8 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Download, Table2, Loader2 } from 'lucide-react'
+import { ArrowLeft, Download, Table2 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { getClosingReportData, downloadClosingReportXlsx } from '@/services/storesAnalysis.service'
@@ -123,8 +124,21 @@ export function ReportePage() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
+                  <td colSpan={8} className="p-0">
+                    <div className="space-y-0">
+                      {Array.from({ length: 8 }).map((_, i) => (
+                        <div key={i} className="flex items-center gap-3 px-3 py-2 border-b border-border/30">
+                          <Skeleton className="h-4 w-8" />
+                          <Skeleton className="h-4 w-20" />
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-4 w-20" />
+                          <Skeleton className="h-4 w-16" />
+                          <Skeleton className="h-4 w-16" />
+                          <Skeleton className="h-4 w-20 ml-auto" />
+                        </div>
+                      ))}
+                    </div>
                   </td>
                 </tr>
               ) : rows.length === 0 ? (

@@ -28,9 +28,10 @@ export const EmailVerifiedRoute = () => {
     return <Navigate to={`/login?returnTo=${returnTo}`} replace />
   }
 
-  // If authenticated but email not verified, redirect to signup
+  // If authenticated but email not verified, redirect to email verification flow
   if (!user.emailVerified) {
-    return <Navigate to="/signup" replace />
+    const email = encodeURIComponent(user.email)
+    return <Navigate to={`/auth/verify-email?email=${email}`} replace />
   }
 
   // Email is verified, allow access

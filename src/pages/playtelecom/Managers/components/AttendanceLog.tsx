@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Check, X, Image, MapPin, RotateCcw } from 'lucide-react'
+import { Check, X, Image, MapPin, RotateCcw, ClipboardList } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface AttendanceEntry {
@@ -53,6 +53,17 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
         </div>
       </div>
 
+      {entries.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+          <ClipboardList className="w-10 h-10 mb-3 opacity-40" />
+          <p className="text-sm font-medium">
+            {t('managers.attendance.noEntries', { defaultValue: 'Sin asistencia registrada para este periodo' })}
+          </p>
+          <p className="text-xs mt-1">
+            {t('managers.attendance.noEntriesHint', { defaultValue: 'Selecciona otro rango de fechas o verifica los filtros' })}
+          </p>
+        </div>
+      ) : (
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead className="bg-muted/30 text-xs uppercase font-bold text-muted-foreground">
@@ -222,6 +233,7 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
           </tbody>
         </table>
       </div>
+      )}
     </GlassCard>
   )
 }

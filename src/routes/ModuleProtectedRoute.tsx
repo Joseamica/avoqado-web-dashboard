@@ -32,6 +32,7 @@ import { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { StaffRole } from '@/types'
 import { useAccess } from '@/hooks/use-access'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 
 interface ModuleProtectedRouteProps {
   /** Module code to check (e.g., 'SERIALIZED_INVENTORY', 'WHITE_LABEL_DASHBOARD') */
@@ -47,18 +48,43 @@ interface ModuleProtectedRouteProps {
 export function ModuleProtectedRoute({ requiredModule, featureCode, allowedRoles, permission: _permission }: ModuleProtectedRouteProps) {
   const { checkModuleAccess, activeVenue, staffInfo, user, isLoading } = useAuth()
   const { canFeature, isLoading: isAccessLoading, role } = useAccess()
+  const { venue, venueSlug, isLoading: isCurrentVenueLoading } = useCurrentVenue()
   const location = useLocation()
   const { slug } = useParams<{ slug: string }>()
   const { toast } = useToast()
   const { t } = useTranslation()
 
   const isSuperAdmin = role === 'SUPERADMIN'
+  const isWhiteLabelVenueRoute = location.pathname.startsWith('/wl/venues/')
+  const venueRoutePrefix = isWhiteLabelVenueRoute ? '/wl/venues' : '/venues'
+  const resolvedSlug = slug || venueSlug || venue?.slug || activeVenue?.slug || null
+  const venueHomePath = resolvedSlug ? `${venueRoutePrefix}/${resolvedSlug}/home` : '/'
+  const nonWhiteLabelVenueHomePath = resolvedSlug ? `/venues/${resolvedSlug}/home` : '/'
+  const moduleDeniedFallbackPath =
+    requiredModule === 'WHITE_LABEL_DASHBOARD' && isWhiteLabelVenueRoute
+      ? nonWhiteLabelVenueHomePath
+      : venueHomePath
+  const roleDeniedFallbackPath = isWhiteLabelVenueRoute
+    ? venueHomePath
+    : resolvedSlug
+      ? `${venueRoutePrefix}/${resolvedSlug}/playtelecom`
+      : '/'
 
-  // Check module access using checkModuleAccess (VenueModule table)
-  const hasModuleAccess = checkModuleAccess(requiredModule)
+  // Prefer current venue from URL to avoid stale activeVenue race conditions.
+  const hasModuleAccess = useMemo(() => {
+    if (isSuperAdmin) return true
 
-  // Get effective role (venue-specific role from staffInfo)
-  const effectiveRole = staffInfo?.role || user?.role
+    if (venue?.modules) {
+      const required = venue.modules.find(m => m.module.code === requiredModule)
+      if (required) return !!required.enabled
+    }
+
+    // Fallback for legacy flows where current venue data isn't fully available yet.
+    return checkModuleAccess(requiredModule)
+  }, [isSuperAdmin, venue?.modules, requiredModule, checkModuleAccess])
+
+  // Get effective role (prefer backend-resolved role from useAccess)
+  const effectiveRole = role || staffInfo?.role || user?.role
 
   // Check role access: prioritize white-label feature permissions over static allowedRoles
   const hasRoleAccess = useMemo(() => {
@@ -74,13 +100,13 @@ export function ModuleProtectedRoute({ requiredModule, featureCode, allowedRoles
 
   // Determine if we're waiting for venue or access to load
   // This prevents premature redirects when activeVenue or permissions haven't been set yet
-  const isVenueLoading = isLoading || isAccessLoading || (slug && !activeVenue)
+  const isVenueLoading = isLoading || isCurrentVenueLoading || isAccessLoading
 
   // Show toast when redirecting due to missing module
   // Only show when we're NOT loading and activeVenue is set
   useEffect(() => {
     if (isSuperAdmin) return
-    if (!isVenueLoading && !hasModuleAccess && activeVenue) {
+    if (!isVenueLoading && !hasModuleAccess && venue) {
       toast({
         title: t('common:module_not_available', { defaultValue: 'Module not available' }),
         description: t('common:module_not_available_desc', {
@@ -90,12 +116,12 @@ export function ModuleProtectedRoute({ requiredModule, featureCode, allowedRoles
         variant: 'destructive',
       })
     }
-  }, [isVenueLoading, isSuperAdmin, hasModuleAccess, requiredModule, activeVenue, toast, t])
+  }, [isVenueLoading, isSuperAdmin, hasModuleAccess, requiredModule, venue, toast, t])
 
   // Show toast when redirecting due to insufficient role
   useEffect(() => {
     if (isSuperAdmin) return
-    if (!isVenueLoading && hasModuleAccess && !hasRoleAccess && activeVenue) {
+    if (!isVenueLoading && hasModuleAccess && !hasRoleAccess && venue) {
       toast({
         title: t('common:access_denied', { defaultValue: 'Access denied' }),
         description: t('common:insufficient_role', {
@@ -104,7 +130,7 @@ export function ModuleProtectedRoute({ requiredModule, featureCode, allowedRoles
         variant: 'destructive',
       })
     }
-  }, [isVenueLoading, isSuperAdmin, hasModuleAccess, hasRoleAccess, activeVenue, toast, t])
+  }, [isVenueLoading, isSuperAdmin, hasModuleAccess, hasRoleAccess, venue, toast, t])
 
   // SUPERADMIN always has access to everything
   if (isSuperAdmin) {
@@ -123,12 +149,12 @@ export function ModuleProtectedRoute({ requiredModule, featureCode, allowedRoles
 
   // Redirect to venue home if module is not enabled
   if (!hasModuleAccess) {
-    return <Navigate to={`/venues/${slug || activeVenue?.slug}/home`} replace state={{ from: location.pathname }} />
+    return <Navigate to={moduleDeniedFallbackPath} replace state={{ from: location.pathname }} />
   }
 
   // Redirect to playtelecom root if role is not allowed
   if (!hasRoleAccess) {
-    return <Navigate to={`/venues/${slug || activeVenue?.slug}/playtelecom`} replace state={{ from: location.pathname }} />
+    return <Navigate to={roleDeniedFallbackPath} replace state={{ from: location.pathname }} />
   }
 
   // Module is enabled and role is allowed - render nested routes

@@ -9,6 +9,9 @@
 
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { closestCenter, DndContext, DragOverlay, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core'
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -22,8 +25,6 @@ import {
   Palette,
   Puzzle,
   Settings,
-  ChevronUp,
-  ChevronDown,
   LayoutDashboard,
   Check,
   Pencil,
@@ -59,6 +60,35 @@ export default function Step4Preview({
   // State for editing labels
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [editingLabel, setEditingLabel] = useState('')
+  const [activeId, setActiveId] = useState<string | null>(null)
+
+  // dnd-kit sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveId(event.active.id as string)
+  }, [])
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    setActiveId(null)
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = state.navigation.findIndex(item => item.id === active.id)
+    const newIndex = state.navigation.findIndex(item => item.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    const newItems = arrayMove(state.navigation, oldIndex, newIndex).map((item, i) => ({
+      ...item,
+      order: i,
+    }))
+    onNavigationChange(newItems)
+  }, [state.navigation, onNavigationChange])
+
+  const activeItem = activeId ? state.navigation.find(item => item.id === activeId) : null
 
   // Start editing a label
   const startEditingLabel = useCallback((item: NavigationItem) => {
@@ -84,36 +114,6 @@ export default function Step4Preview({
     setEditingItemId(null)
     setEditingLabel('')
   }, [])
-
-  // Move item up
-  const moveUp = useCallback(
-    (index: number) => {
-      if (index === 0) return
-      const newItems = [...state.navigation]
-      ;[newItems[index - 1], newItems[index]] = [newItems[index], newItems[index - 1]]
-      // Update order values
-      newItems.forEach((item, i) => {
-        item.order = i
-      })
-      onNavigationChange(newItems)
-    },
-    [state.navigation, onNavigationChange]
-  )
-
-  // Move item down
-  const moveDown = useCallback(
-    (index: number) => {
-      if (index === state.navigation.length - 1) return
-      const newItems = [...state.navigation]
-      ;[newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]]
-      // Update order values
-      newItems.forEach((item, i) => {
-        item.order = i
-      })
-      onNavigationChange(newItems)
-    },
-    [state.navigation, onNavigationChange]
-  )
 
   return (
     <div className="space-y-6">
@@ -151,107 +151,52 @@ export default function Step4Preview({
               <CardDescription>
                 {t('whiteLabelWizard.preview.navigationHelp')}
               </CardDescription>
+              <div className="flex items-center gap-3 mt-2">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-blue-500/50" />
+                  <span className="text-[11px] text-muted-foreground">Core</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-violet-500/50" />
+                  <span className="text-[11px] text-muted-foreground">Modulo</span>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-2">
-              {state.navigation.map((item, index) => {
-                const feature = item.featureCode ? FEATURE_REGISTRY[item.featureCode] : null
-                const IconComponent = item.icon ? getIconComponent(item.icon) : null
-                const isEditing = editingItemId === item.id
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={state.navigation.map(item => item.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {state.navigation.map(item => (
+                    <SortableNavItem
+                      key={item.id}
+                      item={item}
+                      isEditing={editingItemId === item.id}
+                      editingLabel={editingLabel}
+                      onEditingLabelChange={setEditingLabel}
+                      onStartEdit={startEditingLabel}
+                      onSaveLabel={saveLabel}
+                      onCancelEdit={cancelEditing}
+                    />
+                  ))}
+                </SortableContext>
 
-                return (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-2 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-                  >
-                    <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-
-                    {isEditing ? (
-                      // Editing mode
-                      <>
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          {IconComponent && (
-                            <IconComponent className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                          )}
-                          <Input
-                            value={editingLabel}
-                            onChange={e => setEditingLabel(e.target.value)}
-                            placeholder={feature?.name || item.featureCode || ''}
-                            className="h-8 text-sm"
-                            onKeyDown={e => {
-                              if (e.key === 'Enter') saveLabel()
-                              if (e.key === 'Escape') cancelEditing()
-                            }}
-                            autoFocus
-                          />
-                        </div>
-
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
-                            onClick={saveLabel}
-                            title={t('whiteLabelWizard.preview.saveLabel')}
-                          >
-                            <Save className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-                            onClick={cancelEditing}
-                            title={t('common.cancel')}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </>
-                    ) : (
-                      // Display mode
-                      <>
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          {IconComponent && (
-                            <IconComponent className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                          )}
-                          <span className="text-sm font-medium truncate">
-                            {item.label || feature?.name || item.featureCode}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 cursor-pointer"
-                            onClick={() => startEditingLabel(item)}
-                            title={t('whiteLabelWizard.preview.editLabel')}
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => moveUp(index)}
-                            disabled={index === 0}
-                          >
-                            <ChevronUp className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => moveDown(index)}
-                            disabled={index === state.navigation.length - 1}
-                          >
-                            <ChevronDown className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )
-              })}
+                <DragOverlay>
+                  {activeItem && (
+                    <NavItemContent
+                      item={activeItem}
+                      isEditing={false}
+                      isDragOverlay
+                    />
+                  )}
+                </DragOverlay>
+              </DndContext>
 
               {state.navigation.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground text-sm">
@@ -466,6 +411,188 @@ export default function Step4Preview({
           </div>
         </CardContent>
       </Card>
+    </div>
+  )
+}
+
+// ============================================
+// Sortable Nav Item
+// ============================================
+
+interface SortableNavItemProps {
+  item: NavigationItem
+  isEditing: boolean
+  editingLabel: string
+  onEditingLabelChange: (value: string) => void
+  onStartEdit: (item: NavigationItem) => void
+  onSaveLabel: () => void
+  onCancelEdit: () => void
+}
+
+function SortableNavItem({
+  item,
+  isEditing,
+  editingLabel,
+  onEditingLabelChange,
+  onStartEdit,
+  onSaveLabel,
+  onCancelEdit,
+}: SortableNavItemProps) {
+  const { t } = useTranslation('superadmin')
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  const feature = item.featureCode ? FEATURE_REGISTRY[item.featureCode] : null
+  const IconComponent = item.icon ? getIconComponent(item.icon) : null
+  const isCore = feature?.source === 'avoqado_core'
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'flex items-center gap-2 p-3 rounded-lg border bg-card transition-colors mb-2',
+        isDragging && 'opacity-30',
+        isCore ? 'border-l-2 border-l-blue-500/50' : 'border-l-2 border-l-violet-500/50',
+      )}
+    >
+      <button
+        className="touch-none cursor-grab active:cursor-grabbing p-0.5 -ml-1 text-muted-foreground hover:text-foreground"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="w-4 h-4" />
+      </button>
+
+      {isEditing ? (
+        <>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {IconComponent && (
+              <IconComponent className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            )}
+            <Input
+              value={editingLabel}
+              onChange={e => onEditingLabelChange(e.target.value)}
+              placeholder={feature?.name || item.featureCode || ''}
+              className="h-8 text-sm"
+              onKeyDown={e => {
+                if (e.key === 'Enter') onSaveLabel()
+                if (e.key === 'Escape') onCancelEdit()
+              }}
+              autoFocus
+            />
+          </div>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
+              onClick={onSaveLabel}
+              title={t('whiteLabelWizard.preview.saveLabel')}
+            >
+              <Save className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+              onClick={onCancelEdit}
+              title={t('common.cancel')}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {IconComponent && (
+              <IconComponent className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            )}
+            <span className="text-sm font-medium truncate">
+              {item.label || feature?.name || item.featureCode}
+            </span>
+            <Badge
+              variant="outline"
+              className={cn(
+                'text-[10px] px-1.5 py-0 h-4 flex-shrink-0',
+                isCore
+                  ? 'border-blue-500/30 text-blue-500'
+                  : 'border-violet-500/30 text-violet-500',
+              )}
+            >
+              {isCore ? 'Core' : 'Modulo'}
+            </Badge>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 flex-shrink-0"
+            onClick={() => onStartEdit(item)}
+            title={t('whiteLabelWizard.preview.editLabel')}
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </Button>
+        </>
+      )}
+    </div>
+  )
+}
+
+// ============================================
+// Nav Item Content (for DragOverlay)
+// ============================================
+
+interface NavItemContentProps {
+  item: NavigationItem
+  isEditing: boolean
+  isDragOverlay?: boolean
+}
+
+function NavItemContent({ item, isDragOverlay }: NavItemContentProps) {
+  const feature = item.featureCode ? FEATURE_REGISTRY[item.featureCode] : null
+  const IconComponent = item.icon ? getIconComponent(item.icon) : null
+  const isCore = feature?.source === 'avoqado_core'
+
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-2 p-3 rounded-lg border bg-card shadow-lg',
+        isDragOverlay && 'ring-2 ring-primary/30',
+        isCore ? 'border-l-2 border-l-blue-500/50' : 'border-l-2 border-l-violet-500/50',
+      )}
+    >
+      <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        {IconComponent && (
+          <IconComponent className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+        )}
+        <span className="text-sm font-medium truncate">
+          {item.label || feature?.name || item.featureCode}
+        </span>
+        <Badge
+          variant="outline"
+          className={cn(
+            'text-[10px] px-1.5 py-0 h-4 flex-shrink-0',
+            isCore
+              ? 'border-blue-500/30 text-blue-500'
+              : 'border-violet-500/30 text-violet-500',
+          )}
+        >
+          {isCore ? 'Core' : 'Modulo'}
+        </Badge>
+      </div>
     </div>
   )
 }

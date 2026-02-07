@@ -78,6 +78,10 @@ export default function VenueDocuments() {
       return response.data
     },
     enabled: !!venueId,
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 404) return false
+      return failureCount < 2
+    },
   })
 
   // Mutation for uploading a single document

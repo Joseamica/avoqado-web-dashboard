@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useDebounce } from '@/hooks/useDebounce'
 import { Search, X, Download, CheckCircle2, XCircle, Clock } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import type { ColumnDef } from '@tanstack/react-table'
 import { PromoterLocationModal } from './components/PromoterLocationModal'
@@ -27,6 +28,7 @@ import { DepositValidation } from './components/DepositValidation'
 import { AllCheckInsDialog } from './components/AllCheckInsDialog'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useAuth } from '@/context/AuthContext'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/api'
 import accessService from '@/services/access.service'
@@ -64,6 +66,8 @@ interface PromoterRow {
 
 export default function PromotersAuditPage() {
   const { venue } = useCurrentVenue()
+  const { activeVenue } = useAuth()
+  const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
 
   // Filters
   const [storeFilter, setStoreFilter] = useState<string[]>([])
@@ -217,7 +221,7 @@ export default function PromotersAuditPage() {
     if (!value) return undefined
     const date = new Date(value)
     if (Number.isNaN(date.getTime())) return undefined
-    return date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+    return date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: venueTimezone })
   }
 
   const getEntryDate = (entry: TimeEntryData) => {
@@ -688,10 +692,23 @@ export default function PromotersAuditPage() {
 
       {/* Loading State */}
       {isLoading && (
-        <div className="bg-card rounded-xl border p-12 flex items-center justify-center">
-          <div className="text-center space-y-3">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-sm text-muted-foreground">Cargando datos de asistencia...</p>
+        <div className="bg-card rounded-xl border overflow-hidden">
+          <div className="px-6 py-3 border-b bg-muted/30">
+            <Skeleton className="h-4 w-40" />
+          </div>
+          <div className="divide-y divide-border/30">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 px-6 py-4">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+            ))}
           </div>
         </div>
       )}

@@ -26,6 +26,15 @@ export interface TpvSettings {
   showOrderManagement: boolean   // Show "Órdenes" button on home screen
   // Crypto payment option (B4Bit integration)
   showCryptoOption: boolean      // Show crypto payment button in merchant selection
+  // Evidence rules (PlayTelecom — boolean toggles)
+  requireDepositPhoto?: boolean
+  requireFacadePhoto?: boolean
+  // Module toggles for TPV
+  enableCashPayments?: boolean
+  enableCardPayments?: boolean
+  enableBarcodeScanner?: boolean
+  // Venue-level attendance toggle
+  attendanceTracking?: boolean
 }
 
 /**
@@ -59,6 +68,27 @@ const DEFAULT_TPV_SETTINGS: TpvSettings = {
  * Partial update for TPV settings - all fields optional
  */
 export type TpvSettingsUpdate = Partial<TpvSettings>
+
+/**
+ * Venue-level TPV settings subset (applied to ALL terminals in a venue)
+ */
+export interface VenueTpvSettings {
+  attendanceTracking: boolean
+  enableCashPayments: boolean
+  enableCardPayments: boolean
+  enableBarcodeScanner: boolean
+  requireDepositPhoto: boolean
+  requireFacadePhoto: boolean
+}
+
+const DEFAULT_VENUE_TPV_SETTINGS: VenueTpvSettings = {
+  attendanceTracking: false,
+  enableCashPayments: true,
+  enableCardPayments: true,
+  enableBarcodeScanner: true,
+  requireDepositPhoto: false,
+  requireFacadePhoto: false,
+}
 
 /**
  * Merchant account assigned to a terminal
@@ -103,6 +133,28 @@ export const tpvSettingsService = {
   async getTerminalMerchants(tpvId: string): Promise<TerminalMerchant[]> {
     const response = await api.get(`/api/v1/dashboard/tpv/${tpvId}/merchants`)
     return response.data.data || []
+  },
+
+  // ============================================
+  // Venue-Level TPV Settings (bulk — all terminals)
+  // ============================================
+
+  /**
+   * Get venue-level TPV settings (applied to ALL terminals)
+   * @permission venues:read (MANAGER+)
+   */
+  async getVenueSettings(venueId: string): Promise<VenueTpvSettings> {
+    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/settings/tpv`)
+    return { ...DEFAULT_VENUE_TPV_SETTINGS, ...response.data }
+  },
+
+  /**
+   * Update venue-level TPV settings (bulk updates ALL terminals)
+   * @permission venues:update (ADMIN+)
+   */
+  async updateVenueSettings(venueId: string, settings: Partial<VenueTpvSettings>): Promise<VenueTpvSettings> {
+    const response = await api.put(`/api/v1/dashboard/venues/${venueId}/settings/tpv`, settings)
+    return response.data
   },
 }
 

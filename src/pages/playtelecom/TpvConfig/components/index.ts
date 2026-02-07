@@ -1,4 +1,4 @@
 export { ModuleToggles, type ModuleToggleState } from './ModuleToggles'
-export { CatalogEditor, type CatalogItem } from './CatalogEditor'
-export { EvidenceRules, type EvidenceRulesState } from './EvidenceRules'
+export { CategoryEditor } from './CategoryEditor'
 export { PhonePreview } from './PhonePreview'
+export { TerminalManagement } from './TerminalManagement'

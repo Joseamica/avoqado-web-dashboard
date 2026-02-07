@@ -10,9 +10,9 @@ interface UseCurrentVenueReturn {
   hasVenueAccess: boolean
   /** Whether we're in white-label mode (/wl/ routes) */
   isWhiteLabelMode: boolean
-  /** Base path for venue routes: '/wl' or '/venues' depending on current URL */
+  /** Base path for venue routes: '/wl/venues' or '/venues' depending on current URL */
   venueBasePath: string
-  /** Full base path including slug: '/wl/{slug}' or '/venues/{slug}' */
+  /** Full base path including slug: '/wl/venues/{slug}' or '/venues/{slug}' */
   fullBasePath: string
 }
 
@@ -22,8 +22,8 @@ export const useCurrentVenue = (): UseCurrentVenueReturn => {
   const venueSlugParam = params.venueSlug ?? params.slug ?? null
   const { activeVenue, getVenueBySlug, checkVenueAccess, isAuthenticated } = useAuth()
 
-  // Si no hay activeVenue en el contexto, intentar obtenerlo por slug
-  const venue = activeVenue || (venueSlugParam ? getVenueBySlug(venueSlugParam) : null)
+  // URL slug takes priority to avoid stale venue context when path and activeVenue diverge.
+  const venue = venueSlugParam ? getVenueBySlug(venueSlugParam) : activeVenue
 
   // Verificar si el usuario tiene acceso al venue actual
   const hasVenueAccess = !!venueSlugParam && isAuthenticated ? checkVenueAccess(venueSlugParam) : false
@@ -32,17 +32,17 @@ export const useCurrentVenue = (): UseCurrentVenueReturn => {
   const isWhiteLabelMode = location.pathname.startsWith('/wl/')
 
   // Base path for venue routes (without slug)
-  const venueBasePath = isWhiteLabelMode ? '/wl' : '/venues'
+  const venueBasePath = isWhiteLabelMode ? '/wl/venues' : '/venues'
 
   // Full base path including the venue slug
-  const slug = venue?.slug || venueSlugParam
+  const slug = venue?.slug || venueSlugParam || activeVenue?.slug || null
   const fullBasePath = slug ? `${venueBasePath}/${slug}` : venueBasePath
 
   return {
     venue,
     venueId: venue?.id || null,
-    venueSlug: venue?.slug || null,
-    isLoading: !venue && !!venueSlugParam, // Está cargando si hay slug pero no venue
+    venueSlug: slug,
+    isLoading: !!venueSlugParam && isAuthenticated && !venue && hasVenueAccess,
     hasVenueAccess,
     isWhiteLabelMode,
     venueBasePath,

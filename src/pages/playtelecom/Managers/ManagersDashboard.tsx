@@ -138,12 +138,12 @@ export function ManagersDashboard() {
         return {
           id: entry.timeEntryId || entry.id,
           timeEntryId: entry.timeEntryId || null,
-          date: clockInDate.toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'short' }),
+          date: clockInDate.toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'short', timeZone: venueTimezone }),
           storeName: entry.venueName,
           promoterName: entry.name,
-          clockIn: clockInDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase(),
+          clockIn: clockInDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: venueTimezone }).toUpperCase(),
           clockOut: entry.checkOutTime
-            ? new Date(entry.checkOutTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()
+            ? new Date(entry.checkOutTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: venueTimezone }).toUpperCase()
             : null,
           clockInPhotoUrl: entry.checkInPhotoUrl,
           clockOutPhotoUrl: entry.checkOutPhotoUrl,
@@ -353,6 +353,7 @@ export function ManagersDashboard() {
         salesBySIM={salesBySIM}
         goals={goals}
         dailySales={dailySales}
+        formatCurrency={formatCurrency}
       />
 
       {/* Attendance Log */}

@@ -7,7 +7,7 @@
  * Use these hooks for white-label pages instead of useOrganization hooks.
  */
 
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import {
   getOverview,
@@ -22,7 +22,11 @@ import {
   getActivityFeed,
   getStorePerformance,
   getStaffAttendance,
+  createStoreGoal,
+  updateStoreGoal,
+  deleteStoreGoal,
 } from '@/services/storesAnalysis.service'
+import type { CreateStoreGoalInput, UpdateStoreGoalInput } from '@/services/storesAnalysis.service'
 
 /**
  * Query hook for organization overview via venue endpoint
@@ -48,10 +52,7 @@ export function useStoresOverview(options?: {
 /**
  * Query hook for organization venues via venue endpoint
  */
-export function useStoresVenues(options?: {
-  enabled?: boolean
-  refetchInterval?: number
-}) {
+export function useStoresVenues(options?: { enabled?: boolean; refetchInterval?: number }) {
   const { venueId } = useCurrentVenue()
 
   return useQuery({
@@ -66,10 +67,7 @@ export function useStoresVenues(options?: {
 /**
  * Query hook for stock summary via venue endpoint
  */
-export function useStoresStockSummary(options?: {
-  enabled?: boolean
-  refetchInterval?: number
-}) {
+export function useStoresStockSummary(options?: { enabled?: boolean; refetchInterval?: number }) {
   const { venueId } = useCurrentVenue()
 
   return useQuery({
@@ -84,10 +82,7 @@ export function useStoresStockSummary(options?: {
 /**
  * Query hook for anomalies via venue endpoint
  */
-export function useStoresAnomalies(options?: {
-  enabled?: boolean
-  refetchInterval?: number
-}) {
+export function useStoresAnomalies(options?: { enabled?: boolean; refetchInterval?: number }) {
   const { venueId } = useCurrentVenue()
 
   return useQuery({
@@ -102,11 +97,7 @@ export function useStoresAnomalies(options?: {
 /**
  * Query hook for revenue vs target chart via venue endpoint
  */
-export function useStoresRevenueVsTarget(options?: {
-  enabled?: boolean
-  refetchInterval?: number
-  filterVenueId?: string
-}) {
+export function useStoresRevenueVsTarget(options?: { enabled?: boolean; refetchInterval?: number; filterVenueId?: string }) {
   const { venueId } = useCurrentVenue()
   const filterVenueId = options?.filterVenueId
 
@@ -122,11 +113,7 @@ export function useStoresRevenueVsTarget(options?: {
 /**
  * Query hook for volume vs target chart via venue endpoint
  */
-export function useStoresVolumeVsTarget(options?: {
-  enabled?: boolean
-  refetchInterval?: number
-  filterVenueId?: string
-}) {
+export function useStoresVolumeVsTarget(options?: { enabled?: boolean; refetchInterval?: number; filterVenueId?: string }) {
   const { venueId } = useCurrentVenue()
   const filterVenueId = options?.filterVenueId
 
@@ -142,10 +129,7 @@ export function useStoresVolumeVsTarget(options?: {
 /**
  * Query hook for top promoter via venue endpoint
  */
-export function useStoresTopPromoter(options?: {
-  enabled?: boolean
-  refetchInterval?: number
-}) {
+export function useStoresTopPromoter(options?: { enabled?: boolean; refetchInterval?: number }) {
   const { venueId } = useCurrentVenue()
 
   return useQuery({
@@ -160,10 +144,7 @@ export function useStoresTopPromoter(options?: {
 /**
  * Query hook for worst attendance via venue endpoint
  */
-export function useStoresWorstAttendance(options?: {
-  enabled?: boolean
-  refetchInterval?: number
-}) {
+export function useStoresWorstAttendance(options?: { enabled?: boolean; refetchInterval?: number }) {
   const { venueId } = useCurrentVenue()
 
   return useQuery({
@@ -178,10 +159,7 @@ export function useStoresWorstAttendance(options?: {
 /**
  * Query hook for online staff via venue endpoint
  */
-export function useStoresOnlineStaff(options?: {
-  enabled?: boolean
-  refetchInterval?: number
-}) {
+export function useStoresOnlineStaff(options?: { enabled?: boolean; refetchInterval?: number }) {
   const { venueId } = useCurrentVenue()
 
   return useQuery({
@@ -209,15 +187,7 @@ export function useStoresActivityFeed(
   const { venueId } = useCurrentVenue()
 
   return useQuery({
-    queryKey: [
-      'stores-analysis',
-      venueId,
-      'activity-feed',
-      limit,
-      options?.startDate,
-      options?.endDate,
-      options?.filterVenueId,
-    ],
+    queryKey: ['stores-analysis', venueId, 'activity-feed', limit, options?.startDate, options?.endDate, options?.filterVenueId],
     queryFn: () =>
       getActivityFeed(venueId!, {
         limit,
@@ -267,16 +237,76 @@ export function useStoresStaffAttendance(options?: {
   const { venueId } = useCurrentVenue()
 
   return useQuery({
-    queryKey: ['stores-analysis', venueId, 'staff-attendance', options?.date, options?.startDate, options?.endDate, options?.filterVenueId, options?.status],
-    queryFn: () => getStaffAttendance(venueId!, {
-      date: options?.date,
-      startDate: options?.startDate,
-      endDate: options?.endDate,
-      venueId: options?.filterVenueId,
-      status: options?.status,
-    }),
+    queryKey: [
+      'stores-analysis',
+      venueId,
+      'staff-attendance',
+      options?.date,
+      options?.startDate,
+      options?.endDate,
+      options?.filterVenueId,
+      options?.status,
+    ],
+    queryFn: () =>
+      getStaffAttendance(venueId!, {
+        date: options?.date,
+        startDate: options?.startDate,
+        endDate: options?.endDate,
+        venueId: options?.filterVenueId,
+        status: options?.status,
+      }),
     enabled: options?.enabled !== false && !!venueId,
     staleTime: 30000,
     refetchInterval: options?.refetchInterval || 30000,
+  })
+}
+
+// ===========================================
+// STORE GOAL MUTATIONS
+// ===========================================
+
+/**
+ * Mutation hook to create a store goal from the supervisor dashboard
+ */
+export function useCreateStoreGoal() {
+  const { venueId } = useCurrentVenue()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ storeId, data }: { storeId: string; data: CreateStoreGoalInput }) => createStoreGoal(venueId!, storeId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'store-performance'] })
+    },
+  })
+}
+
+/**
+ * Mutation hook to update a store goal from the supervisor dashboard
+ */
+export function useUpdateStoreGoal() {
+  const { venueId } = useCurrentVenue()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ storeId, goalId, data }: { storeId: string; goalId: string; data: UpdateStoreGoalInput }) =>
+      updateStoreGoal(venueId!, storeId, goalId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'store-performance'] })
+    },
+  })
+}
+
+/**
+ * Mutation hook to delete a store goal from the supervisor dashboard
+ */
+export function useDeleteStoreGoal() {
+  const { venueId } = useCurrentVenue()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ storeId, goalId }: { storeId: string; goalId: string }) => deleteStoreGoal(venueId!, storeId, goalId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'store-performance'] })
+    },
   })
 }

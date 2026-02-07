@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import { SocketProvider } from './context/SocketContext'
 import { NotificationProvider } from './context/NotificationContext'
+import { DocumentTitleProvider } from './context/DocumentTitleContext'
 import { Toaster } from './components/ui/toaster'
 import { OfflineBanner } from './components/OfflineBanner'
 import { LoadingScreen } from './components/spinner'
@@ -20,8 +21,10 @@ const Root: React.FC = () => {
           <NotificationProvider>
             <Toaster />
             <Suspense fallback={<LoadingScreen message={t('loading')} />}>
-              <Outlet />
-              <ScrollRestoration />
+              <DocumentTitleProvider>
+                <Outlet />
+                <ScrollRestoration />
+              </DocumentTitleProvider>
             </Suspense>
           </NotificationProvider>
         </SocketProvider>

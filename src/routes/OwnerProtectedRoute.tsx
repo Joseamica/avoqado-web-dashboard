@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next'
 export const OwnerProtectedRoute = () => {
   const { user, isAuthenticated, allVenues, isLoading } = useAuth()
   const location = useLocation()
-  const params = useParams<{ orgId: string }>()
+  const params = useParams<{ orgId?: string; orgSlug?: string }>()
   const { t } = useTranslation('organization')
 
   // Wait for auth to fully load before making permission decisions
@@ -63,20 +63,37 @@ export const OwnerProtectedRoute = () => {
     return <Outlet />
   }
 
-  // For OWNER: validate they have OWNER role in a venue of the requested organization
-  // This supports multi-org scenarios where a user can be OWNER in multiple organizations
-  const urlOrgId = params.orgId
+  const isWhiteLabelOrgRoute = location.pathname.startsWith('/wl/organizations/')
+  const requestedOrgIdentifier = params.orgSlug || params.orgId
+
+  const matchesRequestedOrganization = (venue: (typeof allVenues)[number], orgIdentifier: string) => {
+    if (venue.organizationId === orgIdentifier) return true
+    if (venue.organization?.id === orgIdentifier) return true
+
+    const orgWithSlug = venue.organization as (typeof venue.organization & { slug?: string }) | undefined
+    return orgWithSlug?.slug === orgIdentifier
+  }
+
+  const ownerVenue = allVenues.find(v => v.role === StaffRole.OWNER)
+  const ownerOrgSlug = ownerVenue
+    ? ((ownerVenue.organization as (typeof ownerVenue.organization & { slug?: string }) | undefined)?.slug ?? null)
+    : null
+  const fallbackOrgIdentifier = ownerVenue
+    ? (isWhiteLabelOrgRoute ? (ownerOrgSlug || ownerVenue.organizationId) : ownerVenue.organizationId)
+    : null
+  const fallbackPath = fallbackOrgIdentifier
+    ? (isWhiteLabelOrgRoute ? `/wl/organizations/${fallbackOrgIdentifier}` : `/organizations/${fallbackOrgIdentifier}`)
+    : '/'
 
   // Check if user has a venue with OWNER role in the requested organization
   const isOwnerInRequestedOrg = allVenues.some(
-    venue => venue.organizationId === urlOrgId && venue.role === StaffRole.OWNER
+    venue =>
+      venue.role === StaffRole.OWNER &&
+      !!requestedOrgIdentifier &&
+      matchesRequestedOrganization(venue, requestedOrgIdentifier)
   )
 
-  if (urlOrgId && !isOwnerInRequestedOrg) {
-    // Find an organization where the user IS owner
-    const ownerVenue = allVenues.find(v => v.role === StaffRole.OWNER)
-    const fallbackOrgId = ownerVenue?.organizationId
-
+  if (requestedOrgIdentifier && !isOwnerInRequestedOrg) {
     return (
       <div className="container py-8 mx-auto">
         <Alert variant="destructive" className="mb-4">
@@ -85,8 +102,8 @@ export const OwnerProtectedRoute = () => {
           <AlertDescription>{t('notYourOrganization')}</AlertDescription>
         </Alert>
         <div className="flex justify-center mt-4">
-          {fallbackOrgId ? (
-            <Navigate to={`/organizations/${fallbackOrgId}`} replace />
+          {fallbackOrgIdentifier ? (
+            <Navigate to={fallbackPath} replace />
           ) : (
             <Navigate to="/" replace />
           )}
@@ -95,11 +112,10 @@ export const OwnerProtectedRoute = () => {
     )
   }
 
-  // If no orgId in URL, redirect to user's first OWNER organization
-  if (!urlOrgId) {
-    const ownerVenue = allVenues.find(v => v.role === StaffRole.OWNER)
-    if (ownerVenue?.organizationId) {
-      return <Navigate to={`/organizations/${ownerVenue.organizationId}`} replace />
+  // If no organization identifier in URL, redirect to user's first OWNER organization
+  if (!requestedOrgIdentifier) {
+    if (fallbackOrgIdentifier) {
+      return <Navigate to={fallbackPath} replace />
     }
   }
 
