@@ -153,7 +153,12 @@ export interface WorstAttendanceResponse {
  * Get overview/vision global summary
  * Uses venue-level endpoint for white-label access control
  */
-export const getOverview = async (venueId: string, startDate?: string, endDate?: string, filterVenueId?: string): Promise<VisionGlobalSummary> => {
+export const getOverview = async (
+  venueId: string,
+  startDate?: string,
+  endDate?: string,
+  filterVenueId?: string,
+): Promise<VisionGlobalSummary> => {
   const params: Record<string, string> = {}
   if (startDate) params.startDate = startDate
   if (endDate) params.endDate = endDate
@@ -189,10 +194,7 @@ export const getAnomalies = async (venueId: string): Promise<CrossStoreAnomalies
 /**
  * Get revenue vs target chart data
  */
-export const getRevenueVsTarget = async (
-  venueId: string,
-  filterVenueId?: string
-): Promise<ChartResponse> => {
+export const getRevenueVsTarget = async (venueId: string, filterVenueId?: string): Promise<ChartResponse> => {
   const params = filterVenueId ? { venueId: filterVenueId } : undefined
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/charts/revenue-vs-target`, { params })
   return response.data.data
@@ -201,10 +203,7 @@ export const getRevenueVsTarget = async (
 /**
  * Get volume vs target chart data
  */
-export const getVolumeVsTarget = async (
-  venueId: string,
-  filterVenueId?: string
-): Promise<ChartResponse> => {
+export const getVolumeVsTarget = async (venueId: string, filterVenueId?: string): Promise<ChartResponse> => {
   const params = filterVenueId ? { venueId: filterVenueId } : undefined
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/charts/volume-vs-target`, { params })
   return response.data.data
@@ -239,7 +238,7 @@ export const getOnlineStaff = async (venueId: string): Promise<OnlineStaffRespon
  */
 export const getActivityFeed = async (
   venueId: string,
-  params?: { limit?: number; startDate?: string; endDate?: string; filterVenueId?: string }
+  params?: { limit?: number; startDate?: string; endDate?: string; filterVenueId?: string },
 ): Promise<ActivityFeedResponse> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/activity-feed`, { params })
   return response.data.data
@@ -264,6 +263,7 @@ export interface StorePerformanceRanking {
   performance?: number
   goalAmount?: number
   goalPeriod?: 'DAILY' | 'WEEKLY' | 'MONTHLY'
+  goalId?: string
 }
 
 export interface StorePerformanceRankingResponse {
@@ -301,7 +301,7 @@ export interface StaffAttendanceResponse {
  */
 export const getStorePerformance = async (
   venueId: string,
-  params?: { limit?: number; startDate?: string; endDate?: string }
+  params?: { limit?: number; startDate?: string; endDate?: string },
 ): Promise<StorePerformanceRankingResponse> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/store-performance`, { params })
   return response.data.data
@@ -312,7 +312,7 @@ export const getStorePerformance = async (
  */
 export const getStaffAttendance = async (
   venueId: string,
-  params?: { date?: string; venueId?: string; status?: string; startDate?: string; endDate?: string }
+  params?: { date?: string; venueId?: string; status?: string; startDate?: string; endDate?: string },
 ): Promise<StaffAttendanceResponse> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/staff-attendance`, { params })
   return response.data.data
@@ -324,25 +324,17 @@ export const getStaffAttendance = async (
 export const validateTimeEntry = async (
   venueId: string,
   timeEntryId: string,
-  data: { status: 'APPROVED' | 'REJECTED'; note?: string; depositAmount?: number }
+  data: { status: 'APPROVED' | 'REJECTED'; note?: string; depositAmount?: number },
 ): Promise<{ id: string; validationStatus: string }> => {
-  const response = await api.post(
-    `/api/v1/dashboard/venues/${venueId}/stores-analysis/time-entry/${timeEntryId}/validate`,
-    data
-  )
+  const response = await api.post(`/api/v1/dashboard/venues/${venueId}/stores-analysis/time-entry/${timeEntryId}/validate`, data)
   return response.data.data
 }
 
 /**
  * Reset a time entry validation back to PENDING
  */
-export const resetTimeEntryValidation = async (
-  venueId: string,
-  timeEntryId: string,
-): Promise<{ id: string; validationStatus: string }> => {
-  const response = await api.post(
-    `/api/v1/dashboard/venues/${venueId}/stores-analysis/time-entry/${timeEntryId}/reset-validation`
-  )
+export const resetTimeEntryValidation = async (venueId: string, timeEntryId: string): Promise<{ id: string; validationStatus: string }> => {
+  const response = await api.post(`/api/v1/dashboard/venues/${venueId}/stores-analysis/time-entry/${timeEntryId}/reset-validation`)
   return response.data.data
 }
 
@@ -383,7 +375,7 @@ export interface ZoneWithVenues {
  */
 export const getClosingReportData = async (
   venueId: string,
-  params?: { date?: string; venueId?: string }
+  params?: { date?: string; venueId?: string },
 ): Promise<ClosingReportResponse> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/closing-report`, { params })
   return response.data.data
@@ -392,10 +384,7 @@ export const getClosingReportData = async (
 /**
  * Download closing report as Excel
  */
-export const downloadClosingReportXlsx = async (
-  venueId: string,
-  params?: { date?: string; venueId?: string }
-): Promise<Blob> => {
+export const downloadClosingReportXlsx = async (venueId: string, params?: { date?: string; venueId?: string }): Promise<Blob> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/closing-report/download`, {
     params,
     responseType: 'blob',
@@ -445,10 +434,7 @@ export const getTeam = async (venueId: string): Promise<TeamMember[]> => {
 /**
  * Admin reset password for a user
  */
-export const adminResetPassword = async (
-  venueId: string,
-  userId: string
-): Promise<{ temporaryPassword: string; message: string }> => {
+export const adminResetPassword = async (venueId: string, userId: string): Promise<{ temporaryPassword: string; message: string }> => {
   const response = await api.post(`/api/v1/dashboard/venues/${venueId}/stores-analysis/admin/reset-password/${userId}`)
   return response.data.data
 }
@@ -464,10 +450,7 @@ export interface ActivityLogEntry {
 /**
  * Get activity logs for a staff member
  */
-export const getStaffActivityLog = async (
-  venueId: string,
-  staffId: string
-): Promise<ActivityLogEntry[]> => {
+export const getStaffActivityLog = async (venueId: string, staffId: string): Promise<ActivityLogEntry[]> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/team/${staffId}/activity`)
   return response.data.data
 }
@@ -478,7 +461,7 @@ export const getStaffActivityLog = async (
 export const syncStaffVenues = async (
   venueId: string,
   staffId: string,
-  venueIds: string[]
+  venueIds: string[],
 ): Promise<{ added: number; removed: number }> => {
   const response = await api.patch(`/api/v1/dashboard/venues/${venueId}/stores-analysis/team/${staffId}/venues`, { venueIds })
   return response.data.data
@@ -582,7 +565,7 @@ export const getStoreSummary = async (venueId: string, storeId: string): Promise
 export const getStoreSalesTrend = async (
   venueId: string,
   storeId: string,
-  params?: { days?: number; startDate?: string; endDate?: string }
+  params?: { days?: number; startDate?: string; endDate?: string },
 ): Promise<StoreSalesTrendResponse> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/store/${storeId}/sales-trend`, { params })
   return response.data.data
@@ -595,4 +578,64 @@ export const getStoreSalesTrend = async (
 export const getStoreInventorySummary = async (venueId: string, storeId: string): Promise<StoreInventorySummary> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/store/${storeId}/inventory-summary`)
   return response.data.data
+}
+
+// ===========================================
+// STORE GOAL MANAGEMENT
+// ===========================================
+
+export interface StoreGoal {
+  id: string
+  venueId: string
+  staffId: string | null
+  goal: number
+  period: 'DAILY' | 'WEEKLY' | 'MONTHLY'
+  currentSales: number
+  active: boolean
+  createdAt: string
+  updatedAt: string
+  staff?: { id: string; firstName: string; lastName: string } | null
+}
+
+export interface CreateStoreGoalInput {
+  staffId?: string | null
+  goal: number
+  period: 'DAILY' | 'WEEKLY' | 'MONTHLY'
+}
+
+export interface UpdateStoreGoalInput {
+  goal?: number
+  period?: 'DAILY' | 'WEEKLY' | 'MONTHLY'
+  active?: boolean
+}
+
+/**
+ * Get all sales goals for a specific store
+ */
+export const getStoreGoals = async (venueId: string, storeId: string): Promise<StoreGoal[]> => {
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/store/${storeId}/goals`)
+  return response.data.data
+}
+
+/**
+ * Create a new sales goal for a specific store
+ */
+export const createStoreGoal = async (venueId: string, storeId: string, data: CreateStoreGoalInput): Promise<StoreGoal> => {
+  const response = await api.post(`/api/v1/dashboard/venues/${venueId}/stores-analysis/store/${storeId}/goals`, data)
+  return response.data.data
+}
+
+/**
+ * Update an existing sales goal for a specific store
+ */
+export const updateStoreGoal = async (venueId: string, storeId: string, goalId: string, data: UpdateStoreGoalInput): Promise<StoreGoal> => {
+  const response = await api.patch(`/api/v1/dashboard/venues/${venueId}/stores-analysis/store/${storeId}/goals/${goalId}`, data)
+  return response.data.data
+}
+
+/**
+ * Delete a sales goal for a specific store
+ */
+export const deleteStoreGoal = async (venueId: string, storeId: string, goalId: string): Promise<void> => {
+  await api.delete(`/api/v1/dashboard/venues/${venueId}/stores-analysis/store/${storeId}/goals/${goalId}`)
 }

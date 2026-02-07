@@ -18,7 +18,7 @@ const localPlugin = {
 }
 
 export default tseslint.config(
-  { ignores: ['dist', '**/*.json'] },
+  { ignores: ['dist', '**/*.json', '**/*.svg'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],

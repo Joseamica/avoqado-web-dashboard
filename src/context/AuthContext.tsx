@@ -227,6 +227,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (isStatusLoading || !isAuthenticated || !user) return
 
     const userVenues = user.venues || []
+    const isSuperAdmin = user.role === 'SUPERADMIN'
+    const accessibleVenues = isSuperAdmin ? allVenues : userVenues
 
     // PRIORITY 1: URL-based returnTo parameter (Stripe/GitHub pattern)
     // This is the industry-standard way to preserve navigation state across login
@@ -255,14 +257,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     // SUPERADMIN users should have access to all venues and superadmin routes
-    if (userVenues.length > 0 || user.role === 'SUPERADMIN') {
+    if (accessibleVenues.length > 0 || isSuperAdmin) {
       // STRIPE/SHOPIFY PATTERN: Smart venue selection for login redirect
       // Priority: 1) Last accessed venue, 2) Highest role venue, 3) First venue
       const getSmartDefaultVenue = () => {
         // 1. Check localStorage for last used venue (Stripe pattern)
         const lastUsedSlug = localStorage.getItem('avoqado_current_venue_slug')
         if (lastUsedSlug) {
-          const lastUsedVenue = userVenues.find((v: any) => v.slug === lastUsedSlug)
+          const lastUsedVenue = accessibleVenues.find((v: any) => v.slug === lastUsedSlug)
           if (lastUsedVenue) return lastUsedVenue
         }
 
@@ -278,7 +280,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           HOST: 30,
           VIEWER: 10,
         }
-        const sortedByRole = [...userVenues].sort((a: any, b: any) => {
+        const sortedByRole = [...accessibleVenues].sort((a: any, b: any) => {
           const roleA = roleHierarchy[a.role] || 0
           const roleB = roleHierarchy[b.role] || 0
           return roleB - roleA // Higher role first
@@ -286,14 +288,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (sortedByRole.length > 0) return sortedByRole[0]
 
         // 3. Fallback to first venue
-        return userVenues[0] || allVenues[0]
+        return accessibleVenues[0] || allVenues[0]
       }
 
       const defaultVenue = getSmartDefaultVenue()
 
       // Redirigir desde rutas base a la home del venue por defecto (unless SUPERADMIN going to /superadmin)
       if (location.pathname === '/' || location.pathname === '/login') {
-        if (user.role === 'SUPERADMIN') {
+        if (isSuperAdmin) {
           navigate('/superadmin', { replace: true })
         } else {
           // Use getVenueBasePath to redirect to /wl/venues/:slug if WHITE_LABEL_DASHBOARD is enabled
@@ -305,7 +307,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // Si hay venueSlug en la URL, buscar el venue correspondiente
       if (slug) {
-        const venueFromSlug = userVenues.find((v: any) => v.slug === slug)
+        const venueFromSlug = accessibleVenues.find((v: any) => v.slug === slug)
 
         if (venueFromSlug) {
           // Si encontramos el venue y no es el activo, actualizarlo
@@ -313,9 +315,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setActiveVenue(venueFromSlug)
           }
         } else {
-          // Si el slug no corresponde a ningún venue del usuario, redirigir al default
-          const basePath = getVenueBasePath(defaultVenue)
-          navigate(`${basePath}/home`, { replace: true })
+          // Si el slug no corresponde a ningún venue accesible, redirigir al default.
+          // SUPERADMIN sin venues visibles regresa al dashboard global.
+          if (defaultVenue) {
+            const basePath = getVenueBasePath(defaultVenue)
+            navigate(`${basePath}/home`, { replace: true })
+          } else if (isSuperAdmin) {
+            navigate('/superadmin', { replace: true })
+          }
         }
       } else if (!slug && activeVenue) {
         // Si no hay slug en la URL pero hay venue activo, usar el activo para la navegación
@@ -344,6 +351,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isAuthenticated,
     isStatusLoading,
     location.pathname,
+    location.search,
     navigate,
     activeVenue?.id,
     getVenueBySlug,
@@ -373,6 +381,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             org: firstInvitation.organizationName,
           }),
         })
+
+        // Ensure auth state is synchronized before opening invitation flow
+        await queryClient.fetchQuery({
+          queryKey: ['status'],
+          queryFn: authService.getAuthStatus,
+          staleTime: 0,
+        })
+
+        // Optimistic auth hint for smoother reloads after invitation acceptance
+        localStorage.setItem('avoqado_session_hint', 'true')
 
         // Redirect to invitation acceptance page
         navigate(`/invite/${firstInvitation.token}`, { replace: true })
@@ -788,12 +806,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkVenueAccess = useCallback(
     (slugToCheck: string): boolean => {
-      if (!user) return false
-      if (userRole === StaffRole.SUPERADMIN) return true // SUPERADMIN can access all venues
-      if (userRole === StaffRole.OWNER) return true // OWNER can access all venues in their organization
-      return user.venues.some(venue => venue.slug === slugToCheck)
+      if (!user || !slugToCheck) return false
+
+      // SUPERADMIN is global, but still constrained to existing venues.
+      // OWNER and other roles are constrained to venues returned by backend access scope.
+      const accessibleVenues = userRole === StaffRole.SUPERADMIN ? allVenues : (user.venues ?? [])
+      return accessibleVenues.some(venue => venue.slug === slugToCheck)
     },
-    [user, userRole],
+    [user, userRole, allVenues],
   )
 
   const authorizeVenue = useCallback(

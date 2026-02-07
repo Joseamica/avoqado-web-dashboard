@@ -90,7 +90,6 @@ import { ProtectedRoute } from './ProtectedRoute'
 import { createVenueRoutes } from './venueRoutes'
 
 import { Layout } from '@/Layout'
-import { KYCSetupRequired } from '@/pages/KYCSetupRequired'
 import { AdminAccessLevel, AdminProtectedRoute } from './AdminProtectedRoute'
 import { ManagerProtectedRoute } from './ManagerProtectedRoute'
 import { ModuleProtectedRoute } from './ModuleProtectedRoute'
@@ -424,11 +423,8 @@ const router = createBrowserRouter(
               element: <Dashboard />,
               errorElement: <ErrorPage />,
               children: [
-                // KYC Setup Required Page (shown when KYC verification is needed)
-                { path: 'kyc-required', element: <KYCSetupRequired /> },
-
                 // ========== SHARED ROUTES (from createVenueRoutes) ==========
-                // These routes are shared with /wl/:slug
+                // These routes are shared with /wl/venues/:slug
                 ...createVenueRoutes(),
 
                 // ========== VENUE-ONLY ROUTES ==========

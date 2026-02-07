@@ -67,6 +67,9 @@ export interface InviteTeamMemberRequest {
   type?: InviteType // 'email' (default) or 'tpv-only'
   pin?: string // Required for TPV-only
   inviteToAllVenues?: boolean // When true, creates StaffVenue for all org venues (OWNER role only)
+  allowFakeEmail?: boolean // SUPERADMIN-only test mode
+  generateTestCredentials?: boolean // Ask backend for temporary login credentials
+  testInvite?: boolean // Marks invitation as test-only
 }
 
 export interface UpdateTeamMemberRequest {
@@ -97,6 +100,16 @@ export interface InviteTeamMemberResponse {
   inviteLink?: string
   pinConflicts?: PinConflict[]
   venuesAssigned?: number
+  temporaryPassword?: string
+  username?: string
+  userId?: string
+  staffId?: string
+  testCredentials?: {
+    username?: string
+    email?: string
+    password?: string
+    temporaryPassword?: string
+  }
 }
 
 // Team Management Service

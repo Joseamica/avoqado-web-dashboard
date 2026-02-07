@@ -56,9 +56,9 @@ import {
   Check,
   ImageIcon,
   BarChart3,
-  Loader2,
   AlertTriangle,
 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { useDebounce } from '@/hooks/useDebounce'
 import { getLast30Days, useVenueDateTime } from '@/utils/datetime'
@@ -550,8 +550,9 @@ export function SalesReport() {
                 {t('playtelecom:sales.totalRevenuePeriod', { defaultValue: 'Ingreso Total (Periodo)' })}
               </p>
               {isLoadingSummary ? (
-                <div className="h-9 flex items-center">
-                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                <div className="space-y-2 mt-1">
+                  <Skeleton className="h-8 w-28" />
+                  <Skeleton className="h-3 w-20" />
                 </div>
               ) : (
                 <>
@@ -579,8 +580,9 @@ export function SalesReport() {
                 {t('playtelecom:sales.salesVolume', { defaultValue: 'Volumen Ventas' })}
               </p>
               {isLoadingSummary ? (
-                <div className="h-9 flex items-center">
-                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                <div className="space-y-2 mt-1">
+                  <Skeleton className="h-8 w-28" />
+                  <Skeleton className="h-3 w-20" />
                 </div>
               ) : (
                 <>
@@ -608,8 +610,9 @@ export function SalesReport() {
                 {t('playtelecom:sales.avgTicket')}
               </p>
               {isLoadingSummary ? (
-                <div className="h-9 flex items-center">
-                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                <div className="space-y-2 mt-1">
+                  <Skeleton className="h-8 w-28" />
+                  <Skeleton className="h-3 w-20" />
                 </div>
               ) : (
                 <>
@@ -780,11 +783,18 @@ export function SalesReport() {
             <tbody className="divide-y divide-border/30">
               {isLoadingVerifications ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {t('common:loading', { defaultValue: 'Cargando...' })}
-                    </p>
+                  <td colSpan={5} className="p-0">
+                    <div className="space-y-0 divide-y divide-border/30">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <div key={i} className="flex items-center gap-4 px-6 py-4">
+                          <Skeleton className="h-4 w-20" />
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-4 w-20 ml-auto" />
+                          <Skeleton className="h-5 w-16 rounded-full" />
+                        </div>
+                      ))}
+                    </div>
                   </td>
                 </tr>
               ) : verifications.length === 0 ? (

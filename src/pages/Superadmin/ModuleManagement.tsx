@@ -31,6 +31,7 @@ import {
 } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import React, { Suspense, lazy, useCallback, useMemo, useState } from 'react'
+import { FullScreenModal } from '@/components/ui/full-screen-modal'
 
 // Lazy load WhiteLabelWizard to avoid loading it for all users
 const WhiteLabelWizard = lazy(() => import('@/pages/Superadmin/WhiteLabelBuilder/WhiteLabelWizard'))
@@ -1071,99 +1072,96 @@ const ModuleManagement: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* White-Label Wizard Dialog */}
-      <Dialog
-        open={isWhiteLabelWizardOpen}
-        onOpenChange={(open) => {
-          setIsWhiteLabelWizardOpen(open)
-          if (!open) setSelectedVenueForWizard(null)
-        }}
-      >
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-          {selectedVenueForWizard ? (
-            <Suspense fallback={<div className="py-8 text-center text-muted-foreground">Cargando wizard...</div>}>
-              {/* Key forces re-mount when venue changes, ensuring fresh state and config load */}
-              <WhiteLabelWizard
-                key={selectedVenueForWizard.id}
-                initialVenueId={selectedVenueForWizard.id}
-                initialVenueName={selectedVenueForWizard.name}
-                onComplete={async (venueId, config) => {
-                  try {
-                    // Save config and get updated venueModule from API
-                    const { venueModule: updatedModule } = await moduleAPI.updateModuleConfig(
-                      venueId,
-                      'WHITE_LABEL_DASHBOARD',
-                      config
-                    )
+      {/* White-Label Wizard Full-Screen Modal */}
+      {selectedVenueForWizard && (
+        <FullScreenModal
+          open={isWhiteLabelWizardOpen}
+          onClose={() => {
+            setIsWhiteLabelWizardOpen(false)
+            setSelectedVenueForWizard(null)
+          }}
+          title={`Configurar White-Label — ${selectedVenueForWizard.name}`}
+        >
+          <Suspense fallback={<div className="py-8 text-center text-muted-foreground">Cargando wizard...</div>}>
+            {/* Key forces re-mount when venue changes, ensuring fresh state and config load */}
+            <WhiteLabelWizard
+              key={selectedVenueForWizard.id}
+              initialVenueId={selectedVenueForWizard.id}
+              initialVenueName={selectedVenueForWizard.name}
+              onComplete={async (venueId, config) => {
+                try {
+                  // Save config and get updated venueModule from API
+                  const { venueModule: updatedModule } = await moduleAPI.updateModuleConfig(
+                    venueId,
+                    'WHITE_LABEL_DASHBOARD',
+                    config
+                  )
 
-                    // ============================================
-                    // WORLD-CLASS PATTERN: Optimistic Cache Update
-                    // Instead of refetching ALL data, surgically update only what changed.
-                    // This is how Stripe, Linear, and Vercel handle cache updates.
-                    // Benefits:
-                    // - Instant UI update (no loading state)
-                    // - No unnecessary network requests
-                    // - Reduced server load
-                    // - Better UX
-                    // ============================================
-                    queryClient.setQueryData(['status'], (oldData: any) => {
-                      if (!oldData) return oldData
+                  // ============================================
+                  // WORLD-CLASS PATTERN: Optimistic Cache Update
+                  // Instead of refetching ALL data, surgically update only what changed.
+                  // This is how Stripe, Linear, and Vercel handle cache updates.
+                  // Benefits:
+                  // - Instant UI update (no loading state)
+                  // - No unnecessary network requests
+                  // - Reduced server load
+                  // - Better UX
+                  // ============================================
+                  queryClient.setQueryData(['status'], (oldData: any) => {
+                    if (!oldData) return oldData
 
-                      // Helper to update a venue's modules array
-                      const updateVenueModules = (venue: any) => {
-                        if (venue.id !== venueId) return venue
+                    // Helper to update a venue's modules array
+                    const updateVenueModules = (venue: any) => {
+                      if (venue.id !== venueId) return venue
 
-                        // Find and update the WHITE_LABEL_DASHBOARD module
-                        const updatedModules = venue.modules?.map((m: any) =>
-                          m.module.code === 'WHITE_LABEL_DASHBOARD'
-                            ? { ...m, config: updatedModule.config }
-                            : m
-                        ) ?? []
+                      // Find and update the WHITE_LABEL_DASHBOARD module
+                      const updatedModules = venue.modules?.map((m: any) =>
+                        m.module.code === 'WHITE_LABEL_DASHBOARD'
+                          ? { ...m, config: updatedModule.config }
+                          : m
+                      ) ?? []
 
-                        return { ...venue, modules: updatedModules }
-                      }
+                      return { ...venue, modules: updatedModules }
+                    }
 
-                      return {
-                        ...oldData,
-                        // Update in user.venues (for non-SUPERADMIN users)
-                        user: oldData.user ? {
-                          ...oldData.user,
-                          venues: oldData.user.venues?.map(updateVenueModules) ?? []
-                        } : null,
-                        // Update in allVenues (for SUPERADMIN users)
-                        allVenues: oldData.allVenues?.map(updateVenueModules) ?? []
-                      }
-                    })
+                    return {
+                      ...oldData,
+                      // Update in user.venues (for non-SUPERADMIN users)
+                      user: oldData.user ? {
+                        ...oldData.user,
+                        venues: oldData.user.venues?.map(updateVenueModules) ?? []
+                      } : null,
+                      // Update in allVenues (for SUPERADMIN users)
+                      allVenues: oldData.allVenues?.map(updateVenueModules) ?? []
+                    }
+                  })
 
-                    toast({
-                      title: 'Configuración guardada',
-                      description: 'La configuración white-label ha sido actualizada.',
-                    })
-                    setIsWhiteLabelWizardOpen(false)
-                    setSelectedVenueForWizard(null)
-
-                    // Invalidate superadmin-specific queries (these are only for the management UI)
-                    queryClient.invalidateQueries({ queryKey: ['superadmin-modules'] })
-                    queryClient.invalidateQueries({ queryKey: ['superadmin-module-venues'] })
-                  } catch (error: any) {
-                    toast({
-                      title: 'Error al guardar',
-                      description: error?.response?.data?.error || error.message,
-                      variant: 'destructive',
-                    })
-                  }
-                }}
-                onCancel={() => {
+                  toast({
+                    title: 'Configuración guardada',
+                    description: 'La configuración white-label ha sido actualizada.',
+                  })
                   setIsWhiteLabelWizardOpen(false)
                   setSelectedVenueForWizard(null)
-                }}
-              />
-            </Suspense>
-          ) : (
-            <div className="py-8 text-center text-muted-foreground">Cargando...</div>
-          )}
-        </DialogContent>
-      </Dialog>
+
+                  // Invalidate superadmin-specific queries (these are only for the management UI)
+                  queryClient.invalidateQueries({ queryKey: ['superadmin-modules'] })
+                  queryClient.invalidateQueries({ queryKey: ['superadmin-module-venues'] })
+                } catch (error: any) {
+                  toast({
+                    title: 'Error al guardar',
+                    description: error?.response?.data?.error || error.message,
+                    variant: 'destructive',
+                  })
+                }
+              }}
+              onCancel={() => {
+                setIsWhiteLabelWizardOpen(false)
+                setSelectedVenueForWizard(null)
+              }}
+            />
+          </Suspense>
+        </FullScreenModal>
+      )}
 
       {/* Module Creation Wizard v2 Dialog */}
       <Dialog open={isModuleWizardOpen} onOpenChange={setIsModuleWizardOpen}>

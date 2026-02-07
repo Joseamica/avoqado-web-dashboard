@@ -9,7 +9,7 @@ type RouteTitleTranslators = {
   sidebarT: Translate
   organizationT: Translate
   commonT: Translate
-  playtelecomT: Translate
+  menuT: Translate
 }
 
 const APP_NAME = 'Avoqado'
@@ -164,7 +164,7 @@ const resolveInventoryTitle = (segments: string[], sidebarT: Translate): string 
   return inventoryMap[section ?? ''] ?? humanizePathSegment(section ?? 'inventory')
 }
 
-const resolveVenueTitle = ({ sidebarT, commonT, playtelecomT }: RouteTitleTranslators, segments: string[]): string => {
+const resolveVenueTitle = ({ sidebarT, commonT, menuT }: RouteTitleTranslators, segments: string[]): string => {
   const [section, subsection, thirdSection] = segments
 
   if (!section) return sidebarT('routes.home', { defaultValue: 'Home' })
@@ -213,11 +213,11 @@ const resolveVenueTitle = ({ sidebarT, commonT, playtelecomT }: RouteTitleTransl
   if (section === 'menumaker') {
     const menuMap: Record<string, string> = {
       '': sidebarT('routes.menumaker', { defaultValue: 'Products' }),
-      overview: sidebarT('routes.overview', { defaultValue: 'Overview' }),
-      menus: playtelecomT('menus.title', { defaultValue: 'Menus' }),
-      categories: sidebarT('routes.categories', { defaultValue: 'Categories' }),
-      products: sidebarT('routes.products', { defaultValue: 'Products' }),
-      'modifier-groups': 'Modifier Groups',
+      overview: menuT('menumaker.nav.overview', { defaultValue: 'Overview' }),
+      menus: menuT('menumaker.nav.menus', { defaultValue: 'Menus' }),
+      categories: menuT('menumaker.nav.categories', { defaultValue: 'Categories' }),
+      products: menuT('menumaker.nav.products', { defaultValue: 'Products' }),
+      'modifier-groups': menuT('menumaker.nav.modifierGroups', { defaultValue: 'Modifier Groups' }),
     }
 
     return menuMap[subsection ?? ''] ?? sidebarT('routes.menumaker', { defaultValue: 'Products' })
@@ -363,4 +363,3 @@ export const resolveRouteDocumentTitle = (pathname: string, translators: RouteTi
 
   return resolvePublicTitle(segments, translators.sidebarT)
 }
-

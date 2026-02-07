@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 import { buildDocumentTitle, resolveRouteDocumentTitle } from '@/lib/document-title'
+import { applyFaviconHref, resolveFaviconHref } from '@/lib/favicon'
 import { DocumentTitleContext, type DocumentTitleContextValue } from './document-title-context'
 
 type PageTitleEntry = {
@@ -18,7 +19,7 @@ export function DocumentTitleProvider({ children }: DocumentTitleProviderProps) 
   const { t: sidebarT } = useTranslation('sidebar')
   const { t: organizationT } = useTranslation('organization')
   const { t: commonT } = useTranslation('common')
-  const { t: playtelecomT } = useTranslation('playtelecom')
+  const { t: menuT } = useTranslation('menu')
   const [pageTitleEntry, setPageTitleEntry] = useState<PageTitleEntry>(null)
 
   useEffect(() => {
@@ -48,9 +49,9 @@ export function DocumentTitleProvider({ children }: DocumentTitleProviderProps) 
         sidebarT,
         organizationT,
         commonT,
-        playtelecomT,
+        menuT,
       }),
-    [location.pathname, sidebarT, organizationT, commonT, playtelecomT],
+    [location.pathname, sidebarT, organizationT, commonT, menuT],
   )
 
   const activeTitle = pageTitleEntry?.title ?? routeTitle
@@ -58,6 +59,10 @@ export function DocumentTitleProvider({ children }: DocumentTitleProviderProps) 
   useEffect(() => {
     document.title = buildDocumentTitle(activeTitle)
   }, [activeTitle])
+
+  useEffect(() => {
+    applyFaviconHref(resolveFaviconHref(location.pathname))
+  }, [location.pathname])
 
   const value = useMemo<DocumentTitleContextValue>(
     () => ({

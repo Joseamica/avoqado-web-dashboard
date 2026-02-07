@@ -13,17 +13,17 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Settings, RotateCcw, Save, Loader2 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { GlassCard } from '@/components/ui/glass-card'
 import { useAuth } from '@/context/AuthContext'
 import { tpvSettingsService, type VenueTpvSettings } from '@/services/tpv-settings.service'
 import { useToast } from '@/hooks/use-toast'
 import {
   ModuleToggles,
   CategoryEditor,
-  EvidenceRules,
   PhonePreview,
   TerminalManagement,
   type ModuleToggleState,
-  type EvidenceRulesState,
 } from './components'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 
@@ -31,32 +31,21 @@ import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 const DEFAULT_MODULES: ModuleToggleState = {
   attendanceTracking: false,
   requireFacadePhoto: false,
+  requireDepositPhoto: false,
   enableCashPayments: true,
   enableCardPayments: true,
   enableBarcodeScanner: true,
 }
 
-// Default evidence rules (matches backend defaults)
-const DEFAULT_EVIDENCE: EvidenceRulesState = {
-  requireDepositPhoto: false,
-}
-
 /** Map API response to component state */
-function settingsToState(settings: VenueTpvSettings): {
-  modules: ModuleToggleState
-  evidence: EvidenceRulesState
-} {
+function settingsToState(settings: VenueTpvSettings): ModuleToggleState {
   return {
-    modules: {
-      attendanceTracking: settings.attendanceTracking,
-      requireFacadePhoto: settings.requireFacadePhoto,
-      enableCashPayments: settings.enableCashPayments,
-      enableCardPayments: settings.enableCardPayments,
-      enableBarcodeScanner: settings.enableBarcodeScanner,
-    },
-    evidence: {
-      requireDepositPhoto: settings.requireDepositPhoto,
-    },
+    attendanceTracking: settings.attendanceTracking,
+    requireFacadePhoto: settings.requireFacadePhoto,
+    requireDepositPhoto: settings.requireDepositPhoto,
+    enableCashPayments: settings.enableCashPayments,
+    enableCardPayments: settings.enableCardPayments,
+    enableBarcodeScanner: settings.enableBarcodeScanner,
   }
 }
 
@@ -77,15 +66,12 @@ export function TpvConfiguration() {
 
   // State
   const [modules, setModules] = useState<ModuleToggleState>(DEFAULT_MODULES)
-  const [evidence, setEvidence] = useState<EvidenceRulesState>(DEFAULT_EVIDENCE)
   const [hasChanges, setHasChanges] = useState(false)
 
   // Hydrate state from API when settings are fetched
   useEffect(() => {
     if (tpvSettings && !hasChanges) {
-      const { modules: m, evidence: e } = settingsToState(tpvSettings)
-      setModules(m)
-      setEvidence(e)
+      setModules(settingsToState(tpvSettings))
     }
   }, [tpvSettings, hasChanges])
 
@@ -93,10 +79,7 @@ export function TpvConfiguration() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!venueId) throw new Error('No venue ID')
-      await tpvSettingsService.updateVenueSettings(venueId, {
-        ...modules,
-        ...evidence,
-      })
+      await tpvSettingsService.updateVenueSettings(venueId, modules)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['venue', venueId, 'tpv-settings'] })
@@ -119,14 +102,8 @@ export function TpvConfiguration() {
     setHasChanges(true)
   }, [])
 
-  const handleEvidenceChange = useCallback((key: keyof EvidenceRulesState, value: boolean) => {
-    setEvidence(prev => ({ ...prev, [key]: value }))
-    setHasChanges(true)
-  }, [])
-
   const handleResetDefaults = useCallback(() => {
     setModules(DEFAULT_MODULES)
-    setEvidence(DEFAULT_EVIDENCE)
     setHasChanges(true)
   }, [])
 
@@ -168,8 +145,37 @@ export function TpvConfiguration() {
       </div>
 
       {settingsLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <div className="grid grid-cols-12 gap-6">
+          <div className="col-span-12 xl:col-span-8 space-y-6">
+            {/* ModuleToggles skeleton */}
+            <GlassCard className="p-6">
+              <Skeleton className="h-5 w-48 mb-4" />
+              <div className="space-y-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-5 w-9 rounded-full" />
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+            {/* CategoryEditor skeleton */}
+            <GlassCard className="p-6">
+              <Skeleton className="h-5 w-52 mb-4" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="rounded-xl border border-border/50 p-3 space-y-2">
+                    <Skeleton className="h-1.5 w-full rounded" />
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          </div>
+          <div className="col-span-12 xl:col-span-4 hidden xl:flex justify-center">
+            <Skeleton className="h-[500px] w-[280px] rounded-3xl" />
+          </div>
         </div>
       ) : (
         /* Main layout: config (left) + preview (right) */
@@ -178,7 +184,6 @@ export function TpvConfiguration() {
           <div className="col-span-12 xl:col-span-8 space-y-6">
             <ModuleToggles values={modules} onChange={handleModuleChange} />
             <CategoryEditor />
-            <EvidenceRules values={evidence} onChange={handleEvidenceChange} />
             <TerminalManagement />
           </div>
 

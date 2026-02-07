@@ -23,7 +23,7 @@ type ManagerProtectedRouteProps = {
  * Blocked: WAITER, CASHIER, KITCHEN, HOST, VIEWER (unless allowViewer=true)
  */
 export const ManagerProtectedRoute = ({ allowViewer = false }: ManagerProtectedRouteProps) => {
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, staffInfo } = useAuth()
   const location = useLocation()
   const { t } = useTranslation()
 
@@ -33,15 +33,17 @@ export const ManagerProtectedRoute = ({ allowViewer = false }: ManagerProtectedR
     return <Navigate to={`/login?returnTo=${returnTo}`} replace />
   }
 
+  const effectiveRole = staffInfo?.role || user.role
+
   // Check if user has MANAGER level or higher
   const isManager =
-    user.role === StaffRole.MANAGER ||
-    user.role === StaffRole.ADMIN ||
-    user.role === StaffRole.OWNER ||
-    user.role === StaffRole.SUPERADMIN
+    effectiveRole === StaffRole.MANAGER ||
+    effectiveRole === StaffRole.ADMIN ||
+    effectiveRole === StaffRole.OWNER ||
+    effectiveRole === StaffRole.SUPERADMIN
 
   // Special case: Allow VIEWER if explicitly enabled
-  const isViewer = user.role === StaffRole.VIEWER
+  const isViewer = effectiveRole === StaffRole.VIEWER
 
   const hasAccess = isManager || (allowViewer && isViewer)
 

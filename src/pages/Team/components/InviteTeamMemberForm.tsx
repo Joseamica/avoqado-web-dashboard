@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from 'react'
+import { useState, useRef, useEffect, useImperativeHandle, forwardRef, useCallback } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Mail, AlertCircle, Smartphone, CheckCircle2, UserPlus, Info, Building2, AlertTriangle, Loader2 } from 'lucide-react'
+import { Mail, AlertCircle, Smartphone, CheckCircle2, UserPlus, Info, Building2, AlertTriangle, Loader2, Copy, Shield } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -29,10 +29,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { StaffRole } from '@/types'
 import teamService, { InviteTeamMemberRequest, InviteType, PinConflict } from '@/services/team.service'
+import { adminResetPassword, getTeam } from '@/services/storesAnalysis.service'
 import { cn } from '@/lib/utils'
 import { useWhiteLabelConfig } from '@/hooks/useWhiteLabelConfig'
 import { RoleAccessPreview } from './RoleAccessPreview'
@@ -50,11 +59,85 @@ interface InviteTeamMemberFormProps {
   onValidChange?: (isValid: boolean) => void
 }
 
+type TestCredentials = {
+  username: string
+  password: string
+}
+
+type PendingInviteMeta = {
+  usedFakeEmail: boolean
+  originalEmail: string
+  normalizedEmail: string
+} | null
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const isValidEmailAddress = (value: string): boolean => EMAIL_PATTERN.test(value.trim())
+
+const buildSuperadminTestEmail = (value: string): string => {
+  const base = value
+    .trim()
+    .toLowerCase()
+    .split('@')[0]
+    .replace(/[^a-z0-9._-]+/g, '.')
+    .replace(/\.+/g, '.')
+    .replace(/^[._-]+|[._-]+$/g, '')
+
+  const safeLocalPart = base || 'test.user'
+  const uniqueSuffix = Date.now().toString(36)
+  return `${safeLocalPart}.${uniqueSuffix}@example.com`
+}
+
+const extractTestCredentialsFromResponse = (
+  payload: Record<string, any>,
+  fallbackUsername: string,
+): TestCredentials | null => {
+  const nestedCredentials =
+    payload.testCredentials ||
+    payload.credentials ||
+    payload.loginCredentials ||
+    payload.generatedCredentials ||
+    payload.userCredentials
+
+  const usernameCandidate =
+    nestedCredentials?.username ||
+    nestedCredentials?.email ||
+    payload.username ||
+    payload.email ||
+    payload.user?.email ||
+    payload.staff?.email ||
+    payload.invitation?.email ||
+    fallbackUsername
+
+  const passwordCandidate =
+    nestedCredentials?.password ||
+    nestedCredentials?.temporaryPassword ||
+    payload.temporaryPassword ||
+    payload.tempPassword ||
+    payload.generatedPassword ||
+    payload.password
+
+  if (!passwordCandidate) {
+    return null
+  }
+
+  return {
+    username: String(usernameCandidate || fallbackUsername),
+    password: String(passwordCandidate),
+  }
+}
+
 // Define schema creation function outside component to avoid recreation
-const createInviteSchema = (t: (key: string) => string, inviteType: InviteType) =>
+const createInviteSchema = (
+  t: (key: string) => string,
+  inviteType: InviteType,
+  allowFakeEmailForSuperadmin: boolean,
+) =>
   z.object({
     email: inviteType === 'email'
-      ? z.string().email(t('invite.validation.emailFormat')).min(1, t('invite.validation.emailRequired'))
+      ? allowFakeEmailForSuperadmin
+        ? z.string().min(1, t('invite.validation.emailRequired'))
+        : z.string().email(t('invite.validation.emailFormat')).min(1, t('invite.validation.emailRequired'))
       : z.string().optional(),
     firstName: z
       .string()
@@ -79,18 +162,24 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
   const { t: tCommon } = useTranslation()
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const { user, allVenues } = useAuth()
+  const { user, staffInfo, allVenues } = useAuth()
   const [selectedRole, setSelectedRole] = useState<StaffRole | undefined>()
   const [showResendDialog, setShowResendDialog] = useState(false)
   const [pendingResendEmail, setPendingResendEmail] = useState<string | null>(null)
   const pendingInvitationIdRef = useRef<string | null>(null)
+  const pendingInviteMetaRef = useRef<PendingInviteMeta>(null)
   const [pinConflicts, setPinConflicts] = useState<(PinConflict & { newPin: string; resolved: boolean; saving: boolean })[]>([])
   const [showPinConflictsDialog, setShowPinConflictsDialog] = useState(false)
   const [conflictSummary, setConflictSummary] = useState<{ total: number; assigned: number } | null>(null)
+  const [showTestCredentialsDialog, setShowTestCredentialsDialog] = useState(false)
+  const [testCredentials, setTestCredentials] = useState<TestCredentials | null>(null)
+  const [copiedField, setCopiedField] = useState<'username' | 'password' | null>(null)
   const { getDisplayName: getRoleDisplayName, isRoleActive } = useRoleConfig()
   const [inviteType, setInviteType] = useState<InviteType>('email')
   const [inviteToAllVenues, setInviteToAllVenues] = useState(false)
   const { isWhiteLabelEnabled, enabledFeatures } = useWhiteLabelConfig()
+  const isSuperadmin = (staffInfo?.role || user?.role) === StaffRole.SUPERADMIN
+  const allowFakeEmailForSuperadmin = inviteType === 'email' && isSuperadmin
 
   // Only OWNER and SUPERADMIN can invite as OWNER
   const canInviteAsOwner = user?.role === StaffRole.OWNER || user?.role === StaffRole.SUPERADMIN
@@ -122,7 +211,7 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
     formState: { errors, isValid },
     reset,
   } = useForm<InviteTeamMemberFormData>({
-    resolver: zodResolver(createInviteSchema(t, inviteType)),
+    resolver: zodResolver(createInviteSchema(t, inviteType, allowFakeEmailForSuperadmin)),
     mode: 'onBlur',
     defaultValues: {
       type: 'email',
@@ -135,6 +224,96 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
     setSelectedRole(undefined)
   }, [inviteType, reset])
 
+  const finalizeInviteSuccess = useCallback(() => {
+    reset({ type: inviteType })
+    setSelectedRole(undefined)
+    setInviteToAllVenues(false)
+    pendingInviteMetaRef.current = null
+    onSuccess()
+  }, [inviteType, onSuccess, reset])
+
+  const resolveSuperadminTestCredentials = useCallback(
+    async (payload: Record<string, any>, fallbackEmail: string): Promise<TestCredentials | null> => {
+      const ensureTestUserIsActive = async (email: string): Promise<{ userId: string; username: string } | null> => {
+        const teamMembers = await getTeam(venueId)
+        const createdMember = teamMembers.find(member => (member.email || '').toLowerCase() === email.toLowerCase())
+
+        if (!createdMember?.id) {
+          return null
+        }
+
+        const currentVenueMembership = createdMember.venues.find(venue => venue.id === venueId) || createdMember.venues[0]
+
+        if (currentVenueMembership && !currentVenueMembership.active) {
+          await teamService.updateTeamMember(venueId, currentVenueMembership.staffVenueId, { active: true })
+        }
+
+        return {
+          userId: createdMember.id,
+          username: createdMember.email || email,
+        }
+      }
+
+      let discoveredUser: { userId: string; username: string } | null = null
+      try {
+        discoveredUser = await ensureTestUserIsActive(fallbackEmail)
+      } catch {
+        discoveredUser = null
+      }
+
+      const extracted = extractTestCredentialsFromResponse(payload, discoveredUser?.username || fallbackEmail)
+      if (extracted) {
+        return extracted
+      }
+
+      const candidateUserId =
+        payload.userId ||
+        payload.staffId ||
+        payload.staff?.id ||
+        payload.user?.id ||
+        payload.member?.id ||
+        discoveredUser?.userId
+
+      if (candidateUserId) {
+        try {
+          const resetResult = await adminResetPassword(venueId, String(candidateUserId))
+          return {
+            username: discoveredUser?.username || fallbackEmail,
+            password: resetResult.temporaryPassword,
+          }
+        } catch {
+          // Fallback below
+        }
+      }
+
+      if (!discoveredUser) {
+        return null
+      }
+
+      try {
+        const resetResult = await adminResetPassword(venueId, discoveredUser.userId)
+        return {
+          username: discoveredUser.username,
+          password: resetResult.temporaryPassword,
+        }
+      } catch {
+        return null
+      }
+    },
+    [venueId],
+  )
+
+  const copyCredentialField = useCallback(
+    async (field: 'username' | 'password') => {
+      if (!testCredentials) return
+
+      await navigator.clipboard.writeText(testCredentials[field])
+      setCopiedField(field)
+      setTimeout(() => setCopiedField(current => (current === field ? null : current)), 1500)
+    },
+    [testCredentials],
+  )
+
   // Notify parent of validity changes
   useEffect(() => {
     onValidChange?.(isValid)
@@ -142,7 +321,9 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
 
   const inviteMutation = useMutation({
     mutationFn: (data: InviteTeamMemberRequest) => teamService.inviteTeamMember(venueId, data),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      const pendingMeta = pendingInviteMetaRef.current
+
       if (data.isTPVOnly) {
         toast({
           title: t('invite.tpvOnlyCreated', { defaultValue: 'Miembro TPV creado' }),
@@ -176,21 +357,45 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
           description: t('invite.invitationSentDesc', { email: data.invitation.email }),
         })
       }
-      reset({ type: inviteType })
-      setSelectedRole(undefined)
-      onSuccess()
+
+      if (isSuperadmin && pendingMeta?.usedFakeEmail) {
+        const credentials = await resolveSuperadminTestCredentials(
+          data as unknown as Record<string, any>,
+          pendingMeta.normalizedEmail,
+        )
+
+        if (credentials) {
+          setTestCredentials(credentials)
+          setCopiedField(null)
+          setShowTestCredentialsDialog(true)
+          return
+        }
+
+        toast({
+          title: t('invite.testCredentialsUnavailableTitle', { defaultValue: 'Invitación de prueba creada' }),
+          description: t('invite.testCredentialsUnavailableDesc', {
+            defaultValue: 'No se recibieron credenciales temporales. La invitación se creó con {{email}}.',
+            email: pendingMeta.normalizedEmail,
+          }),
+        })
+      }
+
+      finalizeInviteSuccess()
     },
     onError: (error: any) => {
+      const pendingMeta = pendingInviteMetaRef.current
       const errorMessage = error.response?.data?.message || ''
       const invitationId = error.response?.data?.existingInvitationId
 
       if (errorMessage.includes('pending invitation') || errorMessage.includes('invitación pendiente')) {
         pendingInvitationIdRef.current = invitationId || null
-        setPendingResendEmail(error.response?.data?.email || null)
+        setPendingResendEmail(error.response?.data?.email || pendingMeta?.normalizedEmail || null)
+        pendingInviteMetaRef.current = null
         setShowResendDialog(true)
         return
       }
 
+      pendingInviteMetaRef.current = null
       toast({
         title: tCommon('error'),
         description: errorMessage || t('invite.invitationError'),
@@ -230,10 +435,34 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
   })
 
   const onSubmit = (data: InviteTeamMemberFormData) => {
+    const rawEmail = (data.email || '').trim()
+    const shouldNormalizeFakeEmail =
+      inviteType === 'email' &&
+      isSuperadmin &&
+      rawEmail.length > 0 &&
+      !isValidEmailAddress(rawEmail)
+
+    const normalizedEmail = shouldNormalizeFakeEmail
+      ? buildSuperadminTestEmail(rawEmail)
+      : rawEmail.toLowerCase()
+
+    pendingInviteMetaRef.current =
+      inviteType === 'email'
+        ? {
+            usedFakeEmail: shouldNormalizeFakeEmail,
+            originalEmail: rawEmail,
+            normalizedEmail,
+          }
+        : null
+
     inviteMutation.mutate({
       ...data,
+      email: inviteType === 'email' ? normalizedEmail : undefined,
       type: inviteType,
       inviteToAllVenues: selectedRole === StaffRole.OWNER ? inviteToAllVenues : undefined,
+      allowFakeEmail: shouldNormalizeFakeEmail || undefined,
+      generateTestCredentials: shouldNormalizeFakeEmail || undefined,
+      testInvite: shouldNormalizeFakeEmail || undefined,
     })
   }
 
@@ -374,7 +603,7 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
               <Label htmlFor="email">{t('invite.emailLabel')} *</Label>
               <Input
                 id="email"
-                type="email"
+                type={allowFakeEmailForSuperadmin ? 'text' : 'email'}
                 placeholder={t('invite.emailPlaceholder')}
                 className="h-12 text-base"
                 data-autofocus
@@ -382,6 +611,16 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
               />
               {errors.email && (
                 <p className="text-sm text-destructive">{errors.email.message}</p>
+              )}
+              {allowFakeEmailForSuperadmin && (
+                <div className="rounded-lg border border-border/60 bg-muted/40 px-3 py-2">
+                  <p className="text-xs font-medium bg-gradient-to-r from-amber-400 to-pink-500 bg-clip-text text-transparent flex items-center gap-1.5">
+                    <Shield className="h-3.5 w-3.5 text-amber-400" />
+                    {t('invite.superadminFakeEmailHint', {
+                      defaultValue: 'SUPERADMIN: puedes usar correo de prueba. Si no es válido, se convertirá automáticamente a un correo interno.',
+                    })}
+                  </p>
+                </div>
               )}
             </div>
           )}
@@ -541,9 +780,7 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
     <AlertDialog open={showPinConflictsDialog} onOpenChange={(open) => {
       if (!open) {
         setShowPinConflictsDialog(false)
-        reset({ type: inviteType })
-        setSelectedRole(undefined)
-        onSuccess()
+        finalizeInviteSuccess()
       }
     }}>
       <AlertDialogContent className="max-w-lg">
@@ -632,9 +869,7 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
             className="rounded-full cursor-pointer"
             onClick={() => {
               setShowPinConflictsDialog(false)
-              reset({ type: inviteType })
-              setSelectedRole(undefined)
-              onSuccess()
+              finalizeInviteSuccess()
             }}
           >
             {pinConflicts.every(c => c.resolved)
@@ -645,6 +880,90 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    <Dialog
+      open={showTestCredentialsDialog}
+      onOpenChange={(open) => {
+        if (!open) {
+          setShowTestCredentialsDialog(false)
+          setTestCredentials(null)
+          setCopiedField(null)
+          finalizeInviteSuccess()
+        }
+      }}
+    >
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{t('invite.testCredentialsTitle', { defaultValue: 'Credenciales de prueba' })}</DialogTitle>
+          <DialogDescription>
+            {t('invite.testCredentialsDesc', {
+              defaultValue: 'Guarda estas credenciales. Se muestran una sola vez para pruebas de acceso.',
+            })}
+          </DialogDescription>
+        </DialogHeader>
+
+        {testCredentials && (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>{t('invite.testCredentialsUser', { defaultValue: 'Usuario' })}</Label>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 rounded-lg border border-border bg-muted px-3 py-2 text-sm font-mono select-all">
+                  {testCredentials.username}
+                </code>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="cursor-pointer"
+                  onClick={() => copyCredentialField('username')}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>{t('invite.testCredentialsPassword', { defaultValue: 'Contraseña temporal' })}</Label>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 rounded-lg border border-border bg-muted px-3 py-2 text-sm font-mono select-all">
+                  {testCredentials.password}
+                </code>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="cursor-pointer"
+                  onClick={() => copyCredentialField('password')}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {copiedField && (
+              <p className="text-xs text-muted-foreground">
+                {t('invite.testCredentialsCopied', { defaultValue: 'Copiado al portapapeles.' })}
+              </p>
+            )}
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button
+            type="button"
+            className="cursor-pointer"
+            onClick={() => {
+              setShowTestCredentialsDialog(false)
+              setTestCredentials(null)
+              setCopiedField(null)
+              finalizeInviteSuccess()
+            }}
+          >
+            {tCommon('close', { defaultValue: 'Cerrar' })}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     {/* Resend Invitation Confirmation Dialog */}
     <AlertDialog open={showResendDialog} onOpenChange={setShowResendDialog}>

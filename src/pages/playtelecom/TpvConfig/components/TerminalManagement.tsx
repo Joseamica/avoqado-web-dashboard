@@ -23,15 +23,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Monitor, Lock, Unlock, Wrench, WrenchIcon, Loader2 } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Monitor, Lock, Unlock, Wrench, WrenchIcon, Loader2, RotateCcw, Trash2, FileText, MoreVertical } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/context/AuthContext'
 import { useSocket } from '@/context/SocketContext'
 import { useToast } from '@/hooks/use-toast'
-import { getTpvs, lockTerminal, unlockTerminal, enterMaintenanceMode, exitMaintenanceMode } from '@/services/tpv.service'
+import { getTpvs, lockTerminal, unlockTerminal, enterMaintenanceMode, exitMaintenanceMode, restartTerminal, clearCache, exportLogs } from '@/services/tpv.service'
 import { TerminalStatus, type Terminal } from '@/types'
 
 type ConfirmAction = {
-  type: 'lock' | 'unlock' | 'maintenance_on' | 'maintenance_off'
+  type: 'lock' | 'unlock' | 'maintenance_on' | 'maintenance_off' | 'restart' | 'clear_cache' | 'export_logs'
   terminal: Terminal
 }
 
@@ -229,7 +237,51 @@ export function TerminalManagement() {
     },
   })
 
-  const isPending = lockMutation.isPending || unlockMutation.isPending || maintenanceOnMutation.isPending || maintenanceOffMutation.isPending
+  // Restart mutation
+  const restartMutation = useMutation({
+    mutationFn: (terminalId: string) => restartTerminal(terminalId),
+    onSuccess: (_, terminalId) => {
+      setPendingTerminals(prev => new Set(prev).add(terminalId))
+      toast({
+        title: t('playtelecom:tpvConfig.terminals.restartSuccess', { defaultValue: 'Comando enviado: reiniciar terminal' }),
+      })
+    },
+    onError: (error: any) => {
+      const msg = error?.response?.data?.message || t('playtelecom:tpvConfig.terminals.restartError', { defaultValue: 'Error al reiniciar terminal' })
+      toast({ title: msg, variant: 'destructive' })
+    },
+  })
+
+  // Clear cache mutation
+  const clearCacheMutation = useMutation({
+    mutationFn: (terminalId: string) => clearCache(terminalId, ['all']),
+    onSuccess: (_, terminalId) => {
+      setPendingTerminals(prev => new Set(prev).add(terminalId))
+      toast({
+        title: t('playtelecom:tpvConfig.terminals.clearCacheSuccess', { defaultValue: 'Comando enviado: limpiar cache' }),
+      })
+    },
+    onError: (error: any) => {
+      const msg = error?.response?.data?.message || t('playtelecom:tpvConfig.terminals.clearCacheError', { defaultValue: 'Error al limpiar cache' })
+      toast({ title: msg, variant: 'destructive' })
+    },
+  })
+
+  // Export logs mutation
+  const exportLogsMutation = useMutation({
+    mutationFn: (terminalId: string) => exportLogs(terminalId),
+    onSuccess: () => {
+      toast({
+        title: t('playtelecom:tpvConfig.terminals.exportLogsSuccess', { defaultValue: 'Comando enviado: exportar datos' }),
+      })
+    },
+    onError: (error: any) => {
+      const msg = error?.response?.data?.message || t('playtelecom:tpvConfig.terminals.exportLogsError', { defaultValue: 'Error al exportar datos' })
+      toast({ title: msg, variant: 'destructive' })
+    },
+  })
+
+  const isPending = lockMutation.isPending || unlockMutation.isPending || maintenanceOnMutation.isPending || maintenanceOffMutation.isPending || restartMutation.isPending || clearCacheMutation.isPending || exportLogsMutation.isPending
 
   const handleConfirm = useCallback(() => {
     if (!confirmAction) return
@@ -247,9 +299,18 @@ export function TerminalManagement() {
       case 'maintenance_off':
         maintenanceOffMutation.mutate(terminal.id)
         break
+      case 'restart':
+        restartMutation.mutate(terminal.id)
+        break
+      case 'clear_cache':
+        clearCacheMutation.mutate(terminal.id)
+        break
+      case 'export_logs':
+        exportLogsMutation.mutate(terminal.id)
+        break
     }
     setConfirmAction(null)
-  }, [confirmAction, lockMutation, unlockMutation, maintenanceOnMutation, maintenanceOffMutation])
+  }, [confirmAction, lockMutation, unlockMutation, maintenanceOnMutation, maintenanceOffMutation, restartMutation, clearCacheMutation, exportLogsMutation])
 
   const confirmTitle = useMemo(() => {
     if (!confirmAction) return ''
@@ -259,6 +320,9 @@ export function TerminalManagement() {
       case 'unlock': return t('playtelecom:tpvConfig.terminals.confirmUnlock', { name, defaultValue: `Desbloquear "${name}"?` })
       case 'maintenance_on': return t('playtelecom:tpvConfig.terminals.confirmMaintenanceOn', { name, defaultValue: `Activar mantenimiento en "${name}"?` })
       case 'maintenance_off': return t('playtelecom:tpvConfig.terminals.confirmMaintenanceOff', { name, defaultValue: `Desactivar mantenimiento en "${name}"?` })
+      case 'restart': return t('playtelecom:tpvConfig.terminals.confirmRestart', { name, defaultValue: `Reiniciar "${name}"?` })
+      case 'clear_cache': return t('playtelecom:tpvConfig.terminals.confirmClearCache', { name, defaultValue: `Limpiar cache de "${name}"?` })
+      case 'export_logs': return t('playtelecom:tpvConfig.terminals.confirmExportLogs', { name, defaultValue: `Exportar datos de "${name}"?` })
     }
   }, [confirmAction, t])
 
@@ -269,14 +333,29 @@ export function TerminalManagement() {
       case 'unlock': return t('playtelecom:tpvConfig.terminals.confirmUnlockDesc', { defaultValue: 'La terminal volvera a estar operativa.' })
       case 'maintenance_on': return t('playtelecom:tpvConfig.terminals.confirmMaintenanceOnDesc', { defaultValue: 'La terminal entrara en modo mantenimiento y no podra procesar operaciones.' })
       case 'maintenance_off': return t('playtelecom:tpvConfig.terminals.confirmMaintenanceOffDesc', { defaultValue: 'La terminal saldra del modo mantenimiento y volvera a operar.' })
+      case 'restart': return t('playtelecom:tpvConfig.terminals.confirmRestartDesc', { defaultValue: 'La terminal se reiniciara. Esto puede tomar unos segundos.' })
+      case 'clear_cache': return t('playtelecom:tpvConfig.terminals.confirmClearCacheDesc', { defaultValue: 'Se limpiara toda la cache de la terminal. Los datos se volveran a sincronizar automaticamente.' })
+      case 'export_logs': return t('playtelecom:tpvConfig.terminals.confirmExportLogsDesc', { defaultValue: 'Se exportaran los logs y datos de la terminal para diagnostico.' })
     }
   }, [confirmAction, t])
 
   if (isLoading) {
     return (
-      <GlassCard>
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+      <GlassCard className="p-5">
+        <Skeleton className="h-5 w-32 mb-4" />
+        <div className="space-y-3">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-border/50">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-lg" />
+                <div className="space-y-1.5">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+              </div>
+              <Skeleton className="h-8 w-20 rounded-md" />
+            </div>
+          ))}
         </div>
       </GlassCard>
     )
@@ -288,7 +367,7 @@ export function TerminalManagement() {
 
   return (
     <>
-      <GlassCard>
+      <GlassCard className="p-5">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500/20 to-violet-500/5">
             <Monitor className="w-4 h-4 text-violet-600 dark:text-violet-400" />
@@ -326,11 +405,12 @@ export function TerminalManagement() {
                 key={terminal.id}
                 className="flex items-center justify-between p-3 rounded-lg border border-border bg-background/50"
               >
-                <div className="flex items-center gap-3 min-w-0">
+                {/* Terminal Info */}
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className="flex-shrink-0">
                     <Monitor className="w-4 h-4 text-muted-foreground" />
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{terminal.name}</p>
                     <p className="text-xs text-muted-foreground truncate">
                       {terminal.serialNumber || t('playtelecom:tpvConfig.terminals.noSerial', { defaultValue: 'Sin numero de serie' })}
@@ -348,7 +428,8 @@ export function TerminalManagement() {
                   </Badge>
                 </div>
 
-                <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                {/* Actions */}
+                <div className="flex items-center gap-1 flex-shrink-0 ml-3">
                   {/* Lock / Unlock */}
                   {locked ? (
                     <Button
@@ -406,6 +487,35 @@ export function TerminalManagement() {
                       {t('playtelecom:tpvConfig.terminals.enterMaintenance', { defaultValue: 'Mantenimiento' })}
                     </Button>
                   )}
+
+                  {/* More Actions Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        disabled={isPending || isProcessing}
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setConfirmAction({ type: 'restart', terminal })}>
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        {t('playtelecom:tpvConfig.terminals.restart', { defaultValue: 'Reiniciar' })}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setConfirmAction({ type: 'clear_cache', terminal })}>
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        {t('playtelecom:tpvConfig.terminals.clearCache', { defaultValue: 'Limpiar Cache' })}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setConfirmAction({ type: 'export_logs', terminal })}>
+                        <FileText className="w-4 h-4 mr-2" />
+                        {t('playtelecom:tpvConfig.terminals.exportLogs', { defaultValue: 'Exportar Datos' })}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             )

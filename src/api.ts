@@ -56,11 +56,15 @@ api.interceptors.response.use(
       }
     }
 
-    // Handle 401 - redirect to login
+    // Handle 401 - redirect to login preserving deep-link context
     if (error.response?.status === 401) {
       const currentPath = window.location.pathname
-      if (!currentPath.includes('/login') && !currentPath.includes('/auth/google/callback')) {
-        window.location.href = '/login'
+      const isLoginRoute = currentPath.startsWith('/login')
+      const isGoogleCallbackRoute = currentPath.startsWith('/auth/google/callback')
+
+      if (!isLoginRoute && !isGoogleCallbackRoute) {
+        const returnTo = encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`)
+        window.location.href = `/login?returnTo=${returnTo}`
       }
     }
 

@@ -45,6 +45,7 @@ import {
   CheckCircle2,
   Box,
 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -246,8 +247,20 @@ export function CategoryEditor({ onCategoriesChange }: CategoryEditorProps) {
 
         {/* Loading state */}
         {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-xl border border-border/50 overflow-hidden">
+                <Skeleton className="h-1.5 w-full" />
+                <div className="p-3 space-y-2">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-3 w-20" />
+                  <div className="flex gap-4 pt-1">
+                    <Skeleton className="h-3 w-16" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : categories.length > 0 ? (
           /* Categories Grid */

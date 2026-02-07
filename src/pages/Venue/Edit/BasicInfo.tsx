@@ -112,6 +112,10 @@ export default function BasicInfo() {
       return response.data
     },
     enabled: !!venueId,
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 404) return false
+      return failureCount < 2
+    },
   })
 
   const form = useForm<BasicInfoFormValues>({

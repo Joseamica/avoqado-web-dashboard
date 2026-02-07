@@ -337,6 +337,27 @@
     "addCategory": "New Category",
     "preview": "TPV Preview"
   },
+  "supervisor": {
+    "goalDialog": {
+      "createTitle": "Create Sales Goal",
+      "editTitle": "Edit Goal",
+      "description": "Set a sales goal for the store",
+      "store": "Store",
+      "selectStore": "Select store...",
+      "goalAmount": "Sales goal ($)",
+      "period": "Period",
+      "periods": {
+        "DAILY": "Daily",
+        "WEEKLY": "Weekly",
+        "MONTHLY": "Monthly"
+      },
+      "save": "Save",
+      "cancel": "Cancel",
+      "success": "Goal saved successfully",
+      "error": "Error saving goal",
+      "createGoal": "Create Goal"
+    }
+  },
   "common": {
     "active": "Active",
     "inactive": "Inactive",

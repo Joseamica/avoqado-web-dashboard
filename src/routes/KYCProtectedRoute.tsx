@@ -19,13 +19,27 @@
  * ```
  */
 
-import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import { Navigate, Outlet, useLocation, useParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { canAccessOperationalFeatures } from '@/lib/kyc-utils'
+import { StaffRole } from '@/types'
 
 export function KYCProtectedRoute() {
-  const { activeVenue } = useAuth()
+  const { activeVenue, user } = useAuth()
   const location = useLocation()
+  const { slug } = useParams<{ slug: string }>()
+
+  // SUPERADMIN bypass: global operational access for audit/recovery tasks.
+  if (user?.role === StaffRole.SUPERADMIN) {
+    return <Outlet />
+  }
+
+  const isWhiteLabelVenueRoute = location.pathname.startsWith('/wl/venues/')
+  const kycRequiredPath = slug
+    ? isWhiteLabelVenueRoute
+      ? `/wl/venues/${slug}/kyc-required`
+      : `/venues/${slug}/kyc-required`
+    : '/kyc-required'
 
   // Check if venue can access operational features
   if (!canAccessOperationalFeatures(activeVenue)) {
@@ -33,9 +47,9 @@ export function KYCProtectedRoute() {
     // Preserve current location in state for potential redirect back after KYC completion
     return (
       <Navigate
-        to="/kyc-required"
+        to={kycRequiredPath}
         replace
-        state={{ from: location.pathname }}
+        state={{ from: `${location.pathname}${location.search}` }}
       />
     )
   }

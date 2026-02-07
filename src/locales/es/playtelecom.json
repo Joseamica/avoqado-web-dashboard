@@ -337,6 +337,27 @@
     "addCategory": "Nueva Categoría",
     "preview": "Vista Previa TPV"
   },
+  "supervisor": {
+    "goalDialog": {
+      "createTitle": "Crear Meta de Venta",
+      "editTitle": "Editar Meta",
+      "description": "Establece una meta de venta para la tienda",
+      "store": "Tienda",
+      "selectStore": "Seleccionar tienda...",
+      "goalAmount": "Meta de venta ($)",
+      "period": "Periodo",
+      "periods": {
+        "DAILY": "Diario",
+        "WEEKLY": "Semanal",
+        "MONTHLY": "Mensual"
+      },
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "success": "Meta guardada exitosamente",
+      "error": "Error al guardar la meta",
+      "createGoal": "Crear Meta"
+    }
+  },
   "common": {
     "active": "Activo",
     "inactive": "Inactivo",

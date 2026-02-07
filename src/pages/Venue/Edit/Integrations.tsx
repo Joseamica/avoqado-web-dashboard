@@ -48,6 +48,10 @@ export default function VenueIntegrations() {
       return response.data
     },
     enabled: !!venueId,
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 404) return false
+      return failureCount < 2
+    },
   })
 
   // Fetch Google Integration status
@@ -58,6 +62,10 @@ export default function VenueIntegrations() {
       return response.data
     },
     enabled: !!venueId,
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 404) return false
+      return failureCount < 2
+    },
   })
 
   const form = useForm<PosFormValues>({

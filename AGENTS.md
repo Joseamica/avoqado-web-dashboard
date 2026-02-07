@@ -21,6 +21,8 @@ Agent roles for multi-agent workflows. Each role defines scope, context to load,
 - Forms: React Hook Form + Zod validation
 - Route protection: `PermissionProtectedRoute` for page-level, `PermissionGate` for element-level
 - White-label: always use `fullBasePath` from `useCurrentVenue()`
+- Canonical WL venue routes: generate and navigate only with `/wl/venues/:slug` (never `/wl/:slug`)
+- For venue-level guards, use effective venue role (`staffInfo.role` / `useAccess().role`) over raw `user.role`
 - Feature Registry: add new pages to `src/config/feature-registry.ts` when applicable
 
 ---
@@ -87,6 +89,10 @@ Agent roles for multi-agent workflows. Each role defines scope, context to load,
 - Check i18n completeness (no hardcoded strings, both languages)
 - Check theme compliance (no `bg-gray-*` or `text-gray-*`)
 - Check permissions sync between frontend `can()` and backend `verifyAccess()`
+- Check auth invariants: `SUPERADMIN` has global access to all orgs/venues/features/modules
+- Check auth invariants: `OWNER` scope is only organizations where user is OWNER (not global across all orgs)
+- Check auth invariants: KYC redirects resolve to venue-scoped `kyc-required` route in both `/venues/:slug/*` and `/wl/venues/:slug/*`
+- Check auth invariants: White-label canonical path stays `/wl/venues/:slug/*` across hooks, router and redirects
 - Check memoization of DataTable props
 - Check timezone handling uses `useVenueDateTime()`, not `new Date().toLocale*()`
 - Verify `npm run build` and `npm run lint` pass

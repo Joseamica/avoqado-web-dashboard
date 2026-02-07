@@ -409,10 +409,11 @@ export default function WhiteLabelWizard({ onComplete, onCancel, initialVenueId 
   return (
     <div className="flex flex-col h-full">
       {/* Step Indicator */}
-      <div className="px-6 py-4 border-b">
-        <div className="flex items-center justify-between">
-          <nav className="flex items-center justify-center flex-1">
-            <ol className="flex items-center space-x-2 sm:space-x-4">
+      <div className="px-6 py-2.5 border-b border-border/30 bg-muted/20">
+        <div className="flex items-center">
+          <div className="flex-1" />
+          <nav>
+            <ol className="flex items-center gap-1">
               {STEPS.map((step, index) => {
                 const Icon = step.icon
                 const isActive = index === currentStepIndex
@@ -422,43 +423,41 @@ export default function WhiteLabelWizard({ onComplete, onCancel, initialVenueId 
                 return (
                   <li key={step.id} className="flex items-center">
                     {index > 0 && (
-                      <div className={cn('w-8 sm:w-12 h-0.5 mx-1 sm:mx-2', index <= currentStepIndex ? 'bg-primary' : 'bg-muted')} />
+                      <div className={cn(
+                        'w-8 h-px mx-1',
+                        index <= currentStepIndex ? 'bg-primary/50' : 'bg-border/50'
+                      )} />
                     )}
                     <button
                       onClick={() => goToStep(index)}
                       disabled={!isClickable}
                       className={cn(
-                        'flex items-center gap-2 px-2 sm:px-3 py-2 rounded-lg transition-colors',
-                        isActive && 'bg-primary/10 text-primary',
-                        !isActive && isCompleted && 'text-primary',
+                        'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-colors text-xs font-medium',
+                        isActive && 'bg-primary text-primary-foreground',
+                        !isActive && isCompleted && 'text-primary hover:bg-primary/10',
                         !isActive && !isCompleted && 'text-muted-foreground',
-                        isClickable && 'cursor-pointer hover:bg-muted',
+                        isClickable && !isActive && 'cursor-pointer',
                         !isClickable && 'cursor-not-allowed',
                       )}
                     >
-                      <div
-                        className={cn(
-                          'flex items-center justify-center w-8 h-8 rounded-full',
-                          isActive && 'bg-primary text-primary-foreground',
-                          !isActive && isCompleted && 'bg-primary/20 text-primary',
-                          !isActive && !isCompleted && 'bg-muted text-muted-foreground',
-                        )}
-                      >
-                        {isCompleted && !isActive ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
-                      </div>
-                      <span className="hidden sm:inline text-sm font-medium">{t(step.labelKey)}</span>
+                      {isCompleted && !isActive ? (
+                        <Check className="w-3.5 h-3.5" />
+                      ) : (
+                        <Icon className="w-3.5 h-3.5" />
+                      )}
+                      <span className="hidden sm:inline">{t(step.labelKey)}</span>
                     </button>
                   </li>
                 )
               })}
             </ol>
           </nav>
-
-          {/* Preview Toggle Button */}
-          <Button variant="outline" size="sm" onClick={() => setShowPreview(true)} className="gap-2">
-            <Eye className="w-4 h-4" />
-            {t('whiteLabelWizard.showPreview')}
-          </Button>
+          <div className="flex-1 flex justify-end">
+            <Button variant="ghost" size="sm" onClick={() => setShowPreview(true)} className="gap-1.5 text-xs h-7">
+              <Eye className="w-3.5 h-3.5" />
+              {t('whiteLabelWizard.showPreview')}
+            </Button>
+          </div>
         </div>
       </div>
 

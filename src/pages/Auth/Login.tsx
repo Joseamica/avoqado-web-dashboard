@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Loader2 } from 'lucide-react'
 
 import Logo from '@/assets/logo'
 import CoverLogin from '@/assets/cover-login.png'
@@ -12,37 +11,15 @@ import { clearAllChatStorage } from '@/services/chatService'
 import { useToast } from '@/hooks/use-toast'
 import { useGoogleOneTap } from '@/hooks/useGoogleOneTap'
 import { useAuth } from '@/context/AuthContext'
-import { liveDemoAutoLogin, isLiveDemoEnvironment } from '@/services/liveDemo.service'
 
 const Login: React.FC = () => {
   const { t } = useTranslation('auth')
   const { toast } = useToast()
   const [searchParams] = useSearchParams()
-  const [isRedirecting, setIsRedirecting] = useState(false)
   const { loginWithOneTap } = useAuth()
 
   useEffect(() => {
     clearAllChatStorage()
-
-    // 🎭 Auto-login for live demo environment
-    if (isLiveDemoEnvironment()) {
-      setIsRedirecting(true)
-      liveDemoAutoLogin()
-        .then(() => {
-          // Redirect to dashboard after successful auto-login
-          window.location.href = '/'
-        })
-        .catch((error) => {
-          console.error('Live demo auto-login failed:', error)
-          setIsRedirecting(false)
-          toast({
-            title: 'Demo Error',
-            description: 'Failed to initialize demo session. Please try again.',
-            variant: 'destructive',
-          })
-        })
-      return // Exit early, don't run other login logic
-    }
 
     // Check if user just verified their email
     const verified = searchParams.get('verified')
@@ -76,18 +53,6 @@ const Login: React.FC = () => {
     },
     disabled: true, // Disabled - use regular Google Sign-In button instead
   })
-
-  // Show loading state during redirect
-  if (isRedirecting) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">{t('login.redirecting')}</p>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="grid min-h-svh lg:grid-cols-2 bg-background text-foreground">

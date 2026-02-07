@@ -19,6 +19,7 @@ import { useAuth } from '@/context/AuthContext'
 import { EmailMismatchWarning } from './Auth/components/EmailMismatchWarning'
 import { DirectAcceptInvitation } from './Auth/components/DirectAcceptInvitation'
 import api from '@/api'
+import { authService } from '@/services/auth.service'
 
 // Schema will be created inside the component to access t() function
 const createAcceptInvitationSchema = (t: any) =>
@@ -87,6 +88,14 @@ export default function InviteAccept() {
     emailMatches?: boolean
   }>({ hasSession: false })
   const [isProcessingAutoLogin, setIsProcessingAutoLogin] = useState(false)
+
+  const fetchFreshAuthStatus = async () => {
+    return queryClient.fetchQuery({
+      queryKey: ['status'],
+      queryFn: authService.getAuthStatus,
+      staleTime: 0,
+    })
+  }
 
   const {
     register,
@@ -173,26 +182,41 @@ export default function InviteAccept() {
   // Accept invitation mutation
   const acceptInvitationMutation = useMutation({
     mutationFn: async (data: AcceptInvitationFormData) => {
-      const response = await api.post(`/api/v1/invitations/${token}/accept`, {
+      await api.post(`/api/v1/invitations/${token}/accept`, {
         firstName: data.firstName,
         lastName: data.lastName,
         password: data.password,
         pin: data.pin || null,
       })
-      return { responseData: response.data, formData: data }
+      return data
     },
-    onSuccess: async ({ responseData, formData }) => {
+    onSuccess: async (formData) => {
       // Set flag to prevent showing DirectAcceptInvitation during auto-login
       setIsProcessingAutoLogin(true)
 
       // Note: No localStorage cleanup needed - we use URL-based state now (Stripe/GitHub pattern)
 
-      // SECURITY: Backend sets HTTP-only cookies for authentication
-      // We no longer store tokens in localStorage (XSS vulnerability)
-      // Just refresh the auth status to pick up the session from cookies
-      if (responseData.authToken || responseData.success) {
-        // Refresh auth status to update AuthContext (reads from HTTP-only cookies)
-        await queryClient.refetchQueries({ queryKey: ['status'] })
+      try {
+        let freshStatus = await fetchFreshAuthStatus()
+        const isAuthenticatedAfterAccept = !!freshStatus?.authenticated && !!freshStatus?.user
+
+        // Fallback: if backend accepted invitation but did not establish session, login explicitly
+        if (!isAuthenticatedAfterAccept) {
+          if (!invitationDetails?.email || !formData.password) {
+            throw new Error('Missing email or password for invitation auto-login')
+          }
+
+          await api.post('/api/v1/dashboard/auth/login', {
+            email: invitationDetails.email,
+            password: formData.password,
+          })
+
+          freshStatus = await fetchFreshAuthStatus()
+        }
+
+        if (!freshStatus?.authenticated || !freshStatus?.user) {
+          throw new Error('Session was not established after accepting invitation')
+        }
 
         toast({
           title: t('success.title'),
@@ -203,45 +227,19 @@ export default function InviteAccept() {
         setTimeout(() => {
           navigate('/', { replace: true })
         }, 1000)
-      } else {
-        // Backend didn't return tokens, so perform auto-login manually
-        try {
-          if (!invitationDetails?.email || !formData.password) {
-            throw new Error('Missing email or password for auto-login')
-          }
-
-          // Call login API (uses HTTP-only cookies, no tokens needed)
-          await api.post('/api/v1/dashboard/auth/login', {
-            email: invitationDetails.email,
-            password: formData.password,
-          })
-
-          // Refresh auth status to update AuthContext with new session
-          await queryClient.refetchQueries({ queryKey: ['status'] })
-
-          toast({
-            title: t('success.title'),
-            description: t('success.description'),
-          })
-
-          // Redirect to home (AuthContext will handle proper routing)
-          setTimeout(() => {
-            navigate('/', { replace: true })
-          }, 1000)
-        } catch (loginError) {
-          console.error('Auto-login failed:', loginError)
-          // Fallback: redirect to login page
-          toast({
-            title: t('success.title'),
-            description: t('success.loginMessage'),
-          })
-          navigate('/login', {
-            state: {
-              email: invitationDetails?.email,
-              message: t('success.loginMessage'),
-            },
-          })
-        }
+      } catch (loginError) {
+        console.error('Auto-login failed:', loginError)
+        // Fallback: redirect to login page
+        toast({
+          title: t('success.title'),
+          description: t('success.loginMessage'),
+        })
+        navigate('/login', {
+          state: {
+            email: invitationDetails?.email,
+            message: t('success.loginMessage'),
+          },
+        })
       }
     },
     onError: (error: any) => {
@@ -462,9 +460,27 @@ export default function InviteAccept() {
       <ExistingUserPasswordVerification
         invitationDetails={invitationDetails}
         token={token!}
-        onSuccess={async () => {
+        onSuccess={async (password) => {
           setIsProcessingAutoLogin(true)
-          await queryClient.refetchQueries({ queryKey: ['status'] })
+
+          let freshStatus = await fetchFreshAuthStatus()
+          const isAuthenticatedAfterAccept = !!freshStatus?.authenticated && !!freshStatus?.user
+
+          // Some backends accept invitation but don't establish session in this path.
+          // If that happens, login with the verified credentials and retry auth status.
+          if (!isAuthenticatedAfterAccept) {
+            await api.post('/api/v1/dashboard/auth/login', {
+              email: invitationDetails.email,
+              password,
+            })
+
+            freshStatus = await fetchFreshAuthStatus()
+          }
+
+          if (!freshStatus?.authenticated || !freshStatus?.user) {
+            throw new Error('Unable to establish session after accepting invitation')
+          }
+
           toast({
             title: t('success.title'),
             description: t('success.description'),
@@ -664,7 +680,7 @@ const RequirementItem = ({ met, text }: RequirementItemProps) => {
 interface ExistingUserPasswordVerificationProps {
   invitationDetails: InvitationDetails
   token: string
-  onSuccess: () => void
+  onSuccess: (password: string) => Promise<void>
   t: any
 }
 
@@ -688,7 +704,7 @@ const ExistingUserPasswordVerification: React.FC<ExistingUserPasswordVerificatio
       await api.post(`/api/v1/invitations/${token}/accept`, {
         password,
       })
-      onSuccess()
+      await onSuccess(password)
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.response?.data?.error || 'Error al aceptar la invitación'
       setError(errorMessage)

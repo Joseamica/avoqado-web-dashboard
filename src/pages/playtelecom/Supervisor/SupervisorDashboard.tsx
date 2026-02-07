@@ -17,19 +17,16 @@ import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Store, TrendingUp, TrendingDown, Download, Receipt } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Store, TrendingUp, TrendingDown, Download, Receipt, Plus, FileSpreadsheet, FileText, Sheet } from 'lucide-react'
+import { exportToCSV, exportToExcel, generateFilename, formatDateForExport, formatCurrencyForExport } from '@/utils/export'
+import { useToast } from '@/hooks/use-toast'
+import CreateStoreGoalDialog from './CreateStoreGoalDialog'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { getToday } from '@/utils/datetime'
 import { useAuth } from '@/context/AuthContext'
-import { useCurrentVenue } from '@/hooks/use-current-venue'
 import {
   useStoresOverview,
   useStoresStockSummary,
@@ -44,7 +41,7 @@ import { cn } from '@/lib/utils'
 export function SupervisorDashboard() {
   const { t, i18n } = useTranslation(['playtelecom', 'common'])
   const { activeVenue } = useAuth()
-  const { fullBasePath } = useCurrentVenue()
+  const { toast } = useToast()
   const localeCode = getIntlLocale(i18n.language)
 
   const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
@@ -52,6 +49,11 @@ export function SupervisorDashboard() {
   const [storeFilter, setStoreFilter] = useState('all')
   const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date }>(() => getToday(venueTimezone))
   const [hoveredPieIndex, setHoveredPieIndex] = useState<number | null>(null)
+  const [goalDialogOpen, setGoalDialogOpen] = useState(false)
+  const [selectedStoreForGoal, setSelectedStoreForGoal] = useState<string | null>(null)
+  const [editGoalId, setEditGoalId] = useState<string | null>(null)
+  const [editGoalAmount, setEditGoalAmount] = useState<number | undefined>()
+  const [editGoalPeriod, setEditGoalPeriod] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY' | undefined>()
 
   // Derive ISO date strings from selected range for API calls
   const startDateISO = selectedRange.from.toISOString()
@@ -112,10 +114,14 @@ export function SupervisorDashboard() {
       store: entry.venueName,
       promoter: entry.name,
       clockIn: entry.checkInTime
-        ? new Date(entry.checkInTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: venueTimezone }).toUpperCase()
+        ? new Date(entry.checkInTime)
+            .toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: venueTimezone })
+            .toUpperCase()
         : '--:--',
       clockOut: entry.checkOutTime
-        ? new Date(entry.checkOutTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: venueTimezone }).toUpperCase()
+        ? new Date(entry.checkOutTime)
+            .toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: venueTimezone })
+            .toUpperCase()
         : '--:--',
       sales: entry.sales || 0,
       hasDepositPhoto: !!entry.checkInPhotoUrl,
@@ -147,12 +153,9 @@ export function SupervisorDashboard() {
   const coveragePercent = totalStores > 0 ? Math.round((storesOpen / totalStores) * 100) : 0
   const cashInField = (overview?.todayCashSales ?? 0) - (overview?.approvedDeposits ?? 0)
   const previousCashInField = (previousOverview?.todayCashSales ?? 0) - (previousOverview?.approvedDeposits ?? 0)
-  const cashChangePercent = previousCashInField > 0
-    ? Math.round(((cashInField - previousCashInField) / previousCashInField) * 100)
-    : null
-  const depositPercent = (overview?.todayCashSales ?? 0) > 0
-    ? Math.round(((overview?.approvedDeposits ?? 0) / overview!.todayCashSales) * 100)
-    : 0
+  const cashChangePercent = previousCashInField > 0 ? Math.round(((cashInField - previousCashInField) / previousCashInField) * 100) : null
+  const depositPercent =
+    (overview?.todayCashSales ?? 0) > 0 ? Math.round(((overview?.approvedDeposits ?? 0) / overview!.todayCashSales) * 100) : 0
 
   // Chart data - derive from store performance
   const salesByStore = useMemo(() => {
@@ -175,11 +178,13 @@ export function SupervisorDashboard() {
     return storePerformanceData.stores.slice(0, 4).map(s => {
       const perf = Number.isFinite(s.performance) ? s.performance : 0
       return {
+        id: s.id,
         store: s.name,
         percent: Math.min(perf, 150), // Allow up to 150% for overachievers
         barPercent: Math.min(perf, 100), // Bar capped at 100%
         color: perf >= 70 ? 'bg-green-500' : 'bg-amber-500',
         hasGoal: s.goalAmount != null,
+        goalId: s.goalId,
         goalPeriod: s.goalPeriod,
         amount: s.todaySales,
         goalAmount: s.goalAmount ?? 0,
@@ -198,10 +203,69 @@ export function SupervisorDashboard() {
 
   const maxPromoterAmount = Math.max(...promoterRanking.map(p => p.amount), 1)
 
-  const handleDownloadReport = useCallback(() => {
-    // Navigate to report page
-    window.location.href = `${fullBasePath}/playtelecom/reporte`
-  }, [fullBasePath])
+  // Derive store options for goal dialog
+  const storeOptions = useMemo(() => {
+    if (!storePerformanceData?.stores?.length) return []
+    return storePerformanceData.stores.map(s => ({ id: s.id, name: s.name }))
+  }, [storePerformanceData])
+
+  const handleOpenGoalDialog = useCallback(
+    (storeId?: string, goalId?: string, goalAmount?: number, goalPeriod?: 'DAILY' | 'WEEKLY' | 'MONTHLY') => {
+      setSelectedStoreForGoal(storeId || null)
+      setEditGoalId(goalId || null)
+      setEditGoalAmount(goalAmount)
+      setEditGoalPeriod(goalPeriod)
+      setGoalDialogOpen(true)
+    },
+    [],
+  )
+
+  const buildExportData = useCallback(() => {
+    if (!activityFeed?.events?.length) return null
+    const events = activityFeed.events.filter(e => e.type === 'sale' || e.type === 'checkin')
+    if (events.length === 0) return null
+    return events.map(e => ({
+      ID: e.id.slice(-6).toUpperCase(),
+      [t('playtelecom:supervisor.exportHeaders.type', { defaultValue: 'Tipo' })]:
+        e.type === 'sale' ? 'Venta' : 'Check-in',
+      [t('playtelecom:supervisor.exportHeaders.store', { defaultValue: 'Tienda' })]: e.venueName || '',
+      [t('playtelecom:supervisor.exportHeaders.product', { defaultValue: 'Producto' })]: e.title,
+      ICCID: (e.metadata?.iccid as string) || '',
+      [t('playtelecom:supervisor.exportHeaders.seller', { defaultValue: 'Vendedor' })]: e.staffName || '',
+      [t('playtelecom:supervisor.exportHeaders.amount', { defaultValue: 'Monto' })]: formatCurrencyForExport(
+        (e.metadata?.amount as number) || 0,
+      ),
+      [t('playtelecom:supervisor.exportHeaders.date', { defaultValue: 'Fecha' })]: formatDateForExport(e.timestamp),
+    }))
+  }, [activityFeed, t])
+
+  const handleExport = useCallback(
+    async (format: 'csv' | 'excel' | 'sheets') => {
+      const data = buildExportData()
+      if (!data) return
+      const filename = generateFilename('transacciones')
+      try {
+        if (format === 'csv') {
+          exportToCSV(data, filename)
+        } else if (format === 'excel') {
+          await exportToExcel(data, filename, 'Transacciones')
+        } else {
+          // Google Sheets: export CSV then open Google Sheets import
+          exportToCSV(data, filename)
+          window.open('https://sheets.new', '_blank')
+        }
+        toast({
+          title: t('playtelecom:supervisor.exportSuccess', { defaultValue: 'Reporte descargado' }),
+        })
+      } catch (_error) {
+        toast({
+          title: t('playtelecom:supervisor.exportError', { defaultValue: 'Error al descargar reporte' }),
+          variant: 'destructive',
+        })
+      }
+    },
+    [buildExportData, toast, t],
+  )
 
   return (
     <div className="space-y-6">
@@ -238,7 +302,9 @@ export function SupervisorDashboard() {
                 <SelectContent>
                   <SelectItem value="all">{t('playtelecom:supervisor.allStores', { defaultValue: 'Todas las Tiendas' })}</SelectItem>
                   {venuesData?.map(v => (
-                    <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -329,12 +395,9 @@ export function SupervisorDashboard() {
           </div>
           {cashChangePercent != null ? (
             <p className={cn('text-xs mt-1 font-semibold flex items-center', cashChangePercent >= 0 ? 'text-green-400' : 'text-red-400')}>
-              {cashChangePercent >= 0 ? (
-                <TrendingUp className="w-3.5 h-3.5 mr-1" />
-              ) : (
-                <TrendingDown className="w-3.5 h-3.5 mr-1" />
-              )}
-              {cashChangePercent >= 0 ? '+' : ''}{cashChangePercent}% {t('playtelecom:supervisor.vsPrevDay', { defaultValue: 'vs dia anterior' })}
+              {cashChangePercent >= 0 ? <TrendingUp className="w-3.5 h-3.5 mr-1" /> : <TrendingDown className="w-3.5 h-3.5 mr-1" />}
+              {cashChangePercent >= 0 ? '+' : ''}
+              {cashChangePercent}% {t('playtelecom:supervisor.vsPrevDay', { defaultValue: 'vs dia anterior' })}
             </p>
           ) : (
             <p className="text-[10px] text-muted-foreground mt-1">
@@ -357,18 +420,24 @@ export function SupervisorDashboard() {
                 <div
                   className="w-full h-full rounded-full shadow-lg"
                   style={{
-                    background: `conic-gradient(${salesByStore.map((s, i) => {
-                      const start = salesByStore.slice(0, i).reduce((a, x) => a + x.percent, 0)
-                      return `${s.color} ${start}% ${start + s.percent}%`
-                    }).join(', ')})`,
+                    background: `conic-gradient(${salesByStore
+                      .map((s, i) => {
+                        const start = salesByStore.slice(0, i).reduce((a, x) => a + x.percent, 0)
+                        return `${s.color} ${start}% ${start + s.percent}%`
+                      })
+                      .join(', ')})`,
                   }}
                 />
                 <div className="absolute inset-4 bg-card rounded-full flex items-center justify-center transition-all">
                   <div className="text-center px-1">
                     {hoveredPieIndex != null ? (
                       <>
-                        <span className="text-sm font-black block leading-tight">{formatCurrency(salesByStore[hoveredPieIndex].amount)}</span>
-                        <span className="text-[8px] text-muted-foreground block truncate max-w-[80px]">{salesByStore[hoveredPieIndex].fullName}</span>
+                        <span className="text-sm font-black block leading-tight">
+                          {formatCurrency(salesByStore[hoveredPieIndex].amount)}
+                        </span>
+                        <span className="text-[8px] text-muted-foreground block truncate max-w-[80px]">
+                          {salesByStore[hoveredPieIndex].fullName}
+                        </span>
                       </>
                     ) : (
                       <>
@@ -406,9 +475,20 @@ export function SupervisorDashboard() {
 
         {/* Progress - Sales vs Target */}
         <GlassCard className="p-5 flex flex-col justify-center">
-          <h4 className="text-xs font-bold text-muted-foreground uppercase mb-4">
-            {t('playtelecom:supervisor.salesVsTarget', { defaultValue: 'Ventas vs Meta' })}
-          </h4>
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-xs font-bold text-muted-foreground uppercase">
+              {t('playtelecom:supervisor.salesVsTarget', { defaultValue: 'Ventas vs Meta' })}
+            </h4>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-[10px] text-green-400 hover:text-green-300 hover:bg-green-500/10"
+              onClick={() => handleOpenGoalDialog()}
+            >
+              <Plus className="w-3 h-3 mr-1" />
+              {t('playtelecom:supervisor.goalDialog.createGoal', { defaultValue: 'Crear Meta' })}
+            </Button>
+          </div>
           {salesVsTarget.length > 0 ? (
             <div className="space-y-6">
               {salesVsTarget.map((item, i) => (
@@ -417,18 +497,29 @@ export function SupervisorDashboard() {
                     <span className="font-medium truncate min-w-0">{item.store}</span>
                     {item.hasGoal ? (
                       <>
-                        <span className={cn('font-bold shrink-0 group-hover/bar:hidden', item.percent >= 70 ? 'text-green-400' : 'text-amber-400')}>
+                        <button
+                          type="button"
+                          className={cn(
+                            'font-bold shrink-0 group-hover/bar:hidden cursor-pointer hover:underline',
+                            item.percent >= 70 ? 'text-green-400' : 'text-amber-400',
+                          )}
+                          onClick={() => handleOpenGoalDialog(item.id, item.goalId, item.goalAmount, item.goalPeriod)}
+                        >
                           {item.percent}%
-                        </span>
+                        </button>
                         <span className="hidden group-hover/bar:inline text-[10px] font-bold shrink-0 text-foreground">
                           {formatCurrency(item.amount)} / {formatCurrency(item.goalAmount)}
                         </span>
                       </>
                     ) : (
                       <>
-                        <span className="text-muted-foreground shrink-0 text-[10px] group-hover/bar:hidden">
+                        <button
+                          type="button"
+                          className="text-muted-foreground shrink-0 text-[10px] group-hover/bar:hidden cursor-pointer hover:text-green-400 hover:underline"
+                          onClick={() => handleOpenGoalDialog(item.id)}
+                        >
                           {t('playtelecom:supervisor.noGoal', { defaultValue: 'Sin meta' })}
-                        </span>
+                        </button>
                         <span className="hidden group-hover/bar:inline text-[10px] font-bold shrink-0 text-foreground">
                           {formatCurrency(item.amount)}
                         </span>
@@ -458,10 +549,12 @@ export function SupervisorDashboard() {
           <div className="flex-1 flex items-end justify-around gap-4 min-h-[160px]">
             {promoterRanking.map((p, i) => (
               <div key={i} className="flex flex-col items-center w-full h-full justify-end group">
-                <div className={cn(
-                  'text-[10px] font-bold mb-1 transition-opacity',
-                  p.isYou ? 'text-green-400 opacity-100' : 'opacity-0 group-hover:opacity-100'
-                )}>
+                <div
+                  className={cn(
+                    'text-[10px] font-bold mb-1 transition-opacity',
+                    p.isYou ? 'text-green-400 opacity-100' : 'opacity-0 group-hover:opacity-100',
+                  )}
+                >
                   {formatCurrency(p.amount)}
                 </div>
                 <div
@@ -469,14 +562,17 @@ export function SupervisorDashboard() {
                     'w-full rounded-t-md transition-all cursor-pointer',
                     p.isYou
                       ? 'bg-gradient-to-t from-green-600 to-green-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
-                      : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
+                      : 'bg-muted-foreground/30 hover:bg-muted-foreground/50',
                   )}
                   style={{ height: `${(p.amount / maxPromoterAmount) * 100}%`, minHeight: '8px' }}
                 />
-                <span className={cn(
-                  'text-[10px] mt-2 font-bold max-w-full truncate',
-                  p.isYou ? 'bg-green-500/20 px-2 rounded-full' : 'text-muted-foreground'
-                )} title={p.name}>
+                <span
+                  className={cn(
+                    'text-[10px] mt-2 font-bold max-w-full truncate',
+                    p.isYou ? 'bg-green-500/20 px-2 rounded-full' : 'text-muted-foreground',
+                  )}
+                  title={p.name}
+                >
                   {p.name}
                 </span>
               </div>
@@ -510,7 +606,9 @@ export function SupervisorDashboard() {
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                     <Store className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                    <p className="text-sm">{t('playtelecom:supervisor.noStoreActivity', { defaultValue: 'Sin actividad registrada para este periodo' })}</p>
+                    <p className="text-sm">
+                      {t('playtelecom:supervisor.noStoreActivity', { defaultValue: 'Sin actividad registrada para este periodo' })}
+                    </p>
                   </td>
                 </tr>
               ) : (
@@ -525,7 +623,9 @@ export function SupervisorDashboard() {
                       {row.hasDepositPhoto ? (
                         <Badge className="bg-green-500/10 text-green-400 border-green-500/20">OK</Badge>
                       ) : (
-                        <Badge variant="outline" className="text-muted-foreground">--</Badge>
+                        <Badge variant="outline" className="text-muted-foreground">
+                          --
+                        </Badge>
                       )}
                     </td>
                   </tr>
@@ -543,10 +643,28 @@ export function SupervisorDashboard() {
             <Receipt className="w-4 h-4 text-green-400" />
             {t('playtelecom:supervisor.transactions', { defaultValue: 'Transacciones en tiempo real' })}
           </h3>
-          <Button size="sm" onClick={handleDownloadReport} className="bg-green-600 hover:bg-green-500 gap-2">
-            <Download className="w-3.5 h-3.5" />
-            {t('playtelecom:supervisor.downloadReport', { defaultValue: 'DESCARGAR REPORTE' })}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" className="bg-green-600 hover:bg-green-500 gap-2">
+                <Download className="w-3.5 h-3.5" />
+                {t('playtelecom:supervisor.downloadReport', { defaultValue: 'DESCARGAR REPORTE' })}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExport('excel')} className="gap-2">
+                <FileSpreadsheet className="w-4 h-4" />
+                Excel (.xlsx)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('sheets')} className="gap-2">
+                <Sheet className="w-4 h-4" />
+                Google Sheets
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('csv')} className="gap-2">
+                <FileText className="w-4 h-4" />
+                CSV
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -565,7 +683,9 @@ export function SupervisorDashboard() {
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                     <Receipt className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                    <p className="text-sm">{t('playtelecom:supervisor.noTransactions', { defaultValue: 'Sin transacciones en este periodo' })}</p>
+                    <p className="text-sm">
+                      {t('playtelecom:supervisor.noTransactions', { defaultValue: 'Sin transacciones en este periodo' })}
+                    </p>
                   </td>
                 </tr>
               ) : (
@@ -598,6 +718,17 @@ export function SupervisorDashboard() {
           </table>
         </div>
       </GlassCard>
+
+      {/* Goal Dialog */}
+      <CreateStoreGoalDialog
+        open={goalDialogOpen}
+        onOpenChange={setGoalDialogOpen}
+        stores={storeOptions}
+        selectedStoreId={selectedStoreForGoal}
+        editGoalId={editGoalId}
+        editGoalAmount={editGoalAmount}
+        editGoalPeriod={editGoalPeriod}
+      />
     </div>
   )
 }

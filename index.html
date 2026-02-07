@@ -24,25 +24,29 @@
 
         // Environment detection and favicon/title setting
         const hostname = window.location.hostname
+        const pathname = window.location.pathname
         const isLocal =
           hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.endsWith('.local')
         const isStaging = hostname.includes('staging') || hostname.includes('develop')
+        const isSuperadminRoute = pathname.startsWith('/superadmin')
         const favicon = document.getElementById('favicon')
         const pageTitle = document.getElementById('page-title')
+        let baseFaviconHref = '/favicon.ico'
 
         if (isLocal) {
-          favicon.href = '/favicon-development.svg'
+          baseFaviconHref = '/favicon-development.svg'
           pageTitle.textContent = 'Avoqado | Dashboard (DEV)'
           document.documentElement.setAttribute('data-env', 'development')
         } else if (isStaging) {
-          favicon.href = '/favicon-staging.svg'
+          baseFaviconHref = '/favicon-staging.svg'
           pageTitle.textContent = 'Avoqado | Dashboard (STAGING)'
           document.documentElement.setAttribute('data-env', 'staging')
         } else {
-          favicon.href = '/favicon.ico'
           pageTitle.textContent = 'Avoqado | Dashboard'
           document.documentElement.setAttribute('data-env', 'production')
         }
+
+        favicon.href = isSuperadminRoute ? '/favicon-superadmin.svg' : baseFaviconHref
       })()
     </script>
   </head>

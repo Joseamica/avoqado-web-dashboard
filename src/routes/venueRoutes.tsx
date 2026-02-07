@@ -1,16 +1,17 @@
 /**
- * Shared venue routes used by both /venues/:slug and /wl/:slug
+ * Shared venue routes used by both /venues/:slug and /wl/venues/:slug
  *
  * This file eliminates route duplication between the two route families.
  * Any changes to venue-level routes should be made here, NOT in router.tsx.
  *
  * Usage:
  *   { path: '/venues/:slug', element: <Dashboard />, children: createVenueRoutes() }
- *   { path: '/wl/:slug', element: <Dashboard />, children: createVenueRoutes() }
+ *   { path: '/wl/venues/:slug', element: <Dashboard />, children: createVenueRoutes() }
  */
 
 import { Navigate } from 'react-router-dom'
 import type { RouteObject } from 'react-router-dom'
+import { KYCSetupRequired } from '@/pages/KYCSetupRequired'
 
 import { AdminAccessLevel, AdminProtectedRoute } from './AdminProtectedRoute'
 import { KYCProtectedRoute } from './KYCProtectedRoute'
@@ -92,10 +93,13 @@ import {
 
 /**
  * Creates the shared route children for venue-level dashboards.
- * These routes are used in both /venues/:slug/* and /wl/:slug/* paths.
+ * These routes are used in both /venues/:slug/* and /wl/venues/:slug/* paths.
  */
 export function createVenueRoutes(): RouteObject[] {
   return [
+    // KYC setup page (used by KYCProtectedRoute redirects)
+    { path: 'kyc-required', element: <KYCSetupRequired /> },
+
     // Home Dashboard (requires home:read permission)
     {
       element: <PermissionProtectedRoute permission="home:read" />,
