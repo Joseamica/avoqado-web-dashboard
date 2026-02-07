@@ -46,6 +46,20 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+export function hasVenueAccessForSlug(
+  user: User | null,
+  userRole: StaffRole | string | undefined,
+  allVenues: Venue[],
+  slugToCheck: string,
+): boolean {
+  if (!user || !slugToCheck) return false
+
+  // SUPERADMIN is global, but still constrained to existing venues.
+  // OWNER and other roles are constrained to venues returned by backend access scope.
+  const accessibleVenues = userRole === StaffRole.SUPERADMIN ? allVenues : (user.venues ?? [])
+  return accessibleVenues.some(venue => venue.slug === slugToCheck)
+}
+
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext)
   if (!context) {
@@ -806,12 +820,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkVenueAccess = useCallback(
     (slugToCheck: string): boolean => {
-      if (!user || !slugToCheck) return false
-
-      // SUPERADMIN is global, but still constrained to existing venues.
-      // OWNER and other roles are constrained to venues returned by backend access scope.
-      const accessibleVenues = userRole === StaffRole.SUPERADMIN ? allVenues : (user.venues ?? [])
-      return accessibleVenues.some(venue => venue.slug === slugToCheck)
+      return hasVenueAccessForSlug(user, userRole, allVenues, slugToCheck)
     },
     [user, userRole, allVenues],
   )

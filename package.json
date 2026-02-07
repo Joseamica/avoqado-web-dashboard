@@ -23,6 +23,7 @@
     "update:unused-ignore": "node scripts/update-unused-ignore.js",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:auth-routing": "vitest run src/__tests__/api.unauthorized-redirect.test.ts src/__tests__/Layout.root-gateway.test.tsx src/routes/__tests__/EmailVerifiedRoute.test.tsx src/routes/__tests__/ModuleProtectedRoute.test.tsx src/routes/__tests__/KYCProtectedRoute.test.tsx src/context/__tests__/AuthContext.access-control.test.ts src/context/__tests__/AuthContext.login.test.ts src/context/__tests__/AuthContext.logout.test.ts",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
     "test:onboarding": "vitest run src/test/payment-onboarding.test.ts",

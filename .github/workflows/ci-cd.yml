@@ -77,6 +77,9 @@ jobs:
       - name: 🔍 TypeScript compilation check
         run: npx tsc --noEmit
 
+      - name: 🔐 Run auth/routing regression suite
+        run: npm run test:auth-routing
+
       - name: 🏗️ Build application
         run: npm run build
         env:

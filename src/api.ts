@@ -21,6 +21,18 @@ const api = axios.create({
   withCredentials: true,
 })
 
+export const getUnauthorizedLoginRedirectUrl = (location: Pick<Location, 'pathname' | 'search' | 'hash'>): string | null => {
+  const isLoginRoute = location.pathname.startsWith('/login')
+  const isGoogleCallbackRoute = location.pathname.startsWith('/auth/google/callback')
+
+  if (isLoginRoute || isGoogleCallbackRoute) {
+    return null
+  }
+
+  const returnTo = encodeURIComponent(`${location.pathname}${location.search}${location.hash}`)
+  return `/login?returnTo=${returnTo}`
+}
+
 // Track API call success/failure to detect server availability
 api.interceptors.response.use(
   response => {
@@ -58,13 +70,9 @@ api.interceptors.response.use(
 
     // Handle 401 - redirect to login preserving deep-link context
     if (error.response?.status === 401) {
-      const currentPath = window.location.pathname
-      const isLoginRoute = currentPath.startsWith('/login')
-      const isGoogleCallbackRoute = currentPath.startsWith('/auth/google/callback')
-
-      if (!isLoginRoute && !isGoogleCallbackRoute) {
-        const returnTo = encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`)
-        window.location.href = `/login?returnTo=${returnTo}`
+      const loginRedirectUrl = getUnauthorizedLoginRedirectUrl(window.location)
+      if (loginRedirectUrl) {
+        window.location.href = loginRedirectUrl
       }
     }
 
