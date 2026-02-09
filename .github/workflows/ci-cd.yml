@@ -82,11 +82,11 @@ jobs:
         timeout-minutes: 15
         run: npm run test:auth-routing -- --pool=forks --maxWorkers=1 --testTimeout=20000 --hookTimeout=20000
 
-      - name: 🏗️ Build application
+      - name: 🏗️ Build application (CI validation only)
         run: npm run build
         env:
-          # Placeholder for CI build validation only - actual URL set in Cloudflare Pages
-          VITE_API_URL: 'https://avoqado-server.onrender.com'
+          # CI validation build — not deployed. Each deploy job rebuilds with correct API URL.
+          VITE_API_URL: 'https://api.avoqado.io'
 
       - name: 📊 Get package version
         id: package-version
@@ -103,7 +103,6 @@ jobs:
           echo "size=$SIZE" >> $GITHUB_OUTPUT
           echo "📐 Build size: $SIZE"
 
-      # ✅ OPTIMIZATION: Upload artifacts to reuse in deploy jobs
       - name: 📤 Upload build artifacts
         uses: actions/upload-artifact@v6
         with:
@@ -127,12 +126,27 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v6
 
-      # ✅ OPTIMIZATION: Download pre-built artifacts instead of rebuilding!
-      - name: 📥 Download build artifacts
-        uses: actions/download-artifact@v7
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          name: dashboard-build-${{ github.sha }}
-          path: dist/
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 📦 Cache node_modules
+        uses: actions/cache@v5
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ env.NODE_VERSION }}-
+            ${{ runner.os }}-node-
+
+      - name: 📦 Install dependencies
+        run: npm ci --prefer-offline
+
+      - name: 🏗️ Build for Staging
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://demo.api.avoqado.io' }}
 
       - name: 🚀 Deploy to Cloudflare Pages (Staging)
         uses: cloudflare/wrangler-action@v3
@@ -186,12 +200,27 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v6
 
-      # ✅ OPTIMIZATION: Reuse build artifacts
-      - name: 📥 Download build artifacts
-        uses: actions/download-artifact@v7
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          name: dashboard-build-${{ github.sha }}
-          path: dist/
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 📦 Cache node_modules
+        uses: actions/cache@v5
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ env.NODE_VERSION }}-
+            ${{ runner.os }}-node-
+
+      - name: 📦 Install dependencies
+        run: npm ci --prefer-offline
+
+      - name: 🏗️ Build for Demo
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://demo.api.avoqado.io' }}
 
       - name: 🚀 Deploy to Cloudflare Pages (Demo)
         uses: cloudflare/wrangler-action@v3
@@ -236,12 +265,27 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v6
 
-      # ✅ OPTIMIZATION: Reuse build artifacts
-      - name: 📥 Download build artifacts
-        uses: actions/download-artifact@v7
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          name: dashboard-build-${{ github.sha }}
-          path: dist/
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 📦 Cache node_modules
+        uses: actions/cache@v5
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ env.NODE_VERSION }}-
+            ${{ runner.os }}-node-
+
+      - name: 📦 Install dependencies
+        run: npm ci --prefer-offline
+
+      - name: 🏗️ Build for Production
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://api.avoqado.io' }}
 
       - name: 🏭 Deploy to Cloudflare Pages (Production)
         uses: cloudflare/wrangler-action@v3
