@@ -17,13 +17,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -49,29 +42,27 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   AlertCircle,
   AlertTriangle,
+  ArrowRightLeft,
+  ArrowUpDown,
+  Ban,
+  BadgeCheck,
   Building2,
   CheckCircle,
   Clock,
+  Crown,
   DollarSign,
-  Eye,
   FileText,
-  MoreHorizontal,
   Package,
   Search,
   Settings,
+  Sparkles,
+  Store,
   TrendingUp,
+  Users,
   XCircle,
   Zap,
-  Users,
-  Store,
-  Ban,
-  Crown,
-  Sparkles,
-  BadgeCheck,
-  ArrowRightLeft,
-  ArrowUpDown,
 } from 'lucide-react'
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import VenueModuleManagementDialog from './components/VenueModuleManagementDialog'
 import { cn } from '@/lib/utils'
@@ -250,183 +241,54 @@ const PAYMENT_STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNo
 }
 
 // ============================================================================
-// VENUE CARD COMPONENT
+// VENUE LIST ITEM COMPONENT (compact for sidebar)
 // ============================================================================
 
-interface VenueCardProps {
+interface VenueListItemProps {
   venue: SuperadminVenue
-  onViewDetails: () => void
-  onManageModules: () => void
-  onApprove: () => void
-  onSuspend: () => void
-  onTransfer: () => void
-  onNavigateKYC: () => void
-  onNavigateAdmin: () => void
-  onChangeStatus: () => void
+  isSelected: boolean
+  onClick: () => void
 }
 
-const VenueCard: React.FC<VenueCardProps> = ({
-  venue,
-  onViewDetails,
-  onManageModules,
-  onApprove,
-  onSuspend,
-  onTransfer,
-  onNavigateKYC,
-  onNavigateAdmin,
-  onChangeStatus,
-}) => {
+const VenueListItem: React.FC<VenueListItemProps> = ({ venue, isSelected, onClick }) => {
   const statusConfig = STATUS_CONFIG[venue.status]
-  const planConfig = PLAN_CONFIG[venue.subscriptionPlan] || {
-    label: venue.subscriptionPlan || 'Desconocido',
-    icon: <Store className="w-3.5 h-3.5" />,
-    gradient: 'from-gray-500/20 to-gray-500/5',
-  }
-  const paymentConfig = PAYMENT_STATUS_CONFIG[venue.billing.paymentStatus] || {
-    label: venue.billing.paymentStatus,
-    icon: <XCircle className="w-4 h-4" />,
-    color: 'text-muted-foreground',
-  }
-  const hasKYCPending =
-    venue.kycStatus === 'PENDING_REVIEW' || venue.kycStatus === 'IN_REVIEW'
-  const canApprove = venue.status === VenueStatus.PENDING_ACTIVATION
-  const canSuspend = venue.status === VenueStatus.ACTIVE
+  const hasKYCPending = venue.kycStatus === 'PENDING_REVIEW' || venue.kycStatus === 'IN_REVIEW'
 
   return (
-    <GlassCard hover className="overflow-hidden">
-      <div className="p-5">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 shrink-0">
-              <Building2 className="w-5 h-5 text-primary" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-sm truncate">{venue.name}</h3>
-                {hasKYCPending && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 shrink-0 cursor-pointer" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>KYC pendiente de revisión</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground truncate">{venue.owner.email}</p>
-              <p className="text-xs text-muted-foreground/70 truncate mt-0.5">
-                {venue.organization.name}
-              </p>
-            </div>
-          </div>
-
-          {/* Actions Dropdown */}
-          <DropdownMenu modal={false}>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 cursor-pointer">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" sideOffset={5} className="w-52">
-              <DropdownMenuItem onClick={onViewDetails} className="cursor-pointer">
-                <Eye className="mr-2 h-4 w-4" />
-                Ver Detalles
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onManageModules} className="cursor-pointer">
-                <Package className="mr-2 h-4 w-4" />
-                Gestionar Módulos
-              </DropdownMenuItem>
-              {hasKYCPending && (
-                <DropdownMenuItem onClick={onNavigateKYC} className="cursor-pointer">
-                  <FileText className="mr-2 h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                  Revisar KYC
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              {canApprove && (
-                <DropdownMenuItem onClick={onApprove} className="cursor-pointer">
-                  <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
-                  Aprobar Venue
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem onClick={onChangeStatus} className="cursor-pointer">
-                <ArrowUpDown className="mr-2 h-4 w-4" />
-                Cambiar Estado
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onNavigateAdmin} className="cursor-pointer">
-                <Settings className="mr-2 h-4 w-4" />
-                Administrar Features
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onTransfer} className="cursor-pointer">
-                <ArrowRightLeft className="mr-2 h-4 w-4" />
-                Transferir Organizacion
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer">
-                <Zap className="mr-2 h-4 w-4" />
-                Ver Analíticas
-              </DropdownMenuItem>
-              {canSuspend && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={onSuspend}
-                    className="cursor-pointer text-destructive focus:text-destructive"
-                  >
-                    <Ban className="mr-2 h-4 w-4" />
-                    Suspender Venue
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+    <button
+      onClick={onClick}
+      className={cn(
+        'w-full text-left px-3 py-3 rounded-xl transition-all duration-200 border',
+        'hover:bg-muted/50',
+        isSelected
+          ? 'border-emerald-500/50 bg-emerald-500/5 shadow-sm'
+          : 'border-transparent'
+      )}
+    >
+      <div className="flex items-start gap-2.5">
+        <div className="p-1.5 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 shrink-0 mt-0.5">
+          <Building2 className="w-3.5 h-3.5 text-primary" />
         </div>
-
-        {/* Status & Plan Row */}
-        <div className="flex items-center gap-2 mt-4 flex-wrap">
-          <div
-            className={cn(
-              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border',
-              statusConfig.badgeClass
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="font-medium text-sm truncate">{venue.name}</span>
+            {hasKYCPending && (
+              <AlertCircle className="w-3.5 h-3.5 text-yellow-600 dark:text-yellow-400 shrink-0" />
             )}
-          >
-            <StatusPulse status={statusConfig.pulseStatus} />
-            {statusConfig.label}
-          </div>
-          <div
-            className={cn(
-              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
-              'bg-muted/50 text-muted-foreground'
-            )}
-          >
-            <div className={cn('p-0.5 rounded', planConfig.gradient)}>{planConfig.icon}</div>
-            {planConfig.label}
-          </div>
-        </div>
-
-        {/* Metrics Row */}
-        <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-border/50">
-          <div>
-            <p className="text-xs text-muted-foreground">Ingresos</p>
-            <p className="text-sm font-semibold mt-0.5">{Currency(venue.monthlyRevenue)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Usuarios</p>
-            <p className="text-sm font-semibold mt-0.5">{venue.analytics.activeUsers}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Pago</p>
-            <div className={cn('flex items-center gap-1 mt-0.5', paymentConfig.color)}>
-              {paymentConfig.icon}
-              <span className="text-xs font-medium">{paymentConfig.label}</span>
+            <div className="ml-auto shrink-0">
+              <StatusPulse status={statusConfig.pulseStatus} />
             </div>
+          </div>
+          <p className="text-xs text-muted-foreground truncate mt-0.5">{venue.owner.email}</p>
+          <div className="flex items-center justify-between mt-0.5">
+            <span className="text-xs text-muted-foreground/70 truncate">{venue.organization.name}</span>
+            <span className="text-xs font-medium text-muted-foreground shrink-0 ml-2">
+              {Currency(venue.monthlyRevenue)}
+            </span>
           </div>
         </div>
       </div>
-    </GlassCard>
+    </button>
   )
 }
 
@@ -452,8 +314,7 @@ const VenueManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [orgFilter, setOrgFilter] = useState<string>('all')
-  const [selectedVenue, setSelectedVenue] = useState<SuperadminVenue | null>(null)
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null)
   const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false)
   const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false)
   const [isModuleDialogOpen, setIsModuleDialogOpen] = useState(false)
@@ -475,6 +336,19 @@ const VenueManagement: React.FC = () => {
       return matchesSearch && matchesStatus && matchesOrg
     })
   }, [venues, searchTerm, statusFilter, orgFilter])
+
+  // Resolve selected venue from filteredVenues
+  const selectedVenue = useMemo(() => {
+    if (!selectedVenueId) return null
+    return filteredVenues.find(v => v.id === selectedVenueId) ?? null
+  }, [filteredVenues, selectedVenueId])
+
+  // Auto-select first venue when list changes and current selection is not visible
+  useEffect(() => {
+    if (filteredVenues.length > 0 && !selectedVenue) {
+      setSelectedVenueId(filteredVenues[0].id)
+    }
+  }, [filteredVenues, selectedVenue])
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -576,39 +450,12 @@ const VenueManagement: React.FC = () => {
     },
   })
 
-  // Handlers
-  const handleViewDetails = (venue: SuperadminVenue) => {
-    setSelectedVenue(venue)
-    setIsDetailsOpen(true)
-  }
-
-  const handleManageModules = (venue: SuperadminVenue) => {
-    setSelectedVenue(venue)
-    setIsModuleDialogOpen(true)
-  }
-
-  const handleApproveVenue = (venue: SuperadminVenue) => {
-    setSelectedVenue(venue)
-    setIsApprovalDialogOpen(true)
-  }
-
-  const handleSuspendVenue = (venue: SuperadminVenue) => {
-    setSelectedVenue(venue)
-    setIsSuspendDialogOpen(true)
-  }
-
-  const handleTransferVenue = (venue: SuperadminVenue) => {
-    setSelectedVenue(venue)
-    setTargetOrgId('')
-    setIsTransferDialogOpen(true)
-  }
-
-  const handleChangeStatus = (venue: SuperadminVenue) => {
-    setSelectedVenue(venue)
-    setNewStatus('')
-    setReason('')
-    setIsStatusDialogOpen(true)
-  }
+  // Derived state for action visibility
+  const hasKYCPending = selectedVenue
+    ? selectedVenue.kycStatus === 'PENDING_REVIEW' || selectedVenue.kycStatus === 'IN_REVIEW'
+    : false
+  const canApprove = selectedVenue?.status === VenueStatus.PENDING_ACTIVATION
+  const canSuspend = selectedVenue?.status === VenueStatus.ACTIVE
 
   return (
     <div className="space-y-6">
@@ -654,128 +501,259 @@ const VenueManagement: React.FC = () => {
         />
       </div>
 
-      {/* Filters & List */}
-      <GlassCard className="p-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5">
-              <Store className="w-4 h-4 text-primary" />
-            </div>
-            <div>
-              <h2 className="font-semibold">Todos los Venues</h2>
+      {/* Master-Detail Layout */}
+      <GlassCard className="overflow-hidden">
+        <div className="flex" style={{ height: 'calc(100vh - 340px)', minHeight: '500px' }}>
+          {/* Left Panel — Venue List */}
+          <div className="w-80 shrink-0 border-r border-border/50 flex flex-col">
+            {/* Search & Filters */}
+            <div className="p-4 space-y-3 border-b border-border/50">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Buscar venue..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-background cursor-text h-9 text-sm"
+                />
+              </div>
+              <Select value={orgFilter} onValueChange={setOrgFilter}>
+                <SelectTrigger className="bg-background cursor-pointer h-9 text-sm">
+                  <SelectValue placeholder="Organización" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="cursor-pointer">
+                    Todas las organizaciones
+                  </SelectItem>
+                  {organizations.map(org => (
+                    <SelectItem key={org.id} value={org.id} className="cursor-pointer">
+                      {org.name} ({org.venueCount})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="bg-background cursor-pointer h-9 text-sm">
+                  <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="cursor-pointer">
+                    Todos los estados
+                  </SelectItem>
+                  {Object.entries(STATUS_CONFIG).map(([status, config]) => (
+                    <SelectItem key={status} value={status} className="cursor-pointer">
+                      {config.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <p className="text-xs text-muted-foreground">
                 {filteredVenues.length} de {venues.length} venues
               </p>
             </div>
-          </div>
-          <div className="flex-1" />
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-            <div className="relative flex-1 sm:flex-none sm:w-64">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Buscar por nombre, email u organización..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="pl-10 bg-background cursor-text"
-              />
-            </div>
-            <Select value={orgFilter} onValueChange={setOrgFilter}>
-              <SelectTrigger className="w-full sm:w-52 bg-background cursor-pointer">
-                <SelectValue placeholder="Filtrar por organizacion" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" className="cursor-pointer">
-                  Todas las organizaciones
-                </SelectItem>
-                {organizations.map(org => (
-                  <SelectItem key={org.id} value={org.id} className="cursor-pointer">
-                    {org.name} ({org.venueCount})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-48 bg-background cursor-pointer">
-                <SelectValue placeholder="Filtrar por estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" className="cursor-pointer">
-                  Todos los estados
-                </SelectItem>
-                {Object.entries(STATUS_CONFIG).map(([status, config]) => (
-                  <SelectItem key={status} value={status} className="cursor-pointer">
-                    {config.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
 
-        {/* Venues Grid */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
-              <p className="text-sm text-muted-foreground mt-3">Cargando venues...</p>
+            {/* Venue List */}
+            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto" />
+                    <p className="text-xs text-muted-foreground mt-2">Cargando...</p>
+                  </div>
+                </div>
+              ) : filteredVenues.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="p-2.5 rounded-full bg-muted/50 mb-2">
+                    <Building2 className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Sin resultados</p>
+                  {searchTerm && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-1 cursor-pointer text-xs h-7"
+                      onClick={() => setSearchTerm('')}
+                    >
+                      Limpiar búsqueda
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                filteredVenues.map(venue => (
+                  <VenueListItem
+                    key={venue.id}
+                    venue={venue}
+                    isSelected={selectedVenueId === venue.id}
+                    onClick={() => setSelectedVenueId(venue.id)}
+                  />
+                ))
+              )}
             </div>
           </div>
-        ) : filteredVenues.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <div className="p-3 rounded-full bg-muted/50 mb-3">
-              <Building2 className="w-6 h-6 text-muted-foreground" />
-            </div>
-            <p className="text-sm text-muted-foreground">No se encontraron venues</p>
-            {searchTerm && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="mt-2 cursor-pointer"
-                onClick={() => setSearchTerm('')}
-              >
-                Limpiar búsqueda
-              </Button>
+
+          {/* Right Panel — Detail View */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {selectedVenue ? (
+              <>
+                {/* Detail Header */}
+                <div className="px-6 py-4 border-b border-border/50">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 shrink-0">
+                        <Building2 className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h2 className="text-lg font-bold truncate">{selectedVenue.name}</h2>
+                          {(() => {
+                            const sc = STATUS_CONFIG[selectedVenue.status]
+                            return (
+                              <div
+                                className={cn(
+                                  'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border',
+                                  sc.badgeClass
+                                )}
+                              >
+                                <StatusPulse status={sc.pulseStatus} />
+                                {sc.label}
+                              </div>
+                            )
+                          })()}
+                          {(() => {
+                            const pc = PLAN_CONFIG[selectedVenue.subscriptionPlan] || {
+                              label: selectedVenue.subscriptionPlan || 'Desconocido',
+                              icon: <Store className="w-3.5 h-3.5" />,
+                              gradient: 'from-gray-500/20 to-gray-500/5',
+                            }
+                            return (
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted/50 text-muted-foreground">
+                                <div className={cn('p-0.5 rounded', pc.gradient)}>{pc.icon}</div>
+                                {pc.label}
+                              </div>
+                            )
+                          })()}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                          {selectedVenue.organization.name} &middot; {selectedVenue.owner.email}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2 mt-3 flex-wrap">
+                    {hasKYCPending && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="cursor-pointer h-8 text-xs gap-1.5"
+                              onClick={() => navigate(`/superadmin/kyc/${selectedVenue.id}`)}
+                            >
+                              <FileText className="w-3.5 h-3.5 text-yellow-600 dark:text-yellow-400" />
+                              Revisar KYC
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>KYC pendiente de revisión</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="cursor-pointer h-8 text-xs gap-1.5"
+                      onClick={() => {
+                        setIsModuleDialogOpen(true)
+                      }}
+                    >
+                      <Package className="w-3.5 h-3.5" />
+                      Módulos
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="cursor-pointer h-8 text-xs gap-1.5"
+                      onClick={() => {
+                        setNewStatus('')
+                        setReason('')
+                        setIsStatusDialogOpen(true)
+                      }}
+                    >
+                      <ArrowUpDown className="w-3.5 h-3.5" />
+                      Cambiar Estado
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="cursor-pointer h-8 text-xs gap-1.5"
+                      onClick={() => {
+                        setTargetOrgId('')
+                        setIsTransferDialogOpen(true)
+                      }}
+                    >
+                      <ArrowRightLeft className="w-3.5 h-3.5" />
+                      Transferir
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="cursor-pointer h-8 text-xs gap-1.5"
+                      onClick={() => navigate(`/admin/venues/${selectedVenue.id}`)}
+                    >
+                      <Settings className="w-3.5 h-3.5" />
+                      Features
+                    </Button>
+                    {canApprove && (
+                      <Button
+                        size="sm"
+                        className="cursor-pointer h-8 text-xs gap-1.5 bg-green-600 hover:bg-green-700 text-green-50"
+                        onClick={() => {
+                          setReason('')
+                          setIsApprovalDialogOpen(true)
+                        }}
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        Aprobar
+                      </Button>
+                    )}
+                    {canSuspend && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="cursor-pointer h-8 text-xs gap-1.5"
+                        onClick={() => {
+                          setReason('')
+                          setIsSuspendDialogOpen(true)
+                        }}
+                      >
+                        <Ban className="w-3.5 h-3.5" />
+                        Suspender
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Detail Content (scrollable) */}
+                <div className="flex-1 overflow-y-auto p-6">
+                  <VenueDetailsView venue={selectedVenue} />
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
+                <div className="p-4 rounded-full bg-muted/50 mb-4">
+                  <Building2 className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground font-medium">Selecciona un venue</p>
+                <p className="text-sm text-muted-foreground/70 mt-1">
+                  Elige un venue de la lista para ver sus detalles
+                </p>
+              </div>
             )}
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filteredVenues.map(venue => (
-              <VenueCard
-                key={venue.id}
-                venue={venue}
-                onViewDetails={() => handleViewDetails(venue)}
-                onManageModules={() => handleManageModules(venue)}
-                onApprove={() => handleApproveVenue(venue)}
-                onSuspend={() => handleSuspendVenue(venue)}
-                onTransfer={() => handleTransferVenue(venue)}
-                onChangeStatus={() => handleChangeStatus(venue)}
-                onNavigateKYC={() => navigate(`/superadmin/kyc/${venue.id}`)}
-                onNavigateAdmin={() => navigate(`/admin/venues/${venue.id}`)}
-              />
-            ))}
-          </div>
-        )}
+        </div>
       </GlassCard>
-
-      {/* Venue Details Dialog */}
-      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5">
-                <Building2 className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <DialogTitle>Detalles del Venue</DialogTitle>
-                <DialogDescription>
-                  Información completa de {selectedVenue?.name}
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-          {selectedVenue && <VenueDetailsView venue={selectedVenue} />}
-        </DialogContent>
-      </Dialog>
 
       {/* Approval Dialog */}
       <Dialog open={isApprovalDialogOpen} onOpenChange={setIsApprovalDialogOpen}>

@@ -1,93 +1,36 @@
-﻿import React from 'react'
+import React, { useState, useMemo } from 'react'
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
-import {
-  LayoutDashboard,
-  Building2,
-  Settings,
-  DollarSign,
-  TrendingUp,
-  Users,
-  Shield,
-  Zap,
-  BarChart3,
-  AlertTriangle,
-  FileText,
-  Headphones,
-  Calculator,
-  CreditCard,
-  Wallet,
-  Receipt,
-  Tags,
-  Webhook,
-  Smartphone,
-  Clock,
-  Banknote,
-  Boxes,
-  Landmark,
-  KeyRound,
-  Upload,
-  Bell,
-  Wand2,
-  Mail,
-} from 'lucide-react'
-
+import { Shield, Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { getSuperadminNavigation } from '../constants/navigation'
 
-const SuperadminSidebar: React.FC = () => {
+interface SuperadminSidebarProps {
+  onOpenCommandPalette?: () => void
+}
+
+const SuperadminSidebar: React.FC<SuperadminSidebarProps> = ({ onOpenCommandPalette }) => {
   const { t } = useTranslation('superadmin')
   const { t: tSidebar } = useTranslation('sidebar')
-  const navigationItems = [
-    {
-      title: tSidebar('summary'),
-      items: [
-        { name: tSidebar('main'), href: '/superadmin', icon: LayoutDashboard },
-        { name: tSidebar('analytics'), href: '/superadmin/analytics', icon: BarChart3 },
-        { name: tSidebar('alerts'), href: '/superadmin/alerts', icon: AlertTriangle },
-      ],
-    },
-    {
-      title: tSidebar('business'),
-      items: [
-        { name: tSidebar('venues'), href: '/superadmin/venues', icon: Building2 },
-        { name: 'Onboarding', href: '/superadmin/onboarding', icon: Wand2 },
-        { name: tSidebar('terminals'), href: '/superadmin/terminals', icon: Smartphone },
-        { name: tSidebar('revenue'), href: '/superadmin/revenue', icon: DollarSign },
-        { name: 'Profit Analytics', href: '/superadmin/profit-analytics', icon: Calculator },
-        { name: tSidebar('paymentProviders'), href: '/superadmin/payment-providers', icon: CreditCard },
-        { name: tSidebar('merchantAccounts'), href: '/superadmin/merchant-accounts', icon: Wallet },
-        { name: tSidebar('costStructures'), href: '/superadmin/cost-structures', icon: Receipt },
-        { name: tSidebar('settlementTerms'), href: '/superadmin/settlement-terms', icon: Clock },
-        { name: tSidebar('venuePricing'), href: '/superadmin/venue-pricing', icon: Tags },
-        { name: tSidebar('paymentAnalytics'), href: '/superadmin/payment-analytics', icon: TrendingUp },
-        { name: tSidebar('creditAssessment'), href: '/superadmin/credit-assessment', icon: Banknote },
-        { name: tSidebar('customers'), href: '/superadmin/customers', icon: Users },
-        { name: tSidebar('growth'), href: '/superadmin/growth', icon: TrendingUp },
-      ],
-    },
-    {
-      title: tSidebar('platform'),
-      items: [
-        { name: tSidebar('features'), href: '/superadmin/features', icon: Zap },
-        { name: tSidebar('modules'), href: '/superadmin/modules', icon: Boxes },
-        { name: 'Organizaciones', href: '/superadmin/organizations', icon: Landmark },
-        { name: tSidebar('system'), href: '/superadmin/system', icon: Shield },
-        { name: tSidebar('webhooks'), href: '/superadmin/webhooks', icon: Webhook },
-        { name: 'Push Notifications', href: '/superadmin/push-notifications', icon: Bell },
-        { name: 'Marketing', href: '/superadmin/marketing', icon: Mail },
-        { name: tSidebar('reports'), href: '/superadmin/reports', icon: FileText },
-        { name: tSidebar('support'), href: '/superadmin/support', icon: Headphones },
-      ],
-    },
-    {
-      title: tSidebar('admin'),
-      items: [
-        { name: tSidebar('config'), href: '/superadmin/settings', icon: Settings },
-        { name: 'Master TOTP', href: '/superadmin/master-totp', icon: KeyRound },
-        { name: 'TPV Updates', href: '/superadmin/tpv-updates', icon: Upload },
-      ],
-    },
-  ]
+  const [filterTerm, setFilterTerm] = useState('')
+
+  const navigationItems = useMemo(() => getSuperadminNavigation(tSidebar), [tSidebar])
+
+  const filteredSections = useMemo(() => {
+    if (!filterTerm.trim()) return navigationItems
+
+    const term = filterTerm.toLowerCase()
+    return navigationItems
+      .map(section => ({
+        ...section,
+        items: section.items.filter(
+          item =>
+            item.name.toLowerCase().includes(term) ||
+            item.keywords.some(kw => kw.includes(term)),
+        ),
+      }))
+      .filter(section => section.items.length > 0)
+  }, [navigationItems, filterTerm])
 
   return (
     <div className={cn('h-full border-r bg-card border-border flex flex-col')}>
@@ -104,9 +47,38 @@ const SuperadminSidebar: React.FC = () => {
         </div>
       </div>
 
+      {/* Search area */}
+      <div className="px-4 pt-4 pb-2 space-y-2">
+        {/* Cmd+K button */}
+        {onOpenCommandPalette && (
+          <button
+            type="button"
+            onClick={onOpenCommandPalette}
+            className="flex items-center w-full gap-2 px-3 py-2 text-sm text-muted-foreground bg-muted/50 border border-border rounded-lg hover:bg-muted transition-colors"
+          >
+            <Search className="w-4 h-4 shrink-0" />
+            <span className="flex-1 text-left truncate">Buscar...</span>
+            <kbd className="hidden sm:inline-flex h-5 items-center gap-1 rounded border border-border bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+              <span className="text-xs">&#8984;</span>K
+            </kbd>
+          </button>
+        )}
+        {/* Inline filter */}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <input
+            type="text"
+            value={filterTerm}
+            onChange={e => setFilterTerm(e.target.value)}
+            placeholder="Filtrar menú..."
+            className="w-full pl-8 pr-3 py-1.5 text-xs bg-transparent border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+        </div>
+      </div>
+
       {/* Navigation */}
       <nav className="p-4 space-y-6 flex-1 overflow-y-auto">
-        {navigationItems.map(section => (
+        {filteredSections.map(section => (
           <div key={section.title}>
             <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{section.title}</h2>
             <ul className="space-y-1">

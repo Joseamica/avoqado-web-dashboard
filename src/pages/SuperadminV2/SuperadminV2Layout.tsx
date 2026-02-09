@@ -1,17 +1,12 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Outlet } from 'react-router-dom'
 import { cn } from '@/lib/utils'
-import { useTranslation } from 'react-i18next'
-import SuperadminSidebar from './components/SuperadminSidebar'
-import SuperadminHeader from './components/SuperadminHeader'
-import SuperadminCommandPalette from './components/SuperadminCommandPalette'
-import { getSuperadminNavigation } from './constants/navigation'
+import SuperadminV2Sidebar from './components/SuperadminV2Sidebar'
+import SuperadminHeader from '../Superadmin/components/SuperadminHeader'
+import SuperadminV2CommandPalette from './components/SuperadminV2CommandPalette'
 
-const SuperadminLayout: React.FC = () => {
+const SuperadminV2Layout: React.FC = () => {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
-  const { t: tSidebar } = useTranslation('sidebar')
-
-  const navigationItems = useMemo(() => getSuperadminNavigation(tSidebar), [tSidebar])
 
   const openCommandPalette = useCallback(() => {
     setCommandPaletteOpen(true)
@@ -35,12 +30,12 @@ const SuperadminLayout: React.FC = () => {
       <div className="flex h-screen overflow-hidden">
         {/* Sidebar */}
         <div className="w-64 flex-shrink-0">
-          <SuperadminSidebar onOpenCommandPalette={openCommandPalette} />
+          <SuperadminV2Sidebar onOpenCommandPalette={openCommandPalette} />
         </div>
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          {/* Header */}
+          {/* Header - reuse existing */}
           <SuperadminHeader />
 
           {/* Content */}
@@ -53,13 +48,12 @@ const SuperadminLayout: React.FC = () => {
       </div>
 
       {/* Command Palette */}
-      <SuperadminCommandPalette
+      <SuperadminV2CommandPalette
         open={commandPaletteOpen}
         onOpenChange={setCommandPaletteOpen}
-        navigationItems={navigationItems}
       />
     </div>
   )
 }
 
-export default SuperadminLayout
+export default SuperadminV2Layout

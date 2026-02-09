@@ -346,16 +346,27 @@ export function SupervisorDashboard() {
 
           {/* Simple gauge */}
           <div className="flex flex-col items-center group/gauge relative">
-            <div className="relative w-[140px] h-[70px] overflow-hidden">
-              <div className="absolute w-[140px] h-[140px] bg-muted rounded-full top-0" />
-              <div
-                className="absolute w-[140px] h-[140px] bg-green-500 rounded-full top-0"
-                style={{
-                  clipPath: 'polygon(0 0, 100% 0, 100% 50%, 0 50%)',
-                  transform: `rotate(${(coveragePercent / 100) * 180}deg)`,
-                }}
-              />
-              <div className="absolute w-[110px] h-[110px] bg-card rounded-full top-[15px] left-[15px] z-10" />
+            <div className="relative w-[140px] h-[70px]">
+              <svg viewBox="0 0 140 70" className="w-full h-full">
+                {/* Background arc */}
+                <path
+                  d="M 15 70 A 55 55 0 0 1 125 70"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="15"
+                  strokeLinecap="round"
+                  className="text-muted"
+                />
+                {/* Filled arc */}
+                <path
+                  d="M 15 70 A 55 55 0 0 1 125 70"
+                  fill="none"
+                  stroke="rgb(34 197 94)"
+                  strokeWidth="15"
+                  strokeLinecap="round"
+                  strokeDasharray={`${(coveragePercent / 100) * 173} 173`}
+                />
+              </svg>
             </div>
             <span className="text-xl font-black -mt-8 z-20">{coveragePercent}%</span>
             <span className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider group-hover/gauge:hidden">

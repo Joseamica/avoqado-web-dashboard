@@ -33,7 +33,9 @@ import {
   useStoresVenues,
   useStoresRevenueVsTarget,
   useStoresStaffAttendance,
+  useStoresStorePerformance,
 } from '@/hooks/useStoresAnalysis'
+import CreateStoreGoalDialog from '../Supervisor/CreateStoreGoalDialog'
 import { validateTimeEntry, resetTimeEntryValidation } from '@/services/storesAnalysis.service'
 import {
   ManagerKpiCards,
@@ -67,6 +69,13 @@ export function ManagersDashboard() {
   // Deposit approval dialog
   const [depositEntry, setDepositEntry] = useState<AttendanceEntry | null>(null)
 
+  // Goal dialog state
+  const [goalDialogOpen, setGoalDialogOpen] = useState(false)
+  const [selectedStoreForGoal, setSelectedStoreForGoal] = useState<string | null>(null)
+  const [editGoalId, setEditGoalId] = useState<string | null>(null)
+  const [editGoalAmount, setEditGoalAmount] = useState<number | undefined>()
+  const [editGoalPeriod, setEditGoalPeriod] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY' | undefined>()
+
   const queryClient = useQueryClient()
 
   // Derive ISO date strings from selected range for API calls
@@ -85,6 +94,7 @@ export function ManagersDashboard() {
   const { data: anomalies } = useStoresAnomalies()
   const { data: venuesResponse } = useStoresVenues()
   const { data: revenueData } = useStoresRevenueVsTarget({ filterVenueId: selectedVenueId })
+  const { data: storePerformanceData } = useStoresStorePerformance({ startDate: startDateISO, endDate: endDateISO })
 
   // Staff attendance using venue-level hook — pass YYYY-MM-DD strings (venue local dates)
   const startDateLocal = `${selectedRange.from.getFullYear()}-${String(selectedRange.from.getMonth() + 1).padStart(2, '0')}-${String(selectedRange.from.getDate()).padStart(2, '0')}`
@@ -216,20 +226,23 @@ export function ManagersDashboard() {
   }, [stockSummary])
 
   const goals = useMemo(() => {
-    if (!venuesData?.length) return []
-    return venuesData.slice(0, 4).map(v => {
-      const todaySales = v.todaySales ?? 0
-      // Calculate growth as percentage of weekly average
-      const weeklyAvg = (v.weekSales ?? 0) / 7
-      const growth = weeklyAvg > 0 ? ((todaySales - weeklyAvg) / weeklyAvg) * 100 : 0
-      const percent = Math.min(Math.max(Math.round(growth + 50), 0), 100)
+    if (!storePerformanceData?.stores?.length) return []
+    return storePerformanceData.stores.slice(0, 4).map(s => {
+      const perf = Number.isFinite(s.performance) ? s.performance : 0
       return {
-        storeName: v.name,
-        percent,
-        targetPercent: 90,
+        id: s.id,
+        storeName: s.name,
+        percent: Math.min(perf, 150),
+        barPercent: Math.min(perf, 100),
+        color: perf >= 70 ? 'bg-green-500' : 'bg-amber-500',
+        hasGoal: s.goalAmount != null,
+        goalId: s.goalId,
+        goalPeriod: s.goalPeriod,
+        amount: s.todaySales,
+        goalAmount: s.goalAmount ?? 0,
       }
     })
-  }, [venuesData])
+  }, [storePerformanceData])
 
   const dailySales = useMemo(() => {
     if (!revenueData?.days?.length) return []
@@ -278,6 +291,23 @@ export function ManagersDashboard() {
     if (!id) return
     resetMutation.mutate(id)
   }, [resetMutation])
+
+  const handleOpenGoalDialog = useCallback(
+    (storeId?: string, goalId?: string | null, goalAmount?: number, goalPeriod?: 'DAILY' | 'WEEKLY' | 'MONTHLY') => {
+      setSelectedStoreForGoal(storeId || null)
+      setEditGoalId(goalId || null)
+      setEditGoalAmount(goalAmount)
+      setEditGoalPeriod(goalPeriod)
+      setGoalDialogOpen(true)
+    },
+    [],
+  )
+
+  // Derive store options for goal dialog
+  const goalStoreOptions = useMemo(() => {
+    if (!storePerformanceData?.stores?.length) return []
+    return storePerformanceData.stores.map(s => ({ id: s.id, name: s.name }))
+  }, [storePerformanceData])
 
   return (
     <div className="space-y-6">
@@ -354,6 +384,8 @@ export function ManagersDashboard() {
         goals={goals}
         dailySales={dailySales}
         formatCurrency={formatCurrency}
+        onCreateGoal={() => handleOpenGoalDialog()}
+        onEditGoal={(storeId, goalId, goalAmount, goalPeriod) => handleOpenGoalDialog(storeId, goalId, goalAmount, goalPeriod)}
       />
 
       {/* Attendance Log */}
@@ -380,6 +412,17 @@ export function ManagersDashboard() {
         expectedAmount={depositEntry?.sales ?? 0}
         onConfirm={handleConfirmDeposit}
         isPending={validateMutation.isPending}
+      />
+
+      {/* Goal Dialog */}
+      <CreateStoreGoalDialog
+        open={goalDialogOpen}
+        onOpenChange={setGoalDialogOpen}
+        stores={goalStoreOptions}
+        selectedStoreId={selectedStoreForGoal}
+        editGoalId={editGoalId}
+        editGoalAmount={editGoalAmount}
+        editGoalPeriod={editGoalPeriod}
       />
     </div>
   )
