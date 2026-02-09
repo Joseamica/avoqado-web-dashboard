@@ -15,7 +15,6 @@ on:
         type: choice
         options:
           - demo
-          - staging
           - production
 
 # Cancel outdated workflow runs
@@ -115,80 +114,6 @@ jobs:
           name: dashboard-build-${{ github.sha }}
           path: dist/
           retention-days: 7
-
-  # 🚀 Deploy to Staging Environment
-  deploy-staging:
-    name: 🚀 Deploy to Staging
-    needs: test-and-build
-    runs-on: ubuntu-latest
-    if: |
-      (github.ref == 'refs/heads/develop' && github.event_name == 'push') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
-    environment:
-      name: staging
-      url: https://staging.dashboard.avoqado.io
-
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v6
-
-      - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: 📦 Cache node_modules
-        uses: actions/cache@v5
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-${{ env.NODE_VERSION }}-
-            ${{ runner.os }}-node-
-
-      - name: 📦 Install dependencies
-        run: npm ci --prefer-offline
-
-      - name: 🏗️ Build for Staging
-        run: npm run build
-        env:
-          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://demo.api.avoqado.io' }}
-
-      - name: 🚀 Deploy to Cloudflare Pages (Staging)
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name avoqado-web-dashboard --branch develop
-
-      # ✅ OPTIMIZATION: Smart health check (non-blocking due to Cloudflare WAF)
-      - name: 🏥 Staging health check
-        continue-on-error: true
-        run: |
-          echo "🏥 Performing staging health checks..."
-          echo "ℹ️ Note: Cloudflare WAF may block automated health checks"
-
-          for i in {1..5}; do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -L -A "GitHub-Actions-HealthCheck" https://staging.dashboard.avoqado.io)
-            echo "⏳ Attempt $i/5... HTTP $HTTP_CODE"
-            if [ "$HTTP_CODE" = "200" ]; then
-              echo "✅ Staging deployment successful!"
-              exit 0
-            fi
-            sleep 5
-          done
-
-          echo "⚠️ Staging health check inconclusive (Cloudflare WAF may be blocking)"
-          echo "📍 Manual verification: https://staging.dashboard.avoqado.io"
-          exit 0
-
-      - name: 📢 Notify staging deployment
-        if: success()
-        run: |
-          echo "🎉 ✅ Staging deployment completed successfully!"
-          echo "🌐 Environment: https://staging.dashboard.avoqado.io"
-          echo "📦 Version: ${{ needs.test-and-build.outputs.version }}"
-          echo "📐 Build size: ${{ needs.test-and-build.outputs.build-size }}"
 
   # 🧪 Deploy to Demo Environment
   deploy-demo:
