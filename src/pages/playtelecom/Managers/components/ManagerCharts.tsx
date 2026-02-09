@@ -4,7 +4,8 @@
 
 import { useTranslation } from 'react-i18next'
 import { GlassCard } from '@/components/ui/glass-card'
-import { Store } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Store, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface SalesBySIMType {
@@ -14,9 +15,16 @@ export interface SalesBySIMType {
 }
 
 export interface GoalProgress {
+  id: string
   storeName: string
   percent: number
-  targetPercent: number
+  barPercent: number
+  color: string
+  hasGoal: boolean
+  goalId?: string | null
+  goalAmount: number
+  goalPeriod?: 'DAILY' | 'WEEKLY' | 'MONTHLY'
+  amount: number
 }
 
 export interface DailySales {
@@ -30,9 +38,11 @@ interface ManagerChartsProps {
   goals: GoalProgress[]
   dailySales: DailySales[]
   formatCurrency?: (value: number) => string
+  onCreateGoal?: () => void
+  onEditGoal?: (storeId: string, goalId?: string | null, goalAmount?: number, goalPeriod?: 'DAILY' | 'WEEKLY' | 'MONTHLY') => void
 }
 
-export function ManagerCharts({ salesBySIM, goals, dailySales, formatCurrency }: ManagerChartsProps) {
+export function ManagerCharts({ salesBySIM, goals, dailySales, formatCurrency, onCreateGoal, onEditGoal }: ManagerChartsProps) {
   const { t } = useTranslation('playtelecom')
 
   const maxSIM = Math.max(...salesBySIM.map(s => s.value), 1)
@@ -81,37 +91,65 @@ export function ManagerCharts({ salesBySIM, goals, dailySales, formatCurrency }:
 
       {/* Goal progress */}
       <GlassCard className="p-5 flex flex-col justify-center">
-        <h4 className="text-xs font-bold text-muted-foreground uppercase mb-4">
-          {t('managers.charts.goalProgress', { defaultValue: 'Cumplimiento de Metas' })}
-        </h4>
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="text-xs font-bold text-muted-foreground uppercase">
+            {t('managers.charts.goalProgress', { defaultValue: 'Cumplimiento de Metas' })}
+          </h4>
+          {onCreateGoal && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-[10px] text-green-400 hover:text-green-300 hover:bg-green-500/10"
+              onClick={onCreateGoal}
+            >
+              <Plus className="w-3 h-3 mr-1" />
+              {t('managers.charts.createGoal', { defaultValue: 'Asignar Meta' })}
+            </Button>
+          )}
+        </div>
         {goals.length > 0 ? (
-          <div className="space-y-5">
-            {goals.map((goal, i) => {
-              const color = goal.percent >= 80 ? 'from-green-600 to-green-400' : goal.percent >= 50 ? 'from-amber-600 to-amber-400' : 'from-red-600 to-red-400'
-              const textColor = goal.percent >= 80 ? 'text-green-400' : goal.percent >= 50 ? 'text-amber-400' : 'text-red-400'
-              return (
-                <div key={i} className="group/goal">
-                  <div className="flex justify-between text-xs mb-1 gap-2">
-                    <span className="font-semibold truncate" title={goal.storeName}>{goal.storeName}</span>
-                    <span className={cn('font-bold shrink-0 group-hover/goal:hidden', textColor)}>{goal.percent}%</span>
-                    <span className="hidden group-hover/goal:inline text-[10px] font-bold shrink-0 text-foreground">
-                      {t('managers.charts.target', { defaultValue: 'Meta' })}: {goal.targetPercent}%
-                    </span>
-                  </div>
-                  <div className="h-3 bg-muted rounded-full overflow-hidden relative">
-                    <div
-                      className={cn('h-full bg-gradient-to-r rounded-full transition-all', color)}
-                      style={{ width: `${Math.min(goal.percent, 100)}%` }}
-                    />
-                    {/* Target marker */}
-                    <div
-                      className="absolute top-0 bottom-0 w-[2px] bg-foreground/50"
-                      style={{ left: `${goal.targetPercent}%` }}
-                    />
-                  </div>
+          <div className="space-y-6">
+            {goals.map((goal, i) => (
+              <div key={i} className="group/goal relative">
+                <div className="flex justify-between text-xs mb-1 gap-2">
+                  <span className="font-medium truncate min-w-0">{goal.storeName}</span>
+                  {goal.hasGoal ? (
+                    <>
+                      <button
+                        type="button"
+                        className={cn(
+                          'font-bold shrink-0 group-hover/goal:hidden cursor-pointer hover:underline',
+                          goal.percent >= 70 ? 'text-green-400' : 'text-amber-400',
+                        )}
+                        onClick={() => onEditGoal?.(goal.id, goal.goalId, goal.goalAmount, goal.goalPeriod)}
+                      >
+                        {goal.percent}%
+                      </button>
+                      <span className="hidden group-hover/goal:inline text-[10px] font-bold shrink-0 text-foreground">
+                        {fmt(goal.amount)} / {fmt(goal.goalAmount)}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="text-muted-foreground shrink-0 text-[10px] group-hover/goal:hidden cursor-pointer hover:text-green-400 hover:underline"
+                        onClick={() => onEditGoal?.(goal.id)}
+                      >
+                        {t('managers.charts.noGoal', { defaultValue: 'Sin meta' })}
+                      </button>
+                      <span className="hidden group-hover/goal:inline text-[10px] font-bold shrink-0 text-foreground">
+                        {fmt(goal.amount)}
+                      </span>
+                    </>
+                  )}
                 </div>
-              )
-            })}
+                <div className="h-3 bg-muted rounded-full overflow-hidden relative">
+                  <div className={cn('h-full rounded-full transition-all', goal.color)} style={{ width: `${goal.barPercent}%` }} />
+                  {goal.hasGoal && <div className="absolute top-0 bottom-0 w-[2px] bg-foreground/30" style={{ left: '90%' }} />}
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground min-h-[100px]">

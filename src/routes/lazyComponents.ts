@@ -98,6 +98,9 @@ export { default as CampaignDetail } from '@/pages/Superadmin/Marketing/Campaign
 export { default as TemplatesPage } from '@/pages/Superadmin/Marketing/TemplatesPage'
 export { default as OnboardingWizardPage } from '@/pages/Superadmin/Onboarding/OnboardingWizardPage'
 
+// Superadmin V2 Layout
+export { default as SuperadminV2Layout } from '@/pages/SuperadminV2/SuperadminV2Layout'
+
 // Legal components
 export const Terms = lazyWithRetry(() => import('@/pages/Legal/Terms'))
 export const Privacy = lazyWithRetry(() => import('@/pages/Legal/Privacy'))

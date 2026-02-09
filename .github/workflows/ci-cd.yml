@@ -30,7 +30,7 @@ permissions:
   issues: write
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
 
 jobs:
   # 🧪 Quality Gate: Test, lint and build
@@ -59,8 +59,9 @@ jobs:
         id: npm-cache
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
+            ${{ runner.os }}-node-${{ env.NODE_VERSION }}-
             ${{ runner.os }}-node-
 
       - name: 📦 Install dependencies
@@ -78,7 +79,8 @@ jobs:
         run: npx tsc --noEmit
 
       - name: 🔐 Run auth/routing regression suite
-        run: npm run test:auth-routing
+        timeout-minutes: 15
+        run: npm run test:auth-routing -- --pool=forks --maxWorkers=1 --testTimeout=20000 --hookTimeout=20000
 
       - name: 🏗️ Build application
         run: npm run build
