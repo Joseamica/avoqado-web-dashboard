@@ -21,6 +21,7 @@ import { TimezoneCombobox } from '@/components/timezone-combobox'
 import * as costManagementAPI from '@/services/cost-management.service'
 import { Building, CreditCard, DollarSign, Calculator, Info } from 'lucide-react'
 import { BusinessType } from '@/types'
+import { AddressAutocomplete, type PlaceDetails } from '@/components/address-autocomplete'
 import { getIntlLocale } from '@/utils/i18n-locale'
 
 interface EnhancedAddVenueDialogProps {
@@ -32,13 +33,14 @@ interface VenueFormData {
   // Basic venue information
   name: string
   type: string
-  logo: string
-  pos: string
+  logo?: string
   address: string
   city: string
   state: string
   country: string
   zipCode: string
+  latitude: number | null
+  longitude: number | null
   phone: string
   email: string
   website?: string
@@ -76,12 +78,13 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
       name: '',
       type: '',
       logo: '',
-      pos: 'SOFTRESTAURANT',
       address: '',
       city: '',
       state: '',
       country: 'MX',
       zipCode: '',
+      latitude: null as number | null,
+      longitude: null as number | null,
       phone: '',
       email: '',
       website: '',
@@ -393,7 +396,6 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
 
                   <FormField
                     control={form.control}
-                    rules={{ required: 'Logo is required' }}
                     name="logo"
                     render={() => (
                       <FormItem>
@@ -466,7 +468,18 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                       <FormItem>
                         <FormLabel>{t('venueMgmt.location.streetAddress')}</FormLabel>
                         <FormControl>
-                          <Input placeholder={t('venueMgmt.location.streetAddressPlaceholder')} {...field} />
+                          <AddressAutocomplete
+                            value={field.value}
+                            onAddressSelect={(place: PlaceDetails) => {
+                              form.setValue('address', place.address)
+                              form.setValue('city', place.city)
+                              form.setValue('state', place.state)
+                              form.setValue('country', place.country)
+                              form.setValue('zipCode', place.zipCode)
+                              form.setValue('latitude', place.latitude)
+                              form.setValue('longitude', place.longitude)
+                            }}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -561,29 +574,6 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                     />
                   </div>
 
-                  <FormField
-                    control={form.control}
-                    name="pos"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('venueMgmt.location.posIntegration')}</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="SOFTRESTAURANT">{t('venueMgmt.posProviders.SOFTRESTAURANT')}</SelectItem>
-                            <SelectItem value="SQUARE">{t('venueMgmt.posProviders.SQUARE')}</SelectItem>
-                            <SelectItem value="TOAST">{t('venueMgmt.posProviders.TOAST')}</SelectItem>
-                            <SelectItem value="NONE">{t('venueMgmt.posProviders.NONE')}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </CardContent>
               </Card>
             </TabsContent>

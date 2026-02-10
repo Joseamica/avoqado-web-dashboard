@@ -53,7 +53,11 @@
         "SOFTRESTAURANT": "Soft Restaurant",
         "NONE": "Ninguno"
       },
-      "logo": "Logo"
+      "logo": "Logo",
+      "address": "Direccion",
+      "addressPlaceholder": "Busca una direccion...",
+      "addressNoResults": "No se encontraron direcciones",
+      "addressLoading": "Buscando..."
     },
     "upload": {
       "remove": "Quitar",

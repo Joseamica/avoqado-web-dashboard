@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Building2, Store, MapPin, Phone, FileText } from 'lucide-react'
+import { AddressAutocomplete, type PlaceDetails } from '@/components/address-autocomplete'
 import type { OrganizationData, OrganizationOption, VenueData } from '../onboarding.types'
 import { VenueTypeSelector } from '../components/VenueTypeSelector'
 import { fetchOrganizations } from '../onboarding.service'
@@ -150,7 +151,17 @@ export const Step1OrgVenue: React.FC<Props> = ({ organization, venue, onOrgChang
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2 space-y-2">
             <Label>Calle y numero</Label>
-            <Input className="h-12 text-base" value={venue.address || ''} onChange={(e) => onVenueChange({ address: e.target.value })} />
+            <AddressAutocomplete
+              value={venue.address || ''}
+              onAddressSelect={(place: PlaceDetails) => {
+                onVenueChange({
+                  address: place.address,
+                  city: place.city,
+                  state: place.state,
+                  zipCode: place.zipCode,
+                })
+              }}
+            />
           </div>
           <div className="space-y-2">
             <Label>Ciudad</Label>

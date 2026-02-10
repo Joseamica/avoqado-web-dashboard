@@ -78,6 +78,7 @@ export function getSuperadminNavigation(tSidebar: TFunction): SuperadminNavSecti
         { name: tSidebar('features'), href: '/superadmin/features', icon: Zap, keywords: ['features', 'funciones'] },
         { name: tSidebar('modules'), href: '/superadmin/modules', icon: Boxes, keywords: ['modules', 'modulos'] },
         { name: 'Organizaciones', href: '/superadmin/organizations', icon: Landmark, keywords: ['organizations', 'organizaciones'] },
+        { name: 'Usuarios', href: '/superadmin/staff', icon: Users, keywords: ['users', 'usuarios', 'staff', 'personal'] },
         { name: tSidebar('system'), href: '/superadmin/system', icon: Shield, keywords: ['system', 'sistema'] },
         { name: tSidebar('webhooks'), href: '/superadmin/webhooks', icon: Webhook, keywords: ['webhooks', 'integraciones'] },
         { name: 'Push Notifications', href: '/superadmin/push-notifications', icon: Bell, keywords: ['push', 'notifications'] },

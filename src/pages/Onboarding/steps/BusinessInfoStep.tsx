@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { TimezoneCombobox } from '@/components/timezone-combobox'
 import { BusinessTypeCombobox } from '@/components/business-type-combobox'
 import { BusinessType } from '@/types'
+import { AddressAutocomplete, type PlaceDetails } from '@/components/address-autocomplete'
 
 import { OnboardingStepProps } from '../OnboardingWizard'
 import { NavigationButtons } from '../components/NavigationButtons'
@@ -151,7 +152,17 @@ export function BusinessInfoStep({ onNext, onPrevious, isFirstStep, onSave, init
                   <FormItem>
                     <FormLabel>{t('businessInfo.form.address')}</FormLabel>
                     <FormControl>
-                      <Input placeholder={t('businessInfo.form.addressPlaceholder')} {...field} />
+                      <AddressAutocomplete
+                        value={field.value}
+                        onAddressSelect={(place: PlaceDetails) => {
+                          form.setValue('address', place.address)
+                          form.setValue('city', place.city)
+                          form.setValue('state', place.state)
+                          form.setValue('country', place.country)
+                          form.setValue('zipCode', place.zipCode)
+                        }}
+                        placeholder={t('businessInfo.form.addressPlaceholder')}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

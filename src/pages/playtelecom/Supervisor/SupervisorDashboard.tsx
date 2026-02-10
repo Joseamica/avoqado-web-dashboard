@@ -19,7 +19,8 @@ import { Button } from '@/components/ui/button'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Store, TrendingUp, TrendingDown, Download, Receipt, Plus, FileSpreadsheet, FileText, Sheet, Pencil, Image, ImageOff, MapPin, MapPinOff, ExternalLink, Clock, User } from 'lucide-react'
+import { Store, TrendingUp, TrendingDown, Download, Receipt, Plus, FileSpreadsheet, FileText, Sheet, Pencil, Image, ImageOff, MapPin, MapPinOff, ExternalLink, Clock, User, Banknote, CreditCard } from 'lucide-react'
+import getIcon from '@/utils/getIcon'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { exportToCSV, exportToExcel, generateFilename, formatDateForExport, formatCurrencyForExport } from '@/utils/export'
 import { useToast } from '@/hooks/use-toast'
@@ -207,6 +208,8 @@ export function SupervisorDashboard() {
         simColor: (e.metadata?.categoryColor as string) || DEFAULT_SIM_COLOR,
         seller: e.staffName || '--',
         amount: e.type === 'sale' ? (e.metadata?.total as number) || (e.metadata?.amount as number) || 0 : null,
+        paymentMethod: (e.metadata?.paymentMethod as string) || null,
+        cardBrand: (e.metadata?.cardBrand as string) || null,
         timestamp: e.timestamp,
       }))
   }, [activityFeed])
@@ -862,7 +865,16 @@ export function SupervisorDashboard() {
                     <td className="px-6 py-3 text-muted-foreground">{tx.seller}</td>
                     <td className="px-6 py-3 text-right font-bold font-mono">
                       {tx.amount != null ? (
-                        <span className="text-green-400">{formatCurrency(tx.amount)}</span>
+                        <div className="flex items-center justify-end gap-2">
+                          {tx.paymentMethod === 'CASH' ? (
+                            <Banknote className="w-4 h-4 text-green-400 shrink-0" />
+                          ) : tx.cardBrand ? (
+                            <span className="shrink-0 scale-75">{getIcon(tx.cardBrand)}</span>
+                          ) : tx.paymentMethod ? (
+                            <CreditCard className="w-4 h-4 text-blue-400 shrink-0" />
+                          ) : null}
+                          <span className="text-green-400">{formatCurrency(tx.amount)}</span>
+                        </div>
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}

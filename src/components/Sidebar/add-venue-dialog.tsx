@@ -16,6 +16,7 @@ import api from '@/api'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTranslation } from 'react-i18next'
 import { BusinessType } from '@/types'
+import { AddressAutocomplete, type PlaceDetails } from '@/components/address-autocomplete'
 interface AddVenueDialogProps {
   onClose: () => void
   navigate: (path: string) => void
@@ -23,12 +24,19 @@ interface AddVenueDialogProps {
 
 export function AddVenueDialog({ onClose, navigate }: AddVenueDialogProps) {
   const { t } = useTranslation('venues')
+  const { t: tCommon } = useTranslation('common')
   const form = useForm({
     defaultValues: {
       name: '',
       type: '',
       logo: '',
-      pos: 'SOFTRESTAURANT',
+      address: '',
+      city: '',
+      state: '',
+      country: '',
+      zipCode: '',
+      latitude: null as number | null,
+      longitude: null as number | null,
     },
   })
   const { venueId, venueSlug } = useCurrentVenue()
@@ -159,6 +167,31 @@ export function AddVenueDialog({ onClose, navigate }: AddVenueDialogProps) {
               <FormField
                 control={form.control}
                 rules={{ required: t('addDialog.fields.requiredError') as string }}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('addDialog.fields.address')}</FormLabel>
+                    <FormControl>
+                      <AddressAutocomplete
+                        value={field.value}
+                        onAddressSelect={(place: PlaceDetails) => {
+                          form.setValue('address', place.address)
+                          form.setValue('city', place.city)
+                          form.setValue('state', place.state)
+                          form.setValue('country', place.country)
+                          form.setValue('zipCode', place.zipCode)
+                          form.setValue('latitude', place.latitude)
+                          form.setValue('longitude', place.longitude)
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                rules={{ required: t('addDialog.fields.requiredError') as string }}
                 name="type"
                 render={({ field }) => (
                   <FormItem className="space-y-3">
@@ -183,31 +216,6 @@ export function AddVenueDialog({ onClose, navigate }: AddVenueDialogProps) {
               />
               <FormField
                 control={form.control}
-                rules={{ required: t('addDialog.fields.requiredError') as string }}
-                name="pos"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>{t('addDialog.fields.pos')}</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value || ''}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t('addDialog.fields.posPlaceholder')} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="SOFTRESTAURANT" defaultChecked>
-                          {t('addDialog.fields.posOptions.SOFTRESTAURANT')}
-                        </SelectItem>
-                        <SelectItem value="NONE">{t('addDialog.fields.posOptions.NONE')}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                rules={{ required: t('addDialog.fields.requiredError') as string }}
                 name="logo"
                 render={() => (
                   <FormItem>
@@ -262,8 +270,8 @@ export function AddVenueDialog({ onClose, navigate }: AddVenueDialogProps) {
               <Button variant="outline" type="button" onClick={onClose} disabled={uploading}>
                 {t('cancel')}
               </Button>
-              <Button type="submit" disabled={uploading || !imageUrl || isPending}>
-                {isPending ? t('saving') : t('save')}
+              <Button type="submit" disabled={uploading || isPending}>
+                {isPending ? tCommon('saving') : tCommon('save')}
               </Button>
             </DialogFooter>
           </form>
