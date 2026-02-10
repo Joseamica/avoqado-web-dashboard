@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Store, TrendingUp, TrendingDown, Download, Receipt, Plus, FileSpreadsheet, FileText, Sheet } from 'lucide-react'
+import { Store, TrendingUp, TrendingDown, Download, Receipt, Plus, FileSpreadsheet, FileText, Sheet, Pencil } from 'lucide-react'
 import { exportToCSV, exportToExcel, generateFilename, formatDateForExport, formatCurrencyForExport } from '@/utils/export'
 import { useToast } from '@/hooks/use-toast'
 import CreateStoreGoalDialog from './CreateStoreGoalDialog'
@@ -539,34 +539,36 @@ export function SupervisorDashboard() {
                   <div className="flex justify-between text-xs mb-1 gap-2">
                     <span className="font-medium truncate min-w-0">{item.store}</span>
                     {item.hasGoal ? (
-                      <>
-                        <button
-                          type="button"
-                          className={cn(
-                            'font-bold shrink-0 group-hover/bar:hidden cursor-pointer hover:underline',
-                            item.percent >= 70 ? 'text-green-400' : 'text-amber-400',
-                          )}
-                          onClick={() => handleOpenGoalDialog(item.id, item.goalId, item.goalAmount, item.goalPeriod)}
-                        >
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 shrink-0 cursor-pointer group/edit"
+                        onClick={() => handleOpenGoalDialog(item.id, item.goalId, item.goalAmount, item.goalPeriod)}
+                      >
+                        <span className={cn(
+                          'font-bold group-hover/bar:hidden',
+                          item.percent >= 70 ? 'text-green-400' : 'text-amber-400',
+                        )}>
                           {item.percent}%
-                        </button>
-                        <span className="hidden group-hover/bar:inline text-[10px] font-bold shrink-0 text-foreground">
+                        </span>
+                        <span className="hidden group-hover/bar:inline text-[10px] font-bold text-foreground">
                           {formatCurrency(item.amount)} / {formatCurrency(item.goalAmount)}
                         </span>
-                      </>
+                        <Pencil className="w-3 h-3 text-muted-foreground/50" />
+                      </button>
                     ) : (
-                      <>
-                        <button
-                          type="button"
-                          className="text-muted-foreground shrink-0 text-[10px] group-hover/bar:hidden cursor-pointer hover:text-green-400 hover:underline"
-                          onClick={() => handleOpenGoalDialog(item.id)}
-                        >
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 shrink-0 cursor-pointer group/edit"
+                        onClick={() => handleOpenGoalDialog(item.id)}
+                      >
+                        <span className="text-muted-foreground text-[10px] group-hover/bar:hidden group-hover/edit:text-green-400">
                           {t('playtelecom:supervisor.noGoal', { defaultValue: 'Sin meta' })}
-                        </button>
-                        <span className="hidden group-hover/bar:inline text-[10px] font-bold shrink-0 text-foreground">
+                        </span>
+                        <span className="hidden group-hover/bar:inline text-[10px] font-bold text-foreground">
                           {formatCurrency(item.amount)}
                         </span>
-                      </>
+                        <Pencil className="w-3 h-3 text-muted-foreground/50" />
+                      </button>
                     )}
                   </div>
                   <div className="h-3 bg-muted rounded-full overflow-hidden relative">
