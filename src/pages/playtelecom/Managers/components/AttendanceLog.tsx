@@ -3,12 +3,14 @@
  * Shows clock-in/out times, photo/GPS badges, approve/reject buttons
  */
 
+import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Check, X, Image, ImageOff, MapPin, MapPinOff, RotateCcw, ClipboardList, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { FilterPill, CheckboxFilterContent } from '@/components/filters'
 
 export interface AttendanceEntry {
   id: string
@@ -45,33 +47,164 @@ interface AttendanceLogProps {
 
 export function AttendanceLog({ entries, onApprove, onReject, onResetValidation, onViewPhoto, onViewLocation }: AttendanceLogProps) {
   const { t } = useTranslation('playtelecom')
+  const [statusFilter, setStatusFilter] = useState<string[]>([])
+  const [photoFilter, setPhotoFilter] = useState<string[]>([])
+  const [incidentFilter, setIncidentFilter] = useState<string[]>([])
+
+  const statusOptions = useMemo(() => [
+    { value: 'PENDING', label: t('managers.attendance.statusPending', { defaultValue: 'Pendiente' }) },
+    { value: 'APPROVED', label: t('managers.attendance.statusApproved', { defaultValue: 'Aprobado' }) },
+    { value: 'REJECTED', label: t('managers.attendance.statusRejected', { defaultValue: 'Rechazado' }) },
+  ], [t])
+
+  const photoOptions = useMemo(() => [
+    { value: 'with-photo', label: t('managers.attendance.filterWithPhoto', { defaultValue: 'Con Foto' }) },
+    { value: 'no-photo', label: t('managers.attendance.filterNoPhoto', { defaultValue: 'Sin Foto' }) },
+  ], [t])
+
+  const incidentOptions = useMemo(() => [
+    { value: 'with-incidents', label: t('managers.attendance.filterIncidents', { defaultValue: 'Con Incidencias' }) },
+    { value: 'no-incidents', label: t('managers.attendance.noIncidents', { defaultValue: 'Sin Incidencias' }) },
+  ], [t])
+
+  const hasActiveFilters = statusFilter.length > 0 || photoFilter.length > 0 || incidentFilter.length > 0
+
+  const filteredEntries = useMemo(() => {
+    let result = entries
+
+    if (statusFilter.length > 0) {
+      result = result.filter(e => statusFilter.includes(e.validationStatus))
+    }
+
+    if (photoFilter.length > 0) {
+      result = result.filter(e => {
+        const hasPhoto = !!e.clockInPhotoUrl
+        if (photoFilter.includes('with-photo') && photoFilter.includes('no-photo')) return true
+        if (photoFilter.includes('with-photo')) return hasPhoto
+        if (photoFilter.includes('no-photo')) return !hasPhoto
+        return true
+      })
+    }
+
+    if (incidentFilter.length > 0) {
+      result = result.filter(e => {
+        const hasIncidents = e.incidents.some(i => i.severity !== 'ok')
+        if (incidentFilter.includes('with-incidents') && incidentFilter.includes('no-incidents')) return true
+        if (incidentFilter.includes('with-incidents')) return hasIncidents
+        if (incidentFilter.includes('no-incidents')) return !hasIncidents
+        return true
+      })
+    }
+
+    return result
+  }, [entries, statusFilter, photoFilter, incidentFilter])
+
+  const getFilterDisplayLabel = (selectedValues: string[], options: { value: string; label: string }[]): string | undefined => {
+    if (selectedValues.length === 0) return undefined
+    if (selectedValues.length === 1) {
+      return options.find(o => o.value === selectedValues[0])?.label
+    }
+    return `${selectedValues.length} ${t('managers.attendance.selected', { defaultValue: 'seleccionados' })}`
+  }
+
+  const incidentCount = useMemo(() =>
+    entries.filter(e => e.incidents.some(i => i.severity !== 'ok')).length,
+  [entries])
 
   return (
     <GlassCard className="overflow-hidden">
-      <div className="px-6 py-4 border-b border-border/50 flex justify-between items-center bg-card/80">
-        <h3 className="font-semibold flex items-center gap-2">
-          {t('managers.attendance.title', { defaultValue: 'Bitacora de Asistencia y Validacion' })}
-        </h3>
-        {(() => {
-          const count = entries.reduce((sum, e) => sum + e.incidents.filter(i => i.severity === 'critical' || i.severity === 'warning').length, 0)
-          return count > 0 ? (
+      <div className="px-6 py-4 border-b border-border/50 flex flex-col gap-3 bg-card/80">
+        <div className="flex justify-between items-center">
+          <h3 className="font-semibold flex items-center gap-2">
+            {t('managers.attendance.title', { defaultValue: 'Bitacora de Asistencia y Validacion' })}
+          </h3>
+          {incidentCount > 0 && (
             <div className="text-xs text-red-400 font-semibold flex items-center gap-2">
               <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              {count} {t('managers.attendance.incidentDetected', { defaultValue: count === 1 ? 'incidencia detectada' : 'incidencias detectadas' })}
+              {incidentCount} {t('managers.attendance.incidentDetected', { defaultValue: incidentCount === 1 ? 'incidencia detectada' : 'incidencias detectadas' })}
             </div>
-          ) : null
-        })()}
+          )}
+        </div>
+
+        {/* Stripe-style Filter Pills */}
+        <div className="flex flex-wrap items-center gap-2">
+          <FilterPill
+            label={t('managers.attendance.filterValidation', { defaultValue: 'Validacion' })}
+            activeValue={getFilterDisplayLabel(statusFilter, statusOptions)}
+            isActive={statusFilter.length > 0}
+            onClear={() => setStatusFilter([])}
+          >
+            <CheckboxFilterContent
+              title={t('managers.attendance.filterValidation', { defaultValue: 'Validacion' })}
+              options={statusOptions}
+              selectedValues={statusFilter}
+              onApply={setStatusFilter}
+            />
+          </FilterPill>
+
+          <FilterPill
+            label={t('managers.attendance.filterPhotos', { defaultValue: 'Fotos' })}
+            activeValue={getFilterDisplayLabel(photoFilter, photoOptions)}
+            isActive={photoFilter.length > 0}
+            onClear={() => setPhotoFilter([])}
+          >
+            <CheckboxFilterContent
+              title={t('managers.attendance.filterPhotos', { defaultValue: 'Fotos' })}
+              options={photoOptions}
+              selectedValues={photoFilter}
+              onApply={setPhotoFilter}
+            />
+          </FilterPill>
+
+          <FilterPill
+            label={t('managers.attendance.filterIncidentsLabel', { defaultValue: 'Incidencias' })}
+            activeValue={getFilterDisplayLabel(incidentFilter, incidentOptions)}
+            isActive={incidentFilter.length > 0}
+            onClear={() => setIncidentFilter([])}
+          >
+            <CheckboxFilterContent
+              title={t('managers.attendance.filterIncidentsLabel', { defaultValue: 'Incidencias' })}
+              options={incidentOptions}
+              selectedValues={incidentFilter}
+              onApply={setIncidentFilter}
+            />
+          </FilterPill>
+
+          {hasActiveFilters && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 rounded-full dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:hover:text-black"
+              onClick={() => {
+                setStatusFilter([])
+                setPhotoFilter([])
+                setIncidentFilter([])
+              }}
+            >
+              <X className="h-3.5 w-3.5" />
+              {t('managers.attendance.clearFilters', { defaultValue: 'Borrar filtros' })}
+            </Button>
+          )}
+        </div>
       </div>
 
-      {entries.length === 0 ? (
+      {filteredEntries.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
           <ClipboardList className="w-10 h-10 mb-3 opacity-40" />
           <p className="text-sm font-medium">
-            {t('managers.attendance.noEntries', { defaultValue: 'Sin asistencia registrada para este periodo' })}
+            {!hasActiveFilters
+              ? t('managers.attendance.noEntries', { defaultValue: 'Sin asistencia registrada para este periodo' })
+              : t('managers.attendance.noFilterResults', { defaultValue: 'Sin resultados para este filtro' })
+            }
           </p>
-          <p className="text-xs mt-1">
-            {t('managers.attendance.noEntriesHint', { defaultValue: 'Selecciona otro rango de fechas o verifica los filtros' })}
-          </p>
+          {hasActiveFilters && (
+            <button
+              onClick={() => { setStatusFilter([]); setPhotoFilter([]); setIncidentFilter([]) }}
+              className="text-xs text-primary mt-2 hover:underline"
+            >
+              {t('managers.attendance.clearFilters', { defaultValue: 'Borrar filtros' })}
+            </button>
+          )}
         </div>
       ) : (
       <div className="overflow-x-auto">
@@ -99,7 +232,7 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
             </tr>
           </thead>
           <tbody className="divide-y divide-border/30">
-            {entries.map(entry => (
+            {filteredEntries.map(entry => (
               <tr
                 key={entry.id}
                 className={cn(
