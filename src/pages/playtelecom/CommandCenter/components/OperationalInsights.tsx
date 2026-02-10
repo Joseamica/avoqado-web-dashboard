@@ -45,16 +45,16 @@ interface OperationalInsightsProps {
 // Map anomaly type to icon
 const getIconForType = (type: Anomaly['type']): InsightIcon => {
   switch (type) {
-    case 'LOW_SALES':
+    case 'LOW_PERFORMANCE':
       return 'trend_down'
-    case 'HIGH_RETURNS':
-      return 'alert'
-    case 'ATTENDANCE_ISSUE':
+    case 'NO_CHECKINS':
       return 'time'
-    case 'STOCK_ALERT':
+    case 'LOW_STOCK':
       return 'stock'
-    case 'DEPOSIT_PENDING':
+    case 'PENDING_DEPOSITS':
       return 'users'
+    case 'GPS_VIOLATION':
+      return 'alert'
     default:
       return 'alert'
   }

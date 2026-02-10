@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Check, X, Image, MapPin, RotateCcw, ClipboardList } from 'lucide-react'
+import { Check, X, Image, ImageOff, MapPin, MapPinOff, RotateCcw, ClipboardList, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface AttendanceEntry {
@@ -22,8 +22,12 @@ export interface AttendanceEntry {
   clockOutPhotoUrl: string | null
   clockInLat: number | null
   clockInLon: number | null
+  clockOutLat: number | null
+  clockOutLon: number | null
   validationStatus: 'PENDING' | 'APPROVED' | 'REJECTED'
   sales: number
+  cashSales: number
+  dailyCashSales: number
   incidents: Array<{ label: string; severity: 'ok' | 'warning' | 'critical' }>
   isLate?: boolean
   gpsWarning?: boolean
@@ -35,10 +39,11 @@ interface AttendanceLogProps {
   onApprove: (entry: AttendanceEntry) => void
   onReject: (id: string) => void
   onResetValidation: (id: string) => void
-  onViewPhoto: (entry: AttendanceEntry) => void
+  onViewPhoto: (entry: AttendanceEntry, type: 'clockIn' | 'clockOut') => void
+  onViewLocation: (entry: AttendanceEntry, type: 'clockIn' | 'clockOut') => void
 }
 
-export function AttendanceLog({ entries, onApprove, onReject, onResetValidation, onViewPhoto }: AttendanceLogProps) {
+export function AttendanceLog({ entries, onApprove, onReject, onResetValidation, onViewPhoto, onViewLocation }: AttendanceLogProps) {
   const { t } = useTranslation('playtelecom')
 
   return (
@@ -47,10 +52,15 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
         <h3 className="font-semibold flex items-center gap-2">
           {t('managers.attendance.title', { defaultValue: 'Bitacora de Asistencia y Validacion' })}
         </h3>
-        <div className="text-xs text-muted-foreground italic flex items-center gap-2">
-          <span className="w-2 h-2 bg-red-500 rounded-full" />
-          {t('managers.attendance.incidentDetected', { defaultValue: 'Incidencia detectada' })}
-        </div>
+        {(() => {
+          const count = entries.reduce((sum, e) => sum + e.incidents.filter(i => i.severity === 'critical' || i.severity === 'warning').length, 0)
+          return count > 0 ? (
+            <div className="text-xs text-red-400 font-semibold flex items-center gap-2">
+              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              {count} {t('managers.attendance.incidentDetected', { defaultValue: count === 1 ? 'incidencia detectada' : 'incidencias detectadas' })}
+            </div>
+          ) : null
+        })()}
       </div>
 
       {entries.length === 0 ? (
@@ -115,22 +125,35 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
                       </span>
                       {entry.clockIn && (
                         <div className="flex gap-2 mt-1">
-                          {entry.clockInPhotoUrl && (
+                          {entry.clockInPhotoUrl ? (
                             <button
-                              onClick={() => onViewPhoto(entry)}
+                              onClick={() => onViewPhoto(entry, 'clockIn')}
                               className="text-muted-foreground hover:text-primary transition-colors"
                             >
                               <Image className="w-4 h-4" />
                             </button>
+                          ) : (
+                            <span className="text-red-500">
+                              <ImageOff className="w-4 h-4" />
+                            </span>
                           )}
-                          <button className={cn(
-                            'transition-colors',
-                            entry.gpsWarning
-                              ? 'text-red-500 animate-pulse'
-                              : 'text-muted-foreground hover:text-primary'
-                          )}>
-                            <MapPin className="w-4 h-4" />
-                          </button>
+                          {entry.clockInLat != null && entry.clockInLon != null ? (
+                            <button
+                              onClick={() => onViewLocation(entry, 'clockIn')}
+                              className={cn(
+                                'transition-colors',
+                                entry.gpsWarning
+                                  ? 'text-red-500 animate-pulse'
+                                  : 'text-muted-foreground hover:text-primary'
+                              )}
+                            >
+                              <MapPin className="w-4 h-4" />
+                            </button>
+                          ) : (
+                            <span className="text-red-500">
+                              <MapPinOff className="w-4 h-4" />
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
@@ -195,12 +218,42 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
 
                 {/* Clock Out */}
                 <td className="px-6 py-4">
-                  <span className={cn(
-                    'font-mono',
-                    entry.clockOut ? 'text-muted-foreground' : 'text-muted-foreground/50'
-                  )}>
-                    {entry.clockOut || '--:--'}
-                  </span>
+                  <div className="flex flex-col">
+                    <span className={cn(
+                      'font-mono',
+                      entry.clockOut ? 'text-muted-foreground' : 'text-muted-foreground/50'
+                    )}>
+                      {entry.clockOut || '--:--'}
+                    </span>
+                    {entry.clockOut && (
+                      <div className="flex gap-2 mt-1">
+                        {entry.clockOutPhotoUrl ? (
+                          <button
+                            onClick={() => onViewPhoto(entry, 'clockOut')}
+                            className="text-muted-foreground hover:text-primary transition-colors"
+                          >
+                            <Image className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <span className="text-red-500">
+                            <ImageOff className="w-4 h-4" />
+                          </span>
+                        )}
+                        {entry.clockOutLat != null && entry.clockOutLon != null ? (
+                          <button
+                            onClick={() => onViewLocation(entry, 'clockOut')}
+                            className="text-muted-foreground hover:text-primary transition-colors"
+                          >
+                            <MapPin className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <span className="text-red-500">
+                            <MapPinOff className="w-4 h-4" />
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </td>
 
                 <td className="px-6 py-4 text-center font-semibold">{entry.sales}</td>
@@ -216,12 +269,13 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
                         <Badge
                           key={idx}
                           className={cn(
-                            'text-[10px]',
+                            'text-[10px] flex items-center gap-1',
                             inc.severity === 'critical'
                               ? 'bg-red-500/10 text-red-400 border-red-500/20'
                               : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                           )}
                         >
+                          <AlertTriangle className="w-3 h-3" />
                           {inc.label}
                         </Badge>
                       ))

@@ -11,6 +11,14 @@ import api from '@/api'
 // TYPES (same as organizationDashboard.service)
 // ===========================================
 
+export interface CategoryBreakdownItem {
+  id: string
+  name: string
+  sales: number
+  units: number
+  percentage: number
+}
+
 export interface VisionGlobalSummary {
   todaySales: number
   todayCashSales: number
@@ -23,6 +31,7 @@ export interface VisionGlobalSummary {
   activeStores: number
   totalStores: number
   approvedDeposits: number
+  categoryBreakdown?: CategoryBreakdownItem[]
 }
 
 export interface StorePerformance {
@@ -48,7 +57,7 @@ export interface StorePerformanceResponse {
 
 export interface CrossStoreAnomaly {
   id: string
-  type: 'LOW_SALES' | 'HIGH_RETURNS' | 'ATTENDANCE_ISSUE' | 'STOCK_ALERT' | 'DEPOSIT_PENDING'
+  type: 'LOW_PERFORMANCE' | 'NO_CHECKINS' | 'LOW_STOCK' | 'PENDING_DEPOSITS' | 'GPS_VIOLATION'
   severity: 'INFO' | 'WARNING' | 'CRITICAL'
   title: string
   description: string

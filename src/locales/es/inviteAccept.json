@@ -78,6 +78,7 @@
     "title": "Aceptar Invitación al Equipo",
     "alreadyLoggedIn": "Ya has iniciado sesión como",
     "description": "Como ya iniciaste sesión con el correo invitado, puedes aceptar esta invitación directamente sin crear una cuenta nueva.",
+    "acceptButton": "Aceptar invitación",
     "accepting": "Aceptando invitación...",
     "note": "Esto agregará el equipo a tu cuenta existente",
     "successTitle": "Invitacion aceptada",

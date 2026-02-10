@@ -68,7 +68,7 @@ export function DirectAcceptInvitation({
                 {t('directAccept.accepting')}
               </>
             ) : (
-              t('acceptButton')
+              t('directAccept.acceptButton', 'Accept invitation')
             )}
           </Button>
 

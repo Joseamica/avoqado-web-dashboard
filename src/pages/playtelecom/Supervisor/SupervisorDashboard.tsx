@@ -110,23 +110,45 @@ export function SupervisorDashboard() {
   // Derive store detail rows from attendance API
   const storeDetailRows = useMemo(() => {
     if (!attendanceData?.staff) return []
-    return attendanceData.staff.map(entry => ({
-      store: entry.venueName,
-      promoter: entry.name,
-      clockIn: entry.checkInTime
-        ? new Date(entry.checkInTime)
-            .toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: venueTimezone })
-            .toUpperCase()
-        : '--:--',
-      clockOut: entry.checkOutTime
-        ? new Date(entry.checkOutTime)
-            .toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: venueTimezone })
-            .toUpperCase()
-        : '--:--',
-      sales: entry.sales || 0,
-      hasDepositPhoto: !!entry.checkInPhotoUrl,
-    }))
-  }, [attendanceData])
+    const timeOpts: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: venueTimezone }
+    return attendanceData.staff.flatMap(entry => {
+      const allEntries = (entry as any).allTimeEntries as Array<{
+        clockInTime: string | null
+        clockOutTime: string | null
+        checkInPhotoUrl: string | null
+      }> | undefined
+
+      // If backend provides allTimeEntries, create one row per entry
+      if (allEntries && allEntries.length > 0) {
+        return allEntries.map(te => ({
+          store: entry.venueName,
+          promoter: entry.name,
+          clockIn: te.clockInTime
+            ? new Date(te.clockInTime).toLocaleTimeString('es-MX', timeOpts).toUpperCase()
+            : '--:--',
+          clockOut: te.clockOutTime
+            ? new Date(te.clockOutTime).toLocaleTimeString('es-MX', timeOpts).toUpperCase()
+            : '--:--',
+          sales: entry.sales || 0,
+          hasDepositPhoto: !!te.checkInPhotoUrl,
+        }))
+      }
+
+      // Fallback: single row from top-level fields
+      return [{
+        store: entry.venueName,
+        promoter: entry.name,
+        clockIn: entry.checkInTime
+          ? new Date(entry.checkInTime).toLocaleTimeString('es-MX', timeOpts).toUpperCase()
+          : '--:--',
+        clockOut: entry.checkOutTime
+          ? new Date(entry.checkOutTime).toLocaleTimeString('es-MX', timeOpts).toUpperCase()
+          : '--:--',
+        sales: entry.sales || 0,
+        hasDepositPhoto: !!entry.checkInPhotoUrl,
+      }]
+    })
+  }, [attendanceData, venueTimezone])
 
   // Derive transactions from activity feed
   const transactions = useMemo(() => {
@@ -137,13 +159,15 @@ export function SupervisorDashboard() {
       .slice(0, 10)
       .map((e, i) => ({
         id: `#${e.id.slice(-6).toUpperCase()}`,
+        type: e.type as 'sale' | 'checkin',
         store: e.venueName || '',
         product: e.title,
         iccid: (e.metadata?.iccid as string) || '--',
-        simType: (e.metadata?.categoryName as string) || 'SIM',
+        simType: e.type === 'sale' ? (e.metadata?.categoryName as string) || 'SIM' : null,
         simColor: colors[i % colors.length],
         seller: e.staffName || '--',
-        amount: (e.metadata?.amount as number) || 0,
+        amount: e.type === 'sale' ? (e.metadata?.total as number) || (e.metadata?.amount as number) || 0 : null,
+        timestamp: e.timestamp,
       }))
   }, [activityFeed])
 
@@ -193,13 +217,22 @@ export function SupervisorDashboard() {
   }, [storePerformanceData])
 
   const promoterRanking = useMemo(() => {
-    if (!storePerformanceData?.stores?.length) return []
-    return storePerformanceData.stores.slice(0, 5).map((s, i) => ({
-      name: s.name,
-      amount: s.todaySales,
-      isYou: i === 0,
-    }))
-  }, [storePerformanceData])
+    if (!attendanceData?.staff?.length) return []
+    // Aggregate sales by promoter name (same person may appear in multiple venues)
+    const salesByPromoter = new Map<string, number>()
+    for (const s of attendanceData.staff) {
+      const current = salesByPromoter.get(s.name) || 0
+      salesByPromoter.set(s.name, current + (s.sales ?? 0))
+    }
+    return Array.from(salesByPromoter.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, amount]) => ({
+        name,
+        amount,
+        isYou: false,
+      }))
+  }, [attendanceData])
 
   const maxPromoterAmount = Math.max(...promoterRanking.map(p => p.amount), 1)
 
@@ -232,9 +265,8 @@ export function SupervisorDashboard() {
       [t('playtelecom:supervisor.exportHeaders.product', { defaultValue: 'Producto' })]: e.title,
       ICCID: (e.metadata?.iccid as string) || '',
       [t('playtelecom:supervisor.exportHeaders.seller', { defaultValue: 'Vendedor' })]: e.staffName || '',
-      [t('playtelecom:supervisor.exportHeaders.amount', { defaultValue: 'Monto' })]: formatCurrencyForExport(
-        (e.metadata?.amount as number) || 0,
-      ),
+      [t('playtelecom:supervisor.exportHeaders.amount', { defaultValue: 'Monto' })]:
+        e.type === 'sale' ? formatCurrencyForExport((e.metadata?.total as number) || (e.metadata?.amount as number) || 0) : '-',
       [t('playtelecom:supervisor.exportHeaders.date', { defaultValue: 'Fecha' })]: formatDateForExport(e.timestamp),
     }))
   }, [activityFeed, t])
@@ -681,7 +713,9 @@ export function SupervisorDashboard() {
           <table className="w-full text-left text-sm">
             <thead className="bg-muted/30 text-xs uppercase font-bold text-muted-foreground">
               <tr>
+                <th className="px-6 py-3">{t('playtelecom:supervisor.date', { defaultValue: 'Fecha' })}</th>
                 <th className="px-6 py-3">ID / Venta</th>
+                <th className="px-6 py-3">{t('playtelecom:supervisor.eventType', { defaultValue: 'Tipo' })}</th>
                 <th className="px-6 py-3">{t('playtelecom:supervisor.store', { defaultValue: 'Tienda' })}</th>
                 <th className="px-6 py-3">ICCID / Producto</th>
                 <th className="px-6 py-3">Tipo SIM</th>
@@ -692,7 +726,7 @@ export function SupervisorDashboard() {
             <tbody className="divide-y divide-border/30">
               {transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">
                     <Receipt className="w-8 h-8 mx-auto mb-2 opacity-40" />
                     <p className="text-sm">
                       {t('playtelecom:supervisor.noTransactions', { defaultValue: 'Sin transacciones en este periodo' })}
@@ -702,13 +736,26 @@ export function SupervisorDashboard() {
               ) : (
                 transactions.map((tx, i) => (
                   <tr key={i} className="hover:bg-muted/20 transition group">
+                    <td className="px-6 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                      {new Date(tx.timestamp).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })},{' '}
+                      {new Date(tx.timestamp).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                    </td>
                     <td className="px-6 py-3 font-mono text-primary group-hover:text-foreground transition-colors">{tx.id}</td>
+                    <td className="px-6 py-3">
+                      <Badge
+                        variant={tx.type === 'sale' ? 'default' : 'secondary'}
+                        className="text-[10px]"
+                      >
+                        {tx.type === 'sale' ? t('playtelecom:supervisor.sale', { defaultValue: 'Venta' }) : 'Check-in'}
+                      </Badge>
+                    </td>
                     <td className="px-6 py-3 text-muted-foreground">{tx.store}</td>
                     <td className="px-6 py-3">
                       <div className="font-medium">{tx.product}</div>
                       <div className="text-[10px] font-mono text-muted-foreground">{tx.iccid}</div>
                     </td>
                     <td className="px-6 py-3">
+                      {tx.simType != null ? (
                       <Badge
                         className="text-[10px]"
                         style={{
@@ -719,9 +766,18 @@ export function SupervisorDashboard() {
                       >
                         {tx.simType}
                       </Badge>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
                     </td>
                     <td className="px-6 py-3 text-muted-foreground">{tx.seller}</td>
-                    <td className="px-6 py-3 text-right text-green-400 font-bold font-mono">{formatCurrency(tx.amount)}</td>
+                    <td className="px-6 py-3 text-right font-bold font-mono">
+                      {tx.amount != null ? (
+                        <span className="text-green-400">{formatCurrency(tx.amount)}</span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </td>
                   </tr>
                 ))
               )}

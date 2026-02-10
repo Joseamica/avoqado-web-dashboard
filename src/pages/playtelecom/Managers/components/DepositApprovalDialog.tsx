@@ -20,7 +20,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Check, Loader2, ImageOff } from 'lucide-react'
+import { Check, Loader2, ImageOff, Info } from 'lucide-react'
 import type { AttendanceEntry } from './AttendanceLog'
 
 interface DepositApprovalDialogProps {
@@ -43,14 +43,10 @@ export function DepositApprovalDialog({
   const { t } = useTranslation('playtelecom')
   const [amount, setAmount] = useState('')
 
-  // Pre-fill amount when entry changes
+  // Reset input when entry changes — no pre-fill, hint guides the user
   useEffect(() => {
-    if (entry && expectedAmount > 0) {
-      setAmount(expectedAmount.toString())
-    } else {
-      setAmount('')
-    }
-  }, [entry, expectedAmount])
+    setAmount('')
+  }, [entry])
 
   const handleConfirm = () => {
     if (!entry?.timeEntryId) return
@@ -61,6 +57,9 @@ export function DepositApprovalDialog({
 
   const parsedAmount = parseFloat(amount)
   const isValid = !isNaN(parsedAmount) && parsedAmount >= 0
+
+  const formatMoney = (v: number) =>
+    new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 }).format(v)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -86,11 +85,24 @@ export function DepositApprovalDialog({
               </div>
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">
-                  {t('managers.deposit.cashSales', { defaultValue: 'Ventas en efectivo' })}
+                  {entry.clockIn} — {entry.clockOut || '...'}
                 </p>
-                <p className="font-bold text-sm">${expectedAmount.toFixed(2)}</p>
               </div>
             </div>
+
+            {/* Cash sales hint */}
+            {expectedAmount > 0 && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <Info className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+                <p className="text-xs text-amber-300">
+                  {t('managers.deposit.cashHint', {
+                    defaultValue: 'En este turno, {{name}} vendio en efectivo {{amount}}',
+                    name: entry.promoterName,
+                    amount: formatMoney(expectedAmount),
+                  })}
+                </p>
+              </div>
+            )}
 
             {/* Bank receipt photo — main element */}
             {entry.checkOutPhotoUrl ? (
@@ -131,14 +143,6 @@ export function DepositApprovalDialog({
                 placeholder="0.00"
                 data-autofocus
               />
-              {expectedAmount > 0 && parsedAmount !== expectedAmount && (
-                <p className="text-xs text-amber-400">
-                  {t('managers.deposit.mismatchHint', {
-                    defaultValue: 'El monto difiere de las ventas del dia (${{amount}})',
-                    amount: expectedAmount.toFixed(2),
-                  })}
-                </p>
-              )}
             </div>
           </div>
         )}

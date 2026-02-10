@@ -54,7 +54,7 @@ export function ManagerCharts({ salesBySIM, goals, dailySales, formatCurrency, o
       {/* Sales by SIM type */}
       <GlassCard className="p-5 flex flex-col">
         <h4 className="text-xs font-bold text-muted-foreground uppercase mb-4">
-          {t('managers.charts.salesBySIM', { defaultValue: 'Ventas por Tipo SIM' })}
+          {t('managers.charts.salesByCategory', { defaultValue: 'Ventas por Categoría' })}
         </h4>
         {salesBySIM.length > 0 ? (
           <div className="flex-1 flex items-end justify-around gap-4 min-h-[140px]">

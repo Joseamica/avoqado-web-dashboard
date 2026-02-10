@@ -385,8 +385,8 @@ export default function InviteAccept() {
     )
   }
 
-  // FAANG Pattern: Show direct accept if logged in with matching email
-  if (sessionStatus.hasSession && sessionStatus.emailMatches) {
+  // Direct accept only when a password re-verification is NOT required
+  if (sessionStatus.hasSession && sessionStatus.emailMatches && !invitationDetails.userAlreadyHasPassword) {
     return (
       <DirectAcceptInvitation
         invitationDetails={invitationDetails}
@@ -453,9 +453,9 @@ export default function InviteAccept() {
     )
   }
 
-  // User already has an account - ask for password verification to accept invitation
-  // This avoids the login flow which blocks users without active venues
-  if (invitationDetails.userAlreadyHasPassword && !sessionStatus.hasSession) {
+  // Existing account with password: always ask for password verification
+  // (even when already logged in) to match backend invitation acceptance rules.
+  if (invitationDetails.userAlreadyHasPassword) {
     return (
       <ExistingUserPasswordVerification
         invitationDetails={invitationDetails}
