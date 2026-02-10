@@ -19,7 +19,8 @@ import { Button } from '@/components/ui/button'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Store, TrendingUp, TrendingDown, Download, Receipt, Plus, FileSpreadsheet, FileText, Sheet, Pencil } from 'lucide-react'
+import { Store, TrendingUp, TrendingDown, Download, Receipt, Plus, FileSpreadsheet, FileText, Sheet, Pencil, Image, ImageOff, MapPin, MapPinOff, ExternalLink, Clock, User } from 'lucide-react'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { exportToCSV, exportToExcel, generateFilename, formatDateForExport, formatCurrencyForExport } from '@/utils/export'
 import { useToast } from '@/hooks/use-toast'
 import CreateStoreGoalDialog from './CreateStoreGoalDialog'
@@ -54,6 +55,10 @@ export function SupervisorDashboard() {
   const [editGoalId, setEditGoalId] = useState<string | null>(null)
   const [editGoalAmount, setEditGoalAmount] = useState<number | undefined>()
   const [editGoalPeriod, setEditGoalPeriod] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY' | undefined>()
+
+  // Photo & location dialog state
+  const [photoDialog, setPhotoDialog] = useState<{ url: string; promoter: string; store: string; time: string; label: string; lat: number | null; lon: number | null } | null>(null)
+  const [locationDialog, setLocationDialog] = useState<{ promoter: string; store: string; time: string; label: string; lat: number | null; lon: number | null } | null>(null)
 
   // Derive ISO date strings from selected range for API calls
   const startDateISO = selectedRange.from.toISOString()
@@ -116,6 +121,12 @@ export function SupervisorDashboard() {
         clockInTime: string | null
         clockOutTime: string | null
         checkInPhotoUrl: string | null
+        checkOutPhotoUrl: string | null
+        depositPhotoUrl: string | null
+        clockInLat: number | null
+        clockInLon: number | null
+        clockOutLat: number | null
+        clockOutLon: number | null
       }> | undefined
 
       // If backend provides allTimeEntries, create one row per entry
@@ -130,7 +141,16 @@ export function SupervisorDashboard() {
             ? new Date(te.clockOutTime).toLocaleTimeString('es-MX', timeOpts).toUpperCase()
             : '--:--',
           sales: entry.sales || 0,
-          hasDepositPhoto: !!te.checkInPhotoUrl,
+          hasClockInPhoto: !!te.checkInPhotoUrl,
+          clockInPhotoUrl: te.checkInPhotoUrl as string | null,
+          hasClockInGps: te.clockInLat != null && te.clockInLon != null,
+          clockInLat: te.clockInLat as number | null,
+          clockInLon: te.clockInLon as number | null,
+          hasClockOutPhoto: !!(te.depositPhotoUrl || te.checkOutPhotoUrl),
+          clockOutPhotoUrl: (te.depositPhotoUrl || te.checkOutPhotoUrl) as string | null,
+          hasClockOutGps: te.clockOutLat != null && te.clockOutLon != null,
+          clockOutLat: te.clockOutLat as number | null,
+          clockOutLon: te.clockOutLon as number | null,
         }))
       }
 
@@ -145,26 +165,46 @@ export function SupervisorDashboard() {
           ? new Date(entry.checkOutTime).toLocaleTimeString('es-MX', timeOpts).toUpperCase()
           : '--:--',
         sales: entry.sales || 0,
-        hasDepositPhoto: !!entry.checkInPhotoUrl,
+        hasClockInPhoto: !!entry.checkInPhotoUrl,
+        clockInPhotoUrl: entry.checkInPhotoUrl ?? null,
+        hasClockInGps: !!(entry.checkInLocation),
+        clockInLat: entry.checkInLocation?.lat ?? null,
+        clockInLon: entry.checkInLocation?.lng ?? null,
+        hasClockOutPhoto: !!entry.checkOutPhotoUrl,
+        clockOutPhotoUrl: entry.checkOutPhotoUrl ?? null,
+        hasClockOutGps: !!(entry.checkOutLocation),
+        clockOutLat: entry.checkOutLocation?.lat ?? null,
+        clockOutLon: entry.checkOutLocation?.lng ?? null,
       }]
     })
   }, [attendanceData, venueTimezone])
 
+  // Returns true if a hex color is dark (needs white text for contrast)
+  const isColorDark = (hex: string): boolean => {
+    const c = hex.replace('#', '')
+    const r = parseInt(c.substring(0, 2), 16)
+    const g = parseInt(c.substring(2, 4), 16)
+    const b = parseInt(c.substring(4, 6), 16)
+    // Relative luminance formula (WCAG)
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+    return luminance < 0.45
+  }
+
   // Derive transactions from activity feed
+  const DEFAULT_SIM_COLOR = '#6366f1'
   const transactions = useMemo(() => {
     if (!activityFeed?.events) return []
-    const colors = ['#6366f1', '#0ea5e9', '#a855f7', '#f59e0b', '#10b981']
     return activityFeed.events
-      .filter(e => e.type === 'sale' || e.type === 'checkin')
+      .filter(e => e.type === 'sale')
       .slice(0, 10)
-      .map((e, i) => ({
+      .map((e) => ({
         id: `#${e.id.slice(-6).toUpperCase()}`,
         type: e.type as 'sale' | 'checkin',
         store: e.venueName || '',
         product: e.title,
         iccid: (e.metadata?.iccid as string) || '--',
         simType: e.type === 'sale' ? (e.metadata?.categoryName as string) || 'SIM' : null,
-        simColor: colors[i % colors.length],
+        simColor: (e.metadata?.categoryColor as string) || DEFAULT_SIM_COLOR,
         seller: e.staffName || '--',
         amount: e.type === 'sale' ? (e.metadata?.total as number) || (e.metadata?.amount as number) || 0 : null,
         timestamp: e.timestamp,
@@ -255,18 +295,16 @@ export function SupervisorDashboard() {
 
   const buildExportData = useCallback(() => {
     if (!activityFeed?.events?.length) return null
-    const events = activityFeed.events.filter(e => e.type === 'sale' || e.type === 'checkin')
+    const events = activityFeed.events.filter(e => e.type === 'sale')
     if (events.length === 0) return null
     return events.map(e => ({
       ID: e.id.slice(-6).toUpperCase(),
-      [t('playtelecom:supervisor.exportHeaders.type', { defaultValue: 'Tipo' })]:
-        e.type === 'sale' ? 'Venta' : 'Check-in',
       [t('playtelecom:supervisor.exportHeaders.store', { defaultValue: 'Tienda' })]: e.venueName || '',
       [t('playtelecom:supervisor.exportHeaders.product', { defaultValue: 'Producto' })]: e.title,
       ICCID: (e.metadata?.iccid as string) || '',
       [t('playtelecom:supervisor.exportHeaders.seller', { defaultValue: 'Vendedor' })]: e.staffName || '',
       [t('playtelecom:supervisor.exportHeaders.amount', { defaultValue: 'Monto' })]:
-        e.type === 'sale' ? formatCurrencyForExport((e.metadata?.total as number) || (e.metadata?.amount as number) || 0) : '-',
+        formatCurrencyForExport((e.metadata?.total as number) || (e.metadata?.amount as number) || 0),
       [t('playtelecom:supervisor.exportHeaders.date', { defaultValue: 'Fecha' })]: formatDateForExport(e.timestamp),
     }))
   }, [activityFeed, t])
@@ -640,16 +678,15 @@ export function SupervisorDashboard() {
               <tr>
                 <th className="px-6 py-3">{t('playtelecom:supervisor.store', { defaultValue: 'Tienda' })}</th>
                 <th className="px-6 py-3">{t('playtelecom:supervisor.promoter', { defaultValue: 'Promotor' })}</th>
-                <th className="px-6 py-3">{t('playtelecom:supervisor.entry', { defaultValue: 'Entrada' })}</th>
-                <th className="px-6 py-3">{t('playtelecom:supervisor.exit', { defaultValue: 'Salida' })}</th>
+                <th className="px-6 py-3 min-w-[140px]">{t('playtelecom:supervisor.entry', { defaultValue: 'Entrada' })}</th>
+                <th className="px-6 py-3 min-w-[140px]">{t('playtelecom:supervisor.exit', { defaultValue: 'Salida' })}</th>
                 <th className="px-6 py-3 text-right">{t('playtelecom:supervisor.sale', { defaultValue: 'Venta' })}</th>
-                <th className="px-6 py-3 text-center">{t('playtelecom:supervisor.depositPhoto', { defaultValue: 'Deposito (Foto)' })}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
               {storeDetailRows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                  <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
                     <Store className="w-8 h-8 mx-auto mb-2 opacity-40" />
                     <p className="text-sm">
                       {t('playtelecom:supervisor.noStoreActivity', { defaultValue: 'Sin actividad registrada para este periodo' })}
@@ -661,18 +698,73 @@ export function SupervisorDashboard() {
                   <tr key={i} className="hover:bg-muted/20 transition">
                     <td className="px-6 py-4 font-medium">{row.store}</td>
                     <td className="px-6 py-4 text-muted-foreground">{row.promoter}</td>
-                    <td className="px-6 py-4 text-green-400 font-mono font-semibold">{row.clockIn}</td>
-                    <td className="px-6 py-4 text-muted-foreground font-mono">{row.clockOut}</td>
-                    <td className="px-6 py-4 text-right font-semibold font-mono">{formatCurrency(row.sales)}</td>
-                    <td className="px-6 py-4 text-center">
-                      {row.hasDepositPhoto ? (
-                        <Badge className="bg-green-500/10 text-green-400 border-green-500/20">OK</Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-muted-foreground">
-                          --
-                        </Badge>
-                      )}
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-green-400 font-mono font-semibold">{row.clockIn}</span>
+                        {row.clockIn !== '--:--' && (
+                          <div className="flex gap-1.5">
+                            {row.hasClockInPhoto ? (
+                              <button
+                                onClick={() => setPhotoDialog({ url: row.clockInPhotoUrl!, promoter: row.promoter, store: row.store, time: row.clockIn, label: 'Entrada', lat: row.clockInLat, lon: row.clockInLon })}
+                                className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors cursor-pointer"
+                              >
+                                <Image className="w-3 h-3" /> Foto
+                              </button>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400">
+                                <ImageOff className="w-3 h-3" /> Sin Foto
+                              </span>
+                            )}
+                            {row.hasClockInGps ? (
+                              <button
+                                onClick={() => setLocationDialog({ promoter: row.promoter, store: row.store, time: row.clockIn, label: 'Entrada', lat: row.clockInLat, lon: row.clockInLon })}
+                                className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors cursor-pointer"
+                              >
+                                <MapPin className="w-3 h-3" /> GPS
+                              </button>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400">
+                                <MapPinOff className="w-3 h-3" /> Sin GPS
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-muted-foreground font-mono">{row.clockOut}</span>
+                        {row.clockOut !== '--:--' && (
+                          <div className="flex gap-1.5">
+                            {row.hasClockOutPhoto ? (
+                              <button
+                                onClick={() => setPhotoDialog({ url: row.clockOutPhotoUrl!, promoter: row.promoter, store: row.store, time: row.clockOut, label: 'Salida', lat: row.clockOutLat, lon: row.clockOutLon })}
+                                className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors cursor-pointer"
+                              >
+                                <Image className="w-3 h-3" /> Foto
+                              </button>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400">
+                                <ImageOff className="w-3 h-3" /> Sin Foto
+                              </span>
+                            )}
+                            {row.hasClockOutGps ? (
+                              <button
+                                onClick={() => setLocationDialog({ promoter: row.promoter, store: row.store, time: row.clockOut, label: 'Salida', lat: row.clockOutLat, lon: row.clockOutLon })}
+                                className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors cursor-pointer"
+                              >
+                                <MapPin className="w-3 h-3" /> GPS
+                              </button>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400">
+                                <MapPinOff className="w-3 h-3" /> Sin GPS
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right font-semibold font-mono">{formatCurrency(row.sales)}</td>
                   </tr>
                 ))
               )}
@@ -717,7 +809,6 @@ export function SupervisorDashboard() {
               <tr>
                 <th className="px-6 py-3">{t('playtelecom:supervisor.date', { defaultValue: 'Fecha' })}</th>
                 <th className="px-6 py-3">ID / Venta</th>
-                <th className="px-6 py-3">{t('playtelecom:supervisor.eventType', { defaultValue: 'Tipo' })}</th>
                 <th className="px-6 py-3">{t('playtelecom:supervisor.store', { defaultValue: 'Tienda' })}</th>
                 <th className="px-6 py-3">ICCID / Producto</th>
                 <th className="px-6 py-3">Tipo SIM</th>
@@ -728,7 +819,7 @@ export function SupervisorDashboard() {
             <tbody className="divide-y divide-border/30">
               {transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
                     <Receipt className="w-8 h-8 mx-auto mb-2 opacity-40" />
                     <p className="text-sm">
                       {t('playtelecom:supervisor.noTransactions', { defaultValue: 'Sin transacciones en este periodo' })}
@@ -743,14 +834,6 @@ export function SupervisorDashboard() {
                       {new Date(tx.timestamp).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit', hour12: true })}
                     </td>
                     <td className="px-6 py-3 font-mono text-primary group-hover:text-foreground transition-colors">{tx.id}</td>
-                    <td className="px-6 py-3">
-                      <Badge
-                        variant={tx.type === 'sale' ? 'default' : 'secondary'}
-                        className="text-[10px]"
-                      >
-                        {tx.type === 'sale' ? t('playtelecom:supervisor.sale', { defaultValue: 'Venta' }) : 'Check-in'}
-                      </Badge>
-                    </td>
                     <td className="px-6 py-3 text-muted-foreground">{tx.store}</td>
                     <td className="px-6 py-3">
                       <div className="font-medium">{tx.product}</div>
@@ -760,7 +843,11 @@ export function SupervisorDashboard() {
                       {tx.simType != null ? (
                       <Badge
                         className="text-[10px]"
-                        style={{
+                        style={isColorDark(tx.simColor) ? {
+                          backgroundColor: `${tx.simColor}90`,
+                          color: '#ffffff',
+                          borderColor: tx.simColor,
+                        } : {
                           backgroundColor: `${tx.simColor}20`,
                           color: tx.simColor,
                           borderColor: `${tx.simColor}50`,
@@ -798,6 +885,94 @@ export function SupervisorDashboard() {
         editGoalAmount={editGoalAmount}
         editGoalPeriod={editGoalPeriod}
       />
+
+      {/* Photo Evidence Dialog */}
+      <Dialog open={!!photoDialog} onOpenChange={o => { if (!o) setPhotoDialog(null) }}>
+        <DialogContent className="max-w-md p-0 overflow-hidden">
+          {photoDialog && (
+            <>
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-card">
+                <User className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-sm">{photoDialog.promoter} — {photoDialog.label}</h3>
+              </div>
+              <div className="p-4 flex justify-center bg-background">
+                <div className="relative rounded-xl overflow-hidden border-2 border-border shadow-lg">
+                  <img src={photoDialog.url} alt="Evidencia" className="max-h-[400px] w-auto object-cover" />
+                  <div className="absolute bottom-3 left-3 flex flex-col gap-1">
+                    {photoDialog.lat != null && photoDialog.lon != null && (
+                      <span className="text-[9px] font-semibold bg-black/60 text-white px-1.5 py-0.5 rounded-md flex items-center gap-1 backdrop-blur-md border border-white/10">
+                        <MapPin className="w-2.5 h-2.5 text-green-400" />
+                        Lat: {photoDialog.lat.toFixed(4)}, Lon: {photoDialog.lon.toFixed(4)}
+                      </span>
+                    )}
+                    <span className="text-[9px] font-semibold bg-black/60 text-white px-1.5 py-0.5 rounded-md flex items-center gap-1 backdrop-blur-md border border-white/10">
+                      <Clock className="w-2.5 h-2.5 text-blue-400" />
+                      {photoDialog.time} - {photoDialog.store}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="px-4 py-3 border-t border-border/50 flex justify-end bg-card">
+                <Button variant="outline" size="sm" onClick={() => setPhotoDialog(null)}>Cerrar</Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Location Dialog */}
+      <Dialog open={!!locationDialog} onOpenChange={o => { if (!o) setLocationDialog(null) }}>
+        <DialogContent className="max-w-sm p-0 overflow-hidden">
+          {locationDialog && (
+            <>
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-card">
+                <MapPin className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-sm">Ubicación — {locationDialog.label}</h3>
+              </div>
+              <div className="p-5 space-y-4">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <User className="w-4 h-4" />
+                  <span>{locationDialog.promoter}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="w-4 h-4" />
+                  <span>{locationDialog.time} — {locationDialog.store}</span>
+                </div>
+                {locationDialog.lat != null && locationDialog.lon != null ? (
+                  <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-xs text-muted-foreground block mb-0.5">Latitud</span>
+                        <span className="font-mono font-semibold">{locationDialog.lat.toFixed(6)}</span>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground block mb-0.5">Longitud</span>
+                        <span className="font-mono font-semibold">{locationDialog.lon.toFixed(6)}</span>
+                      </div>
+                    </div>
+                    <a
+                      href={`https://www.google.com/maps?q=${locationDialog.lat},${locationDialog.lon}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      Abrir en Google Maps
+                    </a>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4 text-center text-sm text-red-400">
+                    Sin datos de ubicación
+                  </div>
+                )}
+              </div>
+              <div className="px-4 py-3 border-t border-border/50 flex justify-end bg-card">
+                <Button variant="outline" size="sm" onClick={() => setLocationDialog(null)}>Cerrar</Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
