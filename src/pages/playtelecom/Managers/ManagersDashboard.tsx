@@ -36,7 +36,7 @@ import {
   useStoresStorePerformance,
 } from '@/hooks/useStoresAnalysis'
 import CreateStoreGoalDialog from '../Supervisor/CreateStoreGoalDialog'
-import { validateTimeEntry, resetTimeEntryValidation } from '@/services/storesAnalysis.service'
+import { validateTimeEntry, resetTimeEntryValidation, type CrossStoreAnomaly } from '@/services/storesAnalysis.service'
 import {
   ManagerKpiCards,
   ManagerCharts,
@@ -46,6 +46,7 @@ import {
   type ManagerKpiData,
   type AttendanceEntry,
 } from './components'
+import { LocationDialog } from './components/LocationDialog'
 
 export function ManagersDashboard() {
   const { t, i18n } = useTranslation(['playtelecom', 'common'])
@@ -65,6 +66,11 @@ export function ManagersDashboard() {
 
   // Photo modal
   const [photoEntry, setPhotoEntry] = useState<AttendanceEntry | null>(null)
+  const [photoType, setPhotoType] = useState<'clockIn' | 'clockOut'>('clockIn')
+
+  // Location dialog
+  const [locationEntry, setLocationEntry] = useState<AttendanceEntry | null>(null)
+  const [locationType, setLocationType] = useState<'clockIn' | 'clockOut'>('clockIn')
 
   // Deposit approval dialog
   const [depositEntry, setDepositEntry] = useState<AttendanceEntry | null>(null)
@@ -133,41 +139,100 @@ export function ManagersDashboard() {
 
   // Map API attendance data to AttendanceEntry format
   // DB stores UTC, browser converts to venue timezone for display
+  // Expand allTimeEntries so each check-in/checkout appears as its own row
+  // Pre-compute GPS violation set from backend anomalies for O(1) lookup
+  const gpsViolationNames = useMemo(() => {
+    const anomalyList = anomalies?.anomalies ?? []
+    return new Set(
+      anomalyList
+        .filter(a => a.type === 'GPS_VIOLATION')
+        .map(a => a.description) // "Alberto García hizo check-in 750.3km fuera del rango en ..."
+    )
+  }, [anomalies])
+
   const attendanceEntries: AttendanceEntry[] = useMemo(() => {
     if (!attendanceData?.staff) return []
-    return attendanceData.staff
-      .filter(entry => entry.checkInTime) // Only show staff who have clocked in
-      .map(entry => {
-        const clockInDate = new Date(entry.checkInTime!)
-        const isLate = clockInDate.getHours() >= 10 || (clockInDate.getHours() === 9 && clockInDate.getMinutes() > 30)
-        const incidents: AttendanceEntry['incidents'] = []
-        if (isLate) incidents.push({ label: 'Retardo', severity: 'critical' })
-        if (!entry.checkInLocation) incidents.push({ label: 'Sin GPS', severity: 'warning' })
-        if (incidents.length === 0) incidents.push({ label: 'Sin Incidencias', severity: 'ok' })
+    const timeOpts: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: venueTimezone }
+    const dateOpts: Intl.DateTimeFormatOptions = { weekday: 'long', day: '2-digit', month: 'short', timeZone: venueTimezone }
 
-        return {
-          id: entry.timeEntryId || entry.id,
-          timeEntryId: entry.timeEntryId || null,
-          date: clockInDate.toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'short', timeZone: venueTimezone }),
-          storeName: entry.venueName,
-          promoterName: entry.name,
-          clockIn: clockInDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: venueTimezone }).toUpperCase(),
-          clockOut: entry.checkOutTime
-            ? new Date(entry.checkOutTime).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: venueTimezone }).toUpperCase()
-            : null,
-          clockInPhotoUrl: entry.checkInPhotoUrl,
-          clockOutPhotoUrl: entry.checkOutPhotoUrl,
-          checkOutPhotoUrl: entry.checkOutPhotoUrl,
-          clockInLat: entry.checkInLocation?.lat,
-          clockInLon: entry.checkInLocation?.lng,
-          validationStatus: entry.validationStatus ?? 'PENDING',
-          sales: entry.sales ?? 0,
-          incidents,
-          isLate,
-          gpsWarning: !entry.checkInLocation,
+    const buildRow = (
+      entry: (typeof attendanceData.staff)[number],
+      te: { id?: string; clockInTime: string | null; clockOutTime: string | null; checkInPhotoUrl?: string | null; checkOutPhotoUrl?: string | null; depositPhotoUrl?: string | null; clockInLocation?: { lat: number; lng: number } | null; clockOutLocation?: { lat: number; lng: number } | null; validationStatus?: string; cashSales?: number },
+    ): AttendanceEntry => {
+      const clockInDate = new Date(te.clockInTime!)
+      const isLate = clockInDate.getHours() >= 10 || (clockInDate.getHours() === 9 && clockInDate.getMinutes() > 30)
+      const hasGps = !!(te.clockInLocation ?? entry.checkInLocation)
+      const hasPhoto = !!(te.checkInPhotoUrl ?? entry.checkInPhotoUrl)
+      // Check if this promoter has a GPS_VIOLATION anomaly from the backend
+      const hasGpsViolation = [...gpsViolationNames].some(desc => desc.includes(entry.name))
+      const incidents: AttendanceEntry['incidents'] = []
+      if (isLate) incidents.push({ label: 'Retardo', severity: 'critical' })
+      if (hasGpsViolation) incidents.push({ label: 'Fuera de Rango', severity: 'critical' })
+      if (!hasGps) incidents.push({ label: 'Sin GPS', severity: 'warning' })
+      if (!hasPhoto) incidents.push({ label: 'Sin Foto', severity: 'warning' })
+      if (incidents.length === 0) incidents.push({ label: 'Sin Incidencias', severity: 'ok' })
+
+      const teId = te.id || entry.timeEntryId || entry.id
+      return {
+        id: teId,
+        timeEntryId: teId || null,
+        date: clockInDate.toLocaleDateString('es-MX', dateOpts),
+        storeName: entry.venueName,
+        promoterName: entry.name,
+        clockIn: clockInDate.toLocaleTimeString('es-MX', timeOpts).toUpperCase(),
+        clockOut: te.clockOutTime
+          ? new Date(te.clockOutTime).toLocaleTimeString('es-MX', timeOpts).toUpperCase()
+          : null,
+        clockInPhotoUrl: (te.checkInPhotoUrl as string) ?? entry.checkInPhotoUrl,
+        clockOutPhotoUrl: (te.depositPhotoUrl as string) ?? (te.checkOutPhotoUrl as string) ?? entry.checkOutPhotoUrl,
+        checkOutPhotoUrl: (te.depositPhotoUrl as string) ?? (te.checkOutPhotoUrl as string) ?? entry.checkOutPhotoUrl,
+        clockInLat: (te.clockInLocation ?? entry.checkInLocation)?.lat ?? null,
+        clockInLon: (te.clockInLocation ?? entry.checkInLocation)?.lng ?? null,
+        clockOutLat: (te.clockOutLocation ?? entry.checkOutLocation)?.lat ?? null,
+        clockOutLon: (te.clockOutLocation ?? entry.checkOutLocation)?.lng ?? null,
+        validationStatus: ((te.validationStatus ?? entry.validationStatus ?? 'PENDING') as 'PENDING' | 'APPROVED' | 'REJECTED'),
+        sales: entry.sales ?? 0,
+        cashSales: te.cashSales ?? (entry as any).cashSales ?? 0,
+        dailyCashSales: (entry as any).cashSales ?? 0,
+        incidents,
+        isLate,
+        gpsWarning: !hasGps,
+      }
+    }
+
+    return attendanceData.staff
+      .filter(entry => entry.checkInTime)
+      .flatMap(entry => {
+        const allEntries = (entry as any).allTimeEntries as Array<{
+          id?: string
+          clockInTime: string | null
+          clockOutTime: string | null
+          checkInPhotoUrl?: string | null
+          checkOutPhotoUrl?: string | null
+          depositPhotoUrl?: string | null
+          clockInLocation?: { lat: number; lng: number } | null
+          clockOutLocation?: { lat: number; lng: number } | null
+          validationStatus?: string
+          cashSales?: number
+        }> | undefined
+
+        if (allEntries && allEntries.length > 0) {
+          return allEntries
+            .filter(te => te.clockInTime)
+            .map(te => buildRow(entry, te))
         }
+
+        return [buildRow(entry, {
+          clockInTime: entry.checkInTime,
+          clockOutTime: entry.checkOutTime,
+          checkInPhotoUrl: entry.checkInPhotoUrl,
+          checkOutPhotoUrl: entry.checkOutPhotoUrl,
+          clockInLocation: entry.checkInLocation,
+          clockOutLocation: entry.checkOutLocation,
+          validationStatus: entry.validationStatus,
+        })]
       })
-  }, [attendanceData])
+  }, [attendanceData, venueTimezone, gpsViolationNames])
 
   // Format currency
   const formatCurrency = useMemo(
@@ -180,12 +245,12 @@ export function ManagersDashboard() {
     [activeVenue?.currency],
   )
 
-  // Derive KPI data from API
+  // Derive KPI data from attendance entries (real data, not anomaly heuristics)
+  // Count directly from the incidents already computed per row in buildRow
   const kpiData: ManagerKpiData = useMemo(() => {
-    const anomalyList = anomalies?.anomalies ?? []
-    const punctualityCount = anomalyList.filter(a => a.type === 'ATTENDANCE_ISSUE').length
-    const locationCount = anomalyList.filter(a => a.type === 'STOCK_ALERT').length
-    const depositCount = anomalyList.filter(a => a.type === 'DEPOSIT_PENDING').length
+    const punctualityCount = attendanceEntries.filter(e => e.incidents.some(i => i.label === 'Retardo')).length
+    const locationCount = attendanceEntries.filter(e => e.incidents.some(i => i.label === 'Sin GPS' || i.label === 'Fuera de Rango' || i.label === 'Sin Foto')).length
+    const depositCount = attendanceEntries.filter(e => e.clockOut && !e.clockOutPhotoUrl).length
 
     // Stock by category from store breakdown
     const defaultColors = ['#6366f1', '#0ea5e9', '#a855f7', '#f59e0b', '#10b981']
@@ -202,9 +267,9 @@ export function ManagersDashboard() {
       storesOpen: overview?.activeStores ?? 0,
       storesClosed: venuesData ? Math.max(venuesData.length - (overview?.activeStores ?? 0), 0) : overview?.totalStores ? overview.totalStores - (overview.activeStores ?? 0) : 0,
       incidents: [
-        { label: t('playtelecom:managers.kpi.punctuality', { defaultValue: 'Puntualidad' }), count: punctualityCount, severity: 'critical' as const },
-        { label: t('playtelecom:managers.kpi.location', { defaultValue: 'Localizacion' }), count: locationCount, severity: 'warning' as const },
-        { label: t('playtelecom:managers.kpi.deposit', { defaultValue: 'Deposito' }), count: depositCount || 'OK', severity: depositCount ? 'warning' as const : 'ok' as const },
+        { label: t('playtelecom:managers.kpi.punctuality', { defaultValue: 'Puntualidad' }), count: punctualityCount || 'OK', severity: punctualityCount ? 'critical' as const : 'ok' as const, anomalyType: 'NO_CHECKINS' as const },
+        { label: t('playtelecom:managers.kpi.location', { defaultValue: 'Localizacion y Fotos' }), count: locationCount || 'OK', severity: locationCount ? 'critical' as const : 'ok' as const, anomalyType: 'GPS_VIOLATION' as const },
+        { label: t('playtelecom:managers.kpi.deposit', { defaultValue: 'Deposito' }), count: depositCount || 'OK', severity: depositCount ? 'critical' as const : 'ok' as const, anomalyType: 'PENDING_DEPOSITS' as const },
       ],
       stockByCategory: stockCategories,
       totalCashInField: (overview?.todayCashSales ?? 0) - (overview?.approvedDeposits ?? 0),
@@ -212,18 +277,86 @@ export function ManagersDashboard() {
         ? Math.min(Math.round(((overview.approvedDeposits ?? 0) / Math.max(overview.todayCashSales, 1)) * 100), 100)
         : 0,
     }
-  }, [overview, stockSummary, anomalies, venuesData, t])
+  }, [overview, stockSummary, attendanceEntries, venuesData, t])
 
-  // Chart data - derive from stock summary categories
+  // Generate detail items for the incident dialog from attendance entries
+  // Maps each row's incidents to CrossStoreAnomaly for the detail dialog
+  const attendanceAnomalies: CrossStoreAnomaly[] = useMemo(() => {
+    const items: CrossStoreAnomaly[] = []
+    for (const e of attendanceEntries) {
+      // Group incidents by anomaly type per entry
+      const punctualityLabels: string[] = []
+      const locationLabels: string[] = []
+      let worstPunctuality: 'WARNING' | 'CRITICAL' = 'WARNING'
+      let worstLocation: 'WARNING' | 'CRITICAL' = 'WARNING'
+
+      for (const inc of e.incidents) {
+        if (inc.severity === 'ok') continue
+        if (inc.label === 'Retardo') {
+          punctualityLabels.push(inc.label)
+          if (inc.severity === 'critical') worstPunctuality = 'CRITICAL'
+        } else if (inc.label === 'Sin GPS' || inc.label === 'Fuera de Rango' || inc.label === 'Sin Foto') {
+          locationLabels.push(inc.label)
+          if (inc.severity === 'critical') worstLocation = 'CRITICAL'
+        }
+      }
+
+      if (punctualityLabels.length > 0) {
+        items.push({
+          id: `punctuality-${e.id}`,
+          type: 'NO_CHECKINS',
+          severity: worstPunctuality,
+          title: punctualityLabels.join(', '),
+          description: `${e.promoterName} — ${punctualityLabels.join(', ')}${e.clockIn ? ` (${e.clockIn})` : ''}`,
+          storeId: e.id,
+          storeName: e.storeName,
+          timestamp: e.date,
+          actionRequired: true,
+        })
+      }
+
+      if (locationLabels.length > 0) {
+        items.push({
+          id: `location-${e.id}`,
+          type: 'GPS_VIOLATION',
+          severity: worstLocation,
+          title: locationLabels.join(', '),
+          description: `${e.promoterName} — ${locationLabels.join(', ')}${e.clockIn ? ` (${e.clockIn})` : ''}`,
+          storeId: e.id,
+          storeName: e.storeName,
+          timestamp: e.date,
+          actionRequired: true,
+        })
+      }
+
+      // Deposit: separate check (not in row incidents)
+      if (e.clockOut && !e.clockOutPhotoUrl) {
+        items.push({
+          id: `deposit-${e.id}`,
+          type: 'PENDING_DEPOSITS',
+          severity: 'WARNING',
+          title: 'Sin Voucher',
+          description: `${e.promoterName} — salida sin foto de depósito`,
+          storeId: e.id,
+          storeName: e.storeName,
+          timestamp: e.date,
+          actionRequired: true,
+        })
+      }
+    }
+    return items
+  }, [attendanceEntries])
+
+  // Chart data - derive from overview category breakdown (sales by product category)
   const salesBySIM = useMemo(() => {
-    if (!stockSummary?.storeBreakdown?.length) return []
+    if (!overview?.categoryBreakdown?.length) return []
     const colors = ['#6366f1', '#0ea5e9', '#a855f7', '#f59e0b', '#10b981']
-    return stockSummary.storeBreakdown.slice(0, 5).map((s, i) => ({
-      label: s.storeName,
-      value: s.available,
+    return overview.categoryBreakdown.slice(0, 5).map((cat, i) => ({
+      label: cat.name,
+      value: cat.units,
       color: colors[i % colors.length],
     }))
-  }, [stockSummary])
+  }, [overview])
 
   const goals = useMemo(() => {
     if (!storePerformanceData?.stores?.length) return []
@@ -247,12 +380,13 @@ export function ManagersDashboard() {
   const dailySales = useMemo(() => {
     if (!revenueData?.days?.length) return []
     const dayLabels = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab']
+    const todayStr = new Date().toISOString().slice(0, 10)
     const mapped = revenueData.days.map((d, i) => {
       const dow = new Date(d.date).getDay()
       return {
         day: dayLabels[dow] || dayLabels[i % 7],
         value: d.actual,
-        isHighlight: i === revenueData.days.length - 1,
+        isHighlight: d.date?.slice(0, 10) === todayStr,
         _sortKey: dow === 0 ? 6 : dow - 1, // Mon=0 … Sun=6
       }
     })
@@ -268,7 +402,7 @@ export function ManagersDashboard() {
 
   const handleApprove = useCallback((entry: AttendanceEntry) => {
     if (!entry.timeEntryId) return
-    if (entry.clockOut && entry.sales > 0) {
+    if (entry.clockOut && entry.dailyCashSales > 0) {
       // Has checkout + cash sales → must verify bank deposit before approving
       setDepositEntry(entry)
     } else {
@@ -376,7 +510,7 @@ export function ManagersDashboard() {
       </div>
 
       {/* KPI Cards */}
-      <ManagerKpiCards data={kpiData} formatCurrency={formatCurrency} />
+      <ManagerKpiCards data={kpiData} formatCurrency={formatCurrency} anomalies={attendanceAnomalies} />
 
       {/* Charts */}
       <ManagerCharts
@@ -394,14 +528,24 @@ export function ManagersDashboard() {
         onApprove={handleApprove}
         onReject={handleReject}
         onResetValidation={handleResetValidation}
-        onViewPhoto={setPhotoEntry}
+        onViewPhoto={(entry, type) => { setPhotoEntry(entry); setPhotoType(type) }}
+        onViewLocation={(entry, type) => { setLocationEntry(entry); setLocationType(type) }}
       />
 
       {/* Photo Evidence Modal */}
       <PhotoEvidenceModal
         entry={photoEntry}
+        type={photoType}
         open={!!photoEntry}
         onClose={() => setPhotoEntry(null)}
+      />
+
+      {/* Location Dialog */}
+      <LocationDialog
+        entry={locationEntry}
+        type={locationType}
+        open={!!locationEntry}
+        onClose={() => setLocationEntry(null)}
       />
 
       {/* Deposit Approval Dialog */}
@@ -409,7 +553,7 @@ export function ManagersDashboard() {
         open={!!depositEntry}
         onOpenChange={open => { if (!open) setDepositEntry(null) }}
         entry={depositEntry}
-        expectedAmount={depositEntry?.sales ?? 0}
+        expectedAmount={depositEntry?.cashSales ?? 0}
         onConfirm={handleConfirmDeposit}
         isPending={validateMutation.isPending}
       />

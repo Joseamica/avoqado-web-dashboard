@@ -5,7 +5,7 @@
 import { useTranslation } from 'react-i18next'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Button } from '@/components/ui/button'
-import { Store, Plus } from 'lucide-react'
+import { Store, Plus, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface SalesBySIMType {
@@ -54,7 +54,7 @@ export function ManagerCharts({ salesBySIM, goals, dailySales, formatCurrency, o
       {/* Sales by SIM type */}
       <GlassCard className="p-5 flex flex-col">
         <h4 className="text-xs font-bold text-muted-foreground uppercase mb-4">
-          {t('managers.charts.salesBySIM', { defaultValue: 'Ventas por Tipo SIM' })}
+          {t('managers.charts.salesByCategory', { defaultValue: 'Ventas por Categoría' })}
         </h4>
         {salesBySIM.length > 0 ? (
           <div className="flex-1 flex items-end justify-around gap-4 min-h-[140px]">
@@ -114,34 +114,36 @@ export function ManagerCharts({ salesBySIM, goals, dailySales, formatCurrency, o
                 <div className="flex justify-between text-xs mb-1 gap-2">
                   <span className="font-medium truncate min-w-0">{goal.storeName}</span>
                   {goal.hasGoal ? (
-                    <>
-                      <button
-                        type="button"
-                        className={cn(
-                          'font-bold shrink-0 group-hover/goal:hidden cursor-pointer hover:underline',
-                          goal.percent >= 70 ? 'text-green-400' : 'text-amber-400',
-                        )}
-                        onClick={() => onEditGoal?.(goal.id, goal.goalId, goal.goalAmount, goal.goalPeriod)}
-                      >
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 shrink-0 cursor-pointer group/edit"
+                      onClick={() => onEditGoal?.(goal.id, goal.goalId, goal.goalAmount, goal.goalPeriod)}
+                    >
+                      <span className={cn(
+                        'font-bold group-hover/goal:hidden',
+                        goal.percent >= 70 ? 'text-green-400' : 'text-amber-400',
+                      )}>
                         {goal.percent}%
-                      </button>
-                      <span className="hidden group-hover/goal:inline text-[10px] font-bold shrink-0 text-foreground">
+                      </span>
+                      <span className="hidden group-hover/goal:inline text-[10px] font-bold text-foreground">
                         {fmt(goal.amount)} / {fmt(goal.goalAmount)}
                       </span>
-                    </>
+                      <Pencil className="w-3 h-3 text-muted-foreground/50" />
+                    </button>
                   ) : (
-                    <>
-                      <button
-                        type="button"
-                        className="text-muted-foreground shrink-0 text-[10px] group-hover/goal:hidden cursor-pointer hover:text-green-400 hover:underline"
-                        onClick={() => onEditGoal?.(goal.id)}
-                      >
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 shrink-0 cursor-pointer group/edit"
+                      onClick={() => onEditGoal?.(goal.id)}
+                    >
+                      <span className="text-muted-foreground text-[10px] group-hover/goal:hidden group-hover/edit:text-green-400">
                         {t('managers.charts.noGoal', { defaultValue: 'Sin meta' })}
-                      </button>
-                      <span className="hidden group-hover/goal:inline text-[10px] font-bold shrink-0 text-foreground">
+                      </span>
+                      <span className="hidden group-hover/goal:inline text-[10px] font-bold text-foreground">
                         {fmt(goal.amount)}
                       </span>
-                    </>
+                      <Pencil className="w-3 h-3 text-muted-foreground/50" />
+                    </button>
                   )}
                 </div>
                 <div className="h-3 bg-muted rounded-full overflow-hidden relative">

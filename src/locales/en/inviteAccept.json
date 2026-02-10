@@ -78,6 +78,7 @@
     "title": "Accept Team Invitation",
     "alreadyLoggedIn": "You're already logged in as",
     "description": "Since you're already logged in with the invited email, you can accept this invitation directly without creating a new account.",
+    "acceptButton": "Accept invitation",
     "accepting": "Accepting invitation...",
     "note": "This will add the team to your existing account",
     "successTitle": "Invitation accepted",

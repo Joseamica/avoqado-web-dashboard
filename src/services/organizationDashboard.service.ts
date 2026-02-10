@@ -77,7 +77,7 @@ export interface StorePerformanceResponse {
 
 export interface CrossStoreAnomaly {
   id: string
-  type: 'LOW_SALES' | 'HIGH_RETURNS' | 'ATTENDANCE_ISSUE' | 'STOCK_ALERT' | 'DEPOSIT_PENDING'
+  type: 'LOW_PERFORMANCE' | 'NO_CHECKINS' | 'LOW_STOCK' | 'PENDING_DEPOSITS' | 'GPS_VIOLATION'
   severity: 'INFO' | 'WARNING' | 'CRITICAL'
   title: string
   description: string

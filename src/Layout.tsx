@@ -1,4 +1,5 @@
 import { useAuth } from '@/context/AuthContext'
+import { LoadingScreen } from '@/components/spinner'
 import { Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
@@ -7,7 +8,7 @@ export function Layout() {
   const { t } = useTranslation()
 
   if (isLoading) {
-    return <div>{t('loading')}</div>
+    return <LoadingScreen message={t('loading')} />
   }
 
   if (!isAuthenticated) {
@@ -15,5 +16,6 @@ export function Layout() {
   }
 
   // Root navigation decisions are centralized in AuthContext to keep a single source of truth.
-  return <div>{t('loading')}</div>
+  // AuthContext useEffect handles redirect from "/" to the appropriate venue/dashboard.
+  return <LoadingScreen message={t('loading')} />
 }

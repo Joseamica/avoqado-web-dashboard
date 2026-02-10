@@ -160,7 +160,10 @@ export default function CreateStoreGoalDialog({
                         className="pl-7"
                         placeholder="15000"
                         {...field}
-                        onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                        onChange={e => {
+                          const v = e.target.value
+                          field.onChange(v === '' ? '' : parseFloat(v) || 0)
+                        }}
                       />
                     </div>
                   </FormControl>
