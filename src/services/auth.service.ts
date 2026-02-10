@@ -57,6 +57,7 @@ export interface AuthStatusResponse {
       name: string
       slug: string
       logo: string | null
+      type?: string // Business type for sector-aware UI terminology
       role: StaffRole
       // Venue operational status (single source of truth)
       status?: string

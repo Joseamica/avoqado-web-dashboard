@@ -119,6 +119,8 @@
     "totalSales": "Total sales",
     "fiveStars": "Google 5-stars",
     "totalTips": "Total tips",
-    "avgTipPercentage": "Average tips %"
+    "avgTipPercentage": "Average tips %",
+    "totalTransactions": "Total transactions",
+    "avgTicket": "Average ticket"
   }
 }

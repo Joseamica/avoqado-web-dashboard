@@ -75,6 +75,10 @@ import {
   Banknote,
   AlertCircle,
   ChevronRight,
+  Globe,
+  BadgeDollarSign,
+  Landmark,
+  Coins,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Currency } from '@/utils/currency'
@@ -356,19 +360,20 @@ export default function AvailableBalance() {
 
   // Card type icon mapping
   const getCardTypeIcon = (cardType: TransactionCardType) => {
+    const iconClass = 'w-4.5 h-4.5'
     switch (cardType) {
       case TransactionCardType.DEBIT:
-        return '💳'
+        return <Landmark className={cn(iconClass, 'text-blue-500')} />
       case TransactionCardType.CREDIT:
-        return '💎'
+        return <CreditCard className={cn(iconClass, 'text-purple-500')} />
       case TransactionCardType.AMEX:
-        return '🔷'
+        return <BadgeDollarSign className={cn(iconClass, 'text-green-500')} />
       case TransactionCardType.INTERNATIONAL:
-        return '🌍'
+        return <Globe className={cn(iconClass, 'text-orange-500')} />
       case TransactionCardType.CASH:
-        return '💵'
+        return <Coins className={cn(iconClass, 'text-emerald-500')} />
       default:
-        return '💳'
+        return <CreditCard className={cn(iconClass, 'text-blue-500')} />
     }
   }
 
@@ -759,7 +764,7 @@ export default function AvailableBalance() {
                       getCardTypeAccent(card.cardType) === 'green' && 'from-green-500/20 to-green-500/5',
                       getCardTypeAccent(card.cardType) === 'orange' && 'from-orange-500/20 to-orange-500/5',
                     )}>
-                      <span className="text-lg">{getCardTypeIcon(card.cardType)}</span>
+                      {getCardTypeIcon(card.cardType)}
                     </div>
                     <span className="font-medium text-sm">{t(`cardType.${card.cardType.toLowerCase()}`)}</span>
                   </div>
@@ -866,7 +871,7 @@ export default function AvailableBalance() {
                                 {entry.byCardType.map((cardTypeEntry) => (
                                   <div key={cardTypeEntry.cardType} className="flex items-center justify-between text-sm">
                                     <div className="flex items-center gap-2">
-                                      <span>{getCardTypeIcon(cardTypeEntry.cardType)}</span>
+                                      {getCardTypeIcon(cardTypeEntry.cardType)}
                                       <Badge className={getCardTypeColor(cardTypeEntry.cardType)} variant="secondary">
                                         {t(`cardType.${cardTypeEntry.cardType.toLowerCase()}`, cardTypeEntry.cardType)}
                                       </Badge>

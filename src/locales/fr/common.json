@@ -70,6 +70,13 @@
   "apply": "Appliquer",
   "selectPlaceholder": "Sélectionnez une option",
   "actions": "Actions",
+  "off": "de réduction",
+  "validAlways": "Toujours valide",
+  "dateBetween": "{{from}} - {{to}}",
+  "validFrom": "À partir du {{date}}",
+  "validUntil": "Jusqu'au {{date}}",
+  "usesFormat": "{{current}} / {{max}} utilisations",
+  "usesUnlimited": "{{current}} utilisations",
   "dateRange": {
     "today": "Aujourd'hui",
     "yesterday": "Hier",

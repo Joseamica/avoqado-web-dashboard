@@ -105,23 +105,6 @@ export function getBusinessCategory(type: BusinessType): BusinessCategory {
   return CATEGORY_MAPPING[type] || 'OTHER'
 }
 
-// UI Terminology by category
-export const CATEGORY_TERMINOLOGY: Record<
-  BusinessCategory,
-  { menu: string; item: string; order: string; table: string }
-> = {
-  FOOD_SERVICE: { menu: 'Menú', item: 'Platillo', order: 'Orden', table: 'Mesa' },
-  RETAIL: { menu: 'Catálogo', item: 'Producto', order: 'Venta', table: 'Caja' },
-  SERVICES: { menu: 'Servicios', item: 'Servicio', order: 'Cita', table: 'Estación' },
-  HOSPITALITY: { menu: 'Servicios', item: 'Servicio', order: 'Reservación', table: 'Habitación' },
-  ENTERTAINMENT: { menu: 'Eventos', item: 'Evento', order: 'Entrada', table: 'Sala' },
-  OTHER: { menu: 'Catálogo', item: 'Item', order: 'Orden', table: 'Ubicación' },
-}
-
-export function getTerminology(type: BusinessType) {
-  return CATEGORY_TERMINOLOGY[getBusinessCategory(type)]
-}
-
 export enum VenueType {
   // === FOOD_SERVICE ===
   RESTAURANT = 'RESTAURANT',
@@ -1634,6 +1617,7 @@ export interface SessionVenue {
   name: string
   slug: string
   logo: string | null
+  type?: string // Business type for sector-aware UI terminology (VenueType)
   address: string
   city: string
   timezone: string

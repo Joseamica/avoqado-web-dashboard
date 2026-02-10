@@ -160,7 +160,7 @@ export default function Discounts() {
 			if (discount.validFrom && discount.validUntil) {
 				const from = new Date(discount.validFrom).toLocaleDateString(getIntlLocale(i18n.language))
 				const to = new Date(discount.validUntil).toLocaleDateString(getIntlLocale(i18n.language))
-				return tCommon('dateRange', { from, to })
+				return tCommon('dateBetween', { from, to })
 			}
 			if (discount.validFrom) {
 				return tCommon('validFrom', { date: new Date(discount.validFrom).toLocaleDateString(getIntlLocale(i18n.language)) })
