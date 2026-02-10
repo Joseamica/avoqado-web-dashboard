@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AddressAutocomplete, type PlaceDetails } from '@/components/address-autocomplete'
 
 export interface Step2Data {
   contactName: string
@@ -130,7 +131,17 @@ export function Step2ShippingInfo({ form, wasPreFilled }: Step2ShippingInfoProps
               <FormItem>
                 <FormLabel>{t('purchaseWizard.step2.address')}</FormLabel>
                 <FormControl>
-                  <Input placeholder={t('purchaseWizard.step2.addressPlaceholder')} {...field} />
+                  <AddressAutocomplete
+                    value={field.value}
+                    onAddressSelect={(place: PlaceDetails) => {
+                      form.setValue('address', place.address)
+                      form.setValue('city', place.city)
+                      form.setValue('state', place.state)
+                      form.setValue('postalCode', place.zipCode)
+                      form.setValue('country', place.country)
+                    }}
+                    placeholder={t('purchaseWizard.step2.addressPlaceholder')}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

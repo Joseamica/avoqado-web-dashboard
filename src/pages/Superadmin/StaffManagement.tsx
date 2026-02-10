@@ -31,7 +31,6 @@ import { cn } from '@/lib/utils'
 import {
   staffAPI,
   type StaffListItem,
-  type StaffDetail,
   type CreateStaffData,
   type UpdateStaffData,
   type ListStaffParams,
@@ -101,7 +100,7 @@ const ROLE_COLORS: Record<string, string> = {
   KITCHEN: 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20',
   HOST: 'bg-pink-500/10 text-pink-700 dark:text-pink-400 border-pink-500/20',
   MEMBER: 'bg-slate-500/10 text-slate-700 dark:text-slate-400 border-slate-500/20',
-  VIEWER: 'bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20',
+  VIEWER: 'bg-muted text-muted-foreground border-border',
 }
 
 const STATUS_OPTIONS = [
@@ -811,7 +810,7 @@ const StaffDetailDialog: React.FC<{
               </div>
               <div>
                 <p className="text-muted-foreground">Email verificado</p>
-                <Badge variant="outline" className={cn('rounded-full mt-1', detail.emailVerified ? 'bg-blue-500/10 text-blue-700' : 'bg-gray-500/10 text-gray-600')}>
+                <Badge variant="outline" className={cn('rounded-full mt-1', detail.emailVerified ? 'bg-blue-500/10 text-blue-700' : 'bg-muted text-muted-foreground')}>
                   {detail.emailVerified ? 'Sí' : 'No'}
                 </Badge>
               </div>

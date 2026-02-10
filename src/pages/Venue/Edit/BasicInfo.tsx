@@ -18,6 +18,7 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
+import { AddressAutocomplete, type PlaceDetails } from '@/components/address-autocomplete'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
 import { StaffRole } from '@/types'
@@ -653,7 +654,17 @@ export default function BasicInfo() {
                     <FormItem>
                       <FormLabel>{t('edit.labels.address')}</FormLabel>
                       <FormControl>
-                        <Input placeholder={t('edit.placeholders.address')} {...field} />
+                        <AddressAutocomplete
+                          value={field.value}
+                          onAddressSelect={(place: PlaceDetails) => {
+                            form.setValue('address', place.address, { shouldDirty: true })
+                            form.setValue('city', place.city, { shouldDirty: true })
+                            form.setValue('state', place.state, { shouldDirty: true })
+                            form.setValue('country', place.country, { shouldDirty: true })
+                            form.setValue('zipCode', place.zipCode, { shouldDirty: true })
+                          }}
+                          placeholder={t('edit.placeholders.address')}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -776,7 +787,7 @@ export default function BasicInfo() {
                       control={form.control}
                       name="enableShifts"
                       render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg p-4 shadow-sm">
                           <div className="space-y-0.5">
                             <FormLabel className="text-base cursor-pointer">Sistema de Turnos</FormLabel>
                             <FormDescription>
@@ -806,7 +817,7 @@ export default function BasicInfo() {
                       control={form.control}
                       name="requireClockInPhoto"
                       render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg p-4 shadow-sm">
                           <div className="space-y-0.5">
                             <FormLabel className="text-base cursor-pointer">Foto de Entrada (Anti-fraude)</FormLabel>
                             <FormDescription>
@@ -842,7 +853,7 @@ export default function BasicInfo() {
                   </p>
                   <div className="space-y-3">
                     {/* Fixed-time auto clock-out */}
-                    <div className="rounded-lg border p-4 shadow-sm space-y-3">
+                    <div className="rounded-lg p-4 shadow-sm space-y-3">
                       <div className="flex flex-row items-center justify-between">
                         <div className="space-y-0.5">
                           <FormLabel className="text-base cursor-pointer">Cierre por Hora Fija</FormLabel>
@@ -889,7 +900,7 @@ export default function BasicInfo() {
                     </div>
 
                     {/* Max shift duration */}
-                    <div className="rounded-lg border p-4 shadow-sm space-y-3">
+                    <div className="rounded-lg p-4 shadow-sm space-y-3">
                       <div className="flex flex-row items-center justify-between">
                         <div className="space-y-0.5">
                           <FormLabel className="text-base cursor-pointer">Duración Máxima de Turno</FormLabel>

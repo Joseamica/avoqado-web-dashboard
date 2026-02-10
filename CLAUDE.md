@@ -64,7 +64,8 @@ src/
 10. **Control Plane vs App Plane**: Platform-wide → `/superadmin/`. Venue-specific → inline panel. → `critical-warnings.md`
 11. **API client**: Don't duplicate retry/auth/offline logic already in `src/api.ts`. → `critical-warnings.md`
 12. **UI patterns**: Pill tabs, Stripe filters, expandable search, hash tabs, gradient, FullScreenModal. → `ui-patterns.md`
-13. **Design system**: GlassCard, StatusPulse, MetricCard, Bento grid. → `docs/guides/DESIGN_SYSTEM_GUIDE.md`
+13. **Address inputs**: Always use `<AddressAutocomplete>` (`src/components/address-autocomplete.tsx`) for address fields. Never plain `<Input>`. Auto-fills city, state, country, zipCode, lat/lng via Google Places.
+14. **Design system**: GlassCard, StatusPulse, MetricCard, Bento grid. → `docs/guides/DESIGN_SYSTEM_GUIDE.md`
 
 ## API Integration
 
