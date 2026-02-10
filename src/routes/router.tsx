@@ -53,6 +53,7 @@ import {
   SerializedSalesDemo,
   SettlementConfigurations,
   Signup,
+  StaffManagement,
   SuperadminDashboard,
   SuperadminFeatureManagement,
   SuperadminLayout,
@@ -360,6 +361,10 @@ const router = createBrowserRouter(
                       element: <OrganizationManagement />,
                     },
                     {
+                      path: 'staff',
+                      element: <StaffManagement />,
+                    },
+                    {
                       path: 'master-totp',
                       element: <MasterTotpSetup />,
                     },
@@ -434,6 +439,7 @@ const router = createBrowserRouter(
                     { path: 'credit-assessment', element: <CreditAssessment /> },
                     { path: 'modules', element: <ModuleManagement /> },
                     { path: 'organizations', element: <OrganizationManagement /> },
+                    { path: 'staff', element: <StaffManagement /> },
                     { path: 'master-totp', element: <MasterTotpSetup /> },
                     { path: 'tpv-updates', element: <TpvUpdates /> },
                     { path: 'push-notifications', element: <PushNotifications /> },
