@@ -199,7 +199,7 @@ export function TermsStep({ data, onNext }: StepProps) {
               <section>
                 <h3 className="mb-2 font-medium text-foreground">{tLegal('terms.contact.title')}</h3>
                 <p>{tLegal('terms.contact.intro')}</p>
-                <p className="mt-1">{tLegal('terms.contact.email')}: legal@avoqado.com</p>
+                <p className="mt-1">{tLegal('terms.contact.email')}: hola@avoqado.io</p>
               </section>
             </div>
           ) : (
@@ -296,8 +296,7 @@ export function TermsStep({ data, onNext }: StepProps) {
               <section>
                 <h3 className="mb-2 font-medium text-foreground">{tLegal('privacy.contact.title')}</h3>
                 <p>{tLegal('privacy.contact.intro')}</p>
-                <p className="mt-1">{tLegal('privacy.contact.email')}: privacy@avoqado.com</p>
-                <p>{tLegal('privacy.contact.dpo')}: dpo@avoqado.com</p>
+                <p className="mt-1">{tLegal('privacy.contact.email')}: hola@avoqado.io</p>
               </section>
             </div>
           )}
