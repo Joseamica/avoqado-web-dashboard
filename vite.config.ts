@@ -16,8 +16,22 @@ export default defineConfig(({ mode }) => ({
     allowedHosts: [
       'localhost',
       '.ngrok-free.dev', // Allow all ngrok subdomains
+      '.trycloudflare.com', // Allow all Cloudflare quick tunnel subdomains
       'patchiest-noncommemorational-willia.ngrok-free.dev', // Specific ngrok URL for mobile testing
     ],
+    proxy: {
+      // Keep API calls same-origin in dev (works with tunnels/mobile)
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      // Socket.IO websocket proxy for real-time features
+      '/socket.io': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        ws: true,
+      },
+    },
   },
   // Strip console.log/warn in production builds (P1 audit fix 2025-12-01)
   esbuild: {

@@ -50,6 +50,10 @@ interface WhiteLabelWizardProps {
   onCancel: () => void
   initialVenueId?: string
   initialVenueName?: string
+  /** Pre-loaded config (e.g., from org-level). Skips venue-based fetch when provided. */
+  initialConfig?: WhiteLabelConfig
+  /** Display mode: 'venue' (default) or 'organization' (affects labels) */
+  mode?: 'venue' | 'organization'
 }
 
 // ============================================
@@ -67,7 +71,14 @@ const STEPS: { id: WizardStep; icon: React.ElementType; labelKey: string }[] = [
 // Component
 // ============================================
 
-export default function WhiteLabelWizard({ onComplete, onCancel, initialVenueId = '', initialVenueName = '' }: WhiteLabelWizardProps) {
+export default function WhiteLabelWizard({
+  onComplete,
+  onCancel,
+  initialVenueId = '',
+  initialVenueName = '',
+  initialConfig,
+  mode = 'venue',
+}: WhiteLabelWizardProps) {
   const { t } = useTranslation('superadmin')
 
   // Current step
@@ -169,11 +180,24 @@ export default function WhiteLabelWizard({ onComplete, onCancel, initialVenueId 
   }, [])
 
   // Auto-load existing config when initialVenueId is provided (editing mode)
+  // Or use initialConfig directly when provided (org-level mode)
   useEffect(() => {
-    if (initialVenueId && initialVenueName) {
+    if (initialConfig) {
+      // Pre-loaded config (e.g., from org-level) — skip API fetch
+      setState(prev => ({
+        ...prev,
+        venueId: initialVenueId,
+        venueName: initialVenueName,
+        preset: initialConfig.preset || null,
+        theme: initialConfig.theme || prev.theme,
+        enabledFeatures: initialConfig.enabledFeatures || [],
+        featureConfigs: initialConfig.featureConfigs || {},
+        navigation: initialConfig.navigation?.items || [],
+      }))
+    } else if (initialVenueId && initialVenueName) {
       loadExistingConfig(initialVenueId, initialVenueName)
     }
-  }, [initialVenueId, initialVenueName, loadExistingConfig])
+  }, [initialVenueId, initialVenueName, initialConfig, loadExistingConfig])
 
   const handlePresetChange = useCallback((presetName: PresetName) => {
     const preset = getPreset(presetName)
@@ -301,7 +325,7 @@ export default function WhiteLabelWizard({ onComplete, onCancel, initialVenueId 
 
     switch (currentStep.id) {
       case 'setup':
-        if (!state.venueId) {
+        if (mode === 'venue' && !state.venueId) {
           stepErrors.push(t('whiteLabelWizard.errors.venueRequired'))
         }
         if (!state.theme.brandName) {
@@ -333,7 +357,7 @@ export default function WhiteLabelWizard({ onComplete, onCancel, initialVenueId 
     }))
 
     return stepErrors.length === 0
-  }, [currentStep.id, state, t])
+  }, [currentStep.id, state, t, mode])
 
   const goToNextStep = useCallback(() => {
     if (!validateCurrentStep()) return
@@ -395,12 +419,12 @@ export default function WhiteLabelWizard({ onComplete, onCancel, initialVenueId 
 
   const isStepComplete = useMemo(() => {
     return {
-      setup: !!state.venueId && !!state.theme.brandName,
+      setup: (mode === 'organization' || !!state.venueId) && !!state.theme.brandName,
       features: state.enabledFeatures.length > 0,
       configuration: true, // Optional step
       preview: state.navigation.length > 0,
     }
-  }, [state])
+  }, [state, mode])
 
   // ============================================
   // Render
@@ -422,12 +446,7 @@ export default function WhiteLabelWizard({ onComplete, onCancel, initialVenueId 
 
                 return (
                   <li key={step.id} className="flex items-center">
-                    {index > 0 && (
-                      <div className={cn(
-                        'w-8 h-px mx-1',
-                        index <= currentStepIndex ? 'bg-primary/50' : 'bg-border/50'
-                      )} />
-                    )}
+                    {index > 0 && <div className={cn('w-8 h-px mx-1', index <= currentStepIndex ? 'bg-primary/50' : 'bg-border/50')} />}
                     <button
                       onClick={() => goToStep(index)}
                       disabled={!isClickable}
@@ -440,11 +459,7 @@ export default function WhiteLabelWizard({ onComplete, onCancel, initialVenueId 
                         !isClickable && 'cursor-not-allowed',
                       )}
                     >
-                      {isCompleted && !isActive ? (
-                        <Check className="w-3.5 h-3.5" />
-                      ) : (
-                        <Icon className="w-3.5 h-3.5" />
-                      )}
+                      {isCompleted && !isActive ? <Check className="w-3.5 h-3.5" /> : <Icon className="w-3.5 h-3.5" />}
                       <span className="hidden sm:inline">{t(step.labelKey)}</span>
                     </button>
                   </li>
@@ -476,7 +491,7 @@ export default function WhiteLabelWizard({ onComplete, onCancel, initialVenueId 
                 onThemeChange={theme => updateState({ theme })}
                 errors={errors.setup}
                 isLoadingConfig={isLoadingConfig}
-                isEditMode={!!initialVenueId}
+                isEditMode={!!initialVenueId || !!initialConfig}
               />
             )}
 

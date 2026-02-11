@@ -130,7 +130,8 @@ export function IdentityStep({ data, onNext }: StepProps) {
             onChange={(e) => setRfc(e.target.value.toUpperCase())}
             placeholder={t('step5.rfcPlaceholder')}
             maxLength={13}
-            className="rounded-lg"
+            autoCapitalize="characters"
+            className="rounded-lg h-12 text-base"
           />
           <p className="text-xs text-muted-foreground">{t('step5.rfcHint')}</p>
         </div>
@@ -144,7 +145,8 @@ export function IdentityStep({ data, onNext }: StepProps) {
             onChange={(e) => setCurp(e.target.value.toUpperCase())}
             placeholder={t('step5.curpPlaceholder')}
             maxLength={18}
-            className="rounded-lg"
+            autoCapitalize="characters"
+            className="rounded-lg h-12 text-base"
           />
           <p className="text-xs text-muted-foreground">{t('step5.curpHint')}</p>
         </div>

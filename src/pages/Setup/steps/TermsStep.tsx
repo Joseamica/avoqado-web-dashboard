@@ -85,7 +85,7 @@ export function TermsStep({ data, onNext }: StepProps) {
         <div className="flex items-center gap-2">
           <div
             className={cn(
-              'flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium transition-colors',
+              'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium transition-colors',
               termsAccepted
                 ? 'bg-primary text-primary-foreground'
                 : isTermsSubStep
@@ -97,18 +97,18 @@ export function TermsStep({ data, onNext }: StepProps) {
           </div>
           <span
             className={cn(
-              'text-sm transition-colors',
+              'text-xs sm:text-sm transition-colors truncate',
               isTermsSubStep ? 'text-foreground font-medium' : 'text-muted-foreground',
             )}
           >
             {t('step6.termsTitle')}
           </span>
         </div>
-        <div className="h-px flex-1 bg-border" />
+        <div className="h-px w-4 shrink-0 bg-border sm:flex-1" />
         <div className="flex items-center gap-2">
           <div
             className={cn(
-              'flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium transition-colors',
+              'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium transition-colors',
               privacyAccepted
                 ? 'bg-primary text-primary-foreground'
                 : !isTermsSubStep
@@ -120,7 +120,7 @@ export function TermsStep({ data, onNext }: StepProps) {
           </div>
           <span
             className={cn(
-              'text-sm transition-colors',
+              'text-xs sm:text-sm transition-colors truncate',
               !isTermsSubStep ? 'text-foreground font-medium' : 'text-muted-foreground',
             )}
           >
@@ -134,7 +134,7 @@ export function TermsStep({ data, onNext }: StepProps) {
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="h-[320px] overflow-y-auto rounded-xl border border-border bg-muted/30 p-5 text-sm text-muted-foreground leading-relaxed"
+          className="h-[240px] sm:h-[320px] overflow-y-auto rounded-xl border border-border bg-muted/30 p-4 sm:p-5 text-sm text-muted-foreground leading-relaxed"
         >
           {isTermsSubStep ? (
             <div className="space-y-5">

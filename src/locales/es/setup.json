@@ -5,7 +5,9 @@
     "back": "Atras",
     "accept": "Acepto y continuo",
     "complete": "Completar configuracion",
-    "step": "Paso {{current}} de {{total}}"
+    "step": "Paso {{current}} de {{total}}",
+    "progressSaved": "Tu progreso se guardo",
+    "progressSavedDesc": "Puedes continuar la configuracion cuando inicies sesion de nuevo"
   },
   "step1": {
     "title": "Crea tu cuenta",
@@ -51,6 +53,7 @@
     "phoneLabel": "Telefono del negocio",
     "phonePlaceholder": "+52 55 1234 5678",
     "phoneRequired": "El telefono del negocio es obligatorio",
+    "entityTypeRequired": "Selecciona el tipo de entidad de tu negocio",
     "helpLink": "Ayudame a averiguarlo"
   },
   "step5": {

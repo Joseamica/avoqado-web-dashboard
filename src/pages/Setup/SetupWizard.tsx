@@ -16,6 +16,7 @@ import { SetupWizardLayout } from '@/components/layouts/SetupWizardLayout'
 import { Icons } from '@/components/icons'
 import { setupService } from '@/services/setup.service'
 import { useAuth } from '@/context/AuthContext'
+import { useToast } from '@/hooks/use-toast'
 import type { SetupData } from './types'
 
 import { BusinessInfoStep } from './steps/BusinessInfoStep'
@@ -39,7 +40,8 @@ export default function SetupWizard() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
+  const { toast } = useToast()
   const orgId = user?.organizationId ?? null
 
   const [currentStep, setCurrentStep] = useState(0)
@@ -151,10 +153,14 @@ export default function SetupWizard() {
     }
   }, [currentStep])
 
-  const handleFinishLater = useCallback(() => {
-    // Navigate to home — AuthContext will handle showing the incomplete setup banner
-    navigate('/', { replace: true })
-  }, [navigate])
+  const handleFinishLater = useCallback(async () => {
+    toast({
+      title: t('wizard.progressSaved'),
+      description: t('wizard.progressSavedDesc'),
+    })
+    // Logout and go to login — user can resume setup on next login
+    await logout('/login')
+  }, [logout, toast, t])
 
   const handleComplete = async (finalData: SetupData) => {
     if (!orgId) return
@@ -192,7 +198,7 @@ export default function SetupWizard() {
       onFinishLater={handleFinishLater}
     >
       {isSaving && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/50">
           <Icons.spinner className="h-8 w-8 animate-spin text-foreground" />
         </div>
       )}

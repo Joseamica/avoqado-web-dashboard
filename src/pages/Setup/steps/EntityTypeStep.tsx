@@ -21,14 +21,15 @@ export function EntityTypeStep({ data, onNext }: StepProps) {
   )
   const [phone, setPhone] = useState(data.phone || '')
 
+  const [entityTypeError, setEntityTypeError] = useState('')
   const [phoneError, setPhoneError] = useState('')
 
   const handleNext = () => {
-    if (!phone.trim()) {
-      setPhoneError(t('step4.phoneRequired'))
-      return
-    }
-    setPhoneError('')
+    const entityErr = !entityType ? t('step4.entityTypeRequired') : ''
+    const phoneErr = !phone.trim() ? t('step4.phoneRequired') : ''
+    setEntityTypeError(entityErr)
+    setPhoneError(phoneErr)
+    if (entityErr || phoneErr) return
     const selectedOption = ALL_ENTITY_OPTIONS.find((opt) => opt.value === entityType)
     onNext({
       entityType,
@@ -51,7 +52,10 @@ export function EntityTypeStep({ data, onNext }: StepProps) {
         {/* Entity Type */}
         <div className="grid gap-2">
           <Label>{t('step4.entityTypeLabel')}</Label>
-          <Select value={entityType} onValueChange={setEntityType}>
+          <Select value={entityType} onValueChange={(v) => {
+            setEntityType(v)
+            if (entityTypeError) setEntityTypeError('')
+          }}>
             <SelectTrigger className="rounded-lg h-12 text-base">
               <SelectValue placeholder={t('step4.entityTypePlaceholder')} />
             </SelectTrigger>
@@ -63,6 +67,7 @@ export function EntityTypeStep({ data, onNext }: StepProps) {
               ))}
             </SelectContent>
           </Select>
+          {entityTypeError && <p className="text-xs text-destructive">{entityTypeError}</p>}
         </div>
 
         {/* Commercial Name */}

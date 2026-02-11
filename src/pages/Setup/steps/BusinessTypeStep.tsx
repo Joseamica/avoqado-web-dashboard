@@ -56,7 +56,7 @@ export function BusinessTypeStep({ data, onNext }: StepProps) {
       </div>
 
       {/* List */}
-      <div className="max-h-[400px] overflow-y-auto rounded-2xl border border-border">
+      <div className="max-h-[300px] sm:max-h-[400px] overflow-y-auto rounded-2xl border border-border">
         {filteredTypes.length === 0 ? (
           <p className="p-4 text-center text-sm text-muted-foreground">
             {t('step3.noResults')}

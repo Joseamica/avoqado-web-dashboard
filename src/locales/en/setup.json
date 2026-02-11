@@ -5,7 +5,9 @@
     "back": "Back",
     "accept": "Accept and continue",
     "complete": "Complete setup",
-    "step": "Step {{current}} of {{total}}"
+    "step": "Step {{current}} of {{total}}",
+    "progressSaved": "Your progress was saved",
+    "progressSavedDesc": "You can continue the setup next time you log in"
   },
   "step1": {
     "title": "Create your account",
@@ -51,6 +53,7 @@
     "phoneLabel": "Business phone",
     "phonePlaceholder": "+52 55 1234 5678",
     "phoneRequired": "Business phone is required",
+    "entityTypeRequired": "Select your business entity type",
     "helpLink": "Help me figure it out"
   },
   "step5": {
