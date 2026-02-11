@@ -77,6 +77,8 @@ export interface ListStaffParams {
   active?: 'true' | 'false' | 'all'
   organizationId?: string
   venueId?: string
+  hasOrganization?: boolean
+  hasVenue?: boolean
 }
 
 export interface CreateStaffData {

@@ -954,6 +954,20 @@ const StaffManagement: React.FC = () => {
     queryFn: () => staffAPI.listStaff(queryParams),
   })
 
+  // Lightweight queries to get real totals (not just current page)
+  const { data: activeCountData } = useQuery({
+    queryKey: ['superadmin-staff', 'count-active'],
+    queryFn: () => staffAPI.listStaff({ active: 'true', pageSize: 1 }),
+  })
+  const { data: withOrgCountData } = useQuery({
+    queryKey: ['superadmin-staff', 'count-with-org'],
+    queryFn: () => staffAPI.listStaff({ hasOrganization: true, pageSize: 1 }),
+  })
+  const { data: withVenueCountData } = useQuery({
+    queryKey: ['superadmin-staff', 'count-with-venue'],
+    queryFn: () => staffAPI.listStaff({ hasVenue: true, pageSize: 1 }),
+  })
+
   const rawStaffList = data?.staff || []
   const pagination = data?.pagination
 
@@ -1058,16 +1072,16 @@ const StaffManagement: React.FC = () => {
     onError: (e: any) => { toast({ title: 'Error', description: e?.response?.data?.error || e.message, variant: 'destructive' }) },
   })
 
-  // Compute stats from current data
+  // Compute stats from dedicated count queries (real totals, not page-scoped)
   const stats = useMemo(() => {
     if (!pagination) return { total: 0, active: 0, withOrg: 0, withVenue: 0 }
     return {
       total: pagination.total,
-      active: staffList.filter(s => s.active).length,
-      withOrg: staffList.filter(s => s.organizations.length > 0).length,
-      withVenue: staffList.filter(s => s.venues.length > 0).length,
+      active: activeCountData?.pagination.total ?? 0,
+      withOrg: withOrgCountData?.pagination.total ?? 0,
+      withVenue: withVenueCountData?.pagination.total ?? 0,
     }
-  }, [staffList, pagination])
+  }, [pagination, activeCountData, withOrgCountData, withVenueCountData])
 
   return (
     <div className="space-y-5">
