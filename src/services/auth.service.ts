@@ -128,9 +128,10 @@ export const googleOneTapLogin = async (credential: string): Promise<AuthRespons
 export interface SignupDto {
   email: string
   password: string
-  firstName: string
-  lastName: string
-  organizationName: string
+  firstName?: string
+  lastName?: string
+  organizationName?: string
+  wizardVersion?: number
 }
 
 export interface SignupResponse {

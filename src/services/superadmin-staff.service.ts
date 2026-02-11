@@ -172,6 +172,11 @@ export async function resetPassword(staffId: string, newPassword: string): Promi
   return response.data
 }
 
+export async function deleteStaff(staffId: string): Promise<{ success: boolean }> {
+  const response = await api.delete(`${BASE}/${staffId}`)
+  return response.data
+}
+
 export const staffAPI = {
   listStaff,
   getStaffById,
@@ -183,4 +188,5 @@ export const staffAPI = {
   updateVenueAssignment,
   removeFromVenue,
   resetPassword,
+  deleteStaff,
 }

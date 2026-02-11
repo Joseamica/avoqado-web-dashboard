@@ -22,10 +22,11 @@ export default function EmailVerification() {
 
   // Detect if user comes from signup flow (Stripe/GitHub pattern)
   // This prevents race condition with email-status check
-  const navigationState = location.state as { fromSignup?: boolean; email?: string; timestamp?: number } | null
+  const navigationState = location.state as { fromSignup?: boolean; email?: string; timestamp?: number; wizardVersion?: number } | null
   const fromSignup = navigationState?.fromSignup === true
   const signupTimestamp = navigationState?.timestamp || 0
   const isRecentSignup = fromSignup && Date.now() - signupTimestamp < 30000 // Within 30 seconds
+  const wizardVersion = navigationState?.wizardVersion
 
   const [userEmail, setUserEmail] = useState<string>('')
   const [isResending, setIsResending] = useState(false)
@@ -244,7 +245,7 @@ export default function EmailVerification() {
           </div>
 
           {/* Verification Form */}
-          <EmailVerificationForm email={userEmail} />
+          <EmailVerificationForm email={userEmail} wizardVersion={wizardVersion} />
 
           {/* Actions - Simplified */}
           <div className="space-y-4">

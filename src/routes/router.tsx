@@ -26,6 +26,8 @@ import {
   ModuleManagement,
   OrganizationManagement,
   OnboardingWizard,
+  SignupWizard,
+  SetupWizard,
   OrganizationDashboard,
   OrganizationLayout,
   OrganizationSettings,
@@ -52,7 +54,7 @@ import {
   RevenueDashboard,
   SerializedSalesDemo,
   SettlementConfigurations,
-  Signup,
+  // Signup, // Legacy — replaced by SignupWizard (V2)
   StaffManagement,
   SuperadminDashboard,
   SuperadminFeatureManagement,
@@ -109,7 +111,7 @@ const router = createBrowserRouter(
         },
         {
           path: '/signup',
-          element: <Signup />,
+          element: <SignupWizard />,
         },
         {
           path: '/auth/forgot-password',
@@ -129,6 +131,10 @@ const router = createBrowserRouter(
             {
               path: '/onboarding',
               element: <OnboardingWizard />,
+            },
+            {
+              path: '/setup',
+              element: <SetupWizard />,
             },
           ],
         },
@@ -584,7 +590,7 @@ const router = createBrowserRouter(
                 },
                 {
                   path: 'stock',
-                  element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" featureCode="SERIALIZED_STOCK" />,
+                  element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" />,
                   children: [{ index: true, element: <PlayTelecomStock /> }],
                 },
                 {
@@ -602,7 +608,6 @@ const router = createBrowserRouter(
                   element: (
                     <ModuleProtectedRoute
                       requiredModule="WHITE_LABEL_DASHBOARD"
-                      featureCode="STORES_ANALYSIS"
                     />
                   ),
                   children: [{ index: true, element: <PlayTelecomStores /> }],
@@ -690,7 +695,6 @@ const router = createBrowserRouter(
                       element: (
                         <ModuleProtectedRoute
                           requiredModule="WHITE_LABEL_DASHBOARD"
-                          featureCode="STORES_ANALYSIS"
                         />
                       ),
                       children: [{ index: true, element: <PlayTelecomStores /> }],
