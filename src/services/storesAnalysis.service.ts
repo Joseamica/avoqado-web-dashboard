@@ -271,6 +271,7 @@ export interface StorePerformanceRanking {
   rank: number
   performance?: number
   goalAmount?: number
+  goalType?: SalesGoalType
   goalPeriod?: 'DAILY' | 'WEEKLY' | 'MONTHLY'
   goalId?: string
 }
@@ -593,11 +594,14 @@ export const getStoreInventorySummary = async (venueId: string, storeId: string)
 // STORE GOAL MANAGEMENT
 // ===========================================
 
+export type SalesGoalType = 'AMOUNT' | 'QUANTITY'
+
 export interface StoreGoal {
   id: string
   venueId: string
   staffId: string | null
   goal: number
+  goalType: SalesGoalType
   period: 'DAILY' | 'WEEKLY' | 'MONTHLY'
   currentSales: number
   active: boolean
@@ -609,11 +613,13 @@ export interface StoreGoal {
 export interface CreateStoreGoalInput {
   staffId?: string | null
   goal: number
+  goalType?: SalesGoalType
   period: 'DAILY' | 'WEEKLY' | 'MONTHLY'
 }
 
 export interface UpdateStoreGoalInput {
   goal?: number
+  goalType?: SalesGoalType
   period?: 'DAILY' | 'WEEKLY' | 'MONTHLY'
   active?: boolean
 }

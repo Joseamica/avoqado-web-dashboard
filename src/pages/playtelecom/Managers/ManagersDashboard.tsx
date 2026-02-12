@@ -81,6 +81,7 @@ export function ManagersDashboard() {
   const [selectedStoreForGoal, setSelectedStoreForGoal] = useState<string | null>(null)
   const [editGoalId, setEditGoalId] = useState<string | null>(null)
   const [editGoalAmount, setEditGoalAmount] = useState<number | undefined>()
+  const [editGoalType, setEditGoalType] = useState<'AMOUNT' | 'QUANTITY' | undefined>()
   const [editGoalPeriod, setEditGoalPeriod] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY' | undefined>()
 
   const queryClient = useQueryClient()
@@ -371,8 +372,10 @@ export function ManagersDashboard() {
         color: perf >= 70 ? 'bg-green-500' : 'bg-amber-500',
         hasGoal: s.goalAmount != null,
         goalId: s.goalId,
+        goalType: s.goalType || 'AMOUNT',
         goalPeriod: s.goalPeriod,
         amount: s.todaySales,
+        unitsSold: s.unitsSold,
         goalAmount: s.goalAmount ?? 0,
       }
     })
@@ -428,10 +431,11 @@ export function ManagersDashboard() {
   }, [resetMutation])
 
   const handleOpenGoalDialog = useCallback(
-    (storeId?: string, goalId?: string | null, goalAmount?: number, goalPeriod?: 'DAILY' | 'WEEKLY' | 'MONTHLY') => {
+    (storeId?: string, goalId?: string | null, goalAmount?: number, goalType?: 'AMOUNT' | 'QUANTITY', goalPeriod?: 'DAILY' | 'WEEKLY' | 'MONTHLY') => {
       setSelectedStoreForGoal(storeId || null)
       setEditGoalId(goalId || null)
       setEditGoalAmount(goalAmount)
+      setEditGoalType(goalType)
       setEditGoalPeriod(goalPeriod)
       setGoalDialogOpen(true)
     },
@@ -537,7 +541,7 @@ export function ManagersDashboard() {
         dailySales={dailySales}
         formatCurrency={formatCurrency}
         onCreateGoal={() => handleOpenGoalDialog()}
-        onEditGoal={(storeId, goalId, goalAmount, goalPeriod) => handleOpenGoalDialog(storeId, goalId, goalAmount, goalPeriod)}
+        onEditGoal={(storeId, goalId, goalAmount, goalType, goalPeriod) => handleOpenGoalDialog(storeId, goalId, goalAmount, goalType, goalPeriod)}
       />
 
       {/* Attendance Log */}
@@ -584,6 +588,7 @@ export function ManagersDashboard() {
         selectedStoreId={selectedStoreForGoal}
         editGoalId={editGoalId}
         editGoalAmount={editGoalAmount}
+        editGoalType={editGoalType}
         editGoalPeriod={editGoalPeriod}
       />
     </div>

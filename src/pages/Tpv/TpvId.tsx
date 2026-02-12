@@ -73,10 +73,11 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import * as z from 'zod'
 import { ActivationCodeDialog } from './ActivationCodeDialog'
 import { CommandHistoryTable } from './components/CommandHistoryTable'
+import { MessagesTab } from './components/MessagesTab'
 import { RemoteCommandPanel } from './components/RemoteCommandPanel'
 
 // Valid tab values for URL hash
-const VALID_TABS = ['info', 'commands', 'settings'] as const
+const VALID_TABS = ['info', 'commands', 'messages', 'settings'] as const
 type TabValue = (typeof VALID_TABS)[number]
 
 // Type for the form values
@@ -751,6 +752,14 @@ export default function TpvId() {
               >
                 {t('commands.remoteCommands')}
               </TabsTrigger>
+              <PermissionGate permission="tpv-messages:read">
+                <TabsTrigger
+                  value="messages"
+                  className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+                >
+                  Mensajes
+                </TabsTrigger>
+              </PermissionGate>
               <PermissionGate permission="tpv:update">
                 <TabsTrigger
                   value="settings"
@@ -1484,6 +1493,13 @@ export default function TpvId() {
                   currentVersionCode={tpv?.systemInfo?.versionCode as number | undefined}
                 />
                 <CommandHistoryTable terminalId={tpvId!} venueId={venueId!} />
+              </PermissionGate>
+            </TabsContent>
+
+            {/* Messages Tab */}
+            <TabsContent value="messages" className="space-y-6">
+              <PermissionGate permission="tpv-messages:read">
+                <MessagesTab venueId={venueId!} />
               </PermissionGate>
             </TabsContent>
 

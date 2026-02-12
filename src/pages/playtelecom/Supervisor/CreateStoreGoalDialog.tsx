@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast'
 const goalSchema = z.object({
   storeId: z.string().min(1, 'La tienda es requerida'),
   goal: z.number().min(1, 'La meta debe ser mayor a 0'),
+  goalType: z.enum(['AMOUNT', 'QUANTITY'] as const),
   period: z.enum(['DAILY', 'WEEKLY', 'MONTHLY'] as const),
 })
 
@@ -35,6 +36,8 @@ interface CreateStoreGoalDialogProps {
   editGoalId?: string | null
   /** Current goal amount when editing */
   editGoalAmount?: number
+  /** Current goal type when editing */
+  editGoalType?: 'AMOUNT' | 'QUANTITY'
   /** Current goal period when editing */
   editGoalPeriod?: 'DAILY' | 'WEEKLY' | 'MONTHLY'
 }
@@ -46,6 +49,7 @@ export default function CreateStoreGoalDialog({
   selectedStoreId,
   editGoalId,
   editGoalAmount,
+  editGoalType,
   editGoalPeriod,
 }: CreateStoreGoalDialogProps) {
   const { t } = useTranslation(['playtelecom', 'common'])
@@ -60,19 +64,23 @@ export default function CreateStoreGoalDialog({
     defaultValues: {
       storeId: selectedStoreId || '',
       goal: editGoalAmount || 15000,
+      goalType: editGoalType || 'AMOUNT',
       period: editGoalPeriod || 'DAILY',
     },
   })
+
+  const watchGoalType = form.watch('goalType')
 
   useEffect(() => {
     if (open) {
       form.reset({
         storeId: selectedStoreId || '',
-        goal: editGoalAmount || 15000,
+        goal: editGoalAmount || (editGoalType === 'QUANTITY' ? 50 : 15000),
+        goalType: editGoalType || 'AMOUNT',
         period: editGoalPeriod || 'DAILY',
       })
     }
-  }, [open, selectedStoreId, editGoalAmount, editGoalPeriod, form])
+  }, [open, selectedStoreId, editGoalAmount, editGoalType, editGoalPeriod, form])
 
   const onSubmit = async (data: GoalFormData) => {
     try {
@@ -80,13 +88,13 @@ export default function CreateStoreGoalDialog({
         await updateMutation.mutateAsync({
           storeId: data.storeId,
           goalId: editGoalId,
-          data: { goal: data.goal, period: data.period },
+          data: { goal: data.goal, goalType: data.goalType, period: data.period },
         })
         toast({ title: t('playtelecom:supervisor.goalDialog.success') })
       } else {
         await createMutation.mutateAsync({
           storeId: data.storeId,
-          data: { staffId: null, goal: data.goal, period: data.period },
+          data: { staffId: null, goal: data.goal, goalType: data.goalType, period: data.period },
         })
         toast({ title: t('playtelecom:supervisor.goalDialog.success') })
       }
@@ -145,20 +153,53 @@ export default function CreateStoreGoalDialog({
               )}
             />
 
-            {/* Goal Amount */}
+            {/* Goal Type */}
+            <FormField
+              control={form.control}
+              name="goalType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('playtelecom:supervisor.goalDialog.goalType', { defaultValue: 'Tipo de meta' })}</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="AMOUNT">
+                        {t('playtelecom:supervisor.goalDialog.goalTypes.AMOUNT', { defaultValue: 'Monto ($)' })}
+                      </SelectItem>
+                      <SelectItem value="QUANTITY">
+                        {t('playtelecom:supervisor.goalDialog.goalTypes.QUANTITY', { defaultValue: 'Cantidad de ventas' })}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Goal Value */}
             <FormField
               control={form.control}
               name="goal"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('playtelecom:supervisor.goalDialog.goalAmount', { defaultValue: 'Meta de venta ($)' })}</FormLabel>
+                  <FormLabel>
+                    {watchGoalType === 'QUANTITY'
+                      ? t('playtelecom:supervisor.goalDialog.goalQuantity', { defaultValue: 'Meta de ventas (unidades)' })
+                      : t('playtelecom:supervisor.goalDialog.goalAmount', { defaultValue: 'Meta de venta ($)' })}
+                  </FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      {watchGoalType !== 'QUANTITY' && (
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      )}
                       <Input
                         type="number"
-                        className="pl-7"
-                        placeholder="15000"
+                        className={watchGoalType !== 'QUANTITY' ? 'pl-7' : ''}
+                        placeholder={watchGoalType === 'QUANTITY' ? '50' : '15000'}
                         {...field}
                         onChange={e => {
                           const v = e.target.value

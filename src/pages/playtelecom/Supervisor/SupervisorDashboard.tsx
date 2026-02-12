@@ -19,7 +19,27 @@ import { Button } from '@/components/ui/button'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Store, TrendingUp, TrendingDown, Download, Receipt, Plus, FileSpreadsheet, FileText, Sheet, Pencil, Image, ImageOff, MapPin, MapPinOff, ExternalLink, Clock, User, Banknote, CreditCard } from 'lucide-react'
+import {
+  Store,
+  TrendingUp,
+  TrendingDown,
+  Download,
+  Receipt,
+  Plus,
+  FileSpreadsheet,
+  FileText,
+  Sheet,
+  Pencil,
+  Image,
+  ImageOff,
+  MapPin,
+  MapPinOff,
+  ExternalLink,
+  Clock,
+  User,
+  Banknote,
+  CreditCard,
+} from 'lucide-react'
 import getIcon from '@/utils/getIcon'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { exportToCSV, exportToExcel, generateFilename, formatDateForExport, formatCurrencyForExport } from '@/utils/export'
@@ -56,11 +76,27 @@ export function SupervisorDashboard() {
   const [selectedStoreForGoal, setSelectedStoreForGoal] = useState<string | null>(null)
   const [editGoalId, setEditGoalId] = useState<string | null>(null)
   const [editGoalAmount, setEditGoalAmount] = useState<number | undefined>()
+  const [editGoalType, setEditGoalType] = useState<'AMOUNT' | 'QUANTITY' | undefined>()
   const [editGoalPeriod, setEditGoalPeriod] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY' | undefined>()
 
   // Photo & location dialog state
-  const [photoDialog, setPhotoDialog] = useState<{ url: string; promoter: string; store: string; time: string; label: string; lat: number | null; lon: number | null } | null>(null)
-  const [locationDialog, setLocationDialog] = useState<{ promoter: string; store: string; time: string; label: string; lat: number | null; lon: number | null } | null>(null)
+  const [photoDialog, setPhotoDialog] = useState<{
+    url: string
+    promoter: string
+    store: string
+    time: string
+    label: string
+    lat: number | null
+    lon: number | null
+  } | null>(null)
+  const [locationDialog, setLocationDialog] = useState<{
+    promoter: string
+    store: string
+    time: string
+    label: string
+    lat: number | null
+    lon: number | null
+  } | null>(null)
 
   // Derive ISO date strings from selected range for API calls
   const startDateISO = selectedRange.from.toISOString()
@@ -119,29 +155,27 @@ export function SupervisorDashboard() {
     if (!attendanceData?.staff) return []
     const timeOpts: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: venueTimezone }
     return attendanceData.staff.flatMap(entry => {
-      const allEntries = (entry as any).allTimeEntries as Array<{
-        clockInTime: string | null
-        clockOutTime: string | null
-        checkInPhotoUrl: string | null
-        checkOutPhotoUrl: string | null
-        depositPhotoUrl: string | null
-        clockInLat: number | null
-        clockInLon: number | null
-        clockOutLat: number | null
-        clockOutLon: number | null
-      }> | undefined
+      const allEntries = (entry as any).allTimeEntries as
+        | Array<{
+            clockInTime: string | null
+            clockOutTime: string | null
+            checkInPhotoUrl: string | null
+            checkOutPhotoUrl: string | null
+            depositPhotoUrl: string | null
+            clockInLat: number | null
+            clockInLon: number | null
+            clockOutLat: number | null
+            clockOutLon: number | null
+          }>
+        | undefined
 
       // If backend provides allTimeEntries, create one row per entry
       if (allEntries && allEntries.length > 0) {
         return allEntries.map(te => ({
           store: entry.venueName,
           promoter: entry.name,
-          clockIn: te.clockInTime
-            ? new Date(te.clockInTime).toLocaleTimeString('es-MX', timeOpts).toUpperCase()
-            : '--:--',
-          clockOut: te.clockOutTime
-            ? new Date(te.clockOutTime).toLocaleTimeString('es-MX', timeOpts).toUpperCase()
-            : '--:--',
+          clockIn: te.clockInTime ? new Date(te.clockInTime).toLocaleTimeString('es-MX', timeOpts).toUpperCase() : '--:--',
+          clockOut: te.clockOutTime ? new Date(te.clockOutTime).toLocaleTimeString('es-MX', timeOpts).toUpperCase() : '--:--',
           sales: entry.sales || 0,
           hasClockInPhoto: !!te.checkInPhotoUrl,
           clockInPhotoUrl: te.checkInPhotoUrl as string | null,
@@ -157,27 +191,25 @@ export function SupervisorDashboard() {
       }
 
       // Fallback: single row from top-level fields
-      return [{
-        store: entry.venueName,
-        promoter: entry.name,
-        clockIn: entry.checkInTime
-          ? new Date(entry.checkInTime).toLocaleTimeString('es-MX', timeOpts).toUpperCase()
-          : '--:--',
-        clockOut: entry.checkOutTime
-          ? new Date(entry.checkOutTime).toLocaleTimeString('es-MX', timeOpts).toUpperCase()
-          : '--:--',
-        sales: entry.sales || 0,
-        hasClockInPhoto: !!entry.checkInPhotoUrl,
-        clockInPhotoUrl: entry.checkInPhotoUrl ?? null,
-        hasClockInGps: !!(entry.checkInLocation),
-        clockInLat: entry.checkInLocation?.lat ?? null,
-        clockInLon: entry.checkInLocation?.lng ?? null,
-        hasClockOutPhoto: !!entry.checkOutPhotoUrl,
-        clockOutPhotoUrl: entry.checkOutPhotoUrl ?? null,
-        hasClockOutGps: !!(entry.checkOutLocation),
-        clockOutLat: entry.checkOutLocation?.lat ?? null,
-        clockOutLon: entry.checkOutLocation?.lng ?? null,
-      }]
+      return [
+        {
+          store: entry.venueName,
+          promoter: entry.name,
+          clockIn: entry.checkInTime ? new Date(entry.checkInTime).toLocaleTimeString('es-MX', timeOpts).toUpperCase() : '--:--',
+          clockOut: entry.checkOutTime ? new Date(entry.checkOutTime).toLocaleTimeString('es-MX', timeOpts).toUpperCase() : '--:--',
+          sales: entry.sales || 0,
+          hasClockInPhoto: !!entry.checkInPhotoUrl,
+          clockInPhotoUrl: entry.checkInPhotoUrl ?? null,
+          hasClockInGps: !!entry.checkInLocation,
+          clockInLat: entry.checkInLocation?.lat ?? null,
+          clockInLon: entry.checkInLocation?.lng ?? null,
+          hasClockOutPhoto: !!entry.checkOutPhotoUrl,
+          clockOutPhotoUrl: entry.checkOutPhotoUrl ?? null,
+          hasClockOutGps: !!entry.checkOutLocation,
+          clockOutLat: entry.checkOutLocation?.lat ?? null,
+          clockOutLon: entry.checkOutLocation?.lng ?? null,
+        },
+      ]
     })
   }, [attendanceData, venueTimezone])
 
@@ -199,7 +231,7 @@ export function SupervisorDashboard() {
     return activityFeed.events
       .filter(e => e.type === 'sale')
       .slice(0, 10)
-      .map((e) => ({
+      .map(e => ({
         id: `#${e.id.slice(-6).toUpperCase()}`,
         type: e.type as 'sale' | 'checkin',
         store: e.venueName || '',
@@ -253,8 +285,10 @@ export function SupervisorDashboard() {
         color: perf >= 70 ? 'bg-green-500' : 'bg-amber-500',
         hasGoal: s.goalAmount != null,
         goalId: s.goalId,
+        goalType: s.goalType || 'AMOUNT',
         goalPeriod: s.goalPeriod,
         amount: s.todaySales,
+        unitsSold: s.unitsSold,
         goalAmount: s.goalAmount ?? 0,
       }
     })
@@ -287,10 +321,17 @@ export function SupervisorDashboard() {
   }, [storePerformanceData])
 
   const handleOpenGoalDialog = useCallback(
-    (storeId?: string, goalId?: string, goalAmount?: number, goalPeriod?: 'DAILY' | 'WEEKLY' | 'MONTHLY') => {
+    (
+      storeId?: string,
+      goalId?: string,
+      goalAmount?: number,
+      goalType?: 'AMOUNT' | 'QUANTITY',
+      goalPeriod?: 'DAILY' | 'WEEKLY' | 'MONTHLY',
+    ) => {
       setSelectedStoreForGoal(storeId || null)
       setEditGoalId(goalId || null)
       setEditGoalAmount(goalAmount)
+      setEditGoalType(goalType)
       setEditGoalPeriod(goalPeriod)
       setGoalDialogOpen(true)
     },
@@ -307,8 +348,9 @@ export function SupervisorDashboard() {
       [t('playtelecom:supervisor.exportHeaders.product', { defaultValue: 'Producto' })]: e.title,
       ICCID: (e.metadata?.iccid as string) || '',
       [t('playtelecom:supervisor.exportHeaders.seller', { defaultValue: 'Vendedor' })]: e.staffName || '',
-      [t('playtelecom:supervisor.exportHeaders.amount', { defaultValue: 'Monto' })]:
-        formatCurrencyForExport((e.metadata?.total as number) || (e.metadata?.amount as number) || 0),
+      [t('playtelecom:supervisor.exportHeaders.amount', { defaultValue: 'Monto' })]: formatCurrencyForExport(
+        (e.metadata?.total as number) || (e.metadata?.amount as number) || 0,
+      ),
       [t('playtelecom:supervisor.exportHeaders.date', { defaultValue: 'Fecha' })]: formatDateForExport(e.timestamp),
     }))
   }, [activityFeed, t])
@@ -352,7 +394,9 @@ export function SupervisorDashboard() {
           <Skeleton className="h-48 rounded-xl" />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-72 rounded-xl" />)}
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-72 rounded-xl" />
+          ))}
         </div>
         <Skeleton className="h-64 rounded-xl" />
         <Skeleton className="h-64 rounded-xl" />
@@ -603,16 +647,15 @@ export function SupervisorDashboard() {
                       <button
                         type="button"
                         className="flex items-center gap-1 shrink-0 cursor-pointer group/edit"
-                        onClick={() => handleOpenGoalDialog(item.id, item.goalId, item.goalAmount, item.goalPeriod)}
+                        onClick={() => handleOpenGoalDialog(item.id, item.goalId, item.goalAmount, item.goalType, item.goalPeriod)}
                       >
-                        <span className={cn(
-                          'font-bold group-hover/bar:hidden',
-                          item.percent >= 70 ? 'text-green-400' : 'text-amber-400',
-                        )}>
+                        <span className={cn('font-bold group-hover/bar:hidden', item.percent >= 70 ? 'text-green-400' : 'text-amber-400')}>
                           {item.percent}%
                         </span>
                         <span className="hidden group-hover/bar:inline text-[10px] font-bold text-foreground">
-                          {formatCurrency(item.amount)} / {formatCurrency(item.goalAmount)}
+                          {item.goalType === 'QUANTITY'
+                            ? `${item.unitsSold ?? 0} / ${item.goalAmount} ventas`
+                            : `${formatCurrency(item.amount)} / ${formatCurrency(item.goalAmount)}`}
                         </span>
                         <Pencil className="w-3 h-3 text-muted-foreground/50" />
                       </button>
@@ -626,7 +669,7 @@ export function SupervisorDashboard() {
                           {t('playtelecom:supervisor.noGoal', { defaultValue: 'Sin meta' })}
                         </span>
                         <span className="hidden group-hover/bar:inline text-[10px] font-bold text-foreground">
-                          {formatCurrency(item.amount)}
+                          {item.goalType === 'QUANTITY' ? `${item.unitsSold ?? 0} ventas` : formatCurrency(item.amount)}
                         </span>
                         <Pencil className="w-3 h-3 text-muted-foreground/50" />
                       </button>
@@ -728,7 +771,17 @@ export function SupervisorDashboard() {
                           <div className="flex gap-1.5">
                             {row.hasClockInPhoto ? (
                               <button
-                                onClick={() => setPhotoDialog({ url: row.clockInPhotoUrl!, promoter: row.promoter, store: row.store, time: row.clockIn, label: 'Entrada', lat: row.clockInLat, lon: row.clockInLon })}
+                                onClick={() =>
+                                  setPhotoDialog({
+                                    url: row.clockInPhotoUrl!,
+                                    promoter: row.promoter,
+                                    store: row.store,
+                                    time: row.clockIn,
+                                    label: 'Entrada',
+                                    lat: row.clockInLat,
+                                    lon: row.clockInLon,
+                                  })
+                                }
                                 className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors cursor-pointer"
                               >
                                 <Image className="w-3 h-3" /> Foto
@@ -740,7 +793,16 @@ export function SupervisorDashboard() {
                             )}
                             {row.hasClockInGps ? (
                               <button
-                                onClick={() => setLocationDialog({ promoter: row.promoter, store: row.store, time: row.clockIn, label: 'Entrada', lat: row.clockInLat, lon: row.clockInLon })}
+                                onClick={() =>
+                                  setLocationDialog({
+                                    promoter: row.promoter,
+                                    store: row.store,
+                                    time: row.clockIn,
+                                    label: 'Entrada',
+                                    lat: row.clockInLat,
+                                    lon: row.clockInLon,
+                                  })
+                                }
                                 className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors cursor-pointer"
                               >
                                 <MapPin className="w-3 h-3" /> GPS
@@ -761,7 +823,17 @@ export function SupervisorDashboard() {
                           <div className="flex gap-1.5">
                             {row.hasClockOutPhoto ? (
                               <button
-                                onClick={() => setPhotoDialog({ url: row.clockOutPhotoUrl!, promoter: row.promoter, store: row.store, time: row.clockOut, label: 'Salida', lat: row.clockOutLat, lon: row.clockOutLon })}
+                                onClick={() =>
+                                  setPhotoDialog({
+                                    url: row.clockOutPhotoUrl!,
+                                    promoter: row.promoter,
+                                    store: row.store,
+                                    time: row.clockOut,
+                                    label: 'Salida',
+                                    lat: row.clockOutLat,
+                                    lon: row.clockOutLon,
+                                  })
+                                }
                                 className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors cursor-pointer"
                               >
                                 <Image className="w-3 h-3" /> Foto
@@ -773,7 +845,16 @@ export function SupervisorDashboard() {
                             )}
                             {row.hasClockOutGps ? (
                               <button
-                                onClick={() => setLocationDialog({ promoter: row.promoter, store: row.store, time: row.clockOut, label: 'Salida', lat: row.clockOutLat, lon: row.clockOutLon })}
+                                onClick={() =>
+                                  setLocationDialog({
+                                    promoter: row.promoter,
+                                    store: row.store,
+                                    time: row.clockOut,
+                                    label: 'Salida',
+                                    lat: row.clockOutLat,
+                                    lon: row.clockOutLon,
+                                  })
+                                }
                                 className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors cursor-pointer"
                               >
                                 <MapPin className="w-3 h-3" /> GPS
@@ -864,20 +945,24 @@ export function SupervisorDashboard() {
                     </td>
                     <td className="px-6 py-3">
                       {tx.simType != null ? (
-                      <Badge
-                        className="text-[10px]"
-                        style={isColorDark(tx.simColor) ? {
-                          backgroundColor: `${tx.simColor}90`,
-                          color: '#ffffff',
-                          borderColor: tx.simColor,
-                        } : {
-                          backgroundColor: `${tx.simColor}20`,
-                          color: tx.simColor,
-                          borderColor: `${tx.simColor}50`,
-                        }}
-                      >
-                        {tx.simType}
-                      </Badge>
+                        <Badge
+                          className="text-[10px]"
+                          style={
+                            isColorDark(tx.simColor)
+                              ? {
+                                  backgroundColor: `${tx.simColor}90`,
+                                  color: '#ffffff',
+                                  borderColor: tx.simColor,
+                                }
+                              : {
+                                  backgroundColor: `${tx.simColor}20`,
+                                  color: tx.simColor,
+                                  borderColor: `${tx.simColor}50`,
+                                }
+                          }
+                        >
+                          {tx.simType}
+                        </Badge>
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
@@ -915,17 +1000,25 @@ export function SupervisorDashboard() {
         selectedStoreId={selectedStoreForGoal}
         editGoalId={editGoalId}
         editGoalAmount={editGoalAmount}
+        editGoalType={editGoalType}
         editGoalPeriod={editGoalPeriod}
       />
 
       {/* Photo Evidence Dialog */}
-      <Dialog open={!!photoDialog} onOpenChange={o => { if (!o) setPhotoDialog(null) }}>
+      <Dialog
+        open={!!photoDialog}
+        onOpenChange={o => {
+          if (!o) setPhotoDialog(null)
+        }}
+      >
         <DialogContent className="max-w-md p-0 overflow-hidden">
           {photoDialog && (
             <>
               <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-card">
                 <User className="w-4 h-4 text-primary" />
-                <h3 className="font-semibold text-sm">{photoDialog.promoter} — {photoDialog.label}</h3>
+                <h3 className="font-semibold text-sm">
+                  {photoDialog.promoter} — {photoDialog.label}
+                </h3>
               </div>
               <div className="p-4 flex justify-center bg-background">
                 <div className="relative rounded-xl overflow-hidden border-2 border-border shadow-lg">
@@ -945,7 +1038,9 @@ export function SupervisorDashboard() {
                 </div>
               </div>
               <div className="px-4 py-3 border-t border-border/50 flex justify-end bg-card">
-                <Button variant="outline" size="sm" onClick={() => setPhotoDialog(null)}>Cerrar</Button>
+                <Button variant="outline" size="sm" onClick={() => setPhotoDialog(null)}>
+                  Cerrar
+                </Button>
               </div>
             </>
           )}
@@ -953,7 +1048,12 @@ export function SupervisorDashboard() {
       </Dialog>
 
       {/* Location Dialog */}
-      <Dialog open={!!locationDialog} onOpenChange={o => { if (!o) setLocationDialog(null) }}>
+      <Dialog
+        open={!!locationDialog}
+        onOpenChange={o => {
+          if (!o) setLocationDialog(null)
+        }}
+      >
         <DialogContent className="max-w-sm p-0 overflow-hidden">
           {locationDialog && (
             <>
@@ -968,7 +1068,9 @@ export function SupervisorDashboard() {
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Clock className="w-4 h-4" />
-                  <span>{locationDialog.time} — {locationDialog.store}</span>
+                  <span>
+                    {locationDialog.time} — {locationDialog.store}
+                  </span>
                 </div>
                 {locationDialog.lat != null && locationDialog.lon != null ? (
                   <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
@@ -999,7 +1101,9 @@ export function SupervisorDashboard() {
                 )}
               </div>
               <div className="px-4 py-3 border-t border-border/50 flex justify-end bg-card">
-                <Button variant="outline" size="sm" onClick={() => setLocationDialog(null)}>Cerrar</Button>
+                <Button variant="outline" size="sm" onClick={() => setLocationDialog(null)}>
+                  Cerrar
+                </Button>
               </div>
             </>
           )}
