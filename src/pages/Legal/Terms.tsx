@@ -163,7 +163,7 @@ export default function Terms() {
               <p>
                 <strong>{t('terms.contact.address')}:</strong>
                 <br />
-                Avoqado Technologies
+                Servicios Tecnologicos Avo
                 <br />
                 {t('terms.contact.addressLine')}
               </p>
