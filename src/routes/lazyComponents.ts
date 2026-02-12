@@ -100,6 +100,7 @@ export { default as CampaignEditor } from '@/pages/Superadmin/Marketing/Campaign
 export { default as CampaignDetail } from '@/pages/Superadmin/Marketing/CampaignDetail'
 export { default as TemplatesPage } from '@/pages/Superadmin/Marketing/TemplatesPage'
 export { default as OnboardingWizardPage } from '@/pages/Superadmin/Onboarding/OnboardingWizardPage'
+export { default as ServerHealth } from '@/pages/Superadmin/ServerHealth'
 
 // Superadmin V2 Layout
 export { default as SuperadminV2Layout } from '@/pages/SuperadminV2/SuperadminV2Layout'

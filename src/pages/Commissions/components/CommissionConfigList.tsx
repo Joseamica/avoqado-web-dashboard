@@ -1,7 +1,20 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Settings2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { CommissionConfig } from '@/types/commission'
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { useDeleteCommissionConfig } from '@/hooks/useCommissions'
+import { useToast } from '@/hooks/use-toast'
+import type { CommissionConfigSource, EffectiveCommissionConfig } from '@/types/commission'
 import CommissionConfigCard from './CommissionConfigCard'
 import { cn } from '@/lib/utils'
 
@@ -22,15 +35,38 @@ const GlassCard: React.FC<{
 )
 
 interface CommissionConfigListProps {
-	configs: CommissionConfig[]
+	effectiveConfigs?: EffectiveCommissionConfig[]
 	isLoading: boolean
+	hasOrgConfigs?: boolean
 }
 
 export default function CommissionConfigList({
-	configs,
+	effectiveConfigs,
 	isLoading,
+	hasOrgConfigs = false,
 }: CommissionConfigListProps) {
 	const { t } = useTranslation('commissions')
+	const { toast } = useToast()
+	const [revertConfigId, setRevertConfigId] = useState<string | null>(null)
+
+	const deleteConfigMutation = useDeleteCommissionConfig()
+
+	const configs = effectiveConfigs || []
+
+	const handleRevertToOrg = async () => {
+		if (!revertConfigId) return
+		try {
+			await deleteConfigMutation.mutateAsync(revertConfigId)
+			toast({ title: t('orgConfig.deleteSuccess') })
+		} catch {
+			toast({
+				title: t('orgConfig.error'),
+				variant: 'destructive',
+			})
+		} finally {
+			setRevertConfigId(null)
+		}
+	}
 
 	if (isLoading) {
 		return (
@@ -69,10 +105,40 @@ export default function CommissionConfigList({
 			</div>
 
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-				{configs.map((config) => (
-					<CommissionConfigCard key={config.id} config={config} />
+				{configs.map(({ config, source }: { config: EffectiveCommissionConfig['config']; source: CommissionConfigSource }) => (
+					<CommissionConfigCard
+						key={config.id}
+						config={config}
+						source={source}
+						onRevertToOrg={
+							source === 'venue' && hasOrgConfigs
+								? () => setRevertConfigId(config.id)
+								: undefined
+						}
+					/>
 				))}
 			</div>
+
+			{/* Revert Confirmation Dialog */}
+			<AlertDialog open={!!revertConfigId} onOpenChange={(open) => !open && setRevertConfigId(null)}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>{t('orgConfig.revertToOrg')}</AlertDialogTitle>
+						<AlertDialogDescription>
+							{t('orgConfig.revertConfirm')}
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>{t('actions.cancel')}</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={handleRevertToOrg}
+							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+						>
+							{t('orgConfig.revertToOrg')}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	)
 }

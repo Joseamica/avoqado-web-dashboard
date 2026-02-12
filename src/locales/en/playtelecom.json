@@ -321,8 +321,37 @@
     "noActivity": "No activity recorded"
   },
   "tpvConfig": {
-    "title": "TPV Configuration",
-    "subtitle": "Manage categories and pricing",
+    "title": "Configuration",
+    "subtitle": "Manage goals, commissions, terminal and catalog",
+    "pageTitle": "Configuration",
+    "pageSubtitle": "Manage goals, commissions, terminal and catalog",
+    "tabs": {
+      "general": "General",
+      "metas": "Goals",
+      "tpv": "TPV",
+      "categorias": "Categories",
+      "mensajes": "Messages"
+    },
+    "summary": {
+      "title": "Configuration Summary",
+      "modules": "TPV Modules",
+      "modulesActive": "{{count}} active",
+      "modulesOf": "of {{total}}",
+      "categories": "Categories",
+      "categoriesActive": "{{count}} active",
+      "categoriesTotal": "{{total}} total",
+      "messages": "Messages",
+      "messagesCount": "{{count}} sent",
+      "goals": "Goals",
+      "goalsConfigured": "{{count}} stores with goals",
+      "goalsTotal": "of {{total}} stores",
+      "viewDetails": "View details"
+    },
+    "venueGoals": {
+      "title": "Goals per Store",
+      "description": "Custom goals per store. Stores without a custom goal inherit the organization goal.",
+      "empty": "No stores registered"
+    },
     "totalCategories": "Total Categories",
     "activeCategories": "Active Categories",
     "avgMargin": "Average Margin",
@@ -355,7 +384,56 @@
       "cancel": "Cancel",
       "success": "Goal saved successfully",
       "error": "Error saving goal",
-      "createGoal": "Create Goal"
+      "createGoal": "Create Goal",
+      "goalType": "Goal type",
+      "goalTypes": {
+        "AMOUNT": "Amount ($)",
+        "QUANTITY": "Number of sales"
+      },
+      "goalQuantity": "Sales goal (units)",
+      "goalAmount": "Sales goal ($)"
+    },
+    "orgGoals": {
+      "title": "Organization Goals",
+      "description": "Default goals that apply to all stores without a custom goal",
+      "createTitle": "Create Organization Goal",
+      "editTitle": "Edit Organization Goal",
+      "empty": "No organization goals configured",
+      "emptyDescription": "Organization goals serve as default values for all stores",
+      "source": {
+        "venue": "Store",
+        "organization": "Organization"
+      },
+      "inherited": "Inherited from organization",
+      "custom": "Custom goal",
+      "revertToOrg": "Revert to organization",
+      "revertConfirm": "Delete the custom goal? The store will inherit the organization goal.",
+      "success": "Organization goal saved",
+      "deleteSuccess": "Organization goal deleted",
+      "error": "Error saving organization goal"
+    }
+  },
+  "categoryItems": {
+    "items": "Items",
+    "searchPlaceholder": "Search by serial number...",
+    "status": "Status",
+    "statusFilter": "Filter by status",
+    "serialNumber": "Serial Number",
+    "createdAt": "Registered",
+    "soldAt": "Sold Date",
+    "registeredBy": "Registered by",
+    "noItems": "No items in this category",
+    "noItemsFiltered": "No items match the selected filters",
+    "page": "Page",
+    "of": "of",
+    "previous": "Previous",
+    "next": "Next",
+    "showing": "Showing {{from}}-{{to}} of {{total}}",
+    "statuses": {
+      "AVAILABLE": "Available",
+      "SOLD": "Sold",
+      "RETURNED": "Returned",
+      "DAMAGED": "Damaged"
     }
   },
   "common": {

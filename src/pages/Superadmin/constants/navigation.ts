@@ -28,6 +28,7 @@ import {
   Bell,
   Wand2,
   Mail,
+  Activity,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -93,6 +94,7 @@ export function getSuperadminNavigation(tSidebar: TFunction): SuperadminNavSecti
         { name: tSidebar('config'), href: '/superadmin/settings', icon: Settings, keywords: ['config', 'configuracion'] },
         { name: 'Master TOTP', href: '/superadmin/master-totp', icon: KeyRound, keywords: ['totp', 'master', '2fa'] },
         { name: 'TPV Updates', href: '/superadmin/tpv-updates', icon: Upload, keywords: ['tpv', 'updates', 'firmware'] },
+        { name: 'Server Health', href: '/superadmin/server-health', icon: Activity, keywords: ['server', 'health', 'salud', 'servidor', 'metrics'] },
       ],
     },
   ]

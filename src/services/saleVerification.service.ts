@@ -39,6 +39,7 @@ export interface SaleVerificationPayment {
     id: string
     orderNumber: string
     total: number
+    tags?: string[]
   } | null
 }
 

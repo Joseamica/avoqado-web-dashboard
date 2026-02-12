@@ -274,6 +274,7 @@ export interface StorePerformanceRanking {
   goalType?: SalesGoalType
   goalPeriod?: 'DAILY' | 'WEEKLY' | 'MONTHLY'
   goalId?: string
+  goalSource?: GoalSource
 }
 
 export interface StorePerformanceRankingResponse {
@@ -596,6 +597,8 @@ export const getStoreInventorySummary = async (venueId: string, storeId: string)
 
 export type SalesGoalType = 'AMOUNT' | 'QUANTITY'
 
+export type GoalSource = 'venue' | 'organization'
+
 export interface StoreGoal {
   id: string
   venueId: string
@@ -608,6 +611,7 @@ export interface StoreGoal {
   createdAt: string
   updatedAt: string
   staff?: { id: string; firstName: string; lastName: string } | null
+  source?: GoalSource
 }
 
 export interface CreateStoreGoalInput {
@@ -653,4 +657,56 @@ export const updateStoreGoal = async (venueId: string, storeId: string, goalId: 
  */
 export const deleteStoreGoal = async (venueId: string, storeId: string, goalId: string): Promise<void> => {
   await api.delete(`/api/v1/dashboard/venues/${venueId}/stores-analysis/store/${storeId}/goals/${goalId}`)
+}
+
+// ===========================================
+// ORG-LEVEL GOAL MANAGEMENT
+// ===========================================
+
+export interface OrgGoal extends StoreGoal {
+  source: 'organization'
+}
+
+export interface CreateOrgGoalInput {
+  goal: number
+  goalType?: SalesGoalType
+  period?: 'DAILY' | 'WEEKLY' | 'MONTHLY'
+}
+
+export interface UpdateOrgGoalInput {
+  goal?: number
+  goalType?: SalesGoalType
+  period?: 'DAILY' | 'WEEKLY' | 'MONTHLY'
+  active?: boolean
+}
+
+/**
+ * Get all org-level sales goals
+ */
+export const getOrgGoals = async (venueId: string): Promise<OrgGoal[]> => {
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/org-goals`)
+  return response.data.data
+}
+
+/**
+ * Create a new org-level sales goal
+ */
+export const createOrgGoal = async (venueId: string, data: CreateOrgGoalInput): Promise<OrgGoal> => {
+  const response = await api.post(`/api/v1/dashboard/venues/${venueId}/stores-analysis/org-goals`, data)
+  return response.data.data
+}
+
+/**
+ * Update an existing org-level sales goal
+ */
+export const updateOrgGoal = async (venueId: string, goalId: string, data: UpdateOrgGoalInput): Promise<OrgGoal> => {
+  const response = await api.patch(`/api/v1/dashboard/venues/${venueId}/stores-analysis/org-goals/${goalId}`, data)
+  return response.data.data
+}
+
+/**
+ * Delete an org-level sales goal
+ */
+export const deleteOrgGoal = async (venueId: string, goalId: string): Promise<void> => {
+  await api.delete(`/api/v1/dashboard/venues/${venueId}/stores-analysis/org-goals/${goalId}`)
 }

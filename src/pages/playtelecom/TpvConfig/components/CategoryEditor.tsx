@@ -8,7 +8,7 @@
  * - Callbacks to keep PhonePreview in sync
  */
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { GlassCard } from '@/components/ui/glass-card'
@@ -44,15 +44,25 @@ import {
   Loader2,
   CheckCircle2,
   Box,
+  Search,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { FullScreenModal } from '@/components/ui/full-screen-modal'
+import { FilterPill } from '@/components/filters/FilterPill'
+import { CheckboxFilterContent } from '@/components/filters/CheckboxFilterContent'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
+import { useDebounce } from '@/hooks/useDebounce'
+import { useVenueDateTime } from '@/utils/datetime'
 import {
   createItemCategory,
   updateItemCategory,
   deleteItemCategory,
+  getCategoryItems,
   type ItemCategory,
+  type SerializedItem,
   type CreateItemCategoryDto,
   type UpdateItemCategoryDto,
 } from '@/services/itemCategory.service'
@@ -105,6 +115,7 @@ export function CategoryEditor({ onCategoriesChange }: CategoryEditorProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<ItemCategory | null>(null)
   const [deletingCategory, setDeletingCategory] = useState<ItemCategory | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<ItemCategory | null>(null)
   const [formData, setFormData] = useState<CategoryFormData>(defaultFormData)
 
   // Fetch categories
@@ -269,9 +280,10 @@ export function CategoryEditor({ onCategoriesChange }: CategoryEditorProps) {
               <div
                 key={category.id}
                 className={cn(
-                  'relative p-4 rounded-xl border border-border/50 bg-card/50',
+                  'relative p-4 rounded-xl border border-border/50 bg-card/50 cursor-pointer',
                   'hover:border-border hover:shadow-sm transition-all group',
                 )}
+                onClick={() => setSelectedCategory(category)}
               >
                 {/* Color indicator */}
                 <div
@@ -293,7 +305,7 @@ export function CategoryEditor({ onCategoriesChange }: CategoryEditorProps) {
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7"
-                      onClick={() => handleOpenEdit(category)}
+                      onClick={(e) => { e.stopPropagation(); handleOpenEdit(category) }}
                     >
                       <Pencil className="w-3.5 h-3.5" />
                     </Button>
@@ -301,7 +313,7 @@ export function CategoryEditor({ onCategoriesChange }: CategoryEditorProps) {
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-destructive hover:text-destructive"
-                      onClick={() => handleOpenDelete(category)}
+                      onClick={(e) => { e.stopPropagation(); handleOpenDelete(category) }}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
@@ -553,6 +565,269 @@ export function CategoryEditor({ onCategoriesChange }: CategoryEditorProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Category Items Modal */}
+      {selectedCategory && (
+        <CategoryItemsModal
+          category={selectedCategory}
+          venueId={venueId!}
+          open={!!selectedCategory}
+          onClose={() => setSelectedCategory(null)}
+        />
+      )}
     </>
+  )
+}
+
+// ===========================================
+// CategoryItemsModal — Internal component
+// ===========================================
+
+const STATUS_COLORS: Record<SerializedItem['status'], string> = {
+  AVAILABLE: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  SOLD: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  RETURNED: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+  DAMAGED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+}
+
+const PAGE_SIZE = 20
+
+interface CategoryItemsModalProps {
+  category: ItemCategory
+  venueId: string
+  open: boolean
+  onClose: () => void
+}
+
+function CategoryItemsModal({ category, venueId, open, onClose }: CategoryItemsModalProps) {
+  const { t } = useTranslation(['playtelecom', 'common'])
+  const { formatDate, formatDateTime } = useVenueDateTime()
+
+  const [page, setPage] = useState(1)
+  const [statusFilter, setStatusFilter] = useState<string[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearch = useDebounce(searchTerm, 300)
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1)
+  }, [statusFilter, debouncedSearch])
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['category-items', venueId, category.id, { status: statusFilter.join(','), page, search: debouncedSearch }],
+    queryFn: () =>
+      getCategoryItems(venueId, category.id, {
+        status: statusFilter.length > 0 ? statusFilter.join(',') : undefined,
+        page,
+        pageSize: PAGE_SIZE,
+        search: debouncedSearch || undefined,
+      }),
+    enabled: open && !!venueId,
+  })
+
+  const items = data?.items ?? []
+  const pagination = data?.pagination
+
+  const statusOptions = useMemo(
+    () => [
+      { value: 'AVAILABLE', label: t('playtelecom:categoryItems.statuses.AVAILABLE') },
+      { value: 'SOLD', label: t('playtelecom:categoryItems.statuses.SOLD') },
+      { value: 'RETURNED', label: t('playtelecom:categoryItems.statuses.RETURNED') },
+      { value: 'DAMAGED', label: t('playtelecom:categoryItems.statuses.DAMAGED') },
+    ],
+    [t],
+  )
+
+  const statusFilterLabel = useMemo(() => {
+    if (statusFilter.length === 0) return null
+    if (statusFilter.length === 1) {
+      return statusOptions.find((o) => o.value === statusFilter[0])?.label ?? null
+    }
+    return `${statusFilter.length}`
+  }, [statusFilter, statusOptions])
+
+  const handleStatusApply = useCallback((values: string[]) => {
+    setStatusFilter(values)
+  }, [])
+
+  const handleStatusClear = useCallback(() => {
+    setStatusFilter([])
+  }, [])
+
+  return (
+    <FullScreenModal
+      open={open}
+      onClose={onClose}
+      title={category.name}
+      contentClassName="bg-muted/30"
+    >
+      <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
+        {/* Title with color dot (visible in content area since FullScreenModal title is plain text) */}
+        <div className="flex items-center gap-3">
+          <div
+            className="w-5 h-5 rounded-full border border-border/50"
+            style={{ backgroundColor: category.color || '#888' }}
+          />
+          <h2 className="text-xl font-bold">{category.name}</h2>
+          {category.description && (
+            <span className="text-sm text-muted-foreground">— {category.description}</span>
+          )}
+        </div>
+
+        {/* Summary stats */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-xl border border-border/50 bg-card p-4 text-center">
+            <div className="flex items-center justify-center gap-1.5 text-green-600 dark:text-green-400">
+              <CheckCircle2 className="w-4 h-4" />
+              <span className="text-2xl font-bold">{category.availableItems || 0}</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t('playtelecom:categories.available', { defaultValue: 'Disponible' })}
+            </p>
+          </div>
+          <div className="rounded-xl border border-border/50 bg-card p-4 text-center">
+            <div className="flex items-center justify-center gap-1.5 text-blue-600 dark:text-blue-400">
+              <Package className="w-4 h-4" />
+              <span className="text-2xl font-bold">{category.soldItems || 0}</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t('playtelecom:categories.sold', { defaultValue: 'Vendidos' })}
+            </p>
+          </div>
+          <div className="rounded-xl border border-border/50 bg-card p-4 text-center">
+            <div className="flex items-center justify-center gap-1.5 text-muted-foreground">
+              <Box className="w-4 h-4" />
+              <span className="text-2xl font-bold">{category.totalItems || 0}</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t('playtelecom:categories.total', { defaultValue: 'Total' })}
+            </p>
+          </div>
+        </div>
+
+        {/* Filters row */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <FilterPill
+            label={t('playtelecom:categoryItems.status')}
+            activeValue={statusFilterLabel}
+            onClear={handleStatusClear}
+          >
+            <CheckboxFilterContent
+              title={t('playtelecom:categoryItems.statusFilter')}
+              options={statusOptions}
+              selectedValues={statusFilter}
+              onApply={handleStatusApply}
+            />
+          </FilterPill>
+
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={t('playtelecom:categoryItems.searchPlaceholder')}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="h-8 pl-9 text-sm rounded-full"
+            />
+          </div>
+        </div>
+
+        {/* Items list */}
+        <div className="space-y-2">
+          {isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="rounded-lg border border-border/50 bg-card p-3">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                </div>
+                <div className="flex gap-4 mt-2">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+              </div>
+            ))
+          ) : items.length === 0 ? (
+            <div className="text-center py-12">
+              <Package className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-50" />
+              <p className="text-muted-foreground">
+                {statusFilter.length > 0 || debouncedSearch
+                  ? t('playtelecom:categoryItems.noItemsFiltered')
+                  : t('playtelecom:categoryItems.noItems')}
+              </p>
+            </div>
+          ) : (
+            items.map((item) => (
+              <div
+                key={item.id}
+                className="rounded-lg border border-border/50 bg-card p-3 hover:border-border transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-sm font-medium">{item.serialNumber}</span>
+                  <Badge
+                    variant="secondary"
+                    className={cn('text-xs', STATUS_COLORS[item.status])}
+                  >
+                    {t(`playtelecom:categoryItems.statuses.${item.status}`)}
+                  </Badge>
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
+                  <span>
+                    {t('playtelecom:categoryItems.createdAt')}: {formatDate(item.createdAt)}
+                  </span>
+                  {item.soldAt && (
+                    <span>
+                      {t('playtelecom:categoryItems.soldAt')}: {formatDateTime(item.soldAt)}
+                    </span>
+                  )}
+                  {item.registeredBy && (
+                    <span>
+                      {t('playtelecom:categoryItems.registeredBy')}: {item.registeredBy}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Pagination */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between pt-2">
+            <p className="text-xs text-muted-foreground">
+              {t('playtelecom:categoryItems.showing', {
+                from: (pagination.page - 1) * pagination.pageSize + 1,
+                to: Math.min(pagination.page * pagination.pageSize, pagination.total),
+                total: pagination.total,
+              })}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
+                disabled={pagination.page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                {t('playtelecom:categoryItems.previous')}
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {pagination.page} / {pagination.totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
+                disabled={pagination.page >= pagination.totalPages}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                {t('playtelecom:categoryItems.next')}
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </FullScreenModal>
   )
 }

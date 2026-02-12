@@ -1088,7 +1088,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
 
   TPV_CONFIGURATION: {
     code: 'TPV_CONFIGURATION',
-    name: 'Configuración TPV',
+    name: 'Configuración White Label',
     description: 'Configuración de terminales punto de venta: módulos, catálogo de SIMs, reglas de evidencia',
     category: 'custom',
     source: 'module_specific',
@@ -1118,7 +1118,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
     },
 
     defaultNavItem: {
-      label: 'Config TPV',
+      label: 'Configuración White Label',
       icon: 'Settings',
     },
 

@@ -1,5 +1,5 @@
 import { getNotifications, getUnreadCount, markAsRead, NotificationsResponse } from '@/services/notification.service'
-import { getDashboardData } from '@/services/superadmin.service'
+import { getDashboardData, getServerMetrics } from '@/services/superadmin.service'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 // Query keys para consistencia y invalidación
@@ -7,6 +7,7 @@ export const superadminQueryKeys = {
   dashboard: ['superadmin', 'dashboard'] as const,
   notifications: ['superadmin', 'notifications'] as const,
   unreadCount: ['superadmin', 'notifications', 'unread-count'] as const,
+  serverMetrics: ['superadmin', 'server-metrics'] as const,
 }
 
 /**
@@ -115,4 +116,18 @@ export function useRefreshSuperadminData() {
   return () => {
     queryClient.invalidateQueries({ queryKey: ['superadmin'] })
   }
+}
+
+/**
+ * Hook para obtener métricas de salud del servidor
+ * @param refetchInterval - false to pause, number for interval in ms
+ */
+export function useServerMetrics(refetchInterval: false | number = 30_000) {
+  return useQuery({
+    queryKey: superadminQueryKeys.serverMetrics,
+    queryFn: getServerMetrics,
+    refetchInterval,
+    staleTime: 10_000,
+    gcTime: 60_000,
+  })
 }

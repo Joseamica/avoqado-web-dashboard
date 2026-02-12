@@ -282,6 +282,19 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
     'settings:read',
     'settings:manage',
   ],
+
+  // ===========================
+  // ORG-LEVEL MANAGEMENT
+  // ===========================
+  'goals:org-manage': [
+    'goals:org-manage',
+    'commissions:read',
+  ],
+  'commissions:org-manage': [
+    'commissions:org-manage',
+    'commissions:read',
+    'teams:read',
+  ],
 }
 
 /**

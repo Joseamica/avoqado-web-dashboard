@@ -16,6 +16,7 @@ import type {
 	PayoutFilters,
 	CreateSalesGoalInput,
 	UpdateSalesGoalInput,
+	OrgPayoutConfigInput,
 } from '@/types/commission'
 
 // ============================================
@@ -56,6 +57,12 @@ export const commissionKeys = {
 	// Sales Goals
 	goals: (venueId: string | null) => [...commissionKeys.all, 'goals', venueId] as const,
 	goal: (venueId: string | null, goalId: string) => [...commissionKeys.goals(venueId), goalId] as const,
+	// Org-Level Configs
+	orgConfigs: (venueId: string | null) => [...commissionKeys.all, 'org-configs', venueId] as const,
+	effectiveConfigs: (venueId: string | null) => [...commissionKeys.all, 'effective-configs', venueId] as const,
+	// Org-Level Payout Config
+	orgPayoutConfig: (venueId: string | null) => [...commissionKeys.all, 'org-payout-config', venueId] as const,
+	effectivePayoutConfig: (venueId: string | null) => [...commissionKeys.all, 'effective-payout-config', venueId] as const,
 }
 
 // ============================================
@@ -789,6 +796,158 @@ export function useDeleteSalesGoal() {
 	})
 }
 
+// ============================================
+// ORG-LEVEL CONFIG HOOKS
+// ============================================
+
+/**
+ * Hook for fetching effective configs (resolved: venue or org fallback) with source
+ */
+export function useEffectiveCommissionConfigs() {
+	const { venueId } = useCurrentVenue()
+
+	return useQuery({
+		queryKey: commissionKeys.effectiveConfigs(venueId),
+		queryFn: () => commissionService.getEffectiveConfigs(venueId!),
+		enabled: !!venueId,
+		staleTime: 5 * 60 * 1000,
+		gcTime: 30 * 60 * 1000,
+	})
+}
+
+/**
+ * Hook for fetching org-level commission configs
+ */
+export function useOrgCommissionConfigs() {
+	const { venueId } = useCurrentVenue()
+
+	return useQuery({
+		queryKey: commissionKeys.orgConfigs(venueId),
+		queryFn: () => commissionService.getOrgConfigs(venueId!),
+		enabled: !!venueId,
+		staleTime: 5 * 60 * 1000,
+		gcTime: 30 * 60 * 1000,
+	})
+}
+
+/**
+ * Hook for creating an org-level commission config
+ */
+export function useCreateOrgCommissionConfig() {
+	const { venueId } = useCurrentVenue()
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: (data: CreateCommissionConfigInput) => commissionService.createOrgConfig(venueId!, data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: commissionKeys.orgConfigs(venueId) })
+			queryClient.invalidateQueries({ queryKey: commissionKeys.effectiveConfigs(venueId) })
+			queryClient.invalidateQueries({ queryKey: commissionKeys.configs(venueId) })
+		},
+	})
+}
+
+/**
+ * Hook for updating an org-level commission config
+ */
+export function useUpdateOrgCommissionConfig() {
+	const { venueId } = useCurrentVenue()
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: ({ configId, data }: { configId: string; data: UpdateCommissionConfigInput }) =>
+			commissionService.updateOrgConfig(venueId!, configId, data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: commissionKeys.orgConfigs(venueId) })
+			queryClient.invalidateQueries({ queryKey: commissionKeys.effectiveConfigs(venueId) })
+			queryClient.invalidateQueries({ queryKey: commissionKeys.configs(venueId) })
+		},
+	})
+}
+
+/**
+ * Hook for deleting an org-level commission config
+ */
+export function useDeleteOrgCommissionConfig() {
+	const { venueId } = useCurrentVenue()
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: (configId: string) => commissionService.deleteOrgConfig(venueId!, configId),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: commissionKeys.orgConfigs(venueId) })
+			queryClient.invalidateQueries({ queryKey: commissionKeys.effectiveConfigs(venueId) })
+			queryClient.invalidateQueries({ queryKey: commissionKeys.configs(venueId) })
+		},
+	})
+}
+
+// ============================================
+// ORG PAYOUT CONFIG HOOKS
+// ============================================
+
+/**
+ * Hook for fetching org-level payout config
+ */
+export function useOrgPayoutConfig() {
+	const { venueId } = useCurrentVenue()
+
+	return useQuery({
+		queryKey: commissionKeys.orgPayoutConfig(venueId),
+		queryFn: () => commissionService.getOrgPayoutConfig(venueId!),
+		enabled: !!venueId,
+		staleTime: 5 * 60 * 1000,
+		gcTime: 30 * 60 * 1000,
+	})
+}
+
+/**
+ * Hook for fetching effective payout config (resolved: venue or org)
+ */
+export function useEffectivePayoutConfig() {
+	const { venueId } = useCurrentVenue()
+
+	return useQuery({
+		queryKey: commissionKeys.effectivePayoutConfig(venueId),
+		queryFn: () => commissionService.getEffectivePayoutConfig(venueId!),
+		enabled: !!venueId,
+		staleTime: 5 * 60 * 1000,
+		gcTime: 30 * 60 * 1000,
+	})
+}
+
+/**
+ * Hook for creating/updating org-level payout config (upsert)
+ */
+export function useUpsertOrgPayoutConfig() {
+	const { venueId } = useCurrentVenue()
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: (data: OrgPayoutConfigInput) => commissionService.upsertOrgPayoutConfig(venueId!, data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: commissionKeys.orgPayoutConfig(venueId) })
+			queryClient.invalidateQueries({ queryKey: commissionKeys.effectivePayoutConfig(venueId) })
+		},
+	})
+}
+
+/**
+ * Hook for deleting org-level payout config
+ */
+export function useDeleteOrgPayoutConfig() {
+	const { venueId } = useCurrentVenue()
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: () => commissionService.deleteOrgPayoutConfig(venueId!),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: commissionKeys.orgPayoutConfig(venueId) })
+			queryClient.invalidateQueries({ queryKey: commissionKeys.effectivePayoutConfig(venueId) })
+		},
+	})
+}
+
 export default {
 	commissionKeys,
 	useCommissionConfigs,
@@ -835,4 +994,13 @@ export default {
 	useCreateSalesGoal,
 	useUpdateSalesGoal,
 	useDeleteSalesGoal,
+	useEffectiveCommissionConfigs,
+	useOrgCommissionConfigs,
+	useCreateOrgCommissionConfig,
+	useUpdateOrgCommissionConfig,
+	useDeleteOrgCommissionConfig,
+	useOrgPayoutConfig,
+	useEffectivePayoutConfig,
+	useUpsertOrgPayoutConfig,
+	useDeleteOrgPayoutConfig,
 }

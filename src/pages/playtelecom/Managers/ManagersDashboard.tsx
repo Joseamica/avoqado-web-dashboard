@@ -36,6 +36,7 @@ import {
   useStoresStorePerformance,
 } from '@/hooks/useStoresAnalysis'
 import CreateStoreGoalDialog from '../Supervisor/CreateStoreGoalDialog'
+
 import { validateTimeEntry, resetTimeEntryValidation, type CrossStoreAnomaly } from '@/services/storesAnalysis.service'
 import {
   ManagerKpiCards,

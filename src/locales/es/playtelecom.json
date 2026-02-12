@@ -321,8 +321,37 @@
     "noActivity": "Sin actividad registrada"
   },
   "tpvConfig": {
-    "title": "Configuración TPV",
-    "subtitle": "Administra categorías y precios",
+    "title": "Configuración",
+    "subtitle": "Administra metas, comisiones, terminal y catálogo",
+    "pageTitle": "Configuración",
+    "pageSubtitle": "Administra metas, comisiones, terminal y catálogo",
+    "tabs": {
+      "general": "General",
+      "metas": "Metas",
+      "tpv": "TPV",
+      "categorias": "Categorías",
+      "mensajes": "Mensajes"
+    },
+    "summary": {
+      "title": "Resumen de configuración",
+      "modules": "Módulos TPV",
+      "modulesActive": "{{count}} activos",
+      "modulesOf": "de {{total}}",
+      "categories": "Categorías",
+      "categoriesActive": "{{count}} activas",
+      "categoriesTotal": "{{total}} total",
+      "messages": "Mensajes",
+      "messagesCount": "{{count}} enviados",
+      "goals": "Metas",
+      "goalsConfigured": "{{count}} tiendas con meta",
+      "goalsTotal": "de {{total}} tiendas",
+      "viewDetails": "Ver detalles"
+    },
+    "venueGoals": {
+      "title": "Metas por Tienda",
+      "description": "Metas personalizadas por tienda. Las tiendas sin meta propia heredan la meta de organización.",
+      "empty": "No hay tiendas registradas"
+    },
     "totalCategories": "Total Categorías",
     "activeCategories": "Categorías Activas",
     "avgMargin": "Margen Promedio",
@@ -355,7 +384,56 @@
       "cancel": "Cancelar",
       "success": "Meta guardada exitosamente",
       "error": "Error al guardar la meta",
-      "createGoal": "Crear Meta"
+      "createGoal": "Crear Meta",
+      "goalType": "Tipo de meta",
+      "goalTypes": {
+        "AMOUNT": "Monto ($)",
+        "QUANTITY": "Cantidad de ventas"
+      },
+      "goalQuantity": "Meta de ventas (unidades)",
+      "goalAmount": "Meta de venta ($)"
+    },
+    "orgGoals": {
+      "title": "Metas de Organización",
+      "description": "Metas por defecto que aplican a todas las tiendas sin meta propia",
+      "createTitle": "Crear Meta de Organización",
+      "editTitle": "Editar Meta de Organización",
+      "empty": "No hay metas de organización configuradas",
+      "emptyDescription": "Las metas de organización se aplican como valores por defecto a todas las tiendas",
+      "source": {
+        "venue": "Tienda",
+        "organization": "Organización"
+      },
+      "inherited": "Heredado de organización",
+      "custom": "Meta personalizada",
+      "revertToOrg": "Revertir a organización",
+      "revertConfirm": "¿Eliminar la meta personalizada? La tienda heredará la meta de organización.",
+      "success": "Meta de organización guardada",
+      "deleteSuccess": "Meta de organización eliminada",
+      "error": "Error al guardar la meta de organización"
+    }
+  },
+  "categoryItems": {
+    "items": "Items",
+    "searchPlaceholder": "Buscar por número de serie...",
+    "status": "Estado",
+    "statusFilter": "Filtrar por estado",
+    "serialNumber": "Número de Serie",
+    "createdAt": "Fecha Registro",
+    "soldAt": "Fecha Venta",
+    "registeredBy": "Registrado por",
+    "noItems": "No hay items en esta categoría",
+    "noItemsFiltered": "No hay items con los filtros seleccionados",
+    "page": "Página",
+    "of": "de",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "showing": "Mostrando {{from}}-{{to}} de {{total}}",
+    "statuses": {
+      "AVAILABLE": "Disponible",
+      "SOLD": "Vendido",
+      "RETURNED": "Devuelto",
+      "DAMAGED": "Dañado"
     }
   },
   "common": {

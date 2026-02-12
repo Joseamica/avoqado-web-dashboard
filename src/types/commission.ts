@@ -17,6 +17,13 @@ export type CommissionPayoutStatus = 'PENDING' | 'APPROVED' | 'PROCESSING' | 'PA
 // Core Data Types
 // ============================================
 
+export type CommissionConfigSource = 'venue' | 'organization'
+
+export interface EffectiveCommissionConfig {
+	config: CommissionConfig
+	source: CommissionConfigSource
+}
+
 export interface CommissionConfig {
 	id: string
 	venueId: string
@@ -455,4 +462,33 @@ export interface UpdateSalesGoalInput {
 	goal?: number
 	period?: SalesGoalPeriod
 	active?: boolean
+}
+
+// ============================================
+// Org Payout Config Types
+// ============================================
+
+export interface OrgPayoutConfig {
+	id: string
+	organizationId: string
+	aggregationPeriod: string
+	requireApproval: boolean
+	paymentMethods: string[]
+	createdAt: string
+	updatedAt: string
+}
+
+export interface OrgPayoutConfigInput {
+	aggregationPeriod?: string
+	requireApproval?: boolean
+	paymentMethods?: string[]
+}
+
+export interface ResolvedPayoutConfig {
+	config: {
+		aggregationPeriod: string
+		requireApproval: boolean
+		paymentMethods: string[]
+	}
+	source: 'venue' | 'organization'
 }
