@@ -1,0 +1,140 @@
+/**
+ * Mexican Bank CLABE Codes
+ *
+ * Maps the first 3 digits of a CLABE to bank names.
+ * Source: Banxico (Bank of Mexico) catalog.
+ */
+
+export const CLABE_BANK_CODES: Record<string, string> = {
+  '002': 'BANAMEX',
+  '006': 'Bancomext',
+  '009': 'Banobras',
+  '012': 'BBVA Mexico',
+  '014': 'Santander',
+  '021': 'HSBC',
+  '030': 'Bajio',
+  '032': 'IXE',
+  '036': 'Inbursa',
+  '037': 'Interacciones',
+  '042': 'Mifel',
+  '044': 'Scotiabank',
+  '058': 'Banregio',
+  '059': 'Invex',
+  '060': 'Bansi',
+  '062': 'Afirme',
+  '072': 'Banorte',
+  '102': 'ABN Amro',
+  '103': 'American Express',
+  '106': 'BAMSA',
+  '108': 'Tokyo',
+  '110': 'JP Morgan',
+  '112': 'Bmonex',
+  '113': 'Ve por Mas',
+  '116': 'ING',
+  '124': 'Deutsche',
+  '126': 'Credit Suisse',
+  '127': 'Azteca',
+  '128': 'Autofin',
+  '129': 'Barclays',
+  '130': 'Compartamos',
+  '131': 'Banco Famsa',
+  '132': 'Multiva',
+  '133': 'Actinver',
+  '134': 'Walmart',
+  '135': 'Nafin',
+  '136': 'Inter Banco',
+  '137': 'Bancoppel',
+  '138': 'ABC Capital',
+  '139': 'UBS',
+  '140': 'Consubanco',
+  '141': 'Volkswagen',
+  '143': 'CIBanco',
+  '145': 'Bbase',
+  '147': 'Bankaool',
+  '148': 'Pagatodo',
+  '149': 'Inmobiliario Mexicano',
+  '150': 'Nu Mexico',
+  '155': 'ICBC',
+  '156': 'Sabadell',
+  '166': 'BanBajio',
+  '168': 'Hipotecaria Federal',
+  '600': 'Monexcb',
+  '601': 'GBM',
+  '602': 'Masari',
+  '605': 'Value',
+  '606': 'Base',
+  '607': 'CB Intercam',
+  '608': 'CI Bolsa',
+  '610': 'Fincomun',
+  '611': 'HDI Seguros',
+  '613': 'Multiva CBOLSA',
+  '616': 'Finamex',
+  '617': 'Valmex',
+  '618': 'Unica',
+  '619': 'Mapfre',
+  '620': 'Profuturo',
+  '621': 'CB Actinver',
+  '622': 'Oactin',
+  '623': 'Cibanco',
+  '626': 'CBDEUTSCHE',
+  '627': 'Zurich',
+  '628': 'Zurichvi',
+  '629': 'SU Casita',
+  '630': 'CB Intercam',
+  '631': 'CI Bolsa',
+  '632': 'Bulltick CB',
+  '633': 'Sterling',
+  '634': 'Fincomun',
+  '636': 'HDI Seguros',
+  '637': 'Order',
+  '638': 'NU Mexico (SOFIPO)',
+  '640': 'CB JP Morgan',
+  '642': 'Reforma',
+  '646': 'STP',
+  '647': 'Albo',
+  '648': 'Tactiv CB',
+  '649': 'RSW',
+  '651': 'Klar',
+  '652': 'Credicapital',
+  '653': 'Caja Telefonistas',
+  '655': 'Fondo Fira',
+  '656': 'NVIO',
+  '659': 'ASP Integra OPC',
+  '670': 'Libertad',
+  '674': 'AXA',
+  '677': 'Caja Apemex',
+  '679': 'FND',
+  '680': 'Cristobal Colon',
+  '683': 'Caja Morelia',
+  '684': 'Transfer',
+  '685': 'Fomped',
+  '689': 'Fondeadora',
+  '699': 'Stori',
+  '703': 'Tesored',
+  '706': 'Arcus',
+  '710': 'NVIO',
+  '722': 'Mercado Pago',
+  '723': 'Cuenca',
+  '812': 'BBVA Bancomer ST',
+  '846': 'STP',
+  '901': 'CoDi Valida',
+  '902': 'Indeval',
+}
+
+/**
+ * Gets bank name from a CLABE number (first 3 digits).
+ * Returns undefined if bank code is not found.
+ */
+export function getBankFromClabe(clabe: string): string | undefined {
+  if (!clabe || clabe.length < 3) return undefined
+  const bankCode = clabe.substring(0, 3)
+  return CLABE_BANK_CODES[bankCode]
+}
+
+/**
+ * Validates basic CLABE format (18 digits).
+ * Does NOT validate the check digit.
+ */
+export function isValidClabeFormat(clabe: string): boolean {
+  return /^\d{18}$/.test(clabe)
+}

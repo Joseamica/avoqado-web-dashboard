@@ -57,6 +57,7 @@ export interface AuthStatusResponse {
       name: string
       slug: string
       logo: string | null
+      type?: string // Business type for sector-aware UI terminology
       role: StaffRole
       // Venue operational status (single source of truth)
       status?: string
@@ -127,9 +128,10 @@ export const googleOneTapLogin = async (credential: string): Promise<AuthRespons
 export interface SignupDto {
   email: string
   password: string
-  firstName: string
-  lastName: string
-  organizationName: string
+  firstName?: string
+  lastName?: string
+  organizationName?: string
+  wizardVersion?: number
 }
 
 export interface SignupResponse {

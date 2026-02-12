@@ -119,7 +119,7 @@ export default function Coupons() {
       if (coupon.validFrom && coupon.validUntil) {
         const from = new Date(coupon.validFrom).toLocaleDateString(getIntlLocale(i18n.language))
         const to = new Date(coupon.validUntil).toLocaleDateString(getIntlLocale(i18n.language))
-        return tCommon('dateRange', { from, to })
+        return tCommon('dateBetween', { from, to })
       }
       if (coupon.validFrom) {
         return tCommon('validFrom', { date: new Date(coupon.validFrom).toLocaleDateString(getIntlLocale(i18n.language)) })

@@ -26,6 +26,7 @@ import InviteTeamMemberForm, { type InviteTeamMemberFormRef } from '@/pages/Team
 import { StaffRole } from '@/types'
 import { canModifyRole, getModifiableRoles } from '@/lib/permissions/roleHierarchy'
 import { UserSidebar, UserDetailPanel, type UserListItem, type UserDetail, type Zone, type StoreOption, type AuditLogEntry } from './components'
+import { Skeleton } from '@/components/ui/skeleton'
 
 /** Query key helpers */
 const teamQueryKey = (venueId: string | null) => ['stores-analysis', venueId, 'team']
@@ -75,7 +76,7 @@ export function UsersManagement() {
   const [copied, setCopied] = useState(false)
 
   // Fetch team members via organization-level endpoint
-  const { data: teamMembers = [] } = useQuery({
+  const { data: teamMembers = [], isLoading } = useQuery({
     queryKey: teamQueryKey(venueId),
     queryFn: () => getTeam(venueId!),
     enabled: !!venueId,
@@ -348,6 +349,23 @@ export function UsersManagement() {
   }, [venueId, queryClient])
 
   const isSaving = updateRoleMutation.isPending || updateStatusMutation.isPending || syncVenuesMutation.isPending
+
+  if (isLoading) {
+    return (
+      <div className="flex gap-4 h-[calc(100dvh-12.5rem)]">
+        <div className="w-72 shrink-0 space-y-3">
+          <Skeleton className="h-10 rounded-xl" />
+          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}
+        </div>
+        <div className="flex-1 space-y-4">
+          <Skeleton className="h-24 rounded-xl" />
+          <Skeleton className="h-40 rounded-xl" />
+          <Skeleton className="h-48 rounded-xl" />
+          <Skeleton className="h-32 rounded-xl" />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>

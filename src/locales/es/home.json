@@ -119,6 +119,8 @@
     "totalSales": "Total ventas",
     "fiveStars": "5 estrellas Google",
     "totalTips": "Total propinas",
-    "avgTipPercentage": "Promedio propinas %"
+    "avgTipPercentage": "Promedio propinas %",
+    "totalTransactions": "Total transacciones",
+    "avgTicket": "Ticket promedio"
   }
 }

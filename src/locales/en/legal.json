@@ -79,7 +79,7 @@
         "b": "Do not attempt cross-tenant/venue access or data inference.",
         "c": "Do not upload or request processing of illegal content or high-risk personal data without a lawful basis and our prior written approval.",
         "d": "Respect rate limits and security measures.",
-        "e": "Report suspected vulnerabilities or misrouting immediately to security@avoqado.com."
+        "e": "Report suspected vulnerabilities or misrouting immediately to hola@avoqado.io."
       }
     },
     "aiLiability": {

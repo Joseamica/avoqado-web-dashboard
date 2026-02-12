@@ -1,0 +1,158 @@
+{
+  "wizard": {
+    "finishLater": "Terminer plus tard",
+    "next": "Suivant",
+    "back": "Retour",
+    "accept": "Accepter et continuer",
+    "complete": "Terminer la configuration",
+    "step": "Etape {{current}} sur {{total}}"
+  },
+  "step1": {
+    "title": "Creez votre compte",
+    "subtitle": "Entrez votre email et mot de passe pour commencer",
+    "emailLabel": "Email",
+    "emailPlaceholder": "votreemail@exemple.com",
+    "emailRequired": "L'email est requis",
+    "passwordLabel": "Mot de passe",
+    "passwordPlaceholder": "Minimum 8 caracteres",
+    "passwordRequired": "Le mot de passe est requis",
+    "passwordMinLength": "Le mot de passe doit contenir au moins 8 caracteres",
+    "passwordHint": "Utilisez 8 caracteres ou plus avec un melange de lettres, chiffres et symboles",
+    "createAccount": "Suivant",
+    "alreadyHaveAccount": "Vous avez deja un compte?",
+    "signIn": "Connectez-vous"
+  },
+  "step2": {
+    "title": "Parlez-nous de votre entreprise",
+    "subtitle": "C'est ce que nous utiliserons dans vos emails, recus et messages aux clients",
+    "businessNameLabel": "Nom de l'entreprise",
+    "businessNamePlaceholder": "Ex: Mon Restaurant",
+    "businessNameRequired": "Le nom de l'entreprise est requis",
+    "addressLabel": "Adresse",
+    "addressPlaceholder": "Rechercher votre adresse",
+    "noPhysicalAddress": "Mon entreprise n'a pas d'adresse physique permanente"
+  },
+  "step3": {
+    "title": "Quel type d'entreprise decrit le mieux {{businessName}}?",
+    "titleFallback": "Quel type d'entreprise avez-vous?",
+    "subtitle": "Recherchez ou selectionnez votre type d'entreprise",
+    "searchPlaceholder": "Rechercher un type d'entreprise...",
+    "noResults": "Aucun resultat trouve"
+  },
+  "step4": {
+    "title": "Parlez-nous de votre entreprise",
+    "subtitle": "Chaque entreprise est unique. Nous voulons connaitre la votre.",
+    "entityTypeLabel": "Quel type d'entite est votre entreprise?",
+    "entityTypePlaceholder": "Selectionnez le type d'entite",
+    "commercialNameLabel": "Nom commercial",
+    "commercialNamePlaceholder": "Nom sous lequel votre entreprise est connue",
+    "commercialNameHint": "C'est le nom que vos clients verront sur leurs recus et releves",
+    "phoneLabel": "Telephone professionnel",
+    "phonePlaceholder": "+52 55 1234 5678",
+    "helpLink": "Aidez-moi a le determiner"
+  },
+  "step5": {
+    "title": "Verifiez votre identite pour activer votre compte",
+    "subtitle": "Nous devons verifier votre identite pour respecter les reglementations mexicaines et proteger votre compte.",
+    "legalFirstNameLabel": "Prenom(s) legal(aux)",
+    "legalFirstNamePlaceholder": "Tel qu'il apparait sur votre piece d'identite",
+    "legalLastNameLabel": "Nom(s) de famille legal(aux)",
+    "legalLastNamePlaceholder": "Tel qu'il apparait sur votre piece d'identite",
+    "phoneLabel": "Telephone personnel",
+    "phonePlaceholder": "+52 55 1234 5678",
+    "birthdateLabel": "Date de naissance",
+    "birthdatePlaceholder": "JJ/MM/AAAA",
+    "rfcLabel": "RFC",
+    "rfcPlaceholder": "XAXX010101000",
+    "rfcHint": "13 caracteres pour les individus, 12 pour les entreprises",
+    "curpLabel": "CURP",
+    "curpPlaceholder": "XEXX010101HNEXXXA4",
+    "curpHint": "18 caracteres alphanumeriques",
+    "legalAddressLabel": "Adresse legale",
+    "legalAddressPlaceholder": "Rechercher votre adresse legale",
+    "securityNotice": "Vos informations sont protegees par un chiffrement de niveau bancaire et ne seront jamais partagees avec des tiers sans votre consentement."
+  },
+  "step6": {
+    "title": "Conditions generales",
+    "subtitle": "Veuillez lire et accepter nos conditions pour continuer",
+    "termsTitle": "Conditions de Service",
+    "privacyTitle": "Avis de Confidentialite",
+    "termsCheckbox": "J'ai lu et j'accepte les Conditions de Service",
+    "privacyCheckbox": "J'ai lu et j'accepte l'Avis de Confidentialite",
+    "scrollToRead": "Faites defiler jusqu'en bas pour accepter",
+    "termsPlaceholder": "Les conditions de service se chargeront ici...",
+    "privacyPlaceholder": "L'avis de confidentialite se chargera ici..."
+  },
+  "step7": {
+    "title": "Associez votre compte bancaire",
+    "subtitle": "Les paiements par carte seront transferes sur votre compte en 1-2 jours ouvrables",
+    "clabeLabel": "Code interbancaire CLABE",
+    "clabePlaceholder": "18 chiffres",
+    "clabeHint": "Vous pouvez trouver votre CLABE sur votre releve bancaire ou dans votre banque en ligne",
+    "bankNameLabel": "Banque",
+    "bankNamePlaceholder": "Sera detecte automatiquement",
+    "accountHolderLabel": "Titulaire du compte",
+    "accountHolderPlaceholder": "Nom tel qu'il apparait a la banque",
+    "accountTypeLabel": "Type de compte",
+    "accountTypePlaceholder": "Selectionnez le type de compte",
+    "accountTypeChecking": "Compte courant",
+    "accountTypeSavings": "Compte d'epargne",
+    "securityNotice": "Vos informations bancaires sont protegees par un chiffrement de niveau bancaire. Nous les utilisons uniquement pour deposer vos paiements.",
+    "invalidClabe": "Le CLABE doit contenir exactement 18 chiffres"
+  },
+  "businessType": {
+    "categories": {
+      "foodService": "Alimentation et boissons",
+      "retail": "Commerce de detail",
+      "services": "Services",
+      "other": "Autre"
+    },
+    "types": {
+      "mobileFood": "Nourriture mobile / ambulante",
+      "counterRestaurant": "Restaurant au comptoir",
+      "sitDownRestaurant": "Restaurant avec service a table",
+      "banquet": "Banquets et evenements",
+      "barNightclub": "Bar / Boite de nuit",
+      "cafe": "Cafe",
+      "bakery": "Boulangerie / Patisserie",
+      "foodTruck": "Food truck",
+      "catering": "Traiteur",
+      "darkKitchen": "Cuisine fantome / Dark kitchen",
+      "convenienceStore": "Epicerie",
+      "specialtyStore": "Magasin specialise",
+      "clothingStore": "Magasin de vetements",
+      "electronicsStore": "Magasin d'electronique",
+      "pharmacy": "Pharmacie",
+      "telecomStore": "Magasin de telecoms",
+      "beautySalon": "Salon de beaute / Spa",
+      "gymFitness": "Salle de sport / Fitness",
+      "medicalOffice": "Cabinet medical",
+      "professionalServices": "Services professionnels",
+      "education": "Education",
+      "entertainment": "Divertissement",
+      "hotelHospitality": "Hotel / Hebergement",
+      "eventVenue": "Salle d'evenements",
+      "other": "Autre"
+    }
+  },
+  "entityType": {
+    "personaFisica": "Personne Physique",
+    "personaFisicaDesc": "Individu exercant des activites economiques",
+    "personaMoral": "Personne Morale",
+    "personaMoralDesc": "Societe ou entreprise legalement constituee",
+    "subTypes": {
+      "actividadEmpresarial": "Personne Physique avec Activite Commerciale",
+      "saDeCV": "S.A. de C.V.",
+      "sDeRLDeCV": "S. de R.L. de C.V.",
+      "sc": "S.C. (Societe Civile)",
+      "ac": "A.C. (Association Civile)",
+      "sapiDeCV": "S.A.P.I. de C.V.",
+      "sas": "S.A.S. (Societe par Actions Simplifiee)"
+    }
+  },
+  "completionBanner": {
+    "title": "Completez la configuration de votre compte",
+    "description": "Terminez la configuration de votre compte pour commencer a recevoir des paiements",
+    "button": "Continuer la configuration"
+  }
+}

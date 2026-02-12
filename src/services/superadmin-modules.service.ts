@@ -52,6 +52,28 @@ export interface Venue {
   slug: string
 }
 
+export interface VenueModuleInOrg {
+  id: string
+  name: string
+  slug: string
+  moduleEnabled: boolean
+  hasExplicitOverride: boolean
+  isInherited: boolean
+  venueModuleConfig: Record<string, any> | null
+  enabledAt: string | null
+}
+
+export interface OrganizationModuleGroup {
+  id: string
+  name: string
+  slug: string | null
+  venueCount: number
+  orgModuleEnabled: boolean
+  orgModuleConfig: Record<string, any> | null
+  orgModuleEnabledAt: string | null
+  venues: VenueModuleInOrg[]
+}
+
 /**
  * Get all global modules with stats
  *
@@ -195,10 +217,7 @@ export interface UpdateModuleData {
   presets?: Record<string, any>
 }
 
-export async function updateModule(
-  moduleId: string,
-  data: UpdateModuleData,
-): Promise<{ module: Module }> {
+export async function updateModule(moduleId: string, data: UpdateModuleData): Promise<{ module: Module }> {
   const response = await api.patch(`/api/v1/dashboard/superadmin/modules/${moduleId}`, data)
   return response.data
 }
@@ -218,15 +237,51 @@ export async function deleteModule(moduleId: string): Promise<{
 }
 
 /**
+ * Get all venues grouped by organization with org-level module status
+ *
+ * @param moduleCode Module code (e.g., 'WHITE_LABEL_DASHBOARD')
+ * @returns Module info and organizations with grouped venues
+ */
+export async function getVenuesForModuleGrouped(moduleCode: string): Promise<{
+  module: Module
+  organizations: OrganizationModuleGroup[]
+}> {
+  const response = await api.get(`/api/v1/dashboard/superadmin/modules/${moduleCode}/venues?grouped=true`)
+  return response.data
+}
+
+/**
+ * Delete a VenueModule override so venue falls back to org-level inheritance
+ *
+ * @param venueId Venue ID
+ * @param moduleCode Module code
+ * @returns Success response
+ */
+export async function deleteVenueModuleOverride(
+  venueId: string,
+  moduleCode: string,
+): Promise<{
+  success: boolean
+  message: string
+}> {
+  const response = await api.delete('/api/v1/dashboard/superadmin/modules/venue-override', {
+    data: { venueId, moduleCode },
+  })
+  return response.data
+}
+
+/**
  * Convenience export
  */
 export const moduleAPI = {
   getAllModules,
   getVenuesForModule,
+  getVenuesForModuleGrouped,
   getModulesForVenue,
   enableModule,
   disableModule,
   updateModuleConfig,
+  deleteVenueModuleOverride,
   createModule,
   updateModule,
   deleteModule,

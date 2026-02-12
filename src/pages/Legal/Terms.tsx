@@ -158,7 +158,7 @@ export default function Terms() {
             <div className="text-muted-foreground space-y-2">
               <p>{t('terms.contact.intro')}</p>
               <p>
-                <strong>{t('terms.contact.email')}:</strong> legal@avoqado.com
+                <strong>{t('terms.contact.email')}:</strong> hola@avoqado.io
               </p>
               <p>
                 <strong>{t('terms.contact.address')}:</strong>

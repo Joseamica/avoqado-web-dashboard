@@ -16,9 +16,10 @@ type LoginData = { email: string; password: string; venueSlug?: string }
 type SignupData = {
   email: string
   password: string
-  firstName: string
-  lastName: string
-  organizationName: string
+  firstName?: string
+  lastName?: string
+  organizationName?: string
+  wizardVersion?: number
 }
 
 interface AuthContextType {
@@ -260,12 +261,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // World-Class Pattern (Stripe/Shopify): OWNER without venues → redirect to onboarding
     // This handles the case where user verified email but hasn't completed onboarding yet
     if (userVenues.length === 0 && userRole === StaffRole.OWNER) {
-      // Don't redirect if already on onboarding or auth routes
+      // Don't redirect if already on onboarding, setup, signup, or auth routes
       const isOnOnboardingRoute = location.pathname.startsWith('/onboarding')
+      const isOnSetupRoute = location.pathname.startsWith('/setup')
       const isOnAuthRoute = location.pathname.startsWith('/auth/')
+      const isOnSignupRoute = location.pathname === '/signup'
 
-      if (!isOnOnboardingRoute && !isOnAuthRoute) {
-        navigate('/onboarding', { replace: true })
+      if (!isOnOnboardingRoute && !isOnSetupRoute && !isOnAuthRoute && !isOnSignupRoute) {
+        // V2 wizard users go to /setup, legacy users go to /onboarding
+        const wizardDest = (user as any).wizardVersion === 2 ? '/setup' : '/onboarding'
+        navigate(wizardDest, { replace: true })
       }
       return
     }
@@ -351,11 +356,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
     } else if (userRole !== StaffRole.OWNER && location.pathname !== '/venues/new') {
-      // Don't redirect if user is on signup, onboarding, or auth flows (verification, etc.)
+      // Don't redirect if user is on signup, onboarding, setup, or auth flows (verification, etc.)
       const isOnSignupRoute = location.pathname.startsWith('/signup')
       const isOnOnboardingRoute = location.pathname.startsWith('/onboarding')
+      const isOnSetupRoute = location.pathname.startsWith('/setup')
       const isOnAuthRoute = location.pathname.startsWith('/auth/')
-      if (!isOnSignupRoute && !isOnOnboardingRoute && !isOnAuthRoute) {
+      if (!isOnSignupRoute && !isOnOnboardingRoute && !isOnSetupRoute && !isOnAuthRoute) {
         navigate('/venues/new', { replace: true })
       }
     }
@@ -453,11 +459,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const userVenues = freshUser.venues || []
 
-        // 3. OWNER without venues → /onboarding
+        // 3. OWNER without venues → /setup (v2) or /onboarding (legacy)
         if (userVenues.length === 0) {
-          console.log('[AUTH] 🆕 No venues, redirect to /onboarding')
+          const wizardDest = freshUser.wizardVersion === 2 ? '/setup' : '/onboarding'
+          console.log(`[AUTH] 🆕 No venues, redirect to ${wizardDest}`)
           toast({ title: t('toast.login_success') })
-          navigate('/onboarding', { replace: true })
+          navigate(wizardDest, { replace: true })
           setLoginError(null)
           return
         }

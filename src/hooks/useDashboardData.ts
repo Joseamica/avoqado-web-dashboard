@@ -148,6 +148,13 @@ export const useDashboardData = () => {
 
   const totalAmount = filteredPayments.length > 0 ? amount : 0
 
+  // Calculate transaction metrics (for RETAIL and other sectors)
+  const totalTransactions = filteredPayments.length
+  const avgTicket = useMemo(() => {
+    if (totalTransactions === 0) return 0
+    return totalAmount / totalTransactions
+  }, [totalAmount, totalTransactions])
+
   // Calculate tip-related metrics
   const tipStats = useMemo(() => {
     if (!filteredPayments?.length) return { totalTips: 0, avgTipPercentage: 0 }
@@ -194,6 +201,12 @@ export const useDashboardData = () => {
   const compareAmount = useMemo(() => {
     return comparePayments.reduce((sum: number, payment: any) => sum + Number(payment.amount), 0)
   }, [comparePayments])
+
+  const compareTotalTransactions = comparePayments.length
+  const compareAvgTicket = useMemo(() => {
+    if (compareTotalTransactions === 0) return 0
+    return compareAmount / compareTotalTransactions
+  }, [compareAmount, compareTotalTransactions])
 
   const compareTipStats = useMemo(() => {
     if (!comparePayments?.length) return { totalTips: 0, avgTipPercentage: '0' }
@@ -244,6 +257,14 @@ export const useDashboardData = () => {
     return getComparisonPercentage(parseFloat(String(tipStats.avgTipPercentage)), parseFloat(String(compareTipStats.avgTipPercentage)))
   }, [tipStats.avgTipPercentage, compareTipStats.avgTipPercentage])
 
+  const transactionsChangePercentage = useMemo(() => {
+    return getComparisonPercentage(totalTransactions, compareTotalTransactions)
+  }, [totalTransactions, compareTotalTransactions])
+
+  const avgTicketChangePercentage = useMemo(() => {
+    return getComparisonPercentage(avgTicket, compareAvgTicket)
+  }, [avgTicket, compareAvgTicket])
+
   return {
     venueId,
     activeVenue,
@@ -280,5 +301,9 @@ export const useDashboardData = () => {
     compareAmount,
     compareFiveStarReviews,
     compareTipStats,
+    totalTransactions,
+    avgTicket,
+    transactionsChangePercentage,
+    avgTicketChangePercentage,
   }
 }

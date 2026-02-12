@@ -28,6 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts'
 import { Store, TrendingUp, Package, Users, type LucideIcon } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useAuth } from '@/context/AuthContext'
@@ -218,6 +219,28 @@ export function StoresAnalysis() {
     },
   ], [activePromoters, totalPromoters, promoterRatio, stockAvailable, stockTotal, stockRatio, summaryData, formatCurrency])
 
+  const isLoading = storesVenuesLoading || summaryLoading || salesTrendLoading
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-10 rounded-xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-52 rounded-xl" />)}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Skeleton className="lg:col-span-2 h-80 rounded-xl" />
+          <Skeleton className="h-80 rounded-xl" />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+        </div>
+        <Skeleton className="h-48 rounded-xl" />
+        <Skeleton className="h-40 rounded-xl" />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Header: Store Selector + Status */}
@@ -324,9 +347,7 @@ export function StoresAnalysis() {
           <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-4">
             Evolución de Ventas
           </h3>
-          {salesTrendLoading || summaryLoading ? (
-            <p className="text-sm text-muted-foreground">Cargando ventas...</p>
-          ) : salesData.length === 0 ? (
+          {salesData.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sin datos de ventas</p>
           ) : (
             <ResponsiveContainer width="100%" height={250}>

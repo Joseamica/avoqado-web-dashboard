@@ -204,10 +204,7 @@ export default function Privacy() {
             <div className="text-muted-foreground space-y-2">
               <p>{t('privacy.contact.intro')}</p>
               <p>
-                <strong>{t('privacy.contact.email')}:</strong> privacy@avoqado.com
-              </p>
-              <p>
-                <strong>{t('privacy.contact.dpo')}:</strong> dpo@avoqado.com
+                <strong>{t('privacy.contact.email')}:</strong> hola@avoqado.io
               </p>
               <p>
                 <strong>{t('privacy.contact.address')}:</strong>

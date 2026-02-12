@@ -46,9 +46,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
 
   const [isDialogOpen, setDialogOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
-  const canAddVenue = [StaffRole.OWNER, StaffRole.ADMIN, StaffRole.SUPERADMIN].includes(
-    (user?.role as StaffRole) ?? (null as any),
-  )
+  const canAddVenue = (user?.role as StaffRole) === StaffRole.SUPERADMIN
 
   // Check if user can see organization link (OWNER or SUPERADMIN)
   const canViewOrganization = isOwner && !!orgId
@@ -299,9 +297,8 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                   </div>
                 )
               })}
-              <DropdownMenuSeparator />
-
-              {/* Dialog Trigger for Add Venue (only for OWNER, ADMIN, SUPERADMIN) */}
+              {/* Dialog Trigger for Add Venue (SUPERADMIN only) */}
+              {canAddVenue && <DropdownMenuSeparator />}
               {canAddVenue && (
                 <DropdownMenuItem className="gap-2 p-2 cursor-pointer" onClick={handleAddVenueClick} disabled={isLoading}>
                   <div className="flex justify-center items-center bg-background rounded-md border size-6 border-border">

@@ -8,9 +8,11 @@ import { useNavigate } from 'react-router-dom'
 
 interface EmailVerificationFormProps {
   email: string
+  /** V2 wizard users redirect to /setup instead of /onboarding */
+  wizardVersion?: number
 }
 
-export function EmailVerificationForm({ email }: EmailVerificationFormProps) {
+export function EmailVerificationForm({ email, wizardVersion }: EmailVerificationFormProps) {
   const { t } = useTranslation('auth')
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -42,8 +44,9 @@ export function EmailVerificationForm({ email }: EmailVerificationFormProps) {
       const statusData = queryClient.getQueryData(['status']) as any
 
       if (statusData?.authenticated) {
-        // User is logged in, proceed to onboarding
-        navigate('/onboarding')
+        // User is logged in, proceed to setup (v2) or onboarding (v1/legacy)
+        const destination = wizardVersion === 2 ? '/setup' : '/onboarding'
+        navigate(destination)
       } else {
         // User session expired, redirect to login with success message
         navigate(`/login?verified=true&email=${encodeURIComponent(email)}`)

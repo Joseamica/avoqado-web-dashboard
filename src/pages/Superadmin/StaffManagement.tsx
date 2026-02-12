@@ -1,6 +1,16 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -907,6 +917,7 @@ const StaffManagement: React.FC = () => {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isAssignAccessOpen, setIsAssignAccessOpen] = useState(false)
   const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false)
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [detailStaffId, setDetailStaffId] = useState<string | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
 
@@ -941,6 +952,20 @@ const StaffManagement: React.FC = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['superadmin-staff', queryParams],
     queryFn: () => staffAPI.listStaff(queryParams),
+  })
+
+  // Lightweight queries to get real totals (not just current page)
+  const { data: activeCountData } = useQuery({
+    queryKey: ['superadmin-staff', 'count-active'],
+    queryFn: () => staffAPI.listStaff({ active: 'true', pageSize: 1 }),
+  })
+  const { data: withOrgCountData } = useQuery({
+    queryKey: ['superadmin-staff', 'count-with-org'],
+    queryFn: () => staffAPI.listStaff({ hasOrganization: true, pageSize: 1 }),
+  })
+  const { data: withVenueCountData } = useQuery({
+    queryKey: ['superadmin-staff', 'count-with-venue'],
+    queryFn: () => staffAPI.listStaff({ hasVenue: true, pageSize: 1 }),
   })
 
   const rawStaffList = data?.staff || []
@@ -1041,17 +1066,22 @@ const StaffManagement: React.FC = () => {
     onSuccess: () => { toast({ title: 'Removido de sucursal' }); invalidateStaff() },
     onError: (e: any) => { toast({ title: 'Error', description: e?.response?.data?.error || e.message, variant: 'destructive' }) },
   })
+  const deleteMutation = useMutation({
+    mutationFn: (staffId: string) => staffAPI.deleteStaff(staffId),
+    onSuccess: () => { toast({ title: 'Usuario eliminado' }); invalidateStaff(); setIsDeleteOpen(false); setSelectedStaff(null) },
+    onError: (e: any) => { toast({ title: 'Error', description: e?.response?.data?.error || e.message, variant: 'destructive' }) },
+  })
 
-  // Compute stats from current data
+  // Compute stats from dedicated count queries (real totals, not page-scoped)
   const stats = useMemo(() => {
     if (!pagination) return { total: 0, active: 0, withOrg: 0, withVenue: 0 }
     return {
       total: pagination.total,
-      active: staffList.filter(s => s.active).length,
-      withOrg: staffList.filter(s => s.organizations.length > 0).length,
-      withVenue: staffList.filter(s => s.venues.length > 0).length,
+      active: activeCountData?.pagination.total ?? 0,
+      withOrg: withOrgCountData?.pagination.total ?? 0,
+      withVenue: withVenueCountData?.pagination.total ?? 0,
     }
-  }, [staffList, pagination])
+  }, [pagination, activeCountData, withOrgCountData, withVenueCountData])
 
   return (
     <div className="space-y-5">
@@ -1310,6 +1340,10 @@ const StaffManagement: React.FC = () => {
                         <DropdownMenuItem className="cursor-pointer" onClick={() => { setSelectedStaff(s); setIsResetPasswordOpen(true) }}>
                           <KeyRound className="w-4 h-4 mr-2" /> Cambiar contraseña
                         </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={() => { setSelectedStaff(s); setIsDeleteOpen(true) }}>
+                          <Trash2 className="w-4 h-4 mr-2" /> Eliminar usuario
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -1343,6 +1377,31 @@ const StaffManagement: React.FC = () => {
       <AssignAccessDialog open={isAssignAccessOpen} onOpenChange={setIsAssignAccessOpen} staff={selectedStaff} onSave={p => assignAccessMutation.mutate(p)} isLoading={assignAccessMutation.isPending} />
       <ResetPasswordDialog open={isResetPasswordOpen} onOpenChange={setIsResetPasswordOpen} staff={selectedStaff} onSave={(sid, pw) => resetPasswordMutation.mutate({ staffId: sid, newPassword: pw })} isLoading={resetPasswordMutation.isPending} />
       <StaffDetailDialog open={isDetailOpen} onOpenChange={setIsDetailOpen} staffId={detailStaffId} onRemoveOrg={(sid, oid) => removeOrgMutation.mutate({ staffId: sid, organizationId: oid })} onRemoveVenue={(sid, vid) => removeVenueMutation.mutate({ staffId: sid, venueId: vid })} />
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará el usuario{' '}
+              <strong>{selectedStaff?.firstName} {selectedStaff?.lastName}</strong>{' '}
+              ({selectedStaff?.email}) y todos sus accesos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="cursor-pointer">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 cursor-pointer"
+              disabled={deleteMutation.isPending}
+              onClick={() => selectedStaff && deleteMutation.mutate(selectedStaff.id)}
+            >
+              {deleteMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

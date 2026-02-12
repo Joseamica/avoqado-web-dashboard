@@ -79,7 +79,7 @@
         "b": "No intentes acceso entre tenants/locales ni inferencia de datos.",
         "c": "No cargues ni solicites el procesamiento de contenido ilegal o datos personales de alto riesgo sin una base legal y nuestra aprobación previa por escrito.",
         "d": "Respeta los límites de tasa y las medidas de seguridad.",
-        "e": "Reporta de inmediato vulnerabilidades sospechosas o desvíos a security@avoqado.com."
+        "e": "Reporta de inmediato vulnerabilidades sospechosas o desvíos a hola@avoqado.io."
       }
     },
     "aiLiability": {
@@ -189,7 +189,7 @@
       "intro": "Para preguntas o solicitudes relacionadas con la privacidad, contáctanos:",
       "email": "Correo electrónico",
       "dpo": "Oficial de Protección de Datos",
-      "organization": "Avoqado Technologies - Oficial de Privacidad",
+      "organization": "Servicios Tecnologicos Avo - Oficial de Privacidad",
       "address": "Dirección",
       "addressLine": "Ciudad de México, México"
     },
@@ -212,7 +212,7 @@
       "sensitive": "Datos sensibles",
       "sensitiveContent": "No envíes categorías especiales de datos personales (p. ej., datos de salud, biométricos o de menores) salvo que sea estrictamente necesario, legal y esté habilitado por tu acuerdo con nosotros.",
       "rightsNote": "Tus opciones",
-      "rightsNoteContent": "Puedes optar por no usar el chatbot o solicitar la eliminación de sus registros, sujeto a limitaciones legales y operativas. Contacta a privacy@avoqado.com."
+      "rightsNoteContent": "Puedes optar por no usar el chatbot o solicitar la eliminación de sus registros, sujeto a limitaciones legales y operativas. Contacta a hola@avoqado.io."
     },
     "venueSegregation": {
       "title": "Segregación de tenant/local",

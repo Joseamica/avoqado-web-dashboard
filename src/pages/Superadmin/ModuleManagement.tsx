@@ -2,33 +2,24 @@ import DataTable from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
-import { moduleAPI, type Module, type VenueModuleStatus, type CreateModuleData, type UpdateModuleData } from '@/services/superadmin-modules.service'
+import { moduleAPI, type Module, type CreateModuleData, type UpdateModuleData } from '@/services/superadmin-modules.service'
+import { updateOrganizationModuleConfig } from '@/services/superadmin-organizations.service'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import {
-  Building2,
-  Boxes,
-  CheckCircle2,
-  Eye,
-  MoreHorizontal,
-  Package,
-  Palette,
-  Pencil,
-  Plus,
-  Power,
-  PowerOff,
-  Trash2,
-  XCircle,
-  Sparkles,
-  Settings2,
-} from 'lucide-react'
+import { Building2, Boxes, CheckCircle2, Eye, MoreHorizontal, Package, Pencil, Plus, Trash2, Sparkles, Settings2 } from 'lucide-react'
+import type { WhiteLabelConfig } from '@/types/white-label'
 import { Switch } from '@/components/ui/switch'
 import React, { Suspense, lazy, useCallback, useMemo, useState } from 'react'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
@@ -37,6 +28,8 @@ import { FullScreenModal } from '@/components/ui/full-screen-modal'
 const WhiteLabelWizard = lazy(() => import('@/pages/Superadmin/WhiteLabelBuilder/WhiteLabelWizard'))
 // Lazy load ModuleCreationWizard (v2 interactive wizard)
 const ModuleCreationWizard = lazy(() => import('@/pages/Superadmin/components/ModuleCreationWizard'))
+// Lazy load ModuleOrganizationDialog
+const ModuleOrganizationDialog = lazy(() => import('@/pages/Superadmin/components/ModuleOrganizationDialog'))
 
 // ===========================================
 // GLASS CARD COMPONENT
@@ -57,7 +50,7 @@ const GlassCard: React.FC<GlassCardProps> = ({ children, className, hover = fals
       'shadow-sm transition-all duration-300',
       hover && 'cursor-pointer hover:shadow-md hover:border-border hover:bg-card/90 hover:-translate-y-0.5',
       onClick && 'cursor-pointer',
-      className
+      className,
     )}
   >
     {children}
@@ -149,19 +142,13 @@ const JsonBooleanToggles: React.FC<JsonBooleanTogglesProps> = ({ jsonString, onC
     <div className="mt-3 space-y-3">
       {Object.entries(grouped).map(([section, entries]) => (
         <div key={section} className="rounded-lg border border-border/50 p-3 space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            {sectionLabelMap[section] || section}
-          </p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{sectionLabelMap[section] || section}</p>
           {entries.map(({ key, value }) => (
             <div key={`${section}-${key}`} className="flex items-center justify-between py-1">
               <Label htmlFor={`toggle-${section}-${key}`} className="text-sm cursor-pointer">
                 {labelMap[key] || key}
               </Label>
-              <Switch
-                id={`toggle-${section}-${key}`}
-                checked={value}
-                onCheckedChange={checked => handleToggle(section, key, checked)}
-              />
+              <Switch id={`toggle-${section}-${key}`} checked={value} onCheckedChange={checked => handleToggle(section, key, checked)} />
             </div>
           ))}
         </div>
@@ -206,9 +193,6 @@ const ModuleManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedModule, setSelectedModule] = useState<Module | null>(null)
   const [isVenueDialogOpen, setIsVenueDialogOpen] = useState(false)
-  const [isEnableDialogOpen, setIsEnableDialogOpen] = useState(false)
-  const [selectedVenueForEnable, setSelectedVenueForEnable] = useState<VenueModuleStatus | null>(null)
-  const [selectedPreset, setSelectedPreset] = useState<string>('')
 
   // Create/Edit module state
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -220,6 +204,9 @@ const ModuleManagement: React.FC = () => {
   // White-Label Wizard state
   const [isWhiteLabelWizardOpen, setIsWhiteLabelWizardOpen] = useState(false)
   const [selectedVenueForWizard, setSelectedVenueForWizard] = useState<{ id: string; name: string } | null>(null)
+  const [selectedOrgForWizard, setSelectedOrgForWizard] = useState<{ id: string; name: string; initialConfig?: WhiteLabelConfig } | null>(
+    null,
+  )
 
   // Module Creation Wizard v2 state
   const [isModuleWizardOpen, setIsModuleWizardOpen] = useState(false)
@@ -239,13 +226,6 @@ const ModuleManagement: React.FC = () => {
     presets: '{}',
   })
 
-  // Fetch venues for selected module
-  const { data: moduleVenuesData, isLoading: isLoadingVenues } = useQuery({
-    queryKey: ['superadmin-module-venues', selectedModule?.code],
-    queryFn: () => moduleAPI.getVenuesForModule(selectedModule!.code),
-    enabled: !!selectedModule && isVenueDialogOpen,
-  })
-
   // Filter modules based on search
   const filteredModules = useMemo(() => {
     return modules.filter(module => {
@@ -256,44 +236,6 @@ const ModuleManagement: React.FC = () => {
       return matchesSearch
     })
   }, [modules, searchTerm])
-
-  // Enable module mutation
-  const enableMutation = useMutation({
-    mutationFn: ({ venueId, moduleCode, preset }: { venueId: string; moduleCode: string; preset?: string }) =>
-      moduleAPI.enableModule(venueId, moduleCode, preset),
-    onSuccess: data => {
-      toast({ title: 'Módulo activado', description: data.message })
-      queryClient.invalidateQueries({ queryKey: ['superadmin-modules'] })
-      queryClient.invalidateQueries({ queryKey: ['superadmin-module-venues'] })
-      setIsEnableDialogOpen(false)
-      setSelectedPreset('')
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Error al activar módulo',
-        description: error?.response?.data?.error || error.message,
-        variant: 'destructive',
-      })
-    },
-  })
-
-  // Disable module mutation
-  const disableMutation = useMutation({
-    mutationFn: ({ venueId, moduleCode }: { venueId: string; moduleCode: string }) =>
-      moduleAPI.disableModule(venueId, moduleCode),
-    onSuccess: data => {
-      toast({ title: 'Módulo desactivado', description: data.message })
-      queryClient.invalidateQueries({ queryKey: ['superadmin-modules'] })
-      queryClient.invalidateQueries({ queryKey: ['superadmin-module-venues'] })
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Error al desactivar módulo',
-        description: error?.response?.data?.error || error.message,
-        variant: 'destructive',
-      })
-    },
-  })
 
   // Create module mutation
   const createMutation = useMutation({
@@ -315,8 +257,7 @@ const ModuleManagement: React.FC = () => {
 
   // Update module mutation
   const updateMutation = useMutation({
-    mutationFn: ({ moduleId, data }: { moduleId: string; data: UpdateModuleData }) =>
-      moduleAPI.updateModule(moduleId, data),
+    mutationFn: ({ moduleId, data }: { moduleId: string; data: UpdateModuleData }) => moduleAPI.updateModule(moduleId, data),
     onSuccess: data => {
       toast({ title: 'Módulo actualizado', description: `El módulo "${data.module.name}" ha sido actualizado.` })
       queryClient.invalidateQueries({ queryKey: ['superadmin-modules'] })
@@ -364,28 +305,6 @@ const ModuleManagement: React.FC = () => {
   const handleViewVenues = (module: Module) => {
     setSelectedModule(module)
     setIsVenueDialogOpen(true)
-  }
-
-  const handleEnableModule = (venue: VenueModuleStatus) => {
-    setSelectedVenueForEnable(venue)
-    setIsEnableDialogOpen(true)
-  }
-
-  const handleConfirmEnable = () => {
-    if (!selectedVenueForEnable || !selectedModule) return
-    enableMutation.mutate({
-      venueId: selectedVenueForEnable.id,
-      moduleCode: selectedModule.code,
-      preset: selectedPreset || undefined,
-    })
-  }
-
-  const handleDisableModule = (venue: VenueModuleStatus) => {
-    if (!selectedModule) return
-    disableMutation.mutate({
-      venueId: venue.id,
-      moduleCode: selectedModule.code,
-    })
   }
 
   const handleOpenCreateDialog = () => {
@@ -462,12 +381,6 @@ const ModuleManagement: React.FC = () => {
     deleteMutation.mutate(moduleToDelete.id)
   }
 
-  // Get available presets for the selected module
-  const availablePresets = useMemo(() => {
-    if (!selectedModule?.presets) return []
-    return Object.keys(selectedModule.presets)
-  }, [selectedModule])
-
   const columns: ColumnDef<Module>[] = [
     {
       accessorKey: 'name',
@@ -489,11 +402,7 @@ const ModuleManagement: React.FC = () => {
     {
       accessorKey: 'description',
       header: 'Descripción',
-      cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground line-clamp-2 max-w-xs">
-          {row.original.description || '-'}
-        </span>
-      ),
+      cell: ({ row }) => <span className="text-sm text-muted-foreground line-clamp-2 max-w-xs">{row.original.description || '-'}</span>,
     },
     {
       accessorKey: 'enabledVenueCount',
@@ -550,101 +459,6 @@ const ModuleManagement: React.FC = () => {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      ),
-    },
-  ]
-
-  const venueColumns: ColumnDef<VenueModuleStatus>[] = [
-    {
-      accessorKey: 'name',
-      header: 'Sucursal',
-      cell: ({ row }) => (
-        <div>
-          <div className="font-medium">{row.original.name}</div>
-          <div className="text-sm text-muted-foreground">{row.original.slug}</div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'moduleEnabled',
-      header: 'Estado',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <StatusPulse status={row.original.moduleEnabled ? 'success' : 'neutral'} />
-          <Badge variant={row.original.moduleEnabled ? 'default' : 'secondary'}>
-            {row.original.moduleEnabled ? (
-              <>
-                <CheckCircle2 className="w-3 h-3 mr-1" />
-                Activo
-              </>
-            ) : (
-              <>
-                <XCircle className="w-3 h-3 mr-1" />
-                Inactivo
-              </>
-            )}
-          </Badge>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'enabledAt',
-      header: 'Activado',
-      cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">
-          {row.original.enabledAt ? new Date(row.original.enabledAt).toLocaleDateString('es-MX', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-          }) : '-'}
-        </span>
-      ),
-    },
-    {
-      id: 'actions',
-      header: 'Acciones',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          {row.original.moduleEnabled ? (
-            <>
-              {/* Configure Dashboard button - only for WHITE_LABEL_DASHBOARD */}
-              {selectedModule?.code === 'WHITE_LABEL_DASHBOARD' && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 cursor-pointer"
-                  onClick={() => {
-                    setSelectedVenueForWizard({ id: row.original.id, name: row.original.name })
-                    setIsWhiteLabelWizardOpen(true)
-                  }}
-                >
-                  <Palette className="w-3 h-3 mr-1" />
-                  Configurar
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleDisableModule(row.original)}
-                disabled={disableMutation.isPending}
-                className="cursor-pointer"
-              >
-                <PowerOff className="w-3 h-3 mr-1" />
-                Desactivar
-              </Button>
-            </>
-          ) : (
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => handleEnableModule(row.original)}
-              className="cursor-pointer"
-            >
-              <Power className="w-3 h-3 mr-1" />
-              Activar
-            </Button>
-          )}
-        </div>
       ),
     },
   ]
@@ -711,9 +525,7 @@ const ModuleManagement: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Módulo Más Popular</p>
-              <p className="text-xl font-bold tracking-tight mt-1 truncate max-w-[180px]">
-                {mostPopularModule?.name || '-'}
-              </p>
+              <p className="text-xl font-bold tracking-tight mt-1 truncate max-w-[180px]">{mostPopularModule?.name || '-'}</p>
               <p className="text-xs text-muted-foreground mt-1">
                 {mostPopularModule ? `${mostPopularModule.enabledVenueCount} sucursales` : '-'}
               </p>
@@ -764,83 +576,24 @@ const ModuleManagement: React.FC = () => {
         </div>
       </GlassCard>
 
-      {/* Venue Dialog */}
-      <Dialog open={isVenueDialogOpen} onOpenChange={setIsVenueDialogOpen}>
-        <DialogContent className="sm:max-w-[850px] max-h-[85vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-purple-500/5">
-                <Building2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-              </div>
-              Sucursales - {selectedModule?.name}
-            </DialogTitle>
-            <DialogDescription>
-              Gestiona qué sucursales tienen acceso a este módulo.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto py-4">
-            {isLoadingVenues ? (
-              <div className="py-8 text-sm text-muted-foreground text-center">Cargando sucursales...</div>
-            ) : (
-              <DataTable
-                columns={venueColumns}
-                data={moduleVenuesData?.venues || []}
-                pagination={{ pageIndex: 0, pageSize: 20 }}
-                setPagination={() => {}}
-                rowCount={moduleVenuesData?.venues?.length || 0}
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Enable Module Dialog */}
-      <Dialog open={isEnableDialogOpen} onOpenChange={setIsEnableDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-green-500/20 to-green-500/5">
-                <Power className="w-5 h-5 text-green-600 dark:text-green-400" />
-              </div>
-              Activar Módulo
-            </DialogTitle>
-            <DialogDescription>
-              Activar <strong>{selectedModule?.name}</strong> para <strong>{selectedVenueForEnable?.name}</strong>
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 space-y-4">
-            {availablePresets.length > 0 && (
-              <div>
-                <Label htmlFor="preset">Preset de configuración (opcional)</Label>
-                <Select value={selectedPreset || '__none__'} onValueChange={(val) => setSelectedPreset(val === '__none__' ? '' : val)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar preset..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Sin preset (usar defaults)</SelectItem>
-                    {availablePresets.map(preset => (
-                      <SelectItem key={preset} value={preset}>
-                        {preset.charAt(0).toUpperCase() + preset.slice(1)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Los presets aplican configuraciones predefinidas para diferentes industrias.
-                </p>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEnableDialogOpen(false)} className="cursor-pointer">
-              Cancelar
-            </Button>
-            <Button onClick={handleConfirmEnable} disabled={enableMutation.isPending} className="cursor-pointer">
-              {enableMutation.isPending ? 'Activando...' : 'Activar módulo'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Organization-grouped Venue Dialog */}
+      <Suspense fallback={null}>
+        <ModuleOrganizationDialog
+          selectedModule={selectedModule}
+          isOpen={isVenueDialogOpen}
+          onOpenChange={setIsVenueDialogOpen}
+          onOpenWhiteLabelWizard={target => {
+            if (target.venueId) {
+              setSelectedVenueForWizard({ id: target.venueId, name: target.venueName || '' })
+              setSelectedOrgForWizard(null)
+            } else if (target.orgId) {
+              setSelectedOrgForWizard({ id: target.orgId, name: target.orgName || '', initialConfig: target.initialConfig })
+              setSelectedVenueForWizard(null)
+            }
+            setIsWhiteLabelWizardOpen(true)
+          }}
+        />
+      </Suspense>
 
       {/* Create Module Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -866,9 +619,7 @@ const ModuleManagement: React.FC = () => {
                   onChange={e => setFormData(prev => ({ ...prev, code: e.target.value.toUpperCase().replace(/[^A-Z_]/g, '_') }))}
                   placeholder="SERIALIZED_INVENTORY"
                 />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Solo mayúsculas y guiones bajos. Ej: FEATURE_NAME
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">Solo mayúsculas y guiones bajos. Ej: FEATURE_NAME</p>
               </div>
               <div>
                 <Label htmlFor="name">Nombre</Label>
@@ -900,9 +651,7 @@ const ModuleManagement: React.FC = () => {
                 rows={4}
                 className="font-mono text-sm"
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                Configuración inicial que se aplica al activar el módulo.
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">Configuración inicial que se aplica al activar el módulo.</p>
             </div>
             <div>
               <Label htmlFor="presets">Presets por industria (JSON)</Label>
@@ -914,16 +663,18 @@ const ModuleManagement: React.FC = () => {
                 rows={4}
                 className="font-mono text-sm"
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                Configuraciones predefinidas para diferentes tipos de negocio.
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">Configuraciones predefinidas para diferentes tipos de negocio.</p>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="cursor-pointer">
               Cancelar
             </Button>
-            <Button onClick={handleCreateModule} disabled={createMutation.isPending || !formData.code || !formData.name} className="cursor-pointer">
+            <Button
+              onClick={handleCreateModule}
+              disabled={createMutation.isPending || !formData.code || !formData.name}
+              className="cursor-pointer"
+            >
               {createMutation.isPending ? 'Creando...' : 'Crear módulo'}
             </Button>
           </DialogFooter>
@@ -941,30 +692,22 @@ const ModuleManagement: React.FC = () => {
               Editar Módulo
             </DialogTitle>
             <DialogDescription>
-              Modificando el módulo <Badge variant="outline" className="font-mono">{moduleToEdit?.code}</Badge>
+              Modificando el módulo{' '}
+              <Badge variant="outline" className="font-mono">
+                {moduleToEdit?.code}
+              </Badge>
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-code">Código</Label>
-                <Input
-                  id="edit-code"
-                  value={formData.code}
-                  disabled
-                  className="bg-muted"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  El código no puede modificarse.
-                </p>
+                <Input id="edit-code" value={formData.code} disabled className="bg-muted" />
+                <p className="text-xs text-muted-foreground mt-1">El código no puede modificarse.</p>
               </div>
               <div>
                 <Label htmlFor="edit-name">Nombre</Label>
-                <Input
-                  id="edit-name"
-                  value={formData.name}
-                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                />
+                <Input id="edit-name" value={formData.name} onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))} />
               </div>
             </div>
             <div>
@@ -1030,12 +773,11 @@ const ModuleManagement: React.FC = () => {
             {moduleToDelete && moduleToDelete.enabledVenueCount > 0 && (
               <div className="space-y-3">
                 <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-                  Este módulo está activo en <strong>{moduleToDelete.enabledVenueCount}</strong> sucursal(es). Debes desactivarlo en todas antes de eliminarlo.
+                  Este módulo está activo en <strong>{moduleToDelete.enabledVenueCount}</strong> sucursal(es). Debes desactivarlo en todas
+                  antes de eliminarlo.
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-xs text-muted-foreground">
-                    Abre el panel de sucursales para desactivar el módulo.
-                  </p>
+                  <p className="text-xs text-muted-foreground">Abre el panel de sucursales para desactivar el módulo.</p>
                   <Button
                     variant="outline"
                     size="sm"
@@ -1051,9 +793,7 @@ const ModuleManagement: React.FC = () => {
               </div>
             )}
             {moduleToDelete && moduleToDelete.enabledVenueCount === 0 && (
-              <p className="text-sm text-muted-foreground">
-                Esta acción no se puede deshacer. El módulo será eliminado permanentemente.
-              </p>
+              <p className="text-sm text-muted-foreground">Esta acción no se puede deshacer. El módulo será eliminado permanentemente.</p>
             )}
           </div>
           <DialogFooter>
@@ -1072,7 +812,7 @@ const ModuleManagement: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* White-Label Wizard Full-Screen Modal */}
+      {/* White-Label Wizard Full-Screen Modal (venue-level) */}
       {selectedVenueForWizard && (
         <FullScreenModal
           open={isWhiteLabelWizardOpen}
@@ -1083,56 +823,33 @@ const ModuleManagement: React.FC = () => {
           title={`Configurar White-Label — ${selectedVenueForWizard.name}`}
         >
           <Suspense fallback={<div className="py-8 text-center text-muted-foreground">Cargando wizard...</div>}>
-            {/* Key forces re-mount when venue changes, ensuring fresh state and config load */}
             <WhiteLabelWizard
               key={selectedVenueForWizard.id}
               initialVenueId={selectedVenueForWizard.id}
               initialVenueName={selectedVenueForWizard.name}
               onComplete={async (venueId, config) => {
                 try {
-                  // Save config and get updated venueModule from API
-                  const { venueModule: updatedModule } = await moduleAPI.updateModuleConfig(
-                    venueId,
-                    'WHITE_LABEL_DASHBOARD',
-                    config
-                  )
+                  const { venueModule: updatedModule } = await moduleAPI.updateModuleConfig(venueId, 'WHITE_LABEL_DASHBOARD', config)
 
-                  // ============================================
-                  // WORLD-CLASS PATTERN: Optimistic Cache Update
-                  // Instead of refetching ALL data, surgically update only what changed.
-                  // This is how Stripe, Linear, and Vercel handle cache updates.
-                  // Benefits:
-                  // - Instant UI update (no loading state)
-                  // - No unnecessary network requests
-                  // - Reduced server load
-                  // - Better UX
-                  // ============================================
                   queryClient.setQueryData(['status'], (oldData: any) => {
                     if (!oldData) return oldData
-
-                    // Helper to update a venue's modules array
                     const updateVenueModules = (venue: any) => {
                       if (venue.id !== venueId) return venue
-
-                      // Find and update the WHITE_LABEL_DASHBOARD module
-                      const updatedModules = venue.modules?.map((m: any) =>
-                        m.module.code === 'WHITE_LABEL_DASHBOARD'
-                          ? { ...m, config: updatedModule.config }
-                          : m
-                      ) ?? []
-
+                      const updatedModules =
+                        venue.modules?.map((m: any) =>
+                          m.module.code === 'WHITE_LABEL_DASHBOARD' ? { ...m, config: updatedModule.config } : m,
+                        ) ?? []
                       return { ...venue, modules: updatedModules }
                     }
-
                     return {
                       ...oldData,
-                      // Update in user.venues (for non-SUPERADMIN users)
-                      user: oldData.user ? {
-                        ...oldData.user,
-                        venues: oldData.user.venues?.map(updateVenueModules) ?? []
-                      } : null,
-                      // Update in allVenues (for SUPERADMIN users)
-                      allVenues: oldData.allVenues?.map(updateVenueModules) ?? []
+                      user: oldData.user
+                        ? {
+                            ...oldData.user,
+                            venues: oldData.user.venues?.map(updateVenueModules) ?? [],
+                          }
+                        : null,
+                      allVenues: oldData.allVenues?.map(updateVenueModules) ?? [],
                     }
                   })
 
@@ -1142,10 +859,8 @@ const ModuleManagement: React.FC = () => {
                   })
                   setIsWhiteLabelWizardOpen(false)
                   setSelectedVenueForWizard(null)
-
-                  // Invalidate superadmin-specific queries (these are only for the management UI)
                   queryClient.invalidateQueries({ queryKey: ['superadmin-modules'] })
-                  queryClient.invalidateQueries({ queryKey: ['superadmin-module-venues'] })
+                  queryClient.invalidateQueries({ queryKey: ['superadmin-module-venues-grouped'] })
                 } catch (error: any) {
                   toast({
                     title: 'Error al guardar',
@@ -1163,12 +878,59 @@ const ModuleManagement: React.FC = () => {
         </FullScreenModal>
       )}
 
+      {/* White-Label Wizard Full-Screen Modal (org-level) */}
+      {selectedOrgForWizard && (
+        <FullScreenModal
+          open={isWhiteLabelWizardOpen}
+          onClose={() => {
+            setIsWhiteLabelWizardOpen(false)
+            setSelectedOrgForWizard(null)
+          }}
+          title={`Configurar White-Label Org — ${selectedOrgForWizard.name}`}
+        >
+          <Suspense fallback={<div className="py-8 text-center text-muted-foreground">Cargando wizard...</div>}>
+            <WhiteLabelWizard
+              key={`org-${selectedOrgForWizard.id}`}
+              initialVenueId=""
+              initialVenueName={selectedOrgForWizard.name}
+              initialConfig={selectedOrgForWizard.initialConfig}
+              mode="organization"
+              onComplete={async (_venueId, config) => {
+                try {
+                  await updateOrganizationModuleConfig(selectedOrgForWizard.id, 'WHITE_LABEL_DASHBOARD', config)
+
+                  toast({
+                    title: 'Configuración guardada',
+                    description: 'La configuración white-label de la organización ha sido actualizada.',
+                  })
+                  setIsWhiteLabelWizardOpen(false)
+                  setSelectedOrgForWizard(null)
+                  queryClient.invalidateQueries({ queryKey: ['superadmin-modules'] })
+                  queryClient.invalidateQueries({ queryKey: ['superadmin-module-venues-grouped'] })
+                  queryClient.invalidateQueries({ queryKey: ['superadmin-organizations'] })
+                } catch (error: any) {
+                  toast({
+                    title: 'Error al guardar',
+                    description: error?.response?.data?.error || error.message,
+                    variant: 'destructive',
+                  })
+                }
+              }}
+              onCancel={() => {
+                setIsWhiteLabelWizardOpen(false)
+                setSelectedOrgForWizard(null)
+              }}
+            />
+          </Suspense>
+        </FullScreenModal>
+      )}
+
       {/* Module Creation Wizard v2 Dialog */}
       <Dialog open={isModuleWizardOpen} onOpenChange={setIsModuleWizardOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <Suspense fallback={<div className="py-8 text-center text-muted-foreground">Cargando wizard...</div>}>
             <ModuleCreationWizard
-              onComplete={(wizardData) => {
+              onComplete={wizardData => {
                 createMutation.mutate({
                   code: wizardData.code,
                   name: wizardData.name,

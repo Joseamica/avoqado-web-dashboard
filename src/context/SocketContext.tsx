@@ -28,8 +28,31 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false)
   const { isAuthenticated, isLoading } = useAuth()
 
+  const resolveSocketUrl = (): string => {
+    const configuredApiUrl = import.meta.env.VITE_API_URL?.trim()
+
+    if (configuredApiUrl) {
+      if (import.meta.env.DEV && typeof window !== 'undefined') {
+        const usesLocalApi = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(configuredApiUrl)
+        const isRemoteHost = !['localhost', '127.0.0.1'].includes(window.location.hostname)
+
+        if (usesLocalApi && isRemoteHost) {
+          return window.location.origin
+        }
+      }
+
+      return configuredApiUrl
+    }
+
+    if (import.meta.env.DEV && typeof window !== 'undefined') {
+      return window.location.origin
+    }
+
+    return 'https://api.avoqado.io'
+  }
+
   // Determine the appropriate backend URL
-  const socketUrl = import.meta.env.VITE_API_URL || 'https://api.avoqado.io'
+  const socketUrl = resolveSocketUrl()
 
   useEffect(() => {
     // Only connect if authenticated and not loading

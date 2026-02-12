@@ -24,6 +24,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 // Hooks
 import { useDashboardData } from '@/hooks/useDashboardData'
 import { useDashboardExport } from '@/hooks/useDashboardExport'
+import { useDashboardSector } from '@/hooks/use-dashboard-sector'
 
 // Components
 import { DashboardHeader } from '@/components/home/sections/DashboardHeader'
@@ -64,6 +65,9 @@ const Home = () => {
   // Use custom hook for export logic
   const { exportLoading, exportToJSON, exportToCSV } = useDashboardExport(dashboardData)
 
+  // Sector-aware dashboard configuration
+  const { isSectionVisible, kpiCards } = useDashboardSector()
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       {/* Header with date range buttons */}
@@ -101,7 +105,7 @@ const Home = () => {
         ) : (
           <>
             {/* Key metrics cards - Priority Load */}
-            <DashboardMetrics {...dashboardData} />
+            <DashboardMetrics {...dashboardData} kpiCards={kpiCards} />
 
             {/* Payment methods chart - Also priority since it uses basic data */}
             <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
@@ -260,57 +264,80 @@ const Home = () => {
             {/* Strategic Analytics Sections */}
 
             {/* Revenue Trends - Priority Chart */}
-            <ProgressiveChartSection
-              venueId={venueId}
-              chartType="revenue-trends"
-              selectedRange={selectedRange}
-              className="grid grid-cols-1"
-            />
+            {isSectionVisible('revenue-trends') && (
+              <ProgressiveChartSection
+                venueId={venueId}
+                chartType="revenue-trends"
+                selectedRange={selectedRange}
+                className="grid grid-cols-1"
+              />
+            )}
 
             {/* Operational Performance Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ProgressiveChartSection venueId={venueId} chartType="aov-trends" selectedRange={selectedRange} />
-
-              <ProgressiveChartSection venueId={venueId} chartType="order-frequency" selectedRange={selectedRange} />
-            </div>
+            {(isSectionVisible('aov-trends') || isSectionVisible('order-frequency')) && (
+              <div className={`grid grid-cols-1 ${isSectionVisible('aov-trends') && isSectionVisible('order-frequency') ? 'lg:grid-cols-2' : ''} gap-6`}>
+                {isSectionVisible('aov-trends') && (
+                  <ProgressiveChartSection venueId={venueId} chartType="aov-trends" selectedRange={selectedRange} />
+                )}
+                {isSectionVisible('order-frequency') && (
+                  <ProgressiveChartSection venueId={venueId} chartType="order-frequency" selectedRange={selectedRange} />
+                )}
+              </div>
+            )}
 
             {/* Staff & Table Performance */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ProgressiveMetricSection venueId={venueId} metricType="staff-efficiency" selectedRange={selectedRange} />
-
-              <ProgressiveMetricSection venueId={venueId} metricType="table-efficiency" selectedRange={selectedRange} />
-            </div>
+            {(isSectionVisible('staff-efficiency') || isSectionVisible('table-efficiency')) && (
+              <div className={`grid grid-cols-1 ${isSectionVisible('staff-efficiency') && isSectionVisible('table-efficiency') ? 'lg:grid-cols-2' : ''} gap-6`}>
+                {isSectionVisible('staff-efficiency') && (
+                  <ProgressiveMetricSection venueId={venueId} metricType="staff-efficiency" selectedRange={selectedRange} />
+                )}
+                {isSectionVisible('table-efficiency') && (
+                  <ProgressiveMetricSection venueId={venueId} metricType="table-efficiency" selectedRange={selectedRange} />
+                )}
+              </div>
+            )}
 
             {/* Customer Experience Analytics */}
-            <ProgressiveChartSection
-              venueId={venueId}
-              chartType="customer-satisfaction"
-              selectedRange={selectedRange}
-              className="grid grid-cols-1"
-            />
+            {isSectionVisible('customer-satisfaction') && (
+              <ProgressiveChartSection
+                venueId={venueId}
+                chartType="customer-satisfaction"
+                selectedRange={selectedRange}
+                className="grid grid-cols-1"
+              />
+            )}
 
             {/* Operational Efficiency */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ProgressiveChartSection venueId={venueId} chartType={CHART_TYPES.PEAK_HOURS} selectedRange={selectedRange} />
-
-              <ProgressiveChartSection venueId={venueId} chartType="kitchen-performance" selectedRange={selectedRange} />
-            </div>
+            {(isSectionVisible('peak-hours') || isSectionVisible('kitchen-performance')) && (
+              <div className={`grid grid-cols-1 ${isSectionVisible('peak-hours') && isSectionVisible('kitchen-performance') ? 'lg:grid-cols-2' : ''} gap-6`}>
+                {isSectionVisible('peak-hours') && (
+                  <ProgressiveChartSection venueId={venueId} chartType={CHART_TYPES.PEAK_HOURS} selectedRange={selectedRange} />
+                )}
+                {isSectionVisible('kitchen-performance') && (
+                  <ProgressiveChartSection venueId={venueId} chartType="kitchen-performance" selectedRange={selectedRange} />
+                )}
+              </div>
+            )}
 
             {/* Additional Analytics */}
-            <ProgressiveChartSection
-              venueId={venueId}
-              chartType={CHART_TYPES.TIPS_OVER_TIME}
-              selectedRange={selectedRange}
-              className="grid grid-cols-1"
-            />
+            {isSectionVisible('tips-over-time') && (
+              <ProgressiveChartSection
+                venueId={venueId}
+                chartType={CHART_TYPES.TIPS_OVER_TIME}
+                selectedRange={selectedRange}
+                className="grid grid-cols-1"
+              />
+            )}
 
             {/* Product & Financial Analytics */}
-            <ProgressiveMetricSection
-              venueId={venueId}
-              metricType="product-analytics"
-              selectedRange={selectedRange}
-              className="grid grid-cols-1"
-            />
+            {isSectionVisible('product-analytics') && (
+              <ProgressiveMetricSection
+                venueId={venueId}
+                metricType="product-analytics"
+                selectedRange={selectedRange}
+                className="grid grid-cols-1"
+              />
+            )}
           </>
         )}
       </div>

@@ -16,8 +16,36 @@ window.addEventListener('offline', () => {
   notifyListeners()
 })
 
+const resolveApiBaseUrl = (): string => {
+  const configuredApiUrl = import.meta.env.VITE_API_URL?.trim()
+
+  if (configuredApiUrl) {
+    // If app is opened from a public tunnel on another device, localhost API is unreachable.
+    if (import.meta.env.DEV && typeof window !== 'undefined') {
+      const usesLocalApi = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(configuredApiUrl)
+      const isRemoteHost = !['localhost', '127.0.0.1'].includes(window.location.hostname)
+
+      if (usesLocalApi && isRemoteHost) {
+        console.warn(
+          `[API] VITE_API_URL=${configuredApiUrl} is not reachable from ${window.location.hostname}. Falling back to same-origin.`,
+        )
+        return window.location.origin
+      }
+    }
+
+    return configuredApiUrl
+  }
+
+  if (import.meta.env.DEV && typeof window !== 'undefined') {
+    // Default dev behavior: use same-origin and let Vite proxy /api to backend.
+    return window.location.origin
+  }
+
+  return 'https://api.avoqado.io'
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://api.avoqado.io',
+  baseURL: resolveApiBaseUrl(),
   withCredentials: true,
 })
 

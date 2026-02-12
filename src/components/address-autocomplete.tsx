@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { MapPin } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 import {
   Command,
   CommandEmpty,
@@ -33,6 +34,8 @@ interface AddressAutocompleteProps {
   placeholder?: string
   countries?: string[]
   disabled?: boolean
+  /** Extra classes forwarded to the inner Input (e.g. "h-12 text-base rounded-lg") */
+  className?: string
 }
 
 function extractAddressComponent(
@@ -50,6 +53,7 @@ export function AddressAutocomplete({
   placeholder,
   countries = ['mx'],
   disabled,
+  className,
 }: AddressAutocompleteProps) {
   const { t } = useTranslation('venues')
   const { isLoaded } = useGoogleMaps()
@@ -143,6 +147,7 @@ export function AddressAutocomplete({
         }}
         placeholder={placeholder ?? t('addDialog.fields.addressPlaceholder')}
         disabled={disabled}
+        className={className}
       />
     )
   }
@@ -163,7 +168,7 @@ export function AddressAutocomplete({
             }}
             placeholder={placeholder ?? t('addDialog.fields.addressPlaceholder')}
             disabled={disabled}
-            className="pl-9"
+            className={cn('pl-9', className)}
           />
         </div>
       </PopoverTrigger>

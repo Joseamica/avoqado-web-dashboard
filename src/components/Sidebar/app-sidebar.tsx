@@ -39,6 +39,7 @@ import { useTranslation } from 'react-i18next'
 import { useAccess } from '@/hooks/use-access'
 import { canAccessOperationalFeatures } from '@/lib/kyc-utils'
 import { useWhiteLabelConfig, getFeatureRoute } from '@/hooks/useWhiteLabelConfig'
+import { useTerminology } from '@/hooks/use-terminology'
 
 // ============================================
 // Icon Mapping for White-Label Navigation
@@ -101,6 +102,9 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
 
   // Check if venue can access operational features (KYC verification)
   const hasKYCAccess = React.useMemo(() => canAccessOperationalFeatures(activeVenue), [activeVenue])
+
+  // ========== Sector-Aware Terminology ==========
+  const { term } = useTerminology()
 
   // ========== White-Label Dashboard Mode ==========
   const { isWhiteLabelEnabled, navigation: wlNavigation, isFeatureEnabled } = useWhiteLabelConfig()
@@ -199,7 +203,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         locked: !hasKYCAccess,
       },
       {
-        title: t('sidebar:routes.menu'),
+        title: term('menu'),
         isActive: true,
         url: 'menumaker/overview',
         icon: BookOpen,
@@ -314,7 +318,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     // Sales submenu (Ventas) - Orders and Transactions grouped together
     // Following Square's "Orders & payments" pattern for better UX
     const salesSubItems = [
-      { title: t('sidebar:salesMenu.orders', { defaultValue: 'Órdenes' }), url: 'orders', permission: 'orders:read', whiteLabelFeature: 'AVOQADO_ORDERS' },
+      { title: term('orderPlural'), url: 'orders', permission: 'orders:read', whiteLabelFeature: 'AVOQADO_ORDERS' },
       { title: t('sidebar:salesMenu.transactions', { defaultValue: 'Transacciones' }), url: 'payments', permission: 'payments:read', whiteLabelFeature: 'AVOQADO_PAYMENTS' },
     ].filter(item => {
       // Check permission
@@ -470,6 +474,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     return filteredItems
   }, [
     t,
+    term,
     effectiveRole,
     can,
     hasKYCAccess,

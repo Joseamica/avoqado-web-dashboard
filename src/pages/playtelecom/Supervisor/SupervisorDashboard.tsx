@@ -38,6 +38,7 @@ import {
   useStoresStorePerformance,
   useStoresStaffAttendance,
 } from '@/hooks/useStoresAnalysis'
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
 export function SupervisorDashboard() {
@@ -74,7 +75,7 @@ export function SupervisorDashboard() {
   }, [selectedRange.from])
 
   // Use venue-level hooks for white-label access — pass date range to filter data
-  const { data: overview } = useStoresOverview({
+  const { data: overview, isLoading: overviewLoading } = useStoresOverview({
     startDate: startDateISO,
     endDate: endDateISO,
     filterVenueId: storeFilter !== 'all' ? storeFilter : undefined,
@@ -85,7 +86,7 @@ export function SupervisorDashboard() {
     filterVenueId: storeFilter !== 'all' ? storeFilter : undefined,
   })
   const { data: _stockSummary } = useStoresStockSummary()
-  const { data: venuesResponse } = useStoresVenues()
+  const { data: venuesResponse, isLoading: venuesLoading } = useStoresVenues()
   const { data: activityFeed } = useStoresActivityFeed(20, {
     refetchInterval: 30000,
     startDate: startDateISO,
@@ -339,6 +340,25 @@ export function SupervisorDashboard() {
     },
     [buildExportData, toast, t],
   )
+
+  const isLoading = overviewLoading || venuesLoading
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-10 rounded-xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <Skeleton className="lg:col-span-2 h-48 rounded-xl" />
+          <Skeleton className="h-48 rounded-xl" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-72 rounded-xl" />)}
+        </div>
+        <Skeleton className="h-64 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
