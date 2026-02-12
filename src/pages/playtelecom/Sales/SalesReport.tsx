@@ -887,8 +887,15 @@ export function SalesReport() {
                     </td>
 
                     {/* Amount */}
-                    <td className="px-6 py-4 text-right font-black">
-                      {formatCurrency(verification.payment?.amount ?? 0)}
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {verification.payment?.order?.tags?.includes('portabilidad') && (
+                          <span className="px-2 py-0.5 rounded text-[9px] font-black border bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700">
+                            Portabilidad
+                          </span>
+                        )}
+                        <span className="font-black">{formatCurrency(verification.payment?.amount ?? 0)}</span>
+                      </div>
                     </td>
 
                     {/* Status */}

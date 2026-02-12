@@ -523,6 +523,63 @@ export async function withdrawCreditOffer(offerId: string): Promise<CreditOffer>
   return response.data.data
 }
 
+// ===== SERVER METRICS TYPES =====
+
+export interface MetricsSnapshot {
+  timestamp: string
+  uptime: number
+  memory: {
+    rss: number
+    heapTotal: number
+    heapUsed: number
+    external: number
+    arrayBuffers: number
+  }
+  cpu: {
+    user: number
+    system: number
+    percentEstimate: number
+  }
+  os: {
+    loadAvg: number[]
+    totalMemory: number
+    freeMemory: number
+    cpus: number
+  }
+  eventLoop: {
+    lagMs: number
+  }
+  requests: {
+    activeConnections: number
+  }
+  limits: {
+    memoryLimitMb: number
+    cpuLimit: number
+  }
+}
+
+export interface ServerMetricsAlert {
+  type: 'memory' | 'heap' | 'eventLoop' | 'cpu'
+  severity: 'warning' | 'critical'
+  message: string
+  value: number
+  threshold: number
+  timestamp: string
+}
+
+export interface ServerMetricsResponse {
+  current: MetricsSnapshot
+  history: MetricsSnapshot[]
+  alerts: ServerMetricsAlert[]
+}
+
+// ===== SERVER METRICS API FUNCTIONS =====
+
+export async function getServerMetrics(): Promise<ServerMetricsResponse> {
+  const response = await api.get('/api/v1/dashboard/superadmin/server-metrics')
+  return response.data
+}
+
 // ===== VENUE MODULE MANAGEMENT TYPES =====
 
 /**

@@ -17,6 +17,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import {
   AlertCircle,
@@ -30,11 +31,56 @@ import {
   Pencil,
   Save,
   X,
+  DollarSign,
+  HandCoins,
+  BarChart3,
+  Package,
+  Users,
+  Store,
+  Gem,
+  Handshake,
+  Home,
+  Receipt,
+  Settings2,
+  Shield,
+  ShoppingCart,
+  Smartphone,
+  Star,
+  Tag,
+  TrendingUp,
+  Wallet,
+  type LucideIcon,
 } from 'lucide-react'
 import type { NavigationItem } from '@/types/white-label'
 import type { WizardState } from '../WhiteLabelWizard'
 import { FEATURE_REGISTRY } from '@/config/feature-registry'
 import { getIconComponent } from '@/components/WhiteLabel/DynamicFeatureLoader'
+
+// ============================================
+// Available Icons for Navigation Items
+// ============================================
+
+const AVAILABLE_ICONS: { name: string; icon: LucideIcon }[] = [
+  { name: 'LayoutDashboard', icon: LayoutDashboard },
+  { name: 'Home', icon: Home },
+  { name: 'Store', icon: Store },
+  { name: 'ShoppingCart', icon: ShoppingCart },
+  { name: 'DollarSign', icon: DollarSign },
+  { name: 'HandCoins', icon: HandCoins },
+  { name: 'Wallet', icon: Wallet },
+  { name: 'Receipt', icon: Receipt },
+  { name: 'BarChart3', icon: BarChart3 },
+  { name: 'TrendingUp', icon: TrendingUp },
+  { name: 'Package', icon: Package },
+  { name: 'Users', icon: Users },
+  { name: 'Gem', icon: Gem },
+  { name: 'Handshake', icon: Handshake },
+  { name: 'Star', icon: Star },
+  { name: 'Tag', icon: Tag },
+  { name: 'Shield', icon: Shield },
+  { name: 'Smartphone', icon: Smartphone },
+  { name: 'Settings2', icon: Settings2 },
+]
 
 // ============================================
 // Types
@@ -115,6 +161,14 @@ export default function Step4Preview({
     setEditingLabel('')
   }, [])
 
+  // Change icon for a nav item
+  const changeIcon = useCallback((itemId: string, iconName: string) => {
+    const newItems = state.navigation.map(item =>
+      item.id === itemId ? { ...item, icon: iconName } : item
+    )
+    onNavigationChange(newItems)
+  }, [state.navigation, onNavigationChange])
+
   return (
     <div className="space-y-6">
       {/* Errors */}
@@ -183,6 +237,7 @@ export default function Step4Preview({
                       onStartEdit={startEditingLabel}
                       onSaveLabel={saveLabel}
                       onCancelEdit={cancelEditing}
+                      onIconChange={changeIcon}
                     />
                   ))}
                 </SortableContext>
@@ -427,6 +482,7 @@ interface SortableNavItemProps {
   onStartEdit: (item: NavigationItem) => void
   onSaveLabel: () => void
   onCancelEdit: () => void
+  onIconChange: (itemId: string, iconName: string) => void
 }
 
 function SortableNavItem({
@@ -437,6 +493,7 @@ function SortableNavItem({
   onStartEdit,
   onSaveLabel,
   onCancelEdit,
+  onIconChange,
 }: SortableNavItemProps) {
   const { t } = useTranslation('superadmin')
   const {
@@ -517,9 +574,43 @@ function SortableNavItem({
       ) : (
         <>
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            {IconComponent && (
-              <IconComponent className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-            )}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  className="flex-shrink-0 p-1 -m-1 rounded hover:bg-muted transition-colors cursor-pointer"
+                  title={t('whiteLabelWizard.preview.changeIcon')}
+                >
+                  {IconComponent ? (
+                    <IconComponent className="w-4 h-4 text-muted-foreground" />
+                  ) : (
+                    <LayoutDashboard className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[240px] p-2" align="start">
+                <p className="text-xs font-medium text-muted-foreground mb-2 px-1">
+                  {t('whiteLabelWizard.preview.selectIcon')}
+                </p>
+                <div className="grid grid-cols-5 gap-1">
+                  {AVAILABLE_ICONS.map(({ name, icon: Icon }) => (
+                    <button
+                      key={name}
+                      className={cn(
+                        'p-2 rounded-md hover:bg-muted transition-colors cursor-pointer flex items-center justify-center',
+                        item.icon === name && 'bg-primary/10 ring-1 ring-primary/30',
+                      )}
+                      onClick={() => onIconChange(item.id, name)}
+                      title={name}
+                    >
+                      <Icon className={cn(
+                        'w-4 h-4',
+                        item.icon === name ? 'text-primary' : 'text-muted-foreground',
+                      )} />
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
             <span className="text-sm font-medium truncate">
               {item.label || feature?.name || item.featureCode}
             </span>

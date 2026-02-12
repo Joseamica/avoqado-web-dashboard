@@ -71,5 +71,16 @@
     "users": "Utilisateurs",
     "waiters": "Serveurs"
   },
+  "playtelecom": {
+    "title": "PlayTelecom",
+    "commandCenter": "Vue d'ensemble",
+    "stock": "Contrôle de Stock",
+    "sales": "Ventes",
+    "stores": "Magasins",
+    "managers": "Gérants",
+    "promoters": "Force de Vente",
+    "users": "Utilisateurs",
+    "tpvConfig": "Configuration White Label"
+  },
   "requiresKycVerification": "Vérification KYC requise"
 }

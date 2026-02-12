@@ -20,6 +20,16 @@ import {
   Store,
   Gem,
   Handshake,
+  Home,
+  Receipt,
+  Settings2,
+  Shield,
+  ShoppingCart,
+  Smartphone,
+  Star,
+  Tag,
+  TrendingUp,
+  Wallet,
   LucideIcon,
 } from 'lucide-react'
 import { getFeatureByCode } from '@/config/feature-registry'
@@ -294,6 +304,16 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Store,
   Gem,
   Handshake,
+  Home,
+  Receipt,
+  Settings2,
+  Shield,
+  ShoppingCart,
+  Smartphone,
+  Star,
+  Tag,
+  TrendingUp,
+  Wallet,
   AlertCircle,
 }
 

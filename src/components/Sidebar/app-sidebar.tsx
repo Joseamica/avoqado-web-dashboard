@@ -76,20 +76,20 @@ function getIconComponent(iconName: string | undefined): LucideIcon {
 }
 
 /**
- * DEPRECATED: This mapping overrides database labels with hardcoded translations.
- * We now prioritize the database label (set via White-Label Wizard) over translations.
- * Only use translations as fallback if no custom label is set.
+ * Maps feature codes to sidebar translation keys.
+ * Translation takes priority over the database label so that
+ * names stay in sync with i18n and code changes (e.g. renaming
+ * "Config TPV" → "Configuración") without needing a DB migration.
  */
 const FEATURE_CODE_TO_TRANSLATION_KEY: Record<string, string> = {
-  // Commented out - we now use database labels first
-  // COMMAND_CENTER: 'playtelecom.commandCenter',
-  // SERIALIZED_STOCK: 'playtelecom.stock',
-  // PROMOTERS_AUDIT: 'playtelecom.promoters',
-  // STORES_ANALYSIS: 'playtelecom.stores',
-  // MANAGERS_DASHBOARD: 'playtelecom.managers',
-  // USERS_MANAGEMENT: 'playtelecom.users',
-  // TPV_CONFIGURATION: 'playtelecom.tpvConfig',
-  // SALES_DASHBOARD: 'playtelecom.sales',
+  COMMAND_CENTER: 'playtelecom.commandCenter',
+  SERIALIZED_STOCK: 'playtelecom.stock',
+  PROMOTERS_AUDIT: 'playtelecom.promoters',
+  STORES_ANALYSIS: 'playtelecom.stores',
+  MANAGERS_DASHBOARD: 'playtelecom.managers',
+  USERS_MANAGEMENT: 'playtelecom.users',
+  TPV_CONFIGURATION: 'playtelecom.tpvConfig',
+  SALES_REPORT: 'playtelecom.sales',
 }
 
 export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sidebar> & { user: User }) {
