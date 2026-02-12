@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useCreateCommissionConfig } from '@/hooks/useCommissions'
+import { useCreateCommissionConfig, useCreateOrgCommissionConfig } from '@/hooks/useCommissions'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { commissionService } from '@/services/commission.service'
@@ -96,9 +96,10 @@ const initialData: WizardData = {
 interface CreateCommissionWizardProps {
 	onSuccess: () => void
 	onCancel?: () => void
+	isOrgLevel?: boolean
 }
 
-export default function CreateCommissionWizard({ onSuccess }: CreateCommissionWizardProps) {
+export default function CreateCommissionWizard({ onSuccess, isOrgLevel = false }: CreateCommissionWizardProps) {
 	const { t } = useTranslation('commissions')
 	const { t: tCommon } = useTranslation()
 	const { toast } = useToast()
@@ -107,6 +108,8 @@ export default function CreateCommissionWizard({ onSuccess }: CreateCommissionWi
 	const [data, setData] = useState<WizardData>(initialData)
 
 	const createConfigMutation = useCreateCommissionConfig()
+	const createOrgConfigMutation = useCreateOrgCommissionConfig()
+	const activeMutation = isOrgLevel ? createOrgConfigMutation : createConfigMutation
 
 	const updateData = (updates: Partial<WizardData>) => {
 		setData(prev => ({ ...prev, ...updates }))
@@ -151,7 +154,7 @@ export default function CreateCommissionWizard({ onSuccess }: CreateCommissionWi
 				aggregationPeriod: data.aggregationPeriod, // Period for grouping commissions into summaries
 			}
 
-			const createdConfig = await createConfigMutation.mutateAsync(input)
+			const createdConfig = await activeMutation.mutateAsync(input)
 
 			// Create tiers after config creation if enabled
 			if (data.tiersEnabled && data.tiers.length > 0 && venueId && createdConfig?.id) {
@@ -239,7 +242,7 @@ export default function CreateCommissionWizard({ onSuccess }: CreateCommissionWi
 					updateData={updateData}
 					onPrevious={handlePrevious}
 					onSubmit={handleSubmit}
-					isSubmitting={createConfigMutation.isPending}
+					isSubmitting={activeMutation.isPending}
 				/>
 			)}
 		</div>

@@ -557,5 +557,51 @@
 				"maxExplain": "Máximo: Limita comisiones en ventas grandes. Ej: Máximo $100, aunque 3% de $5000 = $150, el empleado recibe $100"
 			}
 		}
+	},
+	"orgConfig": {
+		"title": "Configuración de Organización",
+		"description": "Configuraciones por defecto que heredan todas las tiendas sin configuración propia",
+		"source": {
+			"venue": "Tienda",
+			"organization": "Organización"
+		},
+		"inherited": "Heredado de organización",
+		"custom": "Configuración personalizada",
+		"customize": "Personalizar",
+		"revertToOrg": "Revertir a organización",
+		"revertConfirm": "¿Eliminar la configuración personalizada? La tienda heredará la configuración de la organización.",
+		"empty": "Sin configuraciones de organización",
+		"emptyDescription": "Las configuraciones de organización se aplican como valores por defecto a todas las tiendas",
+		"createSuccess": "Configuración de organización creada",
+		"updateSuccess": "Configuración de organización actualizada",
+		"deleteSuccess": "Configuración de organización eliminada",
+		"error": "Error al guardar la configuración de organización"
+	},
+	"orgPayout": {
+		"title": "Configuración de Pago de Organización",
+		"description": "Reglas de pago por defecto para todas las tiendas",
+		"aggregationPeriod": "Período de Agregación",
+		"requireApproval": "Requiere Aprobación",
+		"paymentMethods": "Métodos de Pago",
+		"periods": {
+			"WEEKLY": "Semanal",
+			"BIWEEKLY": "Quincenal",
+			"MONTHLY": "Mensual",
+			"QUARTERLY": "Trimestral"
+		},
+		"methods": {
+			"CASH": "Efectivo",
+			"BANK_TRANSFER": "Transferencia Bancaria"
+		},
+		"save": "Guardar Configuración",
+		"saveSuccess": "Configuración de pago guardada",
+		"deleteSuccess": "Configuración de pago eliminada",
+		"error": "Error al guardar configuración de pago",
+		"empty": "Sin configuración de pago",
+		"emptyDescription": "Configura las reglas de pago por defecto para la organización",
+		"source": {
+			"venue": "Tienda",
+			"organization": "Organización"
+		}
 	}
 }

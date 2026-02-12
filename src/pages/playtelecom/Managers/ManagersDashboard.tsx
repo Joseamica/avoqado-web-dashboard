@@ -36,6 +36,7 @@ import {
   useStoresStorePerformance,
 } from '@/hooks/useStoresAnalysis'
 import CreateStoreGoalDialog from '../Supervisor/CreateStoreGoalDialog'
+import OrgGoalConfigSection from '../Supervisor/OrgGoalConfigSection'
 import { validateTimeEntry, resetTimeEntryValidation, type CrossStoreAnomaly } from '@/services/storesAnalysis.service'
 import {
   ManagerKpiCards,
@@ -533,6 +534,9 @@ export function ManagersDashboard() {
 
       {/* KPI Cards */}
       <ManagerKpiCards data={kpiData} formatCurrency={formatCurrency} anomalies={attendanceAnomalies} />
+
+      {/* Org-Level Goal Defaults (OWNER only) */}
+      <OrgGoalConfigSection />
 
       {/* Charts */}
       <ManagerCharts

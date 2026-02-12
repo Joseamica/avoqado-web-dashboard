@@ -561,5 +561,51 @@
 				"maxExplain": "Maximum: Limits commissions on large sales. E.g.: Max $100, even though 3% of $5000 = $150, the employee receives $100"
 			}
 		}
+	},
+	"orgConfig": {
+		"title": "Organization Configuration",
+		"description": "Default configurations inherited by all stores without custom configuration",
+		"source": {
+			"venue": "Store",
+			"organization": "Organization"
+		},
+		"inherited": "Inherited from organization",
+		"custom": "Custom configuration",
+		"customize": "Customize",
+		"revertToOrg": "Revert to organization",
+		"revertConfirm": "Delete the custom configuration? The store will inherit the organization configuration.",
+		"empty": "No organization configurations",
+		"emptyDescription": "Organization configurations serve as default values for all stores",
+		"createSuccess": "Organization configuration created",
+		"updateSuccess": "Organization configuration updated",
+		"deleteSuccess": "Organization configuration deleted",
+		"error": "Error saving organization configuration"
+	},
+	"orgPayout": {
+		"title": "Organization Payout Configuration",
+		"description": "Default payout rules for all stores",
+		"aggregationPeriod": "Aggregation Period",
+		"requireApproval": "Require Approval",
+		"paymentMethods": "Payment Methods",
+		"periods": {
+			"WEEKLY": "Weekly",
+			"BIWEEKLY": "Biweekly",
+			"MONTHLY": "Monthly",
+			"QUARTERLY": "Quarterly"
+		},
+		"methods": {
+			"CASH": "Cash",
+			"BANK_TRANSFER": "Bank Transfer"
+		},
+		"save": "Save Configuration",
+		"saveSuccess": "Payout configuration saved",
+		"deleteSuccess": "Payout configuration deleted",
+		"error": "Error saving payout configuration",
+		"empty": "No payout configuration",
+		"emptyDescription": "Configure default payout rules for the organization",
+		"source": {
+			"venue": "Store",
+			"organization": "Organization"
+		}
 	}
 }

@@ -25,8 +25,12 @@ import {
   createStoreGoal,
   updateStoreGoal,
   deleteStoreGoal,
+  getOrgGoals,
+  createOrgGoal,
+  updateOrgGoal,
+  deleteOrgGoal,
 } from '@/services/storesAnalysis.service'
-import type { CreateStoreGoalInput, UpdateStoreGoalInput } from '@/services/storesAnalysis.service'
+import type { CreateStoreGoalInput, UpdateStoreGoalInput, CreateOrgGoalInput, UpdateOrgGoalInput } from '@/services/storesAnalysis.service'
 
 /**
  * Query hook for organization overview via venue endpoint
@@ -306,6 +310,72 @@ export function useDeleteStoreGoal() {
   return useMutation({
     mutationFn: ({ storeId, goalId }: { storeId: string; goalId: string }) => deleteStoreGoal(venueId!, storeId, goalId),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'store-performance'] })
+    },
+  })
+}
+
+// ===========================================
+// ORG-LEVEL GOAL HOOKS
+// ===========================================
+
+/**
+ * Query hook for org-level sales goals
+ */
+export function useOrgGoals(options?: { enabled?: boolean }) {
+  const { venueId } = useCurrentVenue()
+
+  return useQuery({
+    queryKey: ['stores-analysis', venueId, 'org-goals'],
+    queryFn: () => getOrgGoals(venueId!),
+    enabled: options?.enabled !== false && !!venueId,
+    staleTime: 60000,
+  })
+}
+
+/**
+ * Mutation hook to create an org-level goal
+ */
+export function useCreateOrgGoal() {
+  const { venueId } = useCurrentVenue()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: CreateOrgGoalInput) => createOrgGoal(venueId!, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'org-goals'] })
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'store-performance'] })
+    },
+  })
+}
+
+/**
+ * Mutation hook to update an org-level goal
+ */
+export function useUpdateOrgGoal() {
+  const { venueId } = useCurrentVenue()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ goalId, data }: { goalId: string; data: UpdateOrgGoalInput }) => updateOrgGoal(venueId!, goalId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'org-goals'] })
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'store-performance'] })
+    },
+  })
+}
+
+/**
+ * Mutation hook to delete an org-level goal
+ */
+export function useDeleteOrgGoal() {
+  const { venueId } = useCurrentVenue()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (goalId: string) => deleteOrgGoal(venueId!, goalId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'org-goals'] })
       queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'store-performance'] })
     },
   })

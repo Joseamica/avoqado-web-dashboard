@@ -27,6 +27,9 @@ import type {
 	SalesGoal,
 	CreateSalesGoalInput,
 	UpdateSalesGoalInput,
+	OrgPayoutConfig,
+	OrgPayoutConfigInput,
+	ResolvedPayoutConfig,
 } from '@/types/commission'
 
 const BASE_URL = '/api/v1/dashboard/commissions'
@@ -434,6 +437,66 @@ export const commissionService = {
 	async deleteSalesGoal(venueId: string, goalId: string): Promise<{ message: string }> {
 		const response = await api.delete(`${BASE_URL}/venues/${venueId}/goals/${goalId}`)
 		return response.data
+	},
+
+	// ==========================================
+	// ORG-LEVEL COMMISSION CONFIGS
+	// ==========================================
+
+	// Get org-level commission configs
+	async getOrgConfigs(venueId: string): Promise<CommissionConfig[]> {
+		const response = await api.get(`${BASE_URL}/venues/${venueId}/org-configs`)
+		return normalizeArrayResponse(response.data)
+	},
+
+	// Get effective configs (resolved: venue or org fallback) with source
+	async getEffectiveConfigs(venueId: string): Promise<{ config: CommissionConfig; source: 'venue' | 'organization' }[]> {
+		const response = await api.get(`${BASE_URL}/venues/${venueId}/effective-configs`)
+		return normalizeArrayResponse(response.data)
+	},
+
+	// Create org-level commission config
+	async createOrgConfig(venueId: string, data: CreateCommissionConfigInput): Promise<CommissionConfig> {
+		const response = await api.post(`${BASE_URL}/venues/${venueId}/org-configs`, data)
+		return response.data?.data || response.data
+	},
+
+	// Update org-level commission config
+	async updateOrgConfig(venueId: string, configId: string, data: UpdateCommissionConfigInput): Promise<CommissionConfig> {
+		const response = await api.put(`${BASE_URL}/venues/${venueId}/org-configs/${configId}`, data)
+		return response.data?.data || response.data
+	},
+
+	// Delete org-level commission config
+	async deleteOrgConfig(venueId: string, configId: string): Promise<void> {
+		await api.delete(`${BASE_URL}/venues/${venueId}/org-configs/${configId}`)
+	},
+
+	// ==========================================
+	// ORG-LEVEL PAYOUT CONFIG
+	// ==========================================
+
+	// Get org-level payout config
+	async getOrgPayoutConfig(venueId: string): Promise<OrgPayoutConfig | null> {
+		const response = await api.get(`${BASE_URL}/venues/${venueId}/org-payout-config`)
+		return response.data?.data || null
+	},
+
+	// Get effective payout config (resolved: venue or org fallback)
+	async getEffectivePayoutConfig(venueId: string): Promise<ResolvedPayoutConfig> {
+		const response = await api.get(`${BASE_URL}/venues/${venueId}/effective-payout-config`)
+		return response.data?.data
+	},
+
+	// Create or update org-level payout config (upsert)
+	async upsertOrgPayoutConfig(venueId: string, data: OrgPayoutConfigInput): Promise<OrgPayoutConfig> {
+		const response = await api.put(`${BASE_URL}/venues/${venueId}/org-payout-config`, data)
+		return response.data?.data || response.data
+	},
+
+	// Delete org-level payout config
+	async deleteOrgPayoutConfig(venueId: string): Promise<void> {
+		await api.delete(`${BASE_URL}/venues/${venueId}/org-payout-config`)
 	},
 }
 

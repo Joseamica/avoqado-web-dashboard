@@ -10,6 +10,8 @@ import {
 	TrendingUp,
 	Target,
 	Hand,
+	Building2,
+	Store,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -34,7 +36,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { useDeleteCommissionConfig } from '@/hooks/useCommissions'
 import { useToast } from '@/hooks/use-toast'
-import type { CommissionConfig, CommissionCalcType } from '@/types/commission'
+import type { CommissionConfig, CommissionCalcType, CommissionConfigSource } from '@/types/commission'
 import { cn } from '@/lib/utils'
 
 // GlassCard with hover effect
@@ -69,9 +71,11 @@ const calcTypeIcons: Record<CommissionCalcType, React.ReactNode> = {
 
 interface CommissionConfigCardProps {
 	config: CommissionConfig
+	source?: CommissionConfigSource
+	onRevertToOrg?: () => void
 }
 
-export default function CommissionConfigCard({ config }: CommissionConfigCardProps) {
+export default function CommissionConfigCard({ config, source, onRevertToOrg }: CommissionConfigCardProps) {
 	const { t, i18n } = useTranslation('commissions')
 	const { t: tCommon } = useTranslation()
 	const navigate = useNavigate()
@@ -145,10 +149,27 @@ export default function CommissionConfigCard({ config }: CommissionConfigCardPro
 							</div>
 							<div>
 								<h3 className="font-semibold">{config.name}</h3>
-								<div className="flex items-center gap-2 mt-1">
+								<div className="flex items-center gap-2 mt-1 flex-wrap">
 									<Badge variant={config.active ? 'default' : 'secondary'}>
 										{config.active ? t('config.active') : t('config.inactive')}
 									</Badge>
+									{source && (
+										<Badge
+											variant="outline"
+											className={cn(
+												'text-xs',
+												source === 'organization'
+													? 'border-purple-500/50 text-purple-600 dark:text-purple-400'
+													: 'border-blue-500/50 text-blue-600 dark:text-blue-400'
+											)}
+										>
+											{source === 'organization' ? (
+												<><Building2 className="w-3 h-3 mr-1" />{t('orgConfig.source.organization')}</>
+											) : (
+												<><Store className="w-3 h-3 mr-1" />{t('orgConfig.source.venue')}</>
+											)}
+										</Badge>
+									)}
 									<span className="text-xs text-muted-foreground">
 										{t('calcTypes.' + config.calcType)}
 									</span>
@@ -261,49 +282,85 @@ export default function CommissionConfigCard({ config }: CommissionConfigCardPro
 						</div>
 					)}
 
+					{/* Inherited notice */}
+					{source === 'organization' && (
+						<div className="flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400 bg-purple-500/10 rounded-lg px-3 py-2">
+							<Building2 className="w-3.5 h-3.5 shrink-0" />
+							<span>{t('orgConfig.inherited')}</span>
+						</div>
+					)}
+
 					{/* Actions */}
 					<div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">
-						<PermissionGate permission="commissions:update">
-							<TooltipProvider>
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-8 w-8 cursor-pointer"
-											onClick={(e) => {
-												e.stopPropagation()
-												navigate(`${fullBasePath}/commissions/config/${config.id}?edit=true`)
-											}}
-										>
-											<Pencil className="h-4 w-4" />
-										</Button>
-									</TooltipTrigger>
-									<TooltipContent>{t('config.edit')}</TooltipContent>
-								</Tooltip>
-							</TooltipProvider>
-						</PermissionGate>
+						{source !== 'organization' && (
+							<>
+								<PermissionGate permission="commissions:update">
+									<TooltipProvider>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<Button
+													variant="ghost"
+													size="icon"
+													className="h-8 w-8 cursor-pointer"
+													onClick={(e) => {
+														e.stopPropagation()
+														navigate(`${fullBasePath}/commissions/config/${config.id}?edit=true`)
+													}}
+												>
+													<Pencil className="h-4 w-4" />
+												</Button>
+											</TooltipTrigger>
+											<TooltipContent>{t('config.edit')}</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
+								</PermissionGate>
 
-						<PermissionGate permission="commissions:delete">
-							<TooltipProvider>
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-8 w-8 text-destructive hover:text-destructive cursor-pointer"
-											onClick={(e) => {
-												e.stopPropagation()
-												setShowDeleteDialog(true)
-											}}
-										>
-											<Trash2 className="h-4 w-4" />
-										</Button>
-									</TooltipTrigger>
-									<TooltipContent>{t('config.delete')}</TooltipContent>
-								</Tooltip>
-							</TooltipProvider>
-						</PermissionGate>
+								<PermissionGate permission="commissions:delete">
+									<TooltipProvider>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<Button
+													variant="ghost"
+													size="icon"
+													className="h-8 w-8 text-destructive hover:text-destructive cursor-pointer"
+													onClick={(e) => {
+														e.stopPropagation()
+														setShowDeleteDialog(true)
+													}}
+												>
+													<Trash2 className="h-4 w-4" />
+												</Button>
+											</TooltipTrigger>
+											<TooltipContent>{t('config.delete')}</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
+								</PermissionGate>
+							</>
+						)}
+
+						{source === 'venue' && onRevertToOrg && (
+							<PermissionGate permission="commissions:delete">
+								<TooltipProvider>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<Button
+												variant="ghost"
+												size="sm"
+												className="text-xs text-purple-600 dark:text-purple-400 cursor-pointer"
+												onClick={(e) => {
+													e.stopPropagation()
+													onRevertToOrg()
+												}}
+											>
+												<Building2 className="w-3.5 h-3.5 mr-1" />
+												{t('orgConfig.revertToOrg')}
+											</Button>
+										</TooltipTrigger>
+										<TooltipContent>{t('orgConfig.revertConfirm')}</TooltipContent>
+									</Tooltip>
+								</TooltipProvider>
+							</PermissionGate>
+						)}
 
 						<div className="flex-1" />
 

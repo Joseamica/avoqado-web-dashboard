@@ -318,6 +318,53 @@
     "addCategory": "Nouvelle Catégorie",
     "preview": "Aperçu TPV"
   },
+  "supervisor": {
+    "goalDialog": {
+      "createTitle": "Créer un objectif de vente",
+      "editTitle": "Modifier l'objectif",
+      "description": "Définir un objectif de vente pour le magasin",
+      "store": "Magasin",
+      "selectStore": "Sélectionner un magasin...",
+      "goalAmount": "Objectif de vente ($)",
+      "period": "Période",
+      "periods": {
+        "DAILY": "Quotidien",
+        "WEEKLY": "Hebdomadaire",
+        "MONTHLY": "Mensuel"
+      },
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "success": "Objectif enregistré avec succès",
+      "error": "Erreur lors de l'enregistrement de l'objectif",
+      "createGoal": "Créer un objectif",
+      "goalType": "Type d'objectif",
+      "goalTypes": {
+        "AMOUNT": "Montant ($)",
+        "QUANTITY": "Nombre de ventes"
+      },
+      "goalQuantity": "Objectif de ventes (unités)",
+      "goalAmount": "Objectif de vente ($)"
+    },
+    "orgGoals": {
+      "title": "Objectifs de l'organisation",
+      "description": "Objectifs par défaut qui s'appliquent à tous les magasins sans objectif personnalisé",
+      "createTitle": "Créer un objectif d'organisation",
+      "editTitle": "Modifier l'objectif d'organisation",
+      "empty": "Aucun objectif d'organisation configuré",
+      "emptyDescription": "Les objectifs d'organisation servent de valeurs par défaut pour tous les magasins",
+      "source": {
+        "venue": "Magasin",
+        "organization": "Organisation"
+      },
+      "inherited": "Hérité de l'organisation",
+      "custom": "Objectif personnalisé",
+      "revertToOrg": "Revenir à l'organisation",
+      "revertConfirm": "Supprimer l'objectif personnalisé ? Le magasin héritera de l'objectif de l'organisation.",
+      "success": "Objectif d'organisation enregistré",
+      "deleteSuccess": "Objectif d'organisation supprimé",
+      "error": "Erreur lors de l'enregistrement de l'objectif d'organisation"
+    }
+  },
   "categoryItems": {
     "items": "Articles",
     "searchPlaceholder": "Rechercher par numéro de série...",

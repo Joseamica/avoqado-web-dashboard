@@ -351,6 +351,7 @@ export const PERMISSION_CATEGORIES = {
       'commissions:approve',
       'commissions:process_payout',
       'commissions:view_own',
+      'commissions:org-manage',
     ],
   },
   // ===========================
@@ -399,5 +400,12 @@ export const PERMISSION_CATEGORIES = {
   TPV_FACTORY_RESET: {
     label: 'Factory Reset (CRITICAL)',
     permissions: ['tpv-factory-reset:execute'],
+  },
+  // ===========================
+  // ORG-LEVEL MANAGEMENT
+  // ===========================
+  GOALS: {
+    label: 'Org-Level Goals',
+    permissions: ['goals:org-manage'],
   },
 } as const

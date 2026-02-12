@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { PermissionGate } from '@/components/PermissionGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
-import { useCommissionStats, useCommissionConfigs, usePendingCommissionSummaries, useCommissionPayouts } from '@/hooks/useCommissions'
+import { useCommissionStats, useEffectiveCommissionConfigs, useOrgCommissionConfigs, usePendingCommissionSummaries, useCommissionPayouts } from '@/hooks/useCommissions'
 import { useAccess } from '@/hooks/use-access'
 import CommissionKPICards from './components/CommissionKPICards'
 import TeamCommissionTable from './components/TeamCommissionTable'
@@ -16,6 +16,8 @@ import SummaryApprovalList from './components/SummaryApprovalList'
 import PayoutList from './components/PayoutList'
 import GoalsTab from './components/GoalsTab'
 import CreateConfigDialog from './components/CreateConfigDialog'
+import OrgCommissionConfigSection from './components/OrgCommissionConfigSection'
+import OrgPayoutConfigSection from './components/OrgPayoutConfigSection'
 
 const VALID_TABS = ['overview', 'ranking', 'goals', 'config', 'approvals', 'payouts'] as const
 type TabValue = typeof VALID_TABS[number]
@@ -61,13 +63,15 @@ export default function CommissionsPage() {
 
 	// Data fetching
 	const { data: stats, isLoading: isLoadingStats } = useCommissionStats()
-	const { data: configs, isLoading: isLoadingConfigs } = useCommissionConfigs()
+	const { data: effectiveConfigs, isLoading: isLoadingConfigs } = useEffectiveCommissionConfigs()
+	const { data: orgConfigs } = useOrgCommissionConfigs()
 	const { data: pendingSummaries, isLoading: isLoadingPending } = usePendingCommissionSummaries()
 	// Only fetch payouts if user has permission
 	const { data: payouts, isLoading: isLoadingPayouts } = useCommissionPayouts(undefined, { enabled: canViewPayouts })
 
 	const pendingCount = pendingSummaries?.length || 0
-	const configCount = configs?.length || 0
+	const configCount = effectiveConfigs?.length || 0
+	const hasOrgConfigs = (orgConfigs?.length || 0) > 0
 
 	return (
 		<div className="p-4 bg-background text-foreground">
@@ -159,9 +163,12 @@ export default function CommissionsPage() {
 
 				{/* Configuration Tab */}
 				<TabsContent value="config" className="space-y-6">
+					<OrgCommissionConfigSection />
+					<OrgPayoutConfigSection />
 					<CommissionConfigList
-						configs={configs || []}
+						effectiveConfigs={effectiveConfigs}
 						isLoading={isLoadingConfigs}
+						hasOrgConfigs={hasOrgConfigs}
 					/>
 				</TabsContent>
 

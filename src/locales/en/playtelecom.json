@@ -355,7 +355,33 @@
       "cancel": "Cancel",
       "success": "Goal saved successfully",
       "error": "Error saving goal",
-      "createGoal": "Create Goal"
+      "createGoal": "Create Goal",
+      "goalType": "Goal type",
+      "goalTypes": {
+        "AMOUNT": "Amount ($)",
+        "QUANTITY": "Number of sales"
+      },
+      "goalQuantity": "Sales goal (units)",
+      "goalAmount": "Sales goal ($)"
+    },
+    "orgGoals": {
+      "title": "Organization Goals",
+      "description": "Default goals that apply to all stores without a custom goal",
+      "createTitle": "Create Organization Goal",
+      "editTitle": "Edit Organization Goal",
+      "empty": "No organization goals configured",
+      "emptyDescription": "Organization goals serve as default values for all stores",
+      "source": {
+        "venue": "Store",
+        "organization": "Organization"
+      },
+      "inherited": "Inherited from organization",
+      "custom": "Custom goal",
+      "revertToOrg": "Revert to organization",
+      "revertConfirm": "Delete the custom goal? The store will inherit the organization goal.",
+      "success": "Organization goal saved",
+      "deleteSuccess": "Organization goal deleted",
+      "error": "Error saving organization goal"
     }
   },
   "categoryItems": {
