@@ -39,6 +39,8 @@ import {
   User,
   Banknote,
   CreditCard,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import getIcon from '@/utils/getIcon'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
@@ -90,6 +92,8 @@ export function SupervisorDashboard() {
     lat: number | null
     lon: number | null
   } | null>(null)
+  const [salePhotos, setSalePhotos] = useState<string[] | null>(null)
+  const [salePhotoIndex, setSalePhotoIndex] = useState(0)
   const [locationDialog, setLocationDialog] = useState<{
     promoter: string
     store: string
@@ -244,6 +248,8 @@ export function SupervisorDashboard() {
         amount: e.type === 'sale' ? (e.metadata?.total as number) || (e.metadata?.amount as number) || 0 : null,
         paymentMethod: (e.metadata?.paymentMethod as string) || null,
         cardBrand: (e.metadata?.cardBrand as string) || null,
+        isPortabilidad: (e.metadata?.tags as string[] | undefined)?.includes('portabilidad') ?? false,
+        photos: (e.metadata?.photos as string[]) || [],
         timestamp: e.timestamp,
       }))
   }, [activityFeed])
@@ -917,6 +923,7 @@ export function SupervisorDashboard() {
                 <th className="px-6 py-3">{t('playtelecom:supervisor.store', { defaultValue: 'Tienda' })}</th>
                 <th className="px-6 py-3">ICCID / Producto</th>
                 <th className="px-6 py-3">Tipo SIM</th>
+                <th className="px-6 py-3 text-center">Evidencia</th>
                 <th className="px-6 py-3">{t('playtelecom:supervisor.seller', { defaultValue: 'Vendedor' })}</th>
                 <th className="px-6 py-3 text-right">{t('playtelecom:supervisor.amount', { defaultValue: 'Monto' })}</th>
               </tr>
@@ -924,7 +931,7 @@ export function SupervisorDashboard() {
             <tbody className="divide-y divide-border/30">
               {transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">
                     <Receipt className="w-8 h-8 mx-auto mb-2 opacity-40" />
                     <p className="text-sm">
                       {t('playtelecom:supervisor.noTransactions', { defaultValue: 'Sin transacciones en este periodo' })}
@@ -968,10 +975,39 @@ export function SupervisorDashboard() {
                         <span className="text-muted-foreground">-</span>
                       )}
                     </td>
+                    <td className="px-6 py-3 text-center">
+                      {tx.photos.length > 0 ? (
+                        <button
+                          onClick={() => {
+                            setSalePhotos(tx.photos)
+                            setSalePhotoIndex(0)
+                          }}
+                          className="relative group inline-block cursor-pointer"
+                        >
+                          <img
+                            src={tx.photos[0]}
+                            alt="Evidencia"
+                            className="h-10 w-16 object-cover rounded border border-border shadow-sm transition-all group-hover:shadow-md group-hover:scale-105"
+                          />
+                          {tx.photos.length > 1 && (
+                            <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                              +{tx.photos.length - 1}
+                            </span>
+                          )}
+                        </button>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </td>
                     <td className="px-6 py-3 text-muted-foreground">{tx.seller}</td>
                     <td className="px-6 py-3 text-right font-bold font-mono">
                       {tx.amount != null ? (
                         <div className="flex items-center justify-end gap-2">
+                          {tx.isPortabilidad && (
+                            <span className="px-2 py-0.5 rounded text-[9px] font-black border bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700">
+                              Portabilidad
+                            </span>
+                          )}
                           {tx.paymentMethod === 'CASH' ? (
                             <Banknote className="w-4 h-4 text-green-400 shrink-0" />
                           ) : tx.cardBrand ? (
@@ -1043,6 +1079,54 @@ export function SupervisorDashboard() {
                   Cerrar
                 </Button>
               </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Sale Photo Preview Dialog */}
+      <Dialog open={!!salePhotos} onOpenChange={() => setSalePhotos(null)}>
+        <DialogContent className="max-w-lg p-0 overflow-hidden">
+          {salePhotos && (
+            <>
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-card">
+                <Image className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-sm">
+                  Evidencia de venta
+                  {salePhotos.length > 1 && (
+                    <span className="text-muted-foreground font-normal ml-1">
+                      ({salePhotoIndex + 1} / {salePhotos.length})
+                    </span>
+                  )}
+                </h3>
+              </div>
+              <div className="p-4 flex justify-center bg-background">
+                <img
+                  src={salePhotos[salePhotoIndex]}
+                  alt="Evidencia de venta"
+                  className="max-h-[400px] w-auto object-contain rounded-lg border border-border shadow-lg"
+                />
+              </div>
+              {salePhotos.length > 1 && (
+                <div className="flex justify-center gap-2 px-4 pb-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={salePhotoIndex === 0}
+                    onClick={() => setSalePhotoIndex(i => i - 1)}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={salePhotoIndex >= salePhotos.length - 1}
+                    onClick={() => setSalePhotoIndex(i => i + 1)}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </DialogContent>
