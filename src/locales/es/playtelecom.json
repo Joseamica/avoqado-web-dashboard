@@ -321,8 +321,37 @@
     "noActivity": "Sin actividad registrada"
   },
   "tpvConfig": {
-    "title": "Configuración TPV",
-    "subtitle": "Administra categorías y precios",
+    "title": "Configuración",
+    "subtitle": "Administra metas, comisiones, terminal y catálogo",
+    "pageTitle": "Configuración",
+    "pageSubtitle": "Administra metas, comisiones, terminal y catálogo",
+    "tabs": {
+      "general": "General",
+      "metas": "Metas",
+      "tpv": "TPV",
+      "categorias": "Categorías",
+      "mensajes": "Mensajes"
+    },
+    "summary": {
+      "title": "Resumen de configuración",
+      "modules": "Módulos TPV",
+      "modulesActive": "{{count}} activos",
+      "modulesOf": "de {{total}}",
+      "categories": "Categorías",
+      "categoriesActive": "{{count}} activas",
+      "categoriesTotal": "{{total}} total",
+      "messages": "Mensajes",
+      "messagesCount": "{{count}} enviados",
+      "goals": "Metas",
+      "goalsConfigured": "{{count}} tiendas con meta",
+      "goalsTotal": "de {{total}} tiendas",
+      "viewDetails": "Ver detalles"
+    },
+    "venueGoals": {
+      "title": "Metas por Tienda",
+      "description": "Metas personalizadas por tienda. Las tiendas sin meta propia heredan la meta de organización.",
+      "empty": "No hay tiendas registradas"
+    },
     "totalCategories": "Total Categorías",
     "activeCategories": "Categorías Activas",
     "avgMargin": "Margen Promedio",

@@ -114,15 +114,15 @@ export default function OrgGoalConfigSection() {
 
   return (
     <>
-      <GlassCard className="p-5 border-purple-500/20 bg-purple-500/5">
+      <GlassCard className="p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-purple-500" />
+            <Building2 className="w-4 h-4 text-primary" />
             <h4 className="text-xs font-bold text-muted-foreground uppercase">
               {t('playtelecom:supervisor.orgGoals.title')}
             </h4>
           </div>
-          <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-purple-500 hover:text-purple-400 hover:bg-purple-500/10" onClick={handleOpenCreate}>
+          <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-primary hover:text-primary/80 hover:bg-primary/10" onClick={handleOpenCreate}>
             <Plus className="w-3 h-3 mr-1" />
             {t('playtelecom:supervisor.goalDialog.createGoal')}
           </Button>
@@ -140,7 +140,7 @@ export default function OrgGoalConfigSection() {
             {activeGoals.map(goal => (
               <div key={goal.id} className="flex items-center justify-between rounded-lg bg-background/50 px-3 py-2 border border-border/50">
                 <div className="flex items-center gap-3">
-                  <Badge variant="outline" className="text-[10px] border-purple-500/30 text-purple-500">
+                  <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
                     {t('playtelecom:supervisor.orgGoals.source.organization')}
                   </Badge>
                   <span className="text-sm font-bold">{formatGoalValue(goal)}</span>

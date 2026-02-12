@@ -321,8 +321,37 @@
     "noActivity": "No activity recorded"
   },
   "tpvConfig": {
-    "title": "TPV Configuration",
-    "subtitle": "Manage categories and pricing",
+    "title": "Configuration",
+    "subtitle": "Manage goals, commissions, terminal and catalog",
+    "pageTitle": "Configuration",
+    "pageSubtitle": "Manage goals, commissions, terminal and catalog",
+    "tabs": {
+      "general": "General",
+      "metas": "Goals",
+      "tpv": "TPV",
+      "categorias": "Categories",
+      "mensajes": "Messages"
+    },
+    "summary": {
+      "title": "Configuration Summary",
+      "modules": "TPV Modules",
+      "modulesActive": "{{count}} active",
+      "modulesOf": "of {{total}}",
+      "categories": "Categories",
+      "categoriesActive": "{{count}} active",
+      "categoriesTotal": "{{total}} total",
+      "messages": "Messages",
+      "messagesCount": "{{count}} sent",
+      "goals": "Goals",
+      "goalsConfigured": "{{count}} stores with goals",
+      "goalsTotal": "of {{total}} stores",
+      "viewDetails": "View details"
+    },
+    "venueGoals": {
+      "title": "Goals per Store",
+      "description": "Custom goals per store. Stores without a custom goal inherit the organization goal.",
+      "empty": "No stores registered"
+    },
     "totalCategories": "Total Categories",
     "activeCategories": "Active Categories",
     "avgMargin": "Average Margin",

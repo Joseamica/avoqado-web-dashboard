@@ -302,8 +302,37 @@
     "noActivity": "Aucune activité enregistrée"
   },
   "tpvConfig": {
-    "title": "Configuration TPV",
-    "subtitle": "Gérer catégories et prix",
+    "title": "Configuration",
+    "subtitle": "Gérer objectifs, commissions, terminal et catalogue",
+    "pageTitle": "Configuration",
+    "pageSubtitle": "Gérer objectifs, commissions, terminal et catalogue",
+    "tabs": {
+      "general": "Général",
+      "metas": "Objectifs",
+      "tpv": "TPV",
+      "categorias": "Catégories",
+      "mensajes": "Messages"
+    },
+    "summary": {
+      "title": "Résumé de configuration",
+      "modules": "Modules TPV",
+      "modulesActive": "{{count}} actifs",
+      "modulesOf": "de {{total}}",
+      "categories": "Catégories",
+      "categoriesActive": "{{count}} actives",
+      "categoriesTotal": "{{total}} au total",
+      "messages": "Messages",
+      "messagesCount": "{{count}} envoyés",
+      "goals": "Objectifs",
+      "goalsConfigured": "{{count}} magasins avec objectif",
+      "goalsTotal": "de {{total}} magasins",
+      "viewDetails": "Voir détails"
+    },
+    "venueGoals": {
+      "title": "Objectifs par Magasin",
+      "description": "Objectifs personnalisés par magasin. Les magasins sans objectif propre héritent de l'objectif de l'organisation.",
+      "empty": "Aucun magasin enregistré"
+    },
     "totalCategories": "Total Catégories",
     "activeCategories": "Catégories Actives",
     "avgMargin": "Marge Moyenne",
