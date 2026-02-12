@@ -22,9 +22,11 @@ export interface GoalProgress {
   color: string
   hasGoal: boolean
   goalId?: string | null
+  goalType?: 'AMOUNT' | 'QUANTITY'
   goalAmount: number
   goalPeriod?: 'DAILY' | 'WEEKLY' | 'MONTHLY'
   amount: number
+  unitsSold?: number
 }
 
 export interface DailySales {
@@ -39,7 +41,7 @@ interface ManagerChartsProps {
   dailySales: DailySales[]
   formatCurrency?: (value: number) => string
   onCreateGoal?: () => void
-  onEditGoal?: (storeId: string, goalId?: string | null, goalAmount?: number, goalPeriod?: 'DAILY' | 'WEEKLY' | 'MONTHLY') => void
+  onEditGoal?: (storeId: string, goalId?: string | null, goalAmount?: number, goalType?: 'AMOUNT' | 'QUANTITY', goalPeriod?: 'DAILY' | 'WEEKLY' | 'MONTHLY') => void
 }
 
 export function ManagerCharts({ salesBySIM, goals, dailySales, formatCurrency, onCreateGoal, onEditGoal }: ManagerChartsProps) {
@@ -117,7 +119,7 @@ export function ManagerCharts({ salesBySIM, goals, dailySales, formatCurrency, o
                     <button
                       type="button"
                       className="flex items-center gap-1 shrink-0 cursor-pointer group/edit"
-                      onClick={() => onEditGoal?.(goal.id, goal.goalId, goal.goalAmount, goal.goalPeriod)}
+                      onClick={() => onEditGoal?.(goal.id, goal.goalId, goal.goalAmount, goal.goalType, goal.goalPeriod)}
                     >
                       <span className={cn(
                         'font-bold group-hover/goal:hidden',
@@ -126,7 +128,9 @@ export function ManagerCharts({ salesBySIM, goals, dailySales, formatCurrency, o
                         {goal.percent}%
                       </span>
                       <span className="hidden group-hover/goal:inline text-[10px] font-bold text-foreground">
-                        {fmt(goal.amount)} / {fmt(goal.goalAmount)}
+                        {goal.goalType === 'QUANTITY'
+                          ? `${goal.unitsSold ?? 0} / ${goal.goalAmount} ventas`
+                          : `${fmt(goal.amount)} / ${fmt(goal.goalAmount)}`}
                       </span>
                       <Pencil className="w-3 h-3 text-muted-foreground/50" />
                     </button>
@@ -140,7 +144,7 @@ export function ManagerCharts({ salesBySIM, goals, dailySales, formatCurrency, o
                         {t('managers.charts.noGoal', { defaultValue: 'Sin meta' })}
                       </span>
                       <span className="hidden group-hover/goal:inline text-[10px] font-bold text-foreground">
-                        {fmt(goal.amount)}
+                        {goal.goalType === 'QUANTITY' ? `${goal.unitsSold ?? 0} ventas` : fmt(goal.amount)}
                       </span>
                       <Pencil className="w-3 h-3 text-muted-foreground/50" />
                     </button>
