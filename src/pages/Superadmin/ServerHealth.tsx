@@ -49,7 +49,7 @@ function getGaugeColor(pct: number): 'green' | 'blue' | 'orange' | 'red' {
   return 'red'
 }
 
-function getOverallHealth(current: MetricsSnapshot, alerts: ServerMetricsAlert[]): {
+function getOverallHealth(alerts: ServerMetricsAlert[]): {
   status: 'success' | 'warning' | 'error'
   label: string
 } {
@@ -97,8 +97,8 @@ export default function ServerHealth() {
   const alerts = data?.alerts ?? []
 
   const health = useMemo(
-    () => (current ? getOverallHealth(current, alerts) : null),
-    [current, alerts],
+    () => (alerts ? getOverallHealth(alerts) : null),
+    [alerts],
   )
 
   // Prepare chart data from history
@@ -106,17 +106,17 @@ export default function ServerHealth() {
     () =>
       history.map((s) => ({
         time: formatTime(s.timestamp),
-        rss: Math.round(s.memory.rss / 1024 / 1024),
-        heapUsed: Math.round(s.memory.heapUsed / 1024 / 1024),
-        cpu: s.cpu.percentEstimate,
+        rss: s.memory.rssMb,
+        heapUsed: s.memory.heapUsedMb,
+        cpu: s.cpu.percent,
         lag: s.eventLoop.lagMs,
       })),
     [history],
   )
 
-  const memoryLimitMb = current?.limits.memoryLimitMb ?? 512
-  const memoryPct = current ? (current.memory.rss / 1024 / 1024 / memoryLimitMb) * 100 : 0
-  const cpuPct = current?.cpu.percentEstimate ?? 0
+  const memoryLimitMb = current?.memory.limitMb ?? 512
+  const memoryPct = current?.memory.rssPercent ?? 0
+  const cpuPct = current?.cpu.percent ?? 0
 
   if (isLoading) {
     return (
@@ -180,7 +180,7 @@ export default function ServerHealth() {
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Memory Gauge */}
+        {/* Memory Gauge (RSS vs container limit) */}
         <Card>
           <CardContent className="flex flex-col items-center pt-6">
             <GaugeChart
@@ -191,12 +191,12 @@ export default function ServerHealth() {
               colorScheme={getGaugeColor(memoryPct)}
             />
             <p className="mt-2 text-sm text-muted-foreground">
-              {current ? formatBytes(current.memory.rss) : '—'} / {memoryLimitMb} MB
+              {current ? `${current.memory.rssMb} MB` : '—'} / {memoryLimitMb} MB
             </p>
           </CardContent>
         </Card>
 
-        {/* CPU Gauge */}
+        {/* CPU Gauge (% relative to container limit) */}
         <Card>
           <CardContent className="flex flex-col items-center pt-6">
             <GaugeChart
@@ -207,7 +207,7 @@ export default function ServerHealth() {
               colorScheme={getGaugeColor(cpuPct)}
             />
             <p className="mt-2 text-sm text-muted-foreground">
-              {current ? `${current.os.cpus} cores` : '—'}
+              {current ? `Límite: ${current.cpu.limitCores} cores` : '—'}
             </p>
           </CardContent>
         </Card>
@@ -231,7 +231,9 @@ export default function ServerHealth() {
               {current?.eventLoop.lagMs.toFixed(1) ?? '—'}
               <span className="ml-1 text-lg font-normal text-muted-foreground">ms</span>
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">Umbral: 100ms</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              p99: {current?.eventLoop.lagP99Ms.toFixed(1) ?? '—'}ms
+            </p>
           </CardContent>
         </Card>
 
@@ -243,7 +245,7 @@ export default function ServerHealth() {
               <span className="text-sm font-medium text-muted-foreground">Conexiones</span>
             </div>
             <p className="mt-3 text-4xl font-bold text-foreground">
-              {current?.requests.activeConnections ?? '—'}
+              {current?.connections.active ?? '—'}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">Conexiones HTTP activas</p>
           </CardContent>
@@ -302,7 +304,7 @@ export default function ServerHealth() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <Cpu className="h-4 w-4" />
-                CPU (%)
+                CPU (% del límite)
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -407,21 +409,29 @@ export default function ServerHealth() {
         </Card>
       )}
 
-      {/* System Info (collapsed details) */}
+      {/* System Info */}
       {current && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Información del Sistema</CardTitle>
+            <CardTitle className="text-base">Información del Proceso</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 lg:grid-cols-4">
               <div>
-                <p className="text-muted-foreground">Heap Total</p>
-                <p className="font-medium">{formatBytes(current.memory.heapTotal)}</p>
+                <p className="text-muted-foreground">RSS</p>
+                <p className="font-medium">{current.memory.rssMb} MB ({current.memory.rssPercent}%)</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Límite Memoria</p>
+                <p className="font-medium">{current.memory.limitMb} MB</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Heap Usado</p>
-                <p className="font-medium">{formatBytes(current.memory.heapUsed)}</p>
+                <p className="font-medium">{current.memory.heapUsedMb} MB</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Heap Total (V8)</p>
+                <p className="font-medium">{formatBytes(current.memory.heapTotal)}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">External</p>
@@ -432,20 +442,12 @@ export default function ServerHealth() {
                 <p className="font-medium">{formatBytes(current.memory.arrayBuffers)}</p>
               </div>
               <div>
-                <p className="text-muted-foreground">OS Total Memory</p>
-                <p className="font-medium">{formatBytes(current.os.totalMemory)}</p>
+                <p className="text-muted-foreground">CPU Límite</p>
+                <p className="font-medium">{current.cpu.limitCores} cores</p>
               </div>
               <div>
-                <p className="text-muted-foreground">OS Free Memory</p>
-                <p className="font-medium">{formatBytes(current.os.freeMemory)}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Load Average (1m)</p>
-                <p className="font-medium">{current.os.loadAvg[0]?.toFixed(2)}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">CPU Cores</p>
-                <p className="font-medium">{current.os.cpus}</p>
+                <p className="text-muted-foreground">Event Loop Max</p>
+                <p className="font-medium">{current.eventLoop.lagMaxMs.toFixed(1)} ms</p>
               </div>
             </div>
           </CardContent>

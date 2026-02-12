@@ -530,36 +530,31 @@ export interface MetricsSnapshot {
   uptime: number
   memory: {
     rss: number
-    heapTotal: number
+    rssMb: number
     heapUsed: number
+    heapTotal: number
+    heapUsedMb: number
     external: number
     arrayBuffers: number
+    rssPercent: number
+    limitMb: number
   }
   cpu: {
-    user: number
-    system: number
-    percentEstimate: number
-  }
-  os: {
-    loadAvg: number[]
-    totalMemory: number
-    freeMemory: number
-    cpus: number
+    percent: number
+    limitCores: number
   }
   eventLoop: {
     lagMs: number
+    lagP99Ms: number
+    lagMaxMs: number
   }
-  requests: {
-    activeConnections: number
-  }
-  limits: {
-    memoryLimitMb: number
-    cpuLimit: number
+  connections: {
+    active: number
   }
 }
 
 export interface ServerMetricsAlert {
-  type: 'memory' | 'heap' | 'eventLoop' | 'cpu'
+  type: 'memory' | 'eventLoop' | 'cpu'
   severity: 'warning' | 'critical'
   message: string
   value: number
