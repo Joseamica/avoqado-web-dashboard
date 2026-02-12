@@ -318,6 +318,29 @@
     "addCategory": "Nouvelle Catégorie",
     "preview": "Aperçu TPV"
   },
+  "categoryItems": {
+    "items": "Articles",
+    "searchPlaceholder": "Rechercher par numéro de série...",
+    "status": "Statut",
+    "statusFilter": "Filtrer par statut",
+    "serialNumber": "Numéro de Série",
+    "createdAt": "Date d'enregistrement",
+    "soldAt": "Date de vente",
+    "registeredBy": "Enregistré par",
+    "noItems": "Aucun article dans cette catégorie",
+    "noItemsFiltered": "Aucun article ne correspond aux filtres sélectionnés",
+    "page": "Page",
+    "of": "de",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "showing": "Affichage {{from}}-{{to}} de {{total}}",
+    "statuses": {
+      "AVAILABLE": "Disponible",
+      "SOLD": "Vendu",
+      "RETURNED": "Retourné",
+      "DAMAGED": "Endommagé"
+    }
+  },
   "common": {
     "active": "Actif",
     "inactive": "Inactif",

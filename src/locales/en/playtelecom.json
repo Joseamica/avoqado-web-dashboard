@@ -358,6 +358,29 @@
       "createGoal": "Create Goal"
     }
   },
+  "categoryItems": {
+    "items": "Items",
+    "searchPlaceholder": "Search by serial number...",
+    "status": "Status",
+    "statusFilter": "Filter by status",
+    "serialNumber": "Serial Number",
+    "createdAt": "Registered",
+    "soldAt": "Sold Date",
+    "registeredBy": "Registered by",
+    "noItems": "No items in this category",
+    "noItemsFiltered": "No items match the selected filters",
+    "page": "Page",
+    "of": "of",
+    "previous": "Previous",
+    "next": "Next",
+    "showing": "Showing {{from}}-{{to}} of {{total}}",
+    "statuses": {
+      "AVAILABLE": "Available",
+      "SOLD": "Sold",
+      "RETURNED": "Returned",
+      "DAMAGED": "Damaged"
+    }
+  },
   "common": {
     "active": "Active",
     "inactive": "Inactive",

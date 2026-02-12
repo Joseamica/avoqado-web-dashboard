@@ -23,6 +23,7 @@ import {
   CategoryEditor,
   PhonePreview,
   TerminalManagement,
+  MessagesSection,
   type ModuleToggleState,
 } from './components'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
@@ -185,6 +186,7 @@ export function TpvConfiguration() {
             <ModuleToggles values={modules} onChange={handleModuleChange} />
             <CategoryEditor />
             <TerminalManagement />
+            <MessagesSection />
           </div>
 
           {/* Right: Phone preview */}
