@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useServerMetrics } from '@/hooks/use-superadmin-queries'
-import type { MetricsSnapshot, ServerMetricsAlert } from '@/services/superadmin.service'
+import type { ServerMetricsAlert } from '@/services/superadmin.service'
 import { GaugeChart } from '@/components/playtelecom/GaugeChart'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card'
