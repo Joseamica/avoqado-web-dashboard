@@ -20,7 +20,7 @@ export const useCurrentVenue = (): UseCurrentVenueReturn => {
   const params = useParams<{ slug?: string; venueSlug?: string }>()
   const location = useLocation()
   const venueSlugParam = params.venueSlug ?? params.slug ?? null
-  const { activeVenue, getVenueBySlug, checkVenueAccess, isAuthenticated } = useAuth()
+  const { activeVenue, getVenueBySlug, checkVenueAccess, isAuthenticated, isLoading: isAuthLoading } = useAuth()
 
   // URL slug takes priority to avoid stale venue context when path and activeVenue diverge.
   const venue = venueSlugParam ? getVenueBySlug(venueSlugParam) : activeVenue
@@ -38,11 +38,16 @@ export const useCurrentVenue = (): UseCurrentVenueReturn => {
   const slug = venue?.slug || venueSlugParam || activeVenue?.slug || null
   const fullBasePath = slug ? `${venueBasePath}/${slug}` : venueBasePath
 
+  // Loading when: we have a slug AND either auth is still loading OR venue access confirmed but object not resolved.
+  // The isAuthLoading check prevents the "Access Denied" flash on hard refresh — during optimistic auth render,
+  // user.venues hasn't been populated yet so checkVenueAccess returns false prematurely.
+  const isLoading = !!venueSlugParam && (isAuthLoading || (isAuthenticated && !venue && hasVenueAccess))
+
   return {
     venue,
     venueId: venue?.id || null,
     venueSlug: slug,
-    isLoading: !!venueSlugParam && isAuthenticated && !venue && hasVenueAccess,
+    isLoading,
     hasVenueAccess,
     isWhiteLabelMode,
     venueBasePath,

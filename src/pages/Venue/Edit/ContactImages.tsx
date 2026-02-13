@@ -23,7 +23,7 @@ import { useVenueEditActions } from '../VenueEditLayout'
 import Cropper from 'react-easy-crop'
 import { storage, buildStoragePath } from '@/firebase'
 import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage'
-import { getCroppedImgWithRotation } from '@/utils/cropImage'
+import { getCroppedImgWithRotation, analyzeImageContrast } from '@/utils/cropImage'
 
 const contactImagesFormSchema = z.object({
   phone: z.string().min(1, { message: 'El teléfono es requerido.' }),
@@ -192,6 +192,23 @@ export default function ContactImages() {
     if (!imageForCrop || !croppedAreaPixels || !venueId) return
     try {
       const croppedImage = await getCroppedImgWithRotation(imageForCrop, croppedAreaPixels, rotation)
+
+      // Warn if image is almost entirely white or black (e.g. transparent PNG → white bg)
+      const contrast = await analyzeImageContrast(croppedImage)
+      if (contrast === 'too-white') {
+        toast({
+          title: 'Logo casi invisible',
+          description: 'La imagen es casi toda blanca. Si tu logo tiene fondo transparente, usa una versión con texto oscuro para que se vea en los tickets.',
+          variant: 'destructive',
+        })
+      } else if (contrast === 'too-dark') {
+        toast({
+          title: 'Logo muy oscuro',
+          description: 'La imagen es casi toda negra. Verifica que el logo se vea correctamente antes de usarlo en tickets.',
+          variant: 'destructive',
+        })
+      }
+
       const blob = await fetch(croppedImage).then(r => r.blob())
 
       const fileName = `cropped_${Date.now()}.jpg`

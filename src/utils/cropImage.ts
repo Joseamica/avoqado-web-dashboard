@@ -1,3 +1,32 @@
+/**
+ * Analyzes a cropped image to detect if it's almost entirely white or black.
+ * Useful to warn users when a logo with transparency results in an invisible image.
+ * Returns 'too-white' | 'too-dark' | 'ok'
+ */
+export async function analyzeImageContrast(blobUrl: string): Promise<'too-white' | 'too-dark' | 'ok'> {
+  const img = await createImage(blobUrl)
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')!
+  canvas.width = img.width
+  canvas.height = img.height
+  ctx.drawImage(img, 0, 0)
+
+  const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height)
+  const totalPixels = canvas.width * canvas.height
+  let whiteCount = 0
+  let blackCount = 0
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i], g = data[i + 1], b = data[i + 2]
+    if (r > 240 && g > 240 && b > 240) whiteCount++
+    if (r < 15 && g < 15 && b < 15) blackCount++
+  }
+
+  if (whiteCount / totalPixels > 0.97) return 'too-white'
+  if (blackCount / totalPixels > 0.97) return 'too-dark'
+  return 'ok'
+}
+
 const createImage = (url: string) =>
   new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image()
