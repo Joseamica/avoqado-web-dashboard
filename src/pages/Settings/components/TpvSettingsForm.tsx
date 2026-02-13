@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
@@ -20,6 +21,8 @@ import {
   CreditCard,
   UtensilsCrossed,
   Bitcoin,
+  Plus,
+  X,
 } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -28,6 +31,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
@@ -112,10 +118,33 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
     updateMutation.mutate({ [field]: value })
   }
 
+  const [newTipValue, setNewTipValue] = useState('')
+
   const handleSelectChange = (value: string) => {
     if (!canUpdate) return
     const tipValue = value === 'none' ? null : parseInt(value, 10)
     updateMutation.mutate({ defaultTipPercentage: tipValue })
+  }
+
+  const handleAddTipOption = () => {
+    if (!canUpdate || !settings) return
+    const num = parseInt(newTipValue, 10)
+    if (isNaN(num) || num < 1 || num > 100) return
+    const current = settings.tipSuggestions || [10, 15, 20]
+    if (current.includes(num)) return
+    const updated = [...current, num].sort((a, b) => a - b)
+    updateMutation.mutate({ tipSuggestions: updated })
+    setNewTipValue('')
+  }
+
+  const handleRemoveTipOption = (value: number) => {
+    if (!canUpdate || !settings) return
+    const current = settings.tipSuggestions || [10, 15, 20]
+    const updated = current.filter(v => v !== value)
+    if (updated.length === 0) return // Don't allow empty
+    // If the removed value was the default tip, clear it
+    const resetDefault = settings.defaultTipPercentage === value ? { defaultTipPercentage: null } : {}
+    updateMutation.mutate({ tipSuggestions: updated, ...resetDefault })
   }
 
   const handleKioskMerchantChange = (value: string) => {
@@ -231,32 +260,98 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
                 onCheckedChange={checked => handleToggle('showCryptoOption', checked)}
               />
               {settings.showTipScreen && (
-                <div className="flex items-center justify-between py-3">
-                  <div className="flex items-start gap-3">
-                    <Percent className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div>
-                      <Label className="text-sm font-medium">{t('tpvSettings.defaultTipPercentage')}</Label>
-                      <p className="text-xs text-muted-foreground mt-0.5">{t('tpvSettings.defaultTipPercentageDesc')}</p>
+                <>
+                  {/* Tip suggestions editor */}
+                  <div className="py-3">
+                    <div className="flex items-start gap-3">
+                      <Percent className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div className="flex-1">
+                        <Label className="text-sm font-medium">{t('tpvSettings.tipSuggestionsLabel')}</Label>
+                        <p className="text-xs text-muted-foreground mt-0.5">{t('tpvSettings.tipSuggestionsDesc')}</p>
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {tipOptions.map(tip => (
+                            <Badge
+                              key={tip}
+                              variant="secondary"
+                              className="text-sm px-3 py-1 gap-1.5"
+                            >
+                              {tip}%
+                              {canUpdate && tipOptions.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveTipOption(tip)}
+                                  disabled={updateMutation.isPending}
+                                  className="ml-0.5 hover:text-destructive transition-colors disabled:opacity-50"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              )}
+                            </Badge>
+                          ))}
+                        </div>
+                        {canUpdate && (
+                          <div className="flex items-center gap-2 mt-3">
+                            <Input
+                              type="number"
+                              min={1}
+                              max={100}
+                              placeholder={t('tpvSettings.tipPlaceholder')}
+                              value={newTipValue}
+                              onChange={e => setNewTipValue(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  handleAddTipOption()
+                                }
+                              }}
+                              className="w-24 h-8 text-sm"
+                              disabled={updateMutation.isPending}
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={handleAddTipOption}
+                              disabled={!newTipValue || updateMutation.isPending}
+                              className="h-8"
+                            >
+                              <Plus className="h-3.5 w-3.5 mr-1" />
+                              {t('tpvSettings.addTipOption')}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <Select
-                    value={settings.defaultTipPercentage?.toString() ?? 'none'}
-                    onValueChange={handleSelectChange}
-                    disabled={!canUpdate || updateMutation.isPending}
-                  >
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">{t('tpvSettings.noDefaultTip')}</SelectItem>
-                      {tipOptions.map(tip => (
-                        <SelectItem key={tip} value={tip.toString()}>
-                          {tip}%
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+
+                  {/* Default tip percentage selector */}
+                  <div className="flex items-center justify-between py-3">
+                    <div className="flex items-start gap-3">
+                      <Percent className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div>
+                        <Label className="text-sm font-medium">{t('tpvSettings.defaultTipPercentage')}</Label>
+                        <p className="text-xs text-muted-foreground mt-0.5">{t('tpvSettings.defaultTipPercentageDesc')}</p>
+                      </div>
+                    </div>
+                    <Select
+                      value={settings.defaultTipPercentage?.toString() ?? 'none'}
+                      onValueChange={handleSelectChange}
+                      disabled={!canUpdate || updateMutation.isPending}
+                    >
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">{t('tpvSettings.noDefaultTip')}</SelectItem>
+                        {tipOptions.map(tip => (
+                          <SelectItem key={tip} value={tip.toString()}>
+                            {tip}%
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
               )}
             </div>
           </CollapsibleContent>

@@ -46,7 +46,7 @@
           document.documentElement.setAttribute('data-env', 'production')
         }
 
-        favicon.href = isSuperadminRoute ? '/favicon-superadmin.svg' : baseFaviconHref
+        favicon.href = (isSuperadminRoute && (isLocal || isStaging)) ? '/favicon-superadmin.svg' : baseFaviconHref
       })()
     </script>
   </head>

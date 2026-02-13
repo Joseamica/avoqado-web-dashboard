@@ -33,6 +33,11 @@ export const getCroppedImg = async (imageSrc: string, croppedAreaPixels: any): P
   canvas.width = croppedAreaPixels.width
   canvas.height = croppedAreaPixels.height
 
+  // Fill with white background before drawing — JPEG doesn't support transparency,
+  // so transparent PNG pixels would become black without this
+  ctx.fillStyle = '#FFFFFF'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+
   ctx.drawImage(
     image,
     croppedAreaPixels.x,
@@ -103,6 +108,11 @@ export const getCroppedImgWithRotation = async (
   // Set the size of the cropped canvas
   croppedCanvas.width = pixelCrop.width
   croppedCanvas.height = pixelCrop.height
+
+  // Fill with white background before drawing — JPEG doesn't support transparency,
+  // so transparent PNG pixels would become black without this
+  croppedCtx.fillStyle = '#FFFFFF'
+  croppedCtx.fillRect(0, 0, croppedCanvas.width, croppedCanvas.height)
 
   // Draw the cropped portion
   croppedCtx.drawImage(
