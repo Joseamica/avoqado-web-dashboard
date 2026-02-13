@@ -787,7 +787,7 @@ export default function BasicInfo() {
                       control={form.control}
                       name="enableShifts"
                       render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg p-4 shadow-sm">
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-card p-4 shadow-sm">
                           <div className="space-y-0.5">
                             <FormLabel className="text-base cursor-pointer">Sistema de Turnos</FormLabel>
                             <FormDescription>
@@ -817,7 +817,7 @@ export default function BasicInfo() {
                       control={form.control}
                       name="requireClockInPhoto"
                       render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg p-4 shadow-sm">
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-card p-4 shadow-sm">
                           <div className="space-y-0.5">
                             <FormLabel className="text-base cursor-pointer">Foto de Entrada (Anti-fraude)</FormLabel>
                             <FormDescription>
@@ -853,7 +853,7 @@ export default function BasicInfo() {
                   </p>
                   <div className="space-y-3">
                     {/* Fixed-time auto clock-out */}
-                    <div className="rounded-lg p-4 shadow-sm space-y-3">
+                    <div className="rounded-lg border bg-card p-4 shadow-sm space-y-3">
                       <div className="flex flex-row items-center justify-between">
                         <div className="space-y-0.5">
                           <FormLabel className="text-base cursor-pointer">Cierre por Hora Fija</FormLabel>
@@ -900,7 +900,7 @@ export default function BasicInfo() {
                     </div>
 
                     {/* Max shift duration */}
-                    <div className="rounded-lg p-4 shadow-sm space-y-3">
+                    <div className="rounded-lg border bg-card p-4 shadow-sm space-y-3">
                       <div className="flex flex-row items-center justify-between">
                         <div className="space-y-0.5">
                           <FormLabel className="text-base cursor-pointer">Duración Máxima de Turno</FormLabel>
