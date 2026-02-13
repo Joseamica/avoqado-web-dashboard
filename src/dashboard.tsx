@@ -251,7 +251,7 @@ function DashboardContent() {
             {user?.role === StaffRole.SUPERADMIN && (
               <Button variant="outline" size="sm" onClick={() => navigate('/superadmin')} className="flex items-center space-x-2">
                 <Shield className="w-4 h-4" />
-                <span>{t('header.superadmin')}</span>
+                <span>{t('header.superadmin', { ns: 'superadmin' })}</span>
                 <ArrowLeft className="w-3 h-3" />
               </Button>
             )}
