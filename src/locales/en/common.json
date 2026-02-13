@@ -515,5 +515,12 @@
     "logout": "Log out",
     "logoutSuccess": "Logged out",
     "logoutSuccessDesc": "You have been logged out successfully"
+  },
+  "dashboardShell": {
+    "loadingVenue": "Loading venue...",
+    "restoringAccess": "Restoring access...",
+    "accessDenied": "Access Denied",
+    "processingChange": "Processing venue change...",
+    "noPermission": "You do not have permission to access this venue."
   }
 }

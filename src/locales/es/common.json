@@ -515,5 +515,12 @@
     "logout": "Cerrar sesión",
     "logoutSuccess": "Sesión cerrada",
     "logoutSuccessDesc": "Has cerrado sesión correctamente"
+  },
+  "dashboardShell": {
+    "loadingVenue": "Cargando sucursal...",
+    "restoringAccess": "Restaurando acceso...",
+    "accessDenied": "Acceso Denegado",
+    "processingChange": "Procesando cambio de sucursal...",
+    "noPermission": "No tienes permisos para acceder a esta sucursal."
   }
 }
