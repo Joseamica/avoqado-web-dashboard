@@ -2,13 +2,15 @@ const DEFAULT_FAVICON = '/favicon.ico'
 const DEVELOPMENT_FAVICON = '/favicon-development.svg'
 const STAGING_FAVICON = '/favicon-staging.svg'
 const SUPERADMIN_FAVICON = '/favicon-superadmin.svg'
+const SUPERADMIN_PRODUCTION_FAVICON = '/favicon-superadmin-production.svg'
+
+const getEnv = (): string | null => {
+  if (typeof document === 'undefined') return null
+  return document.documentElement.getAttribute('data-env')
+}
 
 export const getEnvironmentFaviconHref = (): string => {
-  if (typeof document === 'undefined') {
-    return DEFAULT_FAVICON
-  }
-
-  const env = document.documentElement.getAttribute('data-env')
+  const env = getEnv()
 
   if (env === 'development') return DEVELOPMENT_FAVICON
   if (env === 'staging') return STAGING_FAVICON
@@ -18,7 +20,10 @@ export const getEnvironmentFaviconHref = (): string => {
 
 export const resolveFaviconHref = (pathname: string): string => {
   if (pathname.startsWith('/superadmin')) {
-    return SUPERADMIN_FAVICON
+    const env = getEnv()
+    // Green in production, amber-pink in dev/staging
+    if (env === 'development' || env === 'staging') return SUPERADMIN_FAVICON
+    return SUPERADMIN_PRODUCTION_FAVICON
   }
 
   return getEnvironmentFaviconHref()
