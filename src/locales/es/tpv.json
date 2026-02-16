@@ -38,13 +38,36 @@
   "search": {
     "placeholder": "Buscar terminales..."
   },
+  "filter": {
+    "connection": "Conexión",
+    "activation": "Activación",
+    "status": "Estado",
+    "version": "Versión",
+    "online": "En línea",
+    "offline": "Sin conexión",
+    "activated": "Activado",
+    "notActivated": "Sin activar",
+    "active": "Activo",
+    "pending": "Pendiente",
+    "maintenance": "Mantenimiento",
+    "inactive": "Inactivo",
+    "retired": "Retirado",
+    "reset": "Borrar filtros",
+    "nSelected": "{{count}} seleccionados",
+    "noVersion": "Sin versión",
+    "justNow": "Ahora",
+    "never": "Nunca"
+  },
   "table": {
     "columns": {
       "name": "Nombre",
       "status": "Estado",
       "serial": "Número de serie",
       "version": "Versión",
-      "actions": "Acciones"
+      "actions": "Acciones",
+      "connection": "Conexión",
+      "lastConnection": "Última conexión",
+      "activation": "Activación"
     },
     "noVersion": "No especificada"
   },
@@ -411,8 +434,23 @@
     "showQuickPaymentDesc": "Muestra el botón de pago rápido en la pantalla de inicio",
     "showOrderManagement": "Mostrar Órdenes",
     "showOrderManagementDesc": "Muestra el botón de gestión de órdenes en la pantalla de inicio",
+    "showReports": "Mostrar Reportes",
+    "showReportsDesc": "Muestra el botón de reportes en la pantalla de inicio",
+    "showPayments": "Mostrar Pagos",
+    "showPaymentsDesc": "Muestra el botón de pagos en la pantalla de inicio",
+    "showSupport": "Mostrar Soporte",
+    "showSupportDesc": "Muestra el botón de soporte en la pantalla de inicio",
+    "showGoals": "Mostrar Metas de Ventas",
+    "showGoalsDesc": "Muestra la sección de metas de ventas en la pantalla de inicio",
     "showCryptoOption": "Pago con Crypto",
-    "showCryptoOptionDesc": "Muestra la opción de pago con criptomonedas en la selección de método de pago"
+    "showCryptoOptionDesc": "Muestra la opción de pago con criptomonedas en la selección de método de pago",
+    "restartBanner": {
+      "message": "Se detectaron cambios en la terminal {{serialNumber}}. Para aplicarlos, es necesario reiniciar la TPV.",
+      "restart": "Reiniciar",
+      "restarting": "Reiniciando...",
+      "offlineHint": "La terminal debe estar en línea para reiniciar",
+      "dismiss": "Descartar"
+    }
   },
   "activation": {
     "title": "Activar Terminal",

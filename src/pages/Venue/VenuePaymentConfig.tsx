@@ -217,20 +217,20 @@ const ProfitSimulator: React.FC<{
     ? cardType === 'debit'
       ? toNumber(cost.debitRate)
       : cardType === 'credit'
-      ? toNumber(cost.creditRate)
-      : cardType === 'amex'
-      ? toNumber(cost.amexRate)
-      : toNumber(cost.internationalRate)
+        ? toNumber(cost.creditRate)
+        : cardType === 'amex'
+          ? toNumber(cost.amexRate)
+          : toNumber(cost.internationalRate)
     : 0
 
   const venueRate = pricing
     ? cardType === 'debit'
       ? toNumber(pricing.debitRate)
       : cardType === 'credit'
-      ? toNumber(pricing.creditRate)
-      : cardType === 'amex'
-      ? toNumber(pricing.amexRate)
-      : toNumber(pricing.internationalRate)
+        ? toNumber(pricing.creditRate)
+        : cardType === 'amex'
+          ? toNumber(pricing.amexRate)
+          : toNumber(pricing.internationalRate)
     : 0
 
   // Calculate fees
@@ -265,7 +265,7 @@ const ProfitSimulator: React.FC<{
         <CollapsibleTrigger asChild>
           <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/30 transition-colors rounded-2xl">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+              <div className="p-2 rounded-xl bg-linear-to-br from-purple-500/20 to-purple-500/5">
                 <Calculator className="w-4 h-4 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
@@ -357,7 +357,7 @@ const ProfitSimulator: React.FC<{
                       {(venueRate * 100).toFixed(2)}%{venueFixedFee > 0 ? ` + ${Currency(venueFixedFee)}` : ''}
                     </p>
                   </div>
-                  <ArrowRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                  <ArrowRight className="w-5 h-5 text-muted-foreground shrink-0" />
                   <div className="text-center flex-1">
                     <p className="text-xs text-muted-foreground mb-1">Te cobran</p>
                     <p className="text-lg font-bold text-red-600 dark:text-red-400">-{Currency(totalProviderCost)}</p>
@@ -365,7 +365,7 @@ const ProfitSimulator: React.FC<{
                       {(providerRate * 100).toFixed(2)}%{providerFixedFee > 0 ? ` + ${Currency(providerFixedFee)}` : ''}
                     </p>
                   </div>
-                  <ArrowRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                  <ArrowRight className="w-5 h-5 text-muted-foreground shrink-0" />
                   <div className="text-center flex-1">
                     <p className="text-xs text-muted-foreground mb-1">Ganancia</p>
                     <p
@@ -404,7 +404,7 @@ const ProfitSimulator: React.FC<{
                     </div>
                   )}
                   <div className="h-px bg-border/50 my-2" />
-                  <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-gradient-to-r from-green-500/10 to-emerald-500/5">
+                  <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-linear-to-r from-green-500/10 to-emerald-500/5">
                     <span className="text-sm font-medium">Tu ganancia neta</span>
                     <span
                       className={cn(
@@ -601,7 +601,7 @@ const VenuePaymentConfig: React.FC = () => {
               {/* Animated icon */}
               <div className="relative">
                 <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse" />
-                <div className="relative p-6 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20">
+                <div className="relative p-6 rounded-full bg-linear-to-br from-primary/20 to-primary/5 border border-primary/20">
                   <Wallet className="w-12 h-12 text-primary" />
                 </div>
               </div>
@@ -636,7 +636,12 @@ const VenuePaymentConfig: React.FC = () => {
                     Wizard de Pagos
                   </Button>
                 )}
-                <Button size="lg" variant={isSuperadmin ? 'outline' : 'default'} onClick={() => setConfigDialogOpen(true)} className="gap-2">
+                <Button
+                  size="lg"
+                  variant={isSuperadmin ? 'outline' : 'default'}
+                  onClick={() => setConfigDialogOpen(true)}
+                  className="gap-2"
+                >
                   <Sparkles className="w-4 h-4" />
                   Conectar Cuenta de Pagos
                 </Button>
@@ -645,18 +650,19 @@ const VenuePaymentConfig: React.FC = () => {
           </GlassCard>
 
           {/* Superadmin Payment Setup Wizard (empty state) */}
-          {isSuperadmin && venue && (
+          {isSuperadmin && venue && venue.organizationId && (
             <PaymentSetupWizard
               open={wizardOpen}
               onClose={() => {
                 setWizardOpen(false)
                 queryClient.invalidateQueries({ queryKey: ['venue-payment-config', venue.id] })
               }}
-              target={{
-                type: 'venue',
-                venueId: venue.id,
-                venueName: venue.name,
-                venueSlug: slug!,
+              context={{
+                organizationId: venue.organizationId,
+                orgName: venue.organization?.name || venue.organizationId,
+                initialVenueId: venue.id,
+                initialVenueName: venue.name,
+                initialVenueSlug: slug!,
               }}
             />
           )}
@@ -689,12 +695,7 @@ const VenuePaymentConfig: React.FC = () => {
           </div>
           <div className="flex items-center gap-3">
             {isSuperadmin && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setWizardOpen(true)}
-                className="gap-2"
-              >
+              <Button variant="outline" size="sm" onClick={() => setWizardOpen(true)} className="gap-2">
                 <Settings className="w-4 h-4" />
                 Wizard de Pagos
               </Button>
@@ -709,7 +710,7 @@ const VenuePaymentConfig: React.FC = () => {
         </div>
 
         {/* Superadmin Payment Setup Wizard */}
-        {isSuperadmin && venue && (
+        {isSuperadmin && venue && venue.organizationId && (
           <PaymentSetupWizard
             open={wizardOpen}
             onClose={() => {
@@ -718,11 +719,12 @@ const VenuePaymentConfig: React.FC = () => {
               queryClient.invalidateQueries({ queryKey: ['venue-cost-structures', venue.id] })
               queryClient.invalidateQueries({ queryKey: ['venue-pricing-structures', venue.id] })
             }}
-            target={{
-              type: 'venue',
-              venueId: venue.id,
-              venueName: venue.name,
-              venueSlug: slug!,
+            context={{
+              organizationId: venue.organizationId,
+              orgName: venue.organization?.name || venue.organizationId,
+              initialVenueId: venue.id,
+              initialVenueName: venue.name,
+              initialVenueSlug: slug!,
             }}
           />
         )}
@@ -733,7 +735,7 @@ const VenuePaymentConfig: React.FC = () => {
           <GlassCard className="col-span-12 lg:col-span-8 p-6" hover onClick={() => setConfigDialogOpen(true)}>
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-4">
-                <div className="p-3 rounded-2xl bg-gradient-to-br from-green-500/20 to-emerald-500/10">
+                <div className="p-3 rounded-2xl bg-linear-to-br from-green-500/20 to-emerald-500/10">
                   <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
@@ -799,7 +801,7 @@ const VenuePaymentConfig: React.FC = () => {
         <GlassCard className="p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+              <div className="p-2 rounded-xl bg-linear-to-br from-blue-500/20 to-blue-500/5">
                 <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>

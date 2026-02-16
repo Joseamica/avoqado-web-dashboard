@@ -1,8 +1,8 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { Calendar, Clock, Info } from 'lucide-react'
+import { Calendar, Info } from 'lucide-react'
 import type { WizardState, SettlementData } from '../PaymentSetupWizard'
 
 interface SettlementStepProps {
@@ -20,7 +20,6 @@ const CARD_TYPES = [
 
 function getExampleDate(days: number, isBusinessDays: boolean): string {
   const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
-  const today = new Date()
   // Assume transaction on Monday
   const txDay = 1 // Monday
 
@@ -34,6 +33,59 @@ function getExampleDate(days: number, isBusinessDays: boolean): string {
 
   const depositDay = (txDay + days) % 7
   return `Tx ${dayNames[txDay]} → Depósito ${dayNames[depositDay]}`
+}
+
+/** Local input that allows free typing + validates on blur */
+const DaysInput: React.FC<{
+  value: number
+  onChange: (v: number) => void
+  className?: string
+}> = ({ value, onChange, className }) => {
+  const [local, setLocal] = useState(String(value))
+  const [touched, setTouched] = useState(false)
+
+  // Sync from parent when value changes externally (e.g. pre-fill)
+  useEffect(() => {
+    setLocal(String(value))
+  }, [value])
+
+  const isEmpty = local.trim() === ''
+  const showError = touched && isEmpty
+
+  return (
+    <div className="flex flex-col">
+      <Input
+        type="number"
+        min={1}
+        max={30}
+        value={local}
+        onChange={e => {
+          setLocal(e.target.value)
+          setTouched(true)
+          const parsed = parseInt(e.target.value)
+          if (!isNaN(parsed) && parsed >= 0 && parsed <= 30) {
+            onChange(parsed)
+          }
+        }}
+        onBlur={() => {
+          setTouched(true)
+          if (isEmpty) return // keep empty to show error
+          const parsed = parseInt(local)
+          const clamped = isNaN(parsed) ? 1 : Math.min(30, Math.max(1, parsed))
+          setLocal(String(clamped))
+          onChange(clamped)
+        }}
+        className={cn(
+          'h-10 w-20 text-center font-bold',
+          showError && 'border-destructive focus-visible:ring-destructive',
+          className,
+        )}
+      />
+      {showError && (
+        <span className="text-[10px] text-destructive mt-0.5">Requerido</span>
+      )}
+    </div>
+  )
 }
 
 export const SettlementStep: React.FC<SettlementStepProps> = ({ state, dispatch }) => {
@@ -138,13 +190,9 @@ export const SettlementStep: React.FC<SettlementStepProps> = ({ state, dispatch 
               >
                 <span className={cn('text-sm font-medium', card.color)}>{card.label}</span>
                 <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    min={0}
-                    max={30}
+                  <DaysInput
                     value={days}
-                    onChange={e => handleChange(card.key, parseInt(e.target.value) || 0)}
-                    className="h-10 w-20 text-center font-bold"
+                    onChange={v => handleChange(card.key, v)}
                   />
                   <span className="text-xs text-muted-foreground">
                     {settlement.dayType === 'BUSINESS_DAYS' ? 'háb.' : 'cal.'}

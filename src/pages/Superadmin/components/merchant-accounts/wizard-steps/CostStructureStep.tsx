@@ -1,14 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { cn } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
-import { paymentProviderAPI, type MccLookupResult } from '@/services/paymentProvider.service'
+import { paymentProviderAPI } from '@/services/paymentProvider.service'
 import {
   DollarSign,
-  Calculator,
   CheckCircle2,
-  AlertTriangle,
   Loader2,
 } from 'lucide-react'
 import type { WizardState, CostStructureData } from '../PaymentSetupWizard'
@@ -109,11 +106,8 @@ function MerchantCostCard({
   state: WizardState
   dispatch: React.Dispatch<any>
 }) {
-  const [mccLoading, setMccLoading] = useState(false)
-  const [mccResult, setMccResult] = useState<MccLookupResult | null>(null)
-
   // Fetch existing cost structures for this merchant
-  const { data: existingCosts = [] } = useQuery({
+  const { data: existingCosts = [], isLoading: costsLoading } = useQuery({
     queryKey: ['cost-structures', merchantId],
     queryFn: () => paymentProviderAPI.getProviderCostStructures({ merchantAccountId: merchantId, active: true }),
     enabled: !!merchantId,
@@ -122,75 +116,50 @@ function MerchantCostCard({
   const hasExisting = existingCosts.length > 0
   const currentData = state.costStructures[merchantId]
 
-  // Initialize with existing data or defaults
+  // Initialize with existing data if available
   useEffect(() => {
-    if (!currentData && hasExisting) {
+    if (costsLoading) return
+    if (hasExisting) {
       const existing = existingCosts[0]
+      const round4 = (n: number) => Math.round(n * 10000) / 10000
+      // Only skip if already loaded from this same existing record
+      if (currentData?.mode === 'existing' && currentData?.existingId === existing.id) return
       dispatch({
         type: 'SET_COST_STRUCTURE',
         merchantId,
         data: {
           mode: 'existing',
           existingId: existing.id,
-          debitRate: Number(existing.debitRate) * 100,
-          creditRate: Number(existing.creditRate) * 100,
-          amexRate: Number(existing.amexRate) * 100,
-          internationalRate: Number(existing.internationalRate) * 100,
+          debitRate: round4(Number(existing.debitRate) * 100),
+          creditRate: round4(Number(existing.creditRate) * 100),
+          amexRate: round4(Number(existing.amexRate) * 100),
+          internationalRate: round4(Number(existing.internationalRate) * 100),
           fixedCostPerTransaction: Number(existing.fixedCostPerTransaction || 0),
           monthlyFee: Number(existing.monthlyFee || 0),
         },
       })
+    } else if (!currentData) {
+      // No existing costs — initialize with empty (new) structure
+      dispatch({
+        type: 'SET_COST_STRUCTURE',
+        merchantId,
+        data: {
+          mode: 'new',
+          debitRate: 0,
+          creditRate: 0,
+          amexRate: 0,
+          internationalRate: 0,
+          fixedCostPerTransaction: 0,
+          monthlyFee: 0,
+        },
+      })
     }
-  }, [hasExisting, existingCosts, currentData, merchantId, dispatch])
-
-  // Auto-fetch MCC suggestion if no existing costs
-  useEffect(() => {
-    if (!hasExisting && !mccResult && !mccLoading) {
-      setMccLoading(true)
-      paymentProviderAPI
-        .getMccRateSuggestion('restaurante')
-        .then(result => {
-          setMccResult(result)
-          if (!currentData) {
-            dispatch({
-              type: 'SET_COST_STRUCTURE',
-              merchantId,
-              data: {
-                mode: 'new',
-                debitRate: result.rates?.debito ?? 1.63,
-                creditRate: result.rates?.credito ?? 1.70,
-                amexRate: result.rates?.amex ?? 3.0,
-                internationalRate: result.rates?.internacional ?? 3.3,
-                fixedCostPerTransaction: 0,
-                monthlyFee: 0,
-              },
-            })
-          }
-        })
-        .catch(() => {
-          // Use defaults on error
-          if (!currentData) {
-            dispatch({
-              type: 'SET_COST_STRUCTURE',
-              merchantId,
-              data: {
-                mode: 'new',
-                debitRate: 1.63,
-                creditRate: 1.70,
-                amexRate: 3.0,
-                internationalRate: 3.3,
-                fixedCostPerTransaction: 0,
-                monthlyFee: 0,
-              },
-            })
-          }
-        })
-        .finally(() => setMccLoading(false))
-    }
-  }, [hasExisting, mccResult, mccLoading, currentData, merchantId, dispatch])
+  }, [costsLoading, hasExisting, existingCosts, merchantId, dispatch]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRateChange = (field: keyof CostStructureData, value: string) => {
-    const numValue = parseFloat(value) || 0
+    const numValue = value === '' ? 0 : parseFloat(value)
+    if (isNaN(numValue)) return
+    const rounded = Math.round(numValue * 10000) / 10000
     const current = currentData || {
       mode: 'new' as const,
       debitRate: 0,
@@ -203,7 +172,7 @@ function MerchantCostCard({
     dispatch({
       type: 'SET_COST_STRUCTURE',
       merchantId,
-      data: { ...current, [field]: numValue },
+      data: { ...current, [field]: rounded },
     })
   }
 
@@ -221,35 +190,7 @@ function MerchantCostCard({
         )}
       </div>
 
-      {/* MCC Detection info */}
-      {mccResult && (
-        <div
-          className={cn(
-            'flex items-start gap-3 p-3 rounded-xl border mb-4',
-            mccResult.found
-              ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800/50'
-              : 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/50',
-          )}
-        >
-          {mccResult.found ? (
-            <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-          ) : (
-            <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-          )}
-          <div className="text-xs">
-            <p className="font-medium">
-              {mccResult.found ? 'Tasas detectadas automáticamente' : 'Usando tasas por defecto'}
-            </p>
-            {mccResult.found && (
-              <p className="text-muted-foreground">
-                {mccResult.familia} (MCC {mccResult.mcc}) — Confianza: {mccResult.confidence}%
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {mccLoading ? (
+      {costsLoading ? (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>
@@ -266,7 +207,7 @@ function MerchantCostCard({
                     step="0.01"
                     min="0"
                     max="100"
-                    value={currentData?.[field.key] ?? ''}
+                    value={currentData?.[field.key] ? Number(Number(currentData[field.key]).toFixed(4)) : ''}
                     onChange={e => handleRateChange(field.key, e.target.value)}
                     className="h-12 text-base pr-8"
                   />
@@ -290,7 +231,7 @@ function MerchantCostCard({
                   type="number"
                   step="0.01"
                   min="0"
-                  value={currentData?.fixedCostPerTransaction ?? 0}
+                  value={currentData?.fixedCostPerTransaction ? Number(Number(currentData.fixedCostPerTransaction).toFixed(2)) : ''}
                   onChange={e => handleRateChange('fixedCostPerTransaction', e.target.value)}
                   className="h-12 text-base pl-7"
                 />
@@ -306,7 +247,7 @@ function MerchantCostCard({
                   type="number"
                   step="0.01"
                   min="0"
-                  value={currentData?.monthlyFee ?? 0}
+                  value={currentData?.monthlyFee ? Number(Number(currentData.monthlyFee).toFixed(2)) : ''}
                   onChange={e => handleRateChange('monthlyFee', e.target.value)}
                   className="h-12 text-base pl-7"
                 />

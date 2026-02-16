@@ -459,7 +459,7 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
       ...data,
       email: inviteType === 'email' ? normalizedEmail : undefined,
       type: inviteType,
-      inviteToAllVenues: selectedRole === StaffRole.OWNER ? inviteToAllVenues : undefined,
+      inviteToAllVenues: selectedRole && [StaffRole.OWNER, StaffRole.ADMIN, StaffRole.MANAGER].includes(selectedRole) ? inviteToAllVenues : undefined,
       allowFakeEmail: shouldNormalizeFakeEmail || undefined,
       generateTestCredentials: shouldNormalizeFakeEmail || undefined,
       testInvite: shouldNormalizeFakeEmail || undefined,
@@ -474,8 +474,8 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
   const handleRoleChange = (role: StaffRole) => {
     setSelectedRole(role)
     setValue('role', role, { shouldValidate: true })
-    // Reset "invite to all venues" when changing role (only applies to OWNER)
-    if (role !== StaffRole.OWNER) {
+    // Reset "invite to all venues" when changing to a role below ADMIN
+    if (![StaffRole.OWNER, StaffRole.ADMIN, StaffRole.MANAGER].includes(role)) {
       setInviteToAllVenues(false)
     }
   }
@@ -681,8 +681,8 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
               </div>
             )}
 
-            {/* Invite to all venues option - only for OWNER role with multiple venues */}
-            {selectedRole === StaffRole.OWNER && allVenues.length > 1 && (
+            {/* Invite to all venues option - for MANAGER+ roles with multiple venues */}
+            {selectedRole && [StaffRole.OWNER, StaffRole.ADMIN, StaffRole.MANAGER].includes(selectedRole) && allVenues.length > 1 && (
               <div className="mt-4 p-4 rounded-xl border border-primary/20 bg-primary/5">
                 <div className="flex items-start gap-3">
                   <Checkbox
@@ -701,11 +701,19 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
                     </label>
                     <p className="text-xs text-muted-foreground mt-1">
                       {t('invite.inviteToAllVenuesDesc', {
-                        defaultValue: 'El socio tendrá acceso como {{role}} a los {{count}} establecimientos de la organización.',
-                        role: getRoleDisplayName(StaffRole.OWNER),
+                        defaultValue: 'El miembro tendrá acceso como {{role}} a los {{count}} establecimientos de la organización.',
+                        role: getRoleDisplayName(selectedRole),
                         count: allVenues.length,
                       })}
                     </p>
+                    {selectedRole !== StaffRole.OWNER && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1.5 flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        {t('invite.inviteToAllVenuesNote', {
+                          defaultValue: 'Si la persona ya tiene un rol más alto en algún establecimiento, se mantendrá el rol más alto.',
+                        })}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

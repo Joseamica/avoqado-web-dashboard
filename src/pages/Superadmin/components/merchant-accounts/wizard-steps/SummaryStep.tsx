@@ -5,17 +5,16 @@ import {
   Building2,
   Smartphone,
   DollarSign,
-  CreditCard,
   Calendar,
   CheckCircle2,
-  AlertCircle,
   ClipboardCheck,
+  Store,
 } from 'lucide-react'
-import type { WizardState, PaymentSetupWizardProps } from '../PaymentSetupWizard'
+import type { WizardState, WizardContext } from '../PaymentSetupWizard'
 
 interface SummaryStepProps {
   state: WizardState
-  target: PaymentSetupWizardProps['target']
+  context: WizardContext
 }
 
 function getMarginColor(margin: number): string {
@@ -24,10 +23,11 @@ function getMarginColor(margin: number): string {
   return 'text-red-600'
 }
 
-export const SummaryStep: React.FC<SummaryStepProps> = ({ state, target }) => {
+export const SummaryStep: React.FC<SummaryStepProps> = ({ state, context }) => {
   const primaryMerchantId = state.merchants.primary?.merchantId
   const primaryCost = primaryMerchantId ? state.costStructures[primaryMerchantId] : null
   const primaryPricing = state.pricing.PRIMARY
+  const enabledOverrides = Object.values(state.venueOverrides).filter(v => v.enabled)
 
   // Count what will be created
   const itemsToCreate: string[] = []
@@ -37,12 +37,15 @@ export const SummaryStep: React.FC<SummaryStepProps> = ({ state, target }) => {
   const hasPricing = !!primaryPricing
   const hasSettlement = state.settlement.debitDays > 0
 
+  itemsToCreate.push('1 OrganizationPaymentConfig')
   if (merchantCount > 0) itemsToCreate.push(`${merchantCount} asignación${merchantCount > 1 ? 'es' : ''} de cuenta`)
   if (terminalCount > 0) itemsToCreate.push(`${terminalCount} asignación${terminalCount > 1 ? 'es' : ''} de terminal`)
   if (costCount > 0) itemsToCreate.push(`${costCount} estructura${costCount > 1 ? 's' : ''} de costos`)
-  if (hasPricing) itemsToCreate.push('1 VenuePricingStructure')
+  if (hasPricing) itemsToCreate.push('1 OrganizationPricingStructure')
   if (hasSettlement) itemsToCreate.push('5 SettlementConfigurations')
-  itemsToCreate.push(`1 ${target.type === 'venue' ? 'VenuePaymentConfig' : 'OrganizationPaymentConfig'}`)
+  if (enabledOverrides.length > 0) {
+    itemsToCreate.push(`Hasta ${enabledOverrides.length} VenuePricingStructure${enabledOverrides.length > 1 ? 's' : ''} (solo si difieren de org)`)
+  }
 
   return (
     <div className="space-y-6">
@@ -55,7 +58,7 @@ export const SummaryStep: React.FC<SummaryStepProps> = ({ state, target }) => {
           <div>
             <h3 className="font-semibold">Resumen de Configuración</h3>
             <p className="text-sm text-muted-foreground">
-              Revisa toda la configuración antes de guardar
+              Revisa toda la configuración antes de guardar — org: <strong>{context.orgName}</strong>
             </p>
           </div>
         </div>
@@ -109,7 +112,7 @@ export const SummaryStep: React.FC<SummaryStepProps> = ({ state, target }) => {
         <div className="rounded-2xl border border-border/50 bg-card p-6">
           <div className="flex items-center gap-2 mb-3">
             <DollarSign className="h-4 w-4 text-muted-foreground" />
-            <h4 className="font-medium">Costos vs Pricing (Márgenes)</h4>
+            <h4 className="font-medium">Costos vs Pricing Org. (Márgenes)</h4>
           </div>
 
           <div className="space-y-2">
@@ -173,6 +176,38 @@ export const SummaryStep: React.FC<SummaryStepProps> = ({ state, target }) => {
           Corte: {state.settlement.cutoffTime} {state.settlement.cutoffTimezone.replace('America/', '')}
         </p>
       </div>
+
+      {/* Venue Overrides */}
+      {Object.keys(state.venueOverrides).length > 0 && (
+        <div className="rounded-2xl border border-border/50 bg-card p-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Store className="h-4 w-4 text-muted-foreground" />
+            <h4 className="font-medium">Overrides por Venue</h4>
+          </div>
+
+          <div className="space-y-2">
+            {Object.values(state.venueOverrides).map(venue => (
+              <div key={venue.venueId} className="flex items-center justify-between py-1.5">
+                <span className="text-sm font-medium">{venue.venueName}</span>
+                {venue.enabled && venue.pricing ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      Déb {venue.pricing.debitRate.toFixed(1)}% / Créd {venue.pricing.creditRate.toFixed(1)}% / AMEX {venue.pricing.amexRate.toFixed(1)}%
+                    </span>
+                    <Badge className="text-xs bg-primary/10 text-primary border-primary/20">
+                      Override
+                    </Badge>
+                  </div>
+                ) : (
+                  <Badge variant="secondary" className="text-xs">
+                    Hereda org
+                  </Badge>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* What will be created */}
       <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-6">

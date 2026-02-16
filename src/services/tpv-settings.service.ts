@@ -24,6 +24,10 @@ export interface TpvSettings {
   // Home screen button visibility
   showQuickPayment: boolean      // Show "Pago rápido" button on home screen
   showOrderManagement: boolean   // Show "Órdenes" button on home screen
+  showReports: boolean           // Show "Reportes" button on home screen
+  showPayments: boolean          // Show "Pagos" button on home screen
+  showSupport: boolean           // Show "Soporte" button on home screen
+  showGoals: boolean             // Show sales goals pager on home screen
   // Crypto payment option (B4Bit integration)
   showCryptoOption: boolean      // Show crypto payment button in merchant selection
   // Evidence rules (PlayTelecom — boolean toggles)
@@ -60,6 +64,10 @@ const DEFAULT_TPV_SETTINGS: TpvSettings = {
   // Home screen buttons enabled by default
   showQuickPayment: true,
   showOrderManagement: true,
+  showReports: true,
+  showPayments: true,
+  showSupport: true,
+  showGoals: true,
   // Crypto payment disabled by default
   showCryptoOption: false,
 }

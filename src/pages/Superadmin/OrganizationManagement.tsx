@@ -22,14 +22,14 @@ import { getMerchantAccountsList } from '@/services/paymentProvider.service'
 import { PaymentSetupWizard } from './components/merchant-accounts/PaymentSetupWizard'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  AlertTriangle,
   Building2,
+  CheckCircle2,
   CreditCard,
   Check,
   Loader2,
-  Mail,
   MoreHorizontal,
   Package,
-  Phone,
   Plus,
   Power,
   PowerOff,
@@ -39,6 +39,8 @@ import {
   Store,
   Trash2,
   Users,
+  X,
+  Zap,
   Edit3,
 } from 'lucide-react'
 import React, { useMemo, useState } from 'react'
@@ -99,104 +101,86 @@ const OrganizationCard: React.FC<OrganizationCardProps> = ({ organization, onEdi
   const businessTypeLabel = BUSINESS_TYPES.find(bt => bt.value === organization.type)?.label || organization.type
 
   return (
-    <GlassCard className="p-0 overflow-hidden" hover>
-      {/* Header with gradient accent */}
-      <div className="relative">
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
-        <div className="p-4 pt-5">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5">
-                <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-base">{organization.name}</h3>
-                {organization.slug && (
-                  <p className="text-xs text-muted-foreground font-mono">{organization.slug}</p>
-                )}
-              </div>
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full cursor-pointer">
-                  <MoreHorizontal className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onEdit(organization)} className="cursor-pointer">
-                  <Edit3 className="w-4 h-4 mr-2" />
-                  Editar
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onManageModules(organization)} className="cursor-pointer">
-                  <Package className="w-4 h-4 mr-2" />
-                  Gestionar Módulos
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onPaymentConfig(organization)} className="cursor-pointer">
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  Configurar Pagos
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onPaymentWizard(organization)} className="cursor-pointer">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Wizard de Pagos
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => onDelete(organization)}
-                  className="cursor-pointer text-red-600 dark:text-red-400"
-                  disabled={organization.venueCount > 0}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Eliminar
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="px-4 pb-4 space-y-3">
-        <div className="flex items-center gap-4 text-sm">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Store className="w-3.5 h-3.5" />
-            <span>{organization.venueCount} sucursales</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Users className="w-3.5 h-3.5" />
-            <span>{organization.staffCount} usuarios</span>
-          </div>
-        </div>
-
-        {/* Contact info */}
-        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Mail className="w-3 h-3" />
-            <span className="truncate max-w-[150px]">{organization.email}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Phone className="w-3 h-3" />
-            <span>{organization.phone}</span>
-          </div>
-        </div>
-
-        {/* Tags */}
-        <div className="flex flex-wrap gap-1.5">
-          <Badge variant="outline" className="text-xs rounded-full">
-            {businessTypeLabel}
-          </Badge>
-          {organization.enabledModules.slice(0, 2).map(mod => (
-            <Badge key={mod.code} variant="secondary" className="text-xs rounded-full">
-              {mod.name}
-            </Badge>
-          ))}
-          {organization.enabledModules.length > 2 && (
-            <Badge variant="secondary" className="text-xs rounded-full">
-              +{organization.enabledModules.length - 2}
-            </Badge>
+    <div
+      className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border/50 bg-card/80 hover:bg-card/95 hover:border-border transition-all group cursor-pointer"
+      onClick={() => onPaymentWizard(organization)}
+    >
+      {/* Name + slug */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <p className="font-medium text-sm truncate">{organization.name}</p>
+          {organization.slug && (
+            <span className="text-[11px] text-muted-foreground font-mono hidden sm:inline">/{organization.slug}</span>
           )}
         </div>
+        <div className="flex items-center gap-3 mt-0.5">
+          <span className="text-xs text-muted-foreground truncate max-w-[180px]">{organization.email}</span>
+          <span className="text-xs text-muted-foreground hidden md:inline">{organization.phone}</span>
+        </div>
       </div>
-    </GlassCard>
+
+      {/* Type badge */}
+      <Badge variant="outline" className="text-[10px] rounded-full px-2 py-0.5 hidden lg:flex flex-shrink-0">
+        {businessTypeLabel}
+      </Badge>
+
+      {/* Stats */}
+      <div className="flex items-center gap-3 flex-shrink-0 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1" title="Sucursales">
+          <Store className="w-3.5 h-3.5" />
+          <span className="font-medium text-foreground">{organization.venueCount}</span>
+        </div>
+        <div className="flex items-center gap-1" title="Usuarios">
+          <Users className="w-3.5 h-3.5" />
+          <span className="font-medium text-foreground">{organization.staffCount}</span>
+        </div>
+        <div className="flex items-center gap-1 hidden md:flex" title="Módulos">
+          <Package className="w-3.5 h-3.5" />
+          <span className="font-medium text-foreground">{organization.enabledModules.length}</span>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-full cursor-pointer flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity"
+            onClick={e => e.stopPropagation()}
+          >
+            <MoreHorizontal className="w-4 h-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => onEdit(organization)} className="cursor-pointer">
+            <Edit3 className="w-4 h-4 mr-2" />
+            Editar
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onManageModules(organization)} className="cursor-pointer">
+            <Package className="w-4 h-4 mr-2" />
+            Gestionar Módulos
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onPaymentConfig(organization)} className="cursor-pointer">
+            <CreditCard className="w-4 h-4 mr-2" />
+            Configurar Pagos
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onPaymentWizard(organization)} className="cursor-pointer">
+            <Settings className="w-4 h-4 mr-2" />
+            Wizard de Pagos
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => onDelete(organization)}
+            className="cursor-pointer text-red-600 dark:text-red-400"
+            disabled={organization.venueCount > 0}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Eliminar
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   )
 }
 
@@ -615,6 +599,66 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
     enabled: open,
   })
 
+  // Auto-fetch state
+  const [showAutoFetch, setShowAutoFetch] = useState(false)
+  const [autoFetching, setAutoFetching] = useState(false)
+  const [autoFetchResult, setAutoFetchResult] = useState<any>(null)
+  const [autoFetchError, setAutoFetchError] = useState<string | null>(null)
+  const [autoFetchForm, setAutoFetchForm] = useState({
+    serialNumber: '',
+    brand: 'PAX',
+    model: 'A910S',
+    displayName: '',
+    environment: 'PRODUCTION' as 'SANDBOX' | 'PRODUCTION',
+  })
+
+  const handleAutoFetch = async () => {
+    if (!autoFetchForm.serialNumber.trim()) {
+      toast({ title: 'Ingresa el número de serie', variant: 'destructive' })
+      return
+    }
+    setAutoFetching(true)
+    setAutoFetchError(null)
+    setAutoFetchResult(null)
+    try {
+      const { autoFetchBlumonCredentials } = await import('@/services/paymentProvider.service')
+      const res = await autoFetchBlumonCredentials({
+        serialNumber: autoFetchForm.serialNumber.trim(),
+        brand: autoFetchForm.brand,
+        model: autoFetchForm.model,
+        displayName: autoFetchForm.displayName.trim() || undefined,
+        environment: autoFetchForm.environment,
+        businessCategory: organization?.type || undefined,
+        skipCostStructure: true,
+      })
+      setAutoFetchResult(res)
+      queryClient.invalidateQueries({ queryKey: ['merchant-accounts-list'] })
+      toast({
+        title: res.alreadyExists ? 'Cuenta existente encontrada' : 'Cuenta creada exitosamente',
+        description: `${res.displayName} — ${res.dukptKeysAvailable ? 'Llaves DUKPT disponibles' : 'Sin llaves DUKPT'}`,
+      })
+      // Auto-select the new merchant as primary if no primary is set
+      setTimeout(() => {
+        if (!configForm.primaryAccountId) {
+          setConfigForm(prev => ({ ...prev, primaryAccountId: res.id }))
+        }
+      }, 600)
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.response?.data?.error || err.message || 'Error desconocido'
+      setAutoFetchError(msg)
+      toast({ title: 'Error al obtener credenciales', description: msg, variant: 'destructive' })
+    } finally {
+      setAutoFetching(false)
+    }
+  }
+
+  const resetAutoFetch = () => {
+    setShowAutoFetch(false)
+    setAutoFetchResult(null)
+    setAutoFetchError(null)
+    setAutoFetchForm({ serialNumber: '', brand: 'PAX', model: 'A910S', displayName: '', environment: 'PRODUCTION' })
+  }
+
   // Form state for payment config
   const [configForm, setConfigForm] = useState<SetOrgPaymentConfigData>({
     primaryAccountId: '',
@@ -776,6 +820,116 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
 
             {/* Tab 1: Merchant Account Config */}
             <TabsContent value="config" className="flex-1 overflow-y-auto mt-4">
+              {/* Inline Blumon Auto-Fetch */}
+              {showAutoFetch ? (
+                <GlassCard className="p-4 space-y-3 mb-4 border-primary/30">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-primary" />
+                      <h4 className="font-medium text-sm">Crear cuenta Blumon (Auto-Fetch)</h4>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={resetAutoFetch}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2 space-y-1">
+                      <Label className="text-xs">Número de Serie *</Label>
+                      <Input
+                        value={autoFetchForm.serialNumber}
+                        onChange={e => setAutoFetchForm(p => ({ ...p, serialNumber: e.target.value }))}
+                        placeholder="0821234567"
+                        className="h-9 font-mono"
+                        disabled={autoFetching}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Marca</Label>
+                      <Select value={autoFetchForm.brand} onValueChange={v => setAutoFetchForm(p => ({ ...p, brand: v }))} disabled={autoFetching}>
+                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PAX">PAX Technology</SelectItem>
+                          <SelectItem value="Verifone">Verifone</SelectItem>
+                          <SelectItem value="Ingenico">Ingenico</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Modelo</Label>
+                      <Input
+                        value={autoFetchForm.model}
+                        onChange={e => setAutoFetchForm(p => ({ ...p, model: e.target.value }))}
+                        placeholder="A910S"
+                        className="h-9"
+                        disabled={autoFetching}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Nombre (opcional)</Label>
+                      <Input
+                        value={autoFetchForm.displayName}
+                        onChange={e => setAutoFetchForm(p => ({ ...p, displayName: e.target.value }))}
+                        placeholder="Terminal Caja 1"
+                        className="h-9"
+                        disabled={autoFetching}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Ambiente</Label>
+                      <Select value={autoFetchForm.environment} onValueChange={v => setAutoFetchForm(p => ({ ...p, environment: v as 'SANDBOX' | 'PRODUCTION' }))} disabled={autoFetching}>
+                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PRODUCTION">Producción</SelectItem>
+                          <SelectItem value="SANDBOX">Sandbox</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {autoFetchError && (
+                    <div className="flex items-start gap-2 p-2.5 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/50 text-xs">
+                      <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-red-700 dark:text-red-300">{autoFetchError}</p>
+                    </div>
+                  )}
+
+                  {autoFetchResult && (
+                    <div className="flex items-start gap-2 p-2.5 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800/50 text-xs">
+                      <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <div className="text-green-700 dark:text-green-300">
+                        <p className="font-medium">{autoFetchResult.alreadyExists ? 'Cuenta ya existía' : 'Cuenta creada'}: {autoFetchResult.displayName}</p>
+                        <p>POS ID: {autoFetchResult.posId} · DUKPT: {autoFetchResult.dukptKeysAvailable ? 'Sí' : 'No'}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={handleAutoFetch}
+                    disabled={autoFetching || !autoFetchForm.serialNumber.trim()}
+                    className="w-full"
+                    type="button"
+                  >
+                    {autoFetching ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Conectando con Blumon...</>
+                    ) : (
+                      <><Zap className="mr-2 h-4 w-4" />Obtener Credenciales</>
+                    )}
+                  </Button>
+                </GlassCard>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mb-4 rounded-full cursor-pointer"
+                  onClick={() => setShowAutoFetch(true)}
+                  type="button"
+                >
+                  <Zap className="mr-2 h-3.5 w-3.5" />
+                  Crear nueva cuenta (Blumon Auto-Fetch)
+                </Button>
+              )}
+
               <form onSubmit={handleSaveConfig} className="space-y-4">
                 <GlassCard className="p-4 space-y-4">
                   <div className="space-y-2">
@@ -1243,87 +1397,66 @@ const OrganizationManagement: React.FC = () => {
         </Button>
       </div>
 
-      {/* Statistics Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5">
-              <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.total}</p>
-              <p className="text-xs text-muted-foreground">Total Organizaciones</p>
-            </div>
-          </div>
-        </GlassCard>
-
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
-              <Store className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.totalVenues}</p>
-              <p className="text-xs text-muted-foreground">Total Sucursales</p>
-            </div>
-          </div>
-        </GlassCard>
-
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
-              <Users className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.totalStaff}</p>
-              <p className="text-xs text-muted-foreground">Total Usuarios</p>
-            </div>
-          </div>
-        </GlassCard>
-
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-500/5">
-              <Package className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.withModules}</p>
-              <p className="text-xs text-muted-foreground">Con Módulos Activos</p>
-            </div>
-          </div>
-        </GlassCard>
+      {/* Statistics Row */}
+      <div className="flex flex-wrap items-center gap-6 px-1">
+        <div className="flex items-center gap-2">
+          <Building2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          <span className="text-lg font-bold">{stats.total}</span>
+          <span className="text-xs text-muted-foreground">orgs</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Store className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <span className="text-lg font-bold">{stats.totalVenues}</span>
+          <span className="text-xs text-muted-foreground">sucursales</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+          <span className="text-lg font-bold">{stats.totalStaff}</span>
+          <span className="text-xs text-muted-foreground">usuarios</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Package className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+          <span className="text-lg font-bold">{stats.withModules}</span>
+          <span className="text-xs text-muted-foreground">con módulos</span>
+        </div>
       </div>
 
       {/* Filters */}
-      <GlassCard className="p-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar organizaciones..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="pl-10 rounded-full"
-            />
-          </div>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-full md:w-[200px]">
-              <SelectValue placeholder="Tipo de negocio" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los tipos</SelectItem>
-              {BUSINESS_TYPES.map(bt => (
-                <SelectItem key={bt.value} value={bt.value}>
-                  <div className="flex items-center gap-2">
-                    {bt.icon}
-                    {bt.label}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <div className="flex flex-col md:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nombre, slug o correo..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="pl-10 h-9"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
-      </GlassCard>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-full md:w-[180px] h-9">
+            <SelectValue placeholder="Tipo de negocio" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los tipos</SelectItem>
+            {BUSINESS_TYPES.map(bt => (
+              <SelectItem key={bt.value} value={bt.value}>
+                <div className="flex items-center gap-2">
+                  {bt.icon}
+                  {bt.label}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* Organizations Grid */}
       {isLoading ? (
@@ -1351,14 +1484,13 @@ const OrganizationManagement: React.FC = () => {
         </GlassCard>
       ) : (
         <>
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Mostrando {filteredOrganizations.length} de {organizations.length} organizaciones
+          {(searchTerm || typeFilter !== 'all') && (
+            <p className="text-xs text-muted-foreground">
+              {filteredOrganizations.length} de {organizations.length} organizaciones
             </p>
-            <Badge variant="outline" className="rounded-full">{filteredOrganizations.length} resultados</Badge>
-          </div>
+          )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="space-y-1.5">
             {filteredOrganizations.map(org => (
               <OrganizationCard
                 key={org.id}
@@ -1418,10 +1550,10 @@ const OrganizationManagement: React.FC = () => {
             setIsPaymentWizardOpen(false)
             queryClient.invalidateQueries({ queryKey: ['superadmin-organizations'] })
           }}
-          target={{
-            type: 'organization',
+          context={{
             organizationId: selectedOrganization.id,
             orgName: selectedOrganization.name,
+            orgType: selectedOrganization.type,
           }}
         />
       )}

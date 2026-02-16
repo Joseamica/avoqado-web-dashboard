@@ -10,6 +10,7 @@ Before pushing any changes:
 
 - [ ] `npm run build` passes (TypeScript + Vite)
 - [ ] `npm run lint` passes
+- [ ] `npm run test:e2e` passes (Playwright E2E tests)
 - [ ] All user-facing text uses `t('...')` with en + es translations
 - [ ] Arrays/objects passed to DataTable are memoized
 - [ ] Theme-aware colors used (no hardcoded grays)
@@ -49,6 +50,21 @@ If you create temp/debug scripts, prefix with `temp-` or `debug-` and delete bef
 scripts/temp-check-venue.ts     # DELETE before commit
 scripts/debug-permissions.ts    # DELETE before commit
 ```
+
+## E2E Testing (Playwright)
+
+Tests live in `e2e/tests/`. Mocks and fixtures in `e2e/fixtures/`.
+
+```bash
+npm run test:e2e        # Run all E2E tests headless
+npm run test:e2e:ui     # Visual UI runner (interactive)
+npm run test:e2e:debug  # Step-through debugger
+```
+
+- Tests use `page.route()` to mock API responses — no running backend needed
+- Mock setup via `setupApiMocks(page, { userRole, venues, venueCount })` in `e2e/fixtures/api-mocks.ts`
+- When adding new features that touch UI flows, add E2E tests covering the happy path
+- Playwright routes use **LIFO matching** — register catch-all first, specific routes last
 
 ## Unused Code Detection
 

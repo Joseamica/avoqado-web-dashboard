@@ -38,13 +38,36 @@
   "search": {
     "placeholder": "Search terminals..."
   },
+  "filter": {
+    "connection": "Connection",
+    "activation": "Activation",
+    "status": "Status",
+    "version": "Version",
+    "online": "Online",
+    "offline": "Offline",
+    "activated": "Activated",
+    "notActivated": "Not activated",
+    "active": "Active",
+    "pending": "Pending",
+    "maintenance": "Maintenance",
+    "inactive": "Inactive",
+    "retired": "Retired",
+    "reset": "Clear filters",
+    "nSelected": "{{count}} selected",
+    "noVersion": "No version",
+    "justNow": "Now",
+    "never": "Never"
+  },
   "table": {
     "columns": {
       "name": "Name",
       "status": "Status",
       "serial": "Serial Number",
       "version": "Version",
-      "actions": "Actions"
+      "actions": "Actions",
+      "connection": "Connection",
+      "lastConnection": "Last connection",
+      "activation": "Activation"
     },
     "noVersion": "Not specified"
   },
@@ -388,11 +411,26 @@
     "kioskDefaultMerchantDesc": "Select a merchant to skip the selection screen in kiosk mode",
     "selectMerchant": "Select merchant",
     "showMerchantSelection": "Show selection",
+    "showReports": "Show Reports",
+    "showReportsDesc": "Show the reports button on the home screen",
+    "showPayments": "Show Payments",
+    "showPaymentsDesc": "Show the payments button on the home screen",
+    "showSupport": "Show Support",
+    "showSupportDesc": "Show the support button on the home screen",
+    "showGoals": "Show Sales Goals",
+    "showGoalsDesc": "Show the sales goals section on the home screen",
     "paymentSection": "Payment Experience",
     "paymentSectionDesc": "Configure payment flow and receipt options",
     "securitySection": "Security & Verification",
     "securitySectionDesc": "Access control and sales validation",
-    "attendanceSectionDesc": "Time clock configuration"
+    "attendanceSectionDesc": "Time clock configuration",
+    "restartBanner": {
+      "message": "Changes detected on terminal {{serialNumber}}. A restart is required to apply them.",
+      "restart": "Restart",
+      "restarting": "Restarting...",
+      "offlineHint": "Terminal must be online to restart",
+      "dismiss": "Dismiss"
+    }
   },
   "activation": {
     "title": "Activate Terminal",

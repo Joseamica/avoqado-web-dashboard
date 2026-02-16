@@ -31,6 +31,8 @@ npm run build        # TypeScript + Vite production build
 npm run lint         # ESLint
 npm run preview      # Preview production build
 npm run check:unused # Detect unimported files
+npm run test:e2e     # Playwright E2E tests (needs dev server running or auto-starts)
+npm run test:e2e:ui  # Playwright visual UI runner
 ```
 
 Database: see `.env` for connection credentials (never commit credentials).
@@ -154,5 +156,6 @@ See `.claude/rules/testing-and-git.md` for full checklist. Minimum:
 
 - [ ] `npm run build` passes
 - [ ] `npm run lint` passes
+- [ ] `npm run test:e2e` passes (Playwright E2E)
 - [ ] Tested in light + dark modes
 - [ ] Tested with multiple roles

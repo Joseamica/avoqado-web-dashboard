@@ -54,7 +54,7 @@ import {
   LockOpen,
   MemoryStick,
   PencilIcon,
-  RefreshCw,
+  RotateCcw,
   SaveIcon,
   Settings,
   Shield,
@@ -140,6 +140,7 @@ export default function TpvId() {
   const [merchantAccountToLink, setMerchantAccountToLink] = useState<string>('')
   const [isLinkingMerchant, setIsLinkingMerchant] = useState(false)
   const [isUnlinkingMerchant, setIsUnlinkingMerchant] = useState<string | null>(null)
+  const [hasUnsyncedChanges, setHasUnsyncedChanges] = useState(false)
 
   // Sync tab state with URL hash
   useEffect(() => {
@@ -452,7 +453,7 @@ export default function TpvId() {
     onSuccess: (_, variables) => {
       toast({
         title: t('commands.sent'),
-        description: t('commands.sentSuccess', { command: variables.command }),
+        description: t('commands.sentSuccess', { command: t(`commandLabels.${variables.command}`, variables.command) }),
       })
       // Refresh the TPV data to show updated status
       queryClient.invalidateQueries({ queryKey: ['tpv', venueId, tpvId] })
@@ -675,22 +676,22 @@ export default function TpvId() {
                 {/* Action Buttons */}
                 {!isEditing && (
                   <div className="flex items-center space-x-2">
-                    {/* Update Status Button */}
+                    {/* Restart Button */}
                     <PermissionGate permission="tpv:command">
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => sendTpvCommand('UPDATE_STATUS')}
+                            onClick={() => sendTpvCommand('RESTART')}
                             disabled={!terminalOnline || commandMutation.isPending}
                           >
-                            <RefreshCw className="w-4 h-4 mr-2" />
-                            {t('actions.update')}
+                            <RotateCcw className="w-4 h-4 mr-2" />
+                            {t('commandLabels.RESTART', 'Reiniciar')}
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>{terminalOnline ? t('detail.tooltips.updateStatus') : t('actions.offline')}</p>
+                          <p>{terminalOnline ? t('commands.descriptions.RESTART') : t('actions.offline')}</p>
                         </TooltipContent>
                       </Tooltip>
                     </PermissionGate>
@@ -1510,10 +1511,66 @@ export default function TpvId() {
                   <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   <AlertDescription className="text-blue-800 dark:text-blue-200">{t('tpvSettings.infoAlert')}</AlertDescription>
                 </Alert>
-                <TpvSettingsForm tpvId={tpvId!} compact={true} />
+                <TpvSettingsForm tpvId={tpvId!} compact={true} onSettingChanged={() => setHasUnsyncedChanges(true)} />
               </PermissionGate>
             </TabsContent>
           </Tabs>
+
+          {/* Floating restart banner after settings change */}
+          {hasUnsyncedChanges && (
+            <div className="sticky bottom-4 z-10 mt-6 animate-in slide-in-from-bottom-4 fade-in duration-300">
+              <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/80 p-4 shadow-lg">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                  <RotateCcw className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5 sm:mt-0" />
+                  <p className="text-sm text-amber-800 dark:text-amber-200 flex-1">
+                    {t('tpvSettings.restartBanner.message', { serialNumber: tpv?.serialNumber || '' })}
+                  </p>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    {!terminalOnline && (
+                      <span className="text-xs text-amber-600/70 dark:text-amber-400/70 mr-1">
+                        {t('tpvSettings.restartBanner.offlineHint')}
+                      </span>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/50"
+                      onClick={() => setHasUnsyncedChanges(false)}
+                    >
+                      {t('tpvSettings.restartBanner.dismiss')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-amber-600 hover:bg-amber-700 text-primary-foreground"
+                      disabled={!terminalOnline || commandMutation.isPending}
+                      onClick={() => {
+                        commandMutation.mutate(
+                          { command: 'RESTART' },
+                          {
+                            onSuccess: () => {
+                              setHasUnsyncedChanges(false)
+                            },
+                          },
+                        )
+                      }}
+                    >
+                      {commandMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                          {t('tpvSettings.restartBanner.restarting')}
+                        </>
+                      ) : (
+                        <>
+                          <RotateCcw className="h-4 w-4 mr-1.5" />
+                          {t('tpvSettings.restartBanner.restart')}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

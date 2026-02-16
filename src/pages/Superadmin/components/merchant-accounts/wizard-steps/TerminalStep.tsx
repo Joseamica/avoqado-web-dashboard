@@ -1,45 +1,59 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
-import { Smartphone, Monitor, Ban, CheckCircle2 } from 'lucide-react'
-import type { WizardState, PaymentSetupWizardProps } from '../PaymentSetupWizard'
+import { Smartphone, Ban, CheckCircle2, Search, X } from 'lucide-react'
+import type { WizardState } from '../PaymentSetupWizard'
+import type { Terminal } from '@/services/superadmin-terminals.service'
 
 interface TerminalStepProps {
   state: WizardState
   dispatch: React.Dispatch<any>
-  target: PaymentSetupWizardProps['target']
-}
-
-interface TerminalItem {
-  id: string
-  name: string | null
-  serialNumber: string | null
-  type: string
-  brand: string | null
-  model: string | null
-  assignedMerchantIds: string[]
-  status: string
 }
 
 const COMPATIBLE_TYPES = ['TPV_ANDROID', 'TPV_IOS']
 
-export const TerminalStep: React.FC<TerminalStepProps> = ({ state, dispatch, target }) => {
-  const venueId = target.type === 'venue' ? target.venueId : undefined
+export const TerminalStep: React.FC<TerminalStepProps> = ({ state, dispatch }) => {
+  const [search, setSearch] = useState('')
+  const [typeFilter, setTypeFilter] = useState<string | null>(null)
 
-  // Fetch terminals
+  // Fetch all terminals (superadmin can see all)
   const { data: terminals = [], isLoading } = useQuery({
-    queryKey: ['superadmin-terminals', venueId],
+    queryKey: ['superadmin-terminals-all'],
     queryFn: async () => {
       const svc = await import('@/services/superadmin-terminals.service')
-      const filters: any = {}
-      if (venueId) filters.venueId = venueId
-      return svc.getAllTerminals(filters)
+      return svc.getAllTerminals()
     },
     enabled: true,
   })
+
+  // Get unique terminal types for filter pills
+  const terminalTypes = useMemo(() => {
+    const types = new Set(terminals.map((t: Terminal) => t.type))
+    return Array.from(types).sort()
+  }, [terminals])
+
+  // Filtered terminals
+  const filteredTerminals = useMemo(() => {
+    let result = terminals as Terminal[]
+    if (search) {
+      const q = search.toLowerCase()
+      result = result.filter(
+        t =>
+          (t.name?.toLowerCase().includes(q)) ||
+          (t.serialNumber?.toLowerCase().includes(q)) ||
+          (t.brand?.toLowerCase().includes(q)) ||
+          (t.model?.toLowerCase().includes(q)),
+      )
+    }
+    if (typeFilter) {
+      result = result.filter(t => t.type === typeFilter)
+    }
+    return result
+  }, [terminals, search, typeFilter])
 
   // Get active merchants from wizard state
   const merchantSlots = useMemo(() => {
@@ -77,7 +91,7 @@ export const TerminalStep: React.FC<TerminalStepProps> = ({ state, dispatch, tar
   }
 
   const handleSelectAllCompatible = (merchantId: string) => {
-    const compatibleIds = terminals
+    const compatibleIds = (terminals as Terminal[])
       .filter(t => COMPATIBLE_TYPES.includes(t.type))
       .map(t => t.id)
     dispatch({ type: 'SET_TERMINAL_ASSIGNMENTS', merchantId, terminalIds: compatibleIds })
@@ -116,22 +130,80 @@ export const TerminalStep: React.FC<TerminalStepProps> = ({ state, dispatch, tar
         </div>
       </div>
 
+      {/* Search + Filter bar */}
+      <div className="space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nombre, serial, marca..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-10 h-10"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+        {terminalTypes.length > 1 && (
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => setTypeFilter(null)}
+              className={cn(
+                'px-3 py-1 rounded-full text-xs font-medium transition-colors',
+                !typeFilter
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80',
+              )}
+            >
+              Todos ({terminals.length})
+            </button>
+            {terminalTypes.map(type => {
+              const count = (terminals as Terminal[]).filter(t => t.type === type).length
+              return (
+                <button
+                  key={type}
+                  onClick={() => setTypeFilter(typeFilter === type ? null : type)}
+                  className={cn(
+                    'px-3 py-1 rounded-full text-xs font-medium transition-colors',
+                    typeFilter === type
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80',
+                  )}
+                >
+                  {type} ({count})
+                </button>
+              )
+            })}
+          </div>
+        )}
+        {(search || typeFilter) && (
+          <p className="text-xs text-muted-foreground">
+            {filteredTerminals.length} de {terminals.length} terminales
+          </p>
+        )}
+      </div>
+
       {/* Terminal list per merchant */}
       {merchantSlots.map(({ slot, merchantId, displayName }) => {
         const assignedIds = state.terminalAssignments[merchantId] || []
 
         return (
-          <div key={merchantId} className="rounded-2xl border border-border/50 bg-card p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="font-medium">
+          <div key={merchantId} className="rounded-2xl border border-border/50 bg-card p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-sm">
                 Cuenta {slot}: <span className="text-primary">{displayName}</span>
               </h4>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => handleSelectAllCompatible(merchantId)}>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleSelectAllCompatible(merchantId)}>
                   Seleccionar Todos TPV
                 </Button>
                 {assignedIds.length > 0 && (
-                  <Button variant="ghost" size="sm" onClick={() => handleDeselectAll(merchantId)}>
+                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => handleDeselectAll(merchantId)}>
                     Limpiar
                   </Button>
                 )}
@@ -139,14 +211,14 @@ export const TerminalStep: React.FC<TerminalStepProps> = ({ state, dispatch, tar
             </div>
 
             {isLoading ? (
-              <div className="py-8 text-center text-muted-foreground">Cargando terminales...</div>
-            ) : terminals.length === 0 ? (
-              <div className="py-8 text-center text-muted-foreground">
-                No hay terminales registradas
+              <div className="py-6 text-center text-sm text-muted-foreground">Cargando terminales...</div>
+            ) : filteredTerminals.length === 0 ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                {search || typeFilter ? 'Sin resultados para el filtro actual' : 'No hay terminales registradas'}
               </div>
             ) : (
-              <div className="space-y-2">
-                {terminals.map(terminal => {
+              <div className="space-y-1 max-h-[400px] overflow-y-auto pr-1">
+                {filteredTerminals.map((terminal: Terminal) => {
                   const isCompatible = COMPATIBLE_TYPES.includes(terminal.type)
                   const isSelected = assignedIds.includes(terminal.id)
                   const isAlreadyAssigned = terminal.assignedMerchantIds?.includes(merchantId)
@@ -155,11 +227,11 @@ export const TerminalStep: React.FC<TerminalStepProps> = ({ state, dispatch, tar
                     <label
                       key={terminal.id}
                       className={cn(
-                        'flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer',
-                        !isCompatible && 'opacity-50 cursor-not-allowed',
+                        'flex items-center gap-3 px-3 py-2 rounded-lg border transition-all cursor-pointer',
+                        !isCompatible && 'opacity-40 cursor-not-allowed',
                         isSelected
                           ? 'border-primary/50 bg-primary/5'
-                          : 'border-border/50 hover:border-border',
+                          : 'border-transparent hover:bg-muted/50',
                       )}
                     >
                       <Checkbox
@@ -172,37 +244,33 @@ export const TerminalStep: React.FC<TerminalStepProps> = ({ state, dispatch, tar
                         }}
                       />
 
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">
-                            {terminal.name || 'Sin nombre'}
+                      <div className="flex-1 min-w-0 flex items-center gap-2">
+                        <span className="font-medium text-sm truncate">
+                          {terminal.name || 'Sin nombre'}
+                        </span>
+                        {terminal.serialNumber && (
+                          <span className="text-xs text-muted-foreground font-mono truncate hidden sm:inline">
+                            ({terminal.serialNumber})
                           </span>
-                          {terminal.serialNumber && (
-                            <span className="text-xs text-muted-foreground font-mono">
-                              ({terminal.serialNumber})
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-muted-foreground">
-                            {terminal.brand} {terminal.model}
-                          </span>
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                            {terminal.type}
-                          </Badge>
-                        </div>
+                        )}
+                        <span className="text-xs text-muted-foreground truncate hidden md:inline">
+                          {terminal.brand} {terminal.model}
+                        </span>
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 flex-shrink-0">
+                          {terminal.type}
+                        </Badge>
                       </div>
 
                       {!isCompatible && (
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-[10px] flex-shrink-0">
                           <Ban className="w-3 h-3 mr-1" />
-                          No compatible
+                          N/C
                         </Badge>
                       )}
                       {isAlreadyAssigned && (
-                        <Badge className="text-xs bg-green-500/10 text-green-600 border-green-200">
+                        <Badge className="text-[10px] bg-green-500/10 text-green-600 border-green-200 flex-shrink-0">
                           <CheckCircle2 className="w-3 h-3 mr-1" />
-                          Ya asignada
+                          Asignada
                         </Badge>
                       )}
                     </label>
@@ -212,7 +280,7 @@ export const TerminalStep: React.FC<TerminalStepProps> = ({ state, dispatch, tar
             )}
 
             {assignedIds.length > 0 && (
-              <div className="mt-3 text-sm text-muted-foreground">
+              <div className="mt-2 text-xs text-muted-foreground">
                 {assignedIds.length} terminal{assignedIds.length > 1 ? 'es' : ''} seleccionada{assignedIds.length > 1 ? 's' : ''}
               </div>
             )}

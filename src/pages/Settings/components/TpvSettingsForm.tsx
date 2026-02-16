@@ -23,6 +23,9 @@ import {
   Bitcoin,
   Plus,
   X,
+  BarChart3,
+  HelpCircle,
+  Target,
 } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -44,9 +47,11 @@ interface TpvSettingsFormProps {
   tpvId: string
   /** Compact mode for embedding in other pages (e.g., TpvId) */
   compact?: boolean
+  /** Called after a setting is successfully saved, so the parent can prompt a TPV restart */
+  onSettingChanged?: () => void
 }
 
-export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps) {
+export function TpvSettingsForm({ tpvId, compact = false, onSettingChanged }: TpvSettingsFormProps) {
   const { t } = useTranslation('tpv')
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -106,6 +111,7 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
       toast({
         title: t('tpvSettings.updateSuccess'),
       })
+      onSettingChanged?.()
     },
     onSettled: () => {
       // Refetch to ensure sync with server
@@ -554,6 +560,34 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
                 description={t('tpvSettings.showOrderManagementDesc')}
                 checked={settings.showOrderManagement}
                 onCheckedChange={checked => handleToggle('showOrderManagement', checked)}
+              />
+              <SettingRow
+                icon={BarChart3}
+                label={t('tpvSettings.showReports')}
+                description={t('tpvSettings.showReportsDesc')}
+                checked={settings.showReports}
+                onCheckedChange={checked => handleToggle('showReports', checked)}
+              />
+              <SettingRow
+                icon={Receipt}
+                label={t('tpvSettings.showPayments')}
+                description={t('tpvSettings.showPaymentsDesc')}
+                checked={settings.showPayments}
+                onCheckedChange={checked => handleToggle('showPayments', checked)}
+              />
+              <SettingRow
+                icon={HelpCircle}
+                label={t('tpvSettings.showSupport')}
+                description={t('tpvSettings.showSupportDesc')}
+                checked={settings.showSupport}
+                onCheckedChange={checked => handleToggle('showSupport', checked)}
+              />
+              <SettingRow
+                icon={Target}
+                label={t('tpvSettings.showGoals')}
+                description={t('tpvSettings.showGoalsDesc')}
+                checked={settings.showGoals}
+                onCheckedChange={checked => handleToggle('showGoals', checked)}
               />
             </div>
           </CollapsibleContent>

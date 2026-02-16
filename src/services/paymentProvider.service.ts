@@ -1105,6 +1105,7 @@ export interface PaymentSetupSummary {
   terminals: any[]
   pricingStructures: any[]
   venues?: any[]
+  venuePricingStructures?: any[]
 }
 
 /**

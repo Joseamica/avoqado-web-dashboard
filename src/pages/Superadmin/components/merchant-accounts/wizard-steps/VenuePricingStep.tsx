@@ -1,14 +1,13 @@
-import React, { useMemo } from 'react'
+import React from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import {
   CreditCard,
-  TrendingUp,
   Calculator,
 } from 'lucide-react'
-import type { WizardState, PricingData, CostStructureData } from '../PaymentSetupWizard'
+import type { WizardState, PricingData } from '../PaymentSetupWizard'
 
 interface VenuePricingStepProps {
   state: WizardState
@@ -49,7 +48,9 @@ export const VenuePricingStep: React.FC<VenuePricingStepProps> = ({ state, dispa
     field: keyof PricingData,
     value: string,
   ) => {
-    const numValue = parseFloat(value) || 0
+    const numValue = value === '' ? 0 : parseFloat(value)
+    if (isNaN(numValue)) return
+    const rounded = Math.round(numValue * 10000) / 10000
     const current = state.pricing[slot] || {
       debitRate: 0,
       creditRate: 0,
@@ -61,7 +62,7 @@ export const VenuePricingStep: React.FC<VenuePricingStepProps> = ({ state, dispa
     dispatch({
       type: 'SET_PRICING',
       slot,
-      data: { ...current, [field]: numValue },
+      data: { ...current, [field]: rounded },
     })
   }
 
@@ -122,7 +123,7 @@ export const VenuePricingStep: React.FC<VenuePricingStepProps> = ({ state, dispa
                     step="0.01"
                     min="0"
                     max="100"
-                    value={price}
+                    value={price ? Number(price.toFixed(4)) : ''}
                     onChange={e => handlePricingChange('PRIMARY', field.key, e.target.value)}
                     className="h-10 text-sm pr-6"
                   />
@@ -149,7 +150,7 @@ export const VenuePricingStep: React.FC<VenuePricingStepProps> = ({ state, dispa
                 type="number"
                 step="0.01"
                 min="0"
-                value={primaryPricing?.fixedFeePerTransaction ?? 0}
+                value={primaryPricing?.fixedFeePerTransaction ? Number(primaryPricing.fixedFeePerTransaction.toFixed(2)) : ''}
                 onChange={e => handlePricingChange('PRIMARY', 'fixedFeePerTransaction', e.target.value)}
                 className="h-12 text-base pl-7"
               />
@@ -163,7 +164,7 @@ export const VenuePricingStep: React.FC<VenuePricingStepProps> = ({ state, dispa
                 type="number"
                 step="0.01"
                 min="0"
-                value={primaryPricing?.monthlyServiceFee ?? 0}
+                value={primaryPricing?.monthlyServiceFee ? Number(primaryPricing.monthlyServiceFee.toFixed(2)) : ''}
                 onChange={e => handlePricingChange('PRIMARY', 'monthlyServiceFee', e.target.value)}
                 className="h-12 text-base pl-7"
               />
