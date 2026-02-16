@@ -32,6 +32,7 @@ import {
 import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
+import { PaymentSetupWizard } from '../Superadmin/components/merchant-accounts/PaymentSetupWizard'
 import { VenuePaymentConfigDialog } from './components/VenuePaymentConfigDialog'
 import { VenuePricingDialog } from './components/VenuePricingDialog'
 
@@ -433,11 +434,13 @@ const VenuePaymentConfig: React.FC = () => {
   const { t } = useTranslation(['payment', 'common'])
   const { toast } = useToast()
   const { slug } = useParams<{ slug: string }>()
-  const { getVenueBySlug } = useAuth()
+  const { getVenueBySlug, user } = useAuth()
   const queryClient = useQueryClient()
+  const isSuperadmin = user?.role === 'SUPERADMIN'
 
   // Dialog states
   const [configDialogOpen, setConfigDialogOpen] = useState(false)
+  const [wizardOpen, setWizardOpen] = useState(false)
   const [pricingDialogOpen, setPricingDialogOpen] = useState(false)
   const [selectedPricing, setSelectedPricing] = useState<VenuePricingStructure | null>(null)
   const [selectedAccountType, setSelectedAccountType] = useState<'PRIMARY' | 'SECONDARY' | 'TERTIARY'>('PRIMARY')
@@ -626,12 +629,37 @@ const VenuePaymentConfig: React.FC = () => {
                 </div>
               </div>
 
-              <Button size="lg" onClick={() => setConfigDialogOpen(true)} className="gap-2 mt-4">
-                <Sparkles className="w-4 h-4" />
-                Conectar Cuenta de Pagos
-              </Button>
+              <div className="flex flex-col items-center gap-3 mt-4">
+                {isSuperadmin && (
+                  <Button size="lg" onClick={() => setWizardOpen(true)} className="gap-2">
+                    <Settings className="w-4 h-4" />
+                    Wizard de Pagos
+                  </Button>
+                )}
+                <Button size="lg" variant={isSuperadmin ? 'outline' : 'default'} onClick={() => setConfigDialogOpen(true)} className="gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  Conectar Cuenta de Pagos
+                </Button>
+              </div>
             </div>
           </GlassCard>
+
+          {/* Superadmin Payment Setup Wizard (empty state) */}
+          {isSuperadmin && venue && (
+            <PaymentSetupWizard
+              open={wizardOpen}
+              onClose={() => {
+                setWizardOpen(false)
+                queryClient.invalidateQueries({ queryKey: ['venue-payment-config', venue.id] })
+              }}
+              target={{
+                type: 'venue',
+                venueId: venue.id,
+                venueName: venue.name,
+                venueSlug: slug!,
+              }}
+            />
+          )}
 
           <VenuePaymentConfigDialog
             open={configDialogOpen}
@@ -659,13 +687,45 @@ const VenuePaymentConfig: React.FC = () => {
             <h1 className="text-2xl font-bold tracking-tight">Configuración de Pagos</h1>
             <p className="text-muted-foreground text-sm mt-1">Gestiona el procesamiento de pagos para este venue</p>
           </div>
-          <div className="flex items-center gap-2">
-            <StatusPulse status={marginsHealthy ? 'success' : marginsHealthy === false ? 'error' : 'neutral'} />
-            <span className="text-sm font-medium">
-              {marginsHealthy ? 'Operativo' : marginsHealthy === false ? 'Revisar márgenes' : 'Configurando'}
-            </span>
+          <div className="flex items-center gap-3">
+            {isSuperadmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setWizardOpen(true)}
+                className="gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                Wizard de Pagos
+              </Button>
+            )}
+            <div className="flex items-center gap-2">
+              <StatusPulse status={marginsHealthy ? 'success' : marginsHealthy === false ? 'error' : 'neutral'} />
+              <span className="text-sm font-medium">
+                {marginsHealthy ? 'Operativo' : marginsHealthy === false ? 'Revisar márgenes' : 'Configurando'}
+              </span>
+            </div>
           </div>
         </div>
+
+        {/* Superadmin Payment Setup Wizard */}
+        {isSuperadmin && venue && (
+          <PaymentSetupWizard
+            open={wizardOpen}
+            onClose={() => {
+              setWizardOpen(false)
+              queryClient.invalidateQueries({ queryKey: ['venue-payment-config', venue.id] })
+              queryClient.invalidateQueries({ queryKey: ['venue-cost-structures', venue.id] })
+              queryClient.invalidateQueries({ queryKey: ['venue-pricing-structures', venue.id] })
+            }}
+            target={{
+              type: 'venue',
+              venueId: venue.id,
+              venueName: venue.name,
+              venueSlug: slug!,
+            }}
+          />
+        )}
 
         {/* === BENTO GRID === */}
         <div className="grid grid-cols-12 gap-4">

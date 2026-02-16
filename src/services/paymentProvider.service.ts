@@ -1040,6 +1040,110 @@ export async function getMultipleVenuesPaymentReadiness(
   return response.data.data
 }
 
+// ===== PAYMENT SETUP WIZARD =====
+
+export interface FullSetupRequest {
+  serialNumber: string
+  brand: string
+  model: string
+  displayName?: string
+  environment: 'SANDBOX' | 'PRODUCTION'
+  businessCategory?: string
+  additionalTerminalIds?: string[]
+  costStructureOverrides?: {
+    debitRate: number
+    creditRate: number
+    amexRate: number
+    internationalRate: number
+    fixedCostPerTransaction?: number
+    monthlyFee?: number
+  }
+  target: { type: 'venue'; id: string } | { type: 'organization'; id: string }
+  accountSlot: 'PRIMARY' | 'SECONDARY' | 'TERTIARY'
+  venuePricing?: {
+    debitRate: number
+    creditRate: number
+    amexRate: number
+    internationalRate: number
+    fixedFeePerTransaction?: number
+    monthlyServiceFee?: number
+  }
+  settlementConfig?: {
+    dayType: 'BUSINESS_DAYS' | 'CALENDAR_DAYS'
+    cutoffTime: string
+    cutoffTimezone: string
+    debitDays: number
+    creditDays: number
+    amexDays: number
+    internationalDays: number
+    otherDays: number
+  }
+}
+
+export interface FullSetupResponse {
+  merchantAccount: {
+    id: string
+    displayName: string | null
+    created: boolean
+    alreadyExisted: boolean
+  }
+  terminals: {
+    autoAttached: number
+    batchAttached: number
+    total: number
+  }
+  costStructure: { id: string } | null
+  paymentConfig: { id: string; slot: string } | null
+  pricingStructure: { id: string } | null
+  settlements: { created: number }
+}
+
+export interface PaymentSetupSummary {
+  targetType: 'venue' | 'organization'
+  targetId: string
+  config: any
+  terminals: any[]
+  pricingStructures: any[]
+  venues?: any[]
+}
+
+/**
+ * Complete payment setup wizard — orchestrates everything in one call
+ * Backend endpoint: POST /api/v1/superadmin/merchant-accounts/blumon/full-setup
+ */
+export async function fullSetupBlumonMerchant(data: FullSetupRequest): Promise<FullSetupResponse> {
+  const response = await api.post('/api/v1/superadmin/merchant-accounts/blumon/full-setup', data)
+  return response.data.data
+}
+
+/**
+ * Batch assign terminals to a merchant account
+ * Backend endpoint: POST /api/v1/superadmin/merchant-accounts/:id/batch-assign-terminals
+ */
+export async function batchAssignTerminals(
+  merchantAccountId: string,
+  terminalIds: string[],
+): Promise<{ attached: number; alreadyAttached: number; errors: string[] }> {
+  const response = await api.post(`/api/v1/superadmin/merchant-accounts/${merchantAccountId}/batch-assign-terminals`, {
+    terminalIds,
+  })
+  return response.data.data
+}
+
+/**
+ * Get full payment setup summary for wizard pre-fill
+ * Backend endpoint: GET /api/v1/superadmin/merchant-accounts/payment-setup/summary
+ */
+export async function getPaymentSetupSummary(
+  targetType: 'venue' | 'organization',
+  targetId: string,
+): Promise<PaymentSetupSummary> {
+  const response = await api.get('/api/v1/superadmin/merchant-accounts/payment-setup/summary', {
+    params: { targetType, targetId },
+  })
+  return response.data.data
+}
+
 // Convenience API object for importing
 export const paymentProviderAPI = {
   // Payment Providers
@@ -1111,4 +1215,9 @@ export const paymentProviderAPI = {
 
   // MCC Lookup
   getMccRateSuggestion,
+
+  // Payment Setup Wizard
+  fullSetupBlumonMerchant,
+  batchAssignTerminals,
+  getPaymentSetupSummary,
 }

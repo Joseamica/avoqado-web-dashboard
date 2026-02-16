@@ -19,6 +19,7 @@ import {
   type AccountType,
 } from '@/services/superadmin-organizations.service'
 import { getMerchantAccountsList } from '@/services/paymentProvider.service'
+import { PaymentSetupWizard } from './components/merchant-accounts/PaymentSetupWizard'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Building2,
@@ -33,6 +34,7 @@ import {
   Power,
   PowerOff,
   Search,
+  Settings,
   Settings2,
   Store,
   Trash2,
@@ -90,9 +92,10 @@ interface OrganizationCardProps {
   onDelete: (org: Organization) => void
   onManageModules: (org: Organization) => void
   onPaymentConfig: (org: Organization) => void
+  onPaymentWizard: (org: Organization) => void
 }
 
-const OrganizationCard: React.FC<OrganizationCardProps> = ({ organization, onEdit, onDelete, onManageModules, onPaymentConfig }) => {
+const OrganizationCard: React.FC<OrganizationCardProps> = ({ organization, onEdit, onDelete, onManageModules, onPaymentConfig, onPaymentWizard }) => {
   const businessTypeLabel = BUSINESS_TYPES.find(bt => bt.value === organization.type)?.label || organization.type
 
   return (
@@ -131,6 +134,10 @@ const OrganizationCard: React.FC<OrganizationCardProps> = ({ organization, onEdi
                 <DropdownMenuItem onClick={() => onPaymentConfig(organization)} className="cursor-pointer">
                   <CreditCard className="w-4 h-4 mr-2" />
                   Configurar Pagos
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onPaymentWizard(organization)} className="cursor-pointer">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Wizard de Pagos
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -1101,6 +1108,7 @@ const OrganizationManagement: React.FC = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isModuleDialogOpen, setIsModuleDialogOpen] = useState(false)
   const [isPaymentConfigDialogOpen, setIsPaymentConfigDialogOpen] = useState(false)
+  const [isPaymentWizardOpen, setIsPaymentWizardOpen] = useState(false)
 
   // Filtered organizations
   const filteredOrganizations = useMemo(() => {
@@ -1195,6 +1203,11 @@ const OrganizationManagement: React.FC = () => {
   const handlePaymentConfig = (org: Organization) => {
     setSelectedOrganization(org)
     setIsPaymentConfigDialogOpen(true)
+  }
+
+  const handlePaymentWizard = (org: Organization) => {
+    setSelectedOrganization(org)
+    setIsPaymentWizardOpen(true)
   }
 
   const handleSaveCreate = (data: CreateOrganizationData | UpdateOrganizationData) => {
@@ -1354,6 +1367,7 @@ const OrganizationManagement: React.FC = () => {
                 onDelete={handleDelete}
                 onManageModules={handleManageModules}
                 onPaymentConfig={handlePaymentConfig}
+                onPaymentWizard={handlePaymentWizard}
               />
             ))}
           </div>
@@ -1396,6 +1410,21 @@ const OrganizationManagement: React.FC = () => {
         onOpenChange={setIsPaymentConfigDialogOpen}
         organization={selectedOrganization}
       />
+
+      {selectedOrganization && (
+        <PaymentSetupWizard
+          open={isPaymentWizardOpen}
+          onClose={() => {
+            setIsPaymentWizardOpen(false)
+            queryClient.invalidateQueries({ queryKey: ['superadmin-organizations'] })
+          }}
+          target={{
+            type: 'organization',
+            organizationId: selectedOrganization.id,
+            orgName: selectedOrganization.name,
+          }}
+        />
+      )}
     </div>
   )
 }
