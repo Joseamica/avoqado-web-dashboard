@@ -355,7 +355,7 @@ export function MenuWizardDialog({ open, onOpenChange, onSuccess }: MenuWizardDi
             {/* Step 2: Availability */}
             {currentStep === 2 && (
               <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_1fr] gap-6">
-                <CardShadcn className="!bg-transparent border-border shadow-none">
+                <CardShadcn className="bg-transparent! border-border shadow-none">
                   <CardContentShadcn className="space-y-6 pt-6">
                     <div className="flex items-center gap-4 p-4 rounded-lg">
                       <div className="p-2 bg-primary/10 rounded-full">
@@ -385,9 +385,7 @@ export function MenuWizardDialog({ open, onOpenChange, onSuccess }: MenuWizardDi
                                 }}
                                 className={
                                   'px-3.5 py-1.5 cursor-pointer transition-colors rounded-full text-[13px] leading-none ' +
-                                  (day.selected
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-muted/30 text-foreground hover:bg-muted/40')
+                                  (day.selected ? 'bg-primary text-primary-foreground' : 'bg-muted/30 text-foreground hover:bg-muted/40')
                                 }
                               >
                                 {day.label}

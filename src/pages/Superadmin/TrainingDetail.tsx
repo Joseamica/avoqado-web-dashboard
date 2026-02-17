@@ -24,6 +24,7 @@ import {
   type TrainingStep,
   type TrainingQuizQuestion,
   type TrainingCategory,
+  type TrainingQuestionType,
   type UpdateTrainingData,
   type CreateStepData,
   type CreateQuizData,
@@ -62,6 +63,12 @@ const categoryLabels: Record<TrainingCategory, string> = {
   PAGOS: 'Pagos',
   ATENCION_CLIENTE: 'Atención al Cliente',
   GENERAL: 'General',
+}
+
+const questionTypeLabels: Record<TrainingQuestionType, string> = {
+  MULTIPLE_CHOICE: 'Opción múltiple',
+  TRUE_FALSE: 'Verdadero / Falso',
+  MULTI_SELECT: 'Selección múltiple',
 }
 
 const GlassCard: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
@@ -118,9 +125,12 @@ const TrainingDetail: React.FC = () => {
   const [isQuizDialogOpen, setIsQuizDialogOpen] = useState(false)
   const [editingQuestion, setEditingQuestion] = useState<TrainingQuizQuestion | null>(null)
   const [quizForm, setQuizForm] = useState<CreateQuizData>({
+    questionType: 'MULTIPLE_CHOICE',
     question: '',
     options: ['', ''],
     correctIndex: 0,
+    correctIndices: [],
+    explanation: '',
   })
   const [isUploading, setIsUploading] = useState(false)
   const [previewMedia, setPreviewMedia] = useState<{ url: string; type: 'IMAGE' | 'VIDEO'; title: string } | null>(null)
@@ -256,7 +266,7 @@ const TrainingDetail: React.FC = () => {
   }
 
   const resetQuizForm = () => {
-    setQuizForm({ question: '', options: ['', ''], correctIndex: 0 })
+    setQuizForm({ questionType: 'MULTIPLE_CHOICE', question: '', options: ['', ''], correctIndex: 0, correctIndices: [], explanation: '' })
   }
 
   const handleStartEdit = () => {
@@ -271,6 +281,8 @@ const TrainingDetail: React.FC = () => {
       featureTags: training.featureTags || [],
       organizationId: training.organizationId,
       venueIds: training.venueIds || [],
+      quizPassThreshold: training.quizPassThreshold,
+      quizMaxAttempts: training.quizMaxAttempts,
     })
     setVenueScope((training.venueIds || []).length > 0 ? 'specific' : 'all')
     setIsEditingInfo(true)
@@ -493,6 +505,45 @@ const TrainingDetail: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Quiz Settings */}
+                {(training.quizQuestions?.length || 0) > 0 && (
+                  <div className="space-y-4 pt-4 border-t border-border/50">
+                    <h3 className="text-sm font-semibold">Configuración del Quiz</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Porcentaje para aprobar</Label>
+                        <select
+                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                          value={editForm.quizPassThreshold ?? 70}
+                          onChange={e =>
+                            setEditForm(prev => ({ ...prev, quizPassThreshold: Number(e.target.value) }))
+                          }
+                        >
+                          <option value={60}>60%</option>
+                          <option value={70}>70% (default)</option>
+                          <option value={80}>80%</option>
+                          <option value={100}>100%</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Intentos máximos</Label>
+                        <select
+                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                          value={editForm.quizMaxAttempts ?? 0}
+                          onChange={e =>
+                            setEditForm(prev => ({ ...prev, quizMaxAttempts: Number(e.target.value) }))
+                          }
+                        >
+                          <option value={0}>Ilimitado (default)</option>
+                          <option value={1}>1 intento</option>
+                          <option value={2}>2 intentos</option>
+                          <option value={3}>3 intentos</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Organization & Venue assignment */}
                 <div className="space-y-4 pt-4 border-t border-border/50">
                   <h3 className="text-sm font-semibold">Asignación</h3>
@@ -652,6 +703,17 @@ const TrainingDetail: React.FC = () => {
                     </Badge>
                   )}
                 </div>
+                {/* Quiz settings display */}
+                {(training.quizQuestions?.length || 0) > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Badge variant="outline" className="text-xs">
+                      Aprobación: {training.quizPassThreshold}%
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {training.quizMaxAttempts === 0 ? 'Intentos ilimitados' : `${training.quizMaxAttempts} intento(s)`}
+                    </Badge>
+                  </div>
+                )}
                 {/* Feature tags display */}
                 {(training.featureTags || []).length > 0 && (
                   <div className="flex flex-wrap gap-1 pt-1">
@@ -800,25 +862,41 @@ const TrainingDetail: React.FC = () => {
                   <div key={q.id} className="p-4 rounded-xl border border-border/50">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <p className="font-medium">
-                          {idx + 1}. {q.question}
-                        </p>
-                        <div className="mt-2 space-y-1">
-                          {q.options.map((opt, oi) => (
-                            <div
-                              key={oi}
-                              className={cn(
-                                'text-sm px-3 py-1 rounded',
-                                oi === q.correctIndex
-                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 font-medium'
-                                  : 'text-muted-foreground',
-                              )}
-                            >
-                              {String.fromCharCode(65 + oi)}) {opt}
-                              {oi === q.correctIndex && ' \u2713'}
-                            </div>
-                          ))}
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">
+                            {idx + 1}. {q.question}
+                          </p>
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                            {questionTypeLabels[q.questionType || 'MULTIPLE_CHOICE']}
+                          </Badge>
                         </div>
+                        <div className="mt-2 space-y-1">
+                          {q.options.map((opt, oi) => {
+                            const isCorrect = q.questionType === 'MULTI_SELECT'
+                              ? (q.correctIndices || []).includes(oi)
+                              : oi === q.correctIndex
+                            return (
+                              <div
+                                key={oi}
+                                className={cn(
+                                  'text-sm px-3 py-1 rounded',
+                                  isCorrect
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 font-medium'
+                                    : 'text-muted-foreground',
+                                )}
+                              >
+                                {String.fromCharCode(65 + oi)}) {opt}
+                                {isCorrect && ' \u2713'}
+                              </div>
+                            )
+                          })}
+                        </div>
+                        {q.explanation && (
+                          <div className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground">
+                            <Lightbulb className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-yellow-500" />
+                            <span className="line-clamp-2">{q.explanation}</span>
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-1">
                         <Button
@@ -828,10 +906,13 @@ const TrainingDetail: React.FC = () => {
                           onClick={() => {
                             setEditingQuestion(q)
                             setQuizForm({
+                              questionType: q.questionType || 'MULTIPLE_CHOICE',
                               question: q.question,
                               options: [...q.options],
                               correctIndex: q.correctIndex,
+                              correctIndices: q.correctIndices || [],
                               position: q.position,
+                              explanation: q.explanation || '',
                             })
                             setIsQuizDialogOpen(true)
                           }}
@@ -1083,25 +1164,81 @@ const TrainingDetail: React.FC = () => {
             <DialogTitle>{editingQuestion ? 'Editar Pregunta' : 'Nueva Pregunta'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Question type selector */}
+            <div className="space-y-2">
+              <Label>Tipo de pregunta</Label>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                value={quizForm.questionType || 'MULTIPLE_CHOICE'}
+                onChange={e => {
+                  const newType = e.target.value as TrainingQuestionType
+                  if (newType === 'TRUE_FALSE') {
+                    setQuizForm(prev => ({
+                      ...prev,
+                      questionType: newType,
+                      options: ['Verdadero', 'Falso'],
+                      correctIndex: 0,
+                      correctIndices: [],
+                    }))
+                  } else if (newType === 'MULTI_SELECT') {
+                    setQuizForm(prev => ({
+                      ...prev,
+                      questionType: newType,
+                      correctIndex: 0,
+                      correctIndices: [],
+                    }))
+                  } else {
+                    setQuizForm(prev => ({
+                      ...prev,
+                      questionType: newType,
+                      correctIndices: [],
+                    }))
+                  }
+                }}
+              >
+                <option value="MULTIPLE_CHOICE">Opción múltiple</option>
+                <option value="TRUE_FALSE">Verdadero / Falso</option>
+                <option value="MULTI_SELECT">Selección múltiple</option>
+              </select>
+            </div>
             <div className="space-y-2">
               <Label>Pregunta</Label>
               <Input
                 value={quizForm.question}
                 onChange={e => setQuizForm(prev => ({ ...prev, question: e.target.value }))}
-                placeholder="¿Cuál es el botón correcto para...?"
+                placeholder={quizForm.questionType === 'TRUE_FALSE'
+                  ? 'El botón de pagos está en el menú principal.'
+                  : '¿Cuál es el botón correcto para...?'}
               />
             </div>
             <div className="space-y-2">
               <Label>Opciones</Label>
               {quizForm.options.map((opt, idx) => (
                 <div key={idx} className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="correctAnswer"
-                    checked={quizForm.correctIndex === idx}
-                    onChange={() => setQuizForm(prev => ({ ...prev, correctIndex: idx }))}
-                    className="cursor-pointer"
-                  />
+                  {quizForm.questionType === 'MULTI_SELECT' ? (
+                    <input
+                      type="checkbox"
+                      checked={(quizForm.correctIndices || []).includes(idx)}
+                      onChange={() => {
+                        setQuizForm(prev => {
+                          const current = prev.correctIndices || []
+                          const updated = current.includes(idx)
+                            ? current.filter(i => i !== idx)
+                            : [...current, idx].sort()
+                          return { ...prev, correctIndices: updated }
+                        })
+                      }}
+                      className="cursor-pointer"
+                    />
+                  ) : (
+                    <input
+                      type="radio"
+                      name="correctAnswer"
+                      checked={quizForm.correctIndex === idx}
+                      onChange={() => setQuizForm(prev => ({ ...prev, correctIndex: idx }))}
+                      className="cursor-pointer"
+                    />
+                  )}
                   <Input
                     value={opt}
                     onChange={e => {
@@ -1109,10 +1246,11 @@ const TrainingDetail: React.FC = () => {
                       newOptions[idx] = e.target.value
                       setQuizForm(prev => ({ ...prev, options: newOptions }))
                     }}
-                    placeholder={`Opción ${String.fromCharCode(65 + idx)}`}
+                    placeholder={quizForm.questionType === 'TRUE_FALSE' ? undefined : `Opción ${String.fromCharCode(65 + idx)}`}
                     className="flex-1"
+                    disabled={quizForm.questionType === 'TRUE_FALSE'}
                   />
-                  {quizForm.options.length > 2 && (
+                  {quizForm.questionType !== 'TRUE_FALSE' && quizForm.options.length > 2 && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -1120,7 +1258,10 @@ const TrainingDetail: React.FC = () => {
                       onClick={() => {
                         const newOptions = quizForm.options.filter((_, i) => i !== idx)
                         const newCorrectIndex = quizForm.correctIndex >= idx ? Math.max(0, quizForm.correctIndex - 1) : quizForm.correctIndex
-                        setQuizForm(prev => ({ ...prev, options: newOptions, correctIndex: newCorrectIndex }))
+                        const newCorrectIndices = (quizForm.correctIndices || [])
+                          .filter(i => i !== idx)
+                          .map(i => (i > idx ? i - 1 : i))
+                        setQuizForm(prev => ({ ...prev, options: newOptions, correctIndex: newCorrectIndex, correctIndices: newCorrectIndices }))
                       }}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -1128,7 +1269,7 @@ const TrainingDetail: React.FC = () => {
                   )}
                 </div>
               ))}
-              {quizForm.options.length < 6 && (
+              {quizForm.questionType !== 'TRUE_FALSE' && quizForm.options.length < 6 && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -1139,8 +1280,21 @@ const TrainingDetail: React.FC = () => {
                 </Button>
               )}
               <p className="text-xs text-muted-foreground">
-                Selecciona el radio button de la respuesta correcta.
+                {quizForm.questionType === 'MULTI_SELECT'
+                  ? 'Marca las casillas de todas las respuestas correctas.'
+                  : quizForm.questionType === 'TRUE_FALSE'
+                    ? 'Selecciona si la afirmación es verdadera o falsa.'
+                    : 'Selecciona el radio button de la respuesta correcta.'}
               </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Explicación (opcional)</Label>
+              <Textarea
+                value={quizForm.explanation || ''}
+                onChange={e => setQuizForm(prev => ({ ...prev, explanation: e.target.value }))}
+                placeholder="Se muestra al staff después de enviar el quiz..."
+                rows={2}
+              />
             </div>
           </div>
           <DialogFooter>
@@ -1152,6 +1306,10 @@ const TrainingDetail: React.FC = () => {
                 const validOptions = quizForm.options.filter(o => o.trim())
                 if (validOptions.length < 2) {
                   toast({ title: 'Error', description: 'Necesitas al menos 2 opciones válidas.', variant: 'destructive' })
+                  return
+                }
+                if (quizForm.questionType === 'MULTI_SELECT' && (quizForm.correctIndices || []).length === 0) {
+                  toast({ title: 'Error', description: 'Selecciona al menos una respuesta correcta.', variant: 'destructive' })
                   return
                 }
                 const finalForm = { ...quizForm, options: validOptions }

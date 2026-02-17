@@ -26,6 +26,8 @@ import {
   BarChart3,
   HelpCircle,
   Target,
+  Mail,
+  GraduationCap,
 } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -588,6 +590,20 @@ export function TpvSettingsForm({ tpvId, compact = false, onSettingChanged }: Tp
                 description={t('tpvSettings.showGoalsDesc')}
                 checked={settings.showGoals}
                 onCheckedChange={checked => handleToggle('showGoals', checked)}
+              />
+              <SettingRow
+                icon={Mail}
+                label={t('tpvSettings.showMessages')}
+                description={t('tpvSettings.showMessagesDesc')}
+                checked={settings.showMessages}
+                onCheckedChange={checked => handleToggle('showMessages', checked)}
+              />
+              <SettingRow
+                icon={GraduationCap}
+                label={t('tpvSettings.showTrainings')}
+                description={t('tpvSettings.showTrainingsDesc')}
+                checked={settings.showTrainings}
+                onCheckedChange={checked => handleToggle('showTrainings', checked)}
               />
             </div>
           </CollapsibleContent>

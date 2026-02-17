@@ -111,7 +111,7 @@ const MetricCard: React.FC<{
   const content = (
     <GlassCard className="p-4 h-full" hover>
       <div className="flex items-start justify-between">
-        <div className={cn('p-2 rounded-xl bg-gradient-to-br', accentColors[accent])}>{icon}</div>
+        <div className={cn('p-2 rounded-xl bg-linear-to-br', accentColors[accent])}>{icon}</div>
         {trend && (
           <div
             className={cn(
@@ -187,7 +187,7 @@ const RateRow: React.FC<{
         <div
           className={cn(
             'h-full rounded-full transition-all duration-500',
-            isPositive ? 'bg-gradient-to-r from-green-500 to-emerald-400' : 'bg-gradient-to-r from-red-500 to-orange-400',
+            isPositive ? 'bg-linear-to-r from-green-500 to-emerald-400' : 'bg-linear-to-r from-red-500 to-orange-400',
           )}
           style={{ width: `${Math.abs(marginPercent)}%` }}
         />

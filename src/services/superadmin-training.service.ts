@@ -17,6 +17,8 @@ export interface TrainingModule {
   status: TrainingStatus
   featureTags: string[]
   venueIds: string[]
+  quizPassThreshold: number
+  quizMaxAttempts: number
   createdBy: string
   createdByName: string
   steps?: TrainingStep[]
@@ -44,13 +46,18 @@ export interface TrainingStep {
   updatedAt: string
 }
 
+export type TrainingQuestionType = 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'MULTI_SELECT'
+
 export interface TrainingQuizQuestion {
   id: string
   trainingModuleId: string
+  questionType: TrainingQuestionType
   question: string
   options: string[]
   correctIndex: number
+  correctIndices: number[]
   position: number
+  explanation: string | null
   createdAt: string
 }
 
@@ -64,6 +71,7 @@ export interface TrainingProgress {
   quizScore: number | null
   quizTotal: number | null
   quizPassed: boolean | null
+  attemptNumber: number
   startedAt: string
   completedAt: string | null
 }
@@ -97,6 +105,8 @@ export interface CreateTrainingData {
   featureTags?: string[]
   venueIds?: string[]
   organizationId?: string | null
+  quizPassThreshold?: number
+  quizMaxAttempts?: number
 }
 
 export type UpdateTrainingData = Partial<CreateTrainingData>
@@ -114,10 +124,13 @@ export interface CreateStepData {
 export type UpdateStepData = Partial<CreateStepData>
 
 export interface CreateQuizData {
+  questionType?: TrainingQuestionType
   question: string
   options: string[]
   correctIndex: number
+  correctIndices?: number[]
   position?: number
+  explanation?: string
 }
 
 export type UpdateQuizData = Partial<CreateQuizData>

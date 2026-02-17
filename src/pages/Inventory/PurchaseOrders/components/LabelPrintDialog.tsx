@@ -1,28 +1,17 @@
-import { useState, useMemo } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useMutation } from '@tanstack/react-query'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2, Download, Printer, Plus, X } from 'lucide-react'
-import {
-  purchaseOrderService,
-  PurchaseOrder,
-  LABEL_TYPES,
-  LabelGenerationConfig,
-} from '@/services/purchaseOrder.service'
 import { cn } from '@/lib/utils'
+import { LABEL_TYPES, LabelGenerationConfig, PurchaseOrder, purchaseOrderService } from '@/services/purchaseOrder.service'
+import { useMutation } from '@tanstack/react-query'
+import { Download, Loader2, Plus, Printer, X } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface LabelPrintDialogProps {
   open: boolean
@@ -71,8 +60,7 @@ export function LabelPrintDialog({ open, onOpenChange, purchaseOrder, venueId }:
 
   // Generate labels mutation
   const generateLabelsMutation = useMutation({
-    mutationFn: (config: LabelGenerationConfig) =>
-      purchaseOrderService.generateLabels(venueId, purchaseOrder.id, config),
+    mutationFn: (config: LabelGenerationConfig) => purchaseOrderService.generateLabels(venueId, purchaseOrder.id, config),
     onSuccess: response => {
       // Download PDF
       const url = URL.createObjectURL(response.blob)
@@ -188,21 +176,17 @@ export function LabelPrintDialog({ open, onOpenChange, purchaseOrder, venueId }:
                           'relative p-3 rounded-lg border-2 cursor-pointer transition-all',
                           labelType === template.value
                             ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                            : 'border-border hover:border-primary/50 hover:bg-muted/50',
                         )}
                       >
                         <div className="flex items-start gap-3">
                           <div
                             className={cn(
-                              'mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0',
-                              labelType === template.value
-                                ? 'border-primary bg-primary'
-                                : 'border-muted-foreground/30'
+                              'mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center transition-all shrink-0',
+                              labelType === template.value ? 'border-primary bg-primary' : 'border-muted-foreground/30',
                             )}
                           >
-                            {labelType === template.value && (
-                              <div className="h-2 w-2 rounded-full bg-primary-foreground" />
-                            )}
+                            {labelType === template.value && <div className="h-2 w-2 rounded-full bg-primary-foreground" />}
                           </div>
                           <p className="text-sm flex-1 leading-tight">{template.label}</p>
                         </div>
@@ -222,9 +206,7 @@ export function LabelPrintDialog({ open, onOpenChange, purchaseOrder, venueId }:
                       onClick={() => setBarcodeFormat('SKU')}
                       className={cn(
                         'flex-1 p-3 rounded-lg border-2 cursor-pointer transition-all text-center',
-                        barcodeFormat === 'SKU'
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                        barcodeFormat === 'SKU' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-muted/50',
                       )}
                     >
                       <span className="text-sm font-medium">SKU</span>
@@ -235,7 +217,7 @@ export function LabelPrintDialog({ open, onOpenChange, purchaseOrder, venueId }:
                         'flex-1 p-3 rounded-lg border-2 cursor-pointer transition-all text-center',
                         barcodeFormat === 'GTIN'
                           ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                          : 'border-border hover:border-primary/50 hover:bg-muted/50',
                       )}
                     >
                       <span className="text-sm font-medium">GTIN</span>
@@ -262,7 +244,7 @@ export function LabelPrintDialog({ open, onOpenChange, purchaseOrder, venueId }:
                       >
                         <Checkbox
                           checked={details[key as keyof typeof details]}
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={e => e.stopPropagation()}
                           className="cursor-pointer"
                         />
                         <span className="text-sm flex-1">{label}</span>
@@ -300,14 +282,12 @@ export function LabelPrintDialog({ open, onOpenChange, purchaseOrder, venueId }:
                         className={cn(
                           'flex items-center gap-4 p-3',
                           index !== purchaseOrder.items.length - 1 && 'border-b border-border',
-                          'hover:bg-muted/30 transition-colors'
+                          'hover:bg-muted/30 transition-colors',
                         )}
                       >
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate">{item.rawMaterial?.name || 'Unknown'}</p>
-                          <p className="text-xs text-muted-foreground">
-                            SKU: {item.rawMaterial?.sku || 'N/A'}
-                          </p>
+                          <p className="text-xs text-muted-foreground">SKU: {item.rawMaterial?.sku || 'N/A'}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <Input
@@ -318,17 +298,8 @@ export function LabelPrintDialog({ open, onOpenChange, purchaseOrder, venueId }:
                             onChange={e => handleQuantityChange(item.id, parseInt(e.target.value) || 0)}
                             className="w-16 h-8 text-center text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleToggleItem(item.id)}
-                            className="h-8 w-8 cursor-pointer"
-                          >
-                            {selectedItems[item.id] ? (
-                              <X className="h-4 w-4" />
-                            ) : (
-                              <Plus className="h-4 w-4" />
-                            )}
+                          <Button variant="ghost" size="icon" onClick={() => handleToggleItem(item.id)} className="h-8 w-8 cursor-pointer">
+                            {selectedItems[item.id] ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                           </Button>
                         </div>
                       </div>
@@ -354,10 +325,7 @@ export function LabelPrintDialog({ open, onOpenChange, purchaseOrder, venueId }:
               <Button variant="outline" onClick={handleClose} disabled={generateLabelsMutation.isPending}>
                 {tCommon('cancel')}
               </Button>
-              <Button
-                onClick={handleCreateLabels}
-                disabled={totalLabels === 0 || generateLabelsMutation.isPending}
-              >
+              <Button onClick={handleCreateLabels} disabled={totalLabels === 0 || generateLabelsMutation.isPending}>
                 {generateLabelsMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {t('labels.createLabels')}
               </Button>

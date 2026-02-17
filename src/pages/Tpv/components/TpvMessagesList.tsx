@@ -456,24 +456,26 @@ export function TpvMessagesList({ venueId }: TpvMessagesListProps) {
 
                       {/* Actions */}
                       <div className="flex items-center gap-1 shrink-0">
-                        {message.status === 'ACTIVE' && stats.total > 0 && stats.acknowledged + stats.dismissed < stats.total && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setCancelDialogId(message.id)
-                                }}
-                              >
-                                <XCircle className="w-4 h-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Cancelar mensaje</TooltipContent>
-                          </Tooltip>
-                        )}
+                        <div className="w-8 h-8">
+                          {message.status === 'ACTIVE' && stats.total > 0 && stats.acknowledged + stats.dismissed < stats.total && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setCancelDialogId(message.id)
+                                  }}
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Cancelar mensaje</TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
                         <div className="w-5 flex justify-center">
                           {isExpanded ? (
                             <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform" />
