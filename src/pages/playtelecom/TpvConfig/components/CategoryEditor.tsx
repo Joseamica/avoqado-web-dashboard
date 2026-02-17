@@ -299,25 +299,32 @@ export function CategoryEditor({ onCategoriesChange }: CategoryEditorProps) {
                       style={{ backgroundColor: category.color || '#888' }}
                     />
                     <h4 className="font-semibold">{category.name}</h4>
+                    {category.source === 'organization' && (
+                      <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
+                        ORG
+                      </Badge>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={(e) => { e.stopPropagation(); handleOpenEdit(category) }}
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-destructive hover:text-destructive"
-                      onClick={(e) => { e.stopPropagation(); handleOpenDelete(category) }}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
+                  {category.source !== 'organization' && (
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={(e) => { e.stopPropagation(); handleOpenEdit(category) }}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={(e) => { e.stopPropagation(); handleOpenDelete(category) }}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Description */}

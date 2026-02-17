@@ -92,6 +92,7 @@ export interface ItemCategory {
   active: boolean
   createdAt: string
   updatedAt: string
+  source?: 'venue' | 'organization'
   // Stats (when includeStats=true)
   totalItems?: number
   availableItems?: number

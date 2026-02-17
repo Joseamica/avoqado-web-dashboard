@@ -99,7 +99,7 @@ export interface CreateTrainingData {
   organizationId?: string | null
 }
 
-export interface UpdateTrainingData extends Partial<CreateTrainingData> {}
+export type UpdateTrainingData = Partial<CreateTrainingData>
 
 export interface CreateStepData {
   stepNumber: number
@@ -111,7 +111,7 @@ export interface CreateStepData {
   tipText?: string
 }
 
-export interface UpdateStepData extends Partial<CreateStepData> {}
+export type UpdateStepData = Partial<CreateStepData>
 
 export interface CreateQuizData {
   question: string
@@ -120,7 +120,7 @@ export interface CreateQuizData {
   position?: number
 }
 
-export interface UpdateQuizData extends Partial<CreateQuizData> {}
+export type UpdateQuizData = Partial<CreateQuizData>
 
 // ===== API FUNCTIONS =====
 

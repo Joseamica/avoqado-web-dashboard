@@ -40,10 +40,14 @@ import {
   Loader2,
   Keyboard,
 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useAccess } from '@/hooks/use-access'
 import { useToast } from '@/hooks/use-toast'
 import { getItemCategories, bulkUploadItems } from '@/services/stockDashboard.service'
+import { orgBulkUploadItems } from '@/services/orgItemCategory.service'
 
 interface BulkUploadDialogProps {
   open: boolean
@@ -62,6 +66,7 @@ interface UploadResult {
 export function BulkUploadDialog({ open, onOpenChange, preselectedCategoryId }: BulkUploadDialogProps) {
   const { t } = useTranslation(['playtelecom', 'common'])
   const { venueId } = useCurrentVenue()
+  const { can } = useAccess()
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
@@ -72,6 +77,8 @@ export function BulkUploadDialog({ open, onOpenChange, preselectedCategoryId }: 
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null)
+  const [isOrgLevel, setIsOrgLevel] = useState(false)
+  const canOrgManage = can('inventory:org-manage')
 
   // Fetch categories
   const { data: categoriesData } = useQuery({
@@ -111,11 +118,15 @@ export function BulkUploadDialog({ open, onOpenChange, preselectedCategoryId }: 
         throw new Error('Proporciona números de serie')
       }
 
+      if (isOrgLevel) {
+        return orgBulkUploadItems(venueId!, selectedCategoryId, data)
+      }
       return bulkUploadItems(venueId!, selectedCategoryId, data)
     },
     onSuccess: (result) => {
       setUploadResult(result)
       queryClient.invalidateQueries({ queryKey: ['item-categories', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['org-item-categories', venueId] })
       queryClient.invalidateQueries({ queryKey: ['stock', venueId] })
 
       if (result.success && result.errors.length === 0) {
@@ -254,7 +265,9 @@ export function BulkUploadDialog({ open, onOpenChange, preselectedCategoryId }: 
                 />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((category) => (
+                {categories
+                  .filter(cat => isOrgLevel ? cat.source === 'organization' : true)
+                  .map((category) => (
                   <SelectItem key={category.id} value={category.id}>
                     <div className="flex items-center gap-2">
                       <div
@@ -262,6 +275,11 @@ export function BulkUploadDialog({ open, onOpenChange, preselectedCategoryId }: 
                         style={{ backgroundColor: category.color || '#888' }}
                       />
                       {category.name}
+                      {category.source === 'organization' && (
+                        <Badge variant="outline" className="text-[9px] ml-1 border-primary/30 text-primary">
+                          ORG
+                        </Badge>
+                      )}
                     </div>
                   </SelectItem>
                 ))}
@@ -275,6 +293,25 @@ export function BulkUploadDialog({ open, onOpenChange, preselectedCategoryId }: 
               </p>
             )}
           </div>
+
+          {/* Org-Level Toggle */}
+          {canOrgManage && (
+            <div className="flex items-center justify-between rounded-lg bg-muted/30 p-3 border border-border/50">
+              <div className="space-y-0.5">
+                <Label className="text-sm">Registrar a nivel organización</Label>
+                <p className="text-xs text-muted-foreground">
+                  Los items estarán disponibles en todas las tiendas
+                </p>
+              </div>
+              <Switch
+                checked={isOrgLevel}
+                onCheckedChange={(checked) => {
+                  setIsOrgLevel(checked)
+                  setSelectedCategoryId('')
+                }}
+              />
+            </div>
+          )}
 
           {/* Upload Mode Tabs */}
           <Tabs value={uploadMode} onValueChange={(v) => setUploadMode(v as 'csv' | 'manual')}>

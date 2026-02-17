@@ -295,6 +295,11 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
     'commissions:read',
     'teams:read',
   ],
+  'inventory:org-manage': [
+    'inventory:org-manage',
+    'inventory:read',
+    'serialized-inventory:create',
+  ],
 }
 
 /**

@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -22,7 +21,6 @@ import {
 import { moduleAPI } from '@/services/superadmin-modules.service'
 import {
   trainingAPI,
-  type TrainingModule,
   type TrainingStep,
   type TrainingQuizQuestion,
   type TrainingCategory,
@@ -718,9 +716,9 @@ const TrainingDetail: React.FC = () => {
                           {step.mediaType === 'VIDEO' ? (
                             <div className="relative">
                               <video src={step.mediaUrl} className="w-full max-h-48 object-cover" />
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
-                                <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
-                                  <Play className="w-5 h-5 text-gray-900 ml-0.5" />
+                              <div className="absolute inset-0 flex items-center justify-center bg-foreground/30 group-hover:bg-foreground/40 transition-colors">
+                                <div className="w-12 h-12 rounded-full bg-background/90 flex items-center justify-center">
+                                  <Play className="w-5 h-5 text-foreground ml-0.5" />
                                 </div>
                               </div>
                             </div>
@@ -728,7 +726,7 @@ const TrainingDetail: React.FC = () => {
                             <img src={step.mediaUrl} alt={step.title} className="w-full max-h-48 object-cover" />
                           )}
                           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div className="bg-black/60 backdrop-blur-sm text-white rounded-lg px-2 py-1 text-xs flex items-center gap-1">
+                            <div className="bg-foreground/60 backdrop-blur-sm text-background rounded-lg px-2 py-1 text-xs flex items-center gap-1">
                               <Maximize2 className="w-3 h-3" />
                               Ver
                             </div>
@@ -895,6 +893,7 @@ const TrainingDetail: React.FC = () => {
           {/* Preview mockup */}
           <GlassCard className="p-6">
             <h3 className="text-sm font-semibold mb-3">Vista previa TPV</h3>
+            {/* eslint-disable no-restricted-syntax -- TPV mockup: intentional dark colors to simulate Android device UI */}
             <div className="bg-black rounded-xl p-3 aspect-[3/4] max-h-[400px] overflow-hidden">
               <div className="bg-gray-900 rounded-lg h-full flex flex-col p-3 text-white">
                 <div className="text-center mb-3">
@@ -926,6 +925,7 @@ const TrainingDetail: React.FC = () => {
                 </div>
               </div>
             </div>
+            {/* eslint-enable no-restricted-syntax */}
           </GlassCard>
 
           {/* Stats */}
@@ -1028,9 +1028,9 @@ const TrainingDetail: React.FC = () => {
                   {stepForm.mediaType === 'VIDEO' ? (
                     <div className="relative">
                       <video src={stepForm.mediaUrl} className="w-full max-h-48 object-cover" />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
-                        <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
-                          <Play className="w-4 h-4 text-gray-900 ml-0.5" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-foreground/30 group-hover:bg-foreground/40 transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-background/90 flex items-center justify-center">
+                          <Play className="w-4 h-4 text-foreground ml-0.5" />
                         </div>
                       </div>
                     </div>
@@ -1038,7 +1038,7 @@ const TrainingDetail: React.FC = () => {
                     <img src={stepForm.mediaUrl} alt="" className="w-full max-h-48 object-cover" />
                   )}
                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="bg-black/60 backdrop-blur-sm text-white rounded-lg px-2 py-1 text-xs flex items-center gap-1">
+                    <div className="bg-foreground/60 backdrop-blur-sm text-background rounded-lg px-2 py-1 text-xs flex items-center gap-1">
                       <Maximize2 className="w-3 h-3" />
                       Previsualizar
                     </div>
@@ -1172,6 +1172,7 @@ const TrainingDetail: React.FC = () => {
 
       {/* Fullscreen Media Preview Dialog */}
       <Dialog open={!!previewMedia} onOpenChange={() => setPreviewMedia(null)}>
+        {/* eslint-disable no-restricted-syntax -- Fullscreen media overlay: intentional dark backdrop */}
         <DialogContent className="sm:max-w-[90vw] max-h-[90vh] p-0 overflow-hidden bg-black/95 border-none">
           <div className="relative flex flex-col items-center justify-center min-h-[50vh] max-h-[90vh]">
             <Button
@@ -1187,6 +1188,7 @@ const TrainingDetail: React.FC = () => {
                 <p className="text-white/80 text-sm font-medium">{previewMedia.title}</p>
               </div>
             )}
+        {/* eslint-enable no-restricted-syntax */}
             <div className="w-full flex items-center justify-center p-4">
               {previewMedia?.type === 'VIDEO' ? (
                 <video

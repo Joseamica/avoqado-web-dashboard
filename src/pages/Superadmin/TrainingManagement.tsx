@@ -74,7 +74,7 @@ const categoryColors: Record<TrainingCategory, string> = {
   INVENTARIO: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   PAGOS: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   ATENCION_CLIENTE: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  GENERAL: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400',
+  GENERAL: 'bg-muted text-muted-foreground',
 }
 
 // ===========================================

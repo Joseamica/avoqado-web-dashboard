@@ -408,4 +408,8 @@ export const PERMISSION_CATEGORIES = {
     label: 'Org-Level Goals',
     permissions: ['goals:org-manage'],
   },
+  INVENTORY_ORG: {
+    label: 'Org-Level Inventory',
+    permissions: ['inventory:org-manage'],
+  },
 } as const

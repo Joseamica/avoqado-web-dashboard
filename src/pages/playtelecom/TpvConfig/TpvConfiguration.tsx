@@ -38,6 +38,7 @@ import {
 } from './components'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import OrgGoalConfigSection from '@/pages/playtelecom/Supervisor/OrgGoalConfigSection'
+import OrgCategoryConfigSection from './components/OrgCategoryConfigSection'
 import CreateStoreGoalDialog from '@/pages/playtelecom/Supervisor/CreateStoreGoalDialog'
 
 // Default module state (matches backend defaults)
@@ -540,6 +541,7 @@ export function TpvConfiguration() {
 
         {/* Categorias Tab */}
         <TabsContent value="categorias" className="space-y-6">
+          <OrgCategoryConfigSection />
           <CategoryEditor />
         </TabsContent>
 
