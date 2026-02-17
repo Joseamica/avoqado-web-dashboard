@@ -717,7 +717,7 @@ export function SupervisorDashboard() {
                   className={cn(
                     'w-full rounded-t-md transition-all cursor-pointer',
                     p.isYou
-                      ? 'bg-gradient-to-t from-green-600 to-green-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                      ? 'bg-linear-to-t from-green-600 to-green-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
                       : 'bg-muted-foreground/30 hover:bg-muted-foreground/50',
                   )}
                   style={{ height: `${(p.amount / maxPromoterAmount) * 100}%`, minHeight: '8px' }}

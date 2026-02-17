@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import { Smartphone, Ban, CheckCircle2, Search, X, AlertTriangle } from 'lucide-react'
 import type { WizardState } from '../PaymentSetupWizard'
-import type { Terminal } from '@/services/superadmin-terminals.service'
+import { getAllTerminals, type Terminal } from '@/services/superadmin-terminals.service'
 
 interface TerminalStepProps {
   state: WizardState
@@ -23,11 +23,7 @@ export const TerminalStep: React.FC<TerminalStepProps> = ({ state, dispatch }) =
   // Fetch all terminals (superadmin can see all)
   const { data: terminals = [], isLoading } = useQuery({
     queryKey: ['superadmin-terminals-all'],
-    queryFn: async () => {
-      const svc = await import('@/services/superadmin-terminals.service')
-      return svc.getAllTerminals()
-    },
-    enabled: true,
+    queryFn: () => getAllTerminals(),
   })
 
   // Get unique terminal types for filter pills

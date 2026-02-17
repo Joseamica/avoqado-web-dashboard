@@ -5,6 +5,7 @@ import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import { Store, ChevronDown, ChevronRight, Building2, Search, X, Info } from 'lucide-react'
+import { getOrganizationById } from '@/services/superadmin-organizations.service'
 import type { WizardState, WizardContext, PricingData } from '../PaymentSetupWizard'
 
 interface VenueOverridesStepProps {
@@ -26,10 +27,7 @@ export const VenueOverridesStep: React.FC<VenueOverridesStepProps> = ({ state, d
   // Fetch org venues
   const { data: orgDetail, isLoading } = useQuery({
     queryKey: ['org-detail-for-wizard', context.organizationId],
-    queryFn: async () => {
-      const { getOrganizationById } = await import('@/services/superadmin-organizations.service')
-      return getOrganizationById(context.organizationId)
-    },
+    queryFn: () => getOrganizationById(context.organizationId),
   })
 
   // Initialize venue overrides when org data arrives

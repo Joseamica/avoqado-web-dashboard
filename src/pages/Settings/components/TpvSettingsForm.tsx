@@ -224,7 +224,7 @@ export function TpvSettingsForm({ tpvId, compact = false, onSettingChanged }: Tp
           <CollapsibleTrigger asChild>
             <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/30 transition-colors rounded-2xl">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+                <div className="p-2 rounded-xl bg-linear-to-br from-blue-500/20 to-blue-500/5">
                   <Receipt className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
@@ -372,7 +372,7 @@ export function TpvSettingsForm({ tpvId, compact = false, onSettingChanged }: Tp
           <CollapsibleTrigger asChild>
             <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/30 transition-colors rounded-2xl">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-500/5">
+                <div className="p-2 rounded-xl bg-linear-to-br from-orange-500/20 to-orange-500/5">
                   <ShieldCheck className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                 </div>
                 <div>
@@ -430,7 +430,7 @@ export function TpvSettingsForm({ tpvId, compact = false, onSettingChanged }: Tp
           <CollapsibleTrigger asChild>
             <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/30 transition-colors rounded-2xl">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5">
+                <div className="p-2 rounded-xl bg-linear-to-br from-green-500/20 to-green-500/5">
                   <Clock className="w-4 h-4 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
@@ -477,7 +477,7 @@ export function TpvSettingsForm({ tpvId, compact = false, onSettingChanged }: Tp
           <CollapsibleTrigger asChild>
             <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/30 transition-colors rounded-2xl">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+                <div className="p-2 rounded-xl bg-linear-to-br from-purple-500/20 to-purple-500/5">
                   <Tablet className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div>
@@ -536,7 +536,7 @@ export function TpvSettingsForm({ tpvId, compact = false, onSettingChanged }: Tp
           <CollapsibleTrigger asChild>
             <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/30 transition-colors rounded-2xl">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-gradient-to-br from-cyan-500/20 to-cyan-500/5">
+                <div className="p-2 rounded-xl bg-linear-to-br from-cyan-500/20 to-cyan-500/5">
                   <Monitor className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                 </div>
                 <div>

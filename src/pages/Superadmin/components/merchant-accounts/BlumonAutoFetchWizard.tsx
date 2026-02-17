@@ -277,7 +277,7 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({ op
       return (
         <div className="space-y-6">
           <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
-            <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
             <div className="text-sm text-blue-700 dark:text-blue-300">
               <p className="font-medium mb-1">Selecciona un Venue</p>
               <p>La cuenta de procesamiento se asociará automáticamente a este venue a través de su VenuePaymentConfig.</p>
@@ -314,7 +314,7 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({ op
       return (
         <div className="space-y-6">
           <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
-            <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
             <div className="text-sm text-blue-700 dark:text-blue-300">
               <p className="font-medium mb-1">¿Cómo funciona?</p>
               <p>
@@ -480,9 +480,9 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({ op
                 )}
               >
                 {mccPreview?.found ? (
-                  <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                  <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
                 ) : (
-                  <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                  <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                 )}
                 <div
                   className={cn('text-sm', mccPreview?.found ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300')}
@@ -555,7 +555,7 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({ op
       return (
         <div className="space-y-6">
           <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
-            <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
             <div className="text-sm text-blue-700 dark:text-blue-300">
               <p className="font-medium mb-1">{t('settlementConfigurations.wizard.title')}</p>
               <p>{t('settlementConfigurations.wizard.description')}</p>
@@ -667,7 +667,7 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({ op
 
           {/* Info hint */}
           <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/20 text-xs text-muted-foreground">
-            <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <Info className="w-4 h-4 shrink-0 mt-0.5" />
             <p>{t('settlementConfigurations.wizard.hint')}</p>
           </div>
         </div>
@@ -735,7 +735,7 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({ op
           </div>
 
           <div className="flex items-start gap-3 p-4 rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
-            <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+            <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
             <div className="text-sm text-green-700 dark:text-green-300">
               <p className="font-medium mb-1">Lo que sucederá</p>
               <ul className="space-y-1 text-xs">
@@ -760,9 +760,9 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({ op
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[850px] max-h-[90vh] overflow-y-auto bg-background p-0">
         {/* Header with gradient */}
-        <div className="bg-gradient-to-r from-yellow-500/10 via-orange-500/10 to-yellow-500/10 border-b border-border/50 p-6">
+        <div className="bg-linear-to-r from-yellow-500/10 via-orange-500/10 to-yellow-500/10 border-b border-border/50 p-6">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500">
+            <div className="p-2.5 rounded-xl bg-linear-to-br from-yellow-500 to-orange-500">
               <Zap className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
@@ -800,7 +800,7 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({ op
             <Button
               onClick={handleSubmit}
               disabled={loading}
-              className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
+              className="bg-linear-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
             >
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {loading ? 'Creando cuenta...' : 'Crear Cuenta'}

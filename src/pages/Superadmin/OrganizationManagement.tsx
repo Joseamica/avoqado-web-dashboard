@@ -18,7 +18,7 @@ import {
   type SetOrgPricingData,
   type AccountType,
 } from '@/services/superadmin-organizations.service'
-import { getMerchantAccountsList } from '@/services/paymentProvider.service'
+import { getMerchantAccountsList, autoFetchBlumonCredentials } from '@/services/paymentProvider.service'
 import { PaymentSetupWizard } from './components/merchant-accounts/PaymentSetupWizard'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -621,7 +621,6 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
     setAutoFetchError(null)
     setAutoFetchResult(null)
     try {
-      const { autoFetchBlumonCredentials } = await import('@/services/paymentProvider.service')
       const res = await autoFetchBlumonCredentials({
         serialNumber: autoFetchForm.serialNumber.trim(),
         brand: autoFetchForm.brand,

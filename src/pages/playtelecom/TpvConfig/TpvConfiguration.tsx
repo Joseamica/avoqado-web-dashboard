@@ -242,7 +242,7 @@ export function TpvConfiguration() {
       />
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-500/5">
+          <div className="p-2 rounded-xl bg-linear-to-br from-orange-500/20 to-orange-500/5">
             <Settings className="w-5 h-5 text-orange-600 dark:text-orange-400" />
           </div>
           <div>
@@ -299,7 +299,7 @@ export function TpvConfiguration() {
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+                  <div className="p-2 rounded-xl bg-linear-to-br from-blue-500/20 to-blue-500/5">
                     <Monitor className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                   </div>
                   <h3 className="text-sm font-semibold">
@@ -335,7 +335,7 @@ export function TpvConfiguration() {
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5">
+                  <div className="p-2 rounded-xl bg-linear-to-br from-green-500/20 to-green-500/5">
                     <Target className="w-4 h-4 text-green-600 dark:text-green-400" />
                   </div>
                   <h3 className="text-sm font-semibold">
@@ -367,7 +367,7 @@ export function TpvConfiguration() {
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-500/5">
+                  <div className="p-2 rounded-xl bg-linear-to-br from-orange-500/20 to-orange-500/5">
                     <Package className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                   </div>
                   <h3 className="text-sm font-semibold">
@@ -399,7 +399,7 @@ export function TpvConfiguration() {
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+                  <div className="p-2 rounded-xl bg-linear-to-br from-purple-500/20 to-purple-500/5">
                     <Megaphone className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                   </div>
                   <h3 className="text-sm font-semibold">

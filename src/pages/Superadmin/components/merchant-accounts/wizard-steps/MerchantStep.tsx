@@ -19,7 +19,7 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import type { WizardState, WizardContext, MerchantSelection } from '../PaymentSetupWizard'
-import type { MerchantAccountListItem, PaymentSetupSummary } from '@/services/paymentProvider.service'
+import { autoFetchBlumonCredentials, type MerchantAccountListItem, type PaymentSetupSummary } from '@/services/paymentProvider.service'
 
 interface MerchantStepProps {
   state: WizardState
@@ -180,7 +180,6 @@ const AutoFetchForm: React.FC<AutoFetchFormProps> = ({ onCreated, onCancel, onBa
     setResult(null)
 
     try {
-      const { autoFetchBlumonCredentials } = await import('@/services/paymentProvider.service')
       const res = await autoFetchBlumonCredentials({
         serialNumber: form.serialNumber.trim(),
         brand: form.brand,

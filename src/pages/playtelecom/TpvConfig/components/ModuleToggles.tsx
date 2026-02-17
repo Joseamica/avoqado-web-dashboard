@@ -83,7 +83,7 @@ export function ModuleToggles({ values, onChange }: ModuleTogglesProps) {
               {/* Main toggle */}
               <div className="flex items-center justify-between p-4">
                 <div className="flex items-center gap-3">
-                  <div className={cn('p-2 rounded-lg bg-gradient-to-br', mod.colorClass)}>
+                  <div className={cn('p-2 rounded-lg bg-linear-to-br', mod.colorClass)}>
                     <Icon className="w-5 h-5" />
                   </div>
                   <div>
@@ -107,7 +107,7 @@ export function ModuleToggles({ values, onChange }: ModuleTogglesProps) {
                     )}
                   >
                     <div className="flex items-center gap-2.5 pl-7">
-                      <div className="p-1.5 rounded-lg bg-gradient-to-br from-amber-500/20 to-amber-500/5 text-amber-600 dark:text-amber-400">
+                      <div className="p-1.5 rounded-lg bg-linear-to-br from-amber-500/20 to-amber-500/5 text-amber-600 dark:text-amber-400">
                         <Store className="w-3.5 h-3.5" />
                       </div>
                       <div>
@@ -132,7 +132,7 @@ export function ModuleToggles({ values, onChange }: ModuleTogglesProps) {
                     )}
                   >
                     <div className="flex items-center gap-2.5 pl-7">
-                      <div className="p-1.5 rounded-lg bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 text-emerald-600 dark:text-emerald-400">
+                      <div className="p-1.5 rounded-lg bg-linear-to-br from-emerald-500/20 to-emerald-500/5 text-emerald-600 dark:text-emerald-400">
                         <Camera className="w-3.5 h-3.5" />
                       </div>
                       <div>

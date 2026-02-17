@@ -147,7 +147,7 @@ export const BlumonAutoFetchDialog: React.FC<BlumonAutoFetchDialogProps> = ({
           <div className="grid gap-4 py-4">
             {/* Info Banner */}
             <div className="flex items-start space-x-2 text-sm bg-blue-50 dark:bg-blue-950/50 p-3 rounded-md border border-blue-200 dark:border-blue-800">
-              <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" />
               <div className="space-y-1">
                 <p className="font-medium text-blue-900 dark:text-blue-100">{t('blumonDialog.processSteps')}</p>
                 <ol className="list-decimal list-inside space-y-1 text-blue-700 dark:text-blue-300">
@@ -273,7 +273,7 @@ export const BlumonAutoFetchDialog: React.FC<BlumonAutoFetchDialogProps> = ({
             {/* Success Banner (shown when not loading) */}
             {!loading && (
               <div className="flex items-start space-x-2 text-sm bg-green-50 dark:bg-green-950/50 p-3 rounded-md border border-green-200 dark:border-green-800">
-                <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600 dark:text-green-400" />
+                <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-green-600 dark:text-green-400" />
                 <p className="text-green-700 dark:text-green-300">
                   Las credenciales se encriptarán automáticamente antes de guardarlas en la base de datos (AES-256-CBC).
                 </p>

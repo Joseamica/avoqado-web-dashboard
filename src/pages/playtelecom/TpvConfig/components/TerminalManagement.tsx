@@ -369,7 +369,7 @@ export function TerminalManagement() {
     <>
       <GlassCard className="p-5">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500/20 to-violet-500/5">
+          <div className="p-2 rounded-xl bg-linear-to-br from-violet-500/20 to-violet-500/5">
             <Monitor className="w-4 h-4 text-violet-600 dark:text-violet-400" />
           </div>
           <div>
@@ -407,7 +407,7 @@ export function TerminalManagement() {
               >
                 {/* Terminal Info */}
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="flex-shrink-0">
+                  <div className="shrink-0">
                     <Monitor className="w-4 h-4 text-muted-foreground" />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -416,7 +416,7 @@ export function TerminalManagement() {
                       {terminal.serialNumber || t('playtelecom:tpvConfig.terminals.noSerial', { defaultValue: 'Sin numero de serie' })}
                     </p>
                   </div>
-                  <Badge variant={badge.variant} className="flex-shrink-0 text-xs">
+                  <Badge variant={badge.variant} className="shrink-0 text-xs">
                     {isProcessing ? (
                       <span className="flex items-center gap-1">
                         <Loader2 className="w-3 h-3 animate-spin" />
@@ -429,7 +429,7 @@ export function TerminalManagement() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-1 flex-shrink-0 ml-3">
+                <div className="flex items-center gap-1 shrink-0 ml-3">
                   {/* Lock / Unlock */}
                   {locked ? (
                     <Button

@@ -276,7 +276,7 @@ test.describe('Signup Page', () => {
     await page.locator('button[type="submit"]').click()
 
     // Should show error toast and stay on signup page
-    await expect(page.getByText(/ya registrado|already registered/i)).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByText(/ya registrado|already registered/i).first()).toBeVisible({ timeout: 5_000 })
     expect(page.url()).toContain('/signup')
   })
 
@@ -330,7 +330,7 @@ test.describe('Email Verification Page (direct navigation)', () => {
     await closeTanStackDevTools(page)
 
     // Should show the email somewhere on the page
-    await expect(page.getByText('verify@example.com')).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText('verify@example.com').first()).toBeVisible({ timeout: 10_000 })
   })
 
   test('shows resend verification button', async ({ page }) => {

@@ -26,7 +26,7 @@ export function MessagesSection() {
       <GlassCard className="p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+            <div className="p-2 rounded-xl bg-linear-to-br from-blue-500/20 to-blue-500/5">
               <Megaphone className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
