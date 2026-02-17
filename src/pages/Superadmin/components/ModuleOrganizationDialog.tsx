@@ -45,6 +45,108 @@ const StatusPulse: React.FC<{ status: 'success' | 'warning' | 'error' | 'neutral
   )
 }
 
+
+// ===========================================
+// CONFIG HELPERS (effective config preview)
+// ===========================================
+
+type ConfigObject = Record<string, unknown>
+type PortabilidadSource = 'venue' | 'organization' | 'default' | 'not-set'
+
+const ENABLE_PORTABILIDAD_PATH = ['features', 'enablePortabilidad'] as const
+
+const PORTABILIDAD_SOURCE_LABEL: Record<PortabilidadSource, string> = {
+  venue: 'Sucursal',
+  organization: 'Organización',
+  default: 'Default',
+  'not-set': 'No definido',
+}
+
+const isPlainObject = (value: unknown): value is ConfigObject => {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+const toConfigObject = (value: unknown): ConfigObject => {
+  return isPlainObject(value) ? value : {}
+}
+
+const deepMergeConfig = (base: ConfigObject, override: ConfigObject): ConfigObject => {
+  const result: ConfigObject = { ...base }
+
+  for (const [key, overrideValue] of Object.entries(override)) {
+    const baseValue = result[key]
+    if (isPlainObject(baseValue) && isPlainObject(overrideValue)) {
+      result[key] = deepMergeConfig(baseValue, overrideValue)
+    } else {
+      result[key] = overrideValue
+    }
+  }
+
+  return result
+}
+
+const hasPath = (config: ConfigObject, path: readonly string[]): boolean => {
+  let current: unknown = config
+  for (const segment of path) {
+    if (!isPlainObject(current) || !(segment in current)) {
+      return false
+    }
+    current = current[segment]
+  }
+  return true
+}
+
+const getBooleanAtPath = (config: ConfigObject, path: readonly string[]): boolean | undefined => {
+  let current: unknown = config
+  for (const segment of path) {
+    if (!isPlainObject(current) || !(segment in current)) {
+      return undefined
+    }
+    current = current[segment]
+  }
+  return typeof current === 'boolean' ? current : undefined
+}
+
+const getEffectivePortabilidad = ({
+  defaultConfig,
+  organizationConfig,
+  venueConfig,
+  includeVenueOverride,
+}: {
+  defaultConfig: Record<string, any> | null
+  organizationConfig: Record<string, any> | null
+  venueConfig?: Record<string, any> | null
+  includeVenueOverride: boolean
+}): {
+  enabled: boolean
+  source: PortabilidadSource
+} => {
+  const defaultObject = toConfigObject(defaultConfig)
+  const orgObject = toConfigObject(organizationConfig)
+  const venueObject = toConfigObject(venueConfig)
+
+  let effectiveConfig = deepMergeConfig(defaultObject, orgObject)
+  if (includeVenueOverride) {
+    effectiveConfig = deepMergeConfig(effectiveConfig, venueObject)
+  }
+
+  const value = getBooleanAtPath(effectiveConfig, ENABLE_PORTABILIDAD_PATH)
+
+  const source: PortabilidadSource =
+    includeVenueOverride && hasPath(venueObject, ENABLE_PORTABILIDAD_PATH)
+      ? 'venue'
+      : hasPath(orgObject, ENABLE_PORTABILIDAD_PATH)
+        ? 'organization'
+        : hasPath(defaultObject, ENABLE_PORTABILIDAD_PATH)
+          ? 'default'
+          : 'not-set'
+
+  return {
+    enabled: value === true,
+    source,
+  }
+}
+
 // ===========================================
 // TYPES
 // ===========================================
@@ -344,6 +446,10 @@ const ModuleOrganizationDialog: React.FC<ModuleOrganizationDialogProps> = ({
             Organizaciones — {selectedModule?.name}
           </DialogTitle>
           <DialogDescription>Gestiona el módulo a nivel de organización. Las sucursales heredan automáticamente.</DialogDescription>
+          <div className="rounded-lg border border-amber-400/30 bg-amber-400/10 p-2.5 text-xs text-muted-foreground">
+            "Configuración por defecto" es solo la plantilla global del módulo. El valor efectivo por sucursal se resuelve como
+            <span className="font-medium text-foreground"> Default + Organización + Sucursal</span>.
+          </div>
         </DialogHeader>
 
         {/* Search + Summary */}
@@ -400,6 +506,7 @@ const ModuleOrganizationDialog: React.FC<ModuleOrganizationDialogProps> = ({
                 onVenueConfigure={handleVenueConfigure}
                 renderVenueStatusBadge={renderVenueStatusBadge}
                 isMutating={isMutating}
+                moduleDefaultConfig={selectedModule?.defaultConfig ?? null}
               />
             ))
           )}
@@ -416,6 +523,7 @@ const ModuleOrganizationDialog: React.FC<ModuleOrganizationDialogProps> = ({
 interface OrgRowProps {
   org: OrganizationModuleGroup
   moduleCode: string
+  moduleDefaultConfig: Record<string, any> | null
   isExpanded: boolean
   onToggleExpand: () => void
   onOrgToggle: (org: OrganizationModuleGroup, enabled: boolean) => void
@@ -432,6 +540,7 @@ const OrgRow: React.FC<OrgRowProps> = React.memo(
   ({
     org,
     moduleCode,
+    moduleDefaultConfig,
     isExpanded,
     onToggleExpand,
     onOrgToggle,
@@ -513,6 +622,8 @@ const OrgRow: React.FC<OrgRowProps> = React.memo(
                     onConfigure={onVenueConfigure}
                     renderStatusBadge={renderVenueStatusBadge}
                     isMutating={isMutating}
+                    moduleDefaultConfig={moduleDefaultConfig}
+                    orgModuleConfig={org.orgModuleConfig}
                   />
                 ))
               )}
@@ -532,6 +643,8 @@ OrgRow.displayName = 'OrgRow'
 interface VenueRowProps {
   venue: VenueModuleInOrg
   moduleCode: string
+  moduleDefaultConfig: Record<string, any> | null
+  orgModuleConfig: Record<string, any> | null
   onEnable: (venue: VenueModuleInOrg) => void
   onDisable: (venue: VenueModuleInOrg) => void
   onReset: (venue: VenueModuleInOrg) => void
@@ -541,8 +654,17 @@ interface VenueRowProps {
 }
 
 const VenueRow: React.FC<VenueRowProps> = React.memo(
-  ({ venue, moduleCode, onEnable, onDisable, onReset, onConfigure, renderStatusBadge, isMutating }) => {
+  ({ venue, moduleCode, moduleDefaultConfig, orgModuleConfig, onEnable, onDisable, onReset, onConfigure, renderStatusBadge, isMutating }) => {
     const isWL = moduleCode === 'WHITE_LABEL_DASHBOARD'
+    const isSerializedInventory = moduleCode === 'SERIALIZED_INVENTORY'
+    const effectivePortabilidad = isSerializedInventory
+      ? getEffectivePortabilidad({
+          defaultConfig: moduleDefaultConfig,
+          organizationConfig: orgModuleConfig,
+          venueConfig: venue.venueModuleConfig,
+          includeVenueOverride: venue.hasExplicitOverride,
+        })
+      : null
 
     return (
       <div className="flex items-center gap-3 px-4 py-2.5 border-l-2 border-border/50 ml-6 mr-4 transition-colors duration-200 hover:bg-muted/50 min-h-[44px]">
@@ -557,6 +679,19 @@ const VenueRow: React.FC<VenueRowProps> = React.memo(
           <StatusPulse status={venue.moduleEnabled ? 'success' : 'neutral'} />
         </div>
         <div className="shrink-0">{renderStatusBadge(venue)}</div>
+        {isSerializedInventory && venue.moduleEnabled && effectivePortabilidad && (
+          <Badge
+            variant={effectivePortabilidad.enabled ? 'default' : 'secondary'}
+            className={cn(
+              'text-[11px] whitespace-nowrap',
+              effectivePortabilidad.enabled
+                ? 'border-green-300 text-green-700 dark:text-green-300 dark:border-green-700'
+                : 'border-amber-300 text-amber-700 dark:text-amber-300 dark:border-amber-700',
+            )}
+          >
+            Portabilidad {effectivePortabilidad.enabled ? 'ON' : 'OFF'} · {PORTABILIDAD_SOURCE_LABEL[effectivePortabilidad.source]}
+          </Badge>
+        )}
 
         {/* Actions */}
         <div className="flex items-center gap-1.5 shrink-0">

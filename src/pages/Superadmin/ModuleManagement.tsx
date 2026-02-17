@@ -642,7 +642,7 @@ const ModuleManagement: React.FC = () => {
               />
             </div>
             <div>
-              <Label htmlFor="defaultConfig">Configuración por defecto (JSON)</Label>
+              <Label htmlFor="defaultConfig">Configuración por defecto global (JSON)</Label>
               <Textarea
                 id="defaultConfig"
                 value={formData.defaultConfig}
@@ -651,7 +651,7 @@ const ModuleManagement: React.FC = () => {
                 rows={4}
                 className="font-mono text-sm"
               />
-              <p className="text-xs text-muted-foreground mt-1">Configuración inicial que se aplica al activar el módulo.</p>
+              <p className="text-xs text-muted-foreground mt-1">Plantilla global del módulo. El valor efectivo por sucursal puede ser distinto por overrides de organización/sucursal.</p>
             </div>
             <div>
               <Label htmlFor="presets">Presets por industria (JSON)</Label>
@@ -720,7 +720,7 @@ const ModuleManagement: React.FC = () => {
               />
             </div>
             <div>
-              <Label htmlFor="edit-defaultConfig">Configuración por defecto (JSON)</Label>
+              <Label htmlFor="edit-defaultConfig">Configuración por defecto global (JSON)</Label>
               <Textarea
                 id="edit-defaultConfig"
                 value={formData.defaultConfig}
