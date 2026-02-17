@@ -29,6 +29,7 @@ import {
   Wand2,
   Mail,
   Activity,
+  GraduationCap,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -84,6 +85,7 @@ export function getSuperadminNavigation(tSidebar: TFunction): SuperadminNavSecti
         { name: tSidebar('webhooks'), href: '/superadmin/webhooks', icon: Webhook, keywords: ['webhooks', 'integraciones'] },
         { name: 'Push Notifications', href: '/superadmin/push-notifications', icon: Bell, keywords: ['push', 'notifications'] },
         { name: 'Marketing', href: '/superadmin/marketing', icon: Mail, keywords: ['marketing', 'campañas'] },
+        { name: 'Entrenamientos', href: '/superadmin/trainings', icon: GraduationCap, keywords: ['training', 'entrenamientos', 'lms', 'capacitacion'] },
         { name: tSidebar('reports'), href: '/superadmin/reports', icon: FileText, keywords: ['reports', 'reportes'] },
         { name: tSidebar('support'), href: '/superadmin/support', icon: Headphones, keywords: ['support', 'soporte'] },
       ],

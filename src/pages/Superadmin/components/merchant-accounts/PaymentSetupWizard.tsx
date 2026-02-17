@@ -595,10 +595,36 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
       const primary = state.merchants.primary
 
       if (primary.mode === 'existing') {
-        // 1. Batch assign terminals
-        const terminalIds = state.terminalAssignments[primary.merchantId] || []
-        if (terminalIds.length > 0) {
-          await paymentProviderAPI.batchAssignTerminals(primary.merchantId, terminalIds)
+        // 1. Batch assign terminals for ALL configured merchants + reconcile orphans
+        const configuredMerchants = [
+          state.merchants.primary,
+          state.merchants.secondary,
+          state.merchants.tertiary,
+        ].filter(Boolean)
+        const configuredMerchantIds = new Set(configuredMerchants.map(m => m!.merchantId))
+
+        // Phase 1a: Assign terminals per merchant
+        for (const merchant of configuredMerchants) {
+          if (!merchant) continue
+          const tIds = state.terminalAssignments[merchant.merchantId] || []
+          if (tIds.length > 0) {
+            await paymentProviderAPI.batchAssignTerminals(merchant.merchantId, tIds)
+          }
+        }
+
+        // Phase 1b: Reconcile — remove orphaned merchant assignments from org terminals
+        const orgTerminals = existingSummary?.terminals || []
+        for (const terminal of orgTerminals) {
+          const currentAssignments: string[] = terminal.assignedMerchantIds || []
+          for (const merchantId of currentAssignments) {
+            if (!configuredMerchantIds.has(merchantId)) {
+              // Merchant is assigned to terminal but NOT in org config → remove
+              await paymentProviderAPI.removeMerchantFromTerminal(merchantId, terminal.id)
+            } else if (!(state.terminalAssignments[merchantId] || []).includes(terminal.id)) {
+              // Merchant IS in config but terminal is NOT checked for it → remove
+              await paymentProviderAPI.removeMerchantFromTerminal(merchantId, terminal.id)
+            }
+          }
         }
 
         // 2. Create/update OrganizationPaymentConfig

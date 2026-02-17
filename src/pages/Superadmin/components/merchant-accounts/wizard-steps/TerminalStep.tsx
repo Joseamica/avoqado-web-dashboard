@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
-import { Smartphone, Ban, CheckCircle2, Search, X } from 'lucide-react'
+import { Smartphone, Ban, CheckCircle2, Search, X, AlertTriangle } from 'lucide-react'
 import type { WizardState } from '../PaymentSetupWizard'
 import type { Terminal } from '@/services/superadmin-terminals.service'
 
@@ -82,6 +82,25 @@ export const TerminalStep: React.FC<TerminalStepProps> = ({ state, dispatch }) =
     return slots
   }, [state.merchants])
 
+  // Detect orphaned merchant assignments (merchants assigned to terminals but NOT in the wizard config)
+  const orphanedAssignments = useMemo(() => {
+    const configuredIds = new Set(merchantSlots.map(s => s.merchantId))
+    const orphans: Array<{ terminalName: string; terminalSerial: string; merchantId: string }> = []
+    for (const terminal of (terminals as Terminal[])) {
+      const assigned = terminal.assignedMerchantIds || []
+      for (const merchantId of assigned) {
+        if (!configuredIds.has(merchantId)) {
+          orphans.push({
+            terminalName: terminal.name || terminal.serialNumber || 'Sin nombre',
+            terminalSerial: terminal.serialNumber || '',
+            merchantId,
+          })
+        }
+      }
+    }
+    return orphans
+  }, [terminals, merchantSlots])
+
   const handleToggleTerminal = (merchantId: string, terminalId: string) => {
     const current = state.terminalAssignments[merchantId] || []
     const newAssignments = current.includes(terminalId)
@@ -129,6 +148,33 @@ export const TerminalStep: React.FC<TerminalStepProps> = ({ state, dispatch }) =
           </div>
         </div>
       </div>
+
+      {/* Orphaned assignments warning */}
+      {orphanedAssignments.length > 0 && (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h4 className="font-medium text-sm text-amber-700 dark:text-amber-400">
+                Asignaciones huérfanas detectadas
+              </h4>
+              <p className="text-xs text-muted-foreground mt-1">
+                Las siguientes terminales tienen cuentas asignadas que NO están en la configuración actual.
+                Al guardar, estas asignaciones se eliminarán automáticamente.
+              </p>
+              <div className="mt-2 space-y-1">
+                {orphanedAssignments.map((o, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs">
+                    <span className="font-mono text-amber-600 dark:text-amber-400">{o.terminalSerial || o.terminalName}</span>
+                    <span className="text-muted-foreground">→</span>
+                    <span className="font-mono text-muted-foreground">{o.merchantId.slice(0, 16)}…</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Search + Filter bar */}
       <div className="space-y-3">
