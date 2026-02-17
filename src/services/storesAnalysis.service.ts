@@ -710,3 +710,102 @@ export const updateOrgGoal = async (venueId: string, goalId: string, data: Updat
 export const deleteOrgGoal = async (venueId: string, goalId: string): Promise<void> => {
   await api.delete(`/api/v1/dashboard/venues/${venueId}/stores-analysis/org-goals/${goalId}`)
 }
+
+// =============================================================================
+// HEATMAP TYPES & API FUNCTIONS
+// =============================================================================
+
+export type AttendanceStatus = 'present' | 'late' | 'absent' | 'future'
+
+export interface AttendanceHeatmapDay {
+  date: string
+  status: AttendanceStatus
+  clockInTime: string | null
+  clockOutTime: string | null
+}
+
+export interface AttendanceHeatmapStaff {
+  staffId: string
+  staffName: string
+  venueId: string
+  venueName: string
+  venueState: string
+  days: AttendanceHeatmapDay[]
+}
+
+export interface AttendanceHeatmapSummaryDay {
+  date: string
+  present: number
+  late: number
+  absent: number
+}
+
+export interface AttendanceHeatmapResult {
+  staff: AttendanceHeatmapStaff[]
+  summary: { byDay: AttendanceHeatmapSummaryDay[] }
+}
+
+export interface SalesHeatmapDay {
+  date: string
+  salesCount: number
+  salesAmount: number
+}
+
+export interface SalesHeatmapStaff {
+  staffId: string
+  staffName: string
+  venueId: string
+  venueName: string
+  venueState: string
+  days: SalesHeatmapDay[]
+  totalSales: number
+  totalCount: number
+  avgDailySales: number
+}
+
+export interface SalesHeatmapSummaryDay {
+  date: string
+  totalCount: number
+  totalAmount: number
+}
+
+export interface SalesHeatmapVenueSummary {
+  venueId: string
+  venueName: string
+  total: number
+  byDay: SalesHeatmapSummaryDay[]
+}
+
+export interface SalesHeatmapResult {
+  staff: SalesHeatmapStaff[]
+  summary: {
+    byDay: SalesHeatmapSummaryDay[]
+    byVenue: SalesHeatmapVenueSummary[]
+  }
+}
+
+export interface HeatmapDateParams {
+  startDate: string
+  endDate: string
+  filterVenueId?: string
+}
+
+/**
+ * Get attendance heatmap (staff × day matrix)
+ */
+export const getAttendanceHeatmap = async (venueId: string, params: HeatmapDateParams): Promise<AttendanceHeatmapResult> => {
+  const query = new URLSearchParams({ startDate: params.startDate, endDate: params.endDate })
+  if (params.filterVenueId) query.set('filterVenueId', params.filterVenueId)
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/attendance-heatmap?${query}`)
+  return response.data.data
+}
+
+/**
+ * Get sales heatmap (staff × day matrix)
+ */
+export const getSalesHeatmap = async (venueId: string, params: HeatmapDateParams): Promise<SalesHeatmapResult> => {
+  const query = new URLSearchParams({ startDate: params.startDate, endDate: params.endDate })
+  if (params.filterVenueId) query.set('filterVenueId', params.filterVenueId)
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/sales-heatmap?${query}`)
+  return response.data.data
+}

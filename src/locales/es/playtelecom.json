@@ -411,6 +411,39 @@
       "success": "Meta de organización guardada",
       "deleteSuccess": "Meta de organización eliminada",
       "error": "Error al guardar la meta de organización"
+    },
+    "tabs": {
+      "operativo": "Tablero Operativo",
+      "checkin": "Check-in",
+      "ventas": "Ventas"
+    },
+    "attendanceHeatmap": {
+      "title": "Mapa de Asistencia",
+      "present": "Presente",
+      "late": "Retardo",
+      "absent": "Falta",
+      "future": "Futuro",
+      "noData": "Sin datos de asistencia para el período seleccionado",
+      "totals": "Totales",
+      "subtotal": "Subtotal",
+      "store": "Tienda",
+      "promoter": "Promotor",
+      "clockIn": "Entrada",
+      "export": "Exportar"
+    },
+    "salesHeatmap": {
+      "title": "Mapa de Ventas",
+      "noData": "Sin datos de ventas para el período seleccionado",
+      "modeCount": "Cantidad",
+      "modeAmount": "Monto",
+      "totalSales": "Total Ventas",
+      "totalCount": "Total Unidades",
+      "avgDaily": "Prom. Diario",
+      "store": "Tienda",
+      "promoter": "Promotor",
+      "subtotal": "Subtotal",
+      "totals": "Totales",
+      "export": "Exportar"
     }
   },
   "categoryItems": {

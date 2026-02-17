@@ -9,10 +9,11 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { moduleAPI, type Module, type OrganizationModuleGroup, type VenueModuleInOrg } from '@/services/superadmin-modules.service'
@@ -20,11 +21,13 @@ import {
   enableModuleForOrganization,
   disableModuleForOrganization,
   getModulesForOrganization,
+  updateOrganizationModuleConfig,
 } from '@/services/superadmin-organizations.service'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDownToLine, Building2, ChevronDown, Palette, Power, PowerOff, RotateCcw, Search } from 'lucide-react'
+import { ArrowDownToLine, Building2, ChevronDown, ChevronRight, Power, PowerOff, RotateCcw, Search, Settings2 } from 'lucide-react'
 import React, { useCallback, useMemo, useState } from 'react'
 import type { WhiteLabelConfig } from '@/types/white-label'
+import JsonBooleanToggles from '@/pages/Superadmin/components/JsonBooleanToggles'
 
 // ===========================================
 // STATUS PULSE (duplicated from parent for encapsulation)
@@ -51,16 +54,6 @@ const StatusPulse: React.FC<{ status: 'success' | 'warning' | 'error' | 'neutral
 // ===========================================
 
 type ConfigObject = Record<string, unknown>
-type PortabilidadSource = 'venue' | 'organization' | 'default' | 'not-set'
-
-const ENABLE_PORTABILIDAD_PATH = ['features', 'enablePortabilidad'] as const
-
-const PORTABILIDAD_SOURCE_LABEL: Record<PortabilidadSource, string> = {
-  venue: 'Sucursal',
-  organization: 'Organización',
-  default: 'Default',
-  'not-set': 'No definido',
-}
 
 const isPlainObject = (value: unknown): value is ConfigObject => {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -83,68 +76,6 @@ const deepMergeConfig = (base: ConfigObject, override: ConfigObject): ConfigObje
   }
 
   return result
-}
-
-const hasPath = (config: ConfigObject, path: readonly string[]): boolean => {
-  let current: unknown = config
-  for (const segment of path) {
-    if (!isPlainObject(current) || !(segment in current)) {
-      return false
-    }
-    current = current[segment]
-  }
-  return true
-}
-
-const getBooleanAtPath = (config: ConfigObject, path: readonly string[]): boolean | undefined => {
-  let current: unknown = config
-  for (const segment of path) {
-    if (!isPlainObject(current) || !(segment in current)) {
-      return undefined
-    }
-    current = current[segment]
-  }
-  return typeof current === 'boolean' ? current : undefined
-}
-
-const getEffectivePortabilidad = ({
-  defaultConfig,
-  organizationConfig,
-  venueConfig,
-  includeVenueOverride,
-}: {
-  defaultConfig: Record<string, any> | null
-  organizationConfig: Record<string, any> | null
-  venueConfig?: Record<string, any> | null
-  includeVenueOverride: boolean
-}): {
-  enabled: boolean
-  source: PortabilidadSource
-} => {
-  const defaultObject = toConfigObject(defaultConfig)
-  const orgObject = toConfigObject(organizationConfig)
-  const venueObject = toConfigObject(venueConfig)
-
-  let effectiveConfig = deepMergeConfig(defaultObject, orgObject)
-  if (includeVenueOverride) {
-    effectiveConfig = deepMergeConfig(effectiveConfig, venueObject)
-  }
-
-  const value = getBooleanAtPath(effectiveConfig, ENABLE_PORTABILIDAD_PATH)
-
-  const source: PortabilidadSource =
-    includeVenueOverride && hasPath(venueObject, ENABLE_PORTABILIDAD_PATH)
-      ? 'venue'
-      : hasPath(orgObject, ENABLE_PORTABILIDAD_PATH)
-        ? 'organization'
-        : hasPath(defaultObject, ENABLE_PORTABILIDAD_PATH)
-          ? 'default'
-          : 'not-set'
-
-  return {
-    enabled: value === true,
-    source,
-  }
 }
 
 // ===========================================
@@ -178,6 +109,16 @@ const ModuleOrganizationDialog: React.FC<ModuleOrganizationDialogProps> = ({
   const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState('')
   const [expandedOrgs, setExpandedOrgs] = useState<Set<string>>(new Set())
+
+  // Generic config editor state
+  const [configEditorOpen, setConfigEditorOpen] = useState(false)
+  const [configEditorTarget, setConfigEditorTarget] = useState<{
+    level: 'org' | 'venue'
+    id: string
+    name: string
+  } | null>(null)
+  const [configEditorJson, setConfigEditorJson] = useState('')
+  const [configEditorAdvancedOpen, setConfigEditorAdvancedOpen] = useState(false)
 
   // Fetch grouped data
   const { data, isLoading } = useQuery({
@@ -277,12 +218,37 @@ const ModuleOrganizationDialog: React.FC<ModuleOrganizationDialogProps> = ({
     },
   })
 
+  // Generic config save mutation
+  const configSaveMutation = useMutation({
+    mutationFn: async ({ level, id, config }: { level: 'org' | 'venue'; id: string; config: Record<string, any> }) => {
+      if (level === 'org') {
+        return updateOrganizationModuleConfig(id, selectedModule!.code, config)
+      } else {
+        return moduleAPI.updateModuleConfig(id, selectedModule!.code, config)
+      }
+    },
+    onSuccess: () => {
+      toast({ title: 'Configuracion guardada' })
+      invalidateAll()
+      setConfigEditorOpen(false)
+      setConfigEditorTarget(null)
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error al guardar',
+        description: error?.response?.data?.error || error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
   const isMutating =
     orgEnableMutation.isPending ||
     orgDisableMutation.isPending ||
     venueEnableMutation.isPending ||
     venueDisableMutation.isPending ||
-    venueResetMutation.isPending
+    venueResetMutation.isPending ||
+    configSaveMutation.isPending
 
   // ===========================================
   // FILTERING
@@ -348,20 +314,35 @@ const ModuleOrganizationDialog: React.FC<ModuleOrganizationDialogProps> = ({
   const handleOrgConfigure = useCallback(
     async (org: OrganizationModuleGroup) => {
       if (!selectedModule) return
-      // Fetch org-level config for the wizard
-      try {
-        const { modules } = await getModulesForOrganization(org.id)
-        const wlModule = modules.find(m => m.code === 'WHITE_LABEL_DASHBOARD')
-        const config = wlModule?.config as WhiteLabelConfig | undefined
-        onOpenWhiteLabelWizard({
-          orgId: org.id,
-          orgName: org.name,
-          initialConfig: config || undefined,
-        })
-      } catch {
-        // If fetch fails, open wizard without pre-loaded config
-        onOpenWhiteLabelWizard({ orgId: org.id, orgName: org.name })
+
+      if (selectedModule.code === 'WHITE_LABEL_DASHBOARD') {
+        // White-Label uses the dedicated wizard
+        try {
+          const { modules } = await getModulesForOrganization(org.id)
+          const wlModule = modules.find(m => m.code === 'WHITE_LABEL_DASHBOARD')
+          const config = wlModule?.config as WhiteLabelConfig | undefined
+          onOpenWhiteLabelWizard({
+            orgId: org.id,
+            orgName: org.name,
+            initialConfig: config || undefined,
+          })
+        } catch {
+          onOpenWhiteLabelWizard({ orgId: org.id, orgName: org.name })
+        }
+        return
       }
+
+      // Generic config editor — compute effective config (default + org)
+      const defaultObj = selectedModule.defaultConfig || {}
+      const orgObj = org.orgModuleConfig || {}
+      const effective = deepMergeConfig(
+        toConfigObject(defaultObj),
+        toConfigObject(orgObj),
+      )
+      setConfigEditorTarget({ level: 'org', id: org.id, name: org.name })
+      setConfigEditorJson(JSON.stringify(effective, null, 2))
+      setConfigEditorAdvancedOpen(false)
+      setConfigEditorOpen(true)
     },
     [selectedModule, onOpenWhiteLabelWizard],
   )
@@ -391,10 +372,28 @@ const ModuleOrganizationDialog: React.FC<ModuleOrganizationDialogProps> = ({
   )
 
   const handleVenueConfigure = useCallback(
-    (venue: VenueModuleInOrg) => {
-      onOpenWhiteLabelWizard({ venueId: venue.id, venueName: venue.name })
+    (venue: VenueModuleInOrg, org: OrganizationModuleGroup) => {
+      if (!selectedModule) return
+
+      if (selectedModule.code === 'WHITE_LABEL_DASHBOARD') {
+        onOpenWhiteLabelWizard({ venueId: venue.id, venueName: venue.name })
+        return
+      }
+
+      // Generic config editor — compute effective config (default + org + venue)
+      const defaultObj = selectedModule.defaultConfig || {}
+      const orgObj = org.orgModuleConfig || {}
+      const venueObj = venue.venueModuleConfig || {}
+      const effective = deepMergeConfig(
+        deepMergeConfig(toConfigObject(defaultObj), toConfigObject(orgObj)),
+        toConfigObject(venueObj),
+      )
+      setConfigEditorTarget({ level: 'venue', id: venue.id, name: venue.name })
+      setConfigEditorJson(JSON.stringify(effective, null, 2))
+      setConfigEditorAdvancedOpen(false)
+      setConfigEditorOpen(true)
     },
-    [onOpenWhiteLabelWizard],
+    [selectedModule, onOpenWhiteLabelWizard],
   )
 
   // ===========================================
@@ -503,7 +502,7 @@ const ModuleOrganizationDialog: React.FC<ModuleOrganizationDialogProps> = ({
                 onVenueEnable={handleVenueEnable}
                 onVenueDisable={handleVenueDisable}
                 onVenueReset={handleVenueReset}
-                onVenueConfigure={handleVenueConfigure}
+                onVenueConfigure={(venue) => handleVenueConfigure(venue, org)}
                 renderVenueStatusBadge={renderVenueStatusBadge}
                 isMutating={isMutating}
                 moduleDefaultConfig={selectedModule?.defaultConfig ?? null}
@@ -512,6 +511,98 @@ const ModuleOrganizationDialog: React.FC<ModuleOrganizationDialogProps> = ({
           )}
         </div>
       </DialogContent>
+
+      {/* Generic Config Editor Dialog */}
+      <Dialog open={configEditorOpen} onOpenChange={open => {
+        if (!open) {
+          setConfigEditorOpen(false)
+          setConfigEditorTarget(null)
+        }
+      }}>
+        <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+                <Settings2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              Configurar — {configEditorTarget?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Nivel: {configEditorTarget?.level === 'org' ? 'Organizacion (override)' : 'Sucursal (override)'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2 space-y-3">
+            <JsonBooleanToggles
+              jsonString={configEditorJson}
+              onChange={setConfigEditorJson}
+            />
+
+            {/* Advanced JSON editor */}
+            <button
+              type="button"
+              onClick={() => setConfigEditorAdvancedOpen(!configEditorAdvancedOpen)}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {configEditorAdvancedOpen ? (
+                <ChevronDown className="w-3 h-3" />
+              ) : (
+                <ChevronRight className="w-3 h-3" />
+              )}
+              JSON avanzado
+            </button>
+            {configEditorAdvancedOpen && (
+              <Textarea
+                value={configEditorJson}
+                onChange={e => setConfigEditorJson(e.target.value)}
+                rows={8}
+                className="font-mono text-sm"
+              />
+            )}
+
+            <div className="rounded-lg border border-amber-400/30 bg-amber-400/10 p-2.5 text-xs text-muted-foreground">
+              Config efectiva: <span className="font-medium text-foreground">Default + Organizacion + Sucursal</span>.
+              {' '}Se guarda como override de {configEditorTarget?.level === 'org' ? 'organizacion' : 'sucursal'}.
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setConfigEditorOpen(false)
+                setConfigEditorTarget(null)
+              }}
+              className="cursor-pointer"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                if (!configEditorTarget) return
+                try {
+                  const parsed = JSON.parse(configEditorJson)
+                  configSaveMutation.mutate({
+                    level: configEditorTarget.level,
+                    id: configEditorTarget.id,
+                    config: parsed,
+                  })
+                } catch {
+                  toast({
+                    title: 'JSON invalido',
+                    description: 'Verifica que la configuracion sea JSON valido.',
+                    variant: 'destructive',
+                  })
+                }
+              }}
+              disabled={configSaveMutation.isPending}
+              className="cursor-pointer"
+            >
+              {configSaveMutation.isPending ? 'Guardando...' : 'Guardar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }
@@ -552,7 +643,6 @@ const OrgRow: React.FC<OrgRowProps> = React.memo(
     renderVenueStatusBadge,
     isMutating,
   }) => {
-    const isWL = moduleCode === 'WHITE_LABEL_DASHBOARD'
     const activeCount = org.venues.filter(v => v.moduleEnabled).length
 
     return (
@@ -579,7 +669,7 @@ const OrgRow: React.FC<OrgRowProps> = React.memo(
 
               {/* Org-level toggle */}
               <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
-                {isWL && org.orgModuleEnabled && (
+                {org.orgModuleEnabled && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -587,7 +677,7 @@ const OrgRow: React.FC<OrgRowProps> = React.memo(
                     onClick={() => onOrgConfigure(org)}
                     disabled={isMutating}
                   >
-                    <Palette className="w-3 h-3 mr-1" />
+                    <Settings2 className="w-3 h-3 mr-1" />
                     Configurar
                   </Button>
                 )}
@@ -615,15 +705,12 @@ const OrgRow: React.FC<OrgRowProps> = React.memo(
                   <VenueRow
                     key={venue.id}
                     venue={venue}
-                    moduleCode={moduleCode}
                     onEnable={onVenueEnable}
                     onDisable={onVenueDisable}
                     onReset={onVenueReset}
                     onConfigure={onVenueConfigure}
                     renderStatusBadge={renderVenueStatusBadge}
                     isMutating={isMutating}
-                    moduleDefaultConfig={moduleDefaultConfig}
-                    orgModuleConfig={org.orgModuleConfig}
                   />
                 ))
               )}
@@ -642,9 +729,6 @@ OrgRow.displayName = 'OrgRow'
 
 interface VenueRowProps {
   venue: VenueModuleInOrg
-  moduleCode: string
-  moduleDefaultConfig: Record<string, any> | null
-  orgModuleConfig: Record<string, any> | null
   onEnable: (venue: VenueModuleInOrg) => void
   onDisable: (venue: VenueModuleInOrg) => void
   onReset: (venue: VenueModuleInOrg) => void
@@ -654,18 +738,7 @@ interface VenueRowProps {
 }
 
 const VenueRow: React.FC<VenueRowProps> = React.memo(
-  ({ venue, moduleCode, moduleDefaultConfig, orgModuleConfig, onEnable, onDisable, onReset, onConfigure, renderStatusBadge, isMutating }) => {
-    const isWL = moduleCode === 'WHITE_LABEL_DASHBOARD'
-    const isSerializedInventory = moduleCode === 'SERIALIZED_INVENTORY'
-    const effectivePortabilidad = isSerializedInventory
-      ? getEffectivePortabilidad({
-          defaultConfig: moduleDefaultConfig,
-          organizationConfig: orgModuleConfig,
-          venueConfig: venue.venueModuleConfig,
-          includeVenueOverride: venue.hasExplicitOverride,
-        })
-      : null
-
+  ({ venue, onEnable, onDisable, onReset, onConfigure, renderStatusBadge, isMutating }) => {
     return (
       <div className="flex items-center gap-3 px-4 py-2.5 border-l-2 border-border/50 ml-6 mr-4 transition-colors duration-200 hover:bg-muted/50 min-h-[44px]">
         {/* Venue info */}
@@ -679,42 +752,25 @@ const VenueRow: React.FC<VenueRowProps> = React.memo(
           <StatusPulse status={venue.moduleEnabled ? 'success' : 'neutral'} />
         </div>
         <div className="shrink-0">{renderStatusBadge(venue)}</div>
-        {isSerializedInventory && venue.moduleEnabled && effectivePortabilidad && (
-          <Badge
-            variant={effectivePortabilidad.enabled ? 'default' : 'secondary'}
-            className={cn(
-              'text-[11px] whitespace-nowrap',
-              effectivePortabilidad.enabled
-                ? 'border-green-300 text-green-700 dark:text-green-300 dark:border-green-700'
-                : 'border-amber-300 text-amber-700 dark:text-amber-300 dark:border-amber-700',
-            )}
-          >
-            Portabilidad {effectivePortabilidad.enabled ? 'ON' : 'OFF'} · {PORTABILIDAD_SOURCE_LABEL[effectivePortabilidad.source]}
-          </Badge>
-        )}
 
         {/* Actions */}
         <div className="flex items-center gap-1.5 shrink-0">
-          {venue.isInherited && (
-            <>
-              {isWL && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-xs cursor-pointer"
-                  onClick={() => onConfigure(venue)}
-                  disabled={isMutating}
-                >
-                  <Palette className="w-3 h-3 mr-1" />
-                  Configurar
-                </Button>
-              )}
-            </>
+          {venue.isInherited && venue.moduleEnabled && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs cursor-pointer"
+              onClick={() => onConfigure(venue)}
+              disabled={isMutating}
+            >
+              <Settings2 className="w-3 h-3 mr-1" />
+              Configurar
+            </Button>
           )}
 
           {venue.hasExplicitOverride && (
             <>
-              {isWL && venue.moduleEnabled && (
+              {venue.moduleEnabled && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -722,7 +778,7 @@ const VenueRow: React.FC<VenueRowProps> = React.memo(
                   onClick={() => onConfigure(venue)}
                   disabled={isMutating}
                 >
-                  <Palette className="w-3 h-3 mr-1" />
+                  <Settings2 className="w-3 h-3 mr-1" />
                   Configurar
                 </Button>
               )}

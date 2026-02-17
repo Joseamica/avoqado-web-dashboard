@@ -11,7 +11,7 @@
  * Access: MANAGER+ only
  */
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect, lazy } from 'react'
 import { useTranslation } from 'react-i18next'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
@@ -63,6 +63,13 @@ import {
 } from '@/hooks/useStoresAnalysis'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
+import { format } from 'date-fns'
+
+const AttendanceHeatmap = lazy(() => import('./components/AttendanceHeatmap').then(m => ({ default: m.AttendanceHeatmap })))
+const SalesHeatmap = lazy(() => import('./components/SalesHeatmap').then(m => ({ default: m.SalesHeatmap })))
+
+const VALID_TABS = ['operativo', 'checkin', 'ventas'] as const
+type TabValue = (typeof VALID_TABS)[number]
 
 export function SupervisorDashboard() {
   const { t, i18n } = useTranslation(['playtelecom', 'common'])
@@ -103,9 +110,34 @@ export function SupervisorDashboard() {
     lon: number | null
   } | null>(null)
 
+  // Tab state (hash-based persistence)
+  const [activeTab, setActiveTab] = useState<TabValue>('operativo')
+
+  useEffect(() => {
+    const syncTabFromHash = () => {
+      const hash = window.location.hash.replace('#', '')
+      if (VALID_TABS.includes(hash as TabValue)) {
+        setActiveTab(hash as TabValue)
+      }
+    }
+    syncTabFromHash()
+    window.addEventListener('hashchange', syncTabFromHash)
+    return () => window.removeEventListener('hashchange', syncTabFromHash)
+  }, [])
+
+  const handleTabChange = useCallback((value: string) => {
+    const tab = value as TabValue
+    setActiveTab(tab)
+    window.history.replaceState(null, '', `#${tab}`)
+  }, [])
+
   // Derive ISO date strings from selected range for API calls
   const startDateISO = selectedRange.from.toISOString()
   const endDateISO = selectedRange.to.toISOString()
+
+  // YYYY-MM-DD format for heatmap endpoints
+  const startDateStr = format(selectedRange.from, 'yyyy-MM-dd')
+  const endDateStr = format(selectedRange.to, 'yyyy-MM-dd')
 
   // Previous day range for "vs dia anterior" comparison
   const prevDayDates = useMemo(() => {
@@ -456,6 +488,23 @@ export function SupervisorDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Pill Tabs */}
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
+        <TabsList className="rounded-full bg-muted/60 px-1 py-1 border border-border w-fit">
+          {VALID_TABS.map(tab => (
+            <TabsTrigger
+              key={tab}
+              value={tab}
+              className="rounded-full px-4 py-2 text-sm font-medium data-[state=active]:bg-foreground data-[state=active]:text-background"
+            >
+              {t(`playtelecom:supervisor.tabs.${tab}`)}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {/* Tab: Operativo */}
+        <TabsContent value="operativo" className="space-y-6 mt-4">
 
       {/* Operational Coverage + Cash */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -1028,6 +1077,31 @@ export function SupervisorDashboard() {
           </table>
         </div>
       </GlassCard>
+
+        </TabsContent>
+
+        {/* Tab: Check-in Heatmap */}
+        <TabsContent value="checkin" className="mt-4">
+          <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
+            <AttendanceHeatmap
+              startDate={startDateStr}
+              endDate={endDateStr}
+              filterVenueId={storeFilter !== 'all' ? storeFilter : undefined}
+            />
+          </Suspense>
+        </TabsContent>
+
+        {/* Tab: Sales Heatmap */}
+        <TabsContent value="ventas" className="mt-4">
+          <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
+            <SalesHeatmap
+              startDate={startDateStr}
+              endDate={endDateStr}
+              filterVenueId={storeFilter !== 'all' ? storeFilter : undefined}
+            />
+          </Suspense>
+        </TabsContent>
+      </Tabs>
 
       {/* Goal Dialog */}
       <CreateStoreGoalDialog

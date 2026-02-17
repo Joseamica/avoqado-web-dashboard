@@ -29,6 +29,8 @@ import {
   createOrgGoal,
   updateOrgGoal,
   deleteOrgGoal,
+  getAttendanceHeatmap,
+  getSalesHeatmap,
 } from '@/services/storesAnalysis.service'
 import type { CreateStoreGoalInput, UpdateStoreGoalInput, CreateOrgGoalInput, UpdateOrgGoalInput } from '@/services/storesAnalysis.service'
 
@@ -378,5 +380,57 @@ export function useDeleteOrgGoal() {
       queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'org-goals'] })
       queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'store-performance'] })
     },
+  })
+}
+
+// =============================================================================
+// HEATMAP HOOKS
+// =============================================================================
+
+/**
+ * Query hook for attendance heatmap (staff × day matrix)
+ */
+export function useStoresAttendanceHeatmap(options: {
+  startDate: string
+  endDate: string
+  filterVenueId?: string
+  enabled?: boolean
+}) {
+  const { venueId } = useCurrentVenue()
+
+  return useQuery({
+    queryKey: ['stores-analysis', venueId, 'attendance-heatmap', options.startDate, options.endDate, options.filterVenueId],
+    queryFn: () =>
+      getAttendanceHeatmap(venueId!, {
+        startDate: options.startDate,
+        endDate: options.endDate,
+        filterVenueId: options.filterVenueId,
+      }),
+    enabled: !!venueId && !!options.startDate && !!options.endDate && options.enabled !== false,
+    staleTime: 300000, // 5 min — no need for real-time refresh
+  })
+}
+
+/**
+ * Query hook for sales heatmap (staff × day matrix)
+ */
+export function useStoresSalesHeatmap(options: {
+  startDate: string
+  endDate: string
+  filterVenueId?: string
+  enabled?: boolean
+}) {
+  const { venueId } = useCurrentVenue()
+
+  return useQuery({
+    queryKey: ['stores-analysis', venueId, 'sales-heatmap', options.startDate, options.endDate, options.filterVenueId],
+    queryFn: () =>
+      getSalesHeatmap(venueId!, {
+        startDate: options.startDate,
+        endDate: options.endDate,
+        filterVenueId: options.filterVenueId,
+      }),
+    enabled: !!venueId && !!options.startDate && !!options.endDate && options.enabled !== false,
+    staleTime: 300000,
   })
 }

@@ -411,6 +411,39 @@
       "success": "Organization goal saved",
       "deleteSuccess": "Organization goal deleted",
       "error": "Error saving organization goal"
+    },
+    "tabs": {
+      "operativo": "Operations",
+      "checkin": "Check-in",
+      "ventas": "Sales"
+    },
+    "attendanceHeatmap": {
+      "title": "Attendance Map",
+      "present": "Present",
+      "late": "Late",
+      "absent": "Absent",
+      "future": "Future",
+      "noData": "No attendance data for the selected period",
+      "totals": "Totals",
+      "subtotal": "Subtotal",
+      "store": "Store",
+      "promoter": "Promoter",
+      "clockIn": "Clock In",
+      "export": "Export"
+    },
+    "salesHeatmap": {
+      "title": "Sales Map",
+      "noData": "No sales data for the selected period",
+      "modeCount": "Count",
+      "modeAmount": "Amount",
+      "totalSales": "Total Sales",
+      "totalCount": "Total Units",
+      "avgDaily": "Daily Avg",
+      "store": "Store",
+      "promoter": "Promoter",
+      "subtotal": "Subtotal",
+      "totals": "Totals",
+      "export": "Export"
     }
   },
   "categoryItems": {
