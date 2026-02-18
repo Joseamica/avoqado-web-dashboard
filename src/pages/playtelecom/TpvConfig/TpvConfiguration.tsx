@@ -41,7 +41,7 @@ import {
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import OrgGoalConfigSection from '@/pages/playtelecom/Supervisor/OrgGoalConfigSection'
 import OrgCategoryConfigSection from './components/OrgCategoryConfigSection'
-import OrgAttendanceConfigSection from './components/OrgAttendanceConfigSection'
+import OrgTpvConfigSection from './components/OrgTpvConfigSection'
 import CreateStoreGoalDialog from '@/pages/playtelecom/Supervisor/CreateStoreGoalDialog'
 
 // Default module state (matches backend defaults)
@@ -450,7 +450,7 @@ export function TpvConfiguration() {
         {/* Organizacional Tab — OWNER+ only */}
         {isOwnerPlus && (
           <TabsContent value="organizacional" className="space-y-6">
-            <OrgAttendanceConfigSection />
+            <OrgTpvConfigSection />
             <OrgGoalConfigSection />
             <OrgCategoryConfigSection />
           </TabsContent>

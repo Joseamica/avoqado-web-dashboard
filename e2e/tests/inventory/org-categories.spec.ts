@@ -1,7 +1,7 @@
 /**
  * E2E tests for Org-Level Category Management
  *
- * Tests the OrgCategoryConfigSection component in TpvConfiguration > Categorias tab.
+ * Tests the OrgCategoryConfigSection component in TpvConfiguration > Organizacional tab.
  * Verifies CRUD operations, permission gating, and ORG badge display.
  */
 
@@ -21,9 +21,9 @@ test.use({ viewport: { width: 1280, height: 900 } })
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
-async function navigateToCategoriasTab(page: Page) {
-  // Navigate directly with hash to pre-select the tab
-  await page.goto(`/venues/${PLAYTELECOM_VENUE_ALPHA.slug}/playtelecom/tpv-config#categorias`)
+async function navigateToOrganizacionalTab(page: Page) {
+  // Navigate directly with hash to pre-select the Organizacional tab
+  await page.goto(`/venues/${PLAYTELECOM_VENUE_ALPHA.slug}/playtelecom/tpv-config#organizacional`)
 
   // Wait for the page to load
   await page.waitForSelector('[role="tablist"]', { state: 'visible', timeout: 15_000 })
@@ -32,17 +32,15 @@ async function navigateToCategoriasTab(page: Page) {
   await page.evaluate(() => {
     const devtoolsPanel = document.querySelector('.tsqd-parent-container')
     if (devtoolsPanel) (devtoolsPanel as HTMLElement).style.display = 'none'
-    // Also hide the toggle button
     const toggleBtn = document.querySelector('[aria-label="Open React Query Devtools"]') as HTMLElement
       || document.querySelector('.tsqd-open-btn-container') as HTMLElement
     if (toggleBtn) toggleBtn.style.display = 'none'
   })
 
-  // Click on the Categories tab
-  const categoriasTab = page.locator('[role="tab"]').filter({ hasText: /categor/i })
-  await categoriasTab.click({ force: true })
+  // The hash #organizacional auto-selects the tab; wait for the active tabpanel
+  await page.waitForSelector('[role="tabpanel"][data-state="active"]', { state: 'visible', timeout: 15_000 })
 
-  // Wait for content to load
+  // Wait for content to render
   await page.waitForTimeout(2_000)
 }
 
@@ -81,7 +79,7 @@ async function setupAdminWithoutOrgManage(page: Page) {
 test.describe('Org-Level Categories', () => {
   test('1 — OWNER sees OrgCategoryConfigSection with org categories', async ({ page }) => {
     await setupOwnerWithInventory(page)
-    await navigateToCategoriasTab(page)
+    await navigateToOrganizacionalTab(page)
 
     // Org section heading should be visible
     await expect(page.getByText(/Categorías de Organización/i)).toBeVisible({ timeout: 10_000 })
@@ -94,15 +92,21 @@ test.describe('Org-Level Categories', () => {
 
   test('2 — ADMIN without org-manage does NOT see OrgCategoryConfigSection', async ({ page }) => {
     await setupAdminWithoutOrgManage(page)
-    await navigateToCategoriasTab(page)
 
-    // Org section should NOT appear (permission gated)
+    // Navigate to the page (ADMIN cannot see the Organizacional tab)
+    await page.goto(`/venues/${PLAYTELECOM_VENUE_ALPHA.slug}/playtelecom/tpv-config`)
+    await page.waitForSelector('[role="tablist"]', { state: 'visible', timeout: 15_000 })
+
+    // Organizacional tab should NOT be visible for ADMIN
+    await expect(page.locator('[role="tab"]').filter({ hasText: /organizational/i })).not.toBeVisible()
+
+    // Org section should NOT appear
     await expect(page.getByText(/Categorías de Organización/i)).not.toBeVisible()
   })
 
   test('3 — "Nueva Categoría" button opens create dialog', async ({ page }) => {
     await setupOwnerWithInventory(page)
-    await navigateToCategoriasTab(page)
+    await navigateToOrganizacionalTab(page)
 
     // Click create button (force to bypass overlay)
     const createBtn = page.getByRole('button', { name: /Nueva Categoría/i })
@@ -145,7 +149,7 @@ test.describe('Org-Level Categories', () => {
     },
     )
 
-    await navigateToCategoriasTab(page)
+    await navigateToOrganizacionalTab(page)
 
     // Open create dialog
     const createBtn = page.getByRole('button', { name: /Nueva Categoría/i })
@@ -175,7 +179,7 @@ test.describe('Org-Level Categories', () => {
 
   test('5 — Delete opens confirmation and cancel dismisses it', async ({ page }) => {
     await setupOwnerWithInventory(page)
-    await navigateToCategoriasTab(page)
+    await navigateToOrganizacionalTab(page)
 
     // Wait for a category to appear
     await expect(page.getByText('SIM Prepago').first()).toBeVisible({ timeout: 10_000 })
@@ -199,7 +203,7 @@ test.describe('Org-Level Categories', () => {
     await setupApiMocks(page, { userRole: StaffRole.OWNER, venues })
     await setupInventoryMocks(page, { orgCategories: [] })
 
-    await navigateToCategoriasTab(page)
+    await navigateToOrganizacionalTab(page)
 
     // Empty state message
     await expect(page.getByText(/No hay categorías a nivel organización/i)).toBeVisible({ timeout: 10_000 })

@@ -794,6 +794,13 @@ export interface OrgAttendanceConfig {
   expectedCheckInTime: string
   latenessThresholdMinutes: number
   geofenceRadiusMeters: number
+  // Module defaults
+  attendanceTracking: boolean
+  requireFacadePhoto: boolean
+  requireDepositPhoto: boolean
+  enableCashPayments: boolean
+  enableCardPayments: boolean
+  enableBarcodeScanner: boolean
   createdAt: string
   updatedAt: string
 }
@@ -802,6 +809,12 @@ export interface UpsertOrgAttendanceConfigInput {
   expectedCheckInTime?: string
   latenessThresholdMinutes?: number
   geofenceRadiusMeters?: number
+  attendanceTracking?: boolean
+  requireFacadePhoto?: boolean
+  requireDepositPhoto?: boolean
+  enableCashPayments?: boolean
+  enableCardPayments?: boolean
+  enableBarcodeScanner?: boolean
 }
 
 export const getOrgAttendanceConfig = async (venueId: string): Promise<OrgAttendanceConfig | null> => {
