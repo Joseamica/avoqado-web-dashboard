@@ -142,7 +142,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       const whiteLabelItems = enabledNavItems.map(navItem => {
         // Use translation if available for PlayTelecom features, otherwise use database label
         const translationKey = FEATURE_CODE_TO_TRANSLATION_KEY[navItem.featureCode || '']
-        const title = translationKey ? t(`sidebar:${translationKey}`) : navItem.label || navItem.featureCode || 'Untitled'
+        const title = translationKey ? t(`sidebar:${translationKey}`, { orgName: activeVenue?.organization?.name || 'White Label' }) : navItem.label || navItem.featureCode || 'Untitled'
 
         return {
           title,

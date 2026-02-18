@@ -31,8 +31,11 @@ import {
   deleteOrgGoal,
   getAttendanceHeatmap,
   getSalesHeatmap,
+  getOrgAttendanceConfig,
+  upsertOrgAttendanceConfig,
+  deleteOrgAttendanceConfig,
 } from '@/services/storesAnalysis.service'
-import type { CreateStoreGoalInput, UpdateStoreGoalInput, CreateOrgGoalInput, UpdateOrgGoalInput } from '@/services/storesAnalysis.service'
+import type { CreateStoreGoalInput, UpdateStoreGoalInput, CreateOrgGoalInput, UpdateOrgGoalInput, UpsertOrgAttendanceConfigInput } from '@/services/storesAnalysis.service'
 
 /**
  * Query hook for organization overview via venue endpoint
@@ -379,6 +382,54 @@ export function useDeleteOrgGoal() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'org-goals'] })
       queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'store-performance'] })
+    },
+  })
+}
+
+// =============================================================================
+// ORG ATTENDANCE CONFIG HOOKS
+// =============================================================================
+
+/**
+ * Query hook for org-level attendance config
+ */
+export function useOrgAttendanceConfig(options?: { enabled?: boolean }) {
+  const { venueId } = useCurrentVenue()
+
+  return useQuery({
+    queryKey: ['stores-analysis', venueId, 'org-attendance-config'],
+    queryFn: () => getOrgAttendanceConfig(venueId!),
+    enabled: options?.enabled !== false && !!venueId,
+    staleTime: 60000,
+  })
+}
+
+/**
+ * Mutation hook to upsert org attendance config
+ */
+export function useUpsertOrgAttendanceConfig() {
+  const { venueId } = useCurrentVenue()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: UpsertOrgAttendanceConfigInput) => upsertOrgAttendanceConfig(venueId!, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'org-attendance-config'] })
+    },
+  })
+}
+
+/**
+ * Mutation hook to delete org attendance config
+ */
+export function useDeleteOrgAttendanceConfig() {
+  const { venueId } = useCurrentVenue()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: () => deleteOrgAttendanceConfig(venueId!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'org-attendance-config'] })
     },
   })
 }

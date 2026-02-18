@@ -53,7 +53,7 @@
     "managers": "Managers",
     "promoters": "Sales Force",
     "users": "Users",
-    "tpvConfig": "White Label Configuration"
+    "tpvConfig": "{{orgName}} Configuration"
   },
   "reports": "Reports",
   "support": "Support",

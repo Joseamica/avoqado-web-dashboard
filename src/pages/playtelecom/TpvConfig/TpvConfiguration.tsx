@@ -18,8 +18,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Settings, RotateCcw, Save, Loader2, Store, Plus, Pencil, Target, Package, Megaphone, Monitor, ArrowRight } from 'lucide-react'
+import { Settings, RotateCcw, Save, Loader2, Store, Plus, Pencil, Target, Package, Megaphone, Monitor, ArrowRight, Clock } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { GlassCard } from '@/components/ui/glass-card'
 import { useAuth } from '@/context/AuthContext'
 import { useAccess } from '@/hooks/use-access'
@@ -39,6 +41,7 @@ import {
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import OrgGoalConfigSection from '@/pages/playtelecom/Supervisor/OrgGoalConfigSection'
 import OrgCategoryConfigSection from './components/OrgCategoryConfigSection'
+import OrgAttendanceConfigSection from './components/OrgAttendanceConfigSection'
 import CreateStoreGoalDialog from '@/pages/playtelecom/Supervisor/CreateStoreGoalDialog'
 
 // Default module state (matches backend defaults)
@@ -51,7 +54,7 @@ const DEFAULT_MODULES: ModuleToggleState = {
   enableBarcodeScanner: true,
 }
 
-const VALID_TABS = ['general', 'metas', 'tpv', 'categorias', 'mensajes'] as const
+const VALID_TABS = ['general', 'organizacional', 'metas', 'tpv', 'categorias', 'mensajes'] as const
 type TabValue = typeof VALID_TABS[number]
 
 /** Map API response to component state */
@@ -67,9 +70,9 @@ function settingsToState(settings: VenueTpvSettings): ModuleToggleState {
 }
 
 export function TpvConfiguration() {
-  const { t } = useTranslation(['playtelecom', 'common'])
+  const { t } = useTranslation(['playtelecom', 'common', 'tpv'])
   const { activeVenue } = useAuth()
-  const { can } = useAccess()
+  const { can, role } = useAccess()
   const venueId = activeVenue?.id
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -77,6 +80,7 @@ export function TpvConfiguration() {
   const navigate = useNavigate()
 
   const canManageGoals = can('goals:org-manage')
+  const isOwnerPlus = role === 'OWNER' || role === 'SUPERADMIN'
 
   // --- Venue goals state ---
   const [goalDialogOpen, setGoalDialogOpen] = useState(false)
@@ -160,18 +164,33 @@ export function TpvConfiguration() {
   })
 
   const [modules, setModules] = useState<ModuleToggleState>(DEFAULT_MODULES)
+  const [expectedCheckInTime, setExpectedCheckInTime] = useState('09:00')
+  const [latenessThresholdStr, setLatenessThresholdStr] = useState('30')
+  const [geofenceRadiusStr, setGeofenceRadiusStr] = useState('500')
   const [hasChanges, setHasChanges] = useState(false)
 
   useEffect(() => {
     if (tpvSettings && !hasChanges) {
       setModules(settingsToState(tpvSettings))
+      setExpectedCheckInTime(tpvSettings.expectedCheckInTime ?? '09:00')
+      setLatenessThresholdStr(String(tpvSettings.latenessThresholdMinutes ?? 30))
+      setGeofenceRadiusStr(String(tpvSettings.geofenceRadiusMeters ?? 500))
     }
   }, [tpvSettings, hasChanges])
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!venueId) throw new Error('No venue ID')
-      await tpvSettingsService.updateVenueSettings(venueId, modules)
+      const parsedLateness = parseInt(latenessThresholdStr, 10)
+      const latenessThresholdMinutes = isNaN(parsedLateness) ? 30 : Math.min(120, Math.max(0, parsedLateness))
+      const parsedRadius = parseInt(geofenceRadiusStr, 10)
+      const geofenceRadiusMeters = isNaN(parsedRadius) ? 500 : Math.min(5000, Math.max(50, parsedRadius))
+      await tpvSettingsService.updateVenueSettings(venueId, {
+        ...modules,
+        expectedCheckInTime,
+        latenessThresholdMinutes,
+        geofenceRadiusMeters,
+      })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['venue', venueId, 'tpv-settings'] })
@@ -287,6 +306,14 @@ export function TpvConfiguration() {
           <TabsTrigger value="mensajes" className={pillClass}>
             <span>{t('playtelecom:tpvConfig.tabs.mensajes', { defaultValue: 'Mensajes' })}</span>
           </TabsTrigger>
+          {isOwnerPlus && (
+            <>
+              <div className="w-px h-5 bg-border mx-1" />
+              <TabsTrigger value="organizacional" className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-dashed border-primary/40 hover:bg-primary/10 hover:text-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary">
+                <span>{t('playtelecom:tpvConfig.tabs.organizacional', { defaultValue: 'Organizacional' })}</span>
+              </TabsTrigger>
+            </>
+          )}
         </TabsList>
 
         {/* General Tab — Summary Dashboard */}
@@ -420,10 +447,17 @@ export function TpvConfiguration() {
           </div>
         </TabsContent>
 
+        {/* Organizacional Tab — OWNER+ only */}
+        {isOwnerPlus && (
+          <TabsContent value="organizacional" className="space-y-6">
+            <OrgAttendanceConfigSection />
+            <OrgGoalConfigSection />
+            <OrgCategoryConfigSection />
+          </TabsContent>
+        )}
+
         {/* Metas Tab */}
         <TabsContent value="metas" className="space-y-6">
-          {/* Org-Level Goals */}
-          <OrgGoalConfigSection />
 
           {/* Per-Venue Goals */}
           <GlassCard className="p-5">
@@ -530,6 +564,84 @@ export function TpvConfiguration() {
             <div className="grid grid-cols-12 gap-6">
               <div className="col-span-12 xl:col-span-8 space-y-6">
                 <ModuleToggles values={modules} onChange={handleModuleChange} />
+
+                {/* Attendance — Lateness config */}
+                {modules.attendanceTracking && (
+                  <GlassCard className="p-5">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 rounded-xl bg-linear-to-br from-green-500/20 to-green-500/5">
+                        <Clock className="w-4 h-4 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold">
+                          {t('tpv:tpvSettings.attendanceSection')}
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          {t('tpv:tpvSettings.expectedCheckInTimeDesc')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-sm font-medium">{t('tpv:tpvSettings.expectedCheckInTime')}</Label>
+                          <p className="text-xs text-muted-foreground mt-0.5">{t('tpv:tpvSettings.expectedCheckInTimeDesc')}</p>
+                        </div>
+                        <Input
+                          type="time"
+                          value={expectedCheckInTime}
+                          onChange={e => {
+                            setExpectedCheckInTime(e.target.value)
+                            setHasChanges(true)
+                          }}
+                          className="w-[130px]"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-sm font-medium">{t('tpv:tpvSettings.latenessThreshold')}</Label>
+                          <p className="text-xs text-muted-foreground mt-0.5">{t('tpv:tpvSettings.latenessThresholdDesc')}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min={0}
+                            max={120}
+                            value={latenessThresholdStr}
+                            onChange={e => {
+                              setLatenessThresholdStr(e.target.value)
+                              setHasChanges(true)
+                            }}
+                            className="w-[80px]"
+                          />
+                          <span className="text-sm text-muted-foreground">{t('tpv:tpvSettings.latenessMinutes')}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-sm font-medium">{t('tpv:tpvSettings.geofenceRadius')}</Label>
+                          <p className="text-xs text-muted-foreground mt-0.5">{t('tpv:tpvSettings.geofenceRadiusDesc')}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min={50}
+                            max={5000}
+                            step={50}
+                            value={geofenceRadiusStr}
+                            onChange={e => {
+                              setGeofenceRadiusStr(e.target.value)
+                              setHasChanges(true)
+                            }}
+                            className="w-[100px]"
+                          />
+                          <span className="text-sm text-muted-foreground">{t('tpv:tpvSettings.geofenceMeters')}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </GlassCard>
+                )}
+
                 <TerminalManagement />
               </div>
               <div className="col-span-12 xl:col-span-4 hidden xl:flex">
@@ -541,7 +653,6 @@ export function TpvConfiguration() {
 
         {/* Categorias Tab */}
         <TabsContent value="categorias" className="space-y-6">
-          <OrgCategoryConfigSection />
           <CategoryEditor />
         </TabsContent>
 

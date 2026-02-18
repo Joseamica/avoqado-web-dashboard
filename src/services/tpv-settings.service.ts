@@ -91,6 +91,10 @@ export interface VenueTpvSettings {
   enableBarcodeScanner: boolean
   requireDepositPhoto: boolean
   requireFacadePhoto: boolean
+  // Attendance — lateness detection (stored in VenueSettings)
+  expectedCheckInTime: string
+  latenessThresholdMinutes: number
+  geofenceRadiusMeters: number
 }
 
 const DEFAULT_VENUE_TPV_SETTINGS: VenueTpvSettings = {
@@ -100,6 +104,9 @@ const DEFAULT_VENUE_TPV_SETTINGS: VenueTpvSettings = {
   enableBarcodeScanner: true,
   requireDepositPhoto: false,
   requireFacadePhoto: false,
+  expectedCheckInTime: '09:00',
+  latenessThresholdMinutes: 30,
+  geofenceRadiusMeters: 500,
 }
 
 /**

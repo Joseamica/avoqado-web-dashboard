@@ -63,7 +63,7 @@
     "managers": "Gerentes",
     "promoters": "Fuerza de Venta",
     "users": "Usuarios",
-    "tpvConfig": "Configuración White Label"
+    "tpvConfig": "Configuración {{orgName}}"
   },
   "support": "Soporte",
   "admin": "Administración",
@@ -87,7 +87,7 @@
     "shifts": "Turnos",
     "tpv": "Terminales",
     "reviews": "Reseñas",
-    "settings": "Configuración",
+    "settings": "Ajustes",
     "editvenue": "Editar Local",
     "teams": "Equipos",
     "commissions": "Comisiones",

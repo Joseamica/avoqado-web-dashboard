@@ -327,6 +327,7 @@
     "pageSubtitle": "Manage goals, commissions, terminal and catalog",
     "tabs": {
       "general": "General",
+      "organizacional": "Organizational",
       "metas": "Goals",
       "tpv": "TPV",
       "categorias": "Categories",
@@ -364,7 +365,26 @@
     "status": "Status",
     "actions": "Actions",
     "addCategory": "New Category",
-    "preview": "TPV Preview"
+    "preview": "TPV Preview",
+    "orgAttendance": {
+      "title": "Attendance Configuration",
+      "description": "Default attendance values for all stores in the organization. Stores with their own configuration keep their values.",
+      "expectedCheckInTime": "Expected check-in time",
+      "expectedCheckInTimeDesc": "Time at which staff is expected to check in",
+      "latenessThreshold": "Lateness tolerance",
+      "latenessThresholdDesc": "Minutes of tolerance after the expected check-in time",
+      "geofenceRadius": "Geofence radius",
+      "geofenceRadiusDesc": "Maximum distance from the store allowed for GPS check-in",
+      "save": "Save",
+      "saveSuccess": "Attendance configuration saved",
+      "reset": "Restore Defaults",
+      "resetConfirm": "Delete attendance configuration? System defaults will be used.",
+      "resetSuccess": "Attendance configuration deleted",
+      "noConfig": "No organizational configuration. System defaults are used.",
+      "minutes": "min",
+      "meters": "meters",
+      "error": "Error saving attendance configuration"
+    }
   },
   "supervisor": {
     "goalDialog": {

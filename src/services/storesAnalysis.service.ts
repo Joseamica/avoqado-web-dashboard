@@ -784,6 +784,44 @@ export interface SalesHeatmapResult {
   }
 }
 
+// =============================================================================
+// ORG ATTENDANCE CONFIG
+// =============================================================================
+
+export interface OrgAttendanceConfig {
+  id: string
+  organizationId: string
+  expectedCheckInTime: string
+  latenessThresholdMinutes: number
+  geofenceRadiusMeters: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface UpsertOrgAttendanceConfigInput {
+  expectedCheckInTime?: string
+  latenessThresholdMinutes?: number
+  geofenceRadiusMeters?: number
+}
+
+export const getOrgAttendanceConfig = async (venueId: string): Promise<OrgAttendanceConfig | null> => {
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/org-attendance-config`)
+  return response.data.data
+}
+
+export const upsertOrgAttendanceConfig = async (venueId: string, data: UpsertOrgAttendanceConfigInput): Promise<OrgAttendanceConfig> => {
+  const response = await api.put(`/api/v1/dashboard/venues/${venueId}/stores-analysis/org-attendance-config`, data)
+  return response.data.data
+}
+
+export const deleteOrgAttendanceConfig = async (venueId: string): Promise<void> => {
+  await api.delete(`/api/v1/dashboard/venues/${venueId}/stores-analysis/org-attendance-config`)
+}
+
+// =============================================================================
+// HEATMAP
+// =============================================================================
+
 export interface HeatmapDateParams {
   startDate: string
   endDate: string

@@ -327,6 +327,7 @@
     "pageSubtitle": "Administra metas, comisiones, terminal y catálogo",
     "tabs": {
       "general": "General",
+      "organizacional": "Organizacional",
       "metas": "Metas",
       "tpv": "TPV",
       "categorias": "Categorías",
@@ -364,7 +365,26 @@
     "status": "Estado",
     "actions": "Acciones",
     "addCategory": "Nueva Categoría",
-    "preview": "Vista Previa TPV"
+    "preview": "Vista Previa TPV",
+    "orgAttendance": {
+      "title": "Configuración de Asistencia",
+      "description": "Valores predeterminados de asistencia para todas las tiendas de la organización. Las tiendas con configuración propia mantienen sus valores.",
+      "expectedCheckInTime": "Hora esperada de entrada",
+      "expectedCheckInTimeDesc": "Hora a la que se espera que el personal registre su entrada",
+      "latenessThreshold": "Tolerancia de retardo",
+      "latenessThresholdDesc": "Minutos de tolerancia después de la hora esperada",
+      "geofenceRadius": "Radio de geofence",
+      "geofenceRadiusDesc": "Distancia máxima permitida desde la tienda para check-in GPS",
+      "save": "Guardar",
+      "saveSuccess": "Configuración de asistencia guardada",
+      "reset": "Restaurar Defaults",
+      "resetConfirm": "¿Eliminar la configuración de asistencia? Se usarán los valores predeterminados del sistema.",
+      "resetSuccess": "Configuración de asistencia eliminada",
+      "noConfig": "Sin configuración organizacional. Se usan valores predeterminados del sistema.",
+      "minutes": "min",
+      "meters": "metros",
+      "error": "Error al guardar la configuración de asistencia"
+    }
   },
   "supervisor": {
     "goalDialog": {

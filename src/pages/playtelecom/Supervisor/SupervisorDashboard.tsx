@@ -11,8 +11,9 @@
  * Access: MANAGER+ only
  */
 
-import { useState, useMemo, useCallback, useEffect, lazy } from 'react'
+import { useState, useMemo, useCallback, useEffect, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
