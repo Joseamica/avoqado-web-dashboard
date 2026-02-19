@@ -50,6 +50,8 @@ const basicInfoFormSchema = z.object({
   type: z.nativeEnum(BusinessType).default(BusinessType.RESTAURANT),
   timezone: z.string().default('America/Mexico_City'),
   currency: z.string().default('MXN'),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
   enableShifts: z.boolean().default(true).optional(),
   requireClockInPhoto: z.boolean().default(false).optional(),
   // Auto Clock-Out settings
@@ -131,6 +133,8 @@ export default function BasicInfo() {
       type: BusinessType.RESTAURANT,
       timezone: 'America/Mexico_City',
       currency: 'MXN',
+      latitude: null,
+      longitude: null,
       enableShifts: true,
       requireClockInPhoto: false,
       autoClockOutEnabled: false,
@@ -152,6 +156,8 @@ export default function BasicInfo() {
         type: (venue.type as BusinessType) || BusinessType.RESTAURANT,
         timezone: venue.timezone || 'America/Mexico_City',
         currency: venue.currency || 'MXN',
+        latitude: venue.latitude ?? null,
+        longitude: venue.longitude ?? null,
         enableShifts: venue.settings?.enableShifts ?? true,
         requireClockInPhoto: venue.settings?.requireClockInPhoto ?? false,
         autoClockOutEnabled: venue.settings?.autoClockOutEnabled ?? false,
@@ -174,6 +180,8 @@ export default function BasicInfo() {
         type: data.type,
         timezone: data.timezone,
         currency: data.currency,
+        latitude: data.latitude,
+        longitude: data.longitude,
       }
 
       // Save venue basic info only - enableShifts is handled by separate mutation
@@ -662,6 +670,8 @@ export default function BasicInfo() {
                             form.setValue('state', place.state, { shouldDirty: true })
                             form.setValue('country', place.country, { shouldDirty: true })
                             form.setValue('zipCode', place.zipCode, { shouldDirty: true })
+                            form.setValue('latitude', place.latitude, { shouldDirty: true })
+                            form.setValue('longitude', place.longitude, { shouldDirty: true })
                           }}
                           placeholder={t('edit.placeholders.address')}
                         />
