@@ -59,12 +59,14 @@ import {
   Store,
   TrendingUp,
   Users,
+  Upload,
   XCircle,
   Zap,
 } from 'lucide-react'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import VenueModuleManagementDialog from './components/VenueModuleManagementDialog'
+import BulkVenueCreationDialog from './components/BulkVenueCreationDialog'
 import { cn } from '@/lib/utils'
 
 // ============================================================================
@@ -323,6 +325,7 @@ const VenueManagement: React.FC = () => {
   const [reason, setReason] = useState('')
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false)
   const [newStatus, setNewStatus] = useState<string>('')
+  const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false)
 
   // Filter venues
   const filteredVenues = useMemo(() => {
@@ -467,6 +470,13 @@ const VenueManagement: React.FC = () => {
             Administra y supervisa todos los venues de la plataforma
           </p>
         </div>
+        <Button
+          onClick={() => navigate('/superadmin/bulk-onboarding')}
+          className="cursor-pointer"
+        >
+          <Upload className="w-4 h-4 mr-2" />
+          Carga Masiva
+        </Button>
       </div>
 
       {/* Metrics Grid */}
@@ -1016,6 +1026,11 @@ const VenueManagement: React.FC = () => {
               }
             : null
         }
+      />
+
+      <BulkVenueCreationDialog
+        open={isBulkDialogOpen}
+        onOpenChange={setIsBulkDialogOpen}
       />
     </div>
   )

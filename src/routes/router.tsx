@@ -73,6 +73,7 @@ import {
   CampaignDetail,
   TemplatesPage,
   OnboardingWizardPage,
+  BulkOnboardingPage,
   ServerHealth,
   TrainingManagement,
   TrainingDetail,
@@ -408,6 +409,10 @@ const router = createBrowserRouter(
                     {
                       path: 'onboarding',
                       element: <OnboardingWizardPage />,
+                    },
+                    {
+                      path: 'bulk-onboarding',
+                      element: <BulkOnboardingPage />,
                     },
                     {
                       path: 'server-health',

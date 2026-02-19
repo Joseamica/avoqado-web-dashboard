@@ -850,6 +850,104 @@ export async function transferVenue(venueId: string, targetOrganizationId: strin
   return response.data
 }
 
+// ===== BULK VENUE CREATION API =====
+
+export interface BulkVenuePricingInput {
+  debitRate: number
+  creditRate: number
+  amexRate: number
+  internationalRate: number
+  fixedFeePerTransaction?: number
+  monthlyServiceFee?: number
+}
+
+export interface BulkVenueSettlementInput {
+  debitDays: number
+  creditDays: number
+  amexDays: number
+  internationalDays: number
+  otherDays: number
+  dayType: 'BUSINESS_DAYS' | 'CALENDAR_DAYS'
+  cutoffTime?: string
+  cutoffTimezone?: string
+}
+
+export interface BulkVenueInput {
+  name: string
+  type?: string
+  address?: string
+  city?: string
+  state?: string
+  country?: string
+  zipCode?: string
+  phone?: string
+  email?: string
+  timezone?: string
+  currency?: string
+  feeType?: string
+  feeValue?: number
+  latitude?: number
+  longitude?: number
+  entityType?: string
+  rfc?: string
+  legalName?: string
+  website?: string
+  settings?: Record<string, any>
+  terminals?: { serialNumber: string; name: string; type: string; brand?: string; model?: string }[]
+  merchantAccountId?: string
+  pricing?: BulkVenuePricingInput
+  settlement?: BulkVenueSettlementInput
+}
+
+export interface BulkCreateVenuesPayload {
+  organizationId?: string
+  organizationSlug?: string
+  defaults?: {
+    type?: string
+    timezone?: string
+    currency?: string
+    country?: string
+    feeType?: string
+    feeValue?: number
+    entityType?: string
+    settings?: Record<string, any>
+  }
+  defaultMerchantAccountId?: string
+  defaultPricing?: BulkVenuePricingInput
+  defaultSettlement?: BulkVenueSettlementInput
+  venues: BulkVenueInput[]
+}
+
+export interface BulkCreateVenuesResponse {
+  success: boolean
+  summary: {
+    venuesCreated: number
+    venuesFailed: number
+    terminalsCreated: number
+    terminalsFailed: number
+    paymentConfigsCreated: number
+    pricingStructuresCreated: number
+    settlementConfigsCreated: number
+  }
+  venues: {
+    index: number
+    name: string
+    venueId: string
+    slug: string
+    status: string
+    terminals: { id: string; serialNumber: string | null; status: string }[]
+    paymentConfigured: boolean
+    pricingConfigured: boolean
+    settlementConfigured: boolean
+  }[]
+  errors: { index: number; field: string; error: string }[]
+}
+
+export async function bulkCreateVenues(payload: BulkCreateVenuesPayload): Promise<BulkCreateVenuesResponse> {
+  const response = await api.post('/api/v1/dashboard/superadmin/venues/bulk', payload)
+  return response.data
+}
+
 // Convenience API object (canonical import target for components expecting superadminAPI)
 export const superadminAPI = {
   getDashboardData: async (): Promise<SASuperadminDashboardData> => {
@@ -946,5 +1044,9 @@ export const superadminAPI = {
   // Venue Transfer
   transferVenue: async (venueId: string, targetOrganizationId: string): Promise<TransferVenueResponse> => {
     return await transferVenue(venueId, targetOrganizationId)
+  },
+  // Bulk Venue Creation
+  bulkCreateVenues: async (payload: BulkCreateVenuesPayload): Promise<BulkCreateVenuesResponse> => {
+    return await bulkCreateVenues(payload)
   },
 }
