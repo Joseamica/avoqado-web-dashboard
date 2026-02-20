@@ -25,6 +25,8 @@ export interface BusinessInfoData {
   email: string
   timezone: string
   currency: string
+  latitude: number | null
+  longitude: number | null
 }
 
 interface BusinessInfoStepProps extends OnboardingStepProps {
@@ -51,6 +53,8 @@ export function BusinessInfoStep({ onNext, onPrevious, isFirstStep, onSave, init
     email: z.string().min(1, t('businessInfo.validation.emailRequired')).email(t('businessInfo.validation.emailInvalid')),
     timezone: z.string().min(1, t('businessInfo.validation.timezoneRequired')),
     currency: z.string().min(1, t('businessInfo.validation.currencyRequired')),
+    latitude: z.number().nullable(),
+    longitude: z.number().nullable(),
   })
 
   const form = useForm<BusinessInfoData>({
@@ -67,6 +71,8 @@ export function BusinessInfoStep({ onNext, onPrevious, isFirstStep, onSave, init
       email: '',
       timezone: 'America/Mexico_City',
       currency: 'MXN',
+      latitude: null,
+      longitude: null,
     },
   })
 
