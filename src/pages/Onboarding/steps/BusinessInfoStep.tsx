@@ -25,8 +25,8 @@ export interface BusinessInfoData {
   email: string
   timezone: string
   currency: string
-  latitude: number | null
-  longitude: number | null
+  latitude?: number | null
+  longitude?: number | null
 }
 
 interface BusinessInfoStepProps extends OnboardingStepProps {
