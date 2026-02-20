@@ -160,6 +160,8 @@ export function BusinessInfoStep({ onNext, onPrevious, isFirstStep, onSave, init
                           form.setValue('state', place.state)
                           form.setValue('country', place.country)
                           form.setValue('zipCode', place.zipCode)
+                          form.setValue('latitude', place.latitude)
+                          form.setValue('longitude', place.longitude)
                         }}
                         placeholder={t('businessInfo.form.addressPlaceholder')}
                       />

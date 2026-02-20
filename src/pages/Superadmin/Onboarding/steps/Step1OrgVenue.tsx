@@ -159,6 +159,8 @@ export const Step1OrgVenue: React.FC<Props> = ({ organization, venue, onOrgChang
                   city: place.city,
                   state: place.state,
                   zipCode: place.zipCode,
+                  latitude: place.latitude,
+                  longitude: place.longitude,
                 })
               }}
             />
