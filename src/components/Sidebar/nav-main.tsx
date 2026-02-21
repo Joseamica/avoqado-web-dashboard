@@ -38,6 +38,7 @@ export function NavMain({
       url: string
       superadminOnly?: boolean
       permission?: string | null
+      comingSoon?: boolean
     }[]
   }[]
   superadminItems?: {
@@ -115,6 +116,20 @@ export function NavMain({
                       <DropdownMenuContent side="right" align="start" sideOffset={4}>
                         {item.items.map(subItem => {
                           const isSuperadminSubItem = isSuperadminPath(subItem.url) || !!subItem.superadminOnly
+                          if (subItem.comingSoon) {
+                            return (
+                              <DropdownMenuItem
+                                key={subItem.url}
+                                disabled
+                                className="flex items-center gap-2 opacity-60"
+                              >
+                                <span>{subItem.title}</span>
+                                <span className="ml-auto shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
+                                  Pronto
+                                </span>
+                              </DropdownMenuItem>
+                            )
+                          }
                           return (
                             <DropdownMenuItem
                               key={subItem.url}
@@ -166,6 +181,22 @@ export function NavMain({
                       <SidebarMenuSub>
                         {item.items.map(subItem => {
                           const isSuperadminSubItem = isSuperadminPath(subItem.url) || !!subItem.superadminOnly
+                          if (subItem.comingSoon) {
+                            return (
+                              <SidebarMenuSubItem key={subItem.url}>
+                                <SidebarMenuSubButton
+                                  className="opacity-50 cursor-not-allowed pointer-events-none h-auto py-1.5"
+                                >
+                                  <span className="flex flex-col items-start gap-0.5 leading-tight">
+                                    <span>{subItem.title}</span>
+                                    <span className="rounded-full bg-muted-foreground/10 px-1.5 py-px text-[9px] font-medium text-muted-foreground">
+                                      Muy pronto
+                                    </span>
+                                  </span>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            )
+                          }
                           return (
                             <SidebarMenuSubItem key={subItem.url}>
                               <SidebarMenuSubButton

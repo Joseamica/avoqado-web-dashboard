@@ -15,11 +15,12 @@ import {
   Terminal,
   Trash2,
   Wifi,
+  ExternalLink,
   Wrench,
   X,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
 import { FilterPill, CheckboxFilterContent } from '@/components/filters'
@@ -55,7 +56,7 @@ import { TerminalPurchaseWizard } from './components/purchase-wizard/TerminalPur
 import { SuperadminTerminalDialog } from './components/SuperadminTerminalDialog'
 
 export default function Tpvs() {
-  const { venueId } = useCurrentVenue()
+  const { venueId, venue } = useCurrentVenue()
   const { user } = useAuth()
   const location = useLocation()
   const { t } = useTranslation()
@@ -248,11 +249,12 @@ export default function Tpvs() {
 
     if (debouncedSearchTerm) {
       const lower = debouncedSearchTerm.toLowerCase()
-      result = result.filter((t: any) =>
-        t.id.includes(lower) ||
-        t.name.toLowerCase().includes(lower) ||
-        t.serialNumber?.toLowerCase().includes(lower) ||
-        t.version?.toLowerCase().includes(lower),
+      result = result.filter(
+        (t: any) =>
+          t.id.includes(lower) ||
+          t.name.toLowerCase().includes(lower) ||
+          t.serialNumber?.toLowerCase().includes(lower) ||
+          t.version?.toLowerCase().includes(lower),
       )
     }
 
@@ -984,6 +986,16 @@ export default function Tpvs() {
                   {t('tpv.superadmin.quickCreateTooltip', { defaultValue: 'Crear terminal directamente (solo Superadmin)' })}
                 </TooltipContent>
               </Tooltip>
+            )}
+
+            {/* Link to org-level TPV config — only OWNER/SUPERADMIN (they have access to org settings page) */}
+            {venue?.organizationId && (user?.role === StaffRole.OWNER || isSuperadmin) && (
+              <Button size="sm" variant="outline" className="h-8" asChild>
+                <Link to={`/organizations/${venue.organizationId}/settings`}>
+                  <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                  <span>{t('tpv.actions.globalConfig', { defaultValue: 'Config. Global' })}</span>
+                </Link>
+              </Button>
             )}
 
             {/* Regular "Create" button - purchase wizard flow */}

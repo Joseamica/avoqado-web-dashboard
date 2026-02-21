@@ -403,11 +403,11 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       },
       { title: t('sidebar:reportsMenu.salesSummary'), url: 'reports/sales-summary', permission: 'reports:read' },
       { title: t('sidebar:reportsMenu.salesByItem'), url: 'reports/sales-by-item', permission: 'reports:read' },
-      { title: t('sidebar:reportsMenu.salesByCategory'), url: 'reports/sales-by-category', permission: 'reports:read' },
-      { title: t('sidebar:reportsMenu.paymentMethods'), url: 'reports/payment-methods', permission: 'reports:read' },
-      { title: t('sidebar:reportsMenu.taxes'), url: 'reports/taxes', permission: 'reports:read' },
-      { title: t('sidebar:reportsMenu.voids'), url: 'reports/voids', permission: 'reports:read' },
-      { title: t('sidebar:reportsMenu.modifiers'), url: 'reports/modifiers', permission: 'reports:read' },
+      { title: t('sidebar:reportsMenu.salesByCategory'), url: 'reports/sales-by-category', permission: 'reports:read', comingSoon: true },
+      { title: t('sidebar:reportsMenu.paymentMethods'), url: 'reports/payment-methods', permission: 'reports:read', comingSoon: true },
+      { title: t('sidebar:reportsMenu.taxes'), url: 'reports/taxes', permission: 'reports:read', comingSoon: true },
+      { title: t('sidebar:reportsMenu.voids'), url: 'reports/voids', permission: 'reports:read', comingSoon: true },
+      { title: t('sidebar:reportsMenu.modifiers'), url: 'reports/modifiers', permission: 'reports:read', comingSoon: true },
     ].filter(item => !item.permission || can(item.permission))
 
     // Only show Reports menu if user has at least one subitem AND (not white-label OR reports feature enabled)

@@ -832,6 +832,33 @@ export const deleteOrgAttendanceConfig = async (venueId: string): Promise<void> 
 }
 
 // =============================================================================
+// ORG TPV DEFAULTS (full TpvSettings JSON)
+// =============================================================================
+
+export interface OrgTpvStats {
+  totalTerminals: number
+  venues: { id: string; name: string; slug: string; terminalCount: number }[]
+}
+
+export const getOrgTpvDefaults = async (venueId: string): Promise<Record<string, any> | null> => {
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/org-tpv-defaults`)
+  return response.data.data
+}
+
+export const upsertOrgTpvDefaults = async (
+  venueId: string,
+  settings: Record<string, any>,
+): Promise<{ config: Record<string, any>; terminalsUpdated: number }> => {
+  const response = await api.put(`/api/v1/dashboard/venues/${venueId}/stores-analysis/org-tpv-defaults`, { settings })
+  return response.data.data
+}
+
+export const getOrgTpvStats = async (venueId: string): Promise<OrgTpvStats> => {
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/org-tpv-defaults/stats`)
+  return response.data.data
+}
+
+// =============================================================================
 // HEATMAP
 // =============================================================================
 

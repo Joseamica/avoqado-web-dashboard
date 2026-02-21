@@ -1,30 +1,21 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import {
-  getOrganization,
-  updateOrganization,
-  type OrganizationInfo,
-} from '@/services/organization.service'
+import { getOrganization, updateOrganization, type OrganizationInfo } from '@/services/organization.service'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
-import { Settings, Building2, Mail, Phone, Receipt, Save, Loader2 } from 'lucide-react'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Settings, Building2, Mail, Phone, Receipt, Save, Loader2, Monitor } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useOrgTpvDefaults, useUpsertOrgTpvDefaults, useOrgTpvStats } from '@/hooks/useStoresAnalysis'
+import { TpvSettingsFields } from '@/components/tpv/TpvSettingsFields'
+import type { TpvSettings } from '@/services/tpv-settings.service'
 
 const organizationSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -112,9 +103,7 @@ const OrganizationSettings: React.FC = () => {
             defaultValue: 'Configura datos legales y facturacion de la organizacion.',
           })}
         />
-        <p className="text-muted-foreground mt-1">
-          {t('settings.subtitle')}
-        </p>
+        <p className="text-muted-foreground mt-1">{t('settings.subtitle')}</p>
       </div>
 
       <Form {...form}>
@@ -126,9 +115,7 @@ const OrganizationSettings: React.FC = () => {
                 <Building2 className="h-5 w-5" />
                 {t('settings.generalInfo')}
               </CardTitle>
-              <CardDescription>
-                {t('settings.generalInfoDesc')}
-              </CardDescription>
+              <CardDescription>{t('settings.generalInfoDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <FormField
@@ -140,9 +127,7 @@ const OrganizationSettings: React.FC = () => {
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
-                    <FormDescription>
-                      {t('settings.nameDesc')}
-                    </FormDescription>
+                    <FormDescription>{t('settings.nameDesc')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -193,9 +178,7 @@ const OrganizationSettings: React.FC = () => {
                 <Receipt className="h-5 w-5" />
                 {t('settings.billingInfo')}
               </CardTitle>
-              <CardDescription>
-                {t('settings.billingInfoDesc')}
-              </CardDescription>
+              <CardDescription>{t('settings.billingInfoDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
@@ -206,15 +189,9 @@ const OrganizationSettings: React.FC = () => {
                     <FormItem>
                       <FormLabel>{t('settings.taxId')}</FormLabel>
                       <FormControl>
-                        <Input
-                          {...field}
-                          value={field.value || ''}
-                          placeholder={t('settings.taxIdPlaceholder', { defaultValue: 'RFC' })}
-                        />
+                        <Input {...field} value={field.value || ''} placeholder={t('settings.taxIdPlaceholder', { defaultValue: 'RFC' })} />
                       </FormControl>
-                      <FormDescription>
-                        {t('settings.taxIdDesc')}
-                      </FormDescription>
+                      <FormDescription>{t('settings.taxIdDesc')}</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -237,9 +214,7 @@ const OrganizationSettings: React.FC = () => {
                           />
                         </div>
                       </FormControl>
-                      <FormDescription>
-                        {t('settings.billingEmailDesc')}
-                      </FormDescription>
+                      <FormDescription>{t('settings.billingEmailDesc')}</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -250,21 +225,130 @@ const OrganizationSettings: React.FC = () => {
 
           {/* Save Button */}
           <div className="flex justify-end">
-            <Button
-              type="submit"
-              disabled={updateMutation.isPending || !form.formState.isDirty}
-            >
-              {updateMutation.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="mr-2 h-4 w-4" />
-              )}
+            <Button type="submit" disabled={updateMutation.isPending || !form.formState.isDirty}>
+              {updateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               {t('settings.save')}
             </Button>
           </div>
         </form>
       </Form>
+      {/* TPV Configuration Section */}
+      <OrgTpvConfigSection />
     </div>
+  )
+}
+
+// =============================================================================
+// ORG TPV CONFIG SECTION
+// =============================================================================
+
+const DEFAULT_TPV_SETTINGS: TpvSettings = {
+  showReviewScreen: true,
+  showTipScreen: true,
+  showReceiptScreen: true,
+  defaultTipPercentage: null,
+  tipSuggestions: [10, 15, 20],
+  requirePinLogin: true,
+  showVerificationScreen: false,
+  requireVerificationPhoto: false,
+  requireVerificationBarcode: false,
+  requireClockInPhoto: false,
+  requireClockOutPhoto: false,
+  requireClockInToLogin: false,
+  kioskModeEnabled: false,
+  kioskDefaultMerchantId: null,
+  showQuickPayment: true,
+  showOrderManagement: true,
+  showReports: true,
+  showPayments: true,
+  showSupport: true,
+  showGoals: true,
+  showMessages: true,
+  showTrainings: true,
+  showCryptoOption: false,
+}
+
+function OrgTpvConfigSection() {
+  const { t } = useTranslation('organization')
+  const { t: tTpv } = useTranslation('tpv')
+  const { toast } = useToast()
+
+  const { data: orgDefaults, isLoading } = useOrgTpvDefaults()
+  const { data: stats } = useOrgTpvStats()
+  const upsertMutation = useUpsertOrgTpvDefaults()
+
+  const [localSettings, setLocalSettings] = useState<TpvSettings>(DEFAULT_TPV_SETTINGS)
+  const [hasChanges, setHasChanges] = useState(false)
+
+  useEffect(() => {
+    if (orgDefaults) {
+      setLocalSettings({ ...DEFAULT_TPV_SETTINGS, ...(orgDefaults as Partial<TpvSettings>) })
+      setHasChanges(false)
+    } else if (!isLoading) {
+      setLocalSettings(DEFAULT_TPV_SETTINGS)
+      setHasChanges(false)
+    }
+  }, [orgDefaults, isLoading])
+
+  const handleUpdate = (updates: Partial<TpvSettings>) => {
+    setLocalSettings(prev => ({ ...prev, ...updates }))
+    setHasChanges(true)
+  }
+
+  const handleSave = async () => {
+    try {
+      const result = await upsertMutation.mutateAsync(localSettings as Record<string, any>)
+      setHasChanges(false)
+      toast({
+        title: tTpv('tpvSettings.orgSaveSuccess', { defaultValue: 'Configuracion guardada' }),
+        description: tTpv('tpvSettings.orgTerminalsUpdated', {
+          defaultValue: '{{count}} terminales actualizadas',
+          count: result.terminalsUpdated,
+        }),
+      })
+    } catch {
+      toast({
+        title: tTpv('tpvSettings.updateError'),
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const totalTerminals = stats?.totalTerminals ?? 0
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Monitor className="h-5 w-5" />
+              {t('settings.tpvConfig', { defaultValue: 'Configuracion de Terminales TPV' })}
+            </CardTitle>
+            <CardDescription>
+              {t('settings.tpvConfigDesc', {
+                defaultValue: 'Configuracion por defecto para todas las terminales de la organizacion ({{count}} terminales).',
+                count: totalTerminals,
+              })}
+            </CardDescription>
+          </div>
+          <Button onClick={handleSave} disabled={!hasChanges || upsertMutation.isPending} size="sm">
+            {upsertMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            {tTpv('tpvSettings.saveAndApply', { defaultValue: 'Guardar y aplicar' })}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-4">
+            <div className="h-16 bg-muted animate-pulse rounded-xl" />
+            <div className="h-16 bg-muted animate-pulse rounded-xl" />
+          </div>
+        ) : (
+          <TpvSettingsFields settings={localSettings} onUpdate={handleUpdate} isPending={upsertMutation.isPending} mode="org" />
+        )}
+      </CardContent>
+    </Card>
   )
 }
 

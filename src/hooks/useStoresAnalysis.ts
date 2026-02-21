@@ -34,8 +34,17 @@ import {
   getOrgAttendanceConfig,
   upsertOrgAttendanceConfig,
   deleteOrgAttendanceConfig,
+  getOrgTpvDefaults,
+  upsertOrgTpvDefaults,
+  getOrgTpvStats,
 } from '@/services/storesAnalysis.service'
-import type { CreateStoreGoalInput, UpdateStoreGoalInput, CreateOrgGoalInput, UpdateOrgGoalInput, UpsertOrgAttendanceConfigInput } from '@/services/storesAnalysis.service'
+import type {
+  CreateStoreGoalInput,
+  UpdateStoreGoalInput,
+  CreateOrgGoalInput,
+  UpdateOrgGoalInput,
+  UpsertOrgAttendanceConfigInput,
+} from '@/services/storesAnalysis.service'
 
 /**
  * Query hook for organization overview via venue endpoint
@@ -435,18 +444,61 @@ export function useDeleteOrgAttendanceConfig() {
 }
 
 // =============================================================================
+// ORG TPV DEFAULTS HOOKS
+// =============================================================================
+
+/**
+ * Query hook for org-level TPV defaults (full settings JSON)
+ */
+export function useOrgTpvDefaults(options?: { enabled?: boolean }) {
+  const { venueId } = useCurrentVenue()
+
+  return useQuery({
+    queryKey: ['stores-analysis', venueId, 'org-tpv-defaults'],
+    queryFn: () => getOrgTpvDefaults(venueId!),
+    enabled: options?.enabled !== false && !!venueId,
+    staleTime: 60000,
+  })
+}
+
+/**
+ * Mutation hook to save org TPV defaults and push to all terminals
+ */
+export function useUpsertOrgTpvDefaults() {
+  const { venueId } = useCurrentVenue()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (settings: Record<string, any>) => upsertOrgTpvDefaults(venueId!, settings),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'org-tpv-defaults'] })
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'org-tpv-stats'] })
+    },
+  })
+}
+
+/**
+ * Query hook for org TPV stats (terminal counts per venue)
+ */
+export function useOrgTpvStats(options?: { enabled?: boolean }) {
+  const { venueId } = useCurrentVenue()
+
+  return useQuery({
+    queryKey: ['stores-analysis', venueId, 'org-tpv-stats'],
+    queryFn: () => getOrgTpvStats(venueId!),
+    enabled: options?.enabled !== false && !!venueId,
+    staleTime: 60000,
+  })
+}
+
+// =============================================================================
 // HEATMAP HOOKS
 // =============================================================================
 
 /**
  * Query hook for attendance heatmap (staff × day matrix)
  */
-export function useStoresAttendanceHeatmap(options: {
-  startDate: string
-  endDate: string
-  filterVenueId?: string
-  enabled?: boolean
-}) {
+export function useStoresAttendanceHeatmap(options: { startDate: string; endDate: string; filterVenueId?: string; enabled?: boolean }) {
   const { venueId } = useCurrentVenue()
 
   return useQuery({
@@ -465,12 +517,7 @@ export function useStoresAttendanceHeatmap(options: {
 /**
  * Query hook for sales heatmap (staff × day matrix)
  */
-export function useStoresSalesHeatmap(options: {
-  startDate: string
-  endDate: string
-  filterVenueId?: string
-  enabled?: boolean
-}) {
+export function useStoresSalesHeatmap(options: { startDate: string; endDate: string; filterVenueId?: string; enabled?: boolean }) {
   const { venueId } = useCurrentVenue()
 
   return useQuery({
