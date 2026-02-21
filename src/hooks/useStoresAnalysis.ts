@@ -448,45 +448,54 @@ export function useDeleteOrgAttendanceConfig() {
 // =============================================================================
 
 /**
- * Query hook for org-level TPV defaults (full settings JSON)
+ * Query hook for org-level TPV defaults (full settings JSON).
+ * Accepts explicit venueId for use outside venue routes (e.g. /organizations/:orgId/settings).
  */
-export function useOrgTpvDefaults(options?: { enabled?: boolean }) {
-  const { venueId } = useCurrentVenue()
+export function useOrgTpvDefaults(options?: { enabled?: boolean; venueId?: string | null }) {
+  const { venueId: currentVenueId } = useCurrentVenue()
+  const resolvedVenueId = options?.venueId ?? currentVenueId
 
   return useQuery({
-    queryKey: ['stores-analysis', venueId, 'org-tpv-defaults'],
-    queryFn: () => getOrgTpvDefaults(venueId!),
-    enabled: options?.enabled !== false && !!venueId,
+    queryKey: ['stores-analysis', resolvedVenueId, 'org-tpv-defaults'],
+    queryFn: () => getOrgTpvDefaults(resolvedVenueId!),
+    enabled: options?.enabled !== false && !!resolvedVenueId,
     staleTime: 60000,
   })
 }
 
 /**
- * Mutation hook to save org TPV defaults and push to all terminals
+ * Mutation hook to save org TPV defaults and push to all terminals.
+ * Accepts explicit venueId for use outside venue routes.
  */
-export function useUpsertOrgTpvDefaults() {
-  const { venueId } = useCurrentVenue()
+export function useUpsertOrgTpvDefaults(options?: { venueId?: string | null }) {
+  const { venueId: currentVenueId } = useCurrentVenue()
+  const resolvedVenueId = options?.venueId ?? currentVenueId
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (settings: Record<string, any>) => upsertOrgTpvDefaults(venueId!, settings),
+    mutationFn: (settings: Record<string, any>) => {
+      if (!resolvedVenueId) return Promise.reject(new Error('No venueId available'))
+      return upsertOrgTpvDefaults(resolvedVenueId, settings)
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'org-tpv-defaults'] })
-      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'org-tpv-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', resolvedVenueId, 'org-tpv-defaults'] })
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', resolvedVenueId, 'org-tpv-stats'] })
     },
   })
 }
 
 /**
- * Query hook for org TPV stats (terminal counts per venue)
+ * Query hook for org TPV stats (terminal counts per venue).
+ * Accepts explicit venueId for use outside venue routes.
  */
-export function useOrgTpvStats(options?: { enabled?: boolean }) {
-  const { venueId } = useCurrentVenue()
+export function useOrgTpvStats(options?: { enabled?: boolean; venueId?: string | null }) {
+  const { venueId: currentVenueId } = useCurrentVenue()
+  const resolvedVenueId = options?.venueId ?? currentVenueId
 
   return useQuery({
-    queryKey: ['stores-analysis', venueId, 'org-tpv-stats'],
-    queryFn: () => getOrgTpvStats(venueId!),
-    enabled: options?.enabled !== false && !!venueId,
+    queryKey: ['stores-analysis', resolvedVenueId, 'org-tpv-stats'],
+    queryFn: () => getOrgTpvStats(resolvedVenueId!),
+    enabled: options?.enabled !== false && !!resolvedVenueId,
     staleTime: 60000,
   })
 }
