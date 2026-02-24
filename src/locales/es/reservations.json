@@ -124,6 +124,7 @@
 			"emailInvalid": "Ingresa un email válido"
 		},
 		"sections": {
+			"service": "Servicio",
 			"dateTime": "Fecha y Hora",
 			"guest": "Información del Cliente",
 			"assignment": "Asignación",
@@ -133,7 +134,13 @@
 			"existing": "Cliente existente",
 			"new": "Nuevo invitado"
 		},
+		"noServicesAvailable": "No hay servicios creados. Puedes crear uno en MenuMaker.",
 		"noTablesAvailable": "Sin mesas disponibles para este horario",
+		"selectService": "Seleccionar servicio",
+		"addService": "Añadir servicio",
+		"allServices": "Todos los servicios",
+		"createService": "Crear servicio",
+		"noService": "Sin servicio",
 		"selectTable": "Seleccionar mesa",
 		"selectStaff": "Seleccionar personal",
 		"tableCapacity": "Mesa {{number}} ({{capacity}} personas)"
@@ -178,14 +185,39 @@
 		"title": "Calendario de Reservaciones",
 		"views": {
 			"day": "Día",
-			"week": "Semana"
+			"week": "Semana",
+			"5day": "5-días",
+			"month": "Mes"
 		},
+		"interval": "Intervalo",
 		"groupBy": {
 			"label": "Agrupar por",
+			"none": "Sin agrupar",
 			"table": "Mesa",
-			"staff": "Personal"
+			"staff": "Personal",
+			"unassigned": "Sin asignar"
 		},
 		"noReservations": "Sin reservaciones para este período"
+	},
+	"availability": {
+		"title": "Editar disponibilidad",
+		"singleChange": "Cambio único",
+		"recurringSchedule": "Calendario recurrente",
+		"resetWeek": "Restablecer semana a los valores predeterminados",
+		"invalidTime": "Introduce una hora válida",
+		"done": "Listo"
+	},
+	"calendarAttributes": {
+		"title": "Atributos de la cita",
+		"subtitle": "¿Qué atributos te gustaría ver en el calendario?",
+		"confirmed": "Confirmada",
+		"pending": "Sin confirmar",
+		"newCustomer": "Nuevo cliente",
+		"showCancelled": "Consultar citas canceladas",
+		"colorByService": "Ver el calendario por servicio",
+		"colorByServiceHelp": "Asigna colores a cada servicio en el calendario.",
+		"save": "Guardar",
+		"comingSoon": "Muy pronto"
 	},
 	"classSession": {
 		"createTitle": "Agendar clase",
@@ -198,9 +230,25 @@
 			"capacity": "Plazas disponibles",
 			"recurrence": "Se repite"
 		},
+		"createClass": "Crear clase",
+		"addClass": "Añadir nueva clase",
+		"allClasses": "Todas las clases",
+		"free": "Gratis",
 		"spotsLeft": "{{count}} lugar disponible",
 		"spotsLeft_other": "{{count}} lugares disponibles",
-		"full": "Lleno"
+		"full": "Lleno",
+		"inlineCreate": {
+			"title": "Nueva clase",
+			"name": "Nombre",
+			"namePlaceholder": "Ej. Yoga, Spinning, Zumba",
+			"description": "Descripción",
+			"descriptionPlaceholder": "Breve descripción de la clase",
+			"price": "Precio",
+			"duration": "Duración (min)",
+			"maxParticipants": "Cupo máximo",
+			"save": "Crear clase",
+			"success": "Clase creada exitosamente"
+		}
 	},
 	"waitlist": {
 		"title": "Lista de Espera",

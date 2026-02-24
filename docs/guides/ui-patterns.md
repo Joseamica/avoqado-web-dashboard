@@ -1443,12 +1443,13 @@ const schema = z.object({
 
 - **Empty state**: Always show `{tCommon('no_results')}` when no options available
 - **Create button**: Always add `+ Create [Entity]` at the bottom that links to the create page
-- **Link destination**: Use the actual create route (e.g., `/menu/products/create`, `/customers/groups/create`)
+- **Link destination**: Navigate to the list page where modal-based creation happens (e.g., `menumaker/products`, `menumaker/services`)
 - **Styling**: Use `border-t p-1` for separator, `variant="ghost"` and `justify-start` for button
 
-**Common create routes:**
+**Common create routes (all use modal-based creation from list pages):**
 
-- Products: `/menu/products/create`
+- Products: `menumaker/products` (opens ProductTypeSelectorModal → ProductWizardDialog)
+- Services/Classes: `menumaker/services` (opens ServiceTypeSelectorDialog → ServiceFormDialog)
 - Categories: `/menu/categories/create`
 - Customer Groups: `/customers/groups/create`
 - Modifiers: `/menu/modifiers/create`

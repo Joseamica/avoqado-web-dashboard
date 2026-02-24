@@ -536,7 +536,7 @@ export default function Overview() {
                 <DropdownMenuItem onClick={() => navigate(`${fullBasePath}/menumaker/categories/create`)}>
                   {t('overview.newCategory')}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate(`${fullBasePath}/menumaker/products/create`)}>
+                <DropdownMenuItem onClick={() => navigate(`${fullBasePath}/menumaker/products`)}>
                   {t('overview.createNewProduct')}
                 </DropdownMenuItem>
               </DropdownMenuContent>

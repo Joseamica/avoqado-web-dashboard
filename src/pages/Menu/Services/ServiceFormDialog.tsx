@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useCallback } from 'react'
+import { useEffect, useMemo, useCallback, useState, useRef } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Calendar, Users, Loader2, ImagePlus } from 'lucide-react'
+import { Calendar, Users, Loader2, ImagePlus, Plus } from 'lucide-react'
 import Cropper from 'react-easy-crop'
 
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
@@ -16,7 +16,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useImageUploader } from '@/hooks/use-image-uploader'
-import { getMenuCategories, getProduct, updateProduct } from '@/services/menu.service'
+import { createMenuCategory, getMenuCategories, getProduct, updateProduct } from '@/services/menu.service'
 import { productWizardApi, type ProductType } from '@/services/inventory.service'
 import { Currency } from '@/utils/currency'
 
@@ -82,6 +82,31 @@ export function ServiceFormDialog({
     () => categories.map(c => ({ value: c.id, label: c.name })),
     [categories],
   )
+
+  // Inline category creation
+  const [creatingCategory, setCreatingCategory] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const categoryInputRef = useRef<HTMLInputElement>(null)
+
+  const createCategoryMutation = useMutation({
+    mutationFn: (name: string) => createMenuCategory(venueId!, { name }),
+    onSuccess: (newCat) => {
+      queryClient.invalidateQueries({ queryKey: ['menu-categories', venueId] })
+      setValue('categoryId', newCat.id, { shouldValidate: true })
+      setCreatingCategory(false)
+      setNewCategoryName('')
+      toast({ title: t('services.form.categoryCreated', { defaultValue: 'Categoria creada' }) })
+    },
+    onError: () => {
+      toast({ title: tCommon('error'), variant: 'destructive' })
+    },
+  })
+
+  const handleCreateCategory = useCallback(() => {
+    const trimmed = newCategoryName.trim()
+    if (!trimmed) return
+    createCategoryMutation.mutate(trimmed)
+  }, [newCategoryName, createCategoryMutation])
 
   // Image uploader
   const {
@@ -173,7 +198,8 @@ export function ServiceFormDialog({
       return productWizardApi.createProductWithInventory(venueId!, payload)
     },
     onSuccess: (response) => {
-      const productId = (response as any)?.data?.data?.id || (response as any)?.data?.id
+      const resData = (response as any)?.data?.data ?? (response as any)?.data
+      const productId = resData?.productId ?? resData?.id
       queryClient.invalidateQueries({ queryKey: ['products', venueId] })
       toast({
         title: t('services.toasts.created'),
@@ -317,7 +343,7 @@ export function ServiceFormDialog({
                   <Label htmlFor="name">{t('services.form.nameLabel')} *</Label>
                   <Input
                     id="name"
-                    placeholder={t('services.form.namePlaceholder')}
+                    placeholder={isClass ? t('services.form.nameClassPlaceholder') : t('services.form.namePlaceholder')}
                     {...register('name', {
                       required: t('forms.validation.nameRequired'),
                       minLength: { value: 2, message: t('forms.validation.nameMinLength') },
@@ -356,7 +382,7 @@ export function ServiceFormDialog({
                   <Label htmlFor="description">{t('services.form.descriptionLabel')}</Label>
                   <Textarea
                     id="description"
-                    placeholder={t('services.form.descriptionPlaceholder')}
+                    placeholder={isClass ? t('services.form.descriptionClassPlaceholder') : t('services.form.descriptionPlaceholder')}
                     rows={3}
                     {...register('description')}
                   />
@@ -537,6 +563,58 @@ export function ServiceFormDialog({
                       placeholder={t('products.create.categoryPlaceholder')}
                       searchPlaceholder={tCommon('search')}
                       emptyMessage={t('createMenu.fields.noCategoriesFound')}
+                      footer={
+                        creatingCategory ? (
+                          <div className="flex items-center gap-1.5 px-1">
+                            <Input
+                              ref={categoryInputRef}
+                              value={newCategoryName}
+                              onChange={e => setNewCategoryName(e.target.value)}
+                              placeholder={t('services.form.newCategoryPlaceholder', { defaultValue: 'Nombre de la categoría' })}
+                              className="h-8 text-sm"
+                              autoFocus
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  handleCreateCategory()
+                                }
+                                if (e.key === 'Escape') {
+                                  setCreatingCategory(false)
+                                  setNewCategoryName('')
+                                }
+                              }}
+                              disabled={createCategoryMutation.isPending}
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="h-8 px-3 shrink-0"
+                              onClick={handleCreateCategory}
+                              disabled={!newCategoryName.trim() || createCategoryMutation.isPending}
+                            >
+                              {createCategoryMutation.isPending ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                tCommon('create')
+                              )}
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="w-full justify-start gap-2 text-primary font-medium"
+                            onClick={() => {
+                              setCreatingCategory(true)
+                              setTimeout(() => categoryInputRef.current?.focus(), 50)
+                            }}
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            {t('services.form.createCategory', { defaultValue: 'Crear categoría' })}
+                          </Button>
+                        )
+                      }
                     />
                   )}
                 />
@@ -566,7 +644,7 @@ export function ServiceFormDialog({
                         }
                       />
                       <span className="text-sm text-muted-foreground">
-                        {field.value ? tCommon('active') : tCommon('inactive')}
+                        {field.value ? t('services.filters.active') : t('services.filters.inactive')}
                       </span>
                     </div>
                   )}
@@ -599,7 +677,7 @@ export function ServiceFormDialog({
                   )}
                   <div>
                     <p className="font-medium text-sm truncate">
-                      {watchedName || t('services.form.namePlaceholder')}
+                      {watchedName || (isClass ? t('services.form.nameClassPlaceholder') : t('services.form.namePlaceholder'))}
                     </p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                       {watchedPrice ? (

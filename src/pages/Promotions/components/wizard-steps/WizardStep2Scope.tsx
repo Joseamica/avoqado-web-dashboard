@@ -160,7 +160,7 @@ export function WizardStep2Scope({ form, productOptions, categoryOptions, custom
                   emptyIndicator={<p className="py-6 text-center text-sm text-muted-foreground">{tCommon('no_results')}</p>}
                   footer={
                     <Button variant="ghost" className="w-full justify-start" asChild>
-                      <Link to="/menu/products/create">
+                      <Link to="/menumaker/products">
                         <Plus className="mr-2 h-4 w-4" />
                         {tCommon('create')} {t('discounts.form.fields.product')}
                       </Link>
@@ -360,7 +360,7 @@ export function WizardStep2Scope({ form, productOptions, categoryOptions, custom
                       emptyIndicator={<p className="py-6 text-center text-sm text-muted-foreground">{tCommon('no_results')}</p>}
                       footer={
                         <Button variant="ghost" className="w-full justify-start" asChild>
-                          <Link to="/menu/products/create">
+                          <Link to="/menumaker/products">
                             <Plus className="mr-2 h-4 w-4" />
                             {tCommon('create')} {t('discounts.form.fields.product')}
                           </Link>
@@ -394,7 +394,7 @@ export function WizardStep2Scope({ form, productOptions, categoryOptions, custom
                       emptyIndicator={<p className="py-6 text-center text-sm text-muted-foreground">{tCommon('no_results')}</p>}
                       footer={
                         <Button variant="ghost" className="w-full justify-start" asChild>
-                          <Link to="/menu/products/create">
+                          <Link to="/menumaker/products">
                             <Plus className="mr-2 h-4 w-4" />
                             {tCommon('create')} {t('discounts.form.fields.product')}
                           </Link>

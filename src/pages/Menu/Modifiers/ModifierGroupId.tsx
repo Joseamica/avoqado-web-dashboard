@@ -703,7 +703,7 @@ export default function ModifierGroupId() {
                     onViewOption={option => {
                       if (option.value === '_new') {
                         // Handle "Add new product" click
-                        navigate(`${fullBasePath}/menumaker/products/create`)
+                        navigate(`${fullBasePath}/menumaker/products`)
                       } else {
                         // Handle view existing product click
                         navigate(`${fullBasePath}/menumaker/products/${option.value}`)

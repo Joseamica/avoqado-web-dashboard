@@ -2,9 +2,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { ArrowLeft, CalendarDays, User, MapPin, MessageSquare } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Loader2, Package, Plus, User, MapPin, MessageSquare } from 'lucide-react'
 import { DateTime } from 'luxon'
-import { useMemo, useState, type MutableRefObject } from 'react'
+import { useEffect, useMemo, useState, type MutableRefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
@@ -20,6 +20,9 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useVenueDateTime } from '@/utils/datetime'
 import reservationService from '@/services/reservation.service'
+import { getProducts } from '@/services/menu.service'
+import { teamService } from '@/services/team.service'
+import { ProductType } from '@/types'
 import type { AvailableSlot } from '@/types/reservation'
 
 const createSchema = z
@@ -29,6 +32,8 @@ const createSchema = z
     endTime: z.string().min(1, 'Required'),
     duration: z.coerce.number().min(15),
     partySize: z.coerce.number().min(1),
+    // Service
+    productId: z.string().optional(),
     // Guest
     guestMode: z.enum(['existing', 'new']),
     customerId: z.string().optional(),
@@ -88,6 +93,7 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
       endTime: '',
       duration: 60,
       partySize: 2,
+      productId: '',
       guestMode: 'new',
       guestName: '',
       guestPhone: '',
@@ -102,6 +108,48 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
   const watchDate = watch('date')
   const watchPartySize = watch('partySize')
   const watchDuration = watch('duration')
+  const watchProductId = watch('productId')
+
+  // Fetch APPOINTMENTS_SERVICE products for the service selector
+  const { data: allProducts = [], isLoading: productsLoading } = useQuery({
+    queryKey: ['products', venueId, 'all'],
+    queryFn: () => getProducts(venueId!),
+    enabled: !!venueId,
+    staleTime: 60_000,
+  })
+
+  // All bookable products — APPOINTMENTS_SERVICE, SERVICE, EVENT, and CLASS products
+  // that can be associated with a reservation (like Square's "Servicios y artículos")
+  const bookableProducts = useMemo(
+    () => allProducts.filter(p => p.active && [
+      ProductType.APPOINTMENTS_SERVICE,
+      ProductType.SERVICE,
+      ProductType.EVENT,
+    ].includes(p.type)),
+    [allProducts],
+  )
+
+  // Auto-fill duration when a service with duration is selected
+  const selectedProduct = useMemo(
+    () => bookableProducts.find(p => p.id === watchProductId),
+    [bookableProducts, watchProductId],
+  )
+
+  useEffect(() => {
+    if (selectedProduct?.duration) {
+      setValue('duration', selectedProduct.duration)
+    }
+  }, [selectedProduct, setValue])
+
+  // Fetch staff members (always available, not just from slot)
+  const { data: staffData } = useQuery({
+    queryKey: ['team', venueId, 'active'],
+    queryFn: () => teamService.getTeamMembers(venueId!, 1, 100),
+    enabled: !!venueId,
+    staleTime: 60_000,
+  })
+
+  const staffMembers = useMemo(() => staffData?.data ?? [], [staffData])
 
   // Fetch availability for selected date
   const { data: availabilityData } = useQuery({
@@ -156,6 +204,7 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
         duration: data.duration,
         partySize: data.partySize,
         channel: 'DASHBOARD',
+        productId: data.productId || undefined,
         customerId: data.guestMode === 'existing' && data.customerId ? data.customerId : undefined,
         guestName: data.guestMode === 'new' ? data.guestName : undefined,
         guestPhone: data.guestPhone || undefined,
@@ -204,8 +253,96 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
 
   return (
     <div className="space-y-6">
+      {/* Service / Product — like Square's "Servicios y artículos" (always visible) */}
+      <Card className="border-input">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            {t('form.sections.service', { defaultValue: 'Servicio' })}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {productsLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {tCommon('loading')}
+            </div>
+          ) : bookableProducts.length === 0 ? (
+            /* Prominent empty state with CTA */
+            <div className="rounded-lg border border-dashed border-input p-4 text-center space-y-2">
+              <p className="text-sm text-muted-foreground">
+                {t('form.noServicesAvailable', { defaultValue: 'No hay servicios creados. Puedes crear uno en MenuMaker.' })}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => navigate(`${fullBasePath}/menumaker/services`)}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                {t('form.createService', { defaultValue: 'Crear servicio' })}
+              </Button>
+            </div>
+          ) : (
+            <Select
+              value={watch('productId') || 'none'}
+              onValueChange={v => {
+                if (v === '__create__') {
+                  navigate(`${fullBasePath}/menumaker/services`)
+                  return
+                }
+                setValue('productId', v === 'none' ? '' : v)
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={t('form.selectService', { defaultValue: 'Seleccionar servicio' })} />
+              </SelectTrigger>
+              <SelectContent>
+                {/* "+ Añadir servicio" at top like Square */}
+                <SelectItem value="__create__" className="text-primary font-medium">
+                  <span className="flex items-center gap-2">
+                    <Plus className="h-3.5 w-3.5" />
+                    {t('form.addService', { defaultValue: 'Añadir servicio' })}
+                  </span>
+                </SelectItem>
+                <SelectSeparator />
+                <SelectGroup>
+                  <SelectLabel>{t('form.allServices', { defaultValue: 'Todos los servicios' })}</SelectLabel>
+                  <SelectItem value="none">{t('form.noService', { defaultValue: 'Sin servicio' })}</SelectItem>
+                  {bookableProducts.map(p => (
+                    <SelectItem key={p.id} value={p.id}>
+                      <span className="flex items-center gap-2">
+                        {p.name}
+                        {p.duration && (
+                          <span className="text-muted-foreground text-xs">
+                            {p.duration} min
+                          </span>
+                        )}
+                        {p.price > 0 && (
+                          <span className="text-muted-foreground text-xs">
+                            ${p.price.toFixed(2)}
+                          </span>
+                        )}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          )}
+          {selectedProduct && (
+            <p className="text-xs text-muted-foreground">
+              {selectedProduct.duration && t('form.fields.durationMin', { min: selectedProduct.duration })}
+              {selectedProduct.duration && selectedProduct.price > 0 && ' · '}
+              {selectedProduct.price > 0 && `$${selectedProduct.price.toFixed(2)}`}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Date & Time */}
-      <Card>
+      <Card className="border-input">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CalendarDays className="h-5 w-5" />
@@ -226,7 +363,7 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {[30, 45, 60, 90, 120, 150, 180].map(min => (
+                  {[15, 30, 45, 60, 90, 120, 150, 180].map(min => (
                     <SelectItem key={min} value={String(min)}>
                       {t('form.fields.durationMin', { min })}
                     </SelectItem>
@@ -296,7 +433,7 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
       </Card>
 
       {/* Guest Information */}
-      <Card>
+      <Card className="border-input">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
@@ -347,8 +484,8 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
         </CardContent>
       </Card>
 
-      {/* Assignment */}
-      <Card>
+      {/* Assignment — table + staff (always visible) */}
+      <Card className="border-input">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MapPin className="h-5 w-5" />
@@ -356,50 +493,52 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Table selection from available slot */}
-          <div className="space-y-2">
-            <Label>{t('form.fields.table')}</Label>
-            {selectedSlot && selectedSlot.availableTables.length > 0 ? (
-              <Select value={watch('tableId') || ''} onValueChange={v => setValue('tableId', v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t('form.selectTable')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectedSlot.availableTables.map(table => (
-                    <SelectItem key={table.id} value={table.id}>
-                      {t('form.tableCapacity', { number: table.number, capacity: table.capacity })}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <p className="text-sm text-muted-foreground">{t('form.noTablesAvailable')}</p>
-            )}
-          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Table selection from available slot */}
+            <div className="space-y-2">
+              <Label>{t('form.fields.table')}</Label>
+              {selectedSlot && selectedSlot.availableTables.length > 0 ? (
+                <Select value={watch('tableId') || 'none'} onValueChange={v => setValue('tableId', v === 'none' ? '' : v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('form.selectTable')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t('noTable')}</SelectItem>
+                    {selectedSlot.availableTables.map(table => (
+                      <SelectItem key={table.id} value={table.id}>
+                        {t('form.tableCapacity', { number: table.number, capacity: table.capacity })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-sm text-muted-foreground">{t('form.noTablesAvailable')}</p>
+              )}
+            </div>
 
-          {/* Staff from available slot */}
-          {selectedSlot && selectedSlot.availableStaff.length > 0 && (
+            {/* Staff — always visible, from team members */}
             <div className="space-y-2">
               <Label>{t('form.fields.staff')}</Label>
-              <Select value={watch('assignedStaffId') || ''} onValueChange={v => setValue('assignedStaffId', v)}>
+              <Select value={watch('assignedStaffId') || 'none'} onValueChange={v => setValue('assignedStaffId', v === 'none' ? '' : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder={t('form.selectStaff')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {selectedSlot.availableStaff.map(staff => (
-                    <SelectItem key={staff.id} value={staff.id}>
-                      {staff.firstName} {staff.lastName}
+                  <SelectItem value="none">{t('noStaff')}</SelectItem>
+                  {staffMembers.map(s => (
+                    <SelectItem key={s.staffId} value={s.staffId}>
+                      {s.firstName} {s.lastName}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
 
       {/* Additional */}
-      <Card>
+      <Card className="border-input">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />

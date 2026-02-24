@@ -51,11 +51,7 @@ export function OperatingHoursEditor({ value, onChange }: OperatingHoursEditorPr
 		(day: keyof OperatingHours) => {
 			const current = value[day]
 			if (current.ranges.length >= MAX_RANGES) return
-			const lastClose = current.ranges[current.ranges.length - 1]?.close || '14:00'
-			// Start new range 2 hours after last close, or at last close if that's simpler
-			const newOpen = lastClose
-			const newClose = '22:00'
-			updateDay(day, { ...current, ranges: [...current.ranges, { open: newOpen, close: newClose }] })
+			updateDay(day, { ...current, ranges: [...current.ranges, { open: '', close: '' }] })
 		},
 		[value, updateDay],
 	)
@@ -74,7 +70,7 @@ export function OperatingHoursEditor({ value, onChange }: OperatingHoursEditorPr
 			{DAY_KEYS.map(day => {
 				const schedule = value[day]
 				return (
-					<div key={day} className="flex items-start gap-4 rounded-lg border p-3">
+					<div key={day} className="flex items-start gap-4 rounded-lg border border-input p-3">
 						{/* Day toggle */}
 						<div className="flex items-center gap-3 min-w-[140px] pt-1">
 							<Switch checked={schedule.enabled} onCheckedChange={() => toggleDay(day)} />

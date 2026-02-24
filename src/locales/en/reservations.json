@@ -124,6 +124,7 @@
 			"emailInvalid": "Enter a valid email"
 		},
 		"sections": {
+			"service": "Service",
 			"dateTime": "Date & Time",
 			"guest": "Guest Information",
 			"assignment": "Assignment",
@@ -133,7 +134,13 @@
 			"existing": "Existing customer",
 			"new": "New guest"
 		},
+		"noServicesAvailable": "No services created. You can create one in MenuMaker.",
 		"noTablesAvailable": "No tables available for this time",
+		"selectService": "Select service",
+		"addService": "Add service",
+		"allServices": "All services",
+		"createService": "Create service",
+		"noService": "No service",
 		"selectTable": "Select table",
 		"selectStaff": "Select staff",
 		"tableCapacity": "Table {{number}} ({{capacity}} seats)"
@@ -178,14 +185,39 @@
 		"title": "Reservation Calendar",
 		"views": {
 			"day": "Day",
-			"week": "Week"
+			"week": "Week",
+			"5day": "5-day",
+			"month": "Month"
 		},
+		"interval": "Interval",
 		"groupBy": {
 			"label": "Group by",
+			"none": "None",
 			"table": "Table",
-			"staff": "Staff"
+			"staff": "Staff",
+			"unassigned": "Unassigned"
 		},
 		"noReservations": "No reservations for this period"
+	},
+	"availability": {
+		"title": "Edit availability",
+		"singleChange": "Single change",
+		"recurringSchedule": "Recurring schedule",
+		"resetWeek": "Reset week to default values",
+		"invalidTime": "Enter a valid time",
+		"done": "Done"
+	},
+	"calendarAttributes": {
+		"title": "Appointment attributes",
+		"subtitle": "What attributes would you like to see on the calendar?",
+		"confirmed": "Confirmed",
+		"pending": "Unconfirmed",
+		"newCustomer": "New customer",
+		"showCancelled": "Show cancelled appointments",
+		"colorByService": "View calendar by service",
+		"colorByServiceHelp": "Assign colors to each service on the calendar.",
+		"save": "Save",
+		"comingSoon": "Coming soon"
 	},
 	"classSession": {
 		"createTitle": "Schedule class",
@@ -198,9 +230,25 @@
 			"capacity": "Available spots",
 			"recurrence": "Repeats"
 		},
+		"createClass": "Create class",
+		"addClass": "Add new class",
+		"allClasses": "All classes",
+		"free": "Free",
 		"spotsLeft": "{{count}} spot left",
 		"spotsLeft_other": "{{count}} spots left",
-		"full": "Full"
+		"full": "Full",
+		"inlineCreate": {
+			"title": "New class",
+			"name": "Name",
+			"namePlaceholder": "E.g. Yoga, Spinning, Zumba",
+			"description": "Description",
+			"descriptionPlaceholder": "Short class description",
+			"price": "Price",
+			"duration": "Duration (min)",
+			"maxParticipants": "Max capacity",
+			"save": "Create class",
+			"success": "Class created successfully"
+		}
 	},
 	"waitlist": {
 		"title": "Waitlist",

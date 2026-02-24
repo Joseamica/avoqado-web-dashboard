@@ -242,7 +242,7 @@ export default function ReservationSettings() {
 			<form className="space-y-6">
 				{/* Operating Hours */}
 				{operatingHours && (
-					<Card>
+					<Card className="border-input">
 						<CardHeader>
 							<CardTitle className="flex items-center gap-2">
 								<Clock className="h-5 w-5" />
@@ -257,7 +257,7 @@ export default function ReservationSettings() {
 				)}
 
 				{/* Scheduling */}
-				<Card>
+				<Card className="border-input">
 					<CardHeader>
 						<CardTitle className="flex items-center gap-2">
 							<CalendarDays className="h-5 w-5" />
@@ -290,7 +290,7 @@ export default function ReservationSettings() {
 							<Input type="number" {...register('noShowGraceMin')} />
 							<p className="text-xs text-muted-foreground">{t('settings.scheduling.noShowGraceHelp')}</p>
 						</div>
-						<div className="flex items-center justify-between rounded-lg border p-4">
+						<div className="flex items-center justify-between rounded-lg border border-input p-4">
 							<div>
 								<Label>{t('settings.scheduling.autoConfirm')}</Label>
 								<p className="text-xs text-muted-foreground">{t('settings.scheduling.autoConfirmHelp')}</p>
@@ -304,7 +304,7 @@ export default function ReservationSettings() {
 				</Card>
 
 				{/* Pacing */}
-				<Card>
+				<Card className="border-input">
 					<CardHeader>
 						<CardTitle className="flex items-center gap-2">
 							<Clock className="h-5 w-5" />
@@ -329,7 +329,7 @@ export default function ReservationSettings() {
 				</Card>
 
 				{/* Deposits */}
-				<Card>
+				<Card className="border-input">
 					<CardHeader>
 						<CardTitle className="flex items-center gap-2">
 							<CreditCard className="h-5 w-5" />
@@ -380,7 +380,7 @@ export default function ReservationSettings() {
 				</Card>
 
 				{/* Public Booking */}
-				<Card>
+				<Card className="border-input">
 					<CardHeader>
 						<CardTitle className="flex items-center gap-2">
 							<Globe className="h-5 w-5" />
@@ -388,7 +388,7 @@ export default function ReservationSettings() {
 						</CardTitle>
 					</CardHeader>
 					<CardContent className="space-y-4">
-						<div className="flex items-center justify-between rounded-lg border p-4">
+						<div className="flex items-center justify-between rounded-lg border border-input p-4">
 							<div>
 								<Label>{t('settings.publicBooking.enabled')}</Label>
 								<p className="text-xs text-muted-foreground">{t('settings.publicBooking.enabledHelp')}</p>
@@ -398,14 +398,14 @@ export default function ReservationSettings() {
 								onCheckedChange={v => setValue('publicBookingEnabled', v, { shouldDirty: true })}
 							/>
 						</div>
-						<div className="flex items-center justify-between rounded-lg border p-4">
+						<div className="flex items-center justify-between rounded-lg border border-input p-4">
 							<Label>{t('settings.publicBooking.requirePhone')}</Label>
 							<Switch
 								checked={watch('requirePhone')}
 								onCheckedChange={v => setValue('requirePhone', v, { shouldDirty: true })}
 							/>
 						</div>
-						<div className="flex items-center justify-between rounded-lg border p-4">
+						<div className="flex items-center justify-between rounded-lg border border-input p-4">
 							<Label>{t('settings.publicBooking.requireEmail')}</Label>
 							<Switch
 								checked={watch('requireEmail')}
@@ -416,7 +416,7 @@ export default function ReservationSettings() {
 				</Card>
 
 				{/* Cancellation */}
-				<Card>
+				<Card className="border-input">
 					<CardHeader>
 						<CardTitle className="flex items-center gap-2">
 							<Shield className="h-5 w-5" />
@@ -424,7 +424,7 @@ export default function ReservationSettings() {
 						</CardTitle>
 					</CardHeader>
 					<CardContent className="space-y-4">
-						<div className="flex items-center justify-between rounded-lg border p-4">
+						<div className="flex items-center justify-between rounded-lg border border-input p-4">
 							<Label>{t('settings.cancellation.allowCustomerCancel')}</Label>
 							<Switch
 								checked={watch('allowCustomerCancel')}
@@ -446,7 +446,7 @@ export default function ReservationSettings() {
 								<p className="text-xs text-muted-foreground">{t('settings.cancellation.noShowFeeHelp')}</p>
 							</div>
 						</div>
-						<div className="flex items-center justify-between rounded-lg border p-4">
+						<div className="flex items-center justify-between rounded-lg border border-input p-4">
 							<Label>{t('settings.cancellation.forfeitDeposit')}</Label>
 							<Switch
 								checked={watch('forfeitDeposit')}
@@ -457,7 +457,7 @@ export default function ReservationSettings() {
 				</Card>
 
 				{/* Waitlist */}
-				<Card>
+				<Card className="border-input">
 					<CardHeader>
 						<CardTitle className="flex items-center gap-2">
 							<Users className="h-5 w-5" />
@@ -465,7 +465,7 @@ export default function ReservationSettings() {
 						</CardTitle>
 					</CardHeader>
 					<CardContent className="space-y-4">
-						<div className="flex items-center justify-between rounded-lg border p-4">
+						<div className="flex items-center justify-between rounded-lg border border-input p-4">
 							<Label>{t('settings.waitlist.enabled')}</Label>
 							<Switch
 								checked={waitlistEnabled}
@@ -508,7 +508,7 @@ export default function ReservationSettings() {
 				</Card>
 
 				{/* Reminders */}
-				<Card>
+				<Card className="border-input">
 					<CardHeader>
 						<CardTitle className="flex items-center gap-2">
 							<Bell className="h-5 w-5" />
@@ -516,7 +516,7 @@ export default function ReservationSettings() {
 						</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<div className="flex items-center justify-between rounded-lg border p-4">
+						<div className="flex items-center justify-between rounded-lg border border-input p-4">
 							<Label>{t('settings.reminders.enabled')}</Label>
 							<Switch
 								checked={watch('remindersEnabled')}

@@ -31,7 +31,39 @@ const { t } = useTranslation()
 
 Common replacements: `bg-white` → `bg-background`, `bg-gray-50` → `bg-muted`, `text-gray-600` → `text-muted-foreground`, `border-gray-200` → `border-border`
 
+**Borders on Cards/panels**: Use `border-input` (not `border-border`) for Card borders and toggle/switch row borders. This matches the input field border color and looks subtle in dark mode. `border-border` is too faint (10% white), `border-input` (15% white) provides the right contrast.
+
+```typescript
+// WRONG — too prominent in dark mode
+<Card>
+<div className="rounded-lg border p-4">
+
+// CORRECT — matches input borders, subtle in dark mode
+<Card className="border-input">
+<div className="rounded-lg border border-input p-4">
+```
+
 See: `docs/features/theme.md`
+
+## Unimplemented Features: Always Badge Them
+
+Never leave TODO/mock/placeholder features silently enabled in the UI. Users must know what works and what doesn't.
+
+- **Not implemented yet**: Show a `Muy pronto` / `Coming soon` badge + disable the control (switch, button, etc.)
+- **Mock/fake data**: Show a `Mock` badge so developers know the data is not real
+- **Partially implemented**: Show a `Beta` badge if the feature works but is incomplete
+
+```typescript
+// WRONG — user thinks it works, clicks it, nothing happens
+<Switch checked={attrs.colorByService} onCheckedChange={() => toggle('colorByService')} />
+
+// CORRECT — clearly disabled with explanation
+<div className="flex items-center gap-2">
+  <span>Ver calendario por servicio</span>
+  <Badge variant="outline" className="text-[10px] h-4 px-1.5">Muy pronto</Badge>
+</div>
+<Switch disabled checked={false} />
+```
 
 ## Permissions: Backend is Source of Truth
 

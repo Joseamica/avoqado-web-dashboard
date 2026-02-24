@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
-import { Loader2, Users } from 'lucide-react'
-import { useEffect, useMemo } from 'react'
+import { Loader2, Plus, Users } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -25,6 +25,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 import { getProducts } from '@/services/menu.service'
 import { teamService } from '@/services/team.service'
 import classSessionService from '@/services/classSession.service'
+import { ServiceFormDialog } from '@/pages/Menu/Services/ServiceFormDialog'
 import { ProductType } from '@/types'
 
 const formSchema = z
@@ -69,6 +70,8 @@ export function CreateClassSessionDialog({
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
+  const [createClassOpen, setCreateClassOpen] = useState(false)
+
   const {
     register,
     handleSubmit,
@@ -91,9 +94,24 @@ export function CreateClassSessionDialog({
 
   const selectedProductId = watch('productId')
 
-  // Reset form on open
+  // When an inline class is created, auto-select it and refresh products list
+  const handleClassCreated = useCallback(
+    (productId: string) => {
+      if (productId) {
+        setValue('productId', productId, { shouldValidate: true })
+      }
+      // Force refetch products so the new class appears in the dropdown
+      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+    },
+    [setValue, queryClient, venueId],
+  )
+
+  // Reset form only when dialog transitions from closed → open
+  // (not on every render — formatDateISO creates a new ref each render which
+  // would otherwise cause a continuous reset loop, reverting user input)
+  const wasOpenRef = useRef(false)
   useEffect(() => {
-    if (open) {
+    if (open && !wasOpenRef.current) {
       reset({
         productId: '',
         date: defaultDate ?? formatDateISO(new Date()),
@@ -104,6 +122,7 @@ export function CreateClassSessionDialog({
         internalNotes: '',
       })
     }
+    wasOpenRef.current = open
   }, [open, defaultDate, defaultStartTime, reset, formatDateISO])
 
   // Fetch CLASS products
@@ -193,7 +212,7 @@ export function CreateClassSessionDialog({
         </DialogHeader>
 
         <form onSubmit={onSubmit} className="space-y-5">
-          {/* Class (product) */}
+          {/* Class (product) — like Square's dropdown with "+ Añadir nueva clase" */}
           <div className="space-y-1.5">
             <Label htmlFor="productId">
               {t('classSession.fields.className', { defaultValue: 'Nombre de la clase' })}
@@ -203,16 +222,35 @@ export function CreateClassSessionDialog({
                 <Loader2 className="h-4 w-4 animate-spin" />
                 {tCommon('loading')}
               </div>
-            ) : classProducts.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-2">
-                {t('classSession.noClassProducts', {
-                  defaultValue: 'No hay clases creadas. Crea un producto tipo "Clase" primero.',
-                })}
-              </p>
+            ) : classProducts.length === 0 && !selectedProductId ? (
+              /* Prominent empty state with CTA — hidden if a class was just created (pending refetch) */
+              <div className="rounded-lg border border-dashed border-input p-4 text-center space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  {t('classSession.noClassProducts', {
+                    defaultValue: 'No hay clases creadas. Crea un producto tipo "Clase" primero.',
+                  })}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => setCreateClassOpen(true)}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  {t('classSession.createClass', { defaultValue: 'Crear clase' })}
+                </Button>
+              </div>
             ) : (
               <Select
                 value={watch('productId')}
-                onValueChange={v => setValue('productId', v, { shouldValidate: true })}
+                onValueChange={v => {
+                  if (v === '__create__') {
+                    setCreateClassOpen(true)
+                    return
+                  }
+                  setValue('productId', v, { shouldValidate: true })
+                }}
               >
                 <SelectTrigger id="productId" className={errors.productId ? 'border-destructive' : ''}>
                   <SelectValue
@@ -220,11 +258,36 @@ export function CreateClassSessionDialog({
                   />
                 </SelectTrigger>
                 <SelectContent disablePortal>
-                  {classProducts.map(p => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
+                  {/* "+ Añadir nueva clase" at top like Square */}
+                  <SelectItem value="__create__" className="gap-2 text-primary font-medium">
+                    <span className="flex items-center gap-2">
+                      <Plus className="h-3.5 w-3.5" />
+                      {t('classSession.addClass', { defaultValue: 'Añadir nueva clase' })}
+                    </span>
+                  </SelectItem>
+                  <SelectSeparator />
+                  <SelectGroup>
+                    <SelectLabel>{t('classSession.allClasses', { defaultValue: 'Todas las clases' })}</SelectLabel>
+                    {classProducts.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        <span className="flex items-center justify-between gap-3 w-full">
+                          <span>
+                            {p.name}
+                            {p.duration && (
+                              <span className="text-muted-foreground text-xs ml-1.5">
+                                {p.duration} min
+                              </span>
+                            )}
+                          </span>
+                          {Number(p.price) > 0 ? (
+                            <span className="text-muted-foreground text-xs">${Number(p.price).toFixed(2)}</span>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">{t('classSession.free', { defaultValue: 'Gratis' })}</span>
+                          )}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             )}
@@ -337,13 +400,22 @@ export function CreateClassSessionDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
               {tCommon('cancel')}
             </Button>
-            <Button type="submit" disabled={isPending || classProducts.length === 0}>
+            <Button type="submit" disabled={isPending || !watch('productId')}>
               {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {t('classSession.schedule', { defaultValue: 'Agendar' })}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
+
+      {/* Full-screen ServiceFormDialog for creating a CLASS product inline */}
+      <ServiceFormDialog
+        open={createClassOpen}
+        onOpenChange={setCreateClassOpen}
+        mode="create"
+        serviceType="CLASS"
+        onSuccess={handleClassCreated}
+      />
     </Dialog>
   )
 }

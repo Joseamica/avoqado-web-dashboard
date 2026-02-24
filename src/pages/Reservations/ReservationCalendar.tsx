@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { CalendarDays, ChevronLeft, ChevronRight, Plus, Users } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, Columns3, Plus, Settings, Users } from 'lucide-react'
 import { DateTime } from 'luxon'
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -7,9 +7,10 @@ import { useNavigate } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+// Select and Tabs removed — view toggle now uses dropdown
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -19,9 +20,11 @@ import type { Reservation, ReservationSettings, ReservationStatus } from '@/type
 
 import { CreateReservationForm } from './CreateReservation'
 import { CreateClassSessionDialog } from './components/CreateClassSessionDialog'
+import { EditAvailabilityDialog } from './components/EditAvailabilityDialog'
+import { CalendarAttributesDialog, loadAttributes, type CalendarAttributes } from './components/CalendarAttributesDialog'
 
-type CalendarView = 'day' | 'week'
-type GroupBy = 'table' | 'staff'
+type CalendarView = 'day' | 'week' | '5day' | 'month'
+type GroupByMode = 'none' | 'staff' | 'table'
 
 // Status colors for calendar blocks
 const statusColorMap: Record<ReservationStatus, string> = {
@@ -62,6 +65,19 @@ function getWeekDays(baseDate: Date): Date[] {
   return Array.from({ length: 7 }, (_, i) => addDays(monday, i))
 }
 
+function get5Days(baseDate: Date): Date[] {
+  const dayOfWeek = baseDate.getDay()
+  const monday = addDays(baseDate, -((dayOfWeek + 6) % 7))
+  return Array.from({ length: 5 }, (_, i) => addDays(monday, i))
+}
+
+function getMonthDays(baseDate: Date): Date[] {
+  const year = baseDate.getFullYear()
+  const month = baseDate.getMonth()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  return Array.from({ length: daysInMonth }, (_, i) => new Date(year, month, i + 1))
+}
+
 // Padding at top of grid so first hour label isn't clipped
 const GRID_TOP_PAD = 12
 
@@ -81,7 +97,7 @@ export default function ReservationCalendar() {
   const firstHour = HOURS[0]
 
   const [view, setView] = useState<CalendarView>('day')
-  const [groupBy, setGroupBy] = useState<GroupBy>('table')
+  const [groupBy, setGroupBy] = useState<GroupByMode>('none')
   const [currentDate, setCurrentDate] = useState(new Date())
 
   // Click-to-create reservation modal state
@@ -98,6 +114,13 @@ export default function ReservationCalendar() {
     startTime: '',
   })
 
+  // Edit availability dialog state
+  const [availabilityOpen, setAvailabilityOpen] = useState(false)
+
+  // Calendar attributes dialog state
+  const [attributesOpen, setAttributesOpen] = useState(false)
+  const [calendarAttrs, setCalendarAttrs] = useState<CalendarAttributes>(loadAttributes)
+
   // Grid click context menu state (choose event type before opening form)
   const [gridClickMenu, setGridClickMenu] = useState<{
     open: boolean
@@ -107,6 +130,9 @@ export default function ReservationCalendar() {
     startTime: string
   }>({ open: false, x: 0, y: 0, date: '', startTime: '' })
   const gridClickMenuRef = useRef<HTMLDivElement>(null)
+
+  // Hover highlight state — tracks which 15-min slot the cursor is over
+  const [hoverSlot, setHoverSlot] = useState<{ top: number; time: string; dayKey: string } | null>(null)
 
   // Close grid click menu on outside click
   useEffect(() => {
@@ -128,6 +154,14 @@ export default function ReservationCalendar() {
       const iso = formatVenueDateISO(currentDate)
       return { dateFrom: iso, dateTo: iso, displayDays: [currentDate] }
     }
+    if (view === '5day') {
+      const days = get5Days(currentDate)
+      return { dateFrom: formatVenueDateISO(days[0]), dateTo: formatVenueDateISO(days[4]), displayDays: days }
+    }
+    if (view === 'month') {
+      const days = getMonthDays(currentDate)
+      return { dateFrom: formatVenueDateISO(days[0]), dateTo: formatVenueDateISO(days[days.length - 1]), displayDays: days }
+    }
     const days = getWeekDays(currentDate)
     return {
       dateFrom: formatVenueDateISO(days[0]),
@@ -136,14 +170,15 @@ export default function ReservationCalendar() {
     }
   }, [view, currentDate, formatVenueDateISO])
 
-  // Fetch calendar data (reservations)
+  // Fetch calendar data (reservations) — pass groupBy when active for day view
+  const activeGroupBy = view === 'day' && groupBy !== 'none' ? groupBy : undefined
   const { data: calendarData, isLoading } = useQuery({
-    queryKey: ['reservation-calendar', venueId, dateFrom, dateTo, groupBy],
-    queryFn: () => reservationService.getCalendar(venueId, dateFrom, dateTo, groupBy),
+    queryKey: ['reservation-calendar', venueId, dateFrom, dateTo, activeGroupBy],
+    queryFn: () => reservationService.getCalendar(venueId, dateFrom, dateTo, activeGroupBy),
     enabled: !!dateFrom && !!dateTo,
   })
 
-  const reservations = calendarData?.reservations || []
+  const reservations = useMemo(() => calendarData?.reservations ?? [], [calendarData])
 
   // Fetch class sessions for the same date range
   const { data: classSessions = [] } = useQuery({
@@ -166,9 +201,13 @@ export default function ReservationCalendar() {
   }, [isLoading, dateFrom, firstHour, venueTimezone])
 
   // Navigate date
-  const goToday = () => setCurrentDate(new Date())
-  const goPrev = () => setCurrentDate(prev => addDays(prev, view === 'day' ? -1 : -7))
-  const goNext = () => setCurrentDate(prev => addDays(prev, view === 'day' ? 1 : 7))
+  const navStep = view === 'day' ? 1 : view === '5day' ? 5 : view === 'month' ? 30 : 7
+  const goPrev = () => setCurrentDate(prev => view === 'month'
+    ? new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
+    : addDays(prev, -navStep))
+  const goNext = () => setCurrentDate(prev => view === 'month'
+    ? new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
+    : addDays(prev, navStep))
 
   // Format current date display
   const dateDisplay = useMemo(() => {
@@ -180,24 +219,31 @@ export default function ReservationCalendar() {
         day: 'numeric',
       })
     }
-    const days = getWeekDays(currentDate)
+    if (view === 'month') {
+      return currentDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+    }
+    const days = view === '5day' ? get5Days(currentDate) : getWeekDays(currentDate)
     const from = days[0].toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-    const to = days[6].toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    const to = days[days.length - 1].toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
     return `${from} – ${to}`
   }, [view, currentDate])
 
   // Group reservations by day for rendering
   // Exclude reservations tied to a ClassSession — those are already shown inside the class block
+  // Respect calendar attribute filters (show/hide confirmed, pending, cancelled)
   const reservationsByDay = useMemo(() => {
     const map: Record<string, Reservation[]> = {}
     for (const r of reservations) {
       if (r.classSessionId) continue
+      if (r.status === 'CANCELLED' && !calendarAttrs.showCancelled) continue
+      if (r.status === 'PENDING' && !calendarAttrs.showPending) continue
+      if ((r.status === 'CONFIRMED' || r.status === 'CHECKED_IN' || r.status === 'COMPLETED') && !calendarAttrs.showConfirmed) continue
       const dayKey = formatVenueDateISO(r.startsAt)
       if (!map[dayKey]) map[dayKey] = []
       map[dayKey].push(r)
     }
     return map
-  }, [reservations, formatVenueDateISO])
+  }, [reservations, formatVenueDateISO, calendarAttrs.showCancelled, calendarAttrs.showPending, calendarAttrs.showConfirmed])
 
   // Group class sessions by day for rendering
   const classSessionsByDay = useMemo(() => {
@@ -209,6 +255,44 @@ export default function ReservationCalendar() {
     }
     return map
   }, [classSessions, formatVenueDateISO])
+
+  // Compute grouped columns for day view when groupBy is active
+  const groupedColumns = useMemo(() => {
+    if (!activeGroupBy || !calendarData?.grouped) return null
+    const entries = Object.entries(calendarData.grouped)
+
+    // Apply calendar attribute filters to each group
+    const filtered = entries.map(([key, rsvps]) => {
+      const filteredRsvps = rsvps.filter(r => {
+        if (r.classSessionId) return false
+        if (r.status === 'CANCELLED' && !calendarAttrs.showCancelled) return false
+        if (r.status === 'PENDING' && !calendarAttrs.showPending) return false
+        if ((r.status === 'CONFIRMED' || r.status === 'CHECKED_IN' || r.status === 'COMPLETED') && !calendarAttrs.showConfirmed) return false
+        return true
+      })
+
+      // Derive column header from reservation data
+      let headerLabel: string
+      if (key === 'unassigned' || key === 'null') {
+        headerLabel = t('calendar.groupBy.unassigned')
+      } else if (activeGroupBy === 'staff') {
+        const staff = rsvps[0]?.assignedStaff
+        headerLabel = staff ? `${staff.firstName} ${staff.lastName}` : key
+      } else {
+        const table = rsvps[0]?.table
+        headerLabel = table ? `${t('columns.table')} ${table.number}` : key
+      }
+
+      return { key, headerLabel, reservations: filteredRsvps }
+    })
+
+    // Sort: named columns first, unassigned last
+    return filtered.sort((a, b) => {
+      if (a.key === 'unassigned' || a.key === 'null') return 1
+      if (b.key === 'unassigned' || b.key === 'null') return -1
+      return a.headerLabel.localeCompare(b.headerLabel)
+    })
+  }, [activeGroupBy, calendarData?.grouped, calendarAttrs.showCancelled, calendarAttrs.showPending, calendarAttrs.showConfirmed, t])
 
   // Render a single class session block (purple/violet tones to distinguish from reservations)
   const renderClassSessionBlock = (session: (typeof classSessions)[0]) => {
@@ -307,6 +391,33 @@ export default function ReservationCalendar() {
     return (hour - firstHour) * 64 + GRID_TOP_PAD
   }, [firstHour, lastHour, venueTimezone])
 
+  const handleGridMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>, day: Date) => {
+    if ((e.target as HTMLElement).closest('[data-reservation]')) {
+      setHoverSlot(null)
+      return
+    }
+    const rect = e.currentTarget.getBoundingClientRect()
+    const y = e.clientY - rect.top
+    const hourFloat = (y - GRID_TOP_PAD) / 64 + firstHour
+
+    const hour = Math.floor(hourFloat)
+    const rawMinutes = Math.round(((hourFloat - hour) * 60) / 15) * 15
+    const snappedMinutes = rawMinutes >= 60 ? 0 : rawMinutes
+    const snappedHour = rawMinutes >= 60 ? hour + 1 : hour
+
+    if (snappedHour < firstHour || snappedHour > lastHour) {
+      setHoverSlot(null)
+      return
+    }
+
+    const top = (snappedHour - firstHour) * 64 + (snappedMinutes / 60) * 64 + GRID_TOP_PAD
+    const time = `${String(snappedHour).padStart(2, '0')}:${String(snappedMinutes).padStart(2, '0')}`
+    const dayKey = formatVenueDateISO(day)
+    setHoverSlot(prev => (prev?.time === time && prev?.dayKey === dayKey ? prev : { top, time, dayKey }))
+  }, [firstHour, lastHour, formatVenueDateISO])
+
+  const handleGridMouseLeave = useCallback(() => setHoverSlot(null), [])
+
   // Handle click on empty grid area — show event type picker
   const handleGridClick = useCallback((e: React.MouseEvent<HTMLDivElement>, day: Date) => {
     // Don't trigger if user clicked on an existing reservation block
@@ -351,8 +462,8 @@ export default function ReservationCalendar() {
 
     return (
       <div key={dayKey} className={`relative border-l border-border/30 ${isWide ? 'flex-1' : 'flex-1 min-w-[120px]'}`}>
-        {/* Day header (only in week view) */}
-        {view === 'week' && (
+        {/* Day header (multi-day views) */}
+        {view !== 'day' && view !== 'month' && (
           <div
             className={`sticky top-0 z-10 border-b border-border px-2 py-1 text-center ${dayIsToday ? 'bg-primary/5' : 'bg-background'}`}
           >
@@ -370,7 +481,19 @@ export default function ReservationCalendar() {
           className={`relative cursor-pointer ${dayIsToday && view === 'day' ? 'bg-primary/2' : ''}`}
           style={{ height: `${HOURS.length * 64 + GRID_TOP_PAD + 8}px` }}
           onClick={e => handleGridClick(e, day)}
+          onMouseMove={e => handleGridMouseMove(e, day)}
+          onMouseLeave={handleGridMouseLeave}
         >
+          {/* Hover highlight — 15min slot preview */}
+          {hoverSlot && hoverSlot.dayKey === dayKey && (
+            <div
+              className="absolute left-1 right-1 rounded-md bg-primary/10 border border-primary/25 pointer-events-none z-10 flex items-center px-2"
+              style={{ top: `${hoverSlot.top}px`, height: '16px' }}
+            >
+              <span className="text-[10px] font-medium text-primary/70">{hoverSlot.time}</span>
+            </div>
+          )}
+
           {/* Hour lines */}
           {HOURS.map(hour => (
             <div
@@ -409,6 +532,74 @@ export default function ReservationCalendar() {
     )
   }
 
+  // Render a grouped column (staff/table) for day view
+  const renderGroupedColumn = (col: { key: string; headerLabel: string; reservations: Reservation[] }, day: Date) => {
+    const dayKey = formatVenueDateISO(day)
+    const dayIsToday = isToday(day)
+
+    return (
+      <div key={col.key} className="relative border-l border-border/30 flex-1 min-w-[160px]">
+        {/* Column header — staff name or table number */}
+        <div
+          className={`sticky top-0 z-10 border-b border-border px-2 py-1.5 text-center ${dayIsToday ? 'bg-primary/5' : 'bg-background'}`}
+        >
+          <div className="text-sm font-medium truncate">{col.headerLabel}</div>
+          <div className="text-xs text-muted-foreground">{col.reservations.length} {col.reservations.length === 1 ? t('people', { count: 1 }).split(' ').pop() : ''}</div>
+        </div>
+
+        {/* Time grid */}
+        <div
+          className={`relative cursor-pointer ${dayIsToday ? 'bg-primary/2' : ''}`}
+          style={{ height: `${HOURS.length * 64 + GRID_TOP_PAD + 8}px` }}
+          onClick={e => handleGridClick(e, day)}
+          onMouseMove={e => handleGridMouseMove(e, day)}
+          onMouseLeave={handleGridMouseLeave}
+        >
+          {/* Hover highlight */}
+          {hoverSlot && hoverSlot.dayKey === dayKey && (
+            <div
+              className="absolute left-1 right-1 rounded-md bg-primary/10 border border-primary/25 pointer-events-none z-10 flex items-center px-2"
+              style={{ top: `${hoverSlot.top}px`, height: '16px' }}
+            >
+              <span className="text-[10px] font-medium text-primary/70">{hoverSlot.time}</span>
+            </div>
+          )}
+
+          {/* Hour lines */}
+          {HOURS.map(hour => (
+            <div
+              key={hour}
+              className="absolute left-0 right-0 border-t border-border/30"
+              style={{ top: `${(hour - firstHour) * 64 + GRID_TOP_PAD}px` }}
+            />
+          ))}
+
+          {/* Half-hour lines */}
+          {HOURS.map(hour => (
+            <div
+              key={`${hour}-half`}
+              className="absolute left-0 right-0 border-t border-border/15"
+              style={{ top: `${(hour - firstHour) * 64 + 32 + GRID_TOP_PAD}px` }}
+            />
+          ))}
+
+          {/* Now indicator */}
+          {dayIsToday && nowPosition !== null && (
+            <div className="absolute left-0 right-0 z-20 pointer-events-none" style={{ top: `${nowPosition}px` }}>
+              <div className="flex items-center">
+                <div className="w-2 h-2 rounded-full bg-red-500 -ml-1" />
+                <div className="flex-1 border-t-2 border-red-500" />
+              </div>
+            </div>
+          )}
+
+          {/* Reservation blocks for this group */}
+          {col.reservations.map(renderReservationBlock)}
+        </div>
+      </div>
+    )
+  }
+
   const closeCreateModal = () => setCreateModal({ open: false, date: '', startTime: '' })
   const closeClassModal = () => setClassModal({ open: false, date: '', startTime: '' })
 
@@ -417,20 +608,138 @@ export default function ReservationCalendar() {
       {/* Controls */}
       <div className="flex items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-2">
-          {/* Date navigation */}
-          <Button variant="outline" size="sm" onClick={goToday}>
-            {t('tabs.today')}
-          </Button>
+          {/* Date navigation with popover picker */}
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goPrev}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-1.5 font-medium">
+                <CalendarDays className="h-3.5 w-3.5" />
+                {dateDisplay}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 flex" align="start">
+              {/* Presets */}
+              <div className="border-r border-border p-2 space-y-0.5 min-w-[140px]">
+                <button
+                  className="w-full text-left px-3 py-1.5 text-sm rounded-md hover:bg-accent cursor-pointer"
+                  onClick={() => { setCurrentDate(new Date()) }}
+                >
+                  {t('tabs.today', { defaultValue: 'Hoy' })}
+                </button>
+                {[1, 2, 3, 4, 5, 6].map(n => (
+                  <button
+                    key={n}
+                    className="w-full text-left px-3 py-1.5 text-sm rounded-md hover:bg-accent cursor-pointer text-muted-foreground"
+                    onClick={() => { setCurrentDate(addDays(new Date(), n * 7)) }}
+                  >
+                    {t('calendar.inWeeks', { count: n, defaultValue: `En ${n} semana${n > 1 ? 's' : ''}` })}
+                  </button>
+                ))}
+              </div>
+              {/* Calendar */}
+              <div className="p-2">
+                <Calendar
+                  mode="single"
+                  selected={currentDate}
+                  onSelect={date => { if (date) setCurrentDate(date) }}
+                  weekStartsOn={1}
+                />
+              </div>
+            </PopoverContent>
+          </Popover>
+
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goNext}>
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <span className="text-sm font-medium">{dateDisplay}</span>
+
+          {/* View interval — dropdown like Square, next to date picker */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs font-medium">
+                {t('calendar.interval', { defaultValue: 'Intervalo' })}{' '}
+                <span className="font-bold">
+                  {view === 'day' ? t('calendar.views.day')
+                    : view === '5day' ? t('calendar.views.5day', { defaultValue: '5-días' })
+                    : view === 'month' ? t('calendar.views.month', { defaultValue: 'Mes' })
+                    : t('calendar.views.week')}
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-36">
+              {(['day', 'week', '5day', 'month'] as CalendarView[]).map(v => (
+                <DropdownMenuItem
+                  key={v}
+                  className={`cursor-pointer ${view === v ? 'font-bold bg-accent' : ''}`}
+                  onClick={() => setView(v)}
+                >
+                  {v === 'day' ? t('calendar.views.day')
+                    : v === '5day' ? t('calendar.views.5day', { defaultValue: '5-días' })
+                    : v === 'month' ? t('calendar.views.month', { defaultValue: 'Mes' })
+                    : t('calendar.views.week')}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* GroupBy dropdown — only visible in day view */}
+          {view === 'day' && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs font-medium">
+                  <Columns3 className="h-3.5 w-3.5" />
+                  {groupBy === 'none'
+                    ? t('calendar.groupBy.label')
+                    : `${t('calendar.groupBy.label')}: `}
+                  {groupBy !== 'none' && (
+                    <span className="font-bold">
+                      {groupBy === 'staff' ? t('calendar.groupBy.staff') : t('calendar.groupBy.table')}
+                    </span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-40">
+                {(['none', 'staff', 'table'] as GroupByMode[]).map(mode => (
+                  <DropdownMenuItem
+                    key={mode}
+                    className={`cursor-pointer ${groupBy === mode ? 'font-bold bg-accent' : ''}`}
+                    onClick={() => setGroupBy(mode)}
+                  >
+                    {mode === 'none' ? t('calendar.groupBy.none')
+                      : mode === 'staff' ? t('calendar.groupBy.staff')
+                      : t('calendar.groupBy.table')}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Calendar attributes — gear icon like Square */}
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setAttributesOpen(true)}
+            title={t('calendarAttributes.title', { defaultValue: 'Atributos de la cita' })}
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+
+          {/* Edit availability — clock icon like Square */}
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setAvailabilityOpen(true)}
+            title={t('availability.title', { defaultValue: 'Editar disponibilidad' })}
+          >
+            <Clock className="h-4 w-4" />
+          </Button>
+
           {/* Crear dropdown — estilo Square */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -461,47 +770,77 @@ export default function ReservationCalendar() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-
-          {/* Group by */}
-          <Select value={groupBy} onValueChange={v => setGroupBy(v as GroupBy)}>
-            <SelectTrigger className="w-[140px] h-8">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="table">{t('calendar.groupBy.table')}</SelectItem>
-              <SelectItem value="staff">{t('calendar.groupBy.staff')}</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* View toggle */}
-          <Tabs value={view} onValueChange={v => setView(v as CalendarView)}>
-            <TabsList className="rounded-full bg-muted/60 px-1 py-1 border border-border h-8">
-              <TabsTrigger
-                value="day"
-                className="rounded-full text-xs data-[state=active]:bg-foreground data-[state=active]:text-background h-6"
-              >
-                {t('calendar.views.day')}
-              </TabsTrigger>
-              <TabsTrigger
-                value="week"
-                className="rounded-full text-xs data-[state=active]:bg-foreground data-[state=active]:text-background h-6"
-              >
-                {t('calendar.views.week')}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
         </div>
       </div>
 
       {/* Calendar Grid */}
       {isLoading ? (
         <div className="flex items-center justify-center h-64 text-muted-foreground">{tCommon('loading')}</div>
+      ) : view === 'month' ? (
+        /* Month view — compact grid of day cells */
+        <div className="rounded-xl border border-border overflow-auto max-h-[calc(100vh-220px)]">
+          {/* Weekday headers */}
+          <div className="grid grid-cols-7 border-b border-border">
+            {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(d => (
+              <div key={d} className="px-2 py-1.5 text-xs font-medium text-muted-foreground text-center border-r border-border/30 last:border-r-0">
+                {t(`settings.operatingHours.days.${d}`).slice(0, 3)}
+              </div>
+            ))}
+          </div>
+          {/* Day cells — padded to start on correct weekday */}
+          <div className="grid grid-cols-7">
+            {/* Empty cells for days before month start */}
+            {Array.from({ length: (displayDays[0].getDay() + 6) % 7 }, (_, i) => (
+              <div key={`pad-${i}`} className="min-h-[100px] border-r border-b border-border/30" />
+            ))}
+            {displayDays.map(day => {
+              const dayKey = formatVenueDateISO(day)
+              const dayReservations = reservationsByDay[dayKey] || []
+              const dayClassSessions = classSessionsByDay[dayKey] || []
+              const dayIsToday = isToday(day)
+              const totalEvents = dayReservations.length + dayClassSessions.length
+
+              return (
+                <div
+                  key={dayKey}
+                  className={`min-h-[100px] border-r border-b border-border/30 p-1.5 cursor-pointer hover:bg-accent/30 transition-colors ${dayIsToday ? 'bg-primary/5' : ''}`}
+                  onClick={() => { setCurrentDate(day); setView('day') }}
+                >
+                  <div className={`text-sm mb-1 ${dayIsToday ? 'bg-primary text-primary-foreground rounded-full w-7 h-7 flex items-center justify-center' : 'text-foreground'}`}>
+                    {day.getDate()}
+                  </div>
+                  {/* Compact event indicators */}
+                  {dayReservations.slice(0, 3).map(r => (
+                    <div
+                      key={r.id}
+                      className={`text-[10px] leading-tight truncate rounded px-1 py-0.5 mb-0.5 ${statusColorMap[r.status]}`}
+                    >
+                      {r.customer ? r.customer.firstName : r.guestName || '—'} {formatTime(r.startsAt)}
+                    </div>
+                  ))}
+                  {dayClassSessions.slice(0, 2).map(s => (
+                    <div
+                      key={s.id}
+                      className="text-[10px] leading-tight truncate rounded px-1 py-0.5 mb-0.5 bg-violet-500/20 text-violet-700 dark:text-violet-300"
+                    >
+                      {s.product.name} {formatTime(s.startsAt)}
+                    </div>
+                  ))}
+                  {totalEvents > 5 && (
+                    <div className="text-[10px] text-muted-foreground">+{totalEvents - 5}</div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
       ) : (
+        /* Time-axis view (day, week, 5day) */
         <div ref={scrollRef} className="rounded-xl border border-border overflow-auto max-h-[calc(100vh-220px)]">
           <div className="flex min-w-[600px]">
             {/* Time axis */}
             <div className="w-14 shrink-0 border-r border-border">
-              {view === 'week' && <div className="sticky top-0 bg-background z-10 border-b border-border h-[44px]" />}
+              {(view !== 'day' || (groupedColumns && groupedColumns.length > 0)) && <div className="sticky top-0 bg-background z-10 border-b border-border h-[44px]" />}
               <div className="relative" style={{ height: `${HOURS.length * 64 + GRID_TOP_PAD + 8}px` }}>
                 {HOURS.map(hour => (
                   <div
@@ -515,8 +854,11 @@ export default function ReservationCalendar() {
               </div>
             </div>
 
-            {/* Day columns */}
-            {displayDays.map(day => renderDayColumn(day, view === 'day'))}
+            {/* Day columns — use grouped columns when groupBy is active in day view */}
+            {view === 'day' && groupedColumns && groupedColumns.length > 0
+              ? groupedColumns.map(col => renderGroupedColumn(col, currentDate))
+              : displayDays.map(day => renderDayColumn(day, displayDays.length === 1))
+            }
           </div>
         </div>
       )}
@@ -578,6 +920,19 @@ export default function ReservationCalendar() {
         onOpenChange={open => !open && closeClassModal()}
         defaultDate={classModal.date}
         defaultStartTime={classModal.startTime || undefined}
+      />
+
+      {/* Edit availability dialog */}
+      <EditAvailabilityDialog
+        open={availabilityOpen}
+        onOpenChange={setAvailabilityOpen}
+      />
+
+      {/* Calendar attributes dialog */}
+      <CalendarAttributesDialog
+        open={attributesOpen}
+        onOpenChange={setAttributesOpen}
+        onSave={setCalendarAttrs}
       />
     </div>
   )

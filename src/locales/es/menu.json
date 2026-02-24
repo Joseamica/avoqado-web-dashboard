@@ -723,8 +723,10 @@
       "editTitle": "Editar servicio",
       "nameLabel": "Nombre",
       "namePlaceholder": "Ej: Corte de cabello",
+      "nameClassPlaceholder": "Ej: Clase de pilates",
       "descriptionLabel": "Descripción",
       "descriptionPlaceholder": "Describe el servicio...",
+      "descriptionClassPlaceholder": "Describe la clase...",
       "priceLabel": "Precio",
       "pricePlaceholder": "0.00",
       "durationLabel": "Duración (minutos)",
@@ -742,7 +744,10 @@
       "preview": "Vista previa",
       "basicInfo": "Información básica",
       "serviceConfig": "Configuración del servicio",
-      "serviceImage": "Imagen del servicio"
+      "serviceImage": "Imagen del servicio",
+      "createCategory": "Crear categoría",
+      "newCategoryPlaceholder": "Nombre de la categoría",
+      "categoryCreated": "Categoría creada"
     },
     "toasts": {
       "created": "Servicio creado",

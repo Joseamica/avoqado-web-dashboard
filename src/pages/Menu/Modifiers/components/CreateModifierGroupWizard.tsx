@@ -708,7 +708,7 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
                                 itemName={t('modifiers.detail.productItem')}
                                 onViewOption={option => {
                                   if (option.value === '_new') {
-                                    navigate(`${fullBasePath}/menumaker/products/create`)
+                                    navigate(`${fullBasePath}/menumaker/products`)
                                   } else {
                                     navigate(`${fullBasePath}/menumaker/products/${option.value}`)
                                   }

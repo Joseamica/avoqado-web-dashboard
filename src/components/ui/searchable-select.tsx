@@ -28,6 +28,8 @@ interface SearchableSelectProps {
   searchThreshold?: number
   /** Size variant. "default" is compact (h-9), "lg" is larger (h-12). Default is "default". */
   size?: 'default' | 'lg'
+  /** Optional footer content rendered below the options list (e.g., a "Create new" button). */
+  footer?: React.ReactNode
 }
 
 export function SearchableSelect({
@@ -42,6 +44,7 @@ export function SearchableSelect({
   filterFn,
   searchThreshold = 5,
   size = 'default',
+  footer,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -132,6 +135,11 @@ export function SearchableSelect({
               </CommandGroup>
             </ScrollArea>
           </CommandList>
+          {footer && (
+            <div className="border-t border-border p-1">
+              {footer}
+            </div>
+          )}
         </Command>
       </PopoverContent>
     </Popover>

@@ -760,8 +760,10 @@
       "editTitle": "Edit service",
       "nameLabel": "Name",
       "namePlaceholder": "E.g.: Haircut",
+      "nameClassPlaceholder": "E.g.: Pilates class",
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Describe the service...",
+      "descriptionClassPlaceholder": "Describe the class...",
       "priceLabel": "Price",
       "pricePlaceholder": "0.00",
       "durationLabel": "Duration (minutes)",
@@ -779,7 +781,10 @@
       "preview": "Preview",
       "basicInfo": "Basic information",
       "serviceConfig": "Service configuration",
-      "serviceImage": "Service image"
+      "serviceImage": "Service image",
+      "createCategory": "Create category",
+      "newCategoryPlaceholder": "Category name",
+      "categoryCreated": "Category created"
     },
     "toasts": {
       "created": "Service created",
