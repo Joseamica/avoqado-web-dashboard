@@ -209,7 +209,7 @@ function TemplatesPage() {
         <div className="p-6 pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+              <div className="p-2 rounded-xl bg-linear-to-br from-purple-500/20 to-purple-500/5">
                 <FileText className="w-4 h-4 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
@@ -330,7 +330,7 @@ function TemplatesPage() {
           {/* Info Card */}
           <div className="rounded-2xl border border-border/50 bg-card p-6">
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+              <div className="p-2 rounded-xl bg-linear-to-br from-blue-500/20 to-blue-500/5">
                 <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
@@ -367,7 +367,7 @@ function TemplatesPage() {
           {/* Content Card */}
           <div className="rounded-2xl border border-border/50 bg-card p-6">
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+              <div className="p-2 rounded-xl bg-linear-to-br from-purple-500/20 to-purple-500/5">
                 <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div>

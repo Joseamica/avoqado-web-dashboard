@@ -259,7 +259,7 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
                 <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
                   <CardContent className="pt-6">
                     <div className="flex gap-3">
-                      <HelpCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                      <HelpCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
                       <div className="text-sm">
                         <p className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
                           Paso 1: Selecciona el Venue y Tipo de Cuenta
@@ -330,7 +330,7 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
                 <Card className="border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/20">
                   <CardContent className="pt-6">
                     <div className="flex gap-3">
-                      <HelpCircle className="h-5 w-5 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" />
+                      <HelpCircle className="h-5 w-5 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
                       <div className="text-sm">
                         <p className="font-semibold text-purple-900 dark:text-purple-100 mb-2">
                           ¿Qué significan las cuentas Primaria, Secundaria y Terciaria?
@@ -381,7 +381,7 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
                 <Card className="border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
                   <CardContent className="pt-6">
                     <div className="flex gap-3">
-                      <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                      <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
                       <div className="text-sm">
                         <p className="font-semibold text-green-900 dark:text-green-100 mb-2">
                           Paso 2: Configure las Tarifas por Tipo de Tarjeta
@@ -521,7 +521,7 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
                 <Card className="border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
                   <CardContent className="pt-6">
                     <div className="flex gap-3">
-                      <DollarSign className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                      <DollarSign className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                       <div className="text-sm text-amber-800 dark:text-amber-200">
                         <p className="font-semibold mb-2">¿Por qué diferentes tipos de tarjeta?</p>
                         <p>
@@ -543,7 +543,7 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
                 <Card className="border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/20">
                   <CardContent className="pt-6">
                     <div className="flex gap-3">
-                      <FileText className="h-5 w-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5" />
+                      <FileText className="h-5 w-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
                       <div className="text-sm">
                         <p className="font-semibold text-indigo-900 dark:text-indigo-100 mb-2">
                           Paso 3: Detalles Adicionales (Opcional)

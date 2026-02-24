@@ -999,7 +999,7 @@ export function RemoteCommandPanel({
                 remoteActivateMutation.mutate()
                 setRemoteActivateDialog({ open: false })
               }}
-              className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground"
+              className="bg-linear-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground"
             >
               <Zap className="h-4 w-4 mr-2" />
               {t('commands.remoteActivateNow')}
@@ -1080,7 +1080,7 @@ export function RemoteCommandPanel({
             {/* Downgrade Warning - Red/Critical */}
             {installVersionDialog.selectedVersionCode && currentVersionCode && installVersionDialog.selectedVersionCode < currentVersionCode && (
               <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-300 dark:bg-red-900/30 dark:border-red-700">
-                <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
                 <div className="space-y-1">
                   <p className="text-sm font-semibold text-red-700 dark:text-red-400">
                     {t('commands.downgradeWarningTitle')}

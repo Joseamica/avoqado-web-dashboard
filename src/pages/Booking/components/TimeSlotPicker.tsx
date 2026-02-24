@@ -54,7 +54,7 @@ export function TimeSlotPicker({ slots, selectedSlot, onSelect, timezone, isLoad
 			<div className="space-y-3">
 				{Object.entries(slotsByHour).map(([hour, hourSlots]) => (
 					<div key={hour} className="flex items-start gap-3">
-						<span className="w-12 flex-shrink-0 pt-2 text-sm text-muted-foreground">{hour}</span>
+						<span className="w-12 shrink-0 pt-2 text-sm text-muted-foreground">{hour}</span>
 						<div className="flex flex-wrap gap-2">
 							{hourSlots.map(slot => {
 								const time = new Date(slot.startsAt).toLocaleTimeString('en-US', {

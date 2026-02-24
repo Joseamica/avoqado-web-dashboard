@@ -184,7 +184,7 @@ export function CreateClassSessionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md overflow-visible">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
@@ -219,7 +219,7 @@ export function CreateClassSessionDialog({
                     placeholder={t('classSession.fields.classPlaceholder', { defaultValue: 'Selecciona una clase' })}
                   />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent disablePortal>
                   {classProducts.map(p => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.name}
@@ -306,7 +306,7 @@ export function CreateClassSessionDialog({
                   <SelectTrigger id="assignedStaffId">
                     <SelectValue placeholder={t('noStaff')} />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent disablePortal>
                     <SelectItem value="none">{t('noStaff')}</SelectItem>
                     {staffMembers.map(s => (
                       <SelectItem key={s.staffId} value={s.staffId}>

@@ -552,7 +552,7 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
                 {t('invite.typeEmailDesc', { defaultValue: 'Enviar invitación por email' })}
               </p>
             </div>
-            {inviteType === 'email' && <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />}
+            {inviteType === 'email' && <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />}
           </button>
 
           <button
@@ -579,7 +579,7 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
                 {t('invite.typeTpvOnlyDesc', { defaultValue: 'Acceso con PIN, sin correo' })}
               </p>
             </div>
-            {inviteType === 'tpv-only' && <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />}
+            {inviteType === 'tpv-only' && <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />}
           </button>
         </div>
       </div>
@@ -614,7 +614,7 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
               )}
               {allowFakeEmailForSuperadmin && (
                 <div className="rounded-lg border border-border/60 bg-muted/40 px-3 py-2">
-                  <p className="text-xs font-medium bg-gradient-to-r from-amber-400 to-pink-500 bg-clip-text text-transparent flex items-center gap-1.5">
+                  <p className="text-xs font-medium bg-linear-to-r from-amber-400 to-pink-500 bg-clip-text text-transparent flex items-center gap-1.5">
                     <Shield className="h-3.5 w-3.5 text-amber-400" />
                     {t('invite.superadminFakeEmailHint', {
                       defaultValue: 'SUPERADMIN: puedes usar correo de prueba. Si no es válido, se convertirá automáticamente a un correo interno.',
@@ -771,7 +771,7 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
       {/* Info Alert Card */}
       <div className="rounded-2xl border border-border/50 bg-card p-6">
         <div className="flex gap-3">
-          <AlertCircle className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+          <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
           <p className="text-sm text-muted-foreground">
             {inviteType === 'tpv-only'
               ? t('invite.infoAlertTpvOnly', {

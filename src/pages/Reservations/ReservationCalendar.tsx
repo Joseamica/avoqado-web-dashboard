@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, ChevronLeft, ChevronRight, Plus, Users } from 'lucide-react'
 import { DateTime } from 'luxon'
-import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
@@ -97,6 +97,29 @@ export default function ReservationCalendar() {
     date: '',
     startTime: '',
   })
+
+  // Grid click context menu state (choose event type before opening form)
+  const [gridClickMenu, setGridClickMenu] = useState<{
+    open: boolean
+    x: number
+    y: number
+    date: string
+    startTime: string
+  }>({ open: false, x: 0, y: 0, date: '', startTime: '' })
+  const gridClickMenuRef = useRef<HTMLDivElement>(null)
+
+  // Close grid click menu on outside click
+  useEffect(() => {
+    if (!gridClickMenu.open) return
+    const handler = (e: MouseEvent) => {
+      if (gridClickMenuRef.current && !gridClickMenuRef.current.contains(e.target as Node)) {
+        setGridClickMenu(prev => ({ ...prev, open: false }))
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [gridClickMenu.open])
+
   const createFormSubmitRef = useMemo<MutableRefObject<(() => void) | null>>(() => ({ current: null }), [])
 
   // Calculate date range based on view
@@ -284,8 +307,8 @@ export default function ReservationCalendar() {
     return (hour - firstHour) * 64 + GRID_TOP_PAD
   }, [firstHour, lastHour, venueTimezone])
 
-  // Handle click on empty grid area to create a reservation
-  const handleGridClick = (e: React.MouseEvent<HTMLDivElement>, day: Date) => {
+  // Handle click on empty grid area — show event type picker
+  const handleGridClick = useCallback((e: React.MouseEvent<HTMLDivElement>, day: Date) => {
     // Don't trigger if user clicked on an existing reservation block
     if ((e.target as HTMLElement).closest('[data-reservation]')) return
 
@@ -304,8 +327,20 @@ export default function ReservationCalendar() {
 
     const startTime = `${String(snappedHour).padStart(2, '0')}:${String(snappedMinutes).padStart(2, '0')}`
     const date = formatVenueDateISO(day)
-    setCreateModal({ open: true, date, startTime })
-  }
+
+    // Show the event type picker at click position
+    setGridClickMenu({ open: true, x: e.clientX, y: e.clientY, date, startTime })
+  }, [firstHour, lastHour, formatVenueDateISO])
+
+  const handleGridMenuSelect = useCallback((type: 'reservation' | 'class') => {
+    const { date, startTime } = gridClickMenu
+    setGridClickMenu(prev => ({ ...prev, open: false }))
+    if (type === 'reservation') {
+      setCreateModal({ open: true, date, startTime })
+    } else {
+      setClassModal({ open: true, date, startTime })
+    }
+  }, [gridClickMenu])
 
   // Render the day column
   const renderDayColumn = (day: Date, isWide: boolean) => {
@@ -332,7 +367,7 @@ export default function ReservationCalendar() {
 
         {/* Time grid */}
         <div
-          className={`relative cursor-pointer ${dayIsToday && view === 'day' ? 'bg-primary/[0.02]' : ''}`}
+          className={`relative cursor-pointer ${dayIsToday && view === 'day' ? 'bg-primary/2' : ''}`}
           style={{ height: `${HOURS.length * 64 + GRID_TOP_PAD + 8}px` }}
           onClick={e => handleGridClick(e, day)}
         >
@@ -465,7 +500,7 @@ export default function ReservationCalendar() {
         <div ref={scrollRef} className="rounded-xl border border-border overflow-auto max-h-[calc(100vh-220px)]">
           <div className="flex min-w-[600px]">
             {/* Time axis */}
-            <div className="w-14 flex-shrink-0 border-r border-border">
+            <div className="w-14 shrink-0 border-r border-border">
               {view === 'week' && <div className="sticky top-0 bg-background z-10 border-b border-border h-[44px]" />}
               <div className="relative" style={{ height: `${HOURS.length * 64 + GRID_TOP_PAD + 8}px` }}>
                 {HOURS.map(hour => (
@@ -482,6 +517,36 @@ export default function ReservationCalendar() {
 
             {/* Day columns */}
             {displayDays.map(day => renderDayColumn(day, view === 'day'))}
+          </div>
+        </div>
+      )}
+
+      {/* Grid click — event type picker */}
+      {gridClickMenu.open && (
+        <div
+          ref={gridClickMenuRef}
+          className="fixed z-50 w-48 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95"
+          style={{ top: gridClickMenu.y, left: gridClickMenu.x }}
+        >
+          <div className="p-1">
+            <button
+              className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer"
+              onClick={() => handleGridMenuSelect('reservation')}
+            >
+              <CalendarDays className="h-4 w-4 text-muted-foreground" />
+              {t('calendar.createCita', { defaultValue: 'Cita' })}
+            </button>
+            <div className="mx-2 my-0.5 h-px bg-border" />
+            <button
+              className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer"
+              onClick={() => handleGridMenuSelect('class')}
+            >
+              <Users className="h-4 w-4 text-muted-foreground" />
+              {t('calendar.createClase', { defaultValue: 'Clase' })}
+            </button>
+          </div>
+          <div className="border-t border-border px-3 py-1.5 text-[11px] text-muted-foreground">
+            {gridClickMenu.startTime}
           </div>
         </div>
       )}

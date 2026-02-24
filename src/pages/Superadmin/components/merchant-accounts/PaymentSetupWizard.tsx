@@ -857,7 +857,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
     >
       <div className="flex h-full">
         {/* Left Sidebar */}
-        <aside className="w-60 flex-shrink-0 border-r border-border/30 bg-card/50 p-4 overflow-y-auto">
+        <aside className="w-60 shrink-0 border-r border-border/30 bg-card/50 p-4 overflow-y-auto">
           <nav className="space-y-1">
             {STEPS.map((step, index) => {
               const isCurrent = index === state.currentStep
@@ -878,7 +878,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
                 >
                   <div
                     className={cn(
-                      'flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center',
+                      'shrink-0 w-8 h-8 rounded-lg flex items-center justify-center',
                       configured && 'bg-green-500/10 text-green-600',
                       !configured && isCurrent && 'bg-primary text-primary-foreground',
                       !configured && !isCurrent && 'bg-muted text-muted-foreground',

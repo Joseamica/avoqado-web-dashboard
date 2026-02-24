@@ -240,7 +240,7 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
 
               {!account && (
                 <div className="flex items-start space-x-2 text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950/50 p-3 rounded-md border border-blue-200 dark:border-blue-800">
-                  <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+                  <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" />
                   <p>{t('merchantDialog.credentialsNote')}</p>
                 </div>
               )}

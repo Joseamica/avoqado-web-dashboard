@@ -198,7 +198,7 @@ export function StockControl() {
       <GlassCard className="p-4">
         <div className="flex flex-wrap items-center gap-6">
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5">
+            <div className="p-2 rounded-xl bg-linear-to-br from-green-500/20 to-green-500/5">
               <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
             </div>
             <div>
@@ -207,7 +207,7 @@ export function StockControl() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+            <div className="p-2 rounded-xl bg-linear-to-br from-blue-500/20 to-blue-500/5">
               <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
@@ -216,7 +216,7 @@ export function StockControl() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+            <div className="p-2 rounded-xl bg-linear-to-br from-purple-500/20 to-purple-500/5">
               <Box className="w-4 h-4 text-purple-600 dark:text-purple-400" />
             </div>
             <div>

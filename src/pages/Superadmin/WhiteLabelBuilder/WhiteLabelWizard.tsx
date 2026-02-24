@@ -557,7 +557,7 @@ export default function WhiteLabelWizard({
             <Button
               onClick={handleComplete}
               disabled={isSubmitting}
-              className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600"
+              className="bg-linear-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600"
             >
               {isSubmitting ? (
                 <>

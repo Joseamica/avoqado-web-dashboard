@@ -348,7 +348,7 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
 
               {isBlumon && !account && (
                 <div className="flex items-start space-x-2 text-sm bg-amber-50 dark:bg-amber-950/50 p-3 rounded-md border border-amber-200 dark:border-amber-800">
-                  <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+                  <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
                   <div className="text-amber-700 dark:text-amber-300">
                     <p className="font-medium">Para Blumon, las credenciales son opcionales</p>
                     <p className="text-xs mt-1">
@@ -360,7 +360,7 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
 
               {!isBlumon && !account && (
                 <div className="flex items-start space-x-2 text-sm bg-blue-50 dark:bg-blue-950/50 p-3 rounded-md border border-blue-200 dark:border-blue-800">
-                  <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+                  <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" />
                   <p className="text-blue-700 dark:text-blue-300">Las credenciales se encriptarán automáticamente (AES-256-CBC)</p>
                 </div>
               )}

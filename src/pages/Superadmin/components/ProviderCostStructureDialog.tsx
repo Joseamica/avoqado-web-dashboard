@@ -124,7 +124,7 @@ export const ProviderCostStructureDialog: React.FC<ProviderCostStructureDialogPr
           <div className="grid gap-4 py-4">
             {/* Info Banner */}
             <div className="flex items-start space-x-2 text-sm bg-blue-50 dark:bg-blue-950/50 p-3 rounded-md border border-blue-200 dark:border-blue-800">
-              <Info className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+              <Info className="h-4 w-4 mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" />
               <div className="text-blue-800 dark:text-blue-200">
                 <p className="font-medium">{t('providerCostDialog.title')}</p>
                 <p className="text-xs mt-1">{t('providerCostDialog.description')}</p>

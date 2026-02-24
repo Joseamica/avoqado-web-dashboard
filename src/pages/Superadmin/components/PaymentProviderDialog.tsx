@@ -114,7 +114,7 @@ export const PaymentProviderDialog: React.FC<PaymentProviderDialogProps> = ({
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+              <div className="p-2 rounded-lg bg-linear-to-br from-blue-500/20 to-blue-500/5">
                 <CreditCard className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
