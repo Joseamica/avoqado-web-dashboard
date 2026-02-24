@@ -131,7 +131,6 @@ export const SuppliersPage = lazyWithRetry(() => import('@/pages/Inventory/Suppl
 export const PurchaseOrdersPage = lazyWithRetry(() => import('@/pages/Inventory/PurchaseOrders/PurchaseOrdersPage'))
 export const PurchaseOrderDetailPage = lazyWithRetry(() => import('@/pages/Inventory/PurchaseOrders/PurchaseOrderDetailPage'))
 
-
 // Settings
 export const RolePermissions = lazyWithRetry(() => import('@/pages/Settings/RolePermissions'))
 export const GoogleIntegration = lazyWithRetry(() => import('@/pages/Settings/GoogleIntegration'))
@@ -177,6 +176,7 @@ export const OrganizationDashboard = lazyWithRetry(() => import('@/pages/Organiz
 export const OrganizationVenues = lazyWithRetry(() => import('@/pages/Organization/OrganizationVenues'))
 export const OrganizationTeam = lazyWithRetry(() => import('@/pages/Organization/OrganizationTeam'))
 export const OrganizationSettings = lazyWithRetry(() => import('@/pages/Organization/OrganizationSettings'))
+export const OrganizationTerminals = lazyWithRetry(() => import('@/pages/Organization/OrganizationTerminals'))
 
 // White-Label Organization (multi-venue dashboard using orgSlug)
 export const WLOrganizationLayout = lazyWithRetry(() => import('@/pages/organizations/WLOrganizationLayout'))

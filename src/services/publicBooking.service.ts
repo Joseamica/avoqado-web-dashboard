@@ -20,6 +20,8 @@ export interface PublicVenueInfo {
 		price: number | null
 		duration: number | null
 		eventCapacity: number | null
+		type?: 'APPOINTMENTS_SERVICE' | 'EVENT' | 'CLASS'
+		maxParticipants?: number | null
 	}[]
 	publicBooking: {
 		enabled: boolean
@@ -33,6 +35,10 @@ export interface PublicSlot {
 	startsAt: string
 	endsAt: string
 	available: boolean
+	classSessionId?: string
+	capacity?: number
+	enrolled?: number
+	remaining?: number
 }
 
 export interface PublicAvailabilityResponse {
@@ -49,6 +55,7 @@ export interface PublicCreateReservationRequest {
 	guestEmail?: string
 	partySize?: number
 	productId?: string
+	classSessionId?: string
 	specialRequests?: string
 }
 

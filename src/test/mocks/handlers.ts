@@ -567,6 +567,7 @@ export function createMockReservation(venueId: string, overrides: Partial<any> =
     table: null,
     productId: null,
     product: null,
+    classSessionId: null,
     assignedStaffId: null,
     assignedStaff: null,
     createdById: null,

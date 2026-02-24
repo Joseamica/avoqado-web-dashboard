@@ -193,8 +193,8 @@ export default function ReservationCalendar() {
     const endHour = end.hour + end.minute / 60
     const top = (startHour - firstHour) * 64 + GRID_TOP_PAD
     const height = Math.max((endHour - startHour) * 64, 24)
-    const isFull = session.reservedCount >= session.capacity
-    const spotsLeft = session.capacity - session.reservedCount
+    const isFull = session.enrolled >= session.capacity
+    const spotsLeft = session.capacity - session.enrolled
 
     return (
       <div
@@ -212,7 +212,7 @@ export default function ReservationCalendar() {
           <div className="flex items-center gap-1 opacity-70">
             <Users className="h-3 w-3" />
             <span>
-              {session.reservedCount}/{session.capacity}
+              {session.enrolled}/{session.capacity}
             </span>
             {isFull && (
               <Badge variant="outline" className="text-[10px] h-4 px-1 ml-1 border-violet-500/40">

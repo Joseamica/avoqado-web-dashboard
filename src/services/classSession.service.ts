@@ -15,7 +15,8 @@ export interface ClassSession {
   startsAt: string
   endsAt: string
   capacity: number
-  reservedCount: number
+  enrolled: number
+  available: number
   status: ClassSessionStatus
   assignedStaffId: string | null
   assignedStaff: {
@@ -67,27 +68,27 @@ export interface ListClassSessionsParams {
 const classSessionService = {
   async getClassSessions(venueId: string, params: ListClassSessionsParams): Promise<ClassSession[]> {
     const response = await api.get(`/api/v1/dashboard/venues/${venueId}/class-sessions`, { params })
-    return response.data.data
+    return response.data
   },
 
   async getClassSession(venueId: string, sessionId: string): Promise<ClassSession> {
     const response = await api.get(`/api/v1/dashboard/venues/${venueId}/class-sessions/${sessionId}`)
-    return response.data.data
+    return response.data
   },
 
   async createClassSession(venueId: string, data: CreateClassSessionDto): Promise<ClassSession> {
     const response = await api.post(`/api/v1/dashboard/venues/${venueId}/class-sessions`, data)
-    return response.data.data
+    return response.data
   },
 
   async updateClassSession(venueId: string, sessionId: string, data: UpdateClassSessionDto): Promise<ClassSession> {
     const response = await api.patch(`/api/v1/dashboard/venues/${venueId}/class-sessions/${sessionId}`, data)
-    return response.data.data
+    return response.data
   },
 
   async cancelClassSession(venueId: string, sessionId: string): Promise<ClassSession> {
     const response = await api.post(`/api/v1/dashboard/venues/${venueId}/class-sessions/${sessionId}/cancel`)
-    return response.data.data
+    return response.data
   },
 
   async addAttendee(
@@ -96,7 +97,7 @@ const classSessionService = {
     data: { guestName: string; guestPhone?: string; guestEmail?: string; partySize?: number; specialRequests?: string },
   ): Promise<ClassSessionAttendee> {
     const response = await api.post(`/api/v1/dashboard/venues/${venueId}/class-sessions/${sessionId}/attendees`, data)
-    return response.data.data
+    return response.data
   },
 
   async removeAttendee(venueId: string, sessionId: string, reservationId: string): Promise<void> {

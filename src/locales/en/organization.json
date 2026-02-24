@@ -12,6 +12,7 @@
     "team": "Team",
     "configuration": "Configuration",
     "settings": "Settings",
+    "terminals": "Terminals",
     "quickAccess": "Quick Access",
     "viewAll": "View all ({{count}})"
   },
@@ -23,7 +24,8 @@
     "venues": "Venues",
     "team": "Team",
     "settings": "Settings",
-    "analytics": "Analytics"
+    "analytics": "Analytics",
+    "terminals": "Terminals"
   },
   "dashboard": {
     "title": "Organization Dashboard",
@@ -116,6 +118,55 @@
     "save": "Save Changes",
     "updateSuccess": "Organization updated successfully",
     "updateError": "Failed to update organization"
+  },
+  "terminals": {
+    "title": "Terminals",
+    "subtitle": "Monitor terminals across all venues",
+    "searchPlaceholder": "Search by name or serial number...",
+    "noResults": "No terminals match your filters",
+    "empty": "No terminals registered",
+    "stats": {
+      "total": "Total",
+      "online": "Online",
+      "offline": "Offline",
+      "lowHealth": "Low Health"
+    },
+    "filters": {
+      "venue": "Venue",
+      "allVenues": "All Venues",
+      "status": "Status",
+      "allStatuses": "All Statuses",
+      "type": "Type",
+      "allTypes": "All Types"
+    },
+    "columns": {
+      "terminal": "Terminal",
+      "venue": "Venue",
+      "status": "Status",
+      "type": "Type",
+      "brandModel": "Brand / Model",
+      "health": "Health",
+      "version": "Version",
+      "lastSeen": "Last Seen"
+    },
+    "status": {
+      "online": "Online",
+      "offline": "Offline",
+      "active": "Active",
+      "inactive": "Inactive",
+      "pending": "Pending",
+      "maintenance": "Maintenance",
+      "retired": "Retired"
+    },
+    "type": {
+      "receipt": "Receipt Printer",
+      "kitchen": "Kitchen Printer"
+    },
+    "pagination": {
+      "showing": "Showing {{from}}-{{to}} of {{total}}",
+      "previous": "Previous",
+      "next": "Next"
+    }
   },
   "routeProtection": {
     "accessDenied": "Access Denied",

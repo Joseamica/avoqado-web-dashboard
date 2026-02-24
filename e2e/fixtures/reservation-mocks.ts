@@ -25,6 +25,7 @@ export interface MockReservation {
   table: { id: string; number: string; capacity: number } | null
   productId: string | null
   product: null
+  classSessionId: string | null
   assignedStaffId: string | null
   assignedStaff: null
   createdById: string | null
@@ -71,6 +72,7 @@ export function createMockReservation(overrides: Partial<MockReservation> = {}):
     table: null,
     productId: null,
     product: null,
+    classSessionId: null,
     assignedStaffId: null,
     assignedStaff: null,
     createdById: null,

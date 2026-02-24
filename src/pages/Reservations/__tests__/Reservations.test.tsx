@@ -73,6 +73,7 @@ const mockReservationsData: PaginatedReservationsResponse = {
       table: null,
       productId: null,
       product: null,
+      classSessionId: null,
       assignedStaffId: null,
       assignedStaff: null,
       createdById: null,

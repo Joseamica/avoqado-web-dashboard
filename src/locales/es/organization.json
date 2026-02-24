@@ -12,6 +12,7 @@
     "team": "Equipo",
     "configuration": "Configuración",
     "settings": "Ajustes",
+    "terminals": "Terminales",
     "quickAccess": "Acceso Rápido",
     "viewAll": "Ver todo ({{count}})"
   },
@@ -23,7 +24,8 @@
     "venues": "Sucursales",
     "team": "Equipo",
     "settings": "Ajustes",
-    "analytics": "Analíticas"
+    "analytics": "Analíticas",
+    "terminals": "Terminales"
   },
   "dashboard": {
     "title": "Dashboard de Organización",
@@ -116,6 +118,55 @@
     "save": "Guardar Cambios",
     "updateSuccess": "Organización actualizada exitosamente",
     "updateError": "Error al actualizar la organización"
+  },
+  "terminals": {
+    "title": "Terminales",
+    "subtitle": "Monitoreo de terminales en todas las sucursales",
+    "searchPlaceholder": "Buscar por nombre o número de serie...",
+    "noResults": "No se encontraron terminales con esos filtros",
+    "empty": "No hay terminales registradas",
+    "stats": {
+      "total": "Total",
+      "online": "En Línea",
+      "offline": "Fuera de Línea",
+      "lowHealth": "Salud Baja"
+    },
+    "filters": {
+      "venue": "Sucursal",
+      "allVenues": "Todas las Sucursales",
+      "status": "Estado",
+      "allStatuses": "Todos los Estados",
+      "type": "Tipo",
+      "allTypes": "Todos los Tipos"
+    },
+    "columns": {
+      "terminal": "Terminal",
+      "venue": "Sucursal",
+      "status": "Estado",
+      "type": "Tipo",
+      "brandModel": "Marca / Modelo",
+      "health": "Salud",
+      "version": "Versión",
+      "lastSeen": "Última Conexión"
+    },
+    "status": {
+      "online": "En Línea",
+      "offline": "Fuera de Línea",
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "pending": "Pendiente",
+      "maintenance": "Mantenimiento",
+      "retired": "Retirado"
+    },
+    "type": {
+      "receipt": "Impresora Recibo",
+      "kitchen": "Impresora Cocina"
+    },
+    "pagination": {
+      "showing": "Mostrando {{from}}-{{to}} de {{total}}",
+      "previous": "Anterior",
+      "next": "Siguiente"
+    }
   },
   "routeProtection": {
     "accessDenied": "Acceso Denegado",

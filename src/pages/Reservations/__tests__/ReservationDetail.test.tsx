@@ -87,6 +87,7 @@ function createTestReservation(status: ReservationStatus): Reservation {
     table: null,
     productId: null,
     product: null,
+    classSessionId: null,
     assignedStaffId: null,
     assignedStaff: null,
     createdById: null,

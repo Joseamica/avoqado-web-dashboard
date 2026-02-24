@@ -9,14 +9,7 @@ import { useTranslation } from 'react-i18next'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useAuth } from '@/context/AuthContext'
 import { StaffRole } from '@/types'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ShieldAlert } from 'lucide-react'
 import OrgSidebar from './components/OrgSidebar'
@@ -31,15 +24,11 @@ const OrganizationLayout: React.FC = () => {
   // Organization pages require OWNER or SUPERADMIN role IN THIS ORGANIZATION
   // SUPERADMIN can access any org, OWNER can only access their own org
   const isSuperadmin = user?.role === StaffRole.SUPERADMIN
-  const isOwnerInThisOrg = allVenues.some(
-    venue => venue.organizationId === orgId && venue.role === StaffRole.OWNER
-  )
+  const isOwnerInThisOrg = allVenues.some(venue => venue.organizationId === orgId && venue.role === StaffRole.OWNER)
   const canAccessOrg = isSuperadmin || isOwnerInThisOrg
 
   // Build breadcrumb from path
-  const pathSegments = location.pathname
-    .split('/')
-    .filter(segment => segment && segment !== 'organizations' && segment !== orgId)
+  const pathSegments = location.pathname.split('/').filter(segment => segment && segment !== 'organizations' && segment !== orgId)
 
   // Map route segments to display names
   const getDisplayName = (segment: string): string => {
@@ -49,6 +38,7 @@ const OrganizationLayout: React.FC = () => {
       team: t('breadcrumb.team'),
       settings: t('breadcrumb.settings'),
       analytics: t('breadcrumb.analytics'),
+      terminals: t('breadcrumb.terminals'),
     }
     return routeMap[segment.toLowerCase()] || segment
   }
@@ -76,7 +66,12 @@ const OrganizationLayout: React.FC = () => {
             <CardTitle>{t('accessDenied.title', 'Acceso denegado')}</CardTitle>
           </CardHeader>
           <CardContent className="text-center text-muted-foreground">
-            <p>{t('accessDenied.message', 'No tienes permisos para ver esta organización. Solo los propietarios (OWNER) pueden acceder a las páginas de organización.')}</p>
+            <p>
+              {t(
+                'accessDenied.message',
+                'No tienes permisos para ver esta organización. Solo los propietarios (OWNER) pueden acceder a las páginas de organización.',
+              )}
+            </p>
           </CardContent>
         </Card>
       </div>

@@ -39,6 +39,7 @@ export interface Reservation {
 		name: string
 		price: number | null
 	} | null
+	classSessionId: string | null
 	assignedStaffId: string | null
 	assignedStaff: {
 		id: string

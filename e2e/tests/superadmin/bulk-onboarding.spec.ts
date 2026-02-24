@@ -223,6 +223,7 @@ test.describe('Bulk Onboarding Wizard', () => {
   })
 
   test('7 — Step 3: Can add a single venue and open editor drawer', async ({ page }) => {
+    test.setTimeout(60_000) // Sheet drawer animation can slow teardown
     await setupSuperadminWithBulkMocks(page)
     await navigateToBulkOnboarding(page)
     await goToStep3(page)

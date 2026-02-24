@@ -32,6 +32,7 @@ import {
   OrganizationLayout,
   OrganizationSettings,
   OrganizationTeam,
+  OrganizationTerminals,
   OrganizationVenues,
   PaymentAnalytics,
   PaymentProviders,
@@ -498,6 +499,7 @@ const router = createBrowserRouter(
                     { path: 'venues', element: <OrganizationVenues /> },
                     { path: 'team', element: <OrganizationTeam /> },
                     { path: 'settings', element: <OrganizationSettings /> },
+                    { path: 'terminals', element: <OrganizationTerminals /> },
                     { path: 'analytics', element: <ComingSoon feature="Organization Analytics" /> },
                   ],
                 },
@@ -620,21 +622,12 @@ const router = createBrowserRouter(
                 },
                 {
                   path: 'promoters',
-                  element: (
-                    <ModuleProtectedRoute
-                      requiredModule="WHITE_LABEL_DASHBOARD"
-                      featureCode="PROMOTERS_AUDIT"
-                    />
-                  ),
+                  element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" featureCode="PROMOTERS_AUDIT" />,
                   children: [{ index: true, element: <PlayTelecomPromoters /> }],
                 },
                 {
                   path: 'stores',
-                  element: (
-                    <ModuleProtectedRoute
-                      requiredModule="WHITE_LABEL_DASHBOARD"
-                    />
-                  ),
+                  element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" />,
                   children: [{ index: true, element: <PlayTelecomStores /> }],
                 },
 
@@ -707,71 +700,37 @@ const router = createBrowserRouter(
                     { path: 'sales', element: <PlayTelecomSales /> },
                     {
                       path: 'promoters',
-                      element: (
-                        <ModuleProtectedRoute
-                          requiredModule="WHITE_LABEL_DASHBOARD"
-                          featureCode="PROMOTERS_AUDIT"
-                        />
-                      ),
+                      element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" featureCode="PROMOTERS_AUDIT" />,
                       children: [{ index: true, element: <PlayTelecomPromoters /> }],
                     },
                     {
                       path: 'stores',
-                      element: (
-                        <ModuleProtectedRoute
-                          requiredModule="WHITE_LABEL_DASHBOARD"
-                        />
-                      ),
+                      element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" />,
                       children: [{ index: true, element: <PlayTelecomStores /> }],
                     },
                     {
                       path: 'managers',
-                      element: (
-                        <ModuleProtectedRoute
-                          requiredModule="WHITE_LABEL_DASHBOARD"
-                          featureCode="MANAGERS_DASHBOARD"
-                        />
-                      ),
+                      element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" featureCode="MANAGERS_DASHBOARD" />,
                       children: [{ index: true, element: <PlayTelecomManagers /> }],
                     },
                     {
                       path: 'users',
-                      element: (
-                        <ModuleProtectedRoute
-                          requiredModule="WHITE_LABEL_DASHBOARD"
-                          featureCode="USERS_MANAGEMENT"
-                        />
-                      ),
+                      element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" featureCode="USERS_MANAGEMENT" />,
                       children: [{ index: true, element: <PlayTelecomUsers /> }],
                     },
                     {
                       path: 'tpv-config',
-                      element: (
-                        <ModuleProtectedRoute
-                          requiredModule="WHITE_LABEL_DASHBOARD"
-                          featureCode="TPV_CONFIGURATION"
-                        />
-                      ),
+                      element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" featureCode="TPV_CONFIGURATION" />,
                       children: [{ index: true, element: <PlayTelecomTpvConfig /> }],
                     },
                     {
                       path: 'supervisor',
-                      element: (
-                        <ModuleProtectedRoute
-                          requiredModule="WHITE_LABEL_DASHBOARD"
-                          featureCode="SUPERVISOR_DASHBOARD"
-                        />
-                      ),
+                      element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" featureCode="SUPERVISOR_DASHBOARD" />,
                       children: [{ index: true, element: <PlayTelecomSupervisor /> }],
                     },
                     {
                       path: 'reporte',
-                      element: (
-                        <ModuleProtectedRoute
-                          requiredModule="WHITE_LABEL_DASHBOARD"
-                          featureCode="CLOSING_REPORT"
-                        />
-                      ),
+                      element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" featureCode="CLOSING_REPORT" />,
                       children: [{ index: true, element: <PlayTelecomReporte /> }],
                     },
                   ],

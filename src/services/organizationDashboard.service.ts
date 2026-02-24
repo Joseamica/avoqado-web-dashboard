@@ -160,10 +160,7 @@ export const getVisionGlobalSummary = async (orgId: string): Promise<VisionGloba
 /**
  * Get store performance ranking
  */
-export const getStorePerformance = async (
-  orgId: string,
-  params?: { limit?: number }
-): Promise<StorePerformanceResponse> => {
+export const getStorePerformance = async (orgId: string, params?: { limit?: number }): Promise<StorePerformanceResponse> => {
   const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/store-performance`, {
     params,
   })
@@ -173,9 +170,7 @@ export const getStorePerformance = async (
 /**
  * Get cross-store anomalies
  */
-export const getCrossStoreAnomalies = async (
-  orgId: string
-): Promise<CrossStoreAnomaliesResponse> => {
+export const getCrossStoreAnomalies = async (orgId: string): Promise<CrossStoreAnomaliesResponse> => {
   const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/anomalies`)
   return response.data.data
 }
@@ -191,10 +186,7 @@ export const getOrgManagers = async (orgId: string): Promise<ManagersResponse> =
 /**
  * Get manager dashboard with assigned stores
  */
-export const getManagerDashboard = async (
-  orgId: string,
-  managerId: string
-): Promise<ManagerDashboard> => {
+export const getManagerDashboard = async (orgId: string, managerId: string): Promise<ManagerDashboard> => {
   const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/managers/${managerId}`)
   return response.data.data
 }
@@ -259,7 +251,7 @@ export const adminResetPassword = async (orgId: string, userId: string): Promise
 export const validateTimeEntry = async (
   orgId: string,
   timeEntryId: string,
-  data: { status: 'APPROVED' | 'REJECTED'; note?: string }
+  data: { status: 'APPROVED' | 'REJECTED'; note?: string },
 ): Promise<void> => {
   await api.patch(`/api/v1/dashboard/organizations/${orgId}/time-entries/${timeEntryId}/validate`, data)
 }
@@ -284,18 +276,12 @@ export interface ClosingReportData {
   totalAmount: number
 }
 
-export const getClosingReportData = async (
-  orgId: string,
-  params?: { date?: string; venueId?: string }
-): Promise<ClosingReportData> => {
+export const getClosingReportData = async (orgId: string, params?: { date?: string; venueId?: string }): Promise<ClosingReportData> => {
   const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/reports/closing-report`, { params })
   return response.data.data
 }
 
-export const downloadClosingReportXlsx = async (
-  orgId: string,
-  params?: { date?: string; venueId?: string }
-): Promise<Blob> => {
+export const downloadClosingReportXlsx = async (orgId: string, params?: { date?: string; venueId?: string }): Promise<Blob> => {
   const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/reports/closing-report/export`, {
     params,
     responseType: 'blob',
@@ -324,7 +310,7 @@ export interface StaffAttendanceEntry {
 
 export const getStaffAttendance = async (
   orgId: string,
-  params?: { period?: string; venueId?: string; status?: string }
+  params?: { period?: string; venueId?: string; status?: string },
 ): Promise<{ entries: StaffAttendanceEntry[] }> => {
   // Backend expects `date` param, not `period`. Convert period to date.
   const queryParams: Record<string, string> = {}
@@ -363,4 +349,180 @@ export const getStaffAttendance = async (
   }))
 
   return { entries }
+}
+
+// ===========================================
+// TERMINALS (Org-Level Fleet View)
+// ===========================================
+
+export interface OrgTerminal {
+  id: string
+  name: string
+  serialNumber: string | null
+  type: string
+  status: string
+  brand: string | null
+  model: string | null
+  version: string | null
+  lastHeartbeat: string | null
+  ipAddress: string | null
+  healthScore: number | null
+  isLocked: boolean
+  assignedMerchantIds: string[]
+  activatedAt: string | null
+  activationCode: string | null
+  activationCodeExpiry: string | null
+  venue: { id: string; name: string; slug: string }
+}
+
+export interface OrgTerminalsSummary {
+  total: number
+  online: number
+  offline: number
+  byStatus: Record<string, number>
+  byType: Record<string, number>
+}
+
+export interface OrgTerminalsResponse {
+  terminals: OrgTerminal[]
+  pagination: { page: number; pageSize: number; total: number; totalPages: number }
+  summary: OrgTerminalsSummary
+}
+
+export interface OrgTerminalsFilters {
+  page?: number
+  pageSize?: number
+  venueId?: string
+  status?: string
+  type?: string
+  search?: string
+}
+
+export function isTerminalOnline(lastHeartbeat?: string | null, thresholdMinutes = 5): boolean {
+  if (!lastHeartbeat) return false
+  const diffMs = Date.now() - new Date(lastHeartbeat).getTime()
+  return diffMs / (1000 * 60) < thresholdMinutes
+}
+
+export async function getOrgTerminals(orgId: string, filters?: OrgTerminalsFilters): Promise<OrgTerminalsResponse> {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/terminals`, { params: filters })
+  return response.data.data
+}
+
+// ===========================================
+// TERMINAL MANAGEMENT (CRUD + Commands)
+// ===========================================
+
+export interface CreateOrgTerminalRequest {
+  venueId: string
+  serialNumber: string
+  name: string
+  type: string
+  brand?: string
+  model?: string
+  assignedMerchantIds?: string[]
+  generateActivationCode?: boolean
+}
+
+export interface UpdateOrgTerminalRequest {
+  name?: string
+  status?: string
+  brand?: string
+  model?: string
+  assignedMerchantIds?: string[]
+}
+
+export interface OrgActivationCodeResponse {
+  activationCode: string
+  expiresAt: string
+  terminalId: string
+}
+
+export interface OrgMerchantAccount {
+  id: string
+  displayName: string | null
+  alias: string | null
+  externalMerchantId: string | null
+  provider: { name: string } | null
+  blumonSerialNumber: string | null
+}
+
+export interface OrgCommandResult {
+  commandId: string
+  correlationId: string
+  status: string
+  queued: boolean
+  terminalOnline: boolean
+  message: string
+}
+
+export type OrgTerminalCommand =
+  | 'LOCK'
+  | 'UNLOCK'
+  | 'MAINTENANCE_MODE'
+  | 'EXIT_MAINTENANCE'
+  | 'RESTART'
+  | 'CLEAR_CACHE'
+  | 'EXPORT_LOGS'
+
+export async function getOrgTerminalById(orgId: string, terminalId: string): Promise<OrgTerminal> {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}`)
+  return response.data.data
+}
+
+export async function createOrgTerminal(orgId: string, data: CreateOrgTerminalRequest) {
+  const response = await api.post(`/api/v1/dashboard/organizations/${orgId}/terminals`, data)
+  return response.data.data
+}
+
+export async function updateOrgTerminal(orgId: string, terminalId: string, data: UpdateOrgTerminalRequest) {
+  const response = await api.patch(`/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}`, data)
+  return response.data.data
+}
+
+export async function deleteOrgTerminal(orgId: string, terminalId: string) {
+  const response = await api.delete(`/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}`)
+  return response.data.data
+}
+
+export async function generateOrgTerminalActivationCode(
+  orgId: string,
+  terminalId: string,
+): Promise<OrgActivationCodeResponse> {
+  const response = await api.post(
+    `/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/generate-activation-code`,
+  )
+  return response.data.data
+}
+
+export async function sendOrgTerminalRemoteActivation(orgId: string, terminalId: string) {
+  const response = await api.post(
+    `/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/remote-activate`,
+  )
+  return response.data.data
+}
+
+export async function sendOrgTerminalCommand(
+  orgId: string,
+  terminalId: string,
+  command: OrgTerminalCommand,
+): Promise<OrgCommandResult> {
+  const response = await api.post(
+    `/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/command`,
+    { command },
+  )
+  return response.data.data
+}
+
+export async function assignOrgTerminalMerchants(orgId: string, terminalId: string, merchantIds: string[]) {
+  const response = await api.put(
+    `/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/merchants`,
+    { merchantIds },
+  )
+  return response.data.data
+}
+
+export async function getOrgMerchantAccounts(orgId: string): Promise<OrgMerchantAccount[]> {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/merchant-accounts`)
+  return response.data.data.merchants
 }

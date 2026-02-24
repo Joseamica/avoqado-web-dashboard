@@ -92,6 +92,7 @@ export default function PublicBookingPage() {
 				guestEmail: data.guestEmail || undefined,
 				partySize: data.partySize || undefined,
 				productId: selectedProduct?.id,
+				classSessionId: selectedSlot.classSessionId || undefined,
 				specialRequests: data.specialRequests || undefined,
 			})
 		},

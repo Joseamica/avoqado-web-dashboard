@@ -64,15 +64,25 @@ export function TimeSlotPicker({ slots, selectedSlot, onSelect, timezone, isLoad
 									timeZone: timezone,
 								})
 								const isSelected = selectedSlot?.startsAt === slot.startsAt
+								const isClassSlot = slot.remaining !== undefined
+								const isFull = isClassSlot && slot.remaining! <= 0
 								return (
 									<Button
-										key={slot.startsAt}
+										key={slot.classSessionId || slot.startsAt}
 										type="button"
 										variant={isSelected ? 'default' : 'outline'}
-										className="h-11 min-w-[72px] rounded-full"
+										className={`h-auto min-w-[72px] flex-col gap-0.5 rounded-full px-3 py-2 ${isFull ? 'opacity-50' : ''}`}
 										onClick={() => onSelect(slot)}
+										disabled={isFull}
 									>
-										{time}
+										<span>{time}</span>
+										{isClassSlot && (
+											<span className={`text-[10px] leading-none ${isFull ? 'text-muted-foreground' : slot.remaining! <= 3 ? 'text-orange-500' : 'text-muted-foreground'}`}>
+												{isFull
+													? t('publicBooking.time.full', 'Lleno')
+													: t('publicBooking.time.spotsLeft', { count: slot.remaining, defaultValue: '{{count}} lugares' })}
+											</span>
+										)}
 									</Button>
 								)
 							})}

@@ -433,7 +433,10 @@
 		"time": {
 			"title": "Selecciona un horario",
 			"noSlots": "No hay horarios disponibles para esta fecha",
-			"loading": "Cargando horarios..."
+			"loading": "Cargando horarios...",
+			"full": "Lleno",
+			"spotsLeft": "{{count}} lugares",
+			"spotsLeft_one": "{{count}} lugar"
 		},
 		"guestForm": {
 			"title": "Tus datos",

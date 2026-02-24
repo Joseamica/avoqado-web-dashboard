@@ -433,7 +433,10 @@
 		"time": {
 			"title": "Select a time",
 			"noSlots": "No available times for this date",
-			"loading": "Loading available times..."
+			"loading": "Loading available times...",
+			"full": "Full",
+			"spotsLeft": "{{count}} spots",
+			"spotsLeft_one": "{{count}} spot"
 		},
 		"guestForm": {
 			"title": "Your details",

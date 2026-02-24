@@ -1,15 +1,6 @@
 import React, { useMemo } from 'react'
 import { useParams, NavLink, useNavigate } from 'react-router-dom'
-import {
-  LayoutDashboard,
-  Building2,
-  Settings,
-  Users,
-  Store,
-  BarChart3,
-  ChevronsUpDown,
-  ChevronRight,
-} from 'lucide-react'
+import { LayoutDashboard, Building2, Settings, Users, Store, BarChart3, ChevronsUpDown, ChevronRight, Smartphone } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useAuth } from '@/context/AuthContext'
@@ -51,7 +42,7 @@ interface OrgGroup {
 
 type OrgSidebarProps = React.ComponentProps<typeof Sidebar>
 
-const OrgSidebar: React.FC<OrgSidebarProps> = (props) => {
+const OrgSidebar: React.FC<OrgSidebarProps> = props => {
   const { t } = useTranslation('organization')
   const navigate = useNavigate()
   const { orgId } = useParams<{ orgId: string }>()
@@ -122,28 +113,30 @@ const OrgSidebar: React.FC<OrgSidebarProps> = (props) => {
   // Check if user has multiple organizations
   const _hasMultipleOrgs = orgGroups.length > 1
 
-  const navigationItems = useMemo(() => [
-    {
-      title: t('sidebar.overview'),
-      items: [
-        { name: t('sidebar.dashboard'), href: `/organizations/${orgId}`, icon: LayoutDashboard, end: true },
-        { name: t('sidebar.analytics'), href: `/organizations/${orgId}/analytics`, icon: BarChart3 },
-      ],
-    },
-    {
-      title: t('sidebar.management'),
-      items: [
-        { name: t('sidebar.venues'), href: `/organizations/${orgId}/venues`, icon: Store },
-        { name: t('sidebar.team'), href: `/organizations/${orgId}/team`, icon: Users },
-      ],
-    },
-    {
-      title: t('sidebar.configuration'),
-      items: [
-        { name: t('sidebar.settings'), href: `/organizations/${orgId}/settings`, icon: Settings },
-      ],
-    },
-  ], [t, orgId])
+  const navigationItems = useMemo(
+    () => [
+      {
+        title: t('sidebar.overview'),
+        items: [
+          { name: t('sidebar.dashboard'), href: `/organizations/${orgId}`, icon: LayoutDashboard, end: true },
+          { name: t('sidebar.analytics'), href: `/organizations/${orgId}/analytics`, icon: BarChart3 },
+        ],
+      },
+      {
+        title: t('sidebar.management'),
+        items: [
+          { name: t('sidebar.venues'), href: `/organizations/${orgId}/venues`, icon: Store },
+          { name: t('sidebar.team'), href: `/organizations/${orgId}/team`, icon: Users },
+          { name: t('sidebar.terminals'), href: `/organizations/${orgId}/terminals`, icon: Smartphone },
+        ],
+      },
+      {
+        title: t('sidebar.configuration'),
+        items: [{ name: t('sidebar.settings'), href: `/organizations/${orgId}/settings`, icon: Settings }],
+      },
+    ],
+    [t, orgId],
+  )
 
   const handleVenueClick = (slug: string) => {
     setDropdownOpen(false)
@@ -181,9 +174,7 @@ const OrgSidebar: React.FC<OrgSidebarProps> = (props) => {
                     <Building2 className="size-4 text-primary-foreground" />
                   </div>
                   <div className="grid flex-1 text-sm leading-tight text-left">
-                    <span className="font-semibold truncate">
-                      {organization?.name || t('myOrganization')}
-                    </span>
+                    <span className="font-semibold truncate">{organization?.name || t('myOrganization')}</span>
                     <span className="text-xs truncate text-muted-foreground">
                       {organization?.venueCount || 0} {t('venuesLabel')}
                     </span>
@@ -205,26 +196,19 @@ const OrgSidebar: React.FC<OrgSidebarProps> = (props) => {
                     {/* Organization Header */}
                     <DropdownMenuItem
                       onClick={() => handleOrgClick(group.orgId)}
-                      className={cn(
-                        "gap-2 p-2 cursor-pointer",
-                        group.isCurrentOrg && "bg-accent"
-                      )}
+                      className={cn('gap-2 p-2 cursor-pointer', group.isCurrentOrg && 'bg-accent')}
                     >
                       <div className="flex justify-center items-center bg-gradient-to-r from-amber-400 to-pink-500 rounded-lg size-6">
                         <Building2 className="size-4 text-primary-foreground" />
                       </div>
-                      <span className="flex-1 font-medium truncate">
-                        {group.orgName}
-                      </span>
+                      <span className="flex-1 font-medium truncate">{group.orgName}</span>
                       {group.isCurrentOrg && (
-                        <span className="text-xs text-muted-foreground shrink-0">
-                          {t('common:venuesSwitcher.current')}
-                        </span>
+                        <span className="text-xs text-muted-foreground shrink-0">{t('common:venuesSwitcher.current')}</span>
                       )}
                     </DropdownMenuItem>
 
                     {/* Venues in this organization */}
-                    {group.venues.map((venue) => (
+                    {group.venues.map(venue => (
                       <DropdownMenuItem
                         key={venue.id}
                         onClick={() => handleVenueClick(venue.slug)}
@@ -247,12 +231,8 @@ const OrgSidebar: React.FC<OrgSidebarProps> = (props) => {
                     <DropdownMenuLabel className="text-xs text-muted-foreground">
                       {t('common:venuesSwitcher.otherVenues', 'Otras sucursales')}
                     </DropdownMenuLabel>
-                    {standaloneVenues.map((venue) => (
-                      <DropdownMenuItem
-                        key={venue.id}
-                        onClick={() => handleVenueClick(venue.slug)}
-                        className="gap-2 p-2 cursor-pointer"
-                      >
+                    {standaloneVenues.map(venue => (
+                      <DropdownMenuItem key={venue.id} onClick={() => handleVenueClick(venue.slug)} className="gap-2 p-2 cursor-pointer">
                         <Avatar className="flex justify-center items-center rounded-lg aspect-square size-6">
                           <AvatarImage src={venue?.logo} alt={`${venue?.name} Logo`} />
                           <AvatarFallback>{venue?.name?.charAt(0).toLocaleUpperCase() || 'V'}</AvatarFallback>
@@ -269,22 +249,19 @@ const OrgSidebar: React.FC<OrgSidebarProps> = (props) => {
       </SidebarHeader>
 
       <SidebarContent>
-        {navigationItems.map((section) => (
+        {navigationItems.map(section => (
           <SidebarGroup key={section.title}>
             <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {section.items.map((item) => (
+                {section.items.map(item => (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild>
                       <NavLink
                         to={item.href}
                         end={item.end}
                         className={({ isActive }) =>
-                          cn(
-                            'flex items-center gap-2',
-                            isActive && 'bg-sidebar-accent text-sidebar-accent-foreground'
-                          )
+                          cn('flex items-center gap-2', isActive && 'bg-sidebar-accent text-sidebar-accent-foreground')
                         }
                       >
                         <item.icon className="size-4" />
@@ -304,18 +281,13 @@ const OrgSidebar: React.FC<OrgSidebarProps> = (props) => {
             <SidebarGroupLabel>{t('sidebar.quickAccess')}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {allVenues.slice(0, 5).map((venue) => (
+                {allVenues.slice(0, 5).map(venue => (
                   <SidebarMenuItem key={venue.id}>
                     <SidebarMenuButton asChild>
-                      <NavLink
-                        to={`/venues/${venue.slug}/home`}
-                        className="flex items-center gap-2"
-                      >
+                      <NavLink to={`/venues/${venue.slug}/home`} className="flex items-center gap-2">
                         <Avatar className="h-4 w-4 rounded">
                           <AvatarImage src={venue.logo} alt={venue.name} />
-                          <AvatarFallback className="text-[10px]">
-                            {venue.name?.charAt(0).toUpperCase() || 'V'}
-                          </AvatarFallback>
+                          <AvatarFallback className="text-[10px]">{venue.name?.charAt(0).toUpperCase() || 'V'}</AvatarFallback>
                         </Avatar>
                         <span className="truncate">{venue.name}</span>
                       </NavLink>
@@ -325,10 +297,7 @@ const OrgSidebar: React.FC<OrgSidebarProps> = (props) => {
                 {allVenues.length > 5 && (
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <NavLink
-                        to={`/organizations/${orgId}/venues`}
-                        className="flex items-center gap-2 text-primary"
-                      >
+                      <NavLink to={`/organizations/${orgId}/venues`} className="flex items-center gap-2 text-primary">
                         <ChevronRight className="size-4" />
                         <span>{t('sidebar.viewAll', { count: allVenues.length })}</span>
                       </NavLink>
