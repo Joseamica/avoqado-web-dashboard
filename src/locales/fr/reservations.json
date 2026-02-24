@@ -1,0 +1,172 @@
+{
+	"title": "Reservations",
+	"subtitle": "Manage reservations, availability, and waitlist",
+	"nav": {
+		"overview": "Aperçu",
+		"calendar": "Calendrier",
+		"waitlist": "Liste d'attente",
+		"settings": "Paramètres"
+	},
+	"emptyState": {
+		"title": "No reservations",
+		"description": "Reservations will appear here when customers start booking"
+	},
+	"tabs": {
+		"all": "All",
+		"pending": "Pending",
+		"confirmed": "Confirmed",
+		"today": "Today",
+		"noShow": "No Show"
+	},
+	"filters": {
+		"dateRange": "Date range",
+		"status": "Status",
+		"channel": "Channel",
+		"staff": "Staff",
+		"table": "Table"
+	},
+	"searchPlaceholder": "Search by name, phone, or code...",
+	"columns": {
+		"code": "Code",
+		"guest": "Guest",
+		"dateTime": "Date / Time",
+		"duration": "Duration",
+		"partySize": "Party Size",
+		"table": "Table",
+		"staff": "Assigned",
+		"status": "Status",
+		"channel": "Channel"
+	},
+	"status": {
+		"PENDING": "Pending",
+		"CONFIRMED": "Confirmed",
+		"CHECKED_IN": "Checked In",
+		"COMPLETED": "Completed",
+		"CANCELLED": "Cancelled",
+		"NO_SHOW": "No Show"
+	},
+	"channel": {
+		"DASHBOARD": "Dashboard",
+		"WEB": "Web",
+		"PHONE": "Phone",
+		"WHATSAPP": "WhatsApp",
+		"APP": "App",
+		"WALK_IN": "Walk-in",
+		"THIRD_PARTY": "Third Party"
+	},
+	"actions": {
+		"newReservation": "New Reservation",
+		"confirm": "Confirm",
+		"checkIn": "Check In",
+		"complete": "Complete",
+		"markNoShow": "Mark No Show",
+		"cancel": "Cancel",
+		"reschedule": "Reschedule",
+		"edit": "Edit",
+		"viewDetails": "View Details",
+		"save": "Save",
+		"saveChanges": "Save Changes",
+		"goBack": "Go Back"
+	},
+	"toasts": {
+		"createSuccess": "Reservation created successfully",
+		"updateSuccess": "Reservation updated successfully",
+		"cancelSuccess": "Reservation cancelled",
+		"confirmSuccess": "Reservation confirmed",
+		"checkInSuccess": "Checked in successfully",
+		"completeSuccess": "Reservation completed",
+		"noShowSuccess": "Marked as No Show",
+		"rescheduleSuccess": "Reservation rescheduled",
+		"error": "An error occurred. Please try again."
+	},
+	"publicBooking": {
+		"pageTitle": "Réserver",
+		"poweredBy": "Propulsé par Avoqado",
+		"steps": {
+			"service": "Service",
+			"date": "Date",
+			"time": "Heure",
+			"info": "Détails",
+			"confirmation": "Confirmé"
+		},
+		"service": {
+			"title": "Choisissez un service",
+			"duration": "{{min}} min",
+			"noProducts": "Aucun service disponible"
+		},
+		"date": {
+			"title": "Choisissez une date",
+			"today": "Aujourd'hui"
+		},
+		"time": {
+			"title": "Choisissez une heure",
+			"noSlots": "Aucun créneau disponible pour cette date",
+			"loading": "Chargement des créneaux..."
+		},
+		"guestForm": {
+			"title": "Vos informations",
+			"phone": "Téléphone",
+			"phonePlaceholder": "Votre numéro de téléphone",
+			"name": "Nom",
+			"namePlaceholder": "Votre nom",
+			"email": "Email (facultatif)",
+			"emailPlaceholder": "votre@email.com",
+			"partySize": "Personnes",
+			"specialRequests": "Demandes spéciales",
+			"specialRequestsPlaceholder": "Allergies, anniversaire, besoins d'accessibilité...",
+			"submit": "Confirmer la réservation",
+			"submitting": "Réservation en cours..."
+		},
+		"validation": {
+			"phoneRequired": "Le téléphone est requis",
+			"nameRequired": "Le nom est requis",
+			"emailInvalid": "Entrez un email valide",
+			"emailRequired": "L'email est requis"
+		},
+		"confirmation": {
+			"title": "Réservation Confirmée !",
+			"code": "Code de Confirmation",
+			"dateTime": "Date et Heure",
+			"guests": "Personnes",
+			"service": "Service",
+			"addToCalendar": "Ajouter à Google Calendar",
+			"downloadIcs": "Télécharger .ics",
+			"manageBooking": "Gérer la Réservation",
+			"newBooking": "Nouvelle Réservation"
+		},
+		"manage": {
+			"title": "Votre Réservation",
+			"cancelButton": "Annuler la Réservation",
+			"cancelTitle": "Annuler la Réservation",
+			"cancelDescription": "Êtes-vous sûr de vouloir annuler cette réservation ? Cette action est irréversible.",
+			"cancelReasonLabel": "Raison (facultatif)",
+			"cancelReasonPlaceholder": "Pourquoi annulez-vous ?",
+			"cancelConfirm": "Confirmer l'Annulation",
+			"cancelledStatus": "Cette réservation a été annulée",
+			"cancelledAt": "Annulée le {{date}}",
+			"deposit": "Acompte",
+			"depositForfeit": "L'acompte sera perdu",
+			"table": "Table",
+			"staff": "Attribué à",
+			"specialRequests": "Demandes Spéciales",
+			"backToBooking": "Nouvelle Réservation"
+		},
+		"cancellationPolicy": {
+			"title": "Politique d'Annulation",
+			"allowCancel": "Annulation gratuite jusqu'à {{hours}} heures avant",
+			"noCancel": "Cette réservation ne peut pas être annulée en ligne",
+			"depositForfeit": "L'acompte sera perdu en cas d'annulation"
+		},
+		"errors": {
+			"venueNotFound": "Cette page n'existe pas",
+			"venueNotFoundDescription": "Le lien de réservation peut être incorrect ou le lieu n'est plus disponible.",
+			"bookingDisabled": "Réservation en ligne non disponible",
+			"bookingDisabledDescription": "Ce lieu n'accepte pas les réservations en ligne pour le moment.",
+			"bookingDisabledContact": "Appelez le {{phone}} pour réserver",
+			"reservationNotFound": "Réservation introuvable",
+			"reservationNotFoundDescription": "Ce lien de réservation peut être expiré ou invalide.",
+			"slotTaken": "Ce créneau n'est plus disponible. Veuillez en choisir un autre.",
+			"generic": "Une erreur est survenue. Veuillez réessayer."
+		}
+	}
+}

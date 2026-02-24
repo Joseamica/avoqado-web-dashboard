@@ -147,6 +147,19 @@ export const Customers = lazyWithRetry(() => import('@/pages/Customers/Customers
 export const CustomerDetail = lazyWithRetry(() => import('@/pages/Customers/CustomerDetail'))
 export const CustomerGroups = lazyWithRetry(() => import('@/pages/Customers/CustomerGroups'))
 
+// Public Booking
+export const PublicBookingPage = lazyWithRetry(() => import('@/pages/Booking/PublicBookingPage'))
+export const BookingManagePage = lazyWithRetry(() => import('@/pages/Booking/BookingManagePage'))
+
+// Reservations
+export const ReservationsPage = lazyWithRetry(() => import('@/pages/Reservations/Reservations'))
+export const ReservationDetail = lazyWithRetry(() => import('@/pages/Reservations/ReservationDetail'))
+export const CreateReservation = lazyWithRetry(() => import('@/pages/Reservations/CreateReservation'))
+export const ReservationCalendar = lazyWithRetry(() => import('@/pages/Reservations/ReservationCalendar'))
+export const ReservationWaitlist = lazyWithRetry(() => import('@/pages/Reservations/Waitlist'))
+export const ReservationSettingsPage = lazyWithRetry(() => import('@/pages/Reservations/ReservationSettings'))
+export const OnlineBookingPage = lazyWithRetry(() => import('@/pages/Reservations/OnlineBookingPage'))
+
 // Loyalty
 export const LoyaltySettings = lazyWithRetry(() => import('@/pages/Loyalty/LoyaltySettings'))
 

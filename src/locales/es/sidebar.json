@@ -97,7 +97,14 @@
     "products": "Productos",
     "recipes": "Recetas",
     "users": "Usuarios",
-    "waiters": "Meseros"
+    "waiters": "Meseros",
+    "reservations": "Reservaciones"
+  },
+  "reservationsMenu": {
+    "overview": "Resumen",
+    "calendar": "Calendario",
+    "waitlist": "Lista de espera",
+    "settings": "Configuración"
   },
   "requiresKycVerification": "Requiere verificación KYC"
 }

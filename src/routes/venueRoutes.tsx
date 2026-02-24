@@ -73,6 +73,12 @@ import {
   ProductStock,
   RawMaterials,
   Recipes,
+  ReservationsPage,
+  ReservationDetail,
+  ReservationCalendar,
+  ReservationWaitlist,
+  ReservationSettingsPage,
+  OnlineBookingPage,
   Reviews,
   RolePermissions,
   SalesByItem,
@@ -309,6 +315,28 @@ export function createVenueRoutes(): RouteObject[] {
         { index: true, element: <Customers /> },
         { path: 'groups', element: <CustomerGroups /> },
         { path: ':customerId', element: <CustomerDetail /> },
+      ],
+    },
+
+    // Reservation Management (core feature — permission-gated only)
+    {
+      path: 'reservations',
+      element: <PermissionProtectedRoute permission="reservations:read" />,
+      children: [
+        { index: true, element: <ReservationsPage /> },
+        { path: 'calendar', element: <ReservationCalendar /> },
+        { path: 'waitlist', element: <ReservationWaitlist /> },
+        {
+          path: 'settings',
+          element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
+          children: [{ index: true, element: <ReservationSettingsPage /> }],
+        },
+        {
+          path: 'online-booking',
+          element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
+          children: [{ index: true, element: <OnlineBookingPage /> }],
+        },
+        { path: ':reservationId', element: <ReservationDetail /> },
       ],
     },
 

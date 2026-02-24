@@ -128,6 +128,9 @@ import purchaseOrdersFr from '@/locales/fr/purchaseOrders.json'
 import setupEn from '@/locales/en/setup.json'
 import setupEs from '@/locales/es/setup.json'
 import setupFr from '@/locales/fr/setup.json'
+import reservationsEn from '@/locales/en/reservations.json'
+import reservationsEs from '@/locales/es/reservations.json'
+import reservationsFr from '@/locales/fr/reservations.json'
 // Lightweight language detector (avoids external dependency)
 const simpleDetector = {
   type: 'languageDetector' as const,
@@ -579,6 +582,15 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'setup', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', reservationsEn],
+    ['es', reservationsEs],
+    ['fr', reservationsFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'reservations', bundle as Record<string, unknown>, true, true)
 })
 
 export default i18n

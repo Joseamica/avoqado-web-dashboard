@@ -49,6 +49,8 @@ import {
   PlayTelecomReporte,
   Privacy,
   ProfitAnalyticsDashboard,
+  PublicBookingPage,
+  BookingManagePage,
   ReceiptViewer,
   ResetPassword,
   RevenueDashboard,
@@ -787,6 +789,17 @@ const router = createBrowserRouter(
         {
           path: '/receipts/public/:accessKey',
           element: <ReceiptViewer />,
+          errorElement: <ErrorPage />,
+        },
+        // Rutas públicas para reservaciones online
+        {
+          path: '/book/:venueSlug',
+          element: <PublicBookingPage />,
+          errorElement: <ErrorPage />,
+        },
+        {
+          path: '/book/:venueSlug/manage/:cancelSecret',
+          element: <BookingManagePage />,
           errorElement: <ErrorPage />,
         },
         {

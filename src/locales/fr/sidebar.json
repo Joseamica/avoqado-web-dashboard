@@ -69,7 +69,14 @@
     "categories": "Catégories",
     "products": "Produits",
     "users": "Utilisateurs",
-    "waiters": "Serveurs"
+    "waiters": "Serveurs",
+    "reservations": "Réservations"
+  },
+  "reservationsMenu": {
+    "overview": "Aperçu",
+    "calendar": "Calendrier",
+    "waitlist": "Liste d'attente",
+    "settings": "Paramètres"
   },
   "playtelecom": {
     "title": "PlayTelecom",

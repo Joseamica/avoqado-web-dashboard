@@ -1,0 +1,489 @@
+{
+	"title": "Reservations",
+	"subtitle": "Manage reservations, availability, and waitlist",
+	"nav": {
+		"overview": "Overview",
+		"calendar": "Calendar",
+		"waitlist": "Waitlist",
+		"settings": "Settings"
+	},
+	"emptyState": {
+		"title": "No reservations",
+		"description": "Reservations will appear here when customers start booking"
+	},
+	"tabs": {
+		"all": "All",
+		"pending": "Pending",
+		"confirmed": "Confirmed",
+		"today": "Today",
+		"noShow": "No Show"
+	},
+	"filters": {
+		"dateRange": "Date range",
+		"status": "Status",
+		"channel": "Channel",
+		"staff": "Staff",
+		"table": "Table"
+	},
+	"searchPlaceholder": "Search by name, phone, or code...",
+	"columns": {
+		"code": "Code",
+		"guest": "Guest",
+		"dateTime": "Date / Time",
+		"duration": "Duration",
+		"partySize": "Party Size",
+		"table": "Table",
+		"staff": "Assigned",
+		"status": "Status",
+		"channel": "Channel"
+	},
+	"status": {
+		"PENDING": "Pending",
+		"CONFIRMED": "Confirmed",
+		"CHECKED_IN": "Checked In",
+		"COMPLETED": "Completed",
+		"CANCELLED": "Cancelled",
+		"NO_SHOW": "No Show"
+	},
+	"channel": {
+		"DASHBOARD": "Dashboard",
+		"WEB": "Web",
+		"PHONE": "Phone",
+		"WHATSAPP": "WhatsApp",
+		"APP": "App",
+		"WALK_IN": "Walk-in",
+		"THIRD_PARTY": "Third Party"
+	},
+	"depositStatus": {
+		"PENDING": "Pending",
+		"PAID": "Paid",
+		"REFUNDED": "Refunded"
+	},
+	"stats": {
+		"todayCount": "Today",
+		"pending": "Pending",
+		"checkedIn": "In Progress",
+		"noShowRate": "No Show Rate"
+	},
+	"actions": {
+		"newReservation": "New Reservation",
+		"confirm": "Confirm",
+		"checkIn": "Check In",
+		"complete": "Complete",
+		"markNoShow": "Mark No Show",
+		"cancel": "Cancel",
+		"reschedule": "Reschedule",
+		"edit": "Edit",
+		"viewDetails": "View Details",
+		"save": "Save",
+		"saveChanges": "Save Changes",
+		"goBack": "Go Back"
+	},
+	"form": {
+		"createTitle": "New Reservation",
+		"editTitle": "Edit Reservation",
+		"fields": {
+			"dateTime": "Date & Time",
+			"date": "Date",
+			"startTime": "Start time",
+			"endTime": "End time",
+			"duration": "Duration",
+			"durationMin": "{{min}} min",
+			"partySize": "Party size",
+			"customer": "Customer",
+			"guestName": "Guest name",
+			"guestPhone": "Phone",
+			"guestEmail": "Email",
+			"table": "Table",
+			"staff": "Assigned staff",
+			"channel": "Channel",
+			"specialRequests": "Special requests",
+			"internalNotes": "Internal notes",
+			"tags": "Tags"
+		},
+		"placeholders": {
+			"searchCustomer": "Search existing customer...",
+			"guestName": "Guest name",
+			"guestPhone": "Contact phone",
+			"guestEmail": "Contact email",
+			"specialRequests": "Allergies, birthday, high chair...",
+			"internalNotes": "Notes visible only to staff",
+			"tags": "Add tag..."
+		},
+		"validation": {
+			"dateRequired": "Date is required",
+			"startTimeRequired": "Start time is required",
+			"endTimeRequired": "End time is required",
+			"endAfterStart": "End time must be after start time",
+			"durationRequired": "Duration is required",
+			"partySizeRequired": "Party size is required",
+			"partySizeMin": "Minimum 1 person",
+			"guestOrCustomer": "Select a customer or enter guest name",
+			"guestNameRequired": "Name is required",
+			"phoneRequired": "Phone is required",
+			"emailInvalid": "Enter a valid email"
+		},
+		"sections": {
+			"dateTime": "Date & Time",
+			"guest": "Guest Information",
+			"assignment": "Assignment",
+			"additional": "Additional Information"
+		},
+		"guestMode": {
+			"existing": "Existing customer",
+			"new": "New guest"
+		},
+		"noTablesAvailable": "No tables available for this time",
+		"selectTable": "Select table",
+		"selectStaff": "Select staff",
+		"tableCapacity": "Table {{number}} ({{capacity}} seats)"
+	},
+	"detail": {
+		"title": "Reservation {{code}}",
+		"confirmationCode": "Confirmation code",
+		"timeline": "History",
+		"timelineEntry": "{{status}} — {{date}}",
+		"timelineBy": "by {{name}}",
+		"deposit": {
+			"title": "Deposit",
+			"amount": "Amount",
+			"status": "Status"
+		},
+		"reschedule": {
+			"title": "Reschedule Reservation",
+			"newDate": "New date",
+			"newStartTime": "New start time",
+			"newEndTime": "New end time",
+			"confirm": "Confirm Reschedule"
+		},
+		"cancel": {
+			"title": "Cancel Reservation",
+			"description": "Are you sure you want to cancel this reservation?",
+			"reasonLabel": "Cancellation reason",
+			"reasonPlaceholder": "Enter reason (optional)",
+			"confirm": "Confirm Cancellation"
+		},
+		"noShow": {
+			"title": "Mark as No Show",
+			"description": "Confirm that the guest did not show up?"
+		},
+		"sections": {
+			"guestInfo": "Guest Information",
+			"reservationInfo": "Reservation Details",
+			"assignment": "Assignment",
+			"notes": "Notes"
+		}
+	},
+	"calendar": {
+		"title": "Reservation Calendar",
+		"views": {
+			"day": "Day",
+			"week": "Week"
+		},
+		"groupBy": {
+			"label": "Group by",
+			"table": "Table",
+			"staff": "Staff"
+		},
+		"noReservations": "No reservations for this period"
+	},
+	"waitlist": {
+		"title": "Waitlist",
+		"subtitle": "Manage customers on the waitlist",
+		"emptyState": {
+			"title": "Waitlist is empty",
+			"description": "No customers are waiting at the moment"
+		},
+		"columns": {
+			"position": "Pos.",
+			"guest": "Guest",
+			"partySize": "Party Size",
+			"desiredTime": "Desired Time",
+			"status": "Status",
+			"addedAt": "Added"
+		},
+		"status": {
+			"WAITING": "Waiting",
+			"NOTIFIED": "Notified",
+			"PROMOTED": "Promoted",
+			"CANCELLED": "Cancelled",
+			"EXPIRED": "Expired"
+		},
+		"actions": {
+			"add": "Add to Waitlist",
+			"promote": "Promote",
+			"notify": "Notify",
+			"remove": "Remove"
+		},
+		"addForm": {
+			"title": "Add to Waitlist",
+			"fields": {
+				"guestName": "Name",
+				"guestPhone": "Phone",
+				"partySize": "Party size",
+				"desiredTime": "Desired time",
+				"notes": "Notes"
+			}
+		},
+		"promoteDialog": {
+			"title": "Promote from Waitlist",
+			"description": "A reservation will be created for this customer"
+		},
+		"priorityMode": {
+			"fifo": "First come, first served",
+			"party_size": "By party size",
+			"broadcast": "Broadcast notification"
+		}
+	},
+	"onlineBooking": {
+		"title": "Online Booking Widget",
+		"subtitle": "Embed the booking form on your website. Customers can book without leaving your site.",
+		"settingsLink": "Online booking is configured in Reservation Settings",
+		"settingsLinkDescription": "Enable or disable online booking and configure required fields there.",
+		"goToSettings": "Go to Settings",
+		"customize": "Customize your widget",
+		"customizeDescription": "Choose language, theme, and display mode. The code snippet updates live.",
+		"fields": {
+			"locale": "Language",
+			"theme": "Theme",
+			"mode": "Display mode"
+		},
+		"locales": {
+			"es": "Spanish",
+			"en": "English"
+		},
+		"themes": {
+			"auto": "Auto (system)",
+			"light": "Light",
+			"dark": "Dark"
+		},
+		"modes": {
+			"inline": "Inline (embedded in page)",
+			"button": "Button (click to open)",
+			"popup": "Popup (floating)"
+		},
+		"htmlEmbed": "HTML Embed Code",
+		"htmlEmbedDescription": "Paste this into any HTML page, WordPress theme, or website builder. Works on Wix, Squarespace, Shopify, and custom sites.",
+		"wordpress": "WordPress Shortcode",
+		"wordpressDescription": "Use this shortcode in any page, post, or widget after installing the Avoqado Booking Plugin.",
+		"wordpressPluginNote": "Download the Avoqado Booking Plugin from our developer portal to enable shortcode support.",
+		"npm": "npm Package",
+		"npmDescription": "For React, Vue, or Angular projects — import as a Web Component.",
+		"preview": "Live Preview",
+		"previewDescription": "This is how your booking page looks to customers. The widget on external sites looks identical.",
+		"openPreview": "Open in new tab"
+	},
+	"settings": {
+		"title": "Reservation Settings",
+		"subtitle": "Configure schedules, deposits, and policies",
+		"sections": {
+			"operatingHours": "Operating Hours",
+			"scheduling": "Scheduling",
+			"pacing": "Pacing",
+			"deposits": "Deposits",
+			"publicBooking": "Online Booking",
+			"cancellation": "Cancellation",
+			"waitlist": "Waitlist",
+			"reminders": "Reminders"
+		},
+		"operatingHours": {
+			"title": "Operating Hours",
+			"subtitle": "Set your weekly schedule. Closed days will not show availability.",
+			"closed": "Closed",
+			"addRange": "Add range",
+			"removeRange": "Remove range",
+			"open": "Open",
+			"close": "Close",
+			"days": {
+				"monday": "Monday",
+				"tuesday": "Tuesday",
+				"wednesday": "Wednesday",
+				"thursday": "Thursday",
+				"friday": "Friday",
+				"saturday": "Saturday",
+				"sunday": "Sunday"
+			},
+			"maxRanges": "Maximum 3 ranges per day"
+		},
+		"scheduling": {
+			"slotInterval": "Slot interval",
+			"slotIntervalHelp": "How often time slots are offered",
+			"defaultDuration": "Default duration",
+			"defaultDurationHelp": "Standard reservation duration",
+			"autoConfirm": "Auto-confirm",
+			"autoConfirmHelp": "Reservations are confirmed upon creation",
+			"maxAdvanceDays": "Max advance days",
+			"maxAdvanceDaysHelp": "How far in advance customers can book",
+			"minNotice": "Minimum notice",
+			"minNoticeHelp": "Minimum time before start time",
+			"noShowGrace": "No Show grace period",
+			"noShowGraceHelp": "Minutes to wait before marking No Show"
+		},
+		"pacing": {
+			"maxPerSlot": "Max per slot",
+			"maxPerSlotHelp": "Concurrent reservation limit (empty = no limit)",
+			"onlineCapacity": "Online capacity",
+			"onlineCapacityHelp": "Percentage of capacity available for online bookings"
+		},
+		"deposits": {
+			"enabled": "Require deposit",
+			"mode": "Deposit mode",
+			"modes": {
+				"none": "No deposit",
+				"card_hold": "Card hold",
+				"deposit": "Partial deposit",
+				"prepaid": "Full prepayment"
+			},
+			"fixedAmount": "Fixed amount",
+			"percentage": "Percentage",
+			"partySizeGte": "For parties of",
+			"partySizeGteHelp": "people or more",
+			"paymentWindow": "Payment window",
+			"paymentWindowHelp": "Hours to complete payment"
+		},
+		"publicBooking": {
+			"enabled": "Enable online booking",
+			"enabledHelp": "Customers can book from your website",
+			"requirePhone": "Require phone",
+			"requireEmail": "Require email"
+		},
+		"cancellation": {
+			"allowCustomerCancel": "Allow customer cancellation",
+			"minHoursBefore": "Minimum hours before",
+			"minHoursBeforeHelp": "Hours before start to allow cancellation",
+			"forfeitDeposit": "Forfeit deposit on cancel",
+			"noShowFee": "No Show fee",
+			"noShowFeeHelp": "Percentage of deposit charged"
+		},
+		"waitlist": {
+			"enabled": "Enable waitlist",
+			"maxSize": "Maximum size",
+			"priorityMode": "Priority mode",
+			"notifyWindow": "Notification window",
+			"notifyWindowHelp": "Minutes the customer has to respond"
+		},
+		"reminders": {
+			"enabled": "Send reminders",
+			"channels": "Channels",
+			"channelOptions": {
+				"EMAIL": "Email",
+				"SMS": "SMS",
+				"WHATSAPP": "WhatsApp"
+			},
+			"minutesBefore": "Send before",
+			"minutesBeforeHelp": "Minutes before the reservation"
+		},
+		"saved": "Settings saved successfully"
+	},
+	"toasts": {
+		"createSuccess": "Reservation created successfully",
+		"updateSuccess": "Reservation updated successfully",
+		"cancelSuccess": "Reservation cancelled",
+		"confirmSuccess": "Reservation confirmed",
+		"checkInSuccess": "Checked in successfully",
+		"completeSuccess": "Reservation completed",
+		"noShowSuccess": "Marked as No Show",
+		"rescheduleSuccess": "Reservation rescheduled",
+		"waitlistAddSuccess": "Added to waitlist",
+		"waitlistRemoveSuccess": "Removed from waitlist",
+		"waitlistPromoteSuccess": "Customer promoted from waitlist",
+		"error": "An error occurred. Please try again."
+	},
+	"minutes": "min",
+	"hours": "hrs",
+	"people": "{{count}} person",
+	"people_other": "{{count}} people",
+	"noTable": "No table",
+	"noStaff": "Unassigned",
+	"unnamedGuest": "Guest",
+	"publicBooking": {
+		"pageTitle": "Book a Reservation",
+		"poweredBy": "Powered by Avoqado",
+		"steps": {
+			"service": "Service",
+			"date": "Date",
+			"time": "Time",
+			"info": "Details",
+			"confirmation": "Confirmed"
+		},
+		"service": {
+			"title": "Select a service",
+			"duration": "{{min}} min",
+			"noProducts": "No services available"
+		},
+		"date": {
+			"title": "Select a date",
+			"today": "Today"
+		},
+		"time": {
+			"title": "Select a time",
+			"noSlots": "No available times for this date",
+			"loading": "Loading available times..."
+		},
+		"guestForm": {
+			"title": "Your details",
+			"phone": "Phone",
+			"phonePlaceholder": "Your phone number",
+			"name": "Name",
+			"namePlaceholder": "Your name",
+			"email": "Email (optional)",
+			"emailPlaceholder": "your@email.com",
+			"partySize": "Party size",
+			"specialRequests": "Special requests",
+			"specialRequestsPlaceholder": "Allergies, birthday, accessibility needs...",
+			"submit": "Confirm Reservation",
+			"submitting": "Booking..."
+		},
+		"validation": {
+			"phoneRequired": "Phone is required",
+			"nameRequired": "Name is required",
+			"emailInvalid": "Enter a valid email",
+			"emailRequired": "Email is required"
+		},
+		"confirmation": {
+			"title": "Reservation Confirmed!",
+			"code": "Confirmation Code",
+			"dateTime": "Date & Time",
+			"guests": "Guests",
+			"service": "Service",
+			"addToCalendar": "Add to Google Calendar",
+			"downloadIcs": "Download .ics",
+			"manageBooking": "Manage Booking",
+			"newBooking": "Book Another"
+		},
+		"manage": {
+			"title": "Your Reservation",
+			"cancelButton": "Cancel Reservation",
+			"cancelTitle": "Cancel Reservation",
+			"cancelDescription": "Are you sure you want to cancel this reservation? This action cannot be undone.",
+			"cancelReasonLabel": "Reason (optional)",
+			"cancelReasonPlaceholder": "Why are you cancelling?",
+			"cancelConfirm": "Confirm Cancellation",
+			"cancelledStatus": "This reservation has been cancelled",
+			"cancelledAt": "Cancelled on {{date}}",
+			"deposit": "Deposit",
+			"depositForfeit": "Deposit will be forfeited",
+			"table": "Table",
+			"staff": "Assigned to",
+			"specialRequests": "Special Requests",
+			"backToBooking": "Book a New Reservation"
+		},
+		"cancellationPolicy": {
+			"title": "Cancellation Policy",
+			"allowCancel": "Free cancellation up to {{hours}} hours before",
+			"noCancel": "This reservation cannot be cancelled online",
+			"depositForfeit": "Deposit will be forfeited if cancelled"
+		},
+		"errors": {
+			"venueNotFound": "This page doesn't exist",
+			"venueNotFoundDescription": "The booking link may be incorrect or the venue is no longer available.",
+			"bookingDisabled": "Online booking not available",
+			"bookingDisabledDescription": "This venue is not accepting online reservations at this time.",
+			"bookingDisabledContact": "Call {{phone}} to make a reservation",
+			"reservationNotFound": "Reservation not found",
+			"reservationNotFoundDescription": "This booking link may be expired or invalid.",
+			"slotTaken": "This time slot is no longer available. Please choose another time.",
+			"generic": "Something went wrong. Please try again."
+		}
+	}
+}

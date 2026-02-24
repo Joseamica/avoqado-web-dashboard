@@ -10,6 +10,8 @@ let merchantAccountIdCounter = 1
 let terminalIdCounter = 1
 let costStructureIdCounter = 1
 let venueConfigIdCounter = 1
+let reservationIdCounter = 1
+let waitlistIdCounter = 1
 
 // In-memory stores for stateful testing
 export const mockStore = {
@@ -21,6 +23,9 @@ export const mockStore = {
   suppliers: new Map<string, any>(),
   purchaseOrders: new Map<string, any>(),
   supplierPricing: new Map<string, any>(),
+  reservations: new Map<string, any>(),
+  waitlistEntries: new Map<string, any>(),
+  reservationSettings: new Map<string, any>(),
 
   // Reset all stores
   reset() {
@@ -31,10 +36,15 @@ export const mockStore = {
     this.suppliers.clear()
     this.purchaseOrders.clear()
     this.supplierPricing.clear()
+    this.reservations.clear()
+    this.waitlistEntries.clear()
+    this.reservationSettings.clear()
     merchantAccountIdCounter = 1
     terminalIdCounter = 1
     costStructureIdCounter = 1
     venueConfigIdCounter = 1
+    reservationIdCounter = 1
+    waitlistIdCounter = 1
 
     // Initialize default provider
     this.providers.set('blumon-provider-id', {
@@ -525,6 +535,446 @@ export const purchaseOrdersHandlers = [
 ]
 
 // ============================================================================
+// RESERVATION FACTORIES
+// ============================================================================
+
+function generateConfirmationCode(): string {
+  return `RES-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+}
+
+export function createMockReservation(venueId: string, overrides: Partial<any> = {}) {
+  const id = `reservation-${reservationIdCounter++}`
+  const now = new Date()
+  const startsAt = overrides.startsAt || new Date(now.getTime() + 3600000).toISOString()
+  const endsAt = overrides.endsAt || new Date(new Date(startsAt).getTime() + 3600000).toISOString()
+  const reservation = {
+    id,
+    venueId,
+    confirmationCode: generateConfirmationCode(),
+    cancelSecret: `cancel-${id}`,
+    status: 'PENDING',
+    channel: 'DASHBOARD',
+    startsAt,
+    endsAt,
+    duration: 60,
+    customerId: null,
+    customer: null,
+    guestName: 'Test Guest',
+    guestPhone: '+5215551234567',
+    guestEmail: 'guest@test.com',
+    partySize: 2,
+    tableId: null,
+    table: null,
+    productId: null,
+    product: null,
+    assignedStaffId: null,
+    assignedStaff: null,
+    createdById: null,
+    createdBy: null,
+    depositAmount: null,
+    depositStatus: null,
+    confirmedAt: null,
+    checkedInAt: null,
+    completedAt: null,
+    cancelledAt: null,
+    noShowAt: null,
+    cancelledBy: null,
+    cancellationReason: null,
+    specialRequests: null,
+    internalNotes: null,
+    tags: [],
+    statusLog: [{ status: 'PENDING', at: now.toISOString(), by: null }],
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString(),
+    ...overrides,
+  }
+  mockStore.reservations.set(id, reservation)
+  return reservation
+}
+
+export function createMockWaitlistEntry(venueId: string, overrides: Partial<any> = {}) {
+  const id = `waitlist-${waitlistIdCounter++}`
+  const now = new Date()
+  const entry = {
+    id,
+    venueId,
+    customerId: null,
+    customer: null,
+    guestName: 'Waitlist Guest',
+    guestPhone: '+5215559876543',
+    partySize: 2,
+    desiredStartAt: new Date(now.getTime() + 3600000).toISOString(),
+    desiredEndAt: null,
+    status: 'WAITING',
+    position: waitlistIdCounter,
+    notifiedAt: null,
+    responseDeadline: null,
+    promotedReservationId: null,
+    promotedReservation: null,
+    notes: null,
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString(),
+    ...overrides,
+  }
+  mockStore.waitlistEntries.set(id, entry)
+  return entry
+}
+
+function getDefaultSettings(): any {
+  return {
+    scheduling: {
+      slotIntervalMin: 15,
+      defaultDurationMin: 60,
+      autoConfirm: false,
+      maxAdvanceDays: 30,
+      minNoticeMin: 60,
+      noShowGraceMin: 15,
+      pacingMaxPerSlot: null,
+      onlineCapacityPercent: 80,
+    },
+    deposits: {
+      enabled: false,
+      mode: 'none',
+      percentageOfTotal: null,
+      fixedAmount: null,
+      requiredForPartySizeGte: null,
+      paymentWindowHrs: null,
+    },
+    cancellation: {
+      allowCustomerCancel: true,
+      minHoursBeforeStart: 2,
+      forfeitDeposit: false,
+      noShowFeePercent: null,
+    },
+    waitlist: {
+      enabled: true,
+      maxSize: 20,
+      priorityMode: 'fifo',
+      notifyWindowMin: 15,
+    },
+    reminders: {
+      enabled: true,
+      channels: ['email'],
+      minutesBefore: [60, 1440],
+    },
+    publicBooking: {
+      enabled: false,
+      requirePhone: true,
+      requireEmail: false,
+    },
+  }
+}
+
+// ============================================================================
+// RESERVATION HANDLERS
+// ============================================================================
+
+const reservationBasePath = `${BASE_URL}/api/v1/dashboard/venues/:venueId/reservations`
+
+export const reservationHandlers = [
+  // GET /reservations (paginated list)
+  http.get(reservationBasePath, ({ params, request }) => {
+    const url = new URL(request.url)
+
+    let reservations = Array.from(mockStore.reservations.values()).filter(
+      (r) => r.venueId === params.venueId,
+    )
+
+    const status = url.searchParams.get('status')
+    if (status) {
+      const statuses = status.split(',')
+      reservations = reservations.filter((r) => statuses.includes(r.status))
+    }
+
+    const search = url.searchParams.get('search')
+    if (search) {
+      const q = search.toLowerCase()
+      reservations = reservations.filter(
+        (r) =>
+          (r.guestName && r.guestName.toLowerCase().includes(q)) ||
+          (r.confirmationCode && r.confirmationCode.toLowerCase().includes(q)),
+      )
+    }
+
+    const dateFrom = url.searchParams.get('dateFrom')
+    const dateTo = url.searchParams.get('dateTo')
+    if (dateFrom) {
+      reservations = reservations.filter((r) => r.startsAt >= dateFrom)
+    }
+    if (dateTo) {
+      reservations = reservations.filter((r) => r.startsAt <= `${dateTo}T23:59:59.999Z`)
+    }
+
+    const channel = url.searchParams.get('channel')
+    if (channel) {
+      const channels = channel.split(',')
+      reservations = reservations.filter((r) => channels.includes(r.channel))
+    }
+
+    const page = parseInt(url.searchParams.get('page') || '1', 10)
+    const pageSize = parseInt(url.searchParams.get('pageSize') || '20', 10)
+    const total = reservations.length
+    const paginated = reservations.slice((page - 1) * pageSize, page * pageSize)
+
+    return HttpResponse.json({
+      data: paginated,
+      meta: { total, page, pageSize, totalPages: Math.ceil(total / pageSize) },
+    })
+  }),
+
+  // GET /reservations/stats
+  http.get(`${reservationBasePath}/stats`, ({ params, request }) => {
+    const url = new URL(request.url)
+    let reservations = Array.from(mockStore.reservations.values()).filter(
+      (r) => r.venueId === params.venueId,
+    )
+
+    const dateFrom = url.searchParams.get('dateFrom')
+    const dateTo = url.searchParams.get('dateTo')
+    if (dateFrom) reservations = reservations.filter((r) => r.startsAt >= dateFrom)
+    if (dateTo) reservations = reservations.filter((r) => r.startsAt <= `${dateTo}T23:59:59.999Z`)
+
+    const byStatus: Record<string, number> = {}
+    const byChannel: Record<string, number> = {}
+    for (const r of reservations) {
+      byStatus[r.status] = (byStatus[r.status] || 0) + 1
+      byChannel[r.channel] = (byChannel[r.channel] || 0) + 1
+    }
+
+    const noShows = byStatus['NO_SHOW'] || 0
+    const total = reservations.length
+
+    return HttpResponse.json({
+      total,
+      byStatus,
+      byChannel,
+      noShowRate: total > 0 ? noShows / total : 0,
+    })
+  }),
+
+  // GET /reservations/calendar
+  http.get(`${reservationBasePath}/calendar`, ({ params, request }) => {
+    const url = new URL(request.url)
+    let reservations = Array.from(mockStore.reservations.values()).filter(
+      (r) => r.venueId === params.venueId,
+    )
+
+    const dateFrom = url.searchParams.get('dateFrom')
+    const dateTo = url.searchParams.get('dateTo')
+    if (dateFrom) reservations = reservations.filter((r) => r.startsAt >= dateFrom)
+    if (dateTo) reservations = reservations.filter((r) => r.startsAt <= `${dateTo}T23:59:59.999Z`)
+
+    return HttpResponse.json({ reservations })
+  }),
+
+  // GET /reservations/availability
+  http.get(`${reservationBasePath}/availability`, ({ request }) => {
+    const url = new URL(request.url)
+    const date = url.searchParams.get('date') || new Date().toISOString().split('T')[0]
+
+    return HttpResponse.json({
+      date,
+      slots: [
+        {
+          startsAt: `${date}T14:00:00.000Z`,
+          endsAt: `${date}T15:00:00.000Z`,
+          availableTables: [{ id: 'table-1', number: 'T1', capacity: 4 }],
+          availableStaff: [{ id: 'staff-1', firstName: 'Ana', lastName: 'García' }],
+        },
+        {
+          startsAt: `${date}T14:15:00.000Z`,
+          endsAt: `${date}T15:15:00.000Z`,
+          availableTables: [{ id: 'table-2', number: 'T2', capacity: 6 }],
+          availableStaff: [],
+        },
+        {
+          startsAt: `${date}T14:30:00.000Z`,
+          endsAt: `${date}T15:30:00.000Z`,
+          availableTables: [{ id: 'table-1', number: 'T1', capacity: 4 }],
+          availableStaff: [],
+        },
+      ],
+    })
+  }),
+
+  // GET /reservations/waitlist (MUST come before /:reservationId)
+  http.get(`${reservationBasePath}/waitlist`, ({ params, request }) => {
+    const url = new URL(request.url)
+    let entries = Array.from(mockStore.waitlistEntries.values()).filter(
+      (e) => e.venueId === params.venueId,
+    )
+    const status = url.searchParams.get('status')
+    if (status) entries = entries.filter((e) => e.status === status)
+    return HttpResponse.json(entries)
+  }),
+
+  // POST /reservations/waitlist
+  http.post(`${reservationBasePath}/waitlist`, async ({ request, params }) => {
+    const body = (await request.json()) as any
+    const entry = createMockWaitlistEntry(params.venueId as string, body)
+    return HttpResponse.json(entry, { status: 201 })
+  }),
+
+  // DELETE /reservations/waitlist/:entryId
+  http.delete(`${reservationBasePath}/waitlist/:entryId`, ({ params }) => {
+    const deleted = mockStore.waitlistEntries.delete(params.entryId as string)
+    if (!deleted) {
+      return HttpResponse.json({ error: 'Waitlist entry not found' }, { status: 404 })
+    }
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  // POST /reservations/waitlist/:entryId/promote
+  http.post(`${reservationBasePath}/waitlist/:entryId/promote`, async ({ request, params }) => {
+    const existing = mockStore.waitlistEntries.get(params.entryId as string)
+    if (!existing) {
+      return HttpResponse.json({ error: 'Waitlist entry not found' }, { status: 404 })
+    }
+    const body = (await request.json()) as any
+    existing.status = 'PROMOTED'
+    existing.promotedReservationId = body.reservationId
+    existing.updatedAt = new Date().toISOString()
+    return HttpResponse.json(existing)
+  }),
+
+  // GET /reservations/settings
+  http.get(`${reservationBasePath}/settings`, ({ params }) => {
+    const venueId = params.venueId as string
+    const settings = mockStore.reservationSettings.get(venueId) || getDefaultSettings()
+    return HttpResponse.json(settings)
+  }),
+
+  // PUT /reservations/settings
+  http.put(`${reservationBasePath}/settings`, async ({ request, params }) => {
+    const venueId = params.venueId as string
+    const body = (await request.json()) as any
+    const current = mockStore.reservationSettings.get(venueId) || getDefaultSettings()
+    const updated = { ...current, ...body }
+    mockStore.reservationSettings.set(venueId, updated)
+    return HttpResponse.json(updated)
+  }),
+
+  // ── Individual reservation handlers (MUST come AFTER /waitlist, /settings) ──
+
+  // GET /reservations/:id
+  http.get(`${reservationBasePath}/:reservationId`, ({ params }) => {
+    const reservation = mockStore.reservations.get(params.reservationId as string)
+    if (!reservation) {
+      return HttpResponse.json({ error: 'Reservation not found' }, { status: 404 })
+    }
+    return HttpResponse.json(reservation)
+  }),
+
+  // POST /reservations (create)
+  http.post(reservationBasePath, async ({ request, params }) => {
+    const body = (await request.json()) as any
+    const reservation = createMockReservation(params.venueId as string, body)
+    return HttpResponse.json(reservation, { status: 201 })
+  }),
+
+  // PUT /reservations/:id (update)
+  http.put(`${reservationBasePath}/:reservationId`, async ({ request, params }) => {
+    const existing = mockStore.reservations.get(params.reservationId as string)
+    if (!existing) {
+      return HttpResponse.json({ error: 'Reservation not found' }, { status: 404 })
+    }
+    const body = (await request.json()) as any
+    const updated = { ...existing, ...body, updatedAt: new Date().toISOString() }
+    mockStore.reservations.set(params.reservationId as string, updated)
+    return HttpResponse.json(updated)
+  }),
+
+  // DELETE /reservations/:id (cancel)
+  http.delete(`${reservationBasePath}/:reservationId`, async ({ request, params }) => {
+    const existing = mockStore.reservations.get(params.reservationId as string)
+    if (!existing) {
+      return HttpResponse.json({ error: 'Reservation not found' }, { status: 404 })
+    }
+    let reason: string | undefined
+    try {
+      const body = (await request.json()) as any
+      reason = body?.reason
+    } catch { /* no body */ }
+    const now = new Date().toISOString()
+    existing.status = 'CANCELLED'
+    existing.cancelledAt = now
+    existing.cancellationReason = reason || null
+    existing.updatedAt = now
+    existing.statusLog = [...(existing.statusLog || []), { status: 'CANCELLED', at: now, by: null, reason }]
+    return HttpResponse.json(existing)
+  }),
+
+  // POST /reservations/:id/confirm
+  http.post(`${reservationBasePath}/:reservationId/confirm`, ({ params }) => {
+    const existing = mockStore.reservations.get(params.reservationId as string)
+    if (!existing) {
+      return HttpResponse.json({ error: 'Reservation not found' }, { status: 404 })
+    }
+    const now = new Date().toISOString()
+    existing.status = 'CONFIRMED'
+    existing.confirmedAt = now
+    existing.updatedAt = now
+    existing.statusLog = [...(existing.statusLog || []), { status: 'CONFIRMED', at: now, by: null }]
+    return HttpResponse.json(existing)
+  }),
+
+  // POST /reservations/:id/check-in
+  http.post(`${reservationBasePath}/:reservationId/check-in`, ({ params }) => {
+    const existing = mockStore.reservations.get(params.reservationId as string)
+    if (!existing) {
+      return HttpResponse.json({ error: 'Reservation not found' }, { status: 404 })
+    }
+    const now = new Date().toISOString()
+    existing.status = 'CHECKED_IN'
+    existing.checkedInAt = now
+    existing.updatedAt = now
+    existing.statusLog = [...(existing.statusLog || []), { status: 'CHECKED_IN', at: now, by: null }]
+    return HttpResponse.json(existing)
+  }),
+
+  // POST /reservations/:id/complete
+  http.post(`${reservationBasePath}/:reservationId/complete`, ({ params }) => {
+    const existing = mockStore.reservations.get(params.reservationId as string)
+    if (!existing) {
+      return HttpResponse.json({ error: 'Reservation not found' }, { status: 404 })
+    }
+    const now = new Date().toISOString()
+    existing.status = 'COMPLETED'
+    existing.completedAt = now
+    existing.updatedAt = now
+    existing.statusLog = [...(existing.statusLog || []), { status: 'COMPLETED', at: now, by: null }]
+    return HttpResponse.json(existing)
+  }),
+
+  // POST /reservations/:id/no-show
+  http.post(`${reservationBasePath}/:reservationId/no-show`, ({ params }) => {
+    const existing = mockStore.reservations.get(params.reservationId as string)
+    if (!existing) {
+      return HttpResponse.json({ error: 'Reservation not found' }, { status: 404 })
+    }
+    const now = new Date().toISOString()
+    existing.status = 'NO_SHOW'
+    existing.noShowAt = now
+    existing.updatedAt = now
+    existing.statusLog = [...(existing.statusLog || []), { status: 'NO_SHOW', at: now, by: null }]
+    return HttpResponse.json(existing)
+  }),
+
+  // POST /reservations/:id/reschedule
+  http.post(`${reservationBasePath}/:reservationId/reschedule`, async ({ request, params }) => {
+    const existing = mockStore.reservations.get(params.reservationId as string)
+    if (!existing) {
+      return HttpResponse.json({ error: 'Reservation not found' }, { status: 404 })
+    }
+    const body = (await request.json()) as any
+    existing.startsAt = body.startsAt
+    existing.endsAt = body.endsAt
+    existing.updatedAt = new Date().toISOString()
+    return HttpResponse.json(existing)
+  }),
+]
+
+// ============================================================================
 // API HANDLERS
 // ============================================================================
 
@@ -534,6 +984,11 @@ export const handlers = [
   // --------------------------------------------------------------------------
   ...suppliersHandlers,
   ...purchaseOrdersHandlers,
+
+  // --------------------------------------------------------------------------
+  // Reservations
+  // --------------------------------------------------------------------------
+  ...reservationHandlers,
 
   // --------------------------------------------------------------------------
   // Payment Providers

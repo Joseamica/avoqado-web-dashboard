@@ -1,0 +1,489 @@
+{
+	"title": "Reservaciones",
+	"subtitle": "Gestiona reservaciones, disponibilidad y lista de espera",
+	"nav": {
+		"overview": "Resumen",
+		"calendar": "Calendario",
+		"waitlist": "Lista de espera",
+		"settings": "Configuración"
+	},
+	"emptyState": {
+		"title": "Sin reservaciones",
+		"description": "Las reservaciones aparecerán aquí cuando los clientes comiencen a reservar"
+	},
+	"tabs": {
+		"all": "Todas",
+		"pending": "Pendientes",
+		"confirmed": "Confirmadas",
+		"today": "Hoy",
+		"noShow": "No Show"
+	},
+	"filters": {
+		"dateRange": "Rango de fechas",
+		"status": "Estado",
+		"channel": "Canal",
+		"staff": "Personal",
+		"table": "Mesa"
+	},
+	"searchPlaceholder": "Buscar por nombre, teléfono o código...",
+	"columns": {
+		"code": "Código",
+		"guest": "Cliente",
+		"dateTime": "Fecha / Hora",
+		"duration": "Duración",
+		"partySize": "Personas",
+		"table": "Mesa",
+		"staff": "Asignado",
+		"status": "Estado",
+		"channel": "Canal"
+	},
+	"status": {
+		"PENDING": "Pendiente",
+		"CONFIRMED": "Confirmada",
+		"CHECKED_IN": "Check-in",
+		"COMPLETED": "Completada",
+		"CANCELLED": "Cancelada",
+		"NO_SHOW": "No Show"
+	},
+	"channel": {
+		"DASHBOARD": "Dashboard",
+		"WEB": "Web",
+		"PHONE": "Teléfono",
+		"WHATSAPP": "WhatsApp",
+		"APP": "App",
+		"WALK_IN": "Sin cita",
+		"THIRD_PARTY": "Tercero"
+	},
+	"depositStatus": {
+		"PENDING": "Pendiente",
+		"PAID": "Pagado",
+		"REFUNDED": "Reembolsado"
+	},
+	"stats": {
+		"todayCount": "Hoy",
+		"pending": "Pendientes",
+		"checkedIn": "En curso",
+		"noShowRate": "Tasa No Show"
+	},
+	"actions": {
+		"newReservation": "Nueva Reservación",
+		"confirm": "Confirmar",
+		"checkIn": "Check-in",
+		"complete": "Completar",
+		"markNoShow": "Marcar No Show",
+		"cancel": "Cancelar",
+		"reschedule": "Reagendar",
+		"edit": "Editar",
+		"viewDetails": "Ver Detalles",
+		"save": "Guardar",
+		"saveChanges": "Guardar Cambios",
+		"goBack": "Volver"
+	},
+	"form": {
+		"createTitle": "Nueva Reservación",
+		"editTitle": "Editar Reservación",
+		"fields": {
+			"dateTime": "Fecha y Hora",
+			"date": "Fecha",
+			"startTime": "Hora de inicio",
+			"endTime": "Hora de fin",
+			"duration": "Duración",
+			"durationMin": "{{min}} min",
+			"partySize": "Personas",
+			"customer": "Cliente",
+			"guestName": "Nombre del invitado",
+			"guestPhone": "Teléfono",
+			"guestEmail": "Email",
+			"table": "Mesa",
+			"staff": "Personal asignado",
+			"channel": "Canal",
+			"specialRequests": "Solicitudes especiales",
+			"internalNotes": "Notas internas",
+			"tags": "Etiquetas"
+		},
+		"placeholders": {
+			"searchCustomer": "Buscar cliente existente...",
+			"guestName": "Nombre del invitado",
+			"guestPhone": "Teléfono de contacto",
+			"guestEmail": "Email de contacto",
+			"specialRequests": "Alergias, cumpleaños, silla de bebé...",
+			"internalNotes": "Notas visibles solo para el personal",
+			"tags": "Agregar etiqueta..."
+		},
+		"validation": {
+			"dateRequired": "La fecha es requerida",
+			"startTimeRequired": "La hora de inicio es requerida",
+			"endTimeRequired": "La hora de fin es requerida",
+			"endAfterStart": "La hora de fin debe ser posterior a la hora de inicio",
+			"durationRequired": "La duración es requerida",
+			"partySizeRequired": "El número de personas es requerido",
+			"partySizeMin": "Mínimo 1 persona",
+			"guestOrCustomer": "Selecciona un cliente o ingresa nombre del invitado",
+			"guestNameRequired": "El nombre es requerido",
+			"phoneRequired": "El teléfono es requerido",
+			"emailInvalid": "Ingresa un email válido"
+		},
+		"sections": {
+			"dateTime": "Fecha y Hora",
+			"guest": "Información del Cliente",
+			"assignment": "Asignación",
+			"additional": "Información Adicional"
+		},
+		"guestMode": {
+			"existing": "Cliente existente",
+			"new": "Nuevo invitado"
+		},
+		"noTablesAvailable": "Sin mesas disponibles para este horario",
+		"selectTable": "Seleccionar mesa",
+		"selectStaff": "Seleccionar personal",
+		"tableCapacity": "Mesa {{number}} ({{capacity}} personas)"
+	},
+	"detail": {
+		"title": "Reservación {{code}}",
+		"confirmationCode": "Código de confirmación",
+		"timeline": "Historial",
+		"timelineEntry": "{{status}} — {{date}}",
+		"timelineBy": "por {{name}}",
+		"deposit": {
+			"title": "Depósito",
+			"amount": "Monto",
+			"status": "Estado"
+		},
+		"reschedule": {
+			"title": "Reagendar Reservación",
+			"newDate": "Nueva fecha",
+			"newStartTime": "Nueva hora de inicio",
+			"newEndTime": "Nueva hora de fin",
+			"confirm": "Confirmar Reagenda"
+		},
+		"cancel": {
+			"title": "Cancelar Reservación",
+			"description": "¿Estás seguro de que deseas cancelar esta reservación?",
+			"reasonLabel": "Razón de cancelación",
+			"reasonPlaceholder": "Ingresa la razón (opcional)",
+			"confirm": "Confirmar Cancelación"
+		},
+		"noShow": {
+			"title": "Marcar como No Show",
+			"description": "¿Confirmas que el cliente no se presentó?"
+		},
+		"sections": {
+			"guestInfo": "Información del Cliente",
+			"reservationInfo": "Detalles de la Reservación",
+			"assignment": "Asignación",
+			"notes": "Notas"
+		}
+	},
+	"calendar": {
+		"title": "Calendario de Reservaciones",
+		"views": {
+			"day": "Día",
+			"week": "Semana"
+		},
+		"groupBy": {
+			"label": "Agrupar por",
+			"table": "Mesa",
+			"staff": "Personal"
+		},
+		"noReservations": "Sin reservaciones para este período"
+	},
+	"waitlist": {
+		"title": "Lista de Espera",
+		"subtitle": "Gestiona clientes en lista de espera",
+		"emptyState": {
+			"title": "Lista de espera vacía",
+			"description": "No hay clientes esperando en este momento"
+		},
+		"columns": {
+			"position": "Pos.",
+			"guest": "Cliente",
+			"partySize": "Personas",
+			"desiredTime": "Hora deseada",
+			"status": "Estado",
+			"addedAt": "Registrado"
+		},
+		"status": {
+			"WAITING": "Esperando",
+			"NOTIFIED": "Notificado",
+			"PROMOTED": "Promovido",
+			"CANCELLED": "Cancelado",
+			"EXPIRED": "Expirado"
+		},
+		"actions": {
+			"add": "Agregar a Lista",
+			"promote": "Promover",
+			"notify": "Notificar",
+			"remove": "Remover"
+		},
+		"addForm": {
+			"title": "Agregar a Lista de Espera",
+			"fields": {
+				"guestName": "Nombre",
+				"guestPhone": "Teléfono",
+				"partySize": "Personas",
+				"desiredTime": "Hora deseada",
+				"notes": "Notas"
+			}
+		},
+		"promoteDialog": {
+			"title": "Promover de Lista de Espera",
+			"description": "Se creará una reservación para este cliente"
+		},
+		"priorityMode": {
+			"fifo": "Orden de llegada",
+			"party_size": "Por tamaño de grupo",
+			"broadcast": "Notificación masiva"
+		}
+	},
+	"onlineBooking": {
+		"title": "Widget de Reservaciones Online",
+		"subtitle": "Incrusta el formulario de reservaciones en tu sitio web. Los clientes pueden reservar sin salir de tu página.",
+		"settingsLink": "Las reservaciones online se configuran en Configuración de Reservaciones",
+		"settingsLinkDescription": "Activa o desactiva las reservaciones online y configura los campos requeridos allí.",
+		"goToSettings": "Ir a Configuración",
+		"customize": "Personaliza tu widget",
+		"customizeDescription": "Elige idioma, tema y modo de visualización. El código se actualiza automáticamente.",
+		"fields": {
+			"locale": "Idioma",
+			"theme": "Tema",
+			"mode": "Modo de visualización"
+		},
+		"locales": {
+			"es": "Español",
+			"en": "Inglés"
+		},
+		"themes": {
+			"auto": "Automático (sistema)",
+			"light": "Claro",
+			"dark": "Oscuro"
+		},
+		"modes": {
+			"inline": "Integrado (dentro de la página)",
+			"button": "Botón (clic para abrir)",
+			"popup": "Popup (flotante)"
+		},
+		"htmlEmbed": "Código HTML para Incrustar",
+		"htmlEmbedDescription": "Pega esto en cualquier página HTML, tema de WordPress o constructor de sitios. Funciona en Wix, Squarespace, Shopify y sitios personalizados.",
+		"wordpress": "Shortcode de WordPress",
+		"wordpressDescription": "Usa este shortcode en cualquier página, entrada o widget después de instalar el Plugin de Reservaciones Avoqado.",
+		"wordpressPluginNote": "Descarga el Plugin de Reservaciones Avoqado desde nuestro portal de desarrolladores para habilitar el shortcode.",
+		"npm": "Paquete npm",
+		"npmDescription": "Para proyectos en React, Vue o Angular — importa como Web Component.",
+		"preview": "Vista Previa en Vivo",
+		"previewDescription": "Así es como tus clientes ven tu página de reservaciones. El widget en sitios externos se ve idéntico.",
+		"openPreview": "Abrir en nueva pestaña"
+	},
+	"settings": {
+		"title": "Configuración de Reservaciones",
+		"subtitle": "Configura horarios, depósitos y políticas",
+		"sections": {
+			"operatingHours": "Horario de Operación",
+			"scheduling": "Programación",
+			"pacing": "Ritmo",
+			"deposits": "Depósitos",
+			"publicBooking": "Reservaciones Online",
+			"cancellation": "Cancelación",
+			"waitlist": "Lista de Espera",
+			"reminders": "Recordatorios"
+		},
+		"operatingHours": {
+			"title": "Horario de Operación",
+			"subtitle": "Configura tu horario semanal. Los días cerrados no mostrarán disponibilidad.",
+			"closed": "Cerrado",
+			"addRange": "Agregar rango",
+			"removeRange": "Eliminar rango",
+			"open": "Apertura",
+			"close": "Cierre",
+			"days": {
+				"monday": "Lunes",
+				"tuesday": "Martes",
+				"wednesday": "Miércoles",
+				"thursday": "Jueves",
+				"friday": "Viernes",
+				"saturday": "Sábado",
+				"sunday": "Domingo"
+			},
+			"maxRanges": "Máximo 3 rangos por día"
+		},
+		"scheduling": {
+			"slotInterval": "Intervalo de slots",
+			"slotIntervalHelp": "Cada cuántos minutos se ofrecen horarios",
+			"defaultDuration": "Duración predeterminada",
+			"defaultDurationHelp": "Duración estándar de una reservación",
+			"autoConfirm": "Confirmar automáticamente",
+			"autoConfirmHelp": "Las reservaciones se confirman al crearlas",
+			"maxAdvanceDays": "Días máximos de anticipación",
+			"maxAdvanceDaysHelp": "Qué tan lejos pueden reservar los clientes",
+			"minNotice": "Aviso mínimo",
+			"minNoticeHelp": "Tiempo mínimo antes de la hora de inicio",
+			"noShowGrace": "Gracia para No Show",
+			"noShowGraceHelp": "Minutos de espera antes de marcar No Show"
+		},
+		"pacing": {
+			"maxPerSlot": "Máximo por slot",
+			"maxPerSlotHelp": "Límite de reservaciones simultáneas (vacío = sin límite)",
+			"onlineCapacity": "Capacidad online",
+			"onlineCapacityHelp": "Porcentaje de capacidad disponible para reservaciones online"
+		},
+		"deposits": {
+			"enabled": "Requerir depósito",
+			"mode": "Modo de depósito",
+			"modes": {
+				"none": "Sin depósito",
+				"card_hold": "Retención de tarjeta",
+				"deposit": "Depósito parcial",
+				"prepaid": "Prepago total"
+			},
+			"fixedAmount": "Monto fijo",
+			"percentage": "Porcentaje",
+			"partySizeGte": "Para grupos de",
+			"partySizeGteHelp": "personas o más",
+			"paymentWindow": "Ventana de pago",
+			"paymentWindowHelp": "Horas para completar el pago"
+		},
+		"publicBooking": {
+			"enabled": "Habilitar reservaciones online",
+			"enabledHelp": "Los clientes pueden reservar desde tu sitio web",
+			"requirePhone": "Requerir teléfono",
+			"requireEmail": "Requerir email"
+		},
+		"cancellation": {
+			"allowCustomerCancel": "Permitir cancelación por cliente",
+			"minHoursBefore": "Horas mínimas antes",
+			"minHoursBeforeHelp": "Horas antes del inicio para poder cancelar",
+			"forfeitDeposit": "Perder depósito al cancelar",
+			"noShowFee": "Cargo por No Show",
+			"noShowFeeHelp": "Porcentaje del depósito que se cobra"
+		},
+		"waitlist": {
+			"enabled": "Habilitar lista de espera",
+			"maxSize": "Tamaño máximo",
+			"priorityMode": "Modo de prioridad",
+			"notifyWindow": "Ventana de notificación",
+			"notifyWindowHelp": "Minutos que tiene el cliente para responder"
+		},
+		"reminders": {
+			"enabled": "Enviar recordatorios",
+			"channels": "Canales",
+			"channelOptions": {
+				"EMAIL": "Email",
+				"SMS": "SMS",
+				"WHATSAPP": "WhatsApp"
+			},
+			"minutesBefore": "Enviar antes de",
+			"minutesBeforeHelp": "Minutos antes de la reservación"
+		},
+		"saved": "Configuración guardada exitosamente"
+	},
+	"toasts": {
+		"createSuccess": "Reservación creada exitosamente",
+		"updateSuccess": "Reservación actualizada exitosamente",
+		"cancelSuccess": "Reservación cancelada",
+		"confirmSuccess": "Reservación confirmada",
+		"checkInSuccess": "Check-in realizado",
+		"completeSuccess": "Reservación completada",
+		"noShowSuccess": "Marcada como No Show",
+		"rescheduleSuccess": "Reservación reagendada",
+		"waitlistAddSuccess": "Agregado a la lista de espera",
+		"waitlistRemoveSuccess": "Removido de la lista de espera",
+		"waitlistPromoteSuccess": "Cliente promovido de la lista de espera",
+		"error": "Ocurrió un error. Por favor intenta de nuevo."
+	},
+	"minutes": "min",
+	"hours": "hrs",
+	"people": "{{count}} persona",
+	"people_other": "{{count}} personas",
+	"noTable": "Sin mesa",
+	"noStaff": "Sin asignar",
+	"unnamedGuest": "Invitado",
+	"publicBooking": {
+		"pageTitle": "Reservar",
+		"poweredBy": "Con tecnología de Avoqado",
+		"steps": {
+			"service": "Servicio",
+			"date": "Fecha",
+			"time": "Hora",
+			"info": "Datos",
+			"confirmation": "Confirmado"
+		},
+		"service": {
+			"title": "Selecciona un servicio",
+			"duration": "{{min}} min",
+			"noProducts": "No hay servicios disponibles"
+		},
+		"date": {
+			"title": "Selecciona una fecha",
+			"today": "Hoy"
+		},
+		"time": {
+			"title": "Selecciona un horario",
+			"noSlots": "No hay horarios disponibles para esta fecha",
+			"loading": "Cargando horarios..."
+		},
+		"guestForm": {
+			"title": "Tus datos",
+			"phone": "Teléfono",
+			"phonePlaceholder": "Tu número de teléfono",
+			"name": "Nombre",
+			"namePlaceholder": "Tu nombre",
+			"email": "Email (opcional)",
+			"emailPlaceholder": "tu@email.com",
+			"partySize": "Personas",
+			"specialRequests": "Solicitudes especiales",
+			"specialRequestsPlaceholder": "Alergias, cumpleaños, necesidades de accesibilidad...",
+			"submit": "Confirmar Reservación",
+			"submitting": "Reservando..."
+		},
+		"validation": {
+			"phoneRequired": "El teléfono es requerido",
+			"nameRequired": "El nombre es requerido",
+			"emailInvalid": "Ingresa un email válido",
+			"emailRequired": "El email es requerido"
+		},
+		"confirmation": {
+			"title": "¡Reservación Confirmada!",
+			"code": "Código de Confirmación",
+			"dateTime": "Fecha y Hora",
+			"guests": "Personas",
+			"service": "Servicio",
+			"addToCalendar": "Agregar a Google Calendar",
+			"downloadIcs": "Descargar .ics",
+			"manageBooking": "Gestionar Reservación",
+			"newBooking": "Reservar Otra"
+		},
+		"manage": {
+			"title": "Tu Reservación",
+			"cancelButton": "Cancelar Reservación",
+			"cancelTitle": "Cancelar Reservación",
+			"cancelDescription": "¿Estás seguro de que deseas cancelar esta reservación? Esta acción no se puede deshacer.",
+			"cancelReasonLabel": "Razón (opcional)",
+			"cancelReasonPlaceholder": "¿Por qué cancelas?",
+			"cancelConfirm": "Confirmar Cancelación",
+			"cancelledStatus": "Esta reservación ha sido cancelada",
+			"cancelledAt": "Cancelada el {{date}}",
+			"deposit": "Depósito",
+			"depositForfeit": "El depósito se perderá",
+			"table": "Mesa",
+			"staff": "Atendido por",
+			"specialRequests": "Solicitudes Especiales",
+			"backToBooking": "Hacer Nueva Reservación"
+		},
+		"cancellationPolicy": {
+			"title": "Política de Cancelación",
+			"allowCancel": "Cancelación gratuita hasta {{hours}} horas antes",
+			"noCancel": "Esta reservación no puede cancelarse en línea",
+			"depositForfeit": "El depósito se perderá si se cancela"
+		},
+		"errors": {
+			"venueNotFound": "Esta página no existe",
+			"venueNotFoundDescription": "El enlace de reservación puede ser incorrecto o el negocio ya no está disponible.",
+			"bookingDisabled": "Reservaciones en línea no disponibles",
+			"bookingDisabledDescription": "Este negocio no está aceptando reservaciones en línea en este momento.",
+			"bookingDisabledContact": "Llama al {{phone}} para hacer una reservación",
+			"reservationNotFound": "Reservación no encontrada",
+			"reservationNotFoundDescription": "Este enlace de reservación puede estar expirado o ser inválido.",
+			"slotTaken": "Este horario ya no está disponible. Por favor elige otro horario.",
+			"generic": "Algo salió mal. Por favor intenta de nuevo."
+		}
+	}
+}

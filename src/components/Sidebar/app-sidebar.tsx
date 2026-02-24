@@ -3,6 +3,7 @@
   BarChart3,
   BookOpen,
   Building,
+  CalendarDays,
   DollarSign,
   FlaskConical,
   Gem,
@@ -46,6 +47,7 @@ import { useTerminology } from '@/hooks/use-terminology'
 // ============================================
 
 const ICON_MAP: Record<string, LucideIcon> = {
+  CalendarDays,
   LayoutDashboard,
   DollarSign,
   HandCoins,
@@ -266,6 +268,20 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         locked: !hasKYCAccess,
       },
       { title: t('sidebar:routes.reviews'), isActive: true, url: 'reviews', icon: Star, permission: 'reviews:read', locked: false },
+      {
+        title: t('sidebar:routes.reservations'),
+        isActive: true,
+        url: 'reservations',
+        icon: CalendarDays,
+        permission: 'reservations:read',
+        locked: false,
+        items: [
+          { title: t('sidebar:reservationsMenu.overview'), url: 'reservations', permission: 'reservations:read' },
+          { title: t('sidebar:reservationsMenu.calendar'), url: 'reservations/calendar', permission: 'reservations:read' },
+          { title: t('sidebar:reservationsMenu.waitlist'), url: 'reservations/waitlist', permission: 'reservations:read' },
+          { title: t('sidebar:reservationsMenu.settings'), url: 'reservations/settings', permission: 'reservations:read' },
+        ],
+      },
     ]
 
     // Map of standard sidebar URLs to their white-label feature codes
