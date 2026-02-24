@@ -164,9 +164,11 @@ export default function ReservationCalendar() {
   }, [view, currentDate])
 
   // Group reservations by day for rendering
+  // Exclude reservations tied to a ClassSession — those are already shown inside the class block
   const reservationsByDay = useMemo(() => {
     const map: Record<string, Reservation[]> = {}
     for (const r of reservations) {
+      if (r.classSessionId) continue
       const dayKey = formatVenueDateISO(r.startsAt)
       if (!map[dayKey]) map[dayKey] = []
       map[dayKey].push(r)

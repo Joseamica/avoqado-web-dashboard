@@ -64,6 +64,7 @@ export function TimeSlotPicker({ slots, selectedSlot, onSelect, timezone, isLoad
 									timeZone: timezone,
 								})
 								const isSelected = selectedSlot?.startsAt === slot.startsAt
+								&& (selectedSlot?.classSessionId ?? null) === (slot.classSessionId ?? null)
 								const isClassSlot = slot.remaining !== undefined
 								const isFull = isClassSlot && slot.remaining! <= 0
 								return (
