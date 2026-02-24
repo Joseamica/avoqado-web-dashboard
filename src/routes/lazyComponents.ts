@@ -27,6 +27,7 @@ export const MenuOverview = lazyWithRetry(() => import('@/pages/Menu/MenuOvervie
 export const CreateProduct = lazyWithRetry(() => import('@/pages/Menu/Products/createProduct'))
 export const Products = lazyWithRetry(() => import('@/pages/Menu/Products/Products'))
 export const ProductId = lazyWithRetry(() => import('@/pages/Menu/Products/productId'))
+export const Services = lazyWithRetry(() => import('@/pages/Menu/Services/Services'))
 export const ReceiptViewer = lazyWithRetry(() => import('@/pages/Payment/ReceiptViewer'))
 
 export const CreateTpv = lazyWithRetry(() => import('@/pages/Tpv/createTpv'))

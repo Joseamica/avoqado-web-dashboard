@@ -50,6 +50,14 @@ export function MenuNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
         {t('menumaker.nav.products', { defaultValue: 'Products' })}
       </NavLink>
       <NavLink
+        to="services"
+        className={({ isActive }) =>
+          `text-sm font-medium transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground hover:text-primary'}`
+        }
+      >
+        {t('menumaker.nav.services', { defaultValue: 'Services' })}
+      </NavLink>
+      <NavLink
         to="modifier-groups"
         className={({ isActive }) =>
           `text-sm font-medium transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground hover:text-primary'}`

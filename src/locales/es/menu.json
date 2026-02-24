@@ -31,6 +31,7 @@
       "menus": "Menús",
       "categories": "Categorías",
       "products": "Productos",
+      "services": "Servicios",
       "modifierGroups": "Grupos Modificadores",
       "customers": "Clientes"
     }
@@ -691,6 +692,89 @@
       "basicInfo": "Información Básica",
       "name": "Nombre",
       "nameDescription": "El nombre que verán tus clientes"
+    }
+  },
+  "services": {
+    "title": "Servicios",
+    "new": "Crear servicio",
+    "emptyState": "Aún no tienes servicios. Crea tu primer servicio para empezar.",
+    "columns": {
+      "photo": "Foto",
+      "name": "Nombre",
+      "type": "Tipo",
+      "price": "Precio",
+      "details": "Detalles",
+      "available": "Disponible"
+    },
+    "types": {
+      "service": "Servicio",
+      "class": "Clase"
+    },
+    "typeSelector": {
+      "title": "¿Qué tipo de servicio?",
+      "description": "Selecciona el tipo de servicio que quieres ofrecer.",
+      "serviceTitle": "Servicio con cita",
+      "serviceDesc": "1:1 reservable (masaje, corte de cabello, consulta...)",
+      "classTitle": "Clase / Taller",
+      "classDesc": "Sesión grupal (yoga, spinning, cocina...)"
+    },
+    "form": {
+      "createTitle": "Crear servicio",
+      "editTitle": "Editar servicio",
+      "nameLabel": "Nombre",
+      "namePlaceholder": "Ej: Corte de cabello",
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "Describe el servicio...",
+      "priceLabel": "Precio",
+      "pricePlaceholder": "0.00",
+      "durationLabel": "Duración (minutos)",
+      "durationPlaceholder": "60",
+      "maxParticipantsLabel": "Máximo de participantes",
+      "maxParticipantsPlaceholder": "15",
+      "photoLabel": "Foto",
+      "activeLabel": "Disponible",
+      "categoryLabel": "Categoría",
+      "categoryHelp": "Organiza tus servicios en categorías.",
+      "activeHelp": "Los servicios inactivos no aparecen en reservas ni en el TPV.",
+      "durationHelp": "Se usa para calcular la hora de fin al crear una cita.",
+      "maxParticipantsHelp": "El cupo puede ajustarse por sesión al crear el calendario.",
+      "saving": "Guardando...",
+      "preview": "Vista previa",
+      "basicInfo": "Información básica",
+      "serviceConfig": "Configuración del servicio",
+      "serviceImage": "Imagen del servicio"
+    },
+    "toasts": {
+      "created": "Servicio creado",
+      "createdDesc": "El servicio se ha creado correctamente.",
+      "deleted": "Servicio eliminado",
+      "deletedDesc": "El servicio se ha eliminado correctamente.",
+      "activated": "Servicio activado",
+      "deactivated": "Servicio desactivado",
+      "saved": "Cambios guardados",
+      "errorDesc": "No se pudo completar la operación. Intenta de nuevo."
+    },
+    "filters": {
+      "typeLabel": "Tipo",
+      "statusLabel": "Estado",
+      "active": "Activo",
+      "inactive": "Inactivo"
+    },
+    "detail": {
+      "deleteTitle": "Eliminar servicio",
+      "deleteMessage": "¿Estás seguro de que quieres eliminar este servicio? Esta acción no se puede deshacer.",
+      "deleteConfirm": "Eliminar",
+      "duration": "{{minutes}} min",
+      "participants": "{{count}} participantes"
+    },
+    "convert": {
+      "title": "Convertir a servicio",
+      "description": "Elige el tipo de servicio al que quieres convertir este producto.",
+      "warning": "Al convertir, el seguimiento de inventario se desactivará. Los datos de ventas se conservan.",
+      "confirm": "Convertir",
+      "converting": "Convirtiendo...",
+      "success": "Producto convertido a servicio",
+      "viewServices": "Ver en Servicios"
     }
   }
 }

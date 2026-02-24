@@ -187,6 +187,21 @@
 		},
 		"noReservations": "No reservations for this period"
 	},
+	"classSession": {
+		"createTitle": "Schedule class",
+		"newSession": "New class",
+		"createSuccess": "Class scheduled successfully",
+		"noClassProducts": "No classes created. Create a product of type \"Class\" first.",
+		"fields": {
+			"className": "Class name",
+			"classPlaceholder": "Select a class",
+			"capacity": "Available spots",
+			"recurrence": "Repeats"
+		},
+		"spotsLeft": "{{count}} spot left",
+		"spotsLeft_other": "{{count}} spots left",
+		"full": "Full"
+	},
 	"waitlist": {
 		"title": "Waitlist",
 		"subtitle": "Manage customers on the waitlist",

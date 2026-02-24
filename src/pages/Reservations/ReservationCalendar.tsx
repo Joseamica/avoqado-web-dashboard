@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, Users } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Plus, Users } from 'lucide-react'
 import { DateTime } from 'luxon'
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -7,15 +7,18 @@ import { useNavigate } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useVenueDateTime } from '@/utils/datetime'
 import reservationService from '@/services/reservation.service'
+import classSessionService from '@/services/classSession.service'
 import type { Reservation, ReservationSettings, ReservationStatus } from '@/types/reservation'
 
 import { CreateReservationForm } from './CreateReservation'
+import { CreateClassSessionDialog } from './components/CreateClassSessionDialog'
 
 type CalendarView = 'day' | 'week'
 type GroupBy = 'table' | 'staff'
@@ -81,8 +84,15 @@ export default function ReservationCalendar() {
   const [groupBy, setGroupBy] = useState<GroupBy>('table')
   const [currentDate, setCurrentDate] = useState(new Date())
 
-  // Click-to-create modal state
+  // Click-to-create reservation modal state
   const [createModal, setCreateModal] = useState<{ open: boolean; date: string; startTime: string }>({
+    open: false,
+    date: '',
+    startTime: '',
+  })
+
+  // Create class session dialog state
+  const [classModal, setClassModal] = useState<{ open: boolean; date: string; startTime: string }>({
     open: false,
     date: '',
     startTime: '',
@@ -103,7 +113,7 @@ export default function ReservationCalendar() {
     }
   }, [view, currentDate, formatVenueDateISO])
 
-  // Fetch calendar data
+  // Fetch calendar data (reservations)
   const { data: calendarData, isLoading } = useQuery({
     queryKey: ['reservation-calendar', venueId, dateFrom, dateTo, groupBy],
     queryFn: () => reservationService.getCalendar(venueId, dateFrom, dateTo, groupBy),
@@ -111,6 +121,13 @@ export default function ReservationCalendar() {
   })
 
   const reservations = calendarData?.reservations || []
+
+  // Fetch class sessions for the same date range
+  const { data: classSessions = [] } = useQuery({
+    queryKey: ['class-sessions', venueId, dateFrom, dateTo],
+    queryFn: () => classSessionService.getClassSessions(venueId!, { dateFrom, dateTo }),
+    enabled: !!dateFrom && !!dateTo && !!venueId,
+  })
 
   // Ref for auto-scroll to current time
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -156,6 +173,62 @@ export default function ReservationCalendar() {
     }
     return map
   }, [reservations, formatVenueDateISO])
+
+  // Group class sessions by day for rendering
+  const classSessionsByDay = useMemo(() => {
+    const map: Record<string, typeof classSessions> = {}
+    for (const s of classSessions) {
+      const dayKey = formatVenueDateISO(s.startsAt)
+      if (!map[dayKey]) map[dayKey] = []
+      map[dayKey].push(s)
+    }
+    return map
+  }, [classSessions, formatVenueDateISO])
+
+  // Render a single class session block (purple/violet tones to distinguish from reservations)
+  const renderClassSessionBlock = (session: (typeof classSessions)[0]) => {
+    const start = DateTime.fromISO(session.startsAt, { zone: 'utc' }).setZone(venueTimezone)
+    const end = DateTime.fromISO(session.endsAt, { zone: 'utc' }).setZone(venueTimezone)
+    const startHour = start.hour + start.minute / 60
+    const endHour = end.hour + end.minute / 60
+    const top = (startHour - firstHour) * 64 + GRID_TOP_PAD
+    const height = Math.max((endHour - startHour) * 64, 24)
+    const isFull = session.reservedCount >= session.capacity
+    const spotsLeft = session.capacity - session.reservedCount
+
+    return (
+      <div
+        key={`cs-${session.id}`}
+        data-reservation="true"
+        className="absolute left-1 right-1 rounded-md border px-2 py-1 text-xs cursor-pointer transition-opacity hover:opacity-80 overflow-hidden bg-violet-500/20 border-violet-500/40 text-violet-700 dark:text-violet-300"
+        style={{ top: `${top}px`, height: `${height}px` }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="font-medium truncate">{session.product.name}</div>
+        <div className="opacity-70 truncate">
+          {formatTime(session.startsAt)} – {formatTime(session.endsAt)}
+        </div>
+        {height > 40 && (
+          <div className="flex items-center gap-1 opacity-70">
+            <Users className="h-3 w-3" />
+            <span>
+              {session.reservedCount}/{session.capacity}
+            </span>
+            {isFull && (
+              <Badge variant="outline" className="text-[10px] h-4 px-1 ml-1 border-violet-500/40">
+                {t('classSession.full')}
+              </Badge>
+            )}
+            {!isFull && spotsLeft <= 3 && (
+              <span className="text-[10px] opacity-80">
+                {t('classSession.spotsLeft', { count: spotsLeft })}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   // Render a single reservation block
   const renderReservationBlock = (reservation: Reservation) => {
@@ -236,6 +309,7 @@ export default function ReservationCalendar() {
   const renderDayColumn = (day: Date, isWide: boolean) => {
     const dayKey = formatVenueDateISO(day)
     const dayReservations = reservationsByDay[dayKey] || []
+    const dayClassSessions = classSessionsByDay[dayKey] || []
     const dayIsToday = isToday(day)
 
     return (
@@ -288,6 +362,9 @@ export default function ReservationCalendar() {
             </div>
           )}
 
+          {/* Class session blocks */}
+          {dayClassSessions.map(renderClassSessionBlock)}
+
           {/* Reservation blocks */}
           {dayReservations.map(renderReservationBlock)}
         </div>
@@ -296,6 +373,7 @@ export default function ReservationCalendar() {
   }
 
   const closeCreateModal = () => setCreateModal({ open: false, date: '', startTime: '' })
+  const closeClassModal = () => setClassModal({ open: false, date: '', startTime: '' })
 
   return (
     <div className="p-4 bg-background text-foreground">
@@ -316,6 +394,37 @@ export default function ReservationCalendar() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Crear dropdown — estilo Square */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" className="h-8 gap-1.5">
+                <Plus className="h-3.5 w-3.5" />
+                {t('calendar.create', { defaultValue: 'Crear' })}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem
+                className="gap-2 cursor-pointer"
+                onClick={() =>
+                  setCreateModal({ open: true, date: formatVenueDateISO(currentDate), startTime: '' })
+                }
+              >
+                <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                {t('calendar.createCita', { defaultValue: 'Cita' })}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="gap-2 cursor-pointer"
+                onClick={() =>
+                  setClassModal({ open: true, date: formatVenueDateISO(currentDate), startTime: '' })
+                }
+              >
+                <Users className="h-4 w-4 text-muted-foreground" />
+                {t('calendar.createClase', { defaultValue: 'Clase' })}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {/* Group by */}
           <Select value={groupBy} onValueChange={v => setGroupBy(v as GroupBy)}>
             <SelectTrigger className="w-[140px] h-8">
@@ -395,6 +504,14 @@ export default function ReservationCalendar() {
           />
         </div>
       </FullScreenModal>
+
+      {/* Create class session dialog */}
+      <CreateClassSessionDialog
+        open={classModal.open}
+        onOpenChange={open => !open && closeClassModal()}
+        defaultDate={classModal.date}
+        defaultStartTime={classModal.startTime || undefined}
+      />
     </div>
   )
 }

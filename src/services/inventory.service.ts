@@ -494,9 +494,11 @@ export interface ProductWizardStep1Data {
   name: string
   description?: string
   price: number
-  categoryId: string
+  categoryId?: string
   imageUrl?: string
   type?: ProductType
+  duration?: number | null        // For APPOINTMENTS_SERVICE (minutes)
+  maxParticipants?: number | null // For CLASS
 }
 
 export interface ProductWizardStep2Data {
@@ -822,6 +824,7 @@ export type ProductType =
   | 'REGULAR'
   | 'FOOD_AND_BEV'
   | 'APPOINTMENTS_SERVICE'
+  | 'CLASS'
   | 'EVENT'
   | 'DIGITAL'
   | 'DONATION'

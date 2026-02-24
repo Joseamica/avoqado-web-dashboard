@@ -187,6 +187,21 @@
 		},
 		"noReservations": "Sin reservaciones para este período"
 	},
+	"classSession": {
+		"createTitle": "Agendar clase",
+		"newSession": "Nueva clase",
+		"createSuccess": "Clase agendada exitosamente",
+		"noClassProducts": "No hay clases creadas. Crea un producto tipo \"Clase\" primero.",
+		"fields": {
+			"className": "Nombre de la clase",
+			"classPlaceholder": "Selecciona una clase",
+			"capacity": "Plazas disponibles",
+			"recurrence": "Se repite"
+		},
+		"spotsLeft": "{{count}} lugar disponible",
+		"spotsLeft_other": "{{count}} lugares disponibles",
+		"full": "Lleno"
+	},
 	"waitlist": {
 		"title": "Lista de Espera",
 		"subtitle": "Gestiona clientes en lista de espera",

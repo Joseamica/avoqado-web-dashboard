@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
@@ -21,6 +21,7 @@ import {
   Ticket,
   Download,
   Heart,
+  Users,
   Star,
   Loader2,
 } from 'lucide-react'
@@ -39,6 +40,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Ticket: Ticket,
   Download: Download,
   Heart: Heart,
+  Users: Users,
 }
 
 export function ProductTypeSelectorModal({ open, onOpenChange, onSelect }: ProductTypeSelectorModalProps) {
@@ -66,12 +68,24 @@ export function ProductTypeSelectorModal({ open, onOpenChange, onSelect }: Produ
     enabled: open && !!venueId,
   })
 
+  // Filter out service types (managed in MenuMaker > Services tab)
+  const SERVICE_TYPES: ProductType[] = ['APPOINTMENTS_SERVICE', 'CLASS']
+  const filteredTypes = useMemo(() => {
+    if (!typesData?.types) return []
+    return typesData.types.filter(t => !SERVICE_TYPES.includes(t.code))
+  }, [typesData])
+
+  const filteredRecommended = useMemo(() => {
+    if (!typesData?.recommended) return []
+    return typesData.recommended.filter(r => !SERVICE_TYPES.includes(r))
+  }, [typesData])
+
   // Auto-select recommended type when data loads
   useEffect(() => {
-    if (typesData?.recommended && typesData.recommended.length > 0 && !selectedType) {
-      setSelectedType(typesData.recommended[0])
+    if (filteredRecommended.length > 0 && !selectedType) {
+      setSelectedType(filteredRecommended[0])
     }
-  }, [typesData, selectedType])
+  }, [filteredRecommended, selectedType])
 
   const handleNext = () => {
     if (selectedType) {
@@ -86,7 +100,7 @@ export function ProductTypeSelectorModal({ open, onOpenChange, onSelect }: Produ
   }
 
   const isRecommended = (code: ProductType) => {
-    return typesData?.recommended?.includes(code) ?? false
+    return filteredRecommended.includes(code)
   }
 
   return (
@@ -111,10 +125,10 @@ export function ProductTypeSelectorModal({ open, onOpenChange, onSelect }: Produ
         )}
 
         {/* Product types list */}
-        {!isLoading && typesData?.types && (
+        {!isLoading && filteredTypes.length > 0 && (
           <ScrollArea className="flex-1 -mx-6 px-6">
             <div className="space-y-2 py-2">
-              {typesData.types.map((type: ProductTypeConfig) => {
+              {filteredTypes.map((type: ProductTypeConfig) => {
                 const Icon = getIcon(type.icon)
                 const isSelected = selectedType === type.code
                 const recommended = isRecommended(type.code)

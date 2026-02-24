@@ -204,6 +204,14 @@ export enum ProductType {
   RETAIL = 'RETAIL',
   SERVICE = 'SERVICE',
   OTHER = 'OTHER',
+  // Square-aligned types
+  REGULAR = 'REGULAR',
+  FOOD_AND_BEV = 'FOOD_AND_BEV',
+  APPOINTMENTS_SERVICE = 'APPOINTMENTS_SERVICE',
+  CLASS = 'CLASS',
+  EVENT = 'EVENT',
+  DIGITAL = 'DIGITAL',
+  DONATION = 'DONATION',
 }
 
 export enum MenuType {
@@ -826,6 +834,10 @@ export interface Product {
   // Preparation
   prepTime: number | null
   cookingNotes: string | null
+
+  // Service-specific fields
+  duration?: number | null // For APPOINTMENTS_SERVICE (minutes)
+  maxParticipants?: number | null // For CLASS
 
   // Inventory tracking
   trackInventory: boolean

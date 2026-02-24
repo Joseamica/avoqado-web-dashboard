@@ -31,6 +31,7 @@
       "menus": "Menus",
       "categories": "Categories",
       "products": "Products",
+      "services": "Services",
       "modifierGroups": "Modifier Groups",
       "customers": "Customers"
     }
@@ -728,6 +729,89 @@
       "basicInfo": "Basic Information",
       "name": "Name",
       "nameDescription": "The name your customers will see"
+    }
+  },
+  "services": {
+    "title": "Services",
+    "new": "Create service",
+    "emptyState": "You don't have any services yet. Create your first service to get started.",
+    "columns": {
+      "photo": "Photo",
+      "name": "Name",
+      "type": "Type",
+      "price": "Price",
+      "details": "Details",
+      "available": "Available"
+    },
+    "types": {
+      "service": "Service",
+      "class": "Class"
+    },
+    "typeSelector": {
+      "title": "What type of service?",
+      "description": "Select the type of service you want to offer.",
+      "serviceTitle": "Appointment service",
+      "serviceDesc": "1:1 bookable (massage, haircut, consultation...)",
+      "classTitle": "Class / Workshop",
+      "classDesc": "Group session (yoga, spinning, cooking...)"
+    },
+    "form": {
+      "createTitle": "Create service",
+      "editTitle": "Edit service",
+      "nameLabel": "Name",
+      "namePlaceholder": "E.g.: Haircut",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Describe the service...",
+      "priceLabel": "Price",
+      "pricePlaceholder": "0.00",
+      "durationLabel": "Duration (minutes)",
+      "durationPlaceholder": "60",
+      "maxParticipantsLabel": "Max participants",
+      "maxParticipantsPlaceholder": "15",
+      "photoLabel": "Photo",
+      "activeLabel": "Available",
+      "categoryLabel": "Category",
+      "categoryHelp": "Organize your services into categories.",
+      "activeHelp": "Inactive services don't appear in bookings or the POS.",
+      "durationHelp": "Used to calculate the end time when creating an appointment.",
+      "maxParticipantsHelp": "Capacity can be adjusted per session when creating the schedule.",
+      "saving": "Saving...",
+      "preview": "Preview",
+      "basicInfo": "Basic information",
+      "serviceConfig": "Service configuration",
+      "serviceImage": "Service image"
+    },
+    "toasts": {
+      "created": "Service created",
+      "createdDesc": "The service has been created successfully.",
+      "deleted": "Service deleted",
+      "deletedDesc": "The service has been deleted successfully.",
+      "activated": "Service activated",
+      "deactivated": "Service deactivated",
+      "saved": "Changes saved",
+      "errorDesc": "Could not complete the operation. Please try again."
+    },
+    "filters": {
+      "typeLabel": "Type",
+      "statusLabel": "Status",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "detail": {
+      "deleteTitle": "Delete service",
+      "deleteMessage": "Are you sure you want to delete this service? This action cannot be undone.",
+      "deleteConfirm": "Delete",
+      "duration": "{{minutes}} min",
+      "participants": "{{count}} participants"
+    },
+    "convert": {
+      "title": "Convert to service",
+      "description": "Choose the type of service to convert this product to.",
+      "warning": "Converting will disable inventory tracking. Sales data is preserved.",
+      "confirm": "Convert",
+      "converting": "Converting...",
+      "success": "Product converted to service",
+      "viewServices": "View in Services"
     }
   }
 }

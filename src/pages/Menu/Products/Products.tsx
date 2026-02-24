@@ -63,7 +63,8 @@ import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { ProductWizardDialog } from '@/pages/Inventory/components/ProductWizardDialog'
 import { ProductTypeSelectorModal } from '@/pages/Inventory/components/ProductTypeSelectorModal'
 import { type ProductType } from '@/services/inventory.service'
-import { Sparkles } from 'lucide-react'
+import { Sparkles, ArrowRightLeft } from 'lucide-react'
+import { ConvertToServiceDialog } from '@/pages/Menu/Services/ConvertToServiceDialog'
 
 export default function Products() {
   const { t } = useTranslation('menu')
@@ -93,6 +94,8 @@ export default function Products() {
   const [wizardOpen, setWizardOpen] = useState(false)
   const [editProductId, setEditProductId] = useState<string | null>(null)
   const [editWizardOpen, setEditWizardOpen] = useState(false)
+  const [convertDialogOpen, setConvertDialogOpen] = useState(false)
+  const [productToConvert, setProductToConvert] = useState<Product | null>(null)
 
   // ✅ STRIPE-STYLE FILTERS: State for FilterPills
   const [searchTerm, setSearchTerm] = useState('')
@@ -243,7 +246,8 @@ export default function Products() {
   const filteredProducts = useMemo(() => {
     if (!products) return products
 
-    let result = products
+    const SERVICE_TYPES = ['APPOINTMENTS_SERVICE', 'CLASS']
+    let result = products.filter(p => !SERVICE_TYPES.includes(p.type))
 
     // Filter by low stock (legacy toggle, kept for alert banner)
     if (showLowStockOnly) {
@@ -671,6 +675,22 @@ export default function Products() {
                   </DropdownMenuItem>
                 </PermissionGate>
               )}
+              {/* Convert to service action — only for convertible types */}
+              {['REGULAR', 'FOOD_AND_BEV', 'OTHER'].includes(product.type) && (
+                <PermissionGate permission="menu:update">
+                  <DropdownMenuItem
+                    onClick={e => {
+                      e.stopPropagation()
+                      setProductToConvert(product)
+                      setConvertDialogOpen(true)
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <ArrowRightLeft className="mr-2 h-4 w-4" />
+                    {t('services.convert.title')}
+                  </DropdownMenuItem>
+                </PermissionGate>
+              )}
               <PermissionGate permission="menu:delete">
                 <DropdownMenuItem
                   onClick={e => {
@@ -987,6 +1007,17 @@ export default function Products() {
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['products', venueId] })
         }}
+      />
+
+      {/* Convert to Service Dialog */}
+      <ConvertToServiceDialog
+        open={convertDialogOpen}
+        onOpenChange={(open) => {
+          setConvertDialogOpen(open)
+          if (!open) setProductToConvert(null)
+        }}
+        productId={productToConvert?.id ?? null}
+        productName={productToConvert?.name ?? ''}
       />
     </div>
   )

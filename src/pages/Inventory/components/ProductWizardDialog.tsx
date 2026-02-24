@@ -18,7 +18,7 @@ import { useImageUploader } from '@/hooks/use-image-uploader'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { productWizardApi, rawMaterialsApi, recipesApi, productInventoryApi, type InventoryMethod, type ProductType } from '@/services/inventory.service'
 import { getMenuCategories, getModifierGroups } from '@/services/menu.service'
-import { Loader2, Check, Package, Beef, Plus, Trash2, Info, UtensilsCrossed, Calendar, Ticket, Download, Heart, ImagePlus, Grid3X3, Pencil, ChefHat, ChevronDown, Sparkles } from 'lucide-react'
+import { Loader2, Check, Package, Beef, Plus, Trash2, Info, UtensilsCrossed, Calendar, Ticket, Download, Heart, Users, ImagePlus, Grid3X3, Pencil, ChefHat, ChevronDown, Sparkles } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Currency } from '@/utils/currency'
 import Cropper from 'react-easy-crop'
@@ -33,6 +33,7 @@ const PRODUCT_TYPE_ICONS: Record<ProductType, React.ElementType> = {
   REGULAR: Package,
   FOOD_AND_BEV: UtensilsCrossed,
   APPOINTMENTS_SERVICE: Calendar,
+  CLASS: Users,
   EVENT: Ticket,
   DIGITAL: Download,
   DONATION: Heart,
@@ -44,11 +45,22 @@ const PRODUCT_TYPE_LABELS: Record<ProductType, { en: string; es: string }> = {
   REGULAR: { en: 'Regular Item', es: 'Artículo Regular' },
   FOOD_AND_BEV: { en: 'Food & Beverage', es: 'Bebidas y alimentos preparados' },
   APPOINTMENTS_SERVICE: { en: 'Appointment/Service', es: 'Servicio con cita' },
+  CLASS: { en: 'Class / Workshop', es: 'Clase / Taller' },
   EVENT: { en: 'Event', es: 'Evento' },
   DIGITAL: { en: 'Digital Good', es: 'Producto Digital' },
   DONATION: { en: 'Donation', es: 'Donación' },
   OTHER: { en: 'Other', es: 'Otro' },
 }
+
+// Types that don't use inventory tracking
+const NO_INVENTORY_TYPES: ProductType[] = ['APPOINTMENTS_SERVICE', 'CLASS', 'DIGITAL', 'DONATION']
+
+// Types that don't use category (digital goods, donations)
+// Note: services/classes DO use categories (e.g. "Hair", "Nails", "Yoga", "Spinning")
+const NO_CATEGORY_TYPES: ProductType[] = ['DIGITAL', 'DONATION']
+
+// Types that don't use modifier groups (services, classes, digital goods, donations)
+const NO_MODIFIER_GROUP_TYPES: ProductType[] = ['APPOINTMENTS_SERVICE', 'CLASS', 'DIGITAL', 'DONATION']
 
 interface ProductWizardDialogProps {
   open: boolean
@@ -63,10 +75,12 @@ interface Step1FormData {
   name: string
   description?: string
   price: number
-  categoryId: string
+  categoryId?: string
   imageUrl?: string
   modifierGroups?: Array<{ label: string; value: string }>
   type?: ProductType
+  duration?: number | null
+  maxParticipants?: number | null
 }
 
 interface Step2FormData {
@@ -202,6 +216,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       modifierGroups: [],
     },
   })
+
+  // In edit mode, productType prop may be null — resolve from loaded product data
+  // step1Form 'type' is populated by useEffect from existingProduct
+  const effectiveProductType: ProductType | null = productType ?? (step1Form.watch('type') as ProductType | undefined) ?? null
 
   // Step 2 Form (always start with default values, will be updated by useEffect)
   const step2Form = useForm<Step2FormData>({
@@ -570,6 +588,14 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       if (existingProduct.type) {
         step1Form.setValue('type', existingProduct.type as ProductType)
       }
+
+      // Load service/class specific fields
+      if (existingProduct.duration != null) {
+        step1Form.setValue('duration', existingProduct.duration)
+      }
+      if (existingProduct.maxParticipants != null) {
+        step1Form.setValue('maxParticipants', existingProduct.maxParticipants)
+      }
     }
   }, [open, mode, existingProduct, isLoadingProduct, hasLoadedExistingData, step1Form])
 
@@ -712,12 +738,16 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     const modifierGroupIds = Array.isArray(data.modifierGroups) ? data.modifierGroups.map(m => m.value) : []
 
     // Create product data without imageUrl field initially
+    const needsCategory = effectiveProductType ? !NO_CATEGORY_TYPES.includes(effectiveProductType as ProductType) : true
+    const needsModifiers = effectiveProductType ? !NO_MODIFIER_GROUP_TYPES.includes(effectiveProductType as ProductType) : true
     const productData: any = {
       name: data.name,
       description: data.description,
       price: data.price,
-      categoryId: data.categoryId,
-      modifierGroupIds,
+      ...(needsCategory && data.categoryId ? { categoryId: data.categoryId } : {}),
+      ...(needsModifiers ? { modifierGroupIds } : {}),
+      ...(effectiveProductType === 'APPOINTMENTS_SERVICE' && data.duration != null ? { duration: data.duration } : {}),
+      ...(effectiveProductType === 'CLASS' && data.maxParticipants != null ? { maxParticipants: data.maxParticipants } : {}),
     }
 
     // Only add imageUrl if it's a non-empty string (backend requires valid URL or field omitted)
@@ -730,6 +760,11 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     // Get inventory selection from step2Form (now part of step 1)
     const inventoryData = step2Form.getValues()
     setStep2Data(inventoryData)
+
+    // Non-inventoriable types never use inventory — treat as "no inventory" path
+    if (effectiveProductType && NO_INVENTORY_TYPES.includes(effectiveProductType)) {
+      inventoryData.useInventory = false
+    }
 
     // If not using inventory, complete the wizard
     if (!inventoryData.useInventory) {
@@ -781,7 +816,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
       // In create mode, submit product without inventory
       createProductWithInventoryMutation.mutate({
-        product: { ...productData, type: productType ?? undefined },
+        product: { ...productData, type: effectiveProductType ?? undefined },
         inventory: { useInventory: false },
       })
       return
@@ -880,7 +915,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     if (inventoryMethod === 'QUANTITY') {
       const simpleStockData = step3SimpleForm.getValues()
       createProductWithInventoryMutation.mutate({
-        product: { ...productData, type: productType ?? undefined },
+        product: { ...productData, type: effectiveProductType ?? undefined },
         inventory: inventoryData,
         simpleStock: simpleStockData,
       })
@@ -920,7 +955,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       const cleanedRecipe = cleanRecipeDataForBackend(recipeData)
 
       createProductWithInventoryMutation.mutate({
-        product: { ...productData, type: productType ?? undefined },
+        product: { ...productData, type: effectiveProductType ?? undefined },
         inventory: inventoryData,
         recipe: cleanedRecipe,
       })
@@ -969,12 +1004,12 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                 {/* Left Column - Main Form (both create and edit modes) */}
                 <div className="lg:col-span-8 space-y-6">
                   {/* Product Type Display (read-only, shows selected type) */}
-                  {productType && (
+                  {effectiveProductType && (
                     <section className="bg-card rounded-2xl border border-border/50 p-4">
                       <div className="flex items-center gap-3">
                         <div className="p-2.5 rounded-xl bg-muted">
                           {(() => {
-                            const TypeIcon = PRODUCT_TYPE_ICONS[productType] || Package
+                            const TypeIcon = PRODUCT_TYPE_ICONS[effectiveProductType] || Package
                             return <TypeIcon className="h-5 w-5 text-muted-foreground" />
                           })()}
                         </div>
@@ -982,8 +1017,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                           <p className="text-xs text-muted-foreground">{t('productTypes.label', { defaultValue: 'Tipo de artículo' })}</p>
                           <p className="font-medium">
                             {isSpanish
-                              ? PRODUCT_TYPE_LABELS[productType]?.es
-                              : PRODUCT_TYPE_LABELS[productType]?.en}
+                              ? PRODUCT_TYPE_LABELS[effectiveProductType]?.es
+                              : PRODUCT_TYPE_LABELS[effectiveProductType]?.en}
                           </p>
                         </div>
                       </div>
@@ -1148,7 +1183,61 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                     )}
                   </section>
 
-                  {/* Inventory Selection Section - Now in left column for more space */}
+                  {/* CLASS: maxParticipants field */}
+                  {effectiveProductType === 'CLASS' && (
+                    <section className="bg-card rounded-2xl border border-border/50 p-6">
+                      <SectionHeader icon={Users} title={isSpanish ? 'Configuración de clase' : 'Class configuration'} className="mb-4" />
+                      <div className="space-y-2">
+                        <Label htmlFor="maxParticipants">
+                          {isSpanish ? 'Cupo máximo de participantes' : 'Max participants'}
+                          <span className="text-muted-foreground text-xs ml-1">({isSpanish ? 'opcional' : 'optional'})</span>
+                        </Label>
+                        <Input
+                          id="maxParticipants"
+                          type="number"
+                          min={1}
+                          placeholder={isSpanish ? 'Ej. 15' : 'e.g. 15'}
+                          className="max-w-48"
+                          {...step1Form.register('maxParticipants', { valueAsNumber: true })}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {isSpanish
+                            ? 'El cupo puede ajustarse por sesión al crear el calendario de clases.'
+                            : 'Capacity can be adjusted per session when scheduling classes.'}
+                        </p>
+                      </div>
+                    </section>
+                  )}
+
+                  {/* APPOINTMENTS_SERVICE: duration field */}
+                  {effectiveProductType === 'APPOINTMENTS_SERVICE' && (
+                    <section className="bg-card rounded-2xl border border-border/50 p-6">
+                      <SectionHeader icon={Calendar} title={isSpanish ? 'Configuración del servicio' : 'Service configuration'} className="mb-4" />
+                      <div className="space-y-2">
+                        <Label htmlFor="duration">
+                          {isSpanish ? 'Duración (minutos)' : 'Duration (minutes)'}
+                          <span className="text-muted-foreground text-xs ml-1">({isSpanish ? 'opcional' : 'optional'})</span>
+                        </Label>
+                        <Input
+                          id="duration"
+                          type="number"
+                          min={1}
+                          max={1440}
+                          placeholder={isSpanish ? 'Ej. 60' : 'e.g. 60'}
+                          className="max-w-48"
+                          {...step1Form.register('duration', { valueAsNumber: true })}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {isSpanish
+                            ? 'Se usa para calcular automáticamente la hora de fin al crear una cita.'
+                            : 'Used to automatically calculate end time when booking an appointment.'}
+                        </p>
+                      </div>
+                    </section>
+                  )}
+
+                  {/* Inventory Selection Section - hidden for non-inventoriable types */}
+                  {!NO_INVENTORY_TYPES.includes(effectiveProductType as ProductType) && (
                   <section className="bg-card rounded-2xl border border-border/50 p-6">
                     <SectionHeader icon={Package} title={t('wizard.step2.title', { defaultValue: 'Inventario' })} className="mb-4" />
 
@@ -1592,11 +1681,13 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                       )}
                     </div>
                   </section>
+                  )}
                 </div>
 
                 {/* Right Column - Sidebar */}
                 <div className="lg:col-span-4 space-y-6">
-                  {/* Category Section */}
+                  {/* Category Section — hidden for digital/donation types */}
+                  {!NO_CATEGORY_TYPES.includes(effectiveProductType as ProductType) && (
                   <section className="bg-card rounded-2xl border border-border/50 p-6">
                     <SectionHeader icon={Grid3X3} title={t('wizard.step1.category')} className="mb-4" />
                     <p className="text-xs text-muted-foreground mb-3">
@@ -1615,8 +1706,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                       <p className="text-xs text-destructive mt-2">{t('wizard.step1.categoryRequired')}</p>
                     )}
                   </section>
+                  )}
 
-                  {/* Modifier Groups Section */}
+                  {/* Modifier Groups Section — hidden for service/class/digital/donation types */}
+                  {!NO_MODIFIER_GROUP_TYPES.includes(effectiveProductType as ProductType) && (
                   <section className="bg-card rounded-2xl border border-border/50 p-6">
                     <SectionHeader icon={Plus} title={t('wizard.step1.modifierGroups')} className="mb-4" />
                     <p className="text-xs text-muted-foreground mb-3">
@@ -1704,6 +1797,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                       </div>
                     )}
                   </section>
+                  )}
 
                   {/* Live Preview Card */}
                   {(step1Form.watch('name') || (step1Form.watch('modifierGroups') || []).length > 0 || step2Form.watch('useInventory')) && (
