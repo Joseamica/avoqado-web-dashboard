@@ -121,7 +121,7 @@
   },
   "terminals": {
     "title": "Terminales",
-    "subtitle": "Monitoreo de terminales en todas las sucursales",
+    "subtitle": "Gestión de terminales en todas las sucursales",
     "searchPlaceholder": "Buscar por nombre o número de serie...",
     "noResults": "No se encontraron terminales con esos filtros",
     "empty": "No hay terminales registradas",
@@ -147,7 +147,8 @@
       "brandModel": "Marca / Modelo",
       "health": "Salud",
       "version": "Versión",
-      "lastSeen": "Última Conexión"
+      "lastSeen": "Última Conexión",
+      "actions": "Acciones"
     },
     "status": {
       "online": "En Línea",
@@ -156,7 +157,8 @@
       "inactive": "Inactivo",
       "pending": "Pendiente",
       "maintenance": "Mantenimiento",
-      "retired": "Retirado"
+      "retired": "Retirado",
+      "locked": "Bloqueado"
     },
     "type": {
       "receipt": "Impresora Recibo",
@@ -166,6 +168,90 @@
       "showing": "Mostrando {{from}}-{{to}} de {{total}}",
       "previous": "Anterior",
       "next": "Siguiente"
+    },
+    "actions": {
+      "create": "Crear Terminal",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "generateCode": "Generar Código de Activación",
+      "remoteActivate": "Activación Remota",
+      "lock": "Bloquear",
+      "unlock": "Desbloquear",
+      "maintenance": "Modo Mantenimiento",
+      "exitMaintenance": "Salir de Mantenimiento",
+      "restart": "Reiniciar",
+      "clearCache": "Limpiar Caché",
+      "exportLogs": "Exportar Logs",
+      "assignMerchants": "Asignar Comercios",
+      "error": "Error"
+    },
+    "dialog": {
+      "createTitle": "Crear Terminal",
+      "createDescription": "Registra una nueva terminal para una sucursal de tu organización",
+      "editTitle": "Editar Terminal",
+      "editDescription": "Modifica la información de la terminal",
+      "venue": "Sucursal",
+      "selectVenue": "Selecciona una sucursal",
+      "serialNumber": "Número de Serie",
+      "serialPlaceholder": "Ej: 2841548417",
+      "serialHelp": "Se agregará el prefijo AVQD- automáticamente",
+      "name": "Nombre",
+      "namePlaceholder": "Ej: Terminal Caja 1",
+      "type": "Tipo",
+      "brand": "Marca",
+      "model": "Modelo",
+      "assignedMerchants": "Comercios Asignados",
+      "generateCode": "Generar código de activación al crear",
+      "noMerchantWarning": "Sin comercio asignado, la terminal no podrá procesar pagos con tarjeta.",
+      "cancel": "Cancelar",
+      "create": "Crear",
+      "update": "Guardar",
+      "saving": "Guardando..."
+    },
+    "merchants": {
+      "title": "Asignar Comercios",
+      "description": "Selecciona los comercios disponibles para {{name}}",
+      "terminalInfo": "Terminal: {{name}} ({{serial}})",
+      "noMerchants": "No hay comercios disponibles para esta organización",
+      "selectedCount": "{{count}} comercio(s) seleccionado(s)",
+      "save": "Guardar Asignación"
+    },
+    "confirm": {
+      "cancel": "Cancelar",
+      "confirm": "Confirmar",
+      "delete": {
+        "title": "Eliminar Terminal",
+        "description": "¿Estás seguro de que deseas eliminar la terminal \"{{name}}\"? Esta acción no se puede deshacer."
+      },
+      "LOCK": {
+        "title": "Bloquear Terminal",
+        "description": "¿Estás seguro de que deseas bloquear la terminal \"{{name}}\"? La terminal no podrá procesar operaciones."
+      },
+      "RESTART": {
+        "title": "Reiniciar Terminal",
+        "description": "¿Estás seguro de que deseas reiniciar la terminal \"{{name}}\"? Se interrumpirán las operaciones en curso."
+      },
+      "CLEAR_CACHE": {
+        "title": "Limpiar Caché",
+        "description": "¿Estás seguro de que deseas limpiar el caché de la terminal \"{{name}}\"? Puede tardar unos minutos en reconstruirse."
+      }
+    },
+    "toast": {
+      "created": "Terminal creada exitosamente",
+      "updated": "Terminal actualizada exitosamente",
+      "deleted": "Terminal eliminada exitosamente",
+      "activationCodeGenerated": "Código de activación generado",
+      "remoteActivationSent": "Comando de activación remota enviado",
+      "merchantsAssigned": "Comercios asignados exitosamente",
+      "command": {
+        "LOCK": "Comando de bloqueo enviado",
+        "UNLOCK": "Comando de desbloqueo enviado",
+        "MAINTENANCE_MODE": "Modo mantenimiento activado",
+        "EXIT_MAINTENANCE": "Modo mantenimiento desactivado",
+        "RESTART": "Comando de reinicio enviado",
+        "CLEAR_CACHE": "Comando de limpieza de caché enviado",
+        "EXPORT_LOGS": "Exportación de logs iniciada"
+      }
     }
   },
   "routeProtection": {

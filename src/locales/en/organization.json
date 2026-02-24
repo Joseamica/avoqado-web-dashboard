@@ -121,7 +121,7 @@
   },
   "terminals": {
     "title": "Terminals",
-    "subtitle": "Monitor terminals across all venues",
+    "subtitle": "Manage terminals across all venues",
     "searchPlaceholder": "Search by name or serial number...",
     "noResults": "No terminals match your filters",
     "empty": "No terminals registered",
@@ -147,7 +147,8 @@
       "brandModel": "Brand / Model",
       "health": "Health",
       "version": "Version",
-      "lastSeen": "Last Seen"
+      "lastSeen": "Last Seen",
+      "actions": "Actions"
     },
     "status": {
       "online": "Online",
@@ -156,7 +157,8 @@
       "inactive": "Inactive",
       "pending": "Pending",
       "maintenance": "Maintenance",
-      "retired": "Retired"
+      "retired": "Retired",
+      "locked": "Locked"
     },
     "type": {
       "receipt": "Receipt Printer",
@@ -166,6 +168,90 @@
       "showing": "Showing {{from}}-{{to}} of {{total}}",
       "previous": "Previous",
       "next": "Next"
+    },
+    "actions": {
+      "create": "Create Terminal",
+      "edit": "Edit",
+      "delete": "Delete",
+      "generateCode": "Generate Activation Code",
+      "remoteActivate": "Remote Activate",
+      "lock": "Lock",
+      "unlock": "Unlock",
+      "maintenance": "Maintenance Mode",
+      "exitMaintenance": "Exit Maintenance",
+      "restart": "Restart",
+      "clearCache": "Clear Cache",
+      "exportLogs": "Export Logs",
+      "assignMerchants": "Assign Merchants",
+      "error": "Error"
+    },
+    "dialog": {
+      "createTitle": "Create Terminal",
+      "createDescription": "Register a new terminal for a venue in your organization",
+      "editTitle": "Edit Terminal",
+      "editDescription": "Modify terminal information",
+      "venue": "Venue",
+      "selectVenue": "Select a venue",
+      "serialNumber": "Serial Number",
+      "serialPlaceholder": "e.g. 2841548417",
+      "serialHelp": "The AVQD- prefix will be added automatically",
+      "name": "Name",
+      "namePlaceholder": "e.g. Cash Register Terminal 1",
+      "type": "Type",
+      "brand": "Brand",
+      "model": "Model",
+      "assignedMerchants": "Assigned Merchants",
+      "generateCode": "Generate activation code on create",
+      "noMerchantWarning": "Without an assigned merchant, the terminal will not be able to process card payments.",
+      "cancel": "Cancel",
+      "create": "Create",
+      "update": "Save",
+      "saving": "Saving..."
+    },
+    "merchants": {
+      "title": "Assign Merchants",
+      "description": "Select available merchants for {{name}}",
+      "terminalInfo": "Terminal: {{name}} ({{serial}})",
+      "noMerchants": "No merchants available for this organization",
+      "selectedCount": "{{count}} merchant(s) selected",
+      "save": "Save Assignment"
+    },
+    "confirm": {
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "delete": {
+        "title": "Delete Terminal",
+        "description": "Are you sure you want to delete the terminal \"{{name}}\"? This action cannot be undone."
+      },
+      "LOCK": {
+        "title": "Lock Terminal",
+        "description": "Are you sure you want to lock the terminal \"{{name}}\"? The terminal will not be able to process operations."
+      },
+      "RESTART": {
+        "title": "Restart Terminal",
+        "description": "Are you sure you want to restart the terminal \"{{name}}\"? Ongoing operations will be interrupted."
+      },
+      "CLEAR_CACHE": {
+        "title": "Clear Cache",
+        "description": "Are you sure you want to clear the cache of the terminal \"{{name}}\"? It may take a few minutes to rebuild."
+      }
+    },
+    "toast": {
+      "created": "Terminal created successfully",
+      "updated": "Terminal updated successfully",
+      "deleted": "Terminal deleted successfully",
+      "activationCodeGenerated": "Activation code generated",
+      "remoteActivationSent": "Remote activation command sent",
+      "merchantsAssigned": "Merchants assigned successfully",
+      "command": {
+        "LOCK": "Lock command sent",
+        "UNLOCK": "Unlock command sent",
+        "MAINTENANCE_MODE": "Maintenance mode activated",
+        "EXIT_MAINTENANCE": "Maintenance mode deactivated",
+        "RESTART": "Restart command sent",
+        "CLEAR_CACHE": "Cache clear command sent",
+        "EXPORT_LOGS": "Log export started"
+      }
     }
   },
   "routeProtection": {
