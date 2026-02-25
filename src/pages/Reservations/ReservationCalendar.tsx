@@ -15,6 +15,7 @@ import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { useToast } from '@/hooks/use-toast'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useVenueDateTime } from '@/utils/datetime'
+import { getDateFnsLocale } from '@/utils/i18n-locale'
 import reservationService from '@/services/reservation.service'
 import classSessionService from '@/services/classSession.service'
 import type { Reservation, ReservationSettings, ReservationStatus } from '@/types/reservation'
@@ -84,10 +85,11 @@ function getMonthDays(baseDate: Date): Date[] {
 const GRID_TOP_PAD = 12
 
 export default function ReservationCalendar() {
-  const { t } = useTranslation('reservations')
+  const { t, i18n } = useTranslation('reservations')
   const { venueId, fullBasePath } = useCurrentVenue()
   const navigate = useNavigate()
   const { t: tCommon } = useTranslation()
+  const locale = i18n.language
   const { formatTime, formatDateISO: formatVenueDateISO, venueTimezone } = useVenueDateTime()
   const queryClient = useQueryClient()
 
@@ -122,6 +124,7 @@ export default function ReservationCalendar() {
   // Drag/resize refs (declared early — handlers are set up after classSessions is available)
   const dragRef = useRef<{
     sessionId: string
+    startX: number
     startY: number
     originalTop: number
     durationHours: number
@@ -223,10 +226,36 @@ export default function ReservationCalendar() {
   })
 
   useEffect(() => {
+    // Find the day column ([data-day-key]) under the cursor
+    function getDayKeyAtPoint(x: number, y: number): string | null {
+      const els = document.elementsFromPoint(x, y)
+      for (const el of els) {
+        const dayKey = (el as HTMLElement).dataset?.dayKey
+        if (dayKey) return dayKey
+      }
+      return null
+    }
+
+    // Compute the time (snapped to 15min) from a Y position inside a day column
+    function getTimeAtPoint(x: number, y: number): number | null {
+      const els = document.elementsFromPoint(x, y)
+      for (const el of els) {
+        if (!(el as HTMLElement).dataset?.dayKey) continue
+        const rect = el.getBoundingClientRect()
+        const relY = y - rect.top
+        const hourFloat = (relY - GRID_TOP_PAD) / 64 + firstHour
+        return Math.round(hourFloat * 60 / 15) * 15 // total minutes, snapped
+      }
+      return null
+    }
+
+    let highlightedCol: HTMLElement | null = null
+
     const handleMouseMove = (e: MouseEvent) => {
       if (!dragRef.current) return
       const deltaY = e.clientY - dragRef.current.startY
-      if (!dragRef.current.didDrag && Math.abs(deltaY) < 4) return
+      const deltaX = dragRef.current.mode === 'move' ? (e.clientX - dragRef.current.startX) : 0
+      if (!dragRef.current.didDrag && Math.abs(deltaY) < 4 && Math.abs(deltaX) < 4) return
       e.preventDefault()
       dragRef.current.didDrag = true
 
@@ -237,12 +266,26 @@ export default function ReservationCalendar() {
 
       if (mode === 'move') {
         el.style.transform = `translateY(${deltaY}px)`
+
+        // Highlight target day column during cross-day drag
+        const targetDayKey = getDayKeyAtPoint(e.clientX, e.clientY)
+        if (targetDayKey && targetDayKey !== dragRef.current.dayKey) {
+          const targetCol = document.querySelector(`[data-day-key="${targetDayKey}"]`) as HTMLElement | null
+          if (highlightedCol && highlightedCol !== targetCol) {
+            highlightedCol.style.backgroundColor = ''
+          }
+          if (targetCol) {
+            targetCol.style.backgroundColor = 'rgba(139, 92, 246, 0.06)'
+            highlightedCol = targetCol
+          }
+        } else if (highlightedCol) {
+          highlightedCol.style.backgroundColor = ''
+          highlightedCol = null
+        }
       } else if (mode === 'resize-bottom') {
-        // Grow/shrink from bottom: adjust height, minimum 16px (15min)
         const newHeight = Math.max(16, originalHeight + deltaY)
         el.style.height = `${newHeight}px`
       } else if (mode === 'resize-top') {
-        // Grow/shrink from top: shift down + shrink height
         const newHeight = Math.max(16, originalHeight - deltaY)
         const topShift = originalHeight - newHeight
         el.style.transform = `translateY(${topShift}px)`
@@ -255,6 +298,12 @@ export default function ReservationCalendar() {
       const drag = dragRef.current
       const wasDrag = drag.didDrag
 
+      // Clean up highlight
+      if (highlightedCol) {
+        highlightedCol.style.backgroundColor = ''
+        highlightedCol = null
+      }
+
       // Reset all inline styles
       drag.el.style.transform = ''
       drag.el.style.opacity = ''
@@ -266,33 +315,51 @@ export default function ReservationCalendar() {
 
       if (!wasDrag) return
 
-      const deltaY = e.clientY - drag.startY
-      const deltaHours = deltaY / 64
-      const deltaMinutes = Math.round(deltaHours * 60 / 15) * 15
-
       const session = classSessions.find(s => s.id === drag.sessionId)
       if (!session) return
 
       const tz = venueTimezone
       const origStart = DateTime.fromISO(session.startsAt, { zone: 'utc' }).setZone(tz)
       const origEnd = DateTime.fromISO(session.endsAt, { zone: 'utc' }).setZone(tz)
+      const durationMin = origEnd.diff(origStart, 'minutes').minutes
 
       let newStart = origStart
       let newEnd = origEnd
 
       if (drag.mode === 'move') {
-        if (Math.abs(deltaMinutes) < 15) return
-        newStart = origStart.plus({ minutes: deltaMinutes })
-        newEnd = origEnd.plus({ minutes: deltaMinutes })
+        // Detect target day column for cross-day drag
+        const targetDayKey = getDayKeyAtPoint(e.clientX, e.clientY)
+        const targetMinutes = getTimeAtPoint(e.clientX, e.clientY)
+
+        if (targetDayKey && targetMinutes !== null) {
+          // Build new start from target day + snapped time
+          const targetDate = DateTime.fromISO(targetDayKey, { zone: tz })
+          const hour = Math.floor(targetMinutes / 60)
+          const minute = targetMinutes % 60
+          newStart = targetDate.set({ hour, minute, second: 0, millisecond: 0 })
+          newEnd = newStart.plus({ minutes: durationMin })
+        } else {
+          // Fallback: same-day vertical drag
+          const deltaY = e.clientY - drag.startY
+          const deltaMinutes = Math.round((deltaY / 64) * 60 / 15) * 15
+          if (Math.abs(deltaMinutes) < 15) return
+          newStart = origStart.plus({ minutes: deltaMinutes })
+          newEnd = origEnd.plus({ minutes: deltaMinutes })
+        }
+
+        // Check nothing actually changed
+        if (newStart.equals(origStart) && newEnd.equals(origEnd)) return
       } else if (drag.mode === 'resize-bottom') {
+        const deltaY = e.clientY - drag.startY
+        const deltaMinutes = Math.round((deltaY / 64) * 60 / 15) * 15
         if (Math.abs(deltaMinutes) < 15) return
         newEnd = origEnd.plus({ minutes: deltaMinutes })
-        // Ensure minimum 15min duration
         if (newEnd.diff(origStart, 'minutes').minutes < 15) return
       } else if (drag.mode === 'resize-top') {
+        const deltaY = e.clientY - drag.startY
+        const deltaMinutes = Math.round((deltaY / 64) * 60 / 15) * 15
         if (Math.abs(deltaMinutes) < 15) return
         newStart = origStart.plus({ minutes: deltaMinutes })
-        // Ensure minimum 15min duration
         if (origEnd.diff(newStart, 'minutes').minutes < 15) return
       }
 
@@ -330,6 +397,7 @@ export default function ReservationCalendar() {
     didDragRef.current = false
     dragRef.current = {
       sessionId: session.id,
+      startX: e.clientX,
       startY: e.clientY,
       originalTop: top,
       durationHours: end.diff(start, 'hours').hours,
@@ -366,7 +434,7 @@ export default function ReservationCalendar() {
   // Format current date display
   const dateDisplay = useMemo(() => {
     if (view === 'day') {
-      return currentDate.toLocaleDateString(undefined, {
+      return currentDate.toLocaleDateString(locale, {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -374,13 +442,13 @@ export default function ReservationCalendar() {
       })
     }
     if (view === 'month') {
-      return currentDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+      return currentDate.toLocaleDateString(locale, { month: 'long', year: 'numeric' })
     }
     const days = view === '5day' ? get5Days(currentDate) : getWeekDays(currentDate)
-    const from = days[0].toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-    const to = days[days.length - 1].toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    const from = days[0].toLocaleDateString(locale, { month: 'short', day: 'numeric' })
+    const to = days[days.length - 1].toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })
     return `${from} – ${to}`
-  }, [view, currentDate])
+  }, [view, currentDate, locale])
 
   // Group reservations by day for rendering
   // Exclude reservations tied to a ClassSession — those are already shown inside the class block
@@ -655,7 +723,7 @@ export default function ReservationCalendar() {
           <div
             className={`sticky top-0 z-10 border-b border-border px-2 py-1 text-center ${dayIsToday ? 'bg-primary/5' : 'bg-background'}`}
           >
-            <div className="text-xs text-muted-foreground">{day.toLocaleDateString(undefined, { weekday: 'short' })}</div>
+            <div className="text-xs text-muted-foreground">{day.toLocaleDateString(locale, { weekday: 'short' })}</div>
             <div
               className={`text-sm font-medium ${dayIsToday ? 'bg-primary text-primary-foreground rounded-full w-7 h-7 flex items-center justify-center mx-auto' : ''}`}
             >
@@ -666,6 +734,7 @@ export default function ReservationCalendar() {
 
         {/* Time grid */}
         <div
+          data-day-key={dayKey}
           className={`relative cursor-pointer ${dayIsToday && view === 'day' ? 'bg-primary/2' : ''}`}
           style={{ height: `${HOURS.length * 64 + GRID_TOP_PAD + 8}px` }}
           onClick={e => handleGridClick(e, day)}
@@ -737,6 +806,7 @@ export default function ReservationCalendar() {
 
         {/* Time grid */}
         <div
+          data-day-key={dayKey}
           className={`relative cursor-pointer ${dayIsToday ? 'bg-primary/2' : ''}`}
           style={{ height: `${HOURS.length * 64 + GRID_TOP_PAD + 8}px` }}
           onClick={e => handleGridClick(e, day)}
@@ -808,33 +878,36 @@ export default function ReservationCalendar() {
                 {dateDisplay}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 flex" align="start">
-              {/* Presets */}
-              <div className="border-r border-border p-2 space-y-0.5 min-w-[140px]">
-                <button
-                  className="w-full text-left px-3 py-1.5 text-sm rounded-md hover:bg-accent cursor-pointer"
-                  onClick={() => { setCurrentDate(new Date()) }}
-                >
-                  {t('tabs.today', { defaultValue: 'Hoy' })}
-                </button>
-                {[1, 2, 3, 4, 5, 6].map(n => (
+            <PopoverContent className="w-fit p-0" align="start">
+              <div className="inline-flex">
+                {/* Presets */}
+                <div className="border-r border-border p-2 space-y-0.5">
                   <button
-                    key={n}
-                    className="w-full text-left px-3 py-1.5 text-sm rounded-md hover:bg-accent cursor-pointer text-muted-foreground"
-                    onClick={() => { setCurrentDate(addDays(new Date(), n * 7)) }}
+                    className="block text-left px-3 py-1.5 text-sm rounded-md hover:bg-accent cursor-pointer whitespace-nowrap"
+                    onClick={() => { setCurrentDate(new Date()) }}
                   >
-                    {t('calendar.inWeeks', { count: n, defaultValue: `En ${n} semana${n > 1 ? 's' : ''}` })}
+                    {t('tabs.today', { defaultValue: 'Hoy' })}
                   </button>
-                ))}
-              </div>
-              {/* Calendar */}
-              <div className="p-2">
-                <Calendar
-                  mode="single"
-                  selected={currentDate}
-                  onSelect={date => { if (date) setCurrentDate(date) }}
-                  weekStartsOn={1}
-                />
+                  {[1, 2, 3, 4, 5, 6].map(n => (
+                    <button
+                      key={n}
+                      className="block text-left px-3 py-1.5 text-sm rounded-md hover:bg-accent cursor-pointer text-muted-foreground whitespace-nowrap"
+                      onClick={() => { setCurrentDate(addDays(new Date(), n * 7)) }}
+                    >
+                      {t('calendar.inWeeks', { count: n, defaultValue: `En ${n} semana${n > 1 ? 's' : ''}` })}
+                    </button>
+                  ))}
+                </div>
+                {/* Calendar */}
+                <div className="p-2">
+                  <Calendar
+                    mode="single"
+                    selected={currentDate}
+                    onSelect={date => { if (date) setCurrentDate(date) }}
+                    weekStartsOn={1}
+                    locale={getDateFnsLocale(locale)}
+                  />
+                </div>
               </div>
             </PopoverContent>
           </Popover>

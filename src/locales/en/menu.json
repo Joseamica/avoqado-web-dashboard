@@ -818,5 +818,26 @@
       "success": "Product converted to service",
       "viewServices": "View in Services"
     }
+  },
+  "layout": {
+    "title": "Spot map",
+    "description": "Configure the visual layout of your class spots",
+    "iconType": "Icon type",
+    "iconCircle": "Circle",
+    "iconBike": "Bike",
+    "iconMat": "Mat",
+    "iconReformer": "Reformer",
+    "iconBed": "Bed",
+    "iconChair": "Chair",
+    "gridSize": "Grid size",
+    "instructor": "Instructor",
+    "showInstructor": "Show at front",
+    "instructorLabel": "Instructor",
+    "reset": "Reset",
+    "spotsCount": "{{count}} active spots",
+    "legendActive": "Active",
+    "legendDisabled": "Disabled",
+    "legendInstructor": "Instructor",
+    "capacityFromLayout": "Calculated from spot map"
   }
 }

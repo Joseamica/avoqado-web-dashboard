@@ -781,5 +781,26 @@
       "success": "Producto convertido a servicio",
       "viewServices": "Ver en Servicios"
     }
+  },
+  "layout": {
+    "title": "Mapa de lugares",
+    "description": "Configura el acomodo visual de los lugares de tu clase",
+    "iconType": "Tipo de icono",
+    "iconCircle": "Círculo",
+    "iconBike": "Bicicleta",
+    "iconMat": "Tapete",
+    "iconReformer": "Reformer",
+    "iconBed": "Cama",
+    "iconChair": "Silla",
+    "gridSize": "Tamaño del grid",
+    "instructor": "Instructor",
+    "showInstructor": "Mostrar al frente",
+    "instructorLabel": "Instructor",
+    "reset": "Reiniciar",
+    "spotsCount": "{{count}} lugares activos",
+    "legendActive": "Activo",
+    "legendDisabled": "Desactivado",
+    "legendInstructor": "Instructor",
+    "capacityFromLayout": "Calculado desde el mapa de lugares"
   }
 }

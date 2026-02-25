@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -7,7 +7,7 @@ import { z } from 'zod'
 import { CalendarDays, Clock, CreditCard, Globe, Shield, Users, Bell } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -17,7 +17,6 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import reservationService from '@/services/reservation.service'
 import type { OperatingHours } from '@/types/reservation'
-import { OperatingHoursEditor } from './components/OperatingHoursEditor'
 
 const settingsSchema = z.object({
 	// Scheduling
@@ -104,21 +103,12 @@ export default function ReservationSettings() {
 		},
 	})
 
-	// Operating hours managed separately (complex JSON, not a flat form field)
+	// Operating hours managed separately in calendar
 	const [operatingHours, setOperatingHours] = useState<OperatingHours | null>(null)
-	const [operatingHoursDirty, setOperatingHoursDirty] = useState(false)
-	const initialOperatingHoursRef = useRef<string>('')
-
-	const handleOperatingHoursChange = useCallback((hours: OperatingHours) => {
-		setOperatingHours(hours)
-		setOperatingHoursDirty(JSON.stringify(hours) !== initialOperatingHoursRef.current)
-	}, [])
 
 	useEffect(() => {
 		if (settings) {
 			setOperatingHours(settings.operatingHours)
-			initialOperatingHoursRef.current = JSON.stringify(settings.operatingHours)
-			setOperatingHoursDirty(false)
 			reset({
 				slotIntervalMin: settings.scheduling.slotIntervalMin,
 				defaultDurationMin: settings.scheduling.defaultDurationMin,
@@ -233,29 +223,13 @@ export default function ReservationSettings() {
 				</div>
 				<Button
 					onClick={handleSubmit(data => updateMutation.mutate(data))}
-					disabled={(!isDirty && !operatingHoursDirty) || updateMutation.isPending}
+					disabled={!isDirty || updateMutation.isPending}
 				>
 					{updateMutation.isPending ? tCommon('loading') : t('actions.saveChanges')}
 				</Button>
 			</div>
 
 			<form className="space-y-6">
-				{/* Operating Hours */}
-				{operatingHours && (
-					<Card className="border-input">
-						<CardHeader>
-							<CardTitle className="flex items-center gap-2">
-								<Clock className="h-5 w-5" />
-								{t('settings.sections.operatingHours')}
-							</CardTitle>
-							<CardDescription>{t('settings.operatingHours.subtitle')}</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<OperatingHoursEditor value={operatingHours} onChange={handleOperatingHoursChange} />
-						</CardContent>
-					</Card>
-				)}
-
 				{/* Scheduling */}
 				<Card className="border-input">
 					<CardHeader>

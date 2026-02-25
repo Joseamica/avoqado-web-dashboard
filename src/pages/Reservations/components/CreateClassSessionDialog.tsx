@@ -138,17 +138,26 @@ export function CreateClassSessionDialog({
     [allProducts],
   )
 
-  // Auto-fill capacity from selected product's maxParticipants
+  // Auto-fill capacity from selected product's layout or maxParticipants
   const selectedProduct = useMemo(
     () => classProducts.find(p => p.id === selectedProductId),
     [classProducts, selectedProductId],
   )
 
+  const hasLayout = !!(selectedProduct as any)?.layoutConfig
+  const layoutSpotCount = useMemo(() => {
+    const lc = (selectedProduct as any)?.layoutConfig
+    if (!lc?.spots) return null
+    return (lc.spots as Array<{ enabled: boolean }>).filter(s => s.enabled).length
+  }, [selectedProduct])
+
   useEffect(() => {
-    if (selectedProduct && (selectedProduct as any).maxParticipants) {
+    if (layoutSpotCount) {
+      setValue('capacity', layoutSpotCount)
+    } else if (selectedProduct && (selectedProduct as any).maxParticipants) {
       setValue('capacity', (selectedProduct as any).maxParticipants)
     }
-  }, [selectedProduct, setValue])
+  }, [selectedProduct, layoutSpotCount, setValue])
 
   // Fetch staff
   const { data: staffData, isLoading: staffLoading } = useQuery({
@@ -351,6 +360,14 @@ export function CreateClassSessionDialog({
                 className={errors.capacity ? 'border-destructive' : ''}
               />
               {errors.capacity && <p className="text-xs text-destructive">{errors.capacity.message}</p>}
+              {hasLayout && layoutSpotCount && (
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  {t('classSession.capacityFromLayout', {
+                    defaultValue: 'Auto-calculado: {{count}} lugares del mapa',
+                    count: layoutSpotCount,
+                  })}
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">

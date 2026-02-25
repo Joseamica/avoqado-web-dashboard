@@ -19,6 +19,7 @@ import { useImageUploader } from '@/hooks/use-image-uploader'
 import { createMenuCategory, getMenuCategories, getProduct, updateProduct } from '@/services/menu.service'
 import { productWizardApi, type ProductType } from '@/services/inventory.service'
 import { Currency } from '@/utils/currency'
+import { ClassLayoutEditor, type LayoutConfig } from './ClassLayoutEditor'
 
 interface ServiceFormData {
   name: string
@@ -29,6 +30,7 @@ interface ServiceFormData {
   maxParticipants: number | string
   active: boolean
   imageUrl: string | null
+  layoutConfig: LayoutConfig | null
 }
 
 interface ServiceFormDialogProps {
@@ -140,6 +142,7 @@ export function ServiceFormDialog({
       maxParticipants: '',
       active: true,
       imageUrl: null,
+      layoutConfig: null,
     },
   })
 
@@ -157,6 +160,7 @@ export function ServiceFormDialog({
         maxParticipants: existingProduct.maxParticipants ?? '',
         active: existingProduct.active,
         imageUrl: existingProduct.imageUrl,
+        layoutConfig: (existingProduct as any).layoutConfig ?? null,
       })
       initializeWithExistingUrl(existingProduct.imageUrl)
     }
@@ -174,6 +178,7 @@ export function ServiceFormDialog({
         maxParticipants: isClass ? 15 : '',
         active: true,
         imageUrl: null,
+        layoutConfig: null,
       })
       setUploaderImageUrl(null)
     }
@@ -192,6 +197,7 @@ export function ServiceFormDialog({
           imageUrl: uploadedImageUrl || undefined,
           duration: isAppointment && data.duration ? Number(data.duration) : undefined,
           maxParticipants: isClass && data.maxParticipants ? Number(data.maxParticipants) : undefined,
+          layoutConfig: isClass ? data.layoutConfig : undefined,
         },
         inventory: { useInventory: false },
       }
@@ -233,6 +239,7 @@ export function ServiceFormDialog({
       }
       if (isClass) {
         payload.maxParticipants = data.maxParticipants ? Number(data.maxParticipants) : null
+        payload.layoutConfig = data.layoutConfig
       }
       return updateProduct(venueId!, productId!, payload)
     },
@@ -414,21 +421,41 @@ export function ServiceFormDialog({
                 )}
 
                 {isClass && (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="maxParticipants">{t('services.form.maxParticipantsLabel')}</Label>
-                    <Input
-                      id="maxParticipants"
-                      type="number"
-                      min="1"
-                      placeholder={t('services.form.maxParticipantsPlaceholder')}
-                      {...register('maxParticipants', {
-                        validate: (v) => !v || Number(v) > 0 || t('products.create.pricePositive'),
-                      })}
+                  <>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="maxParticipants">{t('services.form.maxParticipantsLabel')}</Label>
+                      <Input
+                        id="maxParticipants"
+                        type="number"
+                        min="1"
+                        placeholder={t('services.form.maxParticipantsPlaceholder')}
+                        {...register('maxParticipants', {
+                          validate: (v) => !v || Number(v) > 0 || t('products.create.pricePositive'),
+                        })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        {t('services.form.maxParticipantsHelp')}
+                      </p>
+                    </div>
+
+                    <Controller
+                      name="layoutConfig"
+                      control={control}
+                      render={({ field }) => (
+                        <ClassLayoutEditor
+                          value={field.value}
+                          onChange={(layout) => {
+                            field.onChange(layout)
+                            // Auto-sync maxParticipants from enabled spot count
+                            if (layout) {
+                              const enabledCount = layout.spots.filter(s => s.enabled).length
+                              setValue('maxParticipants', enabledCount, { shouldDirty: true })
+                            }
+                          }}
+                        />
+                      )}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      {t('services.form.maxParticipantsHelp')}
-                    </p>
-                  </div>
+                  </>
                 )}
               </div>
 
