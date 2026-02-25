@@ -1,10 +1,16 @@
 ﻿import {
   AlertTriangle,
+  Award,
   BarChart3,
   BookOpen,
   Building,
   CalendarDays,
+  ClipboardList,
+  Clock,
+  CreditCard,
   DollarSign,
+  Eye,
+  FileSpreadsheet,
   FlaskConical,
   Gem,
   HandCoins,
@@ -13,6 +19,7 @@
   LayoutDashboard,
   Package,
   Receipt,
+  Settings,
   Settings2,
   Shield,
   ShoppingCart,
@@ -22,8 +29,11 @@
   Tag,
   TrendingUp,
   Ungroup,
+  UserCog,
   Users,
+  UtensilsCrossed,
   Wallet,
+  Warehouse,
   Zap,
   LucideIcon,
 } from 'lucide-react'
@@ -47,34 +57,91 @@ import { useTerminology } from '@/hooks/use-terminology'
 // ============================================
 
 const ICON_MAP: Record<string, LucideIcon> = {
-  CalendarDays,
-  LayoutDashboard,
-  DollarSign,
-  HandCoins,
+  Award,
   BarChart3,
-  Package,
-  Users,
-  Store,
+  CalendarDays,
+  ClipboardList,
+  Clock,
+  CreditCard,
+  DollarSign,
+  Eye,
+  FileSpreadsheet,
   Gem,
+  HandCoins,
   Handshake,
   Home,
+  LayoutDashboard,
+  Package,
   Receipt,
+  Settings,
   Settings2,
   Shield,
   ShoppingCart,
   Smartphone,
   Star,
+  Store,
   Tag,
   TrendingUp,
+  UserCog,
+  Users,
+  UtensilsCrossed,
   Wallet,
+  Warehouse,
 }
 
 /**
- * Get icon component by name from the registry
+ * Default icon per feature code — used when the WL config doesn't specify one.
+ * Mirrors the icons defined in feature-registry.ts.
  */
-function getIconComponent(iconName: string | undefined): LucideIcon {
-  if (!iconName) return LayoutDashboard
-  return ICON_MAP[iconName] || LayoutDashboard
+const FEATURE_DEFAULT_ICON: Record<string, string> = {
+  // Avoqado core
+  AVOQADO_DASHBOARD: 'LayoutDashboard',
+  AVOQADO_ORDERS: 'ClipboardList',
+  AVOQADO_PAYMENTS: 'CreditCard',
+  AVOQADO_MENU: 'UtensilsCrossed',
+  AVOQADO_INVENTORY: 'Warehouse',
+  AVOQADO_TEAM: 'Users',
+  AVOQADO_CUSTOMERS: 'Users',
+  AVOQADO_TPVS: 'Smartphone',
+  AVOQADO_BALANCE: 'Wallet',
+  AVOQADO_PROMOTIONS: 'Tag',
+  AVOQADO_ANALYTICS: 'TrendingUp',
+  AVOQADO_SHIFTS: 'Clock',
+  AVOQADO_COMMISSIONS: 'DollarSign',
+  AVOQADO_LOYALTY: 'Award',
+  AVOQADO_REVIEWS: 'Star',
+  AVOQADO_REPORTS: 'BarChart3',
+  AVOQADO_RESERVATIONS: 'CalendarDays',
+  AVOQADO_SETTINGS: 'Settings2',
+  // Module-specific
+  COMMAND_CENTER: 'LayoutDashboard',
+  SERIALIZED_STOCK: 'Package',
+  PROMOTERS_AUDIT: 'Users',
+  STORES_ANALYSIS: 'Store',
+  MANAGERS_DASHBOARD: 'UserCog',
+  SALES_REPORT: 'Receipt',
+  SUPERVISOR_DASHBOARD: 'Eye',
+  TPV_CONFIGURATION: 'Settings',
+  CLOSING_REPORT: 'FileSpreadsheet',
+  USERS_MANAGEMENT: 'Users',
+  APPRAISALS: 'Gem',
+  CONSIGNMENT: 'Handshake',
+}
+
+/**
+ * Get icon component by name from the registry.
+ * Falls back to a feature-code-specific default, then to LayoutDashboard.
+ */
+function getIconComponent(iconName: string | undefined, featureCode?: string): LucideIcon {
+  // 1. Explicit icon name from WL config
+  if (iconName && ICON_MAP[iconName]) return ICON_MAP[iconName]
+  // 2. Default icon for this feature code
+  if (featureCode) {
+    const defaultName = FEATURE_DEFAULT_ICON[featureCode]
+    if (defaultName && ICON_MAP[defaultName]) return ICON_MAP[defaultName]
+  }
+  // 3. Ultimate fallback
+  return LayoutDashboard
 }
 
 /**
@@ -140,7 +207,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         whiteLabelModuleItems.push({
           title,
           url: getFeatureRoute(navItem.featureCode || ''),
-          icon: getIconComponent(navItem.icon),
+          icon: getIconComponent(navItem.icon, navItem.featureCode),
           isActive: true,
           locked: false,
           isAvoqadoCore: false,
