@@ -304,8 +304,8 @@ function DataTable<TData>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
-                  className={`bg-background border-border hover:bg-background data-[state=selected]:bg-background ${
-                    onRowClick ? 'cursor-pointer' : ''
+                  className={`bg-background border-border data-[state=selected]:bg-background ${
+                    onRowClick ? 'cursor-pointer transition-colors hover:bg-muted/30' : 'hover:bg-background'
                   } ${customRowClass}`}
                   onClick={() => onRowClick?.(row.original)}
                 >

@@ -1,37 +1,46 @@
 /**
- * UsersManagement - User Administration with split-panel layout
+ * UsersManagement - User Administration with DataTable list
  *
  * Layout:
- * - Left sidebar (~280px): Searchable user list with status filters + invite button
- * - Main panel (flex-1): User detail with role, scope, permissions, audit log
+ * - Header: Stripe-style FilterPill bar (Rol, Estado, Tiendas) + invite button
+ * - Body: Full-width DataTable with searchable user list
+ * - Detail: FullScreenModal with embedded UserDetailPanel
  *
  * Note: Page title + breadcrumbs are provided by PlayTelecomLayout.
- * This component only renders the split-panel content.
+ * This component only renders the filter bar + table + modals.
  *
  * Access: ADMIN+ only
  */
 
 import { useState, useMemo, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { type ColumnDef } from '@tanstack/react-table'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { getTeam, getZones, adminResetPassword, getStaffActivityLog, syncStaffVenues } from '@/services/storesAnalysis.service'
 import { teamService } from '@/services/team.service'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
+import { useRoleConfig } from '@/hooks/use-role-config'
+import { getRoleBadgeColor } from '@/utils/role-permissions'
+import DataTable from '@/components/data-table'
+import { FilterPill, CheckboxFilterContent } from '@/components/filters'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import InviteTeamMemberForm, { type InviteTeamMemberFormRef } from '@/pages/Team/components/InviteTeamMemberForm'
 import { StaffRole } from '@/types'
 import { canModifyRole, getModifiableRoles } from '@/lib/permissions/roleHierarchy'
-import { UserSidebar, UserDetailPanel, type UserListItem, type UserDetail, type Zone, type StoreOption, type AuditLogEntry } from './components'
-import { Skeleton } from '@/components/ui/skeleton'
+import { UserDetailPanel, type UserDetailPanelRef, type UserListItem, type UserDetail, type Zone, type StoreOption, type AuditLogEntry } from './components'
+import { UserCheck, UserX, UserPlus, Store, X, Save, RotateCcw } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 /** Query key helpers */
 const teamQueryKey = (venueId: string | null) => ['stores-analysis', venueId, 'team']
 
-/** Map backend action codes → AuditLogTerminal action types */
+/** Map backend action codes -> AuditLogTerminal action types */
 const ACTION_TYPE_MAP: Record<string, AuditLogEntry['action']> = {
   ROLE_CHANGED: 'role_change',
   USER_ACTIVATED: 'login',
@@ -55,21 +64,37 @@ const ACTION_MESSAGE_BUILDERS: Record<string, (data: Record<string, unknown> | n
   MASTER_LOGIN_FAILED: (_data, by) => `Intento de login master fallido por ${by}`,
 }
 
+/** Extended list item with venue count + venueIds for the table */
+interface UserRow extends UserListItem {
+  activeVenueCount: number
+  activeVenueIds: string[]
+}
+
 export function UsersManagement() {
   const { t } = useTranslation(['playtelecom', 'common', 'team'])
   const { venueId } = useCurrentVenue()
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const { staffInfo } = useAuth()
+  const { getDisplayName, getColor, activeRoles } = useRoleConfig()
 
   // State
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+
+  // Stripe-style filter state (arrays for multi-select)
+  const [roleFilter, setRoleFilter] = useState<string[]>([])
+  const [statusFilter, setStatusFilter] = useState<string[]>([])
+  const [storesFilter, setStoresFilter] = useState<string[]>([])
 
   // Invite dialog state
   const [showInviteDialog, setShowInviteDialog] = useState(false)
   const [isInviteSubmitting, setIsInviteSubmitting] = useState(false)
   const [isInviteFormValid, setIsInviteFormValid] = useState(false)
   const inviteFormRef = useRef<InviteTeamMemberFormRef>(null)
+
+  // Detail panel ref + dirty state (for modal header save/reset buttons)
+  const detailPanelRef = useRef<UserDetailPanelRef>(null)
+  const [detailHasChanges, setDetailHasChanges] = useState(false)
 
   // Reset password dialog state
   const [tempPassword, setTempPassword] = useState<string | null>(null)
@@ -100,14 +125,11 @@ export function UsersManagement() {
 
   // ---------- Mutations ----------
 
-  // Update team member role
   const updateRoleMutation = useMutation({
     mutationFn: ({ staffVenueId, role }: { staffVenueId: string; role: StaffRole }) =>
       teamService.updateTeamMember(venueId!, staffVenueId, { role }),
     onSuccess: () => {
-      toast({
-        title: t('playtelecom:users.roleUpdated', { defaultValue: 'Rol actualizado' }),
-      })
+      toast({ title: t('playtelecom:users.roleUpdated', { defaultValue: 'Rol actualizado' }) })
       queryClient.invalidateQueries({ queryKey: teamQueryKey(venueId) })
       queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'activity'] })
     },
@@ -117,7 +139,6 @@ export function UsersManagement() {
     },
   })
 
-  // Toggle active/inactive status
   const updateStatusMutation = useMutation({
     mutationFn: ({ staffVenueId, active }: { staffVenueId: string; active: boolean }) =>
       teamService.updateTeamMember(venueId!, staffVenueId, { active }),
@@ -136,7 +157,6 @@ export function UsersManagement() {
     },
   })
 
-  // Reset password mutation — shows result in a dialog so user can copy the password
   const resetPasswordMutation = useMutation({
     mutationFn: (userId: string) => adminResetPassword(venueId!, userId),
     onSuccess: data => {
@@ -152,15 +172,12 @@ export function UsersManagement() {
     },
   })
 
-  // Sync venue assignments
   const syncVenuesMutation = useMutation({
     mutationFn: ({ staffId, venueIds }: { staffId: string; venueIds: string[] }) =>
       syncStaffVenues(venueId!, staffId, venueIds),
     onSuccess: (data) => {
       if (data.added > 0 || data.removed > 0) {
-        toast({
-          title: t('playtelecom:users.venuesUpdated', { defaultValue: 'Tiendas actualizadas' }),
-        })
+        toast({ title: t('playtelecom:users.venuesUpdated', { defaultValue: 'Tiendas actualizadas' }) })
       }
       queryClient.invalidateQueries({ queryKey: teamQueryKey(venueId) })
       queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'activity'] })
@@ -175,22 +192,13 @@ export function UsersManagement() {
 
   // ---------- Data Mapping ----------
 
-  // Map zones for ScopeConfiguration
   const zones: Zone[] = useMemo(() => orgZones.map(z => ({ id: z.id, name: z.name })), [orgZones])
 
-  // Collect all unique venues from zone data OR from team members' assigned venues
-  const stores: StoreOption[] = useMemo(() => {
-    // Primary source: zones endpoint (has zone grouping)
+  const allStores: StoreOption[] = useMemo(() => {
     const fromZones = orgZones.flatMap(z =>
-      z.venues.map(v => ({
-        id: v.id,
-        name: v.name,
-        zoneId: z.id,
-      })),
+      z.venues.map(v => ({ id: v.id, name: v.name, zoneId: z.id })),
     )
     if (fromZones.length > 0) return fromZones
-
-    // Fallback: collect unique venues from all team members
     const venueMap = new Map<string, StoreOption>()
     for (const member of teamMembers) {
       for (const v of member.venues) {
@@ -202,7 +210,6 @@ export function UsersManagement() {
     return Array.from(venueMap.values())
   }, [orgZones, teamMembers])
 
-  // Map API activity logs → AuditLogEntry format
   const auditLogEntries: AuditLogEntry[] = useMemo(
     () =>
       rawActivityLog.map(log => ({
@@ -214,7 +221,6 @@ export function UsersManagement() {
     [rawActivityLog],
   )
 
-  // Helper: get StaffVenue ID for a member in the current venue
   const getStaffVenueId = useCallback(
     (memberId: string): string | null => {
       const member = teamMembers.find(m => m.id === memberId)
@@ -225,7 +231,6 @@ export function UsersManagement() {
     [teamMembers, venueId],
   )
 
-  // Map API team members → UserDetail format using actual venue role and active status
   const usersFullData: UserDetail[] = useMemo(
     () =>
       teamMembers.map(member => {
@@ -248,13 +253,14 @@ export function UsersManagement() {
     [teamMembers, venueId, selectedUserId, auditLogEntries],
   )
 
-  // Convert full users to list items for sidebar
-  const userListItems: UserListItem[] = useMemo(
+  // Table rows
+  const userRows: UserRow[] = useMemo(
     () =>
       teamMembers.map(member => {
         const currentVenue = member.venues.find(v => v.id === venueId)
         const currentVenueRole = currentVenue?.role || member.venues[0]?.role || 'VIEWER'
         const isActive = currentVenue?.active ?? true
+        const activeVenues = member.venues.filter(v => v.active)
         return {
           id: member.id,
           name: `${member.firstName} ${member.lastName}`.trim(),
@@ -262,25 +268,72 @@ export function UsersManagement() {
           role: currentVenueRole,
           status: (isActive ? 'active' : 'inactive') as 'active' | 'inactive',
           avatarUrl: member.photoUrl || undefined,
+          activeVenueCount: activeVenues.length,
+          activeVenueIds: activeVenues.map(v => v.id),
         }
       }),
     [teamMembers, venueId],
   )
 
-  // Get selected user details
+  // ---------- Filter Options ----------
+
+  const roleOptions = useMemo(() =>
+    activeRoles.map(rc => ({ value: rc.role, label: getDisplayName(rc.role) })),
+    [activeRoles, getDisplayName],
+  )
+
+  const statusOptions = useMemo(() => [
+    { value: 'active', label: 'Activo' },
+    { value: 'inactive', label: 'Inactivo' },
+  ], [])
+
+  const storesOptions = useMemo(() =>
+    allStores.map(s => ({ value: s.id, label: s.name })),
+    [allStores],
+  )
+
+  // Filter display label helper
+  const getFilterLabel = useCallback((values: string[], options: { value: string; label: string }[]) => {
+    if (values.length === 0) return null
+    if (values.length === 1) return options.find(o => o.value === values[0])?.label || values[0]
+    return `${values.length} seleccionados`
+  }, [])
+
+  // Count active filters
+  const activeFiltersCount = [roleFilter.length > 0, statusFilter.length > 0, storesFilter.length > 0].filter(Boolean).length
+
+  const resetFilters = useCallback(() => {
+    setRoleFilter([])
+    setStatusFilter([])
+    setStoresFilter([])
+  }, [])
+
+  // Apply all filters
+  const filteredRows = useMemo(() => {
+    let rows = userRows
+    if (roleFilter.length > 0) {
+      rows = rows.filter(u => roleFilter.includes(u.role))
+    }
+    if (statusFilter.length > 0) {
+      rows = rows.filter(u => statusFilter.includes(u.status))
+    }
+    if (storesFilter.length > 0) {
+      rows = rows.filter(u => u.activeVenueIds.some(id => storesFilter.includes(id)))
+    }
+    return rows
+  }, [userRows, roleFilter, statusFilter, storesFilter])
+
   const selectedUser = useMemo(() => usersFullData.find(u => u.id === selectedUserId) || null, [selectedUserId, usersFullData])
 
   // ---------- Role Hierarchy ----------
 
   const currentUserRole = staffInfo?.role as StaffRole | undefined
 
-  // Can the current user edit the selected user?
   const canEditSelectedUser = useMemo(() => {
     if (!currentUserRole || !selectedUser) return false
     return canModifyRole(currentUserRole, selectedUser.role as StaffRole)
   }, [currentUserRole, selectedUser])
 
-  // Which roles can the current user assign? (only roles they can modify, excluding SUPERADMIN/OWNER)
   const assignableRoles = useMemo(() => {
     if (!currentUserRole) return []
     return getModifiableRoles(currentUserRole).filter(
@@ -290,12 +343,9 @@ export function UsersManagement() {
 
   // ---------- Handlers ----------
 
-  // Handle save (role change + venue assignments via API)
   const handleSave = useCallback(
     (updates: Partial<UserDetail>) => {
       if (!selectedUserId || !canEditSelectedUser) return
-
-      // Sync role if changed (requires staffVenueId — skip if user has no access to this venue yet)
       if (updates.role) {
         const staffVenueId = getStaffVenueId(selectedUserId)
         if (staffVenueId) {
@@ -305,8 +355,6 @@ export function UsersManagement() {
           }
         }
       }
-
-      // Sync venue assignments if changed
       if (updates.selectedStores) {
         const currentUser = usersFullData.find(u => u.id === selectedUserId)
         const currentStores = currentUser?.selectedStores || []
@@ -322,7 +370,6 @@ export function UsersManagement() {
     [selectedUserId, canEditSelectedUser, getStaffVenueId, updateRoleMutation, syncVenuesMutation, usersFullData],
   )
 
-  // Handle status change (activate/deactivate via API — no "blocked" state in backend)
   const handleStatusChange = useCallback(
     (status: 'active' | 'inactive') => {
       if (!selectedUserId || !canEditSelectedUser) return
@@ -333,14 +380,12 @@ export function UsersManagement() {
     [selectedUserId, canEditSelectedUser, getStaffVenueId, updateStatusMutation],
   )
 
-  // Handle reset password (uses Staff.id, not StaffVenue.id)
   const handleResetPassword = useCallback(() => {
     if (selectedUserId) {
       resetPasswordMutation.mutate(selectedUserId)
     }
   }, [selectedUserId, resetPasswordMutation])
 
-  // Handle invite success
   const handleInviteSuccess = useCallback(() => {
     setShowInviteDialog(false)
     queryClient.invalidateQueries({ queryKey: teamQueryKey(venueId) })
@@ -348,53 +393,262 @@ export function UsersManagement() {
     queryClient.invalidateQueries({ queryKey: ['team-invitations', venueId] })
   }, [venueId, queryClient])
 
+  // Client-side search for DataTable
+  const handleSearch = useCallback((search: string, rows: UserRow[]) => {
+    if (!search) return rows
+    const q = search.toLowerCase()
+    return rows.filter(u =>
+      u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q),
+    )
+  }, [])
+
   const isSaving = updateRoleMutation.isPending || updateStatusMutation.isPending || syncVenuesMutation.isPending
+
+  // ---------- Column Definitions ----------
+
+  const columns: ColumnDef<UserRow>[] = useMemo(
+    () => [
+      {
+        accessorKey: 'name',
+        header: t('playtelecom:users.columns.user', { defaultValue: 'Usuario' }),
+        cell: ({ row }) => (
+          <div className="flex items-center gap-3">
+            <div className="relative shrink-0">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center bg-muted text-sm font-medium text-muted-foreground">
+                {row.original.avatarUrl ? (
+                  <img src={row.original.avatarUrl} alt={row.original.name} className="w-full h-full rounded-full object-cover" />
+                ) : (
+                  <span>{row.original.name.charAt(0).toUpperCase()}</span>
+                )}
+              </div>
+              <span
+                className={cn(
+                  'absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-[1.5px] border-background',
+                  row.original.status === 'active' ? 'bg-green-500' : 'bg-muted-foreground/40',
+                )}
+              />
+            </div>
+            <div className="min-w-0">
+              <p className="font-medium text-sm truncate">{row.original.name}</p>
+              <p className="text-xs text-muted-foreground truncate">{row.original.email}</p>
+            </div>
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'role',
+        header: t('playtelecom:users.columns.role', { defaultValue: 'Rol' }),
+        cell: ({ row }) => {
+          const role = row.original.role
+          const customColor = getColor(role)
+          const fallbackClasses = getRoleBadgeColor(role as StaffRole)
+          return (
+            <span
+              className={cn(
+                'inline-flex items-center h-5 px-2 text-[10px] font-medium rounded-full leading-none',
+                customColor ? 'border border-current/20' : fallbackClasses,
+              )}
+              style={
+                customColor
+                  ? { backgroundColor: `${customColor}20`, color: customColor, borderColor: `${customColor}40` }
+                  : undefined
+              }
+            >
+              {getDisplayName(role)}
+            </span>
+          )
+        },
+      },
+      {
+        accessorKey: 'status',
+        header: t('playtelecom:users.columns.status', { defaultValue: 'Estado' }),
+        cell: ({ row }) => {
+          const isActive = row.original.status === 'active'
+          return (
+            <Badge variant={isActive ? 'default' : 'secondary'} className="text-[11px] h-5 px-2">
+              {isActive ? (
+                <><UserCheck className="w-3 h-3 mr-1" />{t('playtelecom:users.status.active', { defaultValue: 'Activo' })}</>
+              ) : (
+                <><UserX className="w-3 h-3 mr-1" />{t('playtelecom:users.status.inactive', { defaultValue: 'Inactivo' })}</>
+              )}
+            </Badge>
+          )
+        },
+      },
+      {
+        accessorKey: 'activeVenueCount',
+        header: t('playtelecom:users.columns.stores', { defaultValue: 'Tiendas' }),
+        cell: ({ row }) => {
+          const count = row.original.activeVenueCount
+          if (count === 0) return <span className="text-muted-foreground">—</span>
+          return (
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Store className="w-3.5 h-3.5" />
+              <span>{count}</span>
+            </div>
+          )
+        },
+      },
+    ],
+    [t, getDisplayName, getColor],
+  )
+
+  // ---------- Render ----------
 
   if (isLoading) {
     return (
-      <div className="flex gap-4 h-[calc(100dvh-12.5rem)]">
-        <div className="w-72 shrink-0 space-y-3">
-          <Skeleton className="h-10 rounded-xl" />
-          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Skeleton className="h-8 w-20 rounded-full" />
+          <Skeleton className="h-8 w-24 rounded-full" />
+          <Skeleton className="h-8 w-24 rounded-full" />
+          <div className="flex-1" />
+          <Skeleton className="h-10 w-28 rounded-xl" />
         </div>
-        <div className="flex-1 space-y-4">
-          <Skeleton className="h-24 rounded-xl" />
-          <Skeleton className="h-40 rounded-xl" />
-          <Skeleton className="h-48 rounded-xl" />
-          <Skeleton className="h-32 rounded-xl" />
-        </div>
+        <Skeleton className="h-[500px] rounded-xl" />
       </div>
     )
   }
 
   return (
     <>
-      <div className="flex gap-4 h-[calc(100dvh-12.5rem)] min-h-0">
-        {/* Left Sidebar */}
-        <div className="w-72 shrink-0 min-h-0 h-full">
-          <UserSidebar
-            users={userListItems}
-            selectedUserId={selectedUserId}
-            onSelectUser={setSelectedUserId}
-            onInvite={() => setShowInviteDialog(true)}
+      {/* Stripe-style filter bar: filters left, actions right */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-3 mb-4">
+        {/* Rol filter — matches column order */}
+        <FilterPill
+          label="Rol"
+          activeValue={getFilterLabel(roleFilter, roleOptions)}
+          isActive={roleFilter.length > 0}
+          onClear={() => setRoleFilter([])}
+        >
+          <CheckboxFilterContent
+            title="Filtrar por Rol"
+            options={roleOptions}
+            selectedValues={roleFilter}
+            onApply={setRoleFilter}
           />
-        </div>
+        </FilterPill>
 
-        {/* Main Panel */}
-        <div className="flex-1 min-h-0 min-w-0">
+        {/* Estado filter */}
+        <FilterPill
+          label="Estado"
+          activeValue={getFilterLabel(statusFilter, statusOptions)}
+          isActive={statusFilter.length > 0}
+          onClear={() => setStatusFilter([])}
+        >
+          <CheckboxFilterContent
+            title="Filtrar por Estado"
+            options={statusOptions}
+            selectedValues={statusFilter}
+            onApply={setStatusFilter}
+          />
+        </FilterPill>
+
+        {/* Tiendas filter */}
+        <FilterPill
+          label="Tiendas"
+          activeValue={getFilterLabel(storesFilter, storesOptions)}
+          isActive={storesFilter.length > 0}
+          onClear={() => setStoresFilter([])}
+        >
+          <CheckboxFilterContent
+            title="Filtrar por Tienda"
+            options={storesOptions}
+            selectedValues={storesFilter}
+            searchable={storesOptions.length > 5}
+            onApply={setStoresFilter}
+          />
+        </FilterPill>
+
+        {/* Reset filters button */}
+        {activeFiltersCount > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={resetFilters}
+            className="h-8 gap-1.5 rounded-full cursor-pointer"
+          >
+            <X className="h-3.5 w-3.5" />
+            Borrar filtros
+          </Button>
+        )}
+
+        {/* Push invite button right */}
+        <div className="ml-auto flex items-center gap-2">
+          <Button
+            onClick={() => setShowInviteDialog(true)}
+            className="h-10 gap-1.5 rounded-xl cursor-pointer px-4"
+          >
+            <UserPlus className="w-4 h-4" />
+            {t('playtelecom:users.invite', { defaultValue: 'Invitar' })}
+          </Button>
+        </div>
+      </div>
+
+      {/* Users Table */}
+      <DataTable
+        data={filteredRows}
+        columns={columns}
+        rowCount={filteredRows.length}
+        isLoading={isLoading}
+        onRowClick={(row) => setSelectedUserId(row.id)}
+        tableId="playtelecom:users"
+        enableSearch
+        searchPlaceholder={t('playtelecom:users.searchPlaceholder', { defaultValue: 'Buscar usuario...' })}
+        onSearch={handleSearch}
+      />
+
+      {/* User Detail Modal */}
+      <FullScreenModal
+        open={!!selectedUserId}
+        onClose={() => { setSelectedUserId(null); setDetailHasChanges(false) }}
+        title={selectedUser?.name || ''}
+        contentClassName="bg-muted/30"
+        actions={
+          canEditSelectedUser ? (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => detailPanelRef.current?.reset()}
+                disabled={!detailHasChanges || isSaving}
+                className="h-8 text-xs cursor-pointer"
+              >
+                <RotateCcw className="w-3 h-3 mr-1" />
+                {t('common:reset', { defaultValue: 'Restablecer' })}
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => detailPanelRef.current?.save()}
+                disabled={!detailHasChanges || isSaving}
+                className="h-8 text-xs cursor-pointer"
+              >
+                <Save className="w-3 h-3 mr-1" />
+                {isSaving
+                  ? t('common:saving', { defaultValue: 'Guardando...' })
+                  : t('common:saveChanges', { defaultValue: 'Guardar Cambios' })}
+              </Button>
+            </div>
+          ) : undefined
+        }
+      >
+        <div className="max-w-3xl mx-auto px-6 py-6">
           <UserDetailPanel
+            ref={detailPanelRef}
             user={selectedUser}
             zones={zones}
-            stores={stores}
+            stores={allStores}
             onSave={handleSave}
             onStatusChange={handleStatusChange}
             onResetPassword={handleResetPassword}
             isSaving={isSaving}
             canEdit={canEditSelectedUser}
             assignableRoles={assignableRoles}
+            embedded
+            onHasChangesChange={setDetailHasChanges}
           />
         </div>
-      </div>
+      </FullScreenModal>
 
       {/* Invite Dialog */}
       {venueId && (

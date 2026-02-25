@@ -182,32 +182,35 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
 
   const navMain = React.useMemo(() => {
     // ========== Unified Sidebar ==========
-    // For white-label venues: WL module items + Avoqado core items (with badge)
-    // For regular venues: Avoqado items only (no badge)
+    // WL venues show: WL module items (Supervisor, Gerentes…) + Avoqado core items (with badge)
+    // Regular venues show: Avoqado core items only
     const isWhiteLabelVenue = isWhiteLabelEnabled
 
-    // ── White-Label Module Items (e.g. Command Center, Stock) ──
+    // ── White-Label Module Items (non-AVOQADO_* features like Supervisor, Gerentes) ──
+    // These routes ONLY exist under /wl/venues/:slug, so URLs must be absolute.
+    const wlBasePath = activeVenue?.slug ? `/wl/venues/${activeVenue.slug}` : ''
     const whiteLabelModuleItems: Array<any> = []
-    if (isWhiteLabelVenue && wlNavigation.length > 0) {
+    if (isWhiteLabelVenue && wlNavigation.length > 0 && wlBasePath) {
       const enabledModuleItems = wlNavigation.filter(navItem => {
         const featureCode = navItem.featureCode || ''
         if (!featureCode) return false
-        // Skip AVOQADO_* features — handled by allItems below
+        // Skip AVOQADO_* features — they are handled by the Avoqado core section below
         if (featureCode.startsWith('AVOQADO_')) return false
         if (!isFeatureEnabled(featureCode)) return false
         return canFeature(featureCode)
       })
 
       for (const navItem of enabledModuleItems) {
-        const translationKey = FEATURE_CODE_TO_TRANSLATION_KEY[navItem.featureCode || '']
+        const featureCode = navItem.featureCode || ''
+        const translationKey = FEATURE_CODE_TO_TRANSLATION_KEY[featureCode]
         const title = translationKey
           ? t(`sidebar:${translationKey}`, { orgName: activeVenue?.organization?.name || 'White Label' })
-          : navItem.label || navItem.featureCode || 'Untitled'
+          : navItem.label || featureCode || 'Untitled'
 
         whiteLabelModuleItems.push({
           title,
-          url: getFeatureRoute(navItem.featureCode || ''),
-          icon: getIconComponent(navItem.icon, navItem.featureCode),
+          url: `${wlBasePath}/${getFeatureRoute(featureCode)}`,
+          icon: getIconComponent(navItem.icon, featureCode),
           isActive: true,
           locked: false,
           isAvoqadoCore: false,
@@ -523,7 +526,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       } as any)
     }
 
-    // Mark Avoqado core items for WL venues (adds tiny badge in sidebar)
+    // Mark Avoqado core items with badge when WL module items are present
     if (isWhiteLabelVenue && whiteLabelModuleItems.length > 0) {
       filteredItems.forEach(item => {
         ;(item as any).isAvoqadoCore = true

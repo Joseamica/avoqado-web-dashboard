@@ -9,6 +9,7 @@ import { clearAllChatStorage } from '@/services/chatService'
 import { LoadingScreen } from '@/components/spinner'
 import { useToast } from '@/hooks/use-toast'
 import { User, Venue, StaffRole } from '@/types'
+import { FEATURE_ROUTE_MAP } from '@/hooks/useWhiteLabelConfig'
 
 // Tipos y la Interfaz del Contexto
 type LoginData = { email: string; password: string; venueSlug?: string }
@@ -237,6 +238,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return `/venues/${venue.slug}`
   }, [])
 
+  // Returns the default landing page for a venue.
+  // For WL venues where AVOQADO_DASHBOARD (Home) is not enabled, picks the first navigation item.
+  const getVenueDefaultPage = useCallback((venue: Venue): string => {
+    if (!venue?.modules) return 'home'
+    const wlModule = venue.modules.find(m => m.module.code === 'WHITE_LABEL_DASHBOARD' && m.enabled)
+    if (!wlModule?.config) return 'home'
+
+    const config = wlModule.config as any
+    const enabledFeatures: Array<{ code: string }> = config?.enabledFeatures ?? []
+    const hasHome = enabledFeatures.some(f => f.code === 'AVOQADO_DASHBOARD')
+    if (hasHome) return 'home'
+
+    // Home is disabled — use the first navigation item's route
+    const navItems: Array<{ featureCode?: string; order?: number }> = config?.navigation?.items ?? []
+    if (navItems.length > 0) {
+      const sorted = [...navItems].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      const firstFeature = sorted[0]?.featureCode
+      if (firstFeature && FEATURE_ROUTE_MAP[firstFeature]) {
+        return FEATURE_ROUTE_MAP[firstFeature]
+      }
+    }
+
+    return 'home'
+  }, [])
+
   // Efecto para sincronizar el venue activo y manejar redirecciones
   useEffect(() => {
     if (isStatusLoading || !isAuthenticated || !user) return
@@ -319,7 +345,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           // Use getVenueBasePath to redirect to /wl/venues/:slug if WHITE_LABEL_DASHBOARD is enabled
           const basePath = getVenueBasePath(defaultVenue)
-          navigate(`${basePath}/home`, { replace: true })
+          const defaultPage = getVenueDefaultPage(defaultVenue)
+          navigate(`${basePath}/${defaultPage}`, { replace: true })
         }
         return
       }
@@ -338,7 +365,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // SUPERADMIN sin venues visibles regresa al dashboard global.
           if (defaultVenue) {
             const basePath = getVenueBasePath(defaultVenue)
-            navigate(`${basePath}/home`, { replace: true })
+            const defaultPage = getVenueDefaultPage(defaultVenue)
+            navigate(`${basePath}/${defaultPage}`, { replace: true })
           } else if (isSuperAdmin) {
             navigate('/superadmin', { replace: true })
           }
@@ -352,7 +380,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const isOnWhiteLabelRoute = currentPath.startsWith('/wl/')
         if (!currentPath.includes('/venues/') && !isOnAdminRoute && !isOnOrgRoute && !isOnWhiteLabelRoute) {
           const basePath = getVenueBasePath(activeVenue)
-          navigate(`${basePath}/home`, { replace: true })
+          const defaultPage = getVenueDefaultPage(activeVenue)
+          navigate(`${basePath}/${defaultPage}`, { replace: true })
         }
       }
     } else if (userRole !== StaffRole.OWNER && location.pathname !== '/venues/new') {
@@ -376,6 +405,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     activeVenue?.id,
     getVenueBySlug,
     getVenueBasePath,
+    getVenueDefaultPage,
     activeVenue,
     allVenues,
     userRole,
@@ -492,9 +522,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const defaultVenue = getSmartVenue()
         const basePath = getVenueBasePath(defaultVenue)
-        console.log('[AUTH] 🏠 Redirect to smart venue:', defaultVenue.slug, `${basePath}/home`)
+        const defaultPage = getVenueDefaultPage(defaultVenue)
+        console.log('[AUTH] 🏠 Redirect to smart venue:', defaultVenue.slug, `${basePath}/${defaultPage}`)
         toast({ title: t('toast.login_success') })
-        navigate(`${basePath}/home`, { replace: true })
+        navigate(`${basePath}/${defaultPage}`, { replace: true })
         setLoginError(null)
         return
       }
@@ -731,23 +762,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Check if new venue has white-label enabled
         const newVenueHasWL = newVenue.modules?.some(m => m.module.code === 'WHITE_LABEL_DASHBOARD' && m.enabled) ?? false
 
-        // Determine target base path based on current mode and new venue capabilities
-        let basePath: string
-        if (isCurrentlyInWLMode && newVenueHasWL) {
-          // Case: In WL mode + new venue has WL → Stay in WL mode
-          basePath = `/wl/venues/${newVenue.slug}`
-        } else if (isCurrentlyInWLMode && !newVenueHasWL) {
-          // Case: In WL mode + new venue has NO WL → Switch to traditional
-          basePath = `/venues/${newVenue.slug}`
-        } else {
-          // Case: In traditional mode → Always stay traditional (even if new venue has WL)
-          basePath = `/venues/${newVenue.slug}`
-        }
+        // Determine target base path based on new venue's WL capability
+        // If the new venue has WHITE_LABEL_DASHBOARD → always use /wl/venues/
+        // Otherwise → always use /venues/
+        const basePath = newVenueHasWL
+          ? `/wl/venues/${newVenue.slug}`
+          : `/venues/${newVenue.slug}`
 
         // Extract the page part (after /venues/:slug/ or /wl/venues/:slug/)
         // This regex matches /venues/slug/, /wl/venues/slug/, and /organizations/:id/ patterns
         const pageMatch = currentPath.match(/^\/(?:venues|wl\/venues|organizations)\/[^/]+\/(.*)$/)
-        const pagePart = pageMatch?.[1] || 'home'
+        let pagePart = pageMatch?.[1] || getVenueDefaultPage(newVenue)
+
+        // If switching to a non-WL venue, check if current page is a WL-only route
+        // WL-only routes (managers, supervisor, tpv-config, users, etc.) don't exist under /venues/
+        if (!newVenueHasWL && pagePart) {
+          const WL_ONLY_ROUTES = [
+            'command-center', 'stock', 'promoters', 'stores',
+            'managers', 'sales', 'supervisor', 'tpv-config',
+            'reporte', 'users', 'appraisals', 'consignment',
+          ]
+          const firstSegment = pagePart.split('/')[0]
+          if (WL_ONLY_ROUTES.includes(firstSegment)) {
+            pagePart = getVenueDefaultPage(newVenue)
+          }
+        }
 
         const newPath = `${basePath}/${pagePart}`
         navigate(newPath, { replace: true })
