@@ -187,6 +187,8 @@ export const FEATURE_ROUTE_MAP: Record<string, string> = {
   'AVOQADO_LOYALTY': 'loyalty',
   'AVOQADO_REVIEWS': 'reviews',
   'AVOQADO_REPORTS': 'reports/sales-summary',
+  'AVOQADO_RESERVATIONS': 'reservations',
+  'AVOQADO_SETTINGS': 'edit',
 
   // Module Specific Features → Direct Routes (protected by WHITE_LABEL_DASHBOARD)
   'COMMAND_CENTER': 'command-center',

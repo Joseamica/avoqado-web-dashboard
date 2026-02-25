@@ -19,7 +19,7 @@ import {
 import { ChevronRight, Lock, type LucideIcon } from 'lucide-react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ViewModeSwitcher } from './view-mode-switcher'
+import avoqadoIsotipo from '@/assets/Isotipo.png'
 
 export function NavMain({
   items,
@@ -33,6 +33,7 @@ export function NavMain({
     superadminOnly?: boolean
     locked?: boolean
     permission?: string
+    isAvoqadoCore?: boolean
     items?: {
       title: string
       url: string
@@ -88,9 +89,17 @@ export function NavMain({
     const seg = `/${url.replace(/^\/+|\/+$/g, '')}`
     return path === seg || path.startsWith(`${seg}/`) || path.endsWith(seg) || path.includes(`${seg}/`)
   }
+  // Tiny Avoqado badge for core platform items in white-label venues
+  const AvoqadoBadge = () => (
+    <img
+      src={avoqadoIsotipo}
+      alt="Avoqado"
+      className="w-2.5 shrink-0 object-contain opacity-50"
+    />
+  )
+
   return (
     <>
-      <ViewModeSwitcher />
       <SidebarGroup>
         <SidebarGroupLabel>{t('platform')}</SidebarGroupLabel>
         <SidebarMenu>
@@ -172,6 +181,7 @@ export function NavMain({
                         isActive={isItemActive(item.url)}
                         className={isSuperadminItem ? superadminButtonClass : undefined}
                       >
+                        {item.isAvoqadoCore && !isCollapsed && <AvoqadoBadge />}
                         {item.icon && <item.icon className={isSuperadminItem ? superadminIconClass : undefined} />}
                         <span className={isSuperadminItem ? superadminGradientTextClass : undefined}>{item.title}</span>
                         <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
@@ -253,6 +263,7 @@ export function NavMain({
                       }
                     }}
                   >
+                    {item.isAvoqadoCore && !isCollapsed && <AvoqadoBadge />}
                     {item.icon && <item.icon className={isSuperadminItem ? superadminIconClass : undefined} />}
                     <span className={isSuperadminItem ? superadminGradientTextClass : undefined}>{item.title}</span>
                     {item.locked && (

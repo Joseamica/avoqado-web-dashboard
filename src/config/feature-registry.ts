@@ -738,6 +738,61 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
     defaultAccess: ACCESS_MANAGEMENT,
   },
 
+  AVOQADO_RESERVATIONS: {
+    code: 'AVOQADO_RESERVATIONS',
+    name: 'Reservaciones',
+    description: 'Gestión de reservaciones, calendario, lista de espera y configuración',
+    category: 'custom',
+    source: 'avoqado_core',
+
+    component: {
+      path: '@/pages/Reservations/ReservationsList',
+    },
+
+    routes: [
+      { path: 'reservations', element: 'ReservationsList' },
+      { path: 'reservations/calendar', element: 'ReservationCalendar' },
+      { path: 'reservations/waitlist', element: 'ReservationsWaitlist' },
+      { path: 'reservations/settings', element: 'ReservationSettings' },
+    ],
+
+    configSchema: { type: 'object', properties: {} },
+
+    defaultNavItem: {
+      label: 'Reservaciones',
+      icon: 'CalendarDays',
+    },
+
+    defaultAccess: ACCESS_MANAGEMENT,
+  },
+
+  AVOQADO_SETTINGS: {
+    code: 'AVOQADO_SETTINGS',
+    name: 'Ajustes',
+    description: 'Configuración del venue, roles y facturación',
+    category: 'custom',
+    source: 'avoqado_core',
+
+    component: {
+      path: '@/pages/OrganizationSettings/OrganizationSettings',
+    },
+
+    routes: [
+      { path: 'edit', element: 'OrganizationSettings' },
+      { path: 'settings/role-permissions', element: 'RolePermissions' },
+      { path: 'settings/billing', element: 'Billing' },
+    ],
+
+    configSchema: { type: 'object', properties: {} },
+
+    defaultNavItem: {
+      label: 'Ajustes',
+      icon: 'Settings2',
+    },
+
+    defaultAccess: ACCESS_ADMIN_ONLY,
+  },
+
   // ============================================
   // MODULE SPECIFIC: PLAYTELECOM
   // Features specific to telecom/retail businesses

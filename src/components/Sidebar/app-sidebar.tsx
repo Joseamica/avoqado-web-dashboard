@@ -113,77 +113,42 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
 
   const location = useLocation()
 
-  // Detect white-label mode from URL: /wl/venues/:slug/* activates white-label mode
-  // This replaces localStorage-based toggle - now the URL determines the mode
-  const isWhiteLabelMode = React.useMemo(() => {
-    // Check if we're in /wl/ route
-    const isWlRoute = location.pathname.startsWith('/wl/')
-    // Only enable white-label mode if the venue has the module enabled AND we're in /wl/ route
-    return isWlRoute && isWhiteLabelEnabled
-  }, [location.pathname, isWhiteLabelEnabled])
-
   const navMain = React.useMemo(() => {
-    // ========== White-Label Mode: Show only configured dashboard items ==========
-    // Uses direct routes (not /wl/) - white-label just filters the sidebar
-    if (isWhiteLabelMode && isWhiteLabelEnabled && wlNavigation.length > 0) {
-      // Filter navigation to only show enabled features that the user can access
-      // Also filter out items without featureCode (legacy data)
-      const enabledNavItems = wlNavigation.filter(navItem => {
+    // ========== Unified Sidebar ==========
+    // For white-label venues: WL module items + Avoqado core items (with badge)
+    // For regular venues: Avoqado items only (no badge)
+    const isWhiteLabelVenue = isWhiteLabelEnabled
+
+    // ── White-Label Module Items (e.g. Command Center, Stock) ──
+    const whiteLabelModuleItems: Array<any> = []
+    if (isWhiteLabelVenue && wlNavigation.length > 0) {
+      const enabledModuleItems = wlNavigation.filter(navItem => {
         const featureCode = navItem.featureCode || ''
-
-        // If no featureCode, we can't verify - filter it out
         if (!featureCode) return false
-
-        // Check if feature is enabled
+        // Skip AVOQADO_* features — handled by allItems below
+        if (featureCode.startsWith('AVOQADO_')) return false
         if (!isFeatureEnabled(featureCode)) return false
-
-        // Check if user has access based on role and feature access config
         return canFeature(featureCode)
       })
 
-      const whiteLabelItems = enabledNavItems.map(navItem => {
-        // Use translation if available for PlayTelecom features, otherwise use database label
+      for (const navItem of enabledModuleItems) {
         const translationKey = FEATURE_CODE_TO_TRANSLATION_KEY[navItem.featureCode || '']
-        const title = translationKey ? t(`sidebar:${translationKey}`, { orgName: activeVenue?.organization?.name || 'White Label' }) : navItem.label || navItem.featureCode || 'Untitled'
+        const title = translationKey
+          ? t(`sidebar:${translationKey}`, { orgName: activeVenue?.organization?.name || 'White Label' })
+          : navItem.label || navItem.featureCode || 'Untitled'
 
-        return {
+        whiteLabelModuleItems.push({
           title,
           url: getFeatureRoute(navItem.featureCode || ''),
           icon: getIconComponent(navItem.icon),
           isActive: true,
           locked: false,
-        }
-      })
-
-      // Add Settings for white-label mode (always need access to venue settings)
-      const settingsSubItems = [
-        { title: t('sidebar:routes.editvenue'), url: 'edit', permission: 'venues:read' },
-        ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
-          ? [{ title: t('sidebar:rolePermissions'), url: 'settings/role-permissions', permission: null }]
-          : []),
-        ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
-          ? [{ title: t('sidebar:routes.billing'), url: 'settings/billing', permission: 'billing:read' }]
-          : []),
-      ].filter(item => !item.permission || can(item.permission))
-
-      if (settingsSubItems.length > 0) {
-        whiteLabelItems.push({
-          title: t('sidebar:routes.settings'),
-          url: '#',
-          icon: Settings2,
-          locked: false,
-          items: settingsSubItems,
-          isActive: true,
-        } as any)
+          isAvoqadoCore: false,
+        })
       }
-
-      return whiteLabelItems
     }
 
-    // ========== Normal Avoqado Dashboard Mode ==========
-    // For white-label venues in "Full" mode, only show features that are enabled
-    // This prevents showing features like Products/Menu that aren't configured
-    const isWhiteLabelVenue = isWhiteLabelEnabled
+    // ── Avoqado Core Items ──
 
     // Define all possible items with their required permissions and features
     const allItems = [
@@ -285,15 +250,18 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     ]
 
     // Map of standard sidebar URLs to their white-label feature codes
-    // Used to filter sidebar items for white-label venues in "Full" mode
+    // EVERY Avoqado core item must be here so white-label venues only show explicitly-enabled features
     const urlToWhiteLabelFeature: Record<string, string> = {
+      'home': 'AVOQADO_DASHBOARD',
       'menumaker/overview': 'AVOQADO_MENU',
+      'inventory/raw-materials': 'AVOQADO_INVENTORY',
       'team': 'AVOQADO_TEAM',
       'reviews': 'AVOQADO_REVIEWS',
       'tpv': 'AVOQADO_TPVS',
       'commissions': 'AVOQADO_COMMISSIONS',
       'available-balance': 'AVOQADO_BALANCE',
       'shifts': 'AVOQADO_SHIFTS',
+      'reservations': 'AVOQADO_RESERVATIONS',
     }
 
     // Filter items based on permissions AND active features
@@ -456,7 +424,8 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     ].filter(item => !item.permission || can(item.permission))
 
     // Only show Settings menu if user has at least one subitem
-    if (settingsSubItems.length > 0) {
+    // For white-label venues, only show if AVOQADO_SETTINGS feature is enabled
+    if (settingsSubItems.length > 0 && (!isWhiteLabelVenue || isFeatureEnabled('AVOQADO_SETTINGS'))) {
       filteredItems.push({
         title: t('sidebar:routes.settings'),
         url: '#',
@@ -487,7 +456,15 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       } as any)
     }
 
-    return filteredItems
+    // Mark Avoqado core items for WL venues (adds tiny badge in sidebar)
+    if (isWhiteLabelVenue && whiteLabelModuleItems.length > 0) {
+      filteredItems.forEach(item => {
+        ;(item as any).isAvoqadoCore = true
+      })
+    }
+
+    // Combine: WL module items first, then Avoqado core items
+    return [...whiteLabelModuleItems, ...filteredItems]
   }, [
     t,
     term,
@@ -497,7 +474,6 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     checkFeatureAccess,
     activeVenue,
     location.pathname,
-    isWhiteLabelMode,
     isWhiteLabelEnabled,
     wlNavigation,
     isFeatureEnabled,
