@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, ChevronLeft, ChevronRight, Clock, Columns3, Plus, Settings, Users } from 'lucide-react'
 import { DateTime } from 'luxon'
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
@@ -12,6 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 // Select and Tabs removed — view toggle now uses dropdown
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
+import { useToast } from '@/hooks/use-toast'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useVenueDateTime } from '@/utils/datetime'
 import reservationService from '@/services/reservation.service'
@@ -20,6 +21,7 @@ import type { Reservation, ReservationSettings, ReservationStatus } from '@/type
 
 import { CreateReservationForm } from './CreateReservation'
 import { CreateClassSessionDialog } from './components/CreateClassSessionDialog'
+import { EditClassSessionDialog } from './components/EditClassSessionDialog'
 import { EditAvailabilityDialog } from './components/EditAvailabilityDialog'
 import { CalendarAttributesDialog, loadAttributes, type CalendarAttributes } from './components/CalendarAttributesDialog'
 
@@ -114,6 +116,24 @@ export default function ReservationCalendar() {
     startTime: '',
   })
 
+  // Edit class session dialog state
+  const [editSessionId, setEditSessionId] = useState<string | null>(null)
+
+  // Drag/resize refs (declared early — handlers are set up after classSessions is available)
+  const dragRef = useRef<{
+    sessionId: string
+    startY: number
+    originalTop: number
+    durationHours: number
+    dayKey: string
+    el: HTMLDivElement
+    didDrag: boolean
+    mode: 'move' | 'resize-top' | 'resize-bottom'
+    originalHeight: number
+  } | null>(null)
+  const didDragRef = useRef(false)
+  const { toast } = useToast()
+
   // Edit availability dialog state
   const [availabilityOpen, setAvailabilityOpen] = useState(false)
 
@@ -186,6 +206,140 @@ export default function ReservationCalendar() {
     queryFn: () => classSessionService.getClassSessions(venueId!, { dateFrom, dateTo }),
     enabled: !!dateFrom && !!dateTo && !!venueId,
   })
+
+  // Drag-to-reschedule: mutation + document-level handlers (must be after classSessions)
+  const dragUpdateMutation = useMutation({
+    mutationFn: ({ sessionId, startsAt, endsAt }: { sessionId: string; startsAt: string; endsAt: string }) =>
+      classSessionService.updateClassSession(venueId!, sessionId, { startsAt, endsAt }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['class-sessions', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['reservation-calendar', venueId] })
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message ?? 'Error al mover la clase'
+      toast({ title: msg, variant: 'destructive' })
+      queryClient.invalidateQueries({ queryKey: ['class-sessions', venueId] })
+    },
+  })
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!dragRef.current) return
+      const deltaY = e.clientY - dragRef.current.startY
+      if (!dragRef.current.didDrag && Math.abs(deltaY) < 4) return
+      e.preventDefault()
+      dragRef.current.didDrag = true
+
+      const { mode, el, originalHeight } = dragRef.current
+      el.style.opacity = '0.7'
+      el.style.zIndex = '30'
+      el.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'
+
+      if (mode === 'move') {
+        el.style.transform = `translateY(${deltaY}px)`
+      } else if (mode === 'resize-bottom') {
+        // Grow/shrink from bottom: adjust height, minimum 16px (15min)
+        const newHeight = Math.max(16, originalHeight + deltaY)
+        el.style.height = `${newHeight}px`
+      } else if (mode === 'resize-top') {
+        // Grow/shrink from top: shift down + shrink height
+        const newHeight = Math.max(16, originalHeight - deltaY)
+        const topShift = originalHeight - newHeight
+        el.style.transform = `translateY(${topShift}px)`
+        el.style.height = `${newHeight}px`
+      }
+    }
+
+    const handleMouseUp = (e: MouseEvent) => {
+      if (!dragRef.current) return
+      const drag = dragRef.current
+      const wasDrag = drag.didDrag
+
+      // Reset all inline styles
+      drag.el.style.transform = ''
+      drag.el.style.opacity = ''
+      drag.el.style.zIndex = ''
+      drag.el.style.boxShadow = ''
+      drag.el.style.height = ''
+      didDragRef.current = wasDrag
+      dragRef.current = null
+
+      if (!wasDrag) return
+
+      const deltaY = e.clientY - drag.startY
+      const deltaHours = deltaY / 64
+      const deltaMinutes = Math.round(deltaHours * 60 / 15) * 15
+
+      const session = classSessions.find(s => s.id === drag.sessionId)
+      if (!session) return
+
+      const tz = venueTimezone
+      const origStart = DateTime.fromISO(session.startsAt, { zone: 'utc' }).setZone(tz)
+      const origEnd = DateTime.fromISO(session.endsAt, { zone: 'utc' }).setZone(tz)
+
+      let newStart = origStart
+      let newEnd = origEnd
+
+      if (drag.mode === 'move') {
+        if (Math.abs(deltaMinutes) < 15) return
+        newStart = origStart.plus({ minutes: deltaMinutes })
+        newEnd = origEnd.plus({ minutes: deltaMinutes })
+      } else if (drag.mode === 'resize-bottom') {
+        if (Math.abs(deltaMinutes) < 15) return
+        newEnd = origEnd.plus({ minutes: deltaMinutes })
+        // Ensure minimum 15min duration
+        if (newEnd.diff(origStart, 'minutes').minutes < 15) return
+      } else if (drag.mode === 'resize-top') {
+        if (Math.abs(deltaMinutes) < 15) return
+        newStart = origStart.plus({ minutes: deltaMinutes })
+        // Ensure minimum 15min duration
+        if (origEnd.diff(newStart, 'minutes').minutes < 15) return
+      }
+
+      // Don't allow before first hour
+      if (newStart.hour < firstHour) return
+
+      dragUpdateMutation.mutate({
+        sessionId: drag.sessionId,
+        startsAt: newStart.toUTC().toISO()!,
+        endsAt: newEnd.toUTC().toISO()!,
+      })
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [classSessions, venueTimezone, firstHour, dragUpdateMutation])
+
+  const handleSessionDragStart = useCallback((
+    e: React.MouseEvent,
+    session: (typeof classSessions)[0],
+    top: number,
+    height: number,
+    mode: 'move' | 'resize-top' | 'resize-bottom',
+  ) => {
+    if (session.status === 'CANCELLED' || session.status === 'COMPLETED') return
+    e.stopPropagation()
+    e.preventDefault()
+    const el = (mode === 'move' ? e.currentTarget : e.currentTarget.parentElement) as HTMLDivElement
+    const start = DateTime.fromISO(session.startsAt, { zone: 'utc' }).setZone(venueTimezone)
+    const end = DateTime.fromISO(session.endsAt, { zone: 'utc' }).setZone(venueTimezone)
+    didDragRef.current = false
+    dragRef.current = {
+      sessionId: session.id,
+      startY: e.clientY,
+      originalTop: top,
+      durationHours: end.diff(start, 'hours').hours,
+      dayKey: start.toFormat('yyyy-MM-dd'),
+      el,
+      didDrag: false,
+      mode,
+      originalHeight: height,
+    }
+  }, [venueTimezone])
 
   // Ref for auto-scroll to current time
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -304,15 +458,38 @@ export default function ReservationCalendar() {
     const height = Math.max((endHour - startHour) * 64, 24)
     const isFull = session.enrolled >= session.capacity
     const spotsLeft = session.capacity - session.enrolled
+    const canDrag = session.status !== 'CANCELLED' && session.status !== 'COMPLETED'
 
     return (
       <div
         key={`cs-${session.id}`}
         data-reservation="true"
-        className="absolute left-1 right-1 rounded-md border px-2 py-1 text-xs cursor-pointer transition-opacity hover:opacity-80 overflow-hidden bg-violet-500/20 border-violet-500/40 text-violet-700 dark:text-violet-300"
+        className={`absolute left-1 right-1 rounded-md border px-2 py-1 text-xs overflow-hidden bg-violet-500/20 border-violet-500/40 text-violet-700 dark:text-violet-300 select-none group ${canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}`}
         style={{ top: `${top}px`, height: `${height}px` }}
-        onClick={e => e.stopPropagation()}
+        onMouseDown={e => {
+          if (e.button !== 0 || !canDrag) return
+          handleSessionDragStart(e, session, top, height, 'move')
+        }}
+        onClick={e => {
+          e.stopPropagation()
+          if (didDragRef.current) {
+            didDragRef.current = false
+            return
+          }
+          setEditSessionId(session.id)
+        }}
       >
+        {/* Top resize handle */}
+        {canDrag && (
+          <div
+            className="absolute top-0 left-0 right-0 h-1.5 cursor-n-resize z-10 opacity-0 group-hover:opacity-100 bg-violet-500/30 rounded-t-md"
+            onMouseDown={e => {
+              if (e.button !== 0) return
+              handleSessionDragStart(e, session, top, height, 'resize-top')
+            }}
+          />
+        )}
+
         <div className="font-medium truncate">{session.product.name}</div>
         <div className="opacity-70 truncate">
           {formatTime(session.startsAt)} – {formatTime(session.endsAt)}
@@ -334,6 +511,17 @@ export default function ReservationCalendar() {
               </span>
             )}
           </div>
+        )}
+
+        {/* Bottom resize handle */}
+        {canDrag && (
+          <div
+            className="absolute bottom-0 left-0 right-0 h-1.5 cursor-s-resize z-10 opacity-0 group-hover:opacity-100 bg-violet-500/30 rounded-b-md"
+            onMouseDown={e => {
+              if (e.button !== 0) return
+              handleSessionDragStart(e, session, top, height, 'resize-bottom')
+            }}
+          />
         )}
       </div>
     )
@@ -920,6 +1108,13 @@ export default function ReservationCalendar() {
         onOpenChange={open => !open && closeClassModal()}
         defaultDate={classModal.date}
         defaultStartTime={classModal.startTime || undefined}
+      />
+
+      {/* Edit class session dialog */}
+      <EditClassSessionDialog
+        open={!!editSessionId}
+        onOpenChange={open => !open && setEditSessionId(null)}
+        sessionId={editSessionId}
       />
 
       {/* Edit availability dialog */}
