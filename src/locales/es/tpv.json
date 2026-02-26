@@ -105,6 +105,7 @@
     "confirmCommand": "Confirmar Comando",
     "confirmDescription": "¿Estás seguro de que deseas enviar el comando {{command}} a este terminal?",
     "requiresOnline": "Esta acción requiere que el terminal esté conectado",
+    "offlineQueued": "Terminal offline — se ejecutará al reconectarse",
     "dangerousAction": "Esta es una acción peligrosa que puede afectar las operaciones del terminal",
     "groups": {
       "deviceState": "Estado del Dispositivo",
