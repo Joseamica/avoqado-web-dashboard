@@ -30,6 +30,7 @@ import {
   Mail,
   Activity,
   GraduationCap,
+  ScrollText,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -96,6 +97,7 @@ export function getSuperadminNavigation(tSidebar: TFunction): SuperadminNavSecti
         { name: tSidebar('config'), href: '/superadmin/settings', icon: Settings, keywords: ['config', 'configuracion'] },
         { name: 'Master TOTP', href: '/superadmin/master-totp', icon: KeyRound, keywords: ['totp', 'master', '2fa'] },
         { name: 'TPV Updates', href: '/superadmin/tpv-updates', icon: Upload, keywords: ['tpv', 'updates', 'firmware'] },
+        { name: 'Activity Log', href: '/superadmin/activity-log', icon: ScrollText, keywords: ['activity', 'log', 'audit', 'registro', 'actividad', 'auditoria'] },
         { name: 'Server Health', href: '/superadmin/server-health', icon: Activity, keywords: ['server', 'health', 'salud', 'servidor', 'metrics'] },
       ],
     },

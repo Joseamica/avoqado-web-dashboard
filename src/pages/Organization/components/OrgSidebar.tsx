@@ -276,39 +276,43 @@ const OrgSidebar: React.FC<OrgSidebarProps> = props => {
           </SidebarGroup>
         ))}
 
-        {/* Quick Access to Venues */}
-        {allVenues.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel>{t('sidebar.quickAccess')}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {allVenues.slice(0, 5).map(venue => (
-                  <SidebarMenuItem key={venue.id}>
-                    <SidebarMenuButton asChild>
-                      <NavLink to={`/venues/${venue.slug}/home`} className="flex items-center gap-2">
-                        <Avatar className="h-4 w-4 rounded">
-                          <AvatarImage src={venue.logo} alt={venue.name} />
-                          <AvatarFallback className="text-[10px]">{venue.name?.charAt(0).toUpperCase() || 'V'}</AvatarFallback>
-                        </Avatar>
-                        <span className="truncate">{venue.name}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-                {allVenues.length > 5 && (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink to={`/organizations/${orgId}/venues`} className="flex items-center gap-2 text-primary">
-                        <ChevronRight className="size-4" />
-                        <span>{t('sidebar.viewAll', { count: allVenues.length })}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+        {/* Quick Access to Venues (only this org's venues) */}
+        {(() => {
+          const currentOrgVenues = orgGroups.find(g => g.isCurrentOrg)?.venues ?? []
+          if (currentOrgVenues.length === 0) return null
+          return (
+            <SidebarGroup>
+              <SidebarGroupLabel>{t('sidebar.quickAccess')}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {currentOrgVenues.slice(0, 5).map(venue => (
+                    <SidebarMenuItem key={venue.id}>
+                      <SidebarMenuButton asChild>
+                        <NavLink to={`/venues/${venue.slug}/home`} className="flex items-center gap-2">
+                          <Avatar className="h-4 w-4 rounded">
+                            <AvatarImage src={venue.logo} alt={venue.name} />
+                            <AvatarFallback className="text-[10px]">{venue.name?.charAt(0).toUpperCase() || 'V'}</AvatarFallback>
+                          </Avatar>
+                          <span className="truncate">{venue.name}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                  {currentOrgVenues.length > 5 && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to={`/organizations/${orgId}/venues`} className="flex items-center gap-2 text-primary">
+                          <ChevronRight className="size-4" />
+                          <span>{t('sidebar.viewAll', { count: currentOrgVenues.length })}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )
+        })()}
       </SidebarContent>
 
       <SidebarFooter>

@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlassCard } from '@/components/ui/glass-card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Skeleton } from '@/components/ui/skeleton'
 import { TrendingUp, TrendingDown, Minus, Trophy, Medal, Award } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { TopVenue } from '@/services/organization.service'
@@ -19,145 +20,93 @@ export function TopVenuesRanking({ venues, isLoading, formatCurrency }: TopVenue
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
-        return <Trophy className="h-5 w-5 text-yellow-500" />
+        return <Trophy className="h-4 w-4 text-yellow-500" />
       case 2:
-        return <Medal className="h-5 w-5 text-muted-foreground" />
+        return <Medal className="h-4 w-4 text-muted-foreground" />
       case 3:
-        return <Award className="h-5 w-5 text-amber-600" />
+        return <Award className="h-4 w-4 text-amber-600" />
       default:
         return (
-          <span className="h-5 w-5 flex items-center justify-center text-sm font-bold text-muted-foreground">
-            #{rank}
+          <span className="h-4 w-4 flex items-center justify-center text-xs font-bold text-muted-foreground">
+            {rank}
           </span>
         )
     }
   }
 
-  const getTrendIcon = (trend: 'up' | 'down' | 'stable') => {
+  const getTrendInfo = (trend: 'up' | 'down' | 'stable') => {
     switch (trend) {
       case 'up':
-        return <TrendingUp className="h-4 w-4 text-green-500" />
+        return { icon: TrendingUp, color: 'text-green-600 dark:text-green-400', label: t('dashboard.trending.up') }
       case 'down':
-        return <TrendingDown className="h-4 w-4 text-red-500" />
+        return { icon: TrendingDown, color: 'text-red-600 dark:text-red-400', label: t('dashboard.trending.down') }
       default:
-        return <Minus className="h-4 w-4 text-muted-foreground" />
-    }
-  }
-
-  const getTrendLabel = (trend: 'up' | 'down' | 'stable') => {
-    switch (trend) {
-      case 'up':
-        return t('dashboard.trending.up')
-      case 'down':
-        return t('dashboard.trending.down')
-      default:
-        return t('dashboard.trending.stable')
+        return { icon: Minus, color: 'text-muted-foreground', label: t('dashboard.trending.stable') }
     }
   }
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <div className="h-6 w-40 bg-muted animate-pulse rounded" />
-          <div className="h-4 w-60 bg-muted animate-pulse rounded mt-1" />
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex items-center gap-4">
-                <div className="h-5 w-5 bg-muted animate-pulse rounded" />
-                <div className="h-10 w-10 bg-muted animate-pulse rounded-lg" />
-                <div className="flex-1">
-                  <div className="h-4 w-32 bg-muted animate-pulse rounded" />
-                  <div className="h-3 w-24 bg-muted animate-pulse rounded mt-1" />
-                </div>
-                <div className="h-4 w-4 bg-muted animate-pulse rounded" />
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (!venues || venues.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Trophy className="h-5 w-5" />
-            {t('dashboard.topPerformers')}
-          </CardTitle>
-          <CardDescription>{t('dashboard.topPerformersDesc')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            {t('dashboard.noVenues')}
-          </div>
-        </CardContent>
-      </Card>
+      <GlassCard className="p-5 h-full">
+        <Skeleton className="h-5 w-40 mb-1" />
+        <Skeleton className="h-4 w-56 mb-5" />
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 rounded-xl" />
+          ))}
+        </div>
+      </GlassCard>
     )
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Trophy className="h-5 w-5" />
+    <GlassCard className="p-5 h-full flex flex-col">
+      <div className="mb-4">
+        <h3 className="text-sm font-semibold flex items-center gap-2">
+          <Trophy className="h-4 w-4" />
           {t('dashboard.topPerformers')}
-        </CardTitle>
-        <CardDescription>{t('dashboard.topPerformersDesc')}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {venues.map((venue) => (
-            <div
-              key={venue.id}
-              className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-              onClick={() => navigate(`/venues/${venue.slug}/home`)}
-            >
-              {/* Rank */}
-              <div className="flex-shrink-0 w-8 flex justify-center">
-                {getRankIcon(venue.rank)}
-              </div>
+        </h3>
+        <p className="text-xs text-muted-foreground mt-0.5">{t('dashboard.topPerformersDesc')}</p>
+      </div>
 
-              {/* Avatar */}
-              <Avatar className="h-10 w-10 rounded-lg flex-shrink-0">
-                <AvatarImage src={venue.logo || undefined} alt={venue.name} />
-                <AvatarFallback className="rounded-lg">
-                  {venue.name.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">{venue.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {formatCurrency(venue.revenue)}
-                </p>
-              </div>
-
-              {/* Trend */}
-              <div className="flex items-center gap-1 flex-shrink-0">
-                {getTrendIcon(venue.trend)}
-                <span
-                  className={cn(
-                    'text-xs',
-                    venue.trend === 'up'
-                      ? 'text-green-500'
-                      : venue.trend === 'down'
-                      ? 'text-red-500'
-                      : 'text-muted-foreground'
-                  )}
-                >
-                  {getTrendLabel(venue.trend)}
-                </span>
-              </div>
-            </div>
-          ))}
+      {!venues || venues.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+          {t('dashboard.noVenues')}
         </div>
-      </CardContent>
-    </Card>
+      ) : (
+        <div className="space-y-1.5 flex-1">
+          {venues.map(venue => {
+            const trend = getTrendInfo(venue.trend)
+            const TrendIcon = trend.icon
+
+            return (
+              <div
+                key={venue.id}
+                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted/50 cursor-pointer transition-colors"
+                onClick={() => navigate(`/venues/${venue.slug}/home`)}
+              >
+                <div className="w-6 flex justify-center shrink-0">
+                  {getRankIcon(venue.rank)}
+                </div>
+                <Avatar className="h-8 w-8 rounded-lg shrink-0">
+                  <AvatarImage src={venue.logo || undefined} alt={venue.name} />
+                  <AvatarFallback className="rounded-lg text-xs font-semibold bg-primary/10 text-primary">
+                    {venue.name.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{venue.name}</p>
+                  <p className="text-xs text-muted-foreground">{formatCurrency(venue.revenue)}</p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <TrendIcon className={cn('h-3 w-3', trend.color)} />
+                  <span className={cn('text-[10px] font-medium', trend.color)}>{trend.label}</span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </GlassCard>
   )
 }

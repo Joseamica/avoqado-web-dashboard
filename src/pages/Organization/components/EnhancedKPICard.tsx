@@ -1,6 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { TrendingUp, TrendingDown, Minus, LucideIcon } from 'lucide-react'
+import { GlassCard } from '@/components/ui/glass-card'
 import { cn } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
+import { TrendingUp, TrendingDown, Minus, type LucideIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 interface EnhancedKPICardProps {
@@ -24,57 +25,34 @@ export function EnhancedKPICard({
 }: EnhancedKPICardProps) {
   const { t } = useTranslation('organization')
 
-  const getTrendIcon = () => {
-    if (change > 0) return TrendingUp
-    if (change < 0) return TrendingDown
-    return Minus
-  }
-
-  const getTrendColor = () => {
-    if (change > 0) return 'text-green-500'
-    if (change < 0) return 'text-red-500'
-    return 'text-muted-foreground'
-  }
-
-  const TrendIcon = getTrendIcon()
-
   if (isLoading) {
-    return (
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-          <div className="h-8 w-8 bg-muted animate-pulse rounded-lg" />
-        </CardHeader>
-        <CardContent>
-          <div className="h-8 w-32 bg-muted animate-pulse rounded mb-2" />
-          <div className="h-4 w-20 bg-muted animate-pulse rounded" />
-        </CardContent>
-      </Card>
-    )
+    return <Skeleton className="h-[120px] rounded-2xl" />
   }
+
+  const TrendIcon = change > 0 ? TrendingUp : change < 0 ? TrendingDown : Minus
+  const trendColor = change > 0 ? 'text-green-600 dark:text-green-400' : change < 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
-        <div className={cn('p-2 rounded-lg', bgColor)}>
+    <GlassCard className="p-4 sm:p-5">
+      <div className="flex items-start justify-between">
+        <div className={cn('p-2 rounded-xl bg-gradient-to-br', bgColor)}>
           <Icon className={cn('h-4 w-4', color)} />
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <div className="flex items-center gap-1 mt-1">
-          <TrendIcon className={cn('h-3 w-3', getTrendColor())} />
-          <span className={cn('text-xs font-medium', getTrendColor())}>
+      </div>
+      <div className="mt-3">
+        <p className="text-xl sm:text-2xl font-bold tracking-tight">{value}</p>
+        <div className="flex items-center gap-1.5 mt-1">
+          <div className={cn('flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded-full',
+            change > 0 ? 'bg-green-100 dark:bg-green-900/30' : change < 0 ? 'bg-red-100 dark:bg-red-900/30' : 'bg-muted',
+            trendColor,
+          )}>
+            <TrendIcon className="h-3 w-3" />
             {change > 0 ? '+' : ''}{change.toFixed(1)}%
-          </span>
-          <span className="text-xs text-muted-foreground">
-            {t('dashboard.vsLastPeriod')}
-          </span>
+          </div>
+          <span className="text-[11px] text-muted-foreground">{t('dashboard.vsLastPeriod')}</span>
         </div>
-      </CardContent>
-    </Card>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1.5">{title}</p>
+      </div>
+    </GlassCard>
   )
 }

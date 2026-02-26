@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlassCard } from '@/components/ui/glass-card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Line, LineChart, CartesianGrid, XAxis } from 'recharts'
 import { getIntlLocale } from '@/utils/i18n-locale'
@@ -20,11 +21,9 @@ export function OrgRevenueTrendsChart({ data, isLoading, formatCurrency }: OrgRe
   const localeCode = getIntlLocale(i18n.language)
   const [activeMetric, setActiveMetric] = useState<'revenue' | 'orders'>('revenue')
 
-  // Transform data for chart
   const chartData = useMemo(() => {
     if (!data?.currentPeriod.dataPoints) return []
-
-    return data.currentPeriod.dataPoints.map((point) => ({
+    return data.currentPeriod.dataPoints.map(point => ({
       date: point.date,
       formattedDate: DateTime.fromISO(point.date, { zone: 'utc' })
         .setLocale(localeCode)
@@ -35,39 +34,21 @@ export function OrgRevenueTrendsChart({ data, isLoading, formatCurrency }: OrgRe
   }, [data, localeCode])
 
   const chartConfig = {
-    revenue: {
-      label: t('dashboard.revenue'),
-      color: 'var(--chart-1)',
-    },
-    orders: {
-      label: t('dashboard.orders'),
-      color: 'var(--chart-2)',
-    },
+    revenue: { label: t('dashboard.revenue'), color: 'var(--chart-1)' },
+    orders: { label: t('dashboard.orders'), color: 'var(--chart-2)' },
   }
 
   if (isLoading) {
     return (
-      <Card className="py-4 sm:py-0">
-        <CardHeader className="flex flex-col items-stretch border-b p-0! sm:flex-row">
-          <div className="flex flex-1 flex-col justify-center gap-1 px-6 pb-3 sm:pb-0">
-            <div className="h-6 w-40 bg-muted animate-pulse rounded" />
-            <div className="h-4 w-60 bg-muted animate-pulse rounded mt-1" />
-          </div>
-          <div className="flex">
-            <div className="flex flex-col justify-center gap-1 border-t px-6 py-4 sm:border-t-0 sm:border-l sm:px-8 sm:py-6">
-              <div className="h-4 w-16 bg-muted animate-pulse rounded" />
-              <div className="h-8 w-24 bg-muted animate-pulse rounded" />
-            </div>
-            <div className="flex flex-col justify-center gap-1 border-t border-l px-6 py-4 sm:border-t-0 sm:px-8 sm:py-6">
-              <div className="h-4 w-16 bg-muted animate-pulse rounded" />
-              <div className="h-8 w-24 bg-muted animate-pulse rounded" />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="px-2 sm:p-6">
-          <div className="h-[250px] w-full bg-muted/20 animate-pulse rounded" />
-        </CardContent>
-      </Card>
+      <GlassCard className="p-5 h-full">
+        <Skeleton className="h-5 w-44 mb-1" />
+        <Skeleton className="h-4 w-64 mb-4" />
+        <div className="flex gap-4 mb-4">
+          <Skeleton className="h-16 flex-1 rounded-xl" />
+          <Skeleton className="h-16 flex-1 rounded-xl" />
+        </div>
+        <Skeleton className="h-[220px] rounded-xl" />
+      </GlassCard>
     )
   }
 
@@ -75,36 +56,40 @@ export function OrgRevenueTrendsChart({ data, isLoading, formatCurrency }: OrgRe
   const comparison = data?.comparison || { revenueChange: 0, ordersChange: 0 }
 
   return (
-    <Card className="py-4 sm:py-0">
-      <CardHeader className="flex flex-col items-stretch border-b p-0! sm:flex-row">
-        <div className="flex flex-1 flex-col justify-center gap-1 px-6 pb-3 sm:pb-0">
-          <CardTitle>{t('dashboard.revenueTrends')}</CardTitle>
-          <CardDescription>{t('dashboard.revenueTrendsDesc')}</CardDescription>
-        </div>
-        <div className="flex flex-wrap">
-          {(['revenue', 'orders'] as const).map((key) => {
-            const change = key === 'revenue' ? comparison.revenueChange : comparison.ordersChange
-            const isPositive = change > 0
-            const TrendIcon = isPositive ? TrendingUp : change < 0 ? TrendingDown : null
+    <GlassCard className="p-5 h-full flex flex-col">
+      {/* Header */}
+      <div className="mb-4">
+        <h3 className="text-sm font-semibold">{t('dashboard.revenueTrends')}</h3>
+        <p className="text-xs text-muted-foreground mt-0.5">{t('dashboard.revenueTrendsDesc')}</p>
+      </div>
 
-            return (
-              <button
-                key={key}
-                data-active={activeMetric === key}
-                className="data-[active=true]:bg-muted/50 flex basis-1/2 sm:basis-auto flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l sm:border-t-0 sm:border-l sm:px-8 sm:py-6"
-                onClick={() => setActiveMetric(key)}
-              >
-                <span className="text-muted-foreground text-xs">{chartConfig[key].label}</span>
-                <span className="text-lg leading-none font-bold sm:text-2xl">
-                  {key === 'revenue'
-                    ? formatCurrency(totals[key])
-                    : totals[key].toLocaleString()}
+      {/* Metric toggles */}
+      <div className="flex gap-2 mb-4">
+        {(['revenue', 'orders'] as const).map(key => {
+          const change = key === 'revenue' ? comparison.revenueChange : comparison.ordersChange
+          const isPositive = change > 0
+          const isActive = activeMetric === key
+          const TrendIcon = isPositive ? TrendingUp : change < 0 ? TrendingDown : null
+
+          return (
+            <button
+              key={key}
+              className={cn(
+                'flex-1 rounded-xl p-3 text-left transition-colors',
+                isActive ? 'bg-muted/70 ring-1 ring-border' : 'bg-muted/30 hover:bg-muted/50',
+              )}
+              onClick={() => setActiveMetric(key)}
+            >
+              <span className="text-[11px] text-muted-foreground">{chartConfig[key].label}</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-lg font-bold leading-tight">
+                  {key === 'revenue' ? formatCurrency(totals[key]) : totals[key].toLocaleString()}
                 </span>
                 {TrendIcon && (
                   <span
                     className={cn(
-                      'flex items-center gap-1 text-xs',
-                      isPositive ? 'text-green-500' : 'text-red-500'
+                      'flex items-center gap-0.5 text-[10px] font-medium',
+                      isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400',
                     )}
                   >
                     <TrendIcon className="h-3 w-3" />
@@ -112,26 +97,21 @@ export function OrgRevenueTrendsChart({ data, isLoading, formatCurrency }: OrgRe
                     {change.toFixed(1)}%
                   </span>
                 )}
-              </button>
-            )
-          })}
-        </div>
-      </CardHeader>
-      <CardContent className="px-2 sm:p-6">
+              </div>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Chart */}
+      <div className="flex-1 min-h-0">
         {!chartData || chartData.length === 0 ? (
-          <div className="flex items-center justify-center h-[250px]">
-            <p className="text-muted-foreground">{t('dashboard.noData')}</p>
+          <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+            {t('dashboard.noData')}
           </div>
         ) : (
-          <ChartContainer config={chartConfig} className="aspect-auto h-[220px] sm:h-[250px] w-full">
-            <LineChart
-              accessibilityLayer
-              data={chartData}
-              margin={{
-                left: 12,
-                right: 12,
-              }}
-            >
+          <ChartContainer config={chartConfig} className="aspect-auto h-[200px] sm:h-[220px] w-full">
+            <LineChart accessibilityLayer data={chartData} margin={{ left: 12, right: 12 }}>
               <CartesianGrid vertical={false} />
               <XAxis
                 dataKey="formattedDate"
@@ -144,10 +124,8 @@ export function OrgRevenueTrendsChart({ data, isLoading, formatCurrency }: OrgRe
                 content={
                   <ChartTooltipContent
                     className="w-[180px]"
-                    labelFormatter={(value) => {
-                      if (typeof value === 'string' && value.includes(' ')) {
-                        return value
-                      }
+                    labelFormatter={value => {
+                      if (typeof value === 'string' && value.includes(' ')) return value
                       return DateTime.fromISO(value as string, { zone: 'utc' })
                         .setLocale(localeCode)
                         .toLocaleString({ month: 'short', day: 'numeric', year: 'numeric' })
@@ -170,7 +148,7 @@ export function OrgRevenueTrendsChart({ data, isLoading, formatCurrency }: OrgRe
             </LineChart>
           </ChartContainer>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </GlassCard>
   )
 }

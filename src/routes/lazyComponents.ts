@@ -103,6 +103,7 @@ export { default as TemplatesPage } from '@/pages/Superadmin/Marketing/Templates
 export { default as OnboardingWizardPage } from '@/pages/Superadmin/Onboarding/OnboardingWizardPage'
 export { default as BulkOnboardingPage } from '@/pages/Superadmin/BulkOnboarding/BulkOnboardingPage'
 export { default as ServerHealth } from '@/pages/Superadmin/ServerHealth'
+export { default as SuperadminActivityLog } from '@/pages/Superadmin/ActivityLog'
 export { default as TrainingManagement } from '@/pages/Superadmin/TrainingManagement'
 export { default as TrainingDetail } from '@/pages/Superadmin/TrainingDetail'
 

@@ -1,15 +1,9 @@
 import { useTranslation } from 'react-i18next'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Package, TrendingUp } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { TrendingUp } from 'lucide-react'
 import type { TopItem } from '@/services/organization.service'
 
 interface TopItemsTableProps {
@@ -23,72 +17,48 @@ export function TopItemsTable({ items, isLoading, formatCurrency }: TopItemsTabl
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <div className="h-6 w-40 bg-muted animate-pulse rounded" />
-          <div className="h-4 w-60 bg-muted animate-pulse rounded mt-1" />
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex items-center gap-4">
-                <div className="h-4 w-8 bg-muted animate-pulse rounded" />
-                <div className="h-4 w-32 bg-muted animate-pulse rounded flex-1" />
-                <div className="h-4 w-20 bg-muted animate-pulse rounded" />
-                <div className="h-4 w-16 bg-muted animate-pulse rounded" />
-                <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (!items || items.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            {t('dashboard.topItems')}
-          </CardTitle>
-          <CardDescription>{t('dashboard.topItemsDesc')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            {t('dashboard.noItems')}
-          </div>
-        </CardContent>
-      </Card>
+      <GlassCard className="p-5">
+        <Skeleton className="h-5 w-44 mb-1" />
+        <Skeleton className="h-4 w-64 mb-5" />
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-10 rounded-lg" />
+          ))}
+        </div>
+      </GlassCard>
     )
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5" />
+    <GlassCard className="overflow-hidden">
+      <div className="p-5 pb-3">
+        <h3 className="text-sm font-semibold flex items-center gap-2">
+          <TrendingUp className="h-4 w-4" />
           {t('dashboard.topItems')}
-        </CardTitle>
-        <CardDescription>{t('dashboard.topItemsDesc')}</CardDescription>
-      </CardHeader>
-      <CardContent>
+        </h3>
+        <p className="text-xs text-muted-foreground mt-0.5">{t('dashboard.topItemsDesc')}</p>
+      </div>
+
+      {!items || items.length === 0 ? (
+        <div className="text-center py-10 text-muted-foreground text-sm">
+          {t('dashboard.noItems')}
+        </div>
+      ) : (
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12">#</TableHead>
+              <TableHead className="w-12 pl-5">#</TableHead>
               <TableHead>{t('dashboard.itemName')}</TableHead>
               <TableHead>{t('dashboard.category')}</TableHead>
               <TableHead className="text-right">{t('dashboard.quantitySold')}</TableHead>
               <TableHead className="text-right">{t('dashboard.totalRevenue')}</TableHead>
-              <TableHead className="text-right">{t('dashboard.avgPrice')}</TableHead>
+              <TableHead className="text-right pr-5">{t('dashboard.avgPrice')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.map((item) => (
+            {items.map(item => (
               <TableRow key={item.productId}>
-                <TableCell className="font-medium">
+                <TableCell className="pl-5">
                   {item.rank <= 3 ? (
                     <Badge
                       variant={item.rank === 1 ? 'default' : 'secondary'}
@@ -96,34 +66,36 @@ export function TopItemsTable({ items, isLoading, formatCurrency }: TopItemsTabl
                         item.rank === 1
                           ? 'bg-yellow-500 text-yellow-950'
                           : item.rank === 2
-                          ? 'bg-muted text-muted-foreground'
-                          : 'bg-amber-600 text-amber-50'
+                            ? 'bg-muted text-muted-foreground'
+                            : 'bg-amber-600 text-amber-50'
                       }
                     >
                       {item.rank}
                     </Badge>
                   ) : (
-                    <span className="text-muted-foreground">{item.rank}</span>
+                    <span className="text-muted-foreground text-sm">{item.rank}</span>
                   )}
                 </TableCell>
-                <TableCell className="font-medium">{item.productName}</TableCell>
+                <TableCell className="font-medium text-sm">{item.productName}</TableCell>
                 <TableCell>
-                  <Badge variant="outline">{item.categoryName}</Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {item.categoryName}
+                  </Badge>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right text-sm">
                   {item.quantitySold.toLocaleString()}
                 </TableCell>
-                <TableCell className="text-right font-medium">
+                <TableCell className="text-right font-semibold text-sm">
                   {formatCurrency(item.totalRevenue)}
                 </TableCell>
-                <TableCell className="text-right text-muted-foreground">
+                <TableCell className="text-right text-sm text-muted-foreground pr-5">
                   {formatCurrency(item.averagePrice)}
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </CardContent>
-    </Card>
+      )}
+    </GlassCard>
   )
 }

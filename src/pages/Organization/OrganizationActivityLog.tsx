@@ -78,7 +78,7 @@ function getActionConfig(action: string): ActionConfig {
   return ACTION_CONFIG[action] || DEFAULT_ACTION_CONFIG
 }
 
-function formatActionLabel(action: string): string {
+function formatActionFallback(action: string): string {
   return action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 }
 
@@ -193,7 +193,7 @@ function OrganizationActivityLog() {
               <SelectItem value="all">{t('activityLog.filters.allActions')}</SelectItem>
               {availableActions?.map(action => (
                 <SelectItem key={action} value={action}>
-                  {formatActionLabel(action)}
+                  {t(`activityLog.actions.${action}`, { defaultValue: formatActionFallback(action) })}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -288,7 +288,7 @@ function ActivityLogRow({ log, dateFnsLocale }: { log: OrgActivityLogEntry; date
               <Icon className={`h-3.5 w-3.5 ${config.color}`} />
             </div>
             <Badge variant="outline" className="text-xs font-mono">
-              {formatActionLabel(log.action)}
+              {t(`activityLog.actions.${log.action}`, { defaultValue: formatActionFallback(log.action) })}
             </Badge>
           </div>
         </TableCell>
@@ -317,7 +317,7 @@ function ActivityLogRow({ log, dateFnsLocale }: { log: OrgActivityLogEntry; date
           {log.staff ? (
             <span className="text-sm">{log.staff.firstName} {log.staff.lastName}</span>
           ) : (
-            <span className="text-muted-foreground text-sm italic">System</span>
+            <span className="text-muted-foreground text-sm italic">{t('activityLog.system')}</span>
           )}
         </TableCell>
         <TableCell>

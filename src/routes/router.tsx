@@ -79,6 +79,7 @@ import {
   OnboardingWizardPage,
   BulkOnboardingPage,
   ServerHealth,
+  SuperadminActivityLog,
   TrainingManagement,
   TrainingDetail,
   SuperadminV2Layout,
@@ -423,6 +424,10 @@ const router = createBrowserRouter(
                       element: <ServerHealth />,
                     },
                     {
+                      path: 'activity-log',
+                      element: <SuperadminActivityLog />,
+                    },
+                    {
                       path: 'trainings',
                       element: <TrainingManagement />,
                     },
@@ -480,6 +485,7 @@ const router = createBrowserRouter(
                     { path: 'marketing/templates', element: <TemplatesPage /> },
                     { path: 'onboarding', element: <OnboardingWizardPage /> },
                     { path: 'server-health', element: <ServerHealth /> },
+                    { path: 'activity-log', element: <SuperadminActivityLog /> },
                     { path: 'trainings', element: <TrainingManagement /> },
                     { path: 'trainings/:trainingId', element: <TrainingDetail /> },
                   ],
