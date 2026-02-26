@@ -788,7 +788,7 @@ export function RemoteCommandPanel({
                             : 'border-border bg-muted/50 text-muted-foreground'
                         }`}
                         onClick={() => setInstallVersionDialog({ open: true, selectedVersionCode: null })}
-                        disabled={!isOnline || pendingCommands.has(TpvCommandType.INSTALL_VERSION)}
+                        disabled={pendingCommands.has(TpvCommandType.INSTALL_VERSION)}
                       >
                         <div className="flex items-center space-x-3 w-full">
                           {pendingCommands.has(TpvCommandType.INSTALL_VERSION) ? (
@@ -803,14 +803,14 @@ export function RemoteCommandPanel({
                                 : t('commands.types.INSTALL_VERSION')}
                             </p>
                             <p className="text-xs opacity-80">
-                              {isOnline ? t('commands.descriptions.INSTALL_VERSION') : t('commands.requiresOnline')}
+                              {isOnline ? t('commands.descriptions.INSTALL_VERSION') : t('commands.offlineQueued')}
                             </p>
                           </div>
                         </div>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>{isOnline ? t('commands.installVersionTooltip') : t('commands.requiresOnline')}</p>
+                      <p>{isOnline ? t('commands.installVersionTooltip') : t('commands.offlineQueued')}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>

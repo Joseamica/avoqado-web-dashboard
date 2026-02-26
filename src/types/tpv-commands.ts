@@ -312,7 +312,7 @@ export const COMMAND_DEFINITIONS: Record<TpvCommandType, CommandDefinition> = {
     type: TpvCommandType.INSTALL_VERSION,
     category: 'app_lifecycle',
     icon: 'Archive',
-    requiresOnline: true,
+    requiresOnline: false, // Queued for delivery when terminal connects (backend supports offline commands)
     requiresConfirmation: true, // SUPERADMIN must confirm version selection
     isDangerous: true, // Can rollback to older version
     defaultPriority: TpvCommandPriority.HIGH,
