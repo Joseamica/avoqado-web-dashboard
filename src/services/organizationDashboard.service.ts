@@ -526,3 +526,55 @@ export async function getOrgMerchantAccounts(orgId: string): Promise<OrgMerchant
   const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/merchant-accounts`)
   return response.data.data.merchants
 }
+
+// ===========================================
+// ACTIVITY LOG
+// ===========================================
+
+export interface OrgActivityLogEntry {
+  id: string
+  action: string
+  entity: string | null
+  entityId: string | null
+  data: Record<string, unknown> | null
+  ipAddress: string | null
+  createdAt: string
+  staff: { id: string; firstName: string; lastName: string } | null
+  venueName: string
+}
+
+export interface OrgActivityLogResponse {
+  logs: OrgActivityLogEntry[]
+  pagination: { page: number; pageSize: number; total: number; totalPages: number }
+}
+
+export interface OrgActivityLogFilters {
+  page?: number
+  pageSize?: number
+  venueId?: string
+  staffId?: string
+  action?: string
+  search?: string
+  startDate?: string
+  endDate?: string
+}
+
+export async function getOrgActivityLog(orgId: string, filters?: OrgActivityLogFilters): Promise<OrgActivityLogResponse> {
+  const params = new URLSearchParams()
+  if (filters?.page) params.set('page', String(filters.page))
+  if (filters?.pageSize) params.set('pageSize', String(filters.pageSize))
+  if (filters?.venueId) params.set('venueId', filters.venueId)
+  if (filters?.staffId) params.set('staffId', filters.staffId)
+  if (filters?.action) params.set('action', filters.action)
+  if (filters?.search) params.set('search', filters.search)
+  if (filters?.startDate) params.set('startDate', filters.startDate)
+  if (filters?.endDate) params.set('endDate', filters.endDate)
+
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/activity-log?${params.toString()}`)
+  return response.data.data
+}
+
+export async function getOrgActivityLogActions(orgId: string): Promise<string[]> {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/activity-log/actions`)
+  return response.data.data
+}

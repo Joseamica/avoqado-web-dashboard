@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { useParams, NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Building2, Settings, Users, Store, BarChart3, ChevronsUpDown, ChevronRight, Smartphone } from 'lucide-react'
+import { LayoutDashboard, Building2, Settings, Users, Store, BarChart3, ChevronsUpDown, ChevronRight, Smartphone, ScrollText } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useAuth } from '@/context/AuthContext'
@@ -128,6 +128,7 @@ const OrgSidebar: React.FC<OrgSidebarProps> = props => {
           { name: t('sidebar.venues'), href: `/organizations/${orgId}/venues`, icon: Store },
           { name: t('sidebar.team'), href: `/organizations/${orgId}/team`, icon: Users },
           { name: t('sidebar.terminals'), href: `/organizations/${orgId}/terminals`, icon: Smartphone },
+          { name: t('sidebar.activityLog'), href: `/organizations/${orgId}/activity-log`, icon: ScrollText },
         ],
       },
       {

@@ -39,6 +39,7 @@ const OrganizationLayout: React.FC = () => {
       settings: t('breadcrumb.settings'),
       analytics: t('breadcrumb.analytics'),
       terminals: t('breadcrumb.terminals'),
+      'activity-log': t('breadcrumb.activityLog'),
     }
     return routeMap[segment.toLowerCase()] || segment
   }

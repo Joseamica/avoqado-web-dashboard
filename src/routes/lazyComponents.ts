@@ -177,6 +177,7 @@ export const OrganizationVenues = lazyWithRetry(() => import('@/pages/Organizati
 export const OrganizationTeam = lazyWithRetry(() => import('@/pages/Organization/OrganizationTeam'))
 export const OrganizationSettings = lazyWithRetry(() => import('@/pages/Organization/OrganizationSettings'))
 export const OrganizationTerminals = lazyWithRetry(() => import('@/pages/Organization/OrganizationTerminals'))
+export const OrganizationActivityLog = lazyWithRetry(() => import('@/pages/Organization/OrganizationActivityLog'))
 
 // White-Label Organization (multi-venue dashboard using orgSlug)
 export const WLOrganizationLayout = lazyWithRetry(() => import('@/pages/organizations/WLOrganizationLayout'))

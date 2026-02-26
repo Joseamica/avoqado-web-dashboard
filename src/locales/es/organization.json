@@ -13,6 +13,7 @@
     "configuration": "Configuración",
     "settings": "Ajustes",
     "terminals": "Terminales",
+    "activityLog": "Registro de Actividad",
     "quickAccess": "Acceso Rápido",
     "viewAll": "Ver todo ({{count}})"
   },
@@ -25,7 +26,8 @@
     "team": "Equipo",
     "settings": "Ajustes",
     "analytics": "Analíticas",
-    "terminals": "Terminales"
+    "terminals": "Terminales",
+    "activityLog": "Registro de Actividad"
   },
   "dashboard": {
     "title": "Dashboard de Organización",
@@ -253,6 +255,30 @@
         "EXPORT_LOGS": "Exportación de logs iniciada"
       }
     }
+  },
+  "activityLog": {
+    "title": "Registro de Actividad",
+    "subtitle": "Seguimiento de todas las acciones realizadas en tu organización",
+    "searchPlaceholder": "Buscar por acción, entidad o ID...",
+    "noResults": "No se encontró actividad con esos filtros",
+    "empty": "No se ha registrado actividad aún",
+    "columns": {
+      "action": "Acción",
+      "entity": "Entidad",
+      "performedBy": "Realizado Por",
+      "venue": "Sucursal",
+      "date": "Fecha y Hora",
+      "details": "Detalles"
+    },
+    "filters": {
+      "allVenues": "Todas las Sucursales",
+      "allActions": "Todas las Acciones"
+    },
+    "pagination": {
+      "showing": "Mostrando {{from}}-{{to}} de {{total}}"
+    },
+    "showDetails": "Detalles",
+    "hideDetails": "Ocultar"
   },
   "routeProtection": {
     "accessDenied": "Acceso Denegado",

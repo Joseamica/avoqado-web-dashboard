@@ -78,18 +78,23 @@ if [ "$SKIP_E2E" = true ]; then
 else
   echo "🎭 Step $STEP/$TOTAL_STEPS: Running Playwright E2E tests..."
 
-  # Check if Playwright browsers are installed
-  if npx playwright install --dry-run chromium >/dev/null 2>&1 || [ -d "$HOME/Library/Caches/ms-playwright" ] || [ -d "$HOME/.cache/ms-playwright" ]; then
-    if npm run test:e2e; then
-      echo -e "${GREEN}✅ E2E tests passed!${NC}"
-    else
-      echo -e "${RED}❌ E2E tests failed!${NC}"
-      echo -e "${YELLOW}💡 Run 'npm run test:e2e:ui' to debug interactively${NC}"
-      exit 1
-    fi
+  # Check if Playwright browsers are actually installed
+  PW_CACHE_MAC="$HOME/Library/Caches/ms-playwright"
+  PW_CACHE_LINUX="$HOME/.cache/ms-playwright"
+  PW_CACHE="${PLAYWRIGHT_BROWSERS_PATH:-${PW_CACHE_MAC}}"
+  [ ! -d "$PW_CACHE" ] && PW_CACHE="${PW_CACHE_LINUX}"
+
+  if [ ! -d "$PW_CACHE" ] || [ -z "$(ls -A "$PW_CACHE" 2>/dev/null)" ]; then
+    echo -e "${YELLOW}   Browsers no encontrados. Instalando chromium...${NC}"
+    npx playwright install chromium
+  fi
+
+  if npm run test:e2e; then
+    echo -e "${GREEN}✅ E2E tests passed!${NC}"
   else
-    echo -e "${YELLOW}⚠️  Playwright browsers not installed. Skipping E2E.${NC}"
-    echo -e "${YELLOW}   Run 'npx playwright install chromium' to enable E2E tests${NC}"
+    echo -e "${RED}❌ E2E tests failed!${NC}"
+    echo -e "${YELLOW}💡 Run 'npm run test:e2e:ui' to debug interactively${NC}"
+    exit 1
   fi
   echo ""
   STEP=$((STEP + 1))

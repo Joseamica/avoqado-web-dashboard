@@ -13,6 +13,7 @@
     "configuration": "Configuration",
     "settings": "Settings",
     "terminals": "Terminals",
+    "activityLog": "Activity Log",
     "quickAccess": "Quick Access",
     "viewAll": "View all ({{count}})"
   },
@@ -25,7 +26,8 @@
     "team": "Team",
     "settings": "Settings",
     "analytics": "Analytics",
-    "terminals": "Terminals"
+    "terminals": "Terminals",
+    "activityLog": "Activity Log"
   },
   "dashboard": {
     "title": "Organization Dashboard",
@@ -253,6 +255,30 @@
         "EXPORT_LOGS": "Log export started"
       }
     }
+  },
+  "activityLog": {
+    "title": "Activity Log",
+    "subtitle": "Track all actions performed across your organization",
+    "searchPlaceholder": "Search by action, entity, or ID...",
+    "noResults": "No activity matches your filters",
+    "empty": "No activity recorded yet",
+    "columns": {
+      "action": "Action",
+      "entity": "Entity",
+      "performedBy": "Performed By",
+      "venue": "Venue",
+      "date": "Date & Time",
+      "details": "Details"
+    },
+    "filters": {
+      "allVenues": "All Venues",
+      "allActions": "All Actions"
+    },
+    "pagination": {
+      "showing": "Showing {{from}}-{{to}} of {{total}}"
+    },
+    "showDetails": "Details",
+    "hideDetails": "Hide"
   },
   "routeProtection": {
     "accessDenied": "Access Denied",
