@@ -1,20 +1,22 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog } from '../ui/dialog'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from '@/components/ui/command'
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/context/AuthContext'
 import { notifyVenueChange } from '@/services/chatService'
 
 import { Venue, StaffRole, SessionVenue } from '@/types'
 import { VenueStatus } from '@/types/superadmin'
-import { Building2, ChevronsUpDown, Plus, AlertTriangle, Ban, XCircle } from 'lucide-react'
+import { Building2, ChevronsUpDown, Plus, AlertTriangle, Ban, XCircle, Check } from 'lucide-react'
 import { useState, useMemo, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AddVenueDialog } from './add-venue-dialog'
@@ -45,11 +47,11 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
   const { t } = useTranslation()
 
   const [isDialogOpen, setDialogOpen] = useState(false)
-  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [popoverOpen, setPopoverOpen] = useState(false)
+  const [searchValue, setSearchValue] = useState('')
   const canAddVenue = (user?.role as StaffRole) === StaffRole.SUPERADMIN
 
   // Check if user can see organization link (OWNER or SUPERADMIN)
-  const canViewOrganization = isOwner && !!orgId
   const isSuperadmin = user?.role === StaffRole.SUPERADMIN
 
   // Helper to get suspension status info for a venue
@@ -61,7 +63,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
       case VenueStatus.ADMIN_SUSPENDED:
         return { isSuspended: true, label: t('venuesSwitcher.adminSuspended'), icon: Ban, textColor: 'text-red-600' }
       case VenueStatus.CLOSED:
-        return { isSuspended: true, label: t('venuesSwitcher.closed'), icon: XCircle, textColor: 'text-slate-500' }
+        return { isSuspended: true, label: t('venuesSwitcher.closed'), icon: XCircle, textColor: 'text-muted-foreground' }
       default:
         return { isSuspended: false, label: '', icon: null, textColor: '' }
     }
@@ -69,9 +71,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
 
   // Group venues by organization for SUPERADMIN/OWNER users
   const venueGroups = useMemo((): VenueGroup[] => {
-    // Only group if user is SUPERADMIN (sees multiple orgs) or OWNER
     if (!isSuperadmin && !isOwner) {
-      // For regular users, return a single group with current org
       return [{
         orgId: orgId || 'default',
         orgName: organization?.name || '',
@@ -79,11 +79,9 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
       }]
     }
 
-    // Group venues by organizationId
     const groups = new Map<string, VenueGroup>()
 
     venues.forEach(venue => {
-      // Get organizationId from venue - check both Venue and SessionVenue
       const venueOrgId = venue.organizationId || 'unknown'
       const venueOrgName = venue.organization?.name || 'Unknown Organization'
 
@@ -97,7 +95,6 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
       groups.get(venueOrgId)!.venues.push(venue)
     })
 
-    // Sort groups by organization name, then sort venues within each group
     const sortedGroups = Array.from(groups.values())
       .sort((a, b) => a.orgName.localeCompare(b.orgName))
       .map(group => ({
@@ -107,9 +104,6 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
 
     return sortedGroups
   }, [venues, isSuperadmin, isOwner, orgId, organization?.name])
-
-  // Check if we have multiple organizations (for UI decisions)
-  const _hasMultipleOrgs = venueGroups.length > 1
 
   // Usar el venue actual del contexto, url, localStorage, o fallback al default
   const currentVenueSlug = (() => {
@@ -123,21 +117,12 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
     return ''
   })()
 
-  // Buscar el venue en este orden de prioridad:
-  // 1. Desde la URL actual (si estamos en /venues/[slug]/...)
-  // 2. Desde el contexto activeVenue
-  // 3. Desde localStorage (persistido del último venue usado)
-  // 4. Fallback al defaultVenue (primer venue de la lista)
   const venueFromSlug = currentVenueSlug ? venues.find(v => v.slug === currentVenueSlug) : null
-
-  // Intentar recuperar el último venue usado de localStorage
   const savedVenueSlug = typeof window !== 'undefined' ? localStorage.getItem('avoqado_current_venue_slug') : null
   const venueFromStorage = savedVenueSlug ? venues.find(v => v.slug === savedVenueSlug) : null
 
   const currentVenue = (venueFromSlug || activeVenue || venueFromStorage || defaultVenue) as Venue | SessionVenue
 
-  // Persistir el venue actual en localStorage cuando cambie (para recuperarlo después de login/logout/refresh)
-  // Only update when user is authenticated to avoid race condition during logout
   useEffect(() => {
     if (!isAuthenticated) return
     if (currentVenue?.slug) {
@@ -145,12 +130,18 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
     }
   }, [currentVenue?.slug, isAuthenticated])
 
-  const handleVenueChange = async (venue: Venue | SessionVenue) => {
-    if (venue.slug === currentVenue.slug) return // Evitar cambio innecesario
+  const handleOpenChange = (open: boolean) => {
+    setPopoverOpen(open)
+    if (!open) setSearchValue('')
+  }
 
-    // Omitir verificación de acceso para usuarios OWNER y SUPERADMIN
+  const handleVenueChange = async (venue: Venue | SessionVenue) => {
+    if (venue.slug === currentVenue.slug) {
+      setPopoverOpen(false)
+      return
+    }
+
     if (user?.role !== StaffRole.OWNER && user?.role !== StaffRole.SUPERADMIN) {
-      // Verificar acceso antes de cambiar usando slug
       if (!checkVenueAccess(venue.slug)) {
         console.warn(`Attempted to access unauthorized venue: ${venue.slug}`)
         return
@@ -158,23 +149,18 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
     }
 
     try {
-      // Usar la función switchVenue del contexto que maneja toda la lógica
       await switchVenue(venue.slug)
-      
-      // Notificar al chatService sobre el cambio de venue
       notifyVenueChange(venue.slug)
-      
-      setDropdownOpen(false) // Cerrar el dropdown después del cambio
+      setPopoverOpen(false)
     } catch (error) {
       console.error('Error switching venue:', error)
-      // El error ya se muestra en el toast desde el contexto
     }
   }
 
   const handleAddVenueClick = () => {
     if (!canAddVenue) return
     setDialogOpen(true)
-    setDropdownOpen(false) // Cerrar dropdown cuando se abre el dialog
+    setPopoverOpen(false)
   }
 
   const handleDialogClose = () => {
@@ -185,8 +171,8 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
     <>
       <SidebarMenu>
         <SidebarMenuItem>
-          <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen} modal={false}>
-            <DropdownMenuTrigger asChild>
+          <Popover open={popoverOpen} onOpenChange={handleOpenChange} modal={true}>
+            <PopoverTrigger asChild>
               <SidebarMenuButton
                 size="lg"
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer"
@@ -200,115 +186,114 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                   <>
                     <div className="grid flex-1 text-sm leading-tight text-left">
                       <span className="font-semibold truncate">{currentVenue?.name || t('venuesSwitcher.selectVenue')}</span>
-                      <span className="text-xs truncate">{currentVenue?.city || ''}</span>
+                      <span className="text-xs truncate text-muted-foreground">{currentVenue?.city || ''}</span>
                     </div>
-                    <ChevronsUpDown className="ml-auto" />
+                    <ChevronsUpDown className="ml-auto size-4 shrink-0 text-muted-foreground" />
                   </>
                 )}
               </SidebarMenuButton>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg max-h-[70vh] overflow-y-auto"
+            </PopoverTrigger>
+            <PopoverContent
+              className={`p-0 ${isMobile ? 'w-[calc(100vw-2rem)]' : 'w-[340px] lg:w-[380px]'}`}
               align="start"
               side={isMobile ? 'bottom' : 'right'}
-              sideOffset={5}
+              sideOffset={8}
             >
-              {/* Render venues grouped by organization */}
-              {venueGroups.map((group, groupIndex) => {
-                // Handler for clicking organization header
-                const handleOrgHeaderClick = () => {
-                  if (group.orgId !== 'unknown' && group.orgId !== 'default') {
-                    setDropdownOpen(false)
-                    navigate(`/organizations/${group.orgId}`)
-                  }
-                }
+              <Command shouldFilter={true}>
+                <CommandInput
+                  placeholder={t('venuesSwitcher.searchPlaceholder')}
+                  value={searchValue}
+                  onValueChange={setSearchValue}
+                />
+                <CommandList className="max-h-[min(60vh,400px)]">
+                  <CommandEmpty className="py-8 text-center text-sm text-muted-foreground">
+                    {t('venuesSwitcher.noResults')}
+                  </CommandEmpty>
 
-                // Show org header if:
-                // - SUPERADMIN: Always show all org headers (they have full access)
-                // - OWNER/others: Only show if 2+ venues in org (having 1 venue = venue-level access)
-                const showOrgHeader = isSuperadmin || group.venues.length > 1
+                  {venueGroups.map((group) => {
+                    const showOrgHeader = isSuperadmin || group.venues.length > 1
 
-                return (
-                  <div key={group.orgId}>
-                    {/* Organization Header - Only show if 2+ venues in org or user has org access */}
-                    {showOrgHeader && (
-                      <>
-                        {groupIndex > 0 && <DropdownMenuSeparator />}
-                        <DropdownMenuItem
-                          onClick={handleOrgHeaderClick}
-                          className="gap-2 p-2 cursor-pointer"
-                          disabled={isLoading || group.orgId === 'unknown'}
-                        >
-                          <div className="flex justify-center items-center bg-muted rounded-lg size-6">
-                            <Building2 className="size-4 text-muted-foreground" />
-                          </div>
-                          <span className="font-medium truncate">
-                            {group.orgName || t('organization:myOrganization')}
-                          </span>
-                        </DropdownMenuItem>
-                      </>
-                    )}
+                    return (
+                      <CommandGroup
+                        key={group.orgId}
+                        heading={showOrgHeader ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (group.orgId !== 'unknown' && group.orgId !== 'default') {
+                                setPopoverOpen(false)
+                                navigate(`/organizations/${group.orgId}`)
+                              }
+                            }}
+                            className="flex items-center gap-2 w-full cursor-pointer hover:text-foreground transition-colors"
+                          >
+                            <Building2 className="size-3.5 shrink-0" />
+                            <span className="truncate">{group.orgName || t('organization:myOrganization')}</span>
+                          </button>
+                        ) : undefined}
+                      >
+                        {group.venues.map((venue) => {
+                          const isActive = venue.slug === currentVenue?.slug
+                          const hasAccess = user?.role === StaffRole.OWNER || user?.role === StaffRole.SUPERADMIN || checkVenueAccess(venue.slug)
+                          const suspensionInfo = getSuspensionInfo(venue)
+                          const SuspensionIcon = suspensionInfo.icon
 
-                    {/* Venues Label - Only show if no org headers at all */}
-                    {!venueGroups.some(g => g.venues.length > 1 || (canViewOrganization && g.orgId === orgId)) && groupIndex === 0 && (
-                      <DropdownMenuLabel className="text-xs text-muted-foreground">{t('venuesSwitcher.title')}</DropdownMenuLabel>
-                    )}
-
-                    {/* Separator between single-venue orgs (when no header is shown) */}
-                    {!showOrgHeader && groupIndex > 0 && <DropdownMenuSeparator />}
-
-                    {/* Venues in this organization */}
-                    {group.venues.map((venue) => {
-                      const isActive = venue.slug === currentVenue?.slug
-                      const hasAccess = user?.role === StaffRole.OWNER || user?.role === StaffRole.SUPERADMIN || checkVenueAccess(venue.slug)
-                      const suspensionInfo = getSuspensionInfo(venue)
-                      const SuspensionIcon = suspensionInfo.icon
-
-                      return (
-                        <DropdownMenuItem
-                          key={venue.id}
-                          onClick={() => handleVenueChange(venue)}
-                          className={`gap-2 p-2 ${showOrgHeader ? 'pl-4' : ''} ${isActive ? 'bg-accent' : ''} ${
-                            !hasAccess ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                          }`}
-                          disabled={!hasAccess || isLoading}
-                        >
-                          <Avatar className="flex justify-center items-center rounded-lg aspect-square size-6">
-                            <AvatarImage src={venue?.logo} alt={`${venue?.name} Logo`} />
-                            <AvatarFallback>{venue?.name?.charAt(0).toLocaleUpperCase() || 'V'}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="truncate">
-                                {venue?.name}
-                              </span>
-                              {isActive && <span className="text-xs text-muted-foreground shrink-0">{t('venuesSwitcher.current')}</span>}
-                            </div>
-                            {suspensionInfo.isSuspended && (
-                              <div className={`flex items-center gap-1 mt-0.5 ${suspensionInfo.textColor}`}>
-                                {SuspensionIcon && <SuspensionIcon className="h-3 w-3" />}
-                                <span className="text-xs">{suspensionInfo.label}</span>
+                          return (
+                            <CommandItem
+                              key={venue.id}
+                              value={venue.name}
+                              keywords={[venue.city || '', venue.slug, group.orgName || '']}
+                              onSelect={() => handleVenueChange(venue)}
+                              disabled={!hasAccess || isLoading}
+                              className="gap-2.5 py-2 cursor-pointer"
+                            >
+                              <Avatar className="size-7 rounded-lg shrink-0">
+                                <AvatarImage src={venue?.logo} alt={`${venue?.name} Logo`} />
+                                <AvatarFallback className="text-[10px] rounded-lg">
+                                  {venue?.name?.charAt(0).toLocaleUpperCase() || 'V'}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <span className="truncate block text-sm">{venue.name}</span>
+                                {venue.city && !suspensionInfo.isSuspended && (
+                                  <span className="text-xs text-muted-foreground truncate block">{venue.city}</span>
+                                )}
+                                {suspensionInfo.isSuspended && (
+                                  <div className={`flex items-center gap-1 ${suspensionInfo.textColor}`}>
+                                    {SuspensionIcon && <SuspensionIcon className="size-3" />}
+                                    <span className="text-xs">{suspensionInfo.label}</span>
+                                  </div>
+                                )}
                               </div>
-                            )}
+                              {isActive && <Check className="size-4 text-primary shrink-0" />}
+                            </CommandItem>
+                          )
+                        })}
+                      </CommandGroup>
+                    )
+                  })}
+
+                  {canAddVenue && (
+                    <>
+                      <CommandSeparator />
+                      <CommandGroup>
+                        <CommandItem
+                          onSelect={handleAddVenueClick}
+                          className="gap-2.5 py-2 cursor-pointer"
+                          value="__add_venue__"
+                        >
+                          <div className="flex justify-center items-center rounded-lg border size-7 border-dashed border-muted-foreground/40 shrink-0">
+                            <Plus className="size-4 text-muted-foreground" />
                           </div>
-                        </DropdownMenuItem>
-                      )
-                    })}
-                  </div>
-                )
-              })}
-              {/* Dialog Trigger for Add Venue (SUPERADMIN only) */}
-              {canAddVenue && <DropdownMenuSeparator />}
-              {canAddVenue && (
-                <DropdownMenuItem className="gap-2 p-2 cursor-pointer" onClick={handleAddVenueClick} disabled={isLoading}>
-                  <div className="flex justify-center items-center bg-background rounded-md border size-6 border-border">
-                    <Plus className="size-4" />
-                  </div>
-                  <div className="font-medium text-muted-foreground">{t('venuesSwitcher.addVenue')}</div>
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                          <span className="text-muted-foreground font-medium text-sm">{t('venuesSwitcher.addVenue')}</span>
+                        </CommandItem>
+                      </CommandGroup>
+                    </>
+                  )}
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </SidebarMenuItem>
       </SidebarMenu>
 
