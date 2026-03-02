@@ -205,7 +205,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                   value={searchValue}
                   onValueChange={setSearchValue}
                 />
-                <CommandList className="max-h-[min(60vh,400px)]">
+                <CommandList className="max-h-[min(70vh,600px)] lg:max-h-[min(80vh,800px)]">
                   <CommandEmpty className="py-8 text-center text-sm text-muted-foreground">
                     {t('venuesSwitcher.noResults')}
                   </CommandEmpty>
