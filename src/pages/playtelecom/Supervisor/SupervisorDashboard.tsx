@@ -11,59 +11,59 @@
  * Access: MANAGER+ only
  */
 
-import { useState, useMemo, useCallback, useEffect, lazy, Suspense } from 'react'
-import { useTranslation } from 'react-i18next'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { GlassCard } from '@/components/ui/glass-card'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { GlassCard } from '@/components/ui/glass-card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useToast } from '@/hooks/use-toast'
+import { exportToCSV, exportToExcel, formatCurrencyForExport, formatDateForExport, generateFilename } from '@/utils/export'
+import getIcon from '@/utils/getIcon'
 import {
-  Store,
-  TrendingUp,
-  TrendingDown,
+  Banknote,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  CreditCard,
   Download,
-  Receipt,
-  Plus,
+  ExternalLink,
   FileSpreadsheet,
   FileText,
-  Sheet,
-  Pencil,
   Image,
   ImageOff,
   MapPin,
   MapPinOff,
-  ExternalLink,
-  Clock,
+  Pencil,
+  Plus,
+  Receipt,
+  Sheet,
+  Store,
+  TrendingDown,
+  TrendingUp,
   User,
-  Banknote,
-  CreditCard,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react'
-import getIcon from '@/utils/getIcon'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { exportToCSV, exportToExcel, generateFilename, formatDateForExport, formatCurrencyForExport } from '@/utils/export'
-import { useToast } from '@/hooks/use-toast'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import CreateStoreGoalDialog from './CreateStoreGoalDialog'
 
 import { DateRangePicker } from '@/components/date-range-picker'
-import { getIntlLocale } from '@/utils/i18n-locale'
-import { getToday } from '@/utils/datetime'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/context/AuthContext'
 import {
-  useStoresOverview,
-  useStoresStockSummary,
-  useStoresVenues,
   useStoresActivityFeed,
+  useStoresOverview,
   useStoresRevenueVsTarget,
-  useStoresStorePerformance,
   useStoresStaffAttendance,
+  useStoresStockSummary,
+  useStoresStorePerformance,
+  useStoresVenues,
 } from '@/hooks/useStoresAnalysis'
-import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
+import { getToday } from '@/utils/datetime'
+import { getIntlLocale } from '@/utils/i18n-locale'
 import { format } from 'date-fns'
 
 const AttendanceHeatmap = lazy(() => import('./components/AttendanceHeatmap').then(m => ({ default: m.AttendanceHeatmap })))
@@ -200,10 +200,9 @@ export function SupervisorDashboard() {
             checkInPhotoUrl: string | null
             checkOutPhotoUrl: string | null
             depositPhotoUrl: string | null
-            clockInLat: number | null
-            clockInLon: number | null
-            clockOutLat: number | null
-            clockOutLon: number | null
+            clockInLocation: { lat: number; lng: number } | null
+            clockOutLocation: { lat: number; lng: number } | null
+            cashSales: number
           }>
         | undefined
 
@@ -217,14 +216,14 @@ export function SupervisorDashboard() {
           sales: entry.sales || 0,
           hasClockInPhoto: !!te.checkInPhotoUrl,
           clockInPhotoUrl: te.checkInPhotoUrl as string | null,
-          hasClockInGps: te.clockInLat != null && te.clockInLon != null,
-          clockInLat: te.clockInLat as number | null,
-          clockInLon: te.clockInLon as number | null,
+          hasClockInGps: te.clockInLocation != null,
+          clockInLat: te.clockInLocation?.lat ?? null,
+          clockInLon: te.clockInLocation?.lng ?? null,
           hasClockOutPhoto: !!(te.depositPhotoUrl || te.checkOutPhotoUrl),
           clockOutPhotoUrl: (te.depositPhotoUrl || te.checkOutPhotoUrl) as string | null,
-          hasClockOutGps: te.clockOutLat != null && te.clockOutLon != null,
-          clockOutLat: te.clockOutLat as number | null,
-          clockOutLon: te.clockOutLon as number | null,
+          hasClockOutGps: te.clockOutLocation != null,
+          clockOutLat: te.clockOutLocation?.lat ?? null,
+          clockOutLon: te.clockOutLocation?.lng ?? null,
         }))
       }
 
@@ -506,579 +505,581 @@ export function SupervisorDashboard() {
 
         {/* Tab: Operativo */}
         <TabsContent value="operativo" className="space-y-6 mt-4">
-
-      {/* Operational Coverage + Cash */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Coverage */}
-        <GlassCard className="lg:col-span-2 p-6 flex items-center justify-around relative overflow-hidden">
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">
-              {t('playtelecom:supervisor.operationalCoverage', { defaultValue: 'Cobertura Operativa' })}
-            </p>
-            <div className="flex items-center gap-8">
+          {/* Operational Coverage + Cash */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Coverage */}
+            <GlassCard className="lg:col-span-2 p-6 flex items-center justify-around relative overflow-hidden">
               <div>
-                <span className="text-green-400 font-black text-4xl block">{storesOpen}</span>
-                <span className="text-muted-foreground text-xs font-bold uppercase">
-                  {t('playtelecom:supervisor.open', { defaultValue: 'Abiertas' })}
-                </span>
-              </div>
-              <div className="h-10 w-px bg-border" />
-              <div>
-                <span className="text-red-400 font-black text-4xl block">{storesClosed}</span>
-                <span className="text-muted-foreground text-xs font-bold uppercase">
-                  {t('playtelecom:supervisor.closed', { defaultValue: 'Cerradas' })}
-                </span>
-              </div>
-            </div>
-            <div className="mt-4 flex items-center gap-2 text-xs bg-muted/50 px-3 py-1 rounded-full w-fit">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-green-400 font-medium">
-                {t('playtelecom:supervisor.systemOnline', { defaultValue: 'Sistema Online' })}
-              </span>
-            </div>
-          </div>
-
-          {/* Simple gauge */}
-          <div className="flex flex-col items-center group/gauge relative">
-            <div className="relative w-[140px] h-[70px]">
-              <svg viewBox="0 0 140 70" className="w-full h-full">
-                {/* Background arc */}
-                <path
-                  d="M 15 70 A 55 55 0 0 1 125 70"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="15"
-                  strokeLinecap="round"
-                  className="text-muted"
-                />
-                {/* Filled arc */}
-                <path
-                  d="M 15 70 A 55 55 0 0 1 125 70"
-                  fill="none"
-                  stroke="rgb(34 197 94)"
-                  strokeWidth="15"
-                  strokeLinecap="round"
-                  strokeDasharray={`${(coveragePercent / 100) * 173} 173`}
-                />
-              </svg>
-            </div>
-            <span className="text-xl font-black -mt-8 z-20">{coveragePercent}%</span>
-            <span className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider group-hover/gauge:hidden">
-              {t('playtelecom:supervisor.compliance', { defaultValue: 'Cumplimiento' })}
-            </span>
-            <span className="text-[10px] text-foreground mt-1 font-semibold hidden group-hover/gauge:inline">
-              {storesOpen} / {totalStores} {t('playtelecom:supervisor.stores', { defaultValue: 'tiendas' })}
-            </span>
-          </div>
-        </GlassCard>
-
-        {/* Cash in Field */}
-        <GlassCard className="p-5 flex flex-col justify-center relative overflow-hidden group/cash">
-          <div className="absolute top-4 right-4 p-3 rounded-xl bg-green-500/10">
-            {cashChangePercent != null && cashChangePercent < 0 ? (
-              <TrendingDown className="w-6 h-6 text-red-500" />
-            ) : (
-              <TrendingUp className="w-6 h-6 text-green-500" />
-            )}
-          </div>
-          <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mb-2">
-            {t('playtelecom:supervisor.cashInField', { defaultValue: 'Efectivo Total en Calle' })}
-          </p>
-          <h3 className="text-4xl font-black">{formatCurrency(cashInField)}</h3>
-          {/* Progress bar: % of cash that has been deposited */}
-          <div className="w-full bg-muted h-1.5 mt-4 rounded-full overflow-hidden relative">
-            <div className="bg-green-500 h-full transition-all" style={{ width: `${Math.min(depositPercent, 100)}%` }} />
-          </div>
-          <div className="flex items-center justify-between mt-1.5">
-            <p className="text-[10px] text-muted-foreground">
-              {t('playtelecom:supervisor.deposited', { defaultValue: 'Depositado' })}: {depositPercent}%
-            </p>
-            {/* Hover tooltip: show breakdown */}
-            <p className="text-[10px] text-muted-foreground opacity-0 group-hover/cash:opacity-100 transition-opacity">
-              {formatCurrency(overview?.approvedDeposits ?? 0)} / {formatCurrency(overview?.todayCashSales ?? 0)}
-            </p>
-          </div>
-          {cashChangePercent != null ? (
-            <p className={cn('text-xs mt-1 font-semibold flex items-center', cashChangePercent >= 0 ? 'text-green-400' : 'text-red-400')}>
-              {cashChangePercent >= 0 ? <TrendingUp className="w-3.5 h-3.5 mr-1" /> : <TrendingDown className="w-3.5 h-3.5 mr-1" />}
-              {cashChangePercent >= 0 ? '+' : ''}
-              {cashChangePercent}% {t('playtelecom:supervisor.vsPrevDay', { defaultValue: 'vs dia anterior' })}
-            </p>
-          ) : (
-            <p className="text-[10px] text-muted-foreground mt-1">
-              {t('playtelecom:supervisor.noPrevData', { defaultValue: 'Sin datos del dia anterior' })}
-            </p>
-          )}
-        </GlassCard>
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Pie - Sales by Store */}
-        <GlassCard className="p-5 flex flex-col items-center justify-center min-h-[280px]">
-          <h4 className="text-xs font-bold text-muted-foreground uppercase mb-4 self-start">
-            {t('playtelecom:supervisor.salesByStore', { defaultValue: 'Ventas x Tienda' })}
-          </h4>
-          {salesByStore.length > 0 ? (
-            <>
-              <div className="relative w-36 h-36">
-                <div
-                  className="w-full h-full rounded-full shadow-lg"
-                  style={{
-                    background: `conic-gradient(${salesByStore
-                      .map((s, i) => {
-                        const start = salesByStore.slice(0, i).reduce((a, x) => a + x.percent, 0)
-                        return `${s.color} ${start}% ${start + s.percent}%`
-                      })
-                      .join(', ')})`,
-                  }}
-                />
-                <div className="absolute inset-4 bg-card rounded-full flex items-center justify-center transition-all">
-                  <div className="text-center px-1">
-                    {hoveredPieIndex != null ? (
-                      <>
-                        <span className="text-sm font-black block leading-tight">
-                          {formatCurrency(salesByStore[hoveredPieIndex].amount)}
-                        </span>
-                        <span className="text-[8px] text-muted-foreground block truncate max-w-[80px]">
-                          {salesByStore[hoveredPieIndex].fullName}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-sm font-black block leading-tight">{formatCurrency(totalSalesByStore)}</span>
-                        <span className="text-[8px] text-muted-foreground uppercase">Total</span>
-                      </>
-                    )}
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">
+                  {t('playtelecom:supervisor.operationalCoverage', { defaultValue: 'Cobertura Operativa' })}
+                </p>
+                <div className="flex items-center gap-8">
+                  <div>
+                    <span className="text-green-400 font-black text-4xl block">{storesOpen}</span>
+                    <span className="text-muted-foreground text-xs font-bold uppercase">
+                      {t('playtelecom:supervisor.open', { defaultValue: 'Abiertas' })}
+                    </span>
+                  </div>
+                  <div className="h-10 w-px bg-border" />
+                  <div>
+                    <span className="text-red-400 font-black text-4xl block">{storesClosed}</span>
+                    <span className="text-muted-foreground text-xs font-bold uppercase">
+                      {t('playtelecom:supervisor.closed', { defaultValue: 'Cerradas' })}
+                    </span>
                   </div>
                 </div>
-              </div>
-              <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-4 text-[10px] text-muted-foreground">
-                {salesByStore.map((s, i) => (
-                  <span
-                    key={i}
-                    className={cn(
-                      'flex items-center cursor-pointer transition-all rounded-full px-1.5 py-0.5',
-                      hoveredPieIndex === i ? 'bg-muted text-foreground scale-105' : 'hover:text-foreground',
-                    )}
-                    onMouseEnter={() => setHoveredPieIndex(i)}
-                    onMouseLeave={() => setHoveredPieIndex(null)}
-                  >
-                    <span className="w-2 h-2 rounded-full mr-1 shrink-0" style={{ backgroundColor: s.color }} />
-                    {s.label} {s.percent}%
+                <div className="mt-4 flex items-center gap-2 text-xs bg-muted/50 px-3 py-1 rounded-full w-fit">
+                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-green-400 font-medium">
+                    {t('playtelecom:supervisor.systemOnline', { defaultValue: 'Sistema Online' })}
                   </span>
+                </div>
+              </div>
+
+              {/* Simple gauge */}
+              <div className="flex flex-col items-center group/gauge relative">
+                <div className="relative w-[140px] h-[70px]">
+                  <svg viewBox="0 0 140 70" className="w-full h-full">
+                    {/* Background arc */}
+                    <path
+                      d="M 15 70 A 55 55 0 0 1 125 70"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="15"
+                      strokeLinecap="round"
+                      className="text-muted"
+                    />
+                    {/* Filled arc */}
+                    <path
+                      d="M 15 70 A 55 55 0 0 1 125 70"
+                      fill="none"
+                      stroke="rgb(34 197 94)"
+                      strokeWidth="15"
+                      strokeLinecap="round"
+                      strokeDasharray={`${(coveragePercent / 100) * 173} 173`}
+                    />
+                  </svg>
+                </div>
+                <span className="text-xl font-black -mt-8 z-20">{coveragePercent}%</span>
+                <span className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider group-hover/gauge:hidden">
+                  {t('playtelecom:supervisor.compliance', { defaultValue: 'Cumplimiento' })}
+                </span>
+                <span className="text-[10px] text-foreground mt-1 font-semibold hidden group-hover/gauge:inline">
+                  {storesOpen} / {totalStores} {t('playtelecom:supervisor.stores', { defaultValue: 'tiendas' })}
+                </span>
+              </div>
+            </GlassCard>
+
+            {/* Cash in Field */}
+            <GlassCard className="p-5 flex flex-col justify-center relative overflow-hidden group/cash">
+              <div className="absolute top-4 right-4 p-3 rounded-xl bg-green-500/10">
+                {cashChangePercent != null && cashChangePercent < 0 ? (
+                  <TrendingDown className="w-6 h-6 text-red-500" />
+                ) : (
+                  <TrendingUp className="w-6 h-6 text-green-500" />
+                )}
+              </div>
+              <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mb-2">
+                {t('playtelecom:supervisor.cashInField', { defaultValue: 'Efectivo Total en Calle' })}
+              </p>
+              <h3 className="text-4xl font-black">{formatCurrency(cashInField)}</h3>
+              {/* Progress bar: % of cash that has been deposited */}
+              <div className="w-full bg-muted h-1.5 mt-4 rounded-full overflow-hidden relative">
+                <div className="bg-green-500 h-full transition-all" style={{ width: `${Math.min(depositPercent, 100)}%` }} />
+              </div>
+              <div className="flex items-center justify-between mt-1.5">
+                <p className="text-[10px] text-muted-foreground">
+                  {t('playtelecom:supervisor.deposited', { defaultValue: 'Depositado' })}: {depositPercent}%
+                </p>
+                {/* Hover tooltip: show breakdown */}
+                <p className="text-[10px] text-muted-foreground opacity-0 group-hover/cash:opacity-100 transition-opacity">
+                  {formatCurrency(overview?.approvedDeposits ?? 0)} / {formatCurrency(overview?.todayCashSales ?? 0)}
+                </p>
+              </div>
+              {cashChangePercent != null ? (
+                <p
+                  className={cn('text-xs mt-1 font-semibold flex items-center', cashChangePercent >= 0 ? 'text-green-400' : 'text-red-400')}
+                >
+                  {cashChangePercent >= 0 ? <TrendingUp className="w-3.5 h-3.5 mr-1" /> : <TrendingDown className="w-3.5 h-3.5 mr-1" />}
+                  {cashChangePercent >= 0 ? '+' : ''}
+                  {cashChangePercent}% {t('playtelecom:supervisor.vsPrevDay', { defaultValue: 'vs dia anterior' })}
+                </p>
+              ) : (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {t('playtelecom:supervisor.noPrevData', { defaultValue: 'Sin datos del dia anterior' })}
+                </p>
+              )}
+            </GlassCard>
+          </div>
+
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Pie - Sales by Store */}
+            <GlassCard className="p-5 flex flex-col items-center justify-center min-h-[280px]">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase mb-4 self-start">
+                {t('playtelecom:supervisor.salesByStore', { defaultValue: 'Ventas x Tienda' })}
+              </h4>
+              {salesByStore.length > 0 ? (
+                <>
+                  <div className="relative w-36 h-36">
+                    <div
+                      className="w-full h-full rounded-full shadow-lg"
+                      style={{
+                        background: `conic-gradient(${salesByStore
+                          .map((s, i) => {
+                            const start = salesByStore.slice(0, i).reduce((a, x) => a + x.percent, 0)
+                            return `${s.color} ${start}% ${start + s.percent}%`
+                          })
+                          .join(', ')})`,
+                      }}
+                    />
+                    <div className="absolute inset-4 bg-card rounded-full flex items-center justify-center transition-all">
+                      <div className="text-center px-1">
+                        {hoveredPieIndex != null ? (
+                          <>
+                            <span className="text-sm font-black block leading-tight">
+                              {formatCurrency(salesByStore[hoveredPieIndex].amount)}
+                            </span>
+                            <span className="text-[8px] text-muted-foreground block truncate max-w-[80px]">
+                              {salesByStore[hoveredPieIndex].fullName}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-sm font-black block leading-tight">{formatCurrency(totalSalesByStore)}</span>
+                            <span className="text-[8px] text-muted-foreground uppercase">Total</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-4 text-[10px] text-muted-foreground">
+                    {salesByStore.map((s, i) => (
+                      <span
+                        key={i}
+                        className={cn(
+                          'flex items-center cursor-pointer transition-all rounded-full px-1.5 py-0.5',
+                          hoveredPieIndex === i ? 'bg-muted text-foreground scale-105' : 'hover:text-foreground',
+                        )}
+                        onMouseEnter={() => setHoveredPieIndex(i)}
+                        onMouseLeave={() => setHoveredPieIndex(null)}
+                      >
+                        <span className="w-2 h-2 rounded-full mr-1 shrink-0" style={{ backgroundColor: s.color }} />
+                        {s.label} {s.percent}%
+                      </span>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center flex-1 text-muted-foreground">
+                  <Store className="w-8 h-8 mb-2 opacity-40" />
+                  <p className="text-sm">{t('playtelecom:supervisor.noSalesData', { defaultValue: 'Sin ventas registradas' })}</p>
+                </div>
+              )}
+            </GlassCard>
+
+            {/* Progress - Sales vs Target */}
+            <GlassCard className="p-5 flex flex-col justify-center">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-xs font-bold text-muted-foreground uppercase">
+                  {t('playtelecom:supervisor.salesVsTarget', { defaultValue: 'Ventas vs Meta' })}
+                </h4>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-[10px] text-green-400 hover:text-green-300 hover:bg-green-500/10"
+                  onClick={() => handleOpenGoalDialog()}
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  {t('playtelecom:supervisor.goalDialog.createGoal', { defaultValue: 'Crear Meta' })}
+                </Button>
+              </div>
+              {salesVsTarget.length > 0 ? (
+                <div className="space-y-6">
+                  {salesVsTarget.map((item, i) => (
+                    <div key={i} className="group/bar relative">
+                      <div className="flex justify-between text-xs mb-1 gap-2">
+                        <span className="font-medium truncate min-w-0">{item.store}</span>
+                        {item.hasGoal ? (
+                          <button
+                            type="button"
+                            className="flex items-center gap-1 shrink-0 cursor-pointer group/edit"
+                            onClick={() => handleOpenGoalDialog(item.id, item.goalId, item.goalAmount, item.goalType, item.goalPeriod)}
+                          >
+                            <span
+                              className={cn('font-bold group-hover/bar:hidden', item.percent >= 70 ? 'text-green-400' : 'text-amber-400')}
+                            >
+                              {item.percent}%
+                            </span>
+                            <span className="hidden group-hover/bar:inline text-[10px] font-bold text-foreground">
+                              {item.goalType === 'QUANTITY'
+                                ? `${item.unitsSold ?? 0} / ${item.goalAmount} ventas`
+                                : `${formatCurrency(item.amount)} / ${formatCurrency(item.goalAmount)}`}
+                            </span>
+                            <Pencil className="w-3 h-3 text-muted-foreground/50" />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="flex items-center gap-1 shrink-0 cursor-pointer group/edit"
+                            onClick={() => handleOpenGoalDialog(item.id)}
+                          >
+                            <span className="text-muted-foreground text-[10px] group-hover/bar:hidden group-hover/edit:text-green-400">
+                              {t('playtelecom:supervisor.noGoal', { defaultValue: 'Sin meta' })}
+                            </span>
+                            <span className="hidden group-hover/bar:inline text-[10px] font-bold text-foreground">
+                              {item.goalType === 'QUANTITY' ? `${item.unitsSold ?? 0} ventas` : formatCurrency(item.amount)}
+                            </span>
+                            <Pencil className="w-3 h-3 text-muted-foreground/50" />
+                          </button>
+                        )}
+                      </div>
+                      <div className="h-3 bg-muted rounded-full overflow-hidden relative">
+                        <div className={cn('h-full rounded-full transition-all', item.color)} style={{ width: `${item.barPercent}%` }} />
+                        {item.hasGoal && <div className="absolute top-0 bottom-0 w-[2px] bg-foreground/30" style={{ left: '90%' }} />}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center flex-1 text-muted-foreground">
+                  <Store className="w-8 h-8 mb-2 opacity-40" />
+                  <p className="text-sm">{t('playtelecom:supervisor.noGoalData', { defaultValue: 'Sin metas configuradas' })}</p>
+                </div>
+              )}
+            </GlassCard>
+
+            {/* Bar - Promoter Ranking */}
+            <GlassCard className="p-5 flex flex-col">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase mb-4">
+                {t('playtelecom:supervisor.promoterRanking', { defaultValue: 'Ranking Promotores' })}
+              </h4>
+              <div className="flex-1 flex items-end justify-around gap-4 min-h-[160px]">
+                {promoterRanking.map((p, i) => (
+                  <div key={i} className="flex flex-col items-center w-full h-full justify-end group">
+                    <div
+                      className={cn(
+                        'text-[10px] font-bold mb-1 transition-opacity',
+                        p.isYou ? 'text-green-400 opacity-100' : 'opacity-0 group-hover:opacity-100',
+                      )}
+                    >
+                      {formatCurrency(p.amount)}
+                    </div>
+                    <div
+                      className={cn(
+                        'w-full rounded-t-md transition-all cursor-pointer',
+                        p.isYou
+                          ? 'bg-linear-to-t from-green-600 to-green-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                          : 'bg-muted-foreground/30 hover:bg-muted-foreground/50',
+                      )}
+                      style={{ height: `${(p.amount / maxPromoterAmount) * 100}%`, minHeight: '8px' }}
+                    />
+                    <span
+                      className={cn(
+                        'text-[10px] mt-2 font-bold max-w-full truncate',
+                        p.isYou ? 'bg-green-500/20 px-2 rounded-full' : 'text-muted-foreground',
+                      )}
+                      title={p.name}
+                    >
+                      {p.name}
+                    </span>
+                  </div>
                 ))}
               </div>
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center flex-1 text-muted-foreground">
-              <Store className="w-8 h-8 mb-2 opacity-40" />
-              <p className="text-sm">{t('playtelecom:supervisor.noSalesData', { defaultValue: 'Sin ventas registradas' })}</p>
-            </div>
-          )}
-        </GlassCard>
-
-        {/* Progress - Sales vs Target */}
-        <GlassCard className="p-5 flex flex-col justify-center">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-xs font-bold text-muted-foreground uppercase">
-              {t('playtelecom:supervisor.salesVsTarget', { defaultValue: 'Ventas vs Meta' })}
-            </h4>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 px-2 text-[10px] text-green-400 hover:text-green-300 hover:bg-green-500/10"
-              onClick={() => handleOpenGoalDialog()}
-            >
-              <Plus className="w-3 h-3 mr-1" />
-              {t('playtelecom:supervisor.goalDialog.createGoal', { defaultValue: 'Crear Meta' })}
-            </Button>
+            </GlassCard>
           </div>
-          {salesVsTarget.length > 0 ? (
-            <div className="space-y-6">
-              {salesVsTarget.map((item, i) => (
-                <div key={i} className="group/bar relative">
-                  <div className="flex justify-between text-xs mb-1 gap-2">
-                    <span className="font-medium truncate min-w-0">{item.store}</span>
-                    {item.hasGoal ? (
-                      <button
-                        type="button"
-                        className="flex items-center gap-1 shrink-0 cursor-pointer group/edit"
-                        onClick={() => handleOpenGoalDialog(item.id, item.goalId, item.goalAmount, item.goalType, item.goalPeriod)}
-                      >
-                        <span className={cn('font-bold group-hover/bar:hidden', item.percent >= 70 ? 'text-green-400' : 'text-amber-400')}>
-                          {item.percent}%
-                        </span>
-                        <span className="hidden group-hover/bar:inline text-[10px] font-bold text-foreground">
-                          {item.goalType === 'QUANTITY'
-                            ? `${item.unitsSold ?? 0} / ${item.goalAmount} ventas`
-                            : `${formatCurrency(item.amount)} / ${formatCurrency(item.goalAmount)}`}
-                        </span>
-                        <Pencil className="w-3 h-3 text-muted-foreground/50" />
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="flex items-center gap-1 shrink-0 cursor-pointer group/edit"
-                        onClick={() => handleOpenGoalDialog(item.id)}
-                      >
-                        <span className="text-muted-foreground text-[10px] group-hover/bar:hidden group-hover/edit:text-green-400">
-                          {t('playtelecom:supervisor.noGoal', { defaultValue: 'Sin meta' })}
-                        </span>
-                        <span className="hidden group-hover/bar:inline text-[10px] font-bold text-foreground">
-                          {item.goalType === 'QUANTITY' ? `${item.unitsSold ?? 0} ventas` : formatCurrency(item.amount)}
-                        </span>
-                        <Pencil className="w-3 h-3 text-muted-foreground/50" />
-                      </button>
-                    )}
-                  </div>
-                  <div className="h-3 bg-muted rounded-full overflow-hidden relative">
-                    <div className={cn('h-full rounded-full transition-all', item.color)} style={{ width: `${item.barPercent}%` }} />
-                    {item.hasGoal && <div className="absolute top-0 bottom-0 w-[2px] bg-foreground/30" style={{ left: '90%' }} />}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center flex-1 text-muted-foreground">
-              <Store className="w-8 h-8 mb-2 opacity-40" />
-              <p className="text-sm">{t('playtelecom:supervisor.noGoalData', { defaultValue: 'Sin metas configuradas' })}</p>
-            </div>
-          )}
-        </GlassCard>
 
-        {/* Bar - Promoter Ranking */}
-        <GlassCard className="p-5 flex flex-col">
-          <h4 className="text-xs font-bold text-muted-foreground uppercase mb-4">
-            {t('playtelecom:supervisor.promoterRanking', { defaultValue: 'Ranking Promotores' })}
-          </h4>
-          <div className="flex-1 flex items-end justify-around gap-4 min-h-[160px]">
-            {promoterRanking.map((p, i) => (
-              <div key={i} className="flex flex-col items-center w-full h-full justify-end group">
-                <div
-                  className={cn(
-                    'text-[10px] font-bold mb-1 transition-opacity',
-                    p.isYou ? 'text-green-400 opacity-100' : 'opacity-0 group-hover:opacity-100',
-                  )}
-                >
-                  {formatCurrency(p.amount)}
-                </div>
-                <div
-                  className={cn(
-                    'w-full rounded-t-md transition-all cursor-pointer',
-                    p.isYou
-                      ? 'bg-linear-to-t from-green-600 to-green-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
-                      : 'bg-muted-foreground/30 hover:bg-muted-foreground/50',
-                  )}
-                  style={{ height: `${(p.amount / maxPromoterAmount) * 100}%`, minHeight: '8px' }}
-                />
-                <span
-                  className={cn(
-                    'text-[10px] mt-2 font-bold max-w-full truncate',
-                    p.isYou ? 'bg-green-500/20 px-2 rounded-full' : 'text-muted-foreground',
-                  )}
-                  title={p.name}
-                >
-                  {p.name}
-                </span>
-              </div>
-            ))}
-          </div>
-        </GlassCard>
-      </div>
-
-      {/* Store Detail Table */}
-      <GlassCard className="overflow-hidden">
-        <div className="bg-card/80 px-6 py-3 border-b border-border/50">
-          <h3 className="font-semibold text-sm uppercase flex items-center gap-2">
-            <Store className="w-4 h-4 text-primary" />
-            {t('playtelecom:supervisor.storeDetail', { defaultValue: 'Detalle por Tienda' })}
-          </h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-muted/30 text-xs uppercase font-bold text-muted-foreground">
-              <tr>
-                <th className="px-6 py-3">{t('playtelecom:supervisor.store', { defaultValue: 'Tienda' })}</th>
-                <th className="px-6 py-3">{t('playtelecom:supervisor.promoter', { defaultValue: 'Promotor' })}</th>
-                <th className="px-6 py-3 min-w-[140px]">{t('playtelecom:supervisor.entry', { defaultValue: 'Entrada' })}</th>
-                <th className="px-6 py-3 min-w-[140px]">{t('playtelecom:supervisor.exit', { defaultValue: 'Salida' })}</th>
-                <th className="px-6 py-3 text-right">{t('playtelecom:supervisor.sale', { defaultValue: 'Venta' })}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/30">
-              {storeDetailRows.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
-                    <Store className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                    <p className="text-sm">
-                      {t('playtelecom:supervisor.noStoreActivity', { defaultValue: 'Sin actividad registrada para este periodo' })}
-                    </p>
-                  </td>
-                </tr>
-              ) : (
-                storeDetailRows.map((row, i) => (
-                  <tr key={i} className="hover:bg-muted/20 transition">
-                    <td className="px-6 py-4 font-medium">{row.store}</td>
-                    <td className="px-6 py-4 text-muted-foreground">{row.promoter}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1.5">
-                        <span className="text-green-400 font-mono font-semibold">{row.clockIn}</span>
-                        {row.clockIn !== '--:--' && (
-                          <div className="flex gap-1.5">
-                            {row.hasClockInPhoto ? (
-                              <button
-                                onClick={() =>
-                                  setPhotoDialog({
-                                    url: row.clockInPhotoUrl!,
-                                    promoter: row.promoter,
-                                    store: row.store,
-                                    time: row.clockIn,
-                                    label: 'Entrada',
-                                    lat: row.clockInLat,
-                                    lon: row.clockInLon,
-                                  })
-                                }
-                                className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors cursor-pointer"
-                              >
-                                <Image className="w-3 h-3" /> Foto
-                              </button>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400">
-                                <ImageOff className="w-3 h-3" /> Sin Foto
-                              </span>
-                            )}
-                            {row.hasClockInGps ? (
-                              <button
-                                onClick={() =>
-                                  setLocationDialog({
-                                    promoter: row.promoter,
-                                    store: row.store,
-                                    time: row.clockIn,
-                                    label: 'Entrada',
-                                    lat: row.clockInLat,
-                                    lon: row.clockInLon,
-                                  })
-                                }
-                                className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors cursor-pointer"
-                              >
-                                <MapPin className="w-3 h-3" /> GPS
-                              </button>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400">
-                                <MapPinOff className="w-3 h-3" /> Sin GPS
-                              </span>
+          {/* Store Detail Table */}
+          <GlassCard className="overflow-hidden">
+            <div className="bg-card/80 px-6 py-3 border-b border-border/50">
+              <h3 className="font-semibold text-sm uppercase flex items-center gap-2">
+                <Store className="w-4 h-4 text-primary" />
+                {t('playtelecom:supervisor.storeDetail', { defaultValue: 'Detalle por Tienda' })}
+              </h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-muted/30 text-xs uppercase font-bold text-muted-foreground">
+                  <tr>
+                    <th className="px-6 py-3">{t('playtelecom:supervisor.store', { defaultValue: 'Tienda' })}</th>
+                    <th className="px-6 py-3">{t('playtelecom:supervisor.promoter', { defaultValue: 'Promotor' })}</th>
+                    <th className="px-6 py-3 min-w-[140px]">{t('playtelecom:supervisor.entry', { defaultValue: 'Entrada' })}</th>
+                    <th className="px-6 py-3 min-w-[140px]">{t('playtelecom:supervisor.exit', { defaultValue: 'Salida' })}</th>
+                    <th className="px-6 py-3 text-right">{t('playtelecom:supervisor.sale', { defaultValue: 'Venta' })}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/30">
+                  {storeDetailRows.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
+                        <Store className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                        <p className="text-sm">
+                          {t('playtelecom:supervisor.noStoreActivity', { defaultValue: 'Sin actividad registrada para este periodo' })}
+                        </p>
+                      </td>
+                    </tr>
+                  ) : (
+                    storeDetailRows.map((row, i) => (
+                      <tr key={i} className="hover:bg-muted/20 transition">
+                        <td className="px-6 py-4 font-medium">{row.store}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{row.promoter}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col gap-1.5">
+                            <span className="text-green-400 font-mono font-semibold">{row.clockIn}</span>
+                            {row.clockIn !== '--:--' && (
+                              <div className="flex gap-1.5">
+                                {row.hasClockInPhoto ? (
+                                  <button
+                                    onClick={() =>
+                                      setPhotoDialog({
+                                        url: row.clockInPhotoUrl!,
+                                        promoter: row.promoter,
+                                        store: row.store,
+                                        time: row.clockIn,
+                                        label: 'Entrada',
+                                        lat: row.clockInLat,
+                                        lon: row.clockInLon,
+                                      })
+                                    }
+                                    className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors cursor-pointer"
+                                  >
+                                    <Image className="w-3 h-3" /> Foto
+                                  </button>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400">
+                                    <ImageOff className="w-3 h-3" /> Sin Foto
+                                  </span>
+                                )}
+                                {row.hasClockInGps ? (
+                                  <button
+                                    onClick={() =>
+                                      setLocationDialog({
+                                        promoter: row.promoter,
+                                        store: row.store,
+                                        time: row.clockIn,
+                                        label: 'Entrada',
+                                        lat: row.clockInLat,
+                                        lon: row.clockInLon,
+                                      })
+                                    }
+                                    className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors cursor-pointer"
+                                  >
+                                    <MapPin className="w-3 h-3" /> GPS
+                                  </button>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400">
+                                    <MapPinOff className="w-3 h-3" /> Sin GPS
+                                  </span>
+                                )}
+                              </div>
                             )}
                           </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1.5">
-                        <span className="text-muted-foreground font-mono">{row.clockOut}</span>
-                        {row.clockOut !== '--:--' && (
-                          <div className="flex gap-1.5">
-                            {row.hasClockOutPhoto ? (
-                              <button
-                                onClick={() =>
-                                  setPhotoDialog({
-                                    url: row.clockOutPhotoUrl!,
-                                    promoter: row.promoter,
-                                    store: row.store,
-                                    time: row.clockOut,
-                                    label: 'Salida',
-                                    lat: row.clockOutLat,
-                                    lon: row.clockOutLon,
-                                  })
-                                }
-                                className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors cursor-pointer"
-                              >
-                                <Image className="w-3 h-3" /> Foto
-                              </button>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400">
-                                <ImageOff className="w-3 h-3" /> Sin Foto
-                              </span>
-                            )}
-                            {row.hasClockOutGps ? (
-                              <button
-                                onClick={() =>
-                                  setLocationDialog({
-                                    promoter: row.promoter,
-                                    store: row.store,
-                                    time: row.clockOut,
-                                    label: 'Salida',
-                                    lat: row.clockOutLat,
-                                    lon: row.clockOutLon,
-                                  })
-                                }
-                                className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors cursor-pointer"
-                              >
-                                <MapPin className="w-3 h-3" /> GPS
-                              </button>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400">
-                                <MapPinOff className="w-3 h-3" /> Sin GPS
-                              </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col gap-1.5">
+                            <span className="text-muted-foreground font-mono">{row.clockOut}</span>
+                            {row.clockOut !== '--:--' && (
+                              <div className="flex gap-1.5">
+                                {row.hasClockOutPhoto ? (
+                                  <button
+                                    onClick={() =>
+                                      setPhotoDialog({
+                                        url: row.clockOutPhotoUrl!,
+                                        promoter: row.promoter,
+                                        store: row.store,
+                                        time: row.clockOut,
+                                        label: 'Salida',
+                                        lat: row.clockOutLat,
+                                        lon: row.clockOutLon,
+                                      })
+                                    }
+                                    className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors cursor-pointer"
+                                  >
+                                    <Image className="w-3 h-3" /> Foto
+                                  </button>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400">
+                                    <ImageOff className="w-3 h-3" /> Sin Foto
+                                  </span>
+                                )}
+                                {row.hasClockOutGps ? (
+                                  <button
+                                    onClick={() =>
+                                      setLocationDialog({
+                                        promoter: row.promoter,
+                                        store: row.store,
+                                        time: row.clockOut,
+                                        label: 'Salida',
+                                        lat: row.clockOutLat,
+                                        lon: row.clockOutLon,
+                                      })
+                                    }
+                                    className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors cursor-pointer"
+                                  >
+                                    <MapPin className="w-3 h-3" /> GPS
+                                  </button>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400">
+                                    <MapPinOff className="w-3 h-3" /> Sin GPS
+                                  </span>
+                                )}
+                              </div>
                             )}
                           </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right font-semibold font-mono">{formatCurrency(row.sales)}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </GlassCard>
+                        </td>
+                        <td className="px-6 py-4 text-right font-semibold font-mono">{formatCurrency(row.sales)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </GlassCard>
 
-      {/* Real-time Transactions */}
-      <GlassCard className="overflow-hidden">
-        <div className="px-6 py-4 border-b border-border/50 flex justify-between items-center bg-card/80">
-          <h3 className="font-semibold flex items-center gap-2">
-            <Receipt className="w-4 h-4 text-green-400" />
-            {t('playtelecom:supervisor.transactions', { defaultValue: 'Transacciones en tiempo real' })}
-          </h3>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" className="bg-green-600 hover:bg-green-500 gap-2">
-                <Download className="w-3.5 h-3.5" />
-                {t('playtelecom:supervisor.downloadReport', { defaultValue: 'DESCARGAR REPORTE' })}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleExport('excel')} className="gap-2">
-                <FileSpreadsheet className="w-4 h-4" />
-                Excel (.xlsx)
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport('sheets')} className="gap-2">
-                <Sheet className="w-4 h-4" />
-                Google Sheets
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport('csv')} className="gap-2">
-                <FileText className="w-4 h-4" />
-                CSV
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-muted/30 text-xs uppercase font-bold text-muted-foreground">
-              <tr>
-                <th className="px-6 py-3">{t('playtelecom:supervisor.date', { defaultValue: 'Fecha' })}</th>
-                <th className="px-6 py-3">ID / Venta</th>
-                <th className="px-6 py-3">{t('playtelecom:supervisor.store', { defaultValue: 'Tienda' })}</th>
-                <th className="px-6 py-3">ICCID / Producto</th>
-                <th className="px-6 py-3">Tipo SIM</th>
-                <th className="px-6 py-3 text-center">Evidencia</th>
-                <th className="px-6 py-3">{t('playtelecom:supervisor.seller', { defaultValue: 'Vendedor' })}</th>
-                <th className="px-6 py-3 text-right">{t('playtelecom:supervisor.amount', { defaultValue: 'Monto' })}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/30">
-              {transactions.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">
-                    <Receipt className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                    <p className="text-sm">
-                      {t('playtelecom:supervisor.noTransactions', { defaultValue: 'Sin transacciones en este periodo' })}
-                    </p>
-                  </td>
-                </tr>
-              ) : (
-                transactions.map((tx, i) => (
-                  <tr key={i} className="hover:bg-muted/20 transition group">
-                    <td className="px-6 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                      {new Date(tx.timestamp).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })},{' '}
-                      {new Date(tx.timestamp).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                    </td>
-                    <td className="px-6 py-3 font-mono text-primary group-hover:text-foreground transition-colors">{tx.id}</td>
-                    <td className="px-6 py-3 text-muted-foreground">{tx.store}</td>
-                    <td className="px-6 py-3">
-                      <div className="font-medium">{tx.product}</div>
-                      <div className="text-[10px] font-mono text-muted-foreground">{tx.iccid}</div>
-                    </td>
-                    <td className="px-6 py-3">
-                      {tx.simType != null ? (
-                        <Badge
-                          className="text-[10px]"
-                          style={
-                            isColorDark(tx.simColor)
-                              ? {
-                                  backgroundColor: `${tx.simColor}90`,
-                                  color: '#ffffff',
-                                  borderColor: tx.simColor,
-                                }
-                              : {
-                                  backgroundColor: `${tx.simColor}20`,
-                                  color: tx.simColor,
-                                  borderColor: `${tx.simColor}50`,
-                                }
-                          }
-                        >
-                          {tx.simType}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-3 text-center">
-                      {tx.photos.length > 0 ? (
-                        <button
-                          onClick={() => {
-                            setSalePhotos(tx.photos)
-                            setSalePhotoIndex(0)
-                          }}
-                          className="relative group inline-block cursor-pointer"
-                        >
-                          <img
-                            src={tx.photos[0]}
-                            alt="Evidencia"
-                            className="h-10 w-16 object-cover rounded border border-border shadow-sm transition-all group-hover:shadow-md group-hover:scale-105"
-                          />
-                          {tx.photos.length > 1 && (
-                            <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                              +{tx.photos.length - 1}
-                            </span>
-                          )}
-                        </button>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-3 text-muted-foreground">{tx.seller}</td>
-                    <td className="px-6 py-3 text-right font-bold font-mono">
-                      {tx.amount != null ? (
-                        <div className="flex items-center justify-end gap-2">
-                          {tx.isPortabilidad && (
-                            <span className="px-2 py-0.5 rounded text-[9px] font-black border bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700">
-                              Portabilidad
-                            </span>
-                          )}
-                          {tx.paymentMethod === 'CASH' ? (
-                            <Banknote className="w-4 h-4 text-green-400 shrink-0" />
-                          ) : tx.cardBrand ? (
-                            <span className="shrink-0 scale-75">{getIcon(tx.cardBrand)}</span>
-                          ) : tx.paymentMethod ? (
-                            <CreditCard className="w-4 h-4 text-blue-400 shrink-0" />
-                          ) : null}
-                          <span className="text-green-400">{formatCurrency(tx.amount)}</span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </td>
+          {/* Real-time Transactions */}
+          <GlassCard className="overflow-hidden">
+            <div className="px-6 py-4 border-b border-border/50 flex justify-between items-center bg-card/80">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-green-400" />
+                {t('playtelecom:supervisor.transactions', { defaultValue: 'Transacciones en tiempo real' })}
+              </h3>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" className="bg-green-600 hover:bg-green-500 gap-2">
+                    <Download className="w-3.5 h-3.5" />
+                    {t('playtelecom:supervisor.downloadReport', { defaultValue: 'DESCARGAR REPORTE' })}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleExport('excel')} className="gap-2">
+                    <FileSpreadsheet className="w-4 h-4" />
+                    Excel (.xlsx)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport('sheets')} className="gap-2">
+                    <Sheet className="w-4 h-4" />
+                    Google Sheets
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport('csv')} className="gap-2">
+                    <FileText className="w-4 h-4" />
+                    CSV
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-muted/30 text-xs uppercase font-bold text-muted-foreground">
+                  <tr>
+                    <th className="px-6 py-3">{t('playtelecom:supervisor.date', { defaultValue: 'Fecha' })}</th>
+                    <th className="px-6 py-3">ID / Venta</th>
+                    <th className="px-6 py-3">{t('playtelecom:supervisor.store', { defaultValue: 'Tienda' })}</th>
+                    <th className="px-6 py-3">ICCID / Producto</th>
+                    <th className="px-6 py-3">Tipo SIM</th>
+                    <th className="px-6 py-3 text-center">Evidencia</th>
+                    <th className="px-6 py-3">{t('playtelecom:supervisor.seller', { defaultValue: 'Vendedor' })}</th>
+                    <th className="px-6 py-3 text-right">{t('playtelecom:supervisor.amount', { defaultValue: 'Monto' })}</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </GlassCard>
-
+                </thead>
+                <tbody className="divide-y divide-border/30">
+                  {transactions.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">
+                        <Receipt className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                        <p className="text-sm">
+                          {t('playtelecom:supervisor.noTransactions', { defaultValue: 'Sin transacciones en este periodo' })}
+                        </p>
+                      </td>
+                    </tr>
+                  ) : (
+                    transactions.map((tx, i) => (
+                      <tr key={i} className="hover:bg-muted/20 transition group">
+                        <td className="px-6 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                          {new Date(tx.timestamp).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })},{' '}
+                          {new Date(tx.timestamp).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                        </td>
+                        <td className="px-6 py-3 font-mono text-primary group-hover:text-foreground transition-colors">{tx.id}</td>
+                        <td className="px-6 py-3 text-muted-foreground">{tx.store}</td>
+                        <td className="px-6 py-3">
+                          <div className="font-medium">{tx.product}</div>
+                          <div className="text-[10px] font-mono text-muted-foreground">{tx.iccid}</div>
+                        </td>
+                        <td className="px-6 py-3">
+                          {tx.simType != null ? (
+                            <Badge
+                              className="text-[10px]"
+                              style={
+                                isColorDark(tx.simColor)
+                                  ? {
+                                      backgroundColor: `${tx.simColor}90`,
+                                      color: '#ffffff',
+                                      borderColor: tx.simColor,
+                                    }
+                                  : {
+                                      backgroundColor: `${tx.simColor}20`,
+                                      color: tx.simColor,
+                                      borderColor: `${tx.simColor}50`,
+                                    }
+                              }
+                            >
+                              {tx.simType}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-3 text-center">
+                          {tx.photos.length > 0 ? (
+                            <button
+                              onClick={() => {
+                                setSalePhotos(tx.photos)
+                                setSalePhotoIndex(0)
+                              }}
+                              className="relative group inline-block cursor-pointer"
+                            >
+                              <img
+                                src={tx.photos[0]}
+                                alt="Evidencia"
+                                className="h-10 w-16 object-cover rounded border border-border shadow-sm transition-all group-hover:shadow-md group-hover:scale-105"
+                              />
+                              {tx.photos.length > 1 && (
+                                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                                  +{tx.photos.length - 1}
+                                </span>
+                              )}
+                            </button>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-3 text-muted-foreground">{tx.seller}</td>
+                        <td className="px-6 py-3 text-right font-bold font-mono">
+                          {tx.amount != null ? (
+                            <div className="flex items-center justify-end gap-2">
+                              {tx.isPortabilidad && (
+                                <span className="px-2 py-0.5 rounded text-[9px] font-black border bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700">
+                                  Portabilidad
+                                </span>
+                              )}
+                              {tx.paymentMethod === 'CASH' ? (
+                                <Banknote className="w-4 h-4 text-green-400 shrink-0" />
+                              ) : tx.cardBrand ? (
+                                <span className="shrink-0 scale-75">{getIcon(tx.cardBrand)}</span>
+                              ) : tx.paymentMethod ? (
+                                <CreditCard className="w-4 h-4 text-blue-400 shrink-0" />
+                              ) : null}
+                              <span className="text-green-400">{formatCurrency(tx.amount)}</span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </GlassCard>
         </TabsContent>
 
         {/* Tab: Check-in Heatmap */}
@@ -1095,11 +1096,7 @@ export function SupervisorDashboard() {
         {/* Tab: Sales Heatmap */}
         <TabsContent value="ventas" className="mt-4">
           <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
-            <SalesHeatmap
-              startDate={startDateStr}
-              endDate={endDateStr}
-              filterVenueId={storeFilter !== 'all' ? storeFilter : undefined}
-            />
+            <SalesHeatmap startDate={startDateStr} endDate={endDateStr} filterVenueId={storeFilter !== 'all' ? storeFilter : undefined} />
           </Suspense>
         </TabsContent>
       </Tabs>
@@ -1184,12 +1181,7 @@ export function SupervisorDashboard() {
               </div>
               {salePhotos.length > 1 && (
                 <div className="flex justify-center gap-2 px-4 pb-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={salePhotoIndex === 0}
-                    onClick={() => setSalePhotoIndex(i => i - 1)}
-                  >
+                  <Button variant="outline" size="sm" disabled={salePhotoIndex === 0} onClick={() => setSalePhotoIndex(i => i - 1)}>
                     <ChevronLeft className="w-4 h-4" />
                   </Button>
                   <Button
