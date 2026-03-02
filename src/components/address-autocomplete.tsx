@@ -2,18 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { MapPin } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useGoogleMaps } from '@/hooks/use-google-maps'
 import usePlacesAutocomplete, { getGeocode, getLatLng } from 'use-places-autocomplete'
 import { useTranslation } from 'react-i18next'
@@ -26,6 +16,8 @@ export interface PlaceDetails {
   zipCode: string
   latitude: number
   longitude: number
+  /** IANA timezone ID auto-detected from coordinates (e.g. "America/Mexico_City") */
+  timezone?: string
 }
 
 interface AddressAutocompleteProps {
@@ -38,11 +30,7 @@ interface AddressAutocompleteProps {
   className?: string
 }
 
-function extractAddressComponent(
-  components: google.maps.GeocoderAddressComponent[],
-  type: string,
-  useShortName = false,
-): string {
+function extractAddressComponent(components: google.maps.GeocoderAddressComponent[], type: string, useShortName = false): string {
   const component = components.find(c => c.types.includes(type))
   return (useShortName ? component?.short_name : component?.long_name) ?? ''
 }
@@ -113,6 +101,23 @@ export function AddressAutocomplete({
         longitude: lng,
       }
 
+      // Auto-detect timezone from coordinates via Google Timezone API
+      try {
+        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+        if (apiKey && lat && lng) {
+          const timestamp = Math.floor(Date.now() / 1000)
+          const tzRes = await fetch(
+            `https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${lng}&timestamp=${timestamp}&key=${apiKey}`,
+          )
+          const tzData = await tzRes.json()
+          if (tzData.status === 'OK' && tzData.timeZoneId) {
+            place.timezone = tzData.timeZoneId
+          }
+        }
+      } catch {
+        // Silently fail — timezone can be selected manually
+      }
+
       onAddressSelect(place)
     } catch (error) {
       console.error('Error getting geocode:', error)
@@ -133,7 +138,7 @@ export function AddressAutocomplete({
     return (
       <Input
         value={externalValue ?? ''}
-        onChange={(e) => {
+        onChange={e => {
           // Can't autocomplete without Google Maps, but still allow manual input
           onAddressSelect({
             address: e.target.value,
@@ -162,7 +167,7 @@ export function AddressAutocomplete({
           <Input
             ref={inputRef}
             value={value}
-            onChange={(e) => handleInputChange(e.target.value)}
+            onChange={e => handleInputChange(e.target.value)}
             onFocus={() => {
               if (value.length > 0 && hasSuggestions) setOpen(true)
             }}
@@ -172,28 +177,17 @@ export function AddressAutocomplete({
           />
         </div>
       </PopoverTrigger>
-      <PopoverContent
-        className="w-[var(--radix-popover-trigger-width)] p-0"
-        align="start"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start" onOpenAutoFocus={e => e.preventDefault()}>
         <Command shouldFilter={false}>
           <CommandList>
             {status === 'OK' && data.length > 0 ? (
               <CommandGroup>
                 {data.map(({ place_id, description, structured_formatting }) => (
-                  <CommandItem
-                    key={place_id}
-                    value={description}
-                    onSelect={() => handleSelect(description)}
-                    className="cursor-pointer"
-                  >
+                  <CommandItem key={place_id} value={description} onSelect={() => handleSelect(description)} className="cursor-pointer">
                     <MapPin className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
                     <div className="flex flex-col">
                       <span className="text-sm">{structured_formatting.main_text}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {structured_formatting.secondary_text}
-                      </span>
+                      <span className="text-xs text-muted-foreground">{structured_formatting.secondary_text}</span>
                     </div>
                   </CommandItem>
                 ))}

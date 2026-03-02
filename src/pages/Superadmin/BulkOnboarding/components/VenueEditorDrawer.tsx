@@ -1,11 +1,5 @@
 import React, { useState } from 'react'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -57,6 +51,7 @@ export const VenueEditorDrawer: React.FC<Props> = ({ venue, open, onOpenChange, 
       zipCode: place.zipCode,
       latitude: place.latitude,
       longitude: place.longitude,
+      ...(place.timezone ? { timezone: place.timezone } : {}),
     }))
   }
 
@@ -72,7 +67,10 @@ export const VenueEditorDrawer: React.FC<Props> = ({ venue, open, onOpenChange, 
   }
 
   const handleRemoveTerminal = (clientId: string) => {
-    updateField('terminals', (merged.terminals || []).filter(t => t.clientId !== clientId))
+    updateField(
+      'terminals',
+      (merged.terminals || []).filter(t => t.clientId !== clientId),
+    )
   }
 
   const handleTerminalChange = (clientId: string, field: keyof BulkVenueTerminal, value: string) => {
@@ -146,11 +144,7 @@ export const VenueEditorDrawer: React.FC<Props> = ({ venue, open, onOpenChange, 
               <h4 className="text-sm font-semibold text-muted-foreground">Información básica</h4>
               <div>
                 <Label>Nombre</Label>
-                <Input
-                  value={merged.name}
-                  onChange={e => updateField('name', e.target.value)}
-                  className="mt-1"
-                />
+                <Input value={merged.name} onChange={e => updateField('name', e.target.value)} className="mt-1" />
               </div>
 
               <div>
@@ -166,20 +160,11 @@ export const VenueEditorDrawer: React.FC<Props> = ({ venue, open, onOpenChange, 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">Teléfono</Label>
-                  <Input
-                    value={merged.phone || ''}
-                    onChange={e => updateField('phone', e.target.value)}
-                    className="mt-1"
-                  />
+                  <Input value={merged.phone || ''} onChange={e => updateField('phone', e.target.value)} className="mt-1" />
                 </div>
                 <div>
                   <Label className="text-xs">Email</Label>
-                  <Input
-                    type="email"
-                    value={merged.email || ''}
-                    onChange={e => updateField('email', e.target.value)}
-                    className="mt-1"
-                  />
+                  <Input type="email" value={merged.email || ''} onChange={e => updateField('email', e.target.value)} className="mt-1" />
                 </div>
               </div>
 
@@ -209,11 +194,7 @@ export const VenueEditorDrawer: React.FC<Props> = ({ venue, open, onOpenChange, 
                 </div>
                 <div>
                   <Label className="text-xs">Razón Social</Label>
-                  <Input
-                    value={merged.legalName || ''}
-                    onChange={e => updateField('legalName', e.target.value)}
-                    className="mt-1"
-                  />
+                  <Input value={merged.legalName || ''} onChange={e => updateField('legalName', e.target.value)} className="mt-1" />
                 </div>
               </div>
             </section>
@@ -221,9 +202,7 @@ export const VenueEditorDrawer: React.FC<Props> = ({ venue, open, onOpenChange, 
             {/* Terminals */}
             <section className="space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-semibold text-muted-foreground">
-                  Terminales ({merged.terminals?.length || 0})
-                </h4>
+                <h4 className="text-sm font-semibold text-muted-foreground">Terminales ({merged.terminals?.length || 0})</h4>
                 <Button variant="outline" size="sm" onClick={handleAddTerminal} className="cursor-pointer">
                   <Plus className="w-3 h-3 mr-1" /> Agregar
                 </Button>
@@ -261,10 +240,7 @@ export const VenueEditorDrawer: React.FC<Props> = ({ venue, open, onOpenChange, 
                     <Trash2 className="w-4 h-4" />
                   </Button>
                   <div className="col-span-3">
-                    <Select
-                      value={terminal.type}
-                      onValueChange={v => handleTerminalChange(terminal.clientId, 'type', v)}
-                    >
+                    <Select value={terminal.type} onValueChange={v => handleTerminalChange(terminal.clientId, 'type', v)}>
                       <SelectTrigger className="h-8 text-xs">
                         <SelectValue />
                       </SelectTrigger>

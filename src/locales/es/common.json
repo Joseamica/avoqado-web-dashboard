@@ -188,7 +188,9 @@
     "suspended": "Suspendido",
     "adminSuspended": "Suspendido por Admin",
     "closed": "Cerrado",
-    "otherVenues": "Otras sucursales"
+    "otherVenues": "Otras sucursales",
+    "searchPlaceholder": "Buscar sucursales...",
+    "noResults": "No se encontraron sucursales."
   },
   "layout": {
     "noVenuesAssigned": "No tienes sucursales asignadas",

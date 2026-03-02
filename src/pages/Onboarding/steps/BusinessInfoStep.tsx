@@ -168,6 +168,7 @@ export function BusinessInfoStep({ onNext, onPrevious, isFirstStep, onSave, init
                           form.setValue('zipCode', place.zipCode)
                           form.setValue('latitude', place.latitude)
                           form.setValue('longitude', place.longitude)
+                          if (place.timezone) form.setValue('timezone', place.timezone)
                         }}
                         placeholder={t('businessInfo.form.addressPlaceholder')}
                       />
@@ -329,13 +330,7 @@ export function BusinessInfoStep({ onNext, onPrevious, isFirstStep, onSave, init
                 <CardContent className="pt-6">
                   <div className="flex gap-3">
                     <div className="mt-0.5 text-muted-foreground">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -358,18 +353,13 @@ export function BusinessInfoStep({ onNext, onPrevious, isFirstStep, onSave, init
                   </div>
                 </CardContent>
               </Card>
-
             </form>
           </Form>
         </CardContent>
       </Card>
 
       {/* Fixed Navigation buttons */}
-      <NavigationButtons
-        onPrevious={onPrevious}
-        isFirstStep={isFirstStep}
-        formId="business-info-form"
-      />
+      <NavigationButtons onPrevious={onPrevious} isFirstStep={isFirstStep} formId="business-info-form" />
     </div>
   )
 }

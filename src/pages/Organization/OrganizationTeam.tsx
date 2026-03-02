@@ -28,18 +28,10 @@ import { FilterPill, CheckboxFilterContent } from '@/components/filters'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import InviteTeamMemberForm, { type InviteTeamMemberFormRef } from '@/pages/Team/components/InviteTeamMemberForm'
 import { AuditLogTerminal, type AuditLogEntry } from '@/pages/playtelecom/Users/components/AuditLogTerminal'
-import {
-  Users, Store, X, UserPlus, Mail, Phone, KeyRound, UserCheck, Ban, ShieldAlert,
-} from 'lucide-react'
+import { Users, Store, X, UserPlus, Mail, Phone, KeyRound, UserCheck, Ban, ShieldAlert } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useRoleConfig } from '@/hooks/use-role-config'
@@ -217,26 +209,24 @@ const OrganizationTeam: React.FC = () => {
         id: log.id,
         timestamp: log.createdAt,
         action: ACTION_TYPE_MAP[log.action] || 'warning',
-        message: (ACTION_MESSAGE_BUILDERS[log.action] || ((_d: unknown, by: string) => `${log.action} por ${by}`))(log.data, log.performedBy),
+        message: (ACTION_MESSAGE_BUILDERS[log.action] || ((_d: unknown, by: string) => `${log.action} por ${by}`))(
+          log.data,
+          log.performedBy,
+        ),
       })),
     [rawActivityLog],
   )
 
   // ---------- Selected member data ----------
 
-  const selectedOrgMember = useMemo(
-    () => orgTeam?.find(m => m.id === selectedMemberId) || null,
-    [orgTeam, selectedMemberId],
-  )
+  const selectedOrgMember = useMemo(() => orgTeam?.find(m => m.id === selectedMemberId) || null, [orgTeam, selectedMemberId])
 
   const selectedStoresMember = useMemo(
     () => (selectedMemberId ? storesTeamMap.get(selectedMemberId) || null : null),
     [selectedMemberId, storesTeamMap],
   )
 
-  const selectedMemberName = selectedOrgMember
-    ? `${selectedOrgMember.firstName} ${selectedOrgMember.lastName}`.trim()
-    : ''
+  const selectedMemberName = selectedOrgMember ? `${selectedOrgMember.firstName} ${selectedOrgMember.lastName}`.trim() : ''
 
   // Merge venue data: org data (venueName, venueSlug, role) + stores data (staffVenueId, active)
   const selectedMemberVenues = useMemo(() => {
@@ -259,9 +249,7 @@ const OrganizationTeam: React.FC = () => {
 
   const assignableRoles = useMemo(() => {
     if (!currentUserRole) return []
-    return getModifiableRoles(currentUserRole).filter(
-      r => r !== StaffRole.SUPERADMIN,
-    )
+    return getModifiableRoles(currentUserRole).filter(r => r !== StaffRole.SUPERADMIN)
   }, [currentUserRole])
 
   const canEditMember = useCallback(
@@ -274,10 +262,7 @@ const OrganizationTeam: React.FC = () => {
 
   // ---------- Filter Options ----------
 
-  const venueOptions = useMemo(
-    () => allVenues.map(v => ({ value: v.id, label: v.name })),
-    [allVenues],
-  )
+  const venueOptions = useMemo(() => allVenues.map(v => ({ value: v.id, label: v.name })), [allVenues])
 
   const roleOptions = useMemo(() => {
     if (!orgTeam) return []
@@ -292,14 +277,11 @@ const OrganizationTeam: React.FC = () => {
       .map(r => ({ value: r, label: getDisplayName(r) }))
   }, [orgTeam, getDisplayName])
 
-  const getFilterLabel = useCallback(
-    (values: string[], options: { value: string; label: string }[]) => {
-      if (values.length === 0) return null
-      if (values.length === 1) return options.find(o => o.value === values[0])?.label || values[0]
-      return `${values.length} seleccionados`
-    },
-    [],
-  )
+  const getFilterLabel = useCallback((values: string[], options: { value: string; label: string }[]) => {
+    if (values.length === 0) return null
+    if (values.length === 1) return options.find(o => o.value === values[0])?.label || values[0]
+    return `${values.length} seleccionados`
+  }, [])
 
   const activeFiltersCount = [venueFilter.length > 0, roleFilter.length > 0].filter(Boolean).length
 
@@ -324,9 +306,7 @@ const OrganizationTeam: React.FC = () => {
     const q = search.toLowerCase()
     return data.filter(
       r =>
-        r.name.toLowerCase().includes(q) ||
-        r.email.toLowerCase().includes(q) ||
-        r.venues.some(v => v.venueName.toLowerCase().includes(q)),
+        r.name.toLowerCase().includes(q) || r.email.toLowerCase().includes(q) || r.venues.some(v => v.venueName.toLowerCase().includes(q)),
     )
   }, [])
 
@@ -394,11 +374,7 @@ const OrganizationTeam: React.FC = () => {
       {
         accessorKey: 'phone',
         header: t('organization:team.phone', { defaultValue: 'Teléfono' }),
-        cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground">
-            {row.original.phone || '—'}
-          </span>
-        ),
+        cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.original.phone || '—'}</span>,
       },
       {
         id: 'venues',
@@ -454,11 +430,7 @@ const OrganizationTeam: React.FC = () => {
       {
         accessorKey: 'createdAt',
         header: t('organization:team.joined', { defaultValue: 'Se unió' }),
-        cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground whitespace-nowrap">
-            {formatDate(row.original.createdAt)}
-          </span>
-        ),
+        cell: ({ row }) => <span className="text-sm text-muted-foreground whitespace-nowrap">{formatDate(row.original.createdAt)}</span>,
       },
     ],
     [t, formatDate, getDisplayName],
@@ -500,9 +472,7 @@ const OrganizationTeam: React.FC = () => {
             defaultValue: 'Gestiona miembros y roles a nivel organizacion.',
           })}
         />
-        <p className="text-muted-foreground mt-1">
-          {t('organization:team.subtitle', { count: orgTeam?.length || 0 })}
-        </p>
+        <p className="text-muted-foreground mt-1">{t('organization:team.subtitle', { count: orgTeam?.length || 0 })}</p>
       </div>
 
       {/* Stripe-style filter bar */}
@@ -537,12 +507,7 @@ const OrganizationTeam: React.FC = () => {
         </FilterPill>
 
         {activeFiltersCount > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={resetFilters}
-            className="h-8 gap-1.5 rounded-full cursor-pointer"
-          >
+          <Button variant="outline" size="sm" onClick={resetFilters} className="h-8 gap-1.5 rounded-full cursor-pointer">
             <X className="h-3.5 w-3.5" />
             {t('organization:team.clearFilters', { defaultValue: 'Borrar filtros' })}
           </Button>
@@ -551,10 +516,7 @@ const OrganizationTeam: React.FC = () => {
         {/* Invite button — right aligned */}
         {contextVenueId && (
           <div className="ml-auto">
-            <Button
-              onClick={() => setShowInviteDialog(true)}
-              className="h-10 gap-1.5 rounded-xl cursor-pointer px-4"
-            >
+            <Button onClick={() => setShowInviteDialog(true)} className="h-10 gap-1.5 rounded-xl cursor-pointer px-4">
               <UserPlus className="w-4 h-4" />
               {t('organization:team.invite', { defaultValue: 'Invitar' })}
             </Button>
@@ -568,7 +530,7 @@ const OrganizationTeam: React.FC = () => {
         columns={columns}
         rowCount={filteredRows.length}
         isLoading={isLoading}
-        onRowClick={(row) => setSelectedMemberId(row.id)}
+        onRowClick={row => setSelectedMemberId(row.id)}
         tableId="org:team"
         enableSearch
         searchPlaceholder={t('organization:team.searchPlaceholder', { defaultValue: 'Buscar miembros del equipo...' })}
@@ -629,9 +591,7 @@ const OrganizationTeam: React.FC = () => {
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Store className="w-4 h-4 text-muted-foreground" />
-                <h4 className="text-sm font-medium">
-                  {t('organization:team.venueAssignments', { defaultValue: 'Sucursales Asignadas' })}
-                </h4>
+                <h4 className="text-sm font-medium">{t('organization:team.venueAssignments', { defaultValue: 'Sucursales Asignadas' })}</h4>
                 <Badge variant="secondary" className="ml-auto text-xs">
                   {selectedMemberVenues.length} {selectedMemberVenues.length === 1 ? 'sucursal' : 'sucursales'}
                 </Badge>
@@ -641,18 +601,10 @@ const OrganizationTeam: React.FC = () => {
                 {selectedMemberVenues.map(venue => {
                   const editable = canEditMember(venue.role)
                   return (
-                    <div
-                      key={venue.venueId}
-                      className="flex items-center justify-between gap-3 px-4 py-3"
-                    >
+                    <div key={venue.venueId} className="flex items-center justify-between gap-3 px-4 py-3">
                       {/* Venue name + status dot */}
                       <div className="flex items-center gap-2 min-w-0">
-                        <span
-                          className={cn(
-                            'w-2 h-2 rounded-full shrink-0',
-                            venue.active ? 'bg-green-500' : 'bg-muted-foreground/40',
-                          )}
-                        />
+                        <span className={cn('w-2 h-2 rounded-full shrink-0', venue.active ? 'bg-green-500' : 'bg-muted-foreground/40')} />
                         <p className="text-sm font-medium truncate">{venue.venueName}</p>
                       </div>
 
@@ -661,15 +613,11 @@ const OrganizationTeam: React.FC = () => {
                         {editable && venue.staffVenueId ? (
                           <Select
                             value={venue.role}
-                            onValueChange={(newRole) =>
-                              handleRoleChange(venue.venueId, venue.staffVenueId, newRole)
-                            }
+                            onValueChange={newRole => handleRoleChange(venue.venueId, venue.staffVenueId, newRole)}
                             disabled={isMutating}
                           >
                             <SelectTrigger className="w-36 h-7 text-xs">
-                              <SelectValue>
-                                {getDisplayName(venue.role)}
-                              </SelectValue>
+                              <SelectValue>{getDisplayName(venue.role)}</SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                               {assignableRoles.map(r => (
@@ -694,9 +642,7 @@ const OrganizationTeam: React.FC = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() =>
-                              handleStatusToggle(venue.venueId, venue.staffVenueId, venue.active)
-                            }
+                            onClick={() => handleStatusToggle(venue.venueId, venue.staffVenueId, venue.active)}
                             disabled={isMutating}
                             className={cn(
                               'h-7 text-xs cursor-pointer',
@@ -706,9 +652,15 @@ const OrganizationTeam: React.FC = () => {
                             )}
                           >
                             {venue.active ? (
-                              <><Ban className="w-3 h-3 mr-1" />{t('organization:team.deactivate', { defaultValue: 'Desactivar' })}</>
+                              <>
+                                <Ban className="w-3 h-3 mr-1" />
+                                {t('organization:team.deactivate', { defaultValue: 'Desactivar' })}
+                              </>
                             ) : (
-                              <><UserCheck className="w-3 h-3 mr-1" />{t('organization:team.activate', { defaultValue: 'Activar' })}</>
+                              <>
+                                <UserCheck className="w-3 h-3 mr-1" />
+                                {t('organization:team.activate', { defaultValue: 'Activar' })}
+                              </>
                             )}
                           </Button>
                         )}
@@ -779,12 +731,15 @@ const OrganizationTeam: React.FC = () => {
       )}
 
       {/* Temp Password Dialog */}
-      <Dialog open={!!tempPassword} onOpenChange={open => { if (!open) setTempPassword(null) }}>
+      <Dialog
+        open={!!tempPassword}
+        onOpenChange={open => {
+          if (!open) setTempPassword(null)
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {t('organization:team.resetPasswordSuccess', { defaultValue: 'Contraseña restablecida' })}
-            </DialogTitle>
+            <DialogTitle>{t('organization:team.resetPasswordSuccess', { defaultValue: 'Contraseña restablecida' })}</DialogTitle>
             <DialogDescription>
               {t('organization:team.resetPasswordHint', {
                 defaultValue: 'Comparte esta contraseña temporal de forma segura. El usuario deberá cambiarla al iniciar sesión.',

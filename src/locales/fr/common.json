@@ -123,7 +123,9 @@
     "suspended": "Suspendu",
     "adminSuspended": "Suspendu par l'admin",
     "closed": "Fermé",
-    "otherVenues": "Autres établissements"
+    "otherVenues": "Autres établissements",
+    "searchPlaceholder": "Rechercher...",
+    "noResults": "Aucun établissement trouvé."
   },
   "layout": {
     "noVenuesAssigned": "Aucune venue assignée",

@@ -302,6 +302,7 @@ export function TpvConfiguration() {
     if (place.zipCode) setVenueZipCode(place.zipCode)
     if (place.latitude) setVenueLatitude(place.latitude)
     if (place.longitude) setVenueLongitude(place.longitude)
+    if (place.timezone) setVenueTimezone(place.timezone)
     setVenueInfoHasChanges(true)
   }, [])
 

@@ -478,6 +478,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                               form.setValue('zipCode', place.zipCode)
                               form.setValue('latitude', place.latitude)
                               form.setValue('longitude', place.longitude)
+                              if (place.timezone) form.setValue('timezone', place.timezone)
                             }}
                           />
                         </FormControl>
@@ -541,10 +542,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                         <FormItem>
                           <FormLabel>{t('venueMgmt.location.timezone')}</FormLabel>
                           <FormControl>
-                            <TimezoneCombobox
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            />
+                            <TimezoneCombobox value={field.value} onValueChange={field.onChange} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -573,7 +571,6 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                       )}
                     />
                   </div>
-
                 </CardContent>
               </Card>
             </TabsContent>
@@ -687,9 +684,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
 
                       <div className="rounded-lg border p-4 bg-muted/30">
                         <h4 className="font-medium mb-2">{t('venueMgmt.paymentSetup.rules.title')}</h4>
-                        <p className="text-sm text-muted-foreground mb-3">
-                          {t('venueMgmt.paymentSetup.routingDesc')}
-                        </p>
+                        <p className="text-sm text-muted-foreground mb-3">{t('venueMgmt.paymentSetup.routingDesc')}</p>
                         <div className="text-sm space-y-1">
                           <div>
                             • <strong>{t('venueMgmt.paymentSetup.rules.primary')}</strong> {t('venueMgmt.paymentSetup.rules.primaryDesc')}

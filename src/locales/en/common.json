@@ -188,7 +188,9 @@
     "suspended": "Suspended",
     "adminSuspended": "Suspended by Admin",
     "closed": "Closed",
-    "otherVenues": "Other venues"
+    "otherVenues": "Other venues",
+    "searchPlaceholder": "Search venues...",
+    "noResults": "No venues found."
   },
   "layout": {
     "noVenuesAssigned": "No venues assigned",

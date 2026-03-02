@@ -245,7 +245,7 @@ export default function BasicInfo() {
       })
       return enableShifts
     },
-    onSuccess: (enableShifts) => {
+    onSuccess: enableShifts => {
       // Update form state to match saved value
       form.setValue('enableShifts', enableShifts, { shouldDirty: false })
       toast({
@@ -279,7 +279,7 @@ export default function BasicInfo() {
       })
       return requireClockInPhoto
     },
-    onSuccess: (requireClockInPhoto) => {
+    onSuccess: requireClockInPhoto => {
       form.setValue('requireClockInPhoto', requireClockInPhoto, { shouldDirty: false })
       toast({
         title: requireClockInPhoto ? 'Foto de entrada habilitada' : 'Foto de entrada deshabilitada',
@@ -307,7 +307,7 @@ export default function BasicInfo() {
       await api.put(`/api/v1/dashboard/venues/${venueId}/settings`, data)
       return data
     },
-    onSuccess: (data) => {
+    onSuccess: data => {
       form.setValue('autoClockOutEnabled', data.autoClockOutEnabled, { shouldDirty: false })
       if (data.autoClockOutTime !== undefined) {
         form.setValue('autoClockOutTime', data.autoClockOutTime, { shouldDirty: false })
@@ -338,7 +338,7 @@ export default function BasicInfo() {
       await api.put(`/api/v1/dashboard/venues/${venueId}/settings`, data)
       return data
     },
-    onSuccess: (data) => {
+    onSuccess: data => {
       form.setValue('maxShiftDurationEnabled', data.maxShiftDurationEnabled, { shouldDirty: false })
       if (data.maxShiftDurationHours !== undefined) {
         form.setValue('maxShiftDurationHours', data.maxShiftDurationHours, { shouldDirty: false })
@@ -506,14 +506,10 @@ export default function BasicInfo() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('edit.suspendDialog.title')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('edit.suspendDialog.description', { venueName: venue.name })}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{t('edit.suspendDialog.description', { venueName: venue.name })}</AlertDialogDescription>
           </AlertDialogHeader>
           <div className="mt-4">
-            <label className="text-sm font-medium text-foreground">
-              {t('edit.suspendDialog.reasonLabel')}
-            </label>
+            <label className="text-sm font-medium text-foreground">{t('edit.suspendDialog.reasonLabel')}</label>
             <Textarea
               value={suspendReason}
               onChange={e => setSuspendReason(e.target.value)}
@@ -522,9 +518,7 @@ export default function BasicInfo() {
               className="mt-2"
             />
             {suspendReason.length > 0 && suspendReason.length < 10 && (
-              <p className="text-xs text-muted-foreground mt-1">
-                {10 - suspendReason.length} caracteres más requeridos
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">{10 - suspendReason.length} caracteres más requeridos</p>
             )}
           </div>
           <AlertDialogFooter>
@@ -609,87 +603,19 @@ export default function BasicInfo() {
                 {/* Section Header */}
                 <div className="space-y-1 mb-6">
                   <h3 className="text-lg font-semibold">{t('edit.sections.basicInfo')}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Información general sobre tu establecimiento
-                  </p>
+                  <p className="text-sm text-muted-foreground">Información general sobre tu establecimiento</p>
                 </div>
                 <Separator className="mb-6" />
 
-              <div className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('edit.labels.name')}</FormLabel>
-                      <FormControl>
-                        <Input placeholder={t('edit.placeholders.name')} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('edit.labels.type')}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ''}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={t('edit.placeholders.type')} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {Object.values(BusinessType).map(type => (
-                            <SelectItem key={type} value={type}>
-                              {t(`edit.types.${type}`, { defaultValue: type.replace(/_/g, ' ') })}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('edit.labels.address')}</FormLabel>
-                      <FormControl>
-                        <AddressAutocomplete
-                          value={field.value}
-                          onAddressSelect={(place: PlaceDetails) => {
-                            form.setValue('address', place.address, { shouldDirty: true })
-                            form.setValue('city', place.city, { shouldDirty: true })
-                            form.setValue('state', place.state, { shouldDirty: true })
-                            form.setValue('country', place.country, { shouldDirty: true })
-                            form.setValue('zipCode', place.zipCode, { shouldDirty: true })
-                            form.setValue('latitude', place.latitude, { shouldDirty: true })
-                            form.setValue('longitude', place.longitude, { shouldDirty: true })
-                          }}
-                          placeholder={t('edit.placeholders.address')}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-6">
                   <FormField
                     control={form.control}
-                    name="city"
+                    name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('edit.labels.city')}</FormLabel>
+                        <FormLabel>{t('edit.labels.name')}</FormLabel>
                         <FormControl>
-                          <Input placeholder={t('edit.placeholders.city')} {...field} />
+                          <Input placeholder={t('edit.placeholders.name')} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -698,36 +624,20 @@ export default function BasicInfo() {
 
                   <FormField
                     control={form.control}
-                    name="state"
+                    name="type"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('edit.labels.state')}</FormLabel>
-                        <FormControl>
-                          <Input placeholder={t('edit.placeholders.state')} {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="country"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('edit.labels.country')}</FormLabel>
+                        <FormLabel>{t('edit.labels.type')}</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value || ''}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder={t('edit.placeholders.country')} />
+                              <SelectValue placeholder={t('edit.placeholders.type')} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {countries.map((country: any) => (
-                              <SelectItem key={country.value} value={country.value}>
-                                {country.label}
+                            {Object.values(BusinessType).map(type => (
+                              <SelectItem key={type} value={type}>
+                                {t(`edit.types.${type}`, { defaultValue: type.replace(/_/g, ' ') })}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -739,297 +649,350 @@ export default function BasicInfo() {
 
                   <FormField
                     control={form.control}
-                    name="zipCode"
+                    name="address"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('edit.labels.zipCode')}</FormLabel>
+                        <FormLabel>{t('edit.labels.address')}</FormLabel>
                         <FormControl>
-                          <Input placeholder={t('edit.placeholders.zipCode')} {...field} />
+                          <AddressAutocomplete
+                            value={field.value}
+                            onAddressSelect={(place: PlaceDetails) => {
+                              form.setValue('address', place.address, { shouldDirty: true })
+                              form.setValue('city', place.city, { shouldDirty: true })
+                              form.setValue('state', place.state, { shouldDirty: true })
+                              form.setValue('country', place.country, { shouldDirty: true })
+                              form.setValue('zipCode', place.zipCode, { shouldDirty: true })
+                              form.setValue('latitude', place.latitude, { shouldDirty: true })
+                              form.setValue('longitude', place.longitude, { shouldDirty: true })
+                              if (place.timezone) form.setValue('timezone', place.timezone, { shouldDirty: true })
+                            }}
+                            placeholder={t('edit.placeholders.address')}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                </div>
 
-                <FormField
-                  control={form.control}
-                  name="timezone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('edit.labels.timezone', { defaultValue: 'Zona horaria' })}</FormLabel>
-                      <FormControl>
-                        <TimezoneCombobox value={field.value} onValueChange={field.onChange} disabled={!canEdit} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('edit.labels.city')}</FormLabel>
+                          <FormControl>
+                            <Input placeholder={t('edit.placeholders.city')} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={form.control}
-                  name="currency"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('edit.labels.currency', { defaultValue: 'Moneda' })}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || 'MXN'}>
+                    <FormField
+                      control={form.control}
+                      name="state"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('edit.labels.state')}</FormLabel>
+                          <FormControl>
+                            <Input placeholder={t('edit.placeholders.state')} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="country"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('edit.labels.country')}</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value || ''}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={t('edit.placeholders.country')} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {countries.map((country: any) => (
+                                <SelectItem key={country.value} value={country.value}>
+                                  {country.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="zipCode"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('edit.labels.zipCode')}</FormLabel>
+                          <FormControl>
+                            <Input placeholder={t('edit.placeholders.zipCode')} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="timezone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('edit.labels.timezone', { defaultValue: 'Zona horaria' })}</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={t('edit.placeholders.currency', { defaultValue: 'Selecciona una moneda' })} />
-                          </SelectTrigger>
+                          <TimezoneCombobox value={field.value} onValueChange={field.onChange} disabled={!canEdit} />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="MXN">{t('edit.currencies.mxn')}</SelectItem>
-                          <SelectItem value="USD">{t('edit.currencies.usd')}</SelectItem>
-                          <SelectItem value="EUR">{t('edit.currencies.eur')}</SelectItem>
-                          <SelectItem value="CAD">{t('edit.currencies.cad')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <div className="pt-4">
-                  <h4 className="text-sm font-medium mb-3">Configuración Operativa</h4>
-                  <div className="space-y-3">
-                    <FormField
-                      control={form.control}
-                      name="enableShifts"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-card p-4 shadow-sm">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-base cursor-pointer">Sistema de Turnos</FormLabel>
-                            <FormDescription>
-                              Habilita el control de caja y turnos para el personal.
-                            </FormDescription>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {toggleShifts.isPending && (
-                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                            )}
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={(checked) => {
-                                  // Immediate API call on toggle (not on form save)
-                                  toggleShifts.mutate(checked)
-                                }}
-                                disabled={!canEdit || toggleShifts.isPending}
-                              />
-                            </FormControl>
-                          </div>
-                        </FormItem>
-                      )}
-                    />
+                  <FormField
+                    control={form.control}
+                    name="currency"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('edit.labels.currency', { defaultValue: 'Moneda' })}</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || 'MXN'}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={t('edit.placeholders.currency', { defaultValue: 'Selecciona una moneda' })} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="MXN">{t('edit.currencies.mxn')}</SelectItem>
+                            <SelectItem value="USD">{t('edit.currencies.usd')}</SelectItem>
+                            <SelectItem value="EUR">{t('edit.currencies.eur')}</SelectItem>
+                            <SelectItem value="CAD">{t('edit.currencies.cad')}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                    <FormField
-                      control={form.control}
-                      name="requireClockInPhoto"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-card p-4 shadow-sm">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-base cursor-pointer">Foto de Entrada (Anti-fraude)</FormLabel>
-                            <FormDescription>
-                              Requiere que los empleados tomen una foto al registrar su entrada.
-                            </FormDescription>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {toggleClockInPhoto.isPending && (
-                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                            )}
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={(checked) => {
-                                  // Immediate API call on toggle (not on form save)
-                                  toggleClockInPhoto.mutate(checked)
-                                }}
-                                disabled={!canEdit || toggleClockInPhoto.isPending}
-                              />
-                            </FormControl>
-                          </div>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
+                  <div className="pt-4">
+                    <h4 className="text-sm font-medium mb-3">Configuración Operativa</h4>
+                    <div className="space-y-3">
+                      <FormField
+                        control={form.control}
+                        name="enableShifts"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-card p-4 shadow-sm">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base cursor-pointer">Sistema de Turnos</FormLabel>
+                              <FormDescription>Habilita el control de caja y turnos para el personal.</FormDescription>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {toggleShifts.isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={checked => {
+                                    // Immediate API call on toggle (not on form save)
+                                    toggleShifts.mutate(checked)
+                                  }}
+                                  disabled={!canEdit || toggleShifts.isPending}
+                                />
+                              </FormControl>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
 
-                {/* Auto Clock-Out Section - HR Automation (Square-style) */}
-                <div className="pt-6">
-                  <h4 className="text-sm font-medium mb-1">Salida Automática</h4>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Cierra turnos automáticamente para prevenir olvidos de marcaje.
-                  </p>
-                  <div className="space-y-3">
-                    {/* Fixed-time auto clock-out */}
-                    <div className="rounded-lg border bg-card p-4 shadow-sm space-y-3">
-                      <div className="flex flex-row items-center justify-between">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base cursor-pointer">Cierre por Hora Fija</FormLabel>
-                          <FormDescription>
-                            Cierra todos los turnos abiertos a una hora específica.
-                          </FormDescription>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {toggleAutoClockOut.isPending && (
-                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                          )}
-                          <Switch
-                            checked={form.watch('autoClockOutEnabled') ?? false}
-                            onCheckedChange={(checked) => {
-                              const currentTime = form.getValues('autoClockOutTime') || '03:00'
-                              toggleAutoClockOut.mutate({
-                                autoClockOutEnabled: checked,
-                                autoClockOutTime: checked ? currentTime : null,
-                              })
-                            }}
-                            disabled={!canEdit || toggleAutoClockOut.isPending}
-                          />
-                        </div>
-                      </div>
-                      {form.watch('autoClockOutEnabled') && (
-                        <div className="flex items-center gap-2 pt-2 border-t">
-                          <span className="text-sm text-muted-foreground">Hora de cierre:</span>
-                          <Input
-                            type="time"
-                            className="w-32"
-                            value={form.watch('autoClockOutTime') || '03:00'}
-                            onChange={(e) => {
-                              const newTime = e.target.value
-                              form.setValue('autoClockOutTime', newTime, { shouldDirty: false })
-                              toggleAutoClockOut.mutate({
-                                autoClockOutEnabled: true,
-                                autoClockOutTime: newTime,
-                              })
-                            }}
-                            disabled={!canEdit || toggleAutoClockOut.isPending}
-                          />
-                        </div>
-                      )}
+                      <FormField
+                        control={form.control}
+                        name="requireClockInPhoto"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-card p-4 shadow-sm">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base cursor-pointer">Foto de Entrada (Anti-fraude)</FormLabel>
+                              <FormDescription>Requiere que los empleados tomen una foto al registrar su entrada.</FormDescription>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {toggleClockInPhoto.isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={checked => {
+                                    // Immediate API call on toggle (not on form save)
+                                    toggleClockInPhoto.mutate(checked)
+                                  }}
+                                  disabled={!canEdit || toggleClockInPhoto.isPending}
+                                />
+                              </FormControl>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
                     </div>
+                  </div>
 
-                    {/* Max shift duration */}
-                    <div className="rounded-lg border bg-card p-4 shadow-sm space-y-3">
-                      <div className="flex flex-row items-center justify-between">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base cursor-pointer">Duración Máxima de Turno</FormLabel>
-                          <FormDescription>
-                            Cierra turnos que excedan una cantidad de horas.
-                          </FormDescription>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {toggleMaxShiftDuration.isPending && (
-                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                          )}
-                          <Switch
-                            checked={form.watch('maxShiftDurationEnabled') ?? false}
-                            onCheckedChange={(checked) => {
-                              const currentHours = form.getValues('maxShiftDurationHours') || 12
-                              toggleMaxShiftDuration.mutate({
-                                maxShiftDurationEnabled: checked,
-                                maxShiftDurationHours: currentHours,
-                              })
-                            }}
-                            disabled={!canEdit || toggleMaxShiftDuration.isPending}
-                          />
-                        </div>
-                      </div>
-                      {form.watch('maxShiftDurationEnabled') && (
-                        <div className="flex items-center gap-2 pt-2 border-t">
-                          <span className="text-sm text-muted-foreground">Máximo de horas:</span>
-                          <Input
-                            type="number"
-                            className="w-20"
-                            min={1}
-                            max={24}
-                            value={form.watch('maxShiftDurationHours') || 12}
-                            onChange={(e) => {
-                              const newHours = parseInt(e.target.value, 10)
-                              if (newHours >= 1 && newHours <= 24) {
-                                form.setValue('maxShiftDurationHours', newHours, { shouldDirty: false })
-                                toggleMaxShiftDuration.mutate({
-                                  maxShiftDurationEnabled: true,
-                                  maxShiftDurationHours: newHours,
+                  {/* Auto Clock-Out Section - HR Automation (Square-style) */}
+                  <div className="pt-6">
+                    <h4 className="text-sm font-medium mb-1">Salida Automática</h4>
+                    <p className="text-xs text-muted-foreground mb-3">Cierra turnos automáticamente para prevenir olvidos de marcaje.</p>
+                    <div className="space-y-3">
+                      {/* Fixed-time auto clock-out */}
+                      <div className="rounded-lg border bg-card p-4 shadow-sm space-y-3">
+                        <div className="flex flex-row items-center justify-between">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base cursor-pointer">Cierre por Hora Fija</FormLabel>
+                            <FormDescription>Cierra todos los turnos abiertos a una hora específica.</FormDescription>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {toggleAutoClockOut.isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                            <Switch
+                              checked={form.watch('autoClockOutEnabled') ?? false}
+                              onCheckedChange={checked => {
+                                const currentTime = form.getValues('autoClockOutTime') || '03:00'
+                                toggleAutoClockOut.mutate({
+                                  autoClockOutEnabled: checked,
+                                  autoClockOutTime: checked ? currentTime : null,
                                 })
-                              }
-                            }}
-                            disabled={!canEdit || toggleMaxShiftDuration.isPending}
-                          />
-                          <span className="text-sm text-muted-foreground">horas</span>
+                              }}
+                              disabled={!canEdit || toggleAutoClockOut.isPending}
+                            />
+                          </div>
                         </div>
-                      )}
+                        {form.watch('autoClockOutEnabled') && (
+                          <div className="flex items-center gap-2 pt-2 border-t">
+                            <span className="text-sm text-muted-foreground">Hora de cierre:</span>
+                            <Input
+                              type="time"
+                              className="w-32"
+                              value={form.watch('autoClockOutTime') || '03:00'}
+                              onChange={e => {
+                                const newTime = e.target.value
+                                form.setValue('autoClockOutTime', newTime, { shouldDirty: false })
+                                toggleAutoClockOut.mutate({
+                                  autoClockOutEnabled: true,
+                                  autoClockOutTime: newTime,
+                                })
+                              }}
+                              disabled={!canEdit || toggleAutoClockOut.isPending}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Max shift duration */}
+                      <div className="rounded-lg border bg-card p-4 shadow-sm space-y-3">
+                        <div className="flex flex-row items-center justify-between">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base cursor-pointer">Duración Máxima de Turno</FormLabel>
+                            <FormDescription>Cierra turnos que excedan una cantidad de horas.</FormDescription>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {toggleMaxShiftDuration.isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                            <Switch
+                              checked={form.watch('maxShiftDurationEnabled') ?? false}
+                              onCheckedChange={checked => {
+                                const currentHours = form.getValues('maxShiftDurationHours') || 12
+                                toggleMaxShiftDuration.mutate({
+                                  maxShiftDurationEnabled: checked,
+                                  maxShiftDurationHours: currentHours,
+                                })
+                              }}
+                              disabled={!canEdit || toggleMaxShiftDuration.isPending}
+                            />
+                          </div>
+                        </div>
+                        {form.watch('maxShiftDurationEnabled') && (
+                          <div className="flex items-center gap-2 pt-2 border-t">
+                            <span className="text-sm text-muted-foreground">Máximo de horas:</span>
+                            <Input
+                              type="number"
+                              className="w-20"
+                              min={1}
+                              max={24}
+                              value={form.watch('maxShiftDurationHours') || 12}
+                              onChange={e => {
+                                const newHours = parseInt(e.target.value, 10)
+                                if (newHours >= 1 && newHours <= 24) {
+                                  form.setValue('maxShiftDurationHours', newHours, { shouldDirty: false })
+                                  toggleMaxShiftDuration.mutate({
+                                    maxShiftDurationEnabled: true,
+                                    maxShiftDurationHours: newHours,
+                                  })
+                                }
+                              }}
+                              disabled={!canEdit || toggleMaxShiftDuration.isPending}
+                            />
+                            <span className="text-sm text-muted-foreground">horas</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Danger Zone Section */}
-              <div className="pt-8 mt-8 border-t">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-destructive">
-                      {t('edit.dangerZone.title')}
-                    </h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {t('edit.dangerZone.description')}
-                    </p>
+                {/* Danger Zone Section */}
+                <div className="pt-8 mt-8 border-t">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-destructive">{t('edit.dangerZone.title')}</h3>
+                      <p className="text-sm text-muted-foreground mt-1">{t('edit.dangerZone.description')}</p>
+                    </div>
+
+                    {/* Show Delete for demo venues (TRIAL, LIVE_DEMO), Suspend for production venues */}
+                    {isDemoVenueStatus(venue?.status) ? (
+                      // DELETE option for demo venues
+                      <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-1">
+                            <p className="font-medium text-sm">{t('edit.dangerZone.deleteButton')}</p>
+                            <p className="text-xs text-muted-foreground">{t('edit.dangerZone.deleteDescription')}</p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setShowDeleteDialog(true)}
+                            disabled={!canEdit}
+                          >
+                            {t('edit.dangerZone.delete')}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      // SUSPEND option for production venues
+                      <div className="rounded-lg border border-amber-500/50 bg-amber-500/5 p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-1">
+                            <p className="font-medium text-sm">{t('edit.dangerZone.suspendButton')}</p>
+                            <p className="text-xs text-muted-foreground">{t('edit.dangerZone.suspendDescription')}</p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="border-amber-500 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950"
+                            onClick={() => setShowSuspendDialog(true)}
+                            disabled={!canEdit}
+                          >
+                            {t('edit.dangerZone.suspend')}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-
-                  {/* Show Delete for demo venues (TRIAL, LIVE_DEMO), Suspend for production venues */}
-                  {isDemoVenueStatus(venue?.status) ? (
-                    // DELETE option for demo venues
-                    <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <p className="font-medium text-sm">
-                            {t('edit.dangerZone.deleteButton')}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {t('edit.dangerZone.deleteDescription')}
-                          </p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => setShowDeleteDialog(true)}
-                          disabled={!canEdit}
-                        >
-                          {t('edit.dangerZone.delete')}
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    // SUSPEND option for production venues
-                    <div className="rounded-lg border border-amber-500/50 bg-amber-500/5 p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <p className="font-medium text-sm">
-                            {t('edit.dangerZone.suspendButton')}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {t('edit.dangerZone.suspendDescription')}
-                          </p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="border-amber-500 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950"
-                          onClick={() => setShowSuspendDialog(true)}
-                          disabled={!canEdit}
-                        >
-                          {t('edit.dangerZone.suspend')}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
                 </div>
-              </div>
-            </fieldset>
-          </form>
-        </Form>
+              </fieldset>
+            </form>
+          </Form>
         </div>
       </div>
     </>
