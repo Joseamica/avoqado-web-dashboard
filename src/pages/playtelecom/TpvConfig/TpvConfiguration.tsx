@@ -18,11 +18,30 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Settings, RotateCcw, Save, Loader2, Store, Plus, Pencil, Target, Package, Megaphone, Monitor, ArrowRight, Clock } from 'lucide-react'
+import {
+  Settings,
+  RotateCcw,
+  Save,
+  Loader2,
+  Store,
+  Plus,
+  Pencil,
+  Target,
+  Package,
+  Megaphone,
+  Monitor,
+  ArrowRight,
+  Clock,
+  MapPin,
+  Globe,
+} from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { GlassCard } from '@/components/ui/glass-card'
+import { AddressAutocomplete, type PlaceDetails } from '@/components/address-autocomplete'
+import { TimezoneCombobox } from '@/components/timezone-combobox'
+import api from '@/api'
 import { useAuth } from '@/context/AuthContext'
 import { useAccess } from '@/hooks/use-access'
 import { tpvSettingsService, type VenueTpvSettings } from '@/services/tpv-settings.service'
@@ -30,14 +49,7 @@ import { getItemCategories } from '@/services/stockDashboard.service'
 import { getTpvMessages } from '@/services/tpv-messages.service'
 import { useToast } from '@/hooks/use-toast'
 import { useStoresStorePerformance } from '@/hooks/useStoresAnalysis'
-import {
-  ModuleToggles,
-  CategoryEditor,
-  PhonePreview,
-  TerminalManagement,
-  MessagesSection,
-  type ModuleToggleState,
-} from './components'
+import { ModuleToggles, CategoryEditor, PhonePreview, TerminalManagement, MessagesSection, type ModuleToggleState } from './components'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import OrgGoalConfigSection from '@/pages/playtelecom/Supervisor/OrgGoalConfigSection'
 import OrgCategoryConfigSection from './components/OrgCategoryConfigSection'
@@ -55,7 +67,7 @@ const DEFAULT_MODULES: ModuleToggleState = {
 }
 
 const VALID_TABS = ['general', 'organizacional', 'metas', 'tpv', 'categorias', 'mensajes'] as const
-type TabValue = typeof VALID_TABS[number]
+type TabValue = (typeof VALID_TABS)[number]
 
 /** Map API response to component state */
 function settingsToState(settings: VenueTpvSettings): ModuleToggleState {
@@ -112,7 +124,13 @@ export function TpvConfiguration() {
   }, [storePerformanceData])
 
   const handleOpenGoalDialog = useCallback(
-    (storeId?: string, goalId?: string | null, goalAmount?: number, goalType?: 'AMOUNT' | 'QUANTITY', goalPeriod?: 'DAILY' | 'WEEKLY' | 'MONTHLY') => {
+    (
+      storeId?: string,
+      goalId?: string | null,
+      goalAmount?: number,
+      goalType?: 'AMOUNT' | 'QUANTITY',
+      goalPeriod?: 'DAILY' | 'WEEKLY' | 'MONTHLY',
+    ) => {
       setSelectedStoreForGoal(storeId || null)
       setEditGoalId(goalId || null)
       setEditGoalAmount(goalAmount)
@@ -128,10 +146,13 @@ export function TpvConfiguration() {
     return `$${amount.toLocaleString()}`
   }, [])
 
-  const periodLabel = useCallback((period?: string) => {
-    if (!period) return ''
-    return t(`playtelecom:supervisor.goalDialog.periods.${period}`, { defaultValue: period })
-  }, [t])
+  const periodLabel = useCallback(
+    (period?: string) => {
+      if (!period) return ''
+      return t(`playtelecom:supervisor.goalDialog.periods.${period}`, { defaultValue: period })
+    },
+    [t],
+  )
 
   // --- Tab state with hash sync ---
   const getTabFromHash = (): TabValue => {
@@ -249,8 +270,70 @@ export function TpvConfiguration() {
     return { activeModules, totalModules, totalCategories, activeCategories, totalMessages, totalStores, storesWithGoals }
   }, [modules, categoriesData, messagesData, venueGoals])
 
+  // --- Venue info editing state ---
+  const [venueName, setVenueName] = useState('')
+  const [venueAddress, setVenueAddress] = useState('')
+  const [venueCity, setVenueCity] = useState('')
+  const [venueState, setVenueState] = useState('')
+  const [venueZipCode, setVenueZipCode] = useState('')
+  const [venueTimezone, setVenueTimezone] = useState('America/Mexico_City')
+  const [venueLatitude, setVenueLatitude] = useState<number | null>(null)
+  const [venueLongitude, setVenueLongitude] = useState<number | null>(null)
+  const [venueInfoHasChanges, setVenueInfoHasChanges] = useState(false)
+
+  useEffect(() => {
+    if (activeVenue) {
+      setVenueName(activeVenue.name || '')
+      setVenueAddress(activeVenue.address || '')
+      setVenueCity(activeVenue.city || '')
+      setVenueState(activeVenue.state || '')
+      setVenueZipCode(activeVenue.zipCode || '')
+      setVenueTimezone(activeVenue.timezone || 'America/Mexico_City')
+      setVenueLatitude(activeVenue.latitude ?? null)
+      setVenueLongitude(activeVenue.longitude ?? null)
+      setVenueInfoHasChanges(false)
+    }
+  }, [activeVenue])
+
+  const handleAddressSelect = useCallback((place: PlaceDetails) => {
+    setVenueAddress(place.address)
+    if (place.city) setVenueCity(place.city)
+    if (place.state) setVenueState(place.state)
+    if (place.zipCode) setVenueZipCode(place.zipCode)
+    if (place.latitude) setVenueLatitude(place.latitude)
+    if (place.longitude) setVenueLongitude(place.longitude)
+    setVenueInfoHasChanges(true)
+  }, [])
+
+  const saveVenueInfoMutation = useMutation({
+    mutationFn: async () => {
+      if (!venueId) throw new Error('No venue ID')
+      await api.put(`/api/v1/dashboard/venues/${venueId}`, {
+        name: venueName,
+        address: venueAddress,
+        city: venueCity,
+        state: venueState,
+        zipCode: venueZipCode,
+        timezone: venueTimezone,
+        latitude: venueLatitude,
+        longitude: venueLongitude,
+      })
+    },
+    onSuccess: () => {
+      setVenueInfoHasChanges(false)
+      queryClient.invalidateQueries({ queryKey: ['auth-status'] })
+      toast({ title: t('playtelecom:tpvConfig.venueInfoSaved', { defaultValue: 'Informacion de la tienda guardada' }) })
+    },
+    onError: (error: any) => {
+      const msg =
+        error?.response?.data?.message || t('playtelecom:tpvConfig.venueInfoError', { defaultValue: 'Error al guardar informacion' })
+      toast({ title: msg, variant: 'destructive' })
+    },
+  })
+
   // Pill tab class (same pattern as CommissionsPage)
-  const pillClass = "group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+  const pillClass =
+    'group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground'
 
   return (
     <div className="space-y-6">
@@ -265,9 +348,7 @@ export function TpvConfiguration() {
             <Settings className="w-5 h-5 text-orange-600 dark:text-orange-400" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold">
-              {t('playtelecom:tpvConfig.pageTitle', { defaultValue: 'Configuracion' })}
-            </h2>
+            <h2 className="text-lg font-semibold">{t('playtelecom:tpvConfig.pageTitle', { defaultValue: 'Configuracion' })}</h2>
             <p className="text-sm text-muted-foreground">
               {t('playtelecom:tpvConfig.pageSubtitle', { defaultValue: 'Administra metas, comisiones, terminal y catalogo' })}
             </p>
@@ -309,29 +390,102 @@ export function TpvConfiguration() {
           {isOwnerPlus && (
             <>
               <div className="w-px h-5 bg-border mx-1" />
-              <TabsTrigger value="organizacional" className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-dashed border-primary/40 hover:bg-primary/10 hover:text-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary">
+              <TabsTrigger
+                value="organizacional"
+                className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-dashed border-primary/40 hover:bg-primary/10 hover:text-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary"
+              >
                 <span>{t('playtelecom:tpvConfig.tabs.organizacional', { defaultValue: 'Organizacional' })}</span>
               </TabsTrigger>
             </>
           )}
         </TabsList>
 
-        {/* General Tab — Summary Dashboard */}
+        {/* General Tab — Venue Info + Summary Dashboard */}
         <TabsContent value="general" className="space-y-6">
+          {/* Venue Info Section */}
+          <GlassCard className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-linear-to-br from-primary/20 to-primary/5">
+                  <Store className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold">
+                    {t('playtelecom:tpvConfig.venueInfo.title', { defaultValue: 'Informacion de la tienda' })}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {t('playtelecom:tpvConfig.venueInfo.subtitle', { defaultValue: 'Nombre, direccion y zona horaria' })}
+                  </p>
+                </div>
+              </div>
+              {venueInfoHasChanges && (
+                <Button
+                  size="sm"
+                  onClick={() => saveVenueInfoMutation.mutate()}
+                  disabled={saveVenueInfoMutation.isPending || !venueName.trim()}
+                >
+                  {saveVenueInfoMutation.isPending ? (
+                    <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                  ) : (
+                    <Save className="w-3.5 h-3.5 mr-1" />
+                  )}
+                  {t('common:saveChanges', { defaultValue: 'Guardar' })}
+                </Button>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              {/* Name */}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">{t('playtelecom:tpvConfig.venueInfo.name', { defaultValue: 'Nombre' })}</Label>
+                <Input
+                  value={venueName}
+                  onChange={e => {
+                    setVenueName(e.target.value)
+                    setVenueInfoHasChanges(true)
+                  }}
+                  placeholder="Nombre de la tienda"
+                />
+              </div>
+
+              {/* Address */}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5" />
+                  {t('playtelecom:tpvConfig.venueInfo.address', { defaultValue: 'Direccion' })}
+                </Label>
+                <AddressAutocomplete value={venueAddress} onAddressSelect={handleAddressSelect} placeholder="Buscar direccion..." />
+                {(venueCity || venueState || venueZipCode) && (
+                  <p className="text-xs text-muted-foreground pl-1">{[venueCity, venueState, venueZipCode].filter(Boolean).join(', ')}</p>
+                )}
+              </div>
+
+              {/* Timezone */}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5" />
+                  {t('playtelecom:tpvConfig.venueInfo.timezone', { defaultValue: 'Zona horaria' })}
+                </Label>
+                <TimezoneCombobox
+                  value={venueTimezone}
+                  onValueChange={tz => {
+                    setVenueTimezone(tz)
+                    setVenueInfoHasChanges(true)
+                  }}
+                />
+              </div>
+            </div>
+          </GlassCard>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* TPV Modules Card */}
-            <GlassCard
-              className="p-5 cursor-pointer transition-all hover:border-primary/30"
-              onClick={() => handleTabChange('tpv')}
-            >
+            <GlassCard className="p-5 cursor-pointer transition-all hover:border-primary/30" onClick={() => handleTabChange('tpv')}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-linear-to-br from-blue-500/20 to-blue-500/5">
                     <Monitor className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <h3 className="text-sm font-semibold">
-                    {t('playtelecom:tpvConfig.summary.modules', { defaultValue: 'Modulos TPV' })}
-                  </h3>
+                  <h3 className="text-sm font-semibold">{t('playtelecom:tpvConfig.summary.modules', { defaultValue: 'Modulos TPV' })}</h3>
                 </div>
                 <ArrowRight className="w-4 h-4 text-muted-foreground" />
               </div>
@@ -342,13 +496,18 @@ export function TpvConfiguration() {
                   <div className="flex items-baseline gap-2">
                     <span className="text-2xl font-bold">{summaryStats.activeModules}</span>
                     <span className="text-sm text-muted-foreground">
-                      {t('playtelecom:tpvConfig.summary.modulesOf', { total: summaryStats.totalModules, defaultValue: `de ${summaryStats.totalModules}` })}
+                      {t('playtelecom:tpvConfig.summary.modulesOf', {
+                        total: summaryStats.totalModules,
+                        defaultValue: `de ${summaryStats.totalModules}`,
+                      })}
                     </span>
                   </div>
                   <div className="w-full bg-muted rounded-full h-1.5">
                     <div
                       className="bg-blue-500 h-1.5 rounded-full transition-all"
-                      style={{ width: `${summaryStats.totalModules > 0 ? (summaryStats.activeModules / summaryStats.totalModules) * 100 : 0}%` }}
+                      style={{
+                        width: `${summaryStats.totalModules > 0 ? (summaryStats.activeModules / summaryStats.totalModules) * 100 : 0}%`,
+                      }}
                     />
                   </div>
                 </div>
@@ -356,18 +515,13 @@ export function TpvConfiguration() {
             </GlassCard>
 
             {/* Goals Card */}
-            <GlassCard
-              className="p-5 cursor-pointer transition-all hover:border-primary/30"
-              onClick={() => handleTabChange('metas')}
-            >
+            <GlassCard className="p-5 cursor-pointer transition-all hover:border-primary/30" onClick={() => handleTabChange('metas')}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-linear-to-br from-green-500/20 to-green-500/5">
                     <Target className="w-4 h-4 text-green-600 dark:text-green-400" />
                   </div>
-                  <h3 className="text-sm font-semibold">
-                    {t('playtelecom:tpvConfig.summary.goals', { defaultValue: 'Metas' })}
-                  </h3>
+                  <h3 className="text-sm font-semibold">{t('playtelecom:tpvConfig.summary.goals', { defaultValue: 'Metas' })}</h3>
                 </div>
                 <ArrowRight className="w-4 h-4 text-muted-foreground" />
               </div>
@@ -375,31 +529,31 @@ export function TpvConfiguration() {
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold">{summaryStats.storesWithGoals}</span>
                   <span className="text-sm text-muted-foreground">
-                    {t('playtelecom:tpvConfig.summary.goalsTotal', { total: summaryStats.totalStores, defaultValue: `de ${summaryStats.totalStores} tiendas` })}
+                    {t('playtelecom:tpvConfig.summary.goalsTotal', {
+                      total: summaryStats.totalStores,
+                      defaultValue: `de ${summaryStats.totalStores} tiendas`,
+                    })}
                   </span>
                 </div>
                 <div className="w-full bg-muted rounded-full h-1.5">
                   <div
                     className="bg-green-500 h-1.5 rounded-full transition-all"
-                    style={{ width: `${summaryStats.totalStores > 0 ? (summaryStats.storesWithGoals / summaryStats.totalStores) * 100 : 0}%` }}
+                    style={{
+                      width: `${summaryStats.totalStores > 0 ? (summaryStats.storesWithGoals / summaryStats.totalStores) * 100 : 0}%`,
+                    }}
                   />
                 </div>
               </div>
             </GlassCard>
 
             {/* Categories Card */}
-            <GlassCard
-              className="p-5 cursor-pointer transition-all hover:border-primary/30"
-              onClick={() => handleTabChange('categorias')}
-            >
+            <GlassCard className="p-5 cursor-pointer transition-all hover:border-primary/30" onClick={() => handleTabChange('categorias')}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-linear-to-br from-orange-500/20 to-orange-500/5">
                     <Package className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                   </div>
-                  <h3 className="text-sm font-semibold">
-                    {t('playtelecom:tpvConfig.summary.categories', { defaultValue: 'Categorias' })}
-                  </h3>
+                  <h3 className="text-sm font-semibold">{t('playtelecom:tpvConfig.summary.categories', { defaultValue: 'Categorias' })}</h3>
                 </div>
                 <ArrowRight className="w-4 h-4 text-muted-foreground" />
               </div>
@@ -407,31 +561,31 @@ export function TpvConfiguration() {
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold">{summaryStats.activeCategories}</span>
                   <span className="text-sm text-muted-foreground">
-                    {t('playtelecom:tpvConfig.summary.categoriesTotal', { total: summaryStats.totalCategories, defaultValue: `${summaryStats.totalCategories} total` })}
+                    {t('playtelecom:tpvConfig.summary.categoriesTotal', {
+                      total: summaryStats.totalCategories,
+                      defaultValue: `${summaryStats.totalCategories} total`,
+                    })}
                   </span>
                 </div>
                 <div className="w-full bg-muted rounded-full h-1.5">
                   <div
                     className="bg-orange-500 h-1.5 rounded-full transition-all"
-                    style={{ width: `${summaryStats.totalCategories > 0 ? (summaryStats.activeCategories / summaryStats.totalCategories) * 100 : 100}%` }}
+                    style={{
+                      width: `${summaryStats.totalCategories > 0 ? (summaryStats.activeCategories / summaryStats.totalCategories) * 100 : 100}%`,
+                    }}
                   />
                 </div>
               </div>
             </GlassCard>
 
             {/* Messages Card */}
-            <GlassCard
-              className="p-5 cursor-pointer transition-all hover:border-primary/30"
-              onClick={() => handleTabChange('mensajes')}
-            >
+            <GlassCard className="p-5 cursor-pointer transition-all hover:border-primary/30" onClick={() => handleTabChange('mensajes')}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-linear-to-br from-purple-500/20 to-purple-500/5">
                     <Megaphone className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <h3 className="text-sm font-semibold">
-                    {t('playtelecom:tpvConfig.summary.messages', { defaultValue: 'Mensajes' })}
-                  </h3>
+                  <h3 className="text-sm font-semibold">{t('playtelecom:tpvConfig.summary.messages', { defaultValue: 'Mensajes' })}</h3>
                 </div>
                 <ArrowRight className="w-4 h-4 text-muted-foreground" />
               </div>
@@ -439,7 +593,10 @@ export function TpvConfiguration() {
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold">{summaryStats.totalMessages}</span>
                   <span className="text-sm text-muted-foreground">
-                    {t('playtelecom:tpvConfig.summary.messagesCount', { count: summaryStats.totalMessages, defaultValue: `${summaryStats.totalMessages} enviados` })}
+                    {t('playtelecom:tpvConfig.summary.messagesCount', {
+                      count: summaryStats.totalMessages,
+                      defaultValue: `${summaryStats.totalMessages} enviados`,
+                    })}
                   </span>
                 </div>
               </div>
@@ -458,7 +615,6 @@ export function TpvConfiguration() {
 
         {/* Metas Tab */}
         <TabsContent value="metas" className="space-y-6">
-
           {/* Per-Venue Goals */}
           <GlassCard className="p-5">
             <div className="flex items-center justify-between mb-4">
@@ -469,25 +625,38 @@ export function TpvConfiguration() {
                 </h4>
               </div>
               {canManageGoals && (
-                <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-primary hover:text-primary/80 hover:bg-primary/10" onClick={() => handleOpenGoalDialog()}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-[10px] text-primary hover:text-primary/80 hover:bg-primary/10"
+                  onClick={() => handleOpenGoalDialog()}
+                >
                   <Plus className="w-3 h-3 mr-1" />
                   {t('playtelecom:supervisor.goalDialog.createGoal', { defaultValue: 'Crear Meta' })}
                 </Button>
               )}
             </div>
             <p className="text-xs text-muted-foreground mb-3">
-              {t('playtelecom:tpvConfig.venueGoals.description', { defaultValue: 'Metas personalizadas por tienda. Las tiendas sin meta propia heredan la meta de organizacion.' })}
+              {t('playtelecom:tpvConfig.venueGoals.description', {
+                defaultValue: 'Metas personalizadas por tienda. Las tiendas sin meta propia heredan la meta de organizacion.',
+              })}
             </p>
 
             {venueGoals.length > 0 ? (
               <div className="space-y-2">
                 {venueGoals.map(venue => (
-                  <div key={venue.id} className="flex items-center justify-between rounded-lg bg-background/50 px-3 py-2 border border-border/50">
+                  <div
+                    key={venue.id}
+                    className="flex items-center justify-between rounded-lg bg-background/50 px-3 py-2 border border-border/50"
+                  >
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-medium min-w-[120px]">{venue.name}</span>
                       {venue.hasGoal ? (
                         <>
-                          <Badge variant="outline" className={`text-[10px] ${venue.goalSource === 'venue' ? 'border-green-500/30 text-green-500' : 'border-primary/30 text-primary'}`}>
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] ${venue.goalSource === 'venue' ? 'border-green-500/30 text-green-500' : 'border-primary/30 text-primary'}`}
+                          >
                             {venue.goalSource === 'venue'
                               ? t('playtelecom:supervisor.orgGoals.custom', { defaultValue: 'Personalizada' })
                               : t('playtelecom:supervisor.orgGoals.inherited', { defaultValue: 'Heredada' })}
@@ -573,12 +742,8 @@ export function TpvConfiguration() {
                         <Clock className="w-4 h-4 text-green-600 dark:text-green-400" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-semibold">
-                          {t('tpv:tpvSettings.attendanceSection')}
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                          {t('tpv:tpvSettings.expectedCheckInTimeDesc')}
-                        </p>
+                        <h3 className="text-sm font-semibold">{t('tpv:tpvSettings.attendanceSection')}</h3>
+                        <p className="text-xs text-muted-foreground">{t('tpv:tpvSettings.expectedCheckInTimeDesc')}</p>
                       </div>
                     </div>
                     <div className="space-y-4">
