@@ -123,11 +123,12 @@ const OrganizationTeam: React.FC = () => {
   })
 
   // Richer team data with staffVenueId for mutations
-  const { data: storesTeam } = useQuery({
+  const { data: storesTeamData } = useQuery({
     queryKey: ['stores-analysis', contextVenueId, 'team'],
     queryFn: () => getTeam(contextVenueId!),
     enabled: !!contextVenueId,
   })
+  const storesTeam = storesTeamData?.team
 
   // Activity log for selected member
   const { data: rawActivityLog = [] } = useQuery({

@@ -235,8 +235,8 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
   const resolveSuperadminTestCredentials = useCallback(
     async (payload: Record<string, any>, fallbackEmail: string): Promise<TestCredentials | null> => {
       const ensureTestUserIsActive = async (email: string): Promise<{ userId: string; username: string } | null> => {
-        const teamMembers = await getTeam(venueId)
-        const createdMember = teamMembers.find(member => (member.email || '').toLowerCase() === email.toLowerCase())
+        const teamData = await getTeam(venueId)
+        const createdMember = teamData.team.find(member => (member.email || '').toLowerCase() === email.toLowerCase())
 
         if (!createdMember?.id) {
           return null
