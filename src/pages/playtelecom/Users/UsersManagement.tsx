@@ -12,33 +12,42 @@
  * Access: ADMIN+ only
  */
 
-import { useState, useMemo, useCallback, useRef } from 'react'
-import { useTranslation } from 'react-i18next'
-import { type ColumnDef } from '@tanstack/react-table'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { getTeam, getZones, adminResetPassword, getStaffActivityLog, syncStaffVenues } from '@/services/storesAnalysis.service'
-import { teamService } from '@/services/team.service'
-import { useAuth } from '@/context/AuthContext'
-import { useToast } from '@/hooks/use-toast'
-import { useRoleConfig } from '@/hooks/use-role-config'
-import { getRoleBadgeColor } from '@/utils/role-permissions'
 import DataTable from '@/components/data-table'
-import { FilterPill, CheckboxFilterContent } from '@/components/filters'
-import { FullScreenModal } from '@/components/ui/full-screen-modal'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
+import { CheckboxFilterContent, FilterPill } from '@/components/filters'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Skeleton } from '@/components/ui/skeleton'
-import InviteTeamMemberForm, { type InviteTeamMemberFormRef } from '@/pages/Team/components/InviteTeamMemberForm'
-import { StaffRole } from '@/types'
+import { Switch } from '@/components/ui/switch'
+import { useAuth } from '@/context/AuthContext'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useRoleConfig } from '@/hooks/use-role-config'
+import { useToast } from '@/hooks/use-toast'
 import { canModifyRole, getModifiableRoles } from '@/lib/permissions/roleHierarchy'
-import { UserDetailPanel, type UserDetailPanelRef, type UserListItem, type UserDetail, type Zone, type StoreOption, type AuditLogEntry } from './components'
-import { UserCheck, UserX, UserPlus, Store, X, Save, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import InviteTeamMemberForm, { type InviteTeamMemberFormRef } from '@/pages/Team/components/InviteTeamMemberForm'
+import { adminResetPassword, getStaffActivityLog, getTeam, getZones, syncStaffVenues } from '@/services/storesAnalysis.service'
+import { teamService } from '@/services/team.service'
+import { StaffRole } from '@/types'
+import { getRoleBadgeColor } from '@/utils/role-permissions'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { type ColumnDef } from '@tanstack/react-table'
+import { Building2, RotateCcw, Save, Store, UserCheck, UserPlus, UserX, X } from 'lucide-react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import {
+  UserDetailPanel,
+  type AuditLogEntry,
+  type StoreOption,
+  type UserDetail,
+  type UserDetailPanelRef,
+  type UserListItem,
+  type Zone,
+} from './components'
 
 /** Query key helpers */
-const teamQueryKey = (venueId: string | null) => ['stores-analysis', venueId, 'team']
+const teamQueryKey = (venueId: string | null, scope: 'venue' | 'org' = 'venue') => ['stores-analysis', venueId, 'team', scope]
 
 /** Map backend action codes -> AuditLogTerminal action types */
 const ACTION_TYPE_MAP: Record<string, AuditLogEntry['action']> = {
@@ -80,6 +89,7 @@ export function UsersManagement() {
 
   // State
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [teamScope, setTeamScope] = useState<'venue' | 'org'>('venue')
 
   // Stripe-style filter state (arrays for multi-select)
   const [roleFilter, setRoleFilter] = useState<string[]>([])
@@ -100,12 +110,14 @@ export function UsersManagement() {
   const [tempPassword, setTempPassword] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
-  // Fetch team members via organization-level endpoint
-  const { data: teamMembers = [], isLoading } = useQuery({
-    queryKey: teamQueryKey(venueId),
-    queryFn: () => getTeam(venueId!),
+  // Fetch team members (scoped by venue or org)
+  const { data: teamData, isLoading } = useQuery({
+    queryKey: teamQueryKey(venueId, teamScope),
+    queryFn: () => getTeam(venueId!, teamScope),
     enabled: !!venueId,
   })
+  const teamMembers = useMemo(() => teamData?.team ?? [], [teamData?.team])
+  const canViewAllOrgStaff = teamData?.meta?.canViewAllOrgStaff ?? false
 
   // Fetch zones via venue-level endpoint
   const { data: orgZones = [] } = useQuery({
@@ -130,7 +142,7 @@ export function UsersManagement() {
       teamService.updateTeamMember(venueId!, staffVenueId, { role }),
     onSuccess: () => {
       toast({ title: t('playtelecom:users.roleUpdated', { defaultValue: 'Rol actualizado' }) })
-      queryClient.invalidateQueries({ queryKey: teamQueryKey(venueId) })
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'team'] })
       queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'activity'] })
     },
     onError: (error: any) => {
@@ -148,7 +160,7 @@ export function UsersManagement() {
           ? t('playtelecom:users.userActivated', { defaultValue: 'Usuario activado' })
           : t('playtelecom:users.userDeactivated', { defaultValue: 'Usuario desactivado' }),
       })
-      queryClient.invalidateQueries({ queryKey: teamQueryKey(venueId) })
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'team'] })
       queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'activity'] })
     },
     onError: (error: any) => {
@@ -173,13 +185,12 @@ export function UsersManagement() {
   })
 
   const syncVenuesMutation = useMutation({
-    mutationFn: ({ staffId, venueIds }: { staffId: string; venueIds: string[] }) =>
-      syncStaffVenues(venueId!, staffId, venueIds),
-    onSuccess: (data) => {
+    mutationFn: ({ staffId, venueIds }: { staffId: string; venueIds: string[] }) => syncStaffVenues(venueId!, staffId, venueIds),
+    onSuccess: data => {
       if (data.added > 0 || data.removed > 0) {
         toast({ title: t('playtelecom:users.venuesUpdated', { defaultValue: 'Tiendas actualizadas' }) })
       }
-      queryClient.invalidateQueries({ queryKey: teamQueryKey(venueId) })
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'team'] })
       queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'activity'] })
     },
     onError: () => {
@@ -195,9 +206,7 @@ export function UsersManagement() {
   const zones: Zone[] = useMemo(() => orgZones.map(z => ({ id: z.id, name: z.name })), [orgZones])
 
   const allStores: StoreOption[] = useMemo(() => {
-    const fromZones = orgZones.flatMap(z =>
-      z.venues.map(v => ({ id: v.id, name: v.name, zoneId: z.id })),
-    )
+    const fromZones = orgZones.flatMap(z => z.venues.map(v => ({ id: v.id, name: v.name, zoneId: z.id })))
     if (fromZones.length > 0) return fromZones
     const venueMap = new Map<string, StoreOption>()
     for (const member of teamMembers) {
@@ -216,7 +225,10 @@ export function UsersManagement() {
         id: log.id,
         timestamp: log.createdAt,
         action: ACTION_TYPE_MAP[log.action] || 'warning',
-        message: (ACTION_MESSAGE_BUILDERS[log.action] || ((_d: unknown, by: string) => `${log.action} por ${by}`))(log.data, log.performedBy),
+        message: (ACTION_MESSAGE_BUILDERS[log.action] || ((_d: unknown, by: string) => `${log.action} por ${by}`))(
+          log.data,
+          log.performedBy,
+        ),
       })),
     [rawActivityLog],
   )
@@ -277,20 +289,20 @@ export function UsersManagement() {
 
   // ---------- Filter Options ----------
 
-  const roleOptions = useMemo(() =>
-    activeRoles.map(rc => ({ value: rc.role, label: getDisplayName(rc.role) })),
+  const roleOptions = useMemo(
+    () => activeRoles.map(rc => ({ value: rc.role, label: getDisplayName(rc.role) })),
     [activeRoles, getDisplayName],
   )
 
-  const statusOptions = useMemo(() => [
-    { value: 'active', label: 'Activo' },
-    { value: 'inactive', label: 'Inactivo' },
-  ], [])
-
-  const storesOptions = useMemo(() =>
-    allStores.map(s => ({ value: s.id, label: s.name })),
-    [allStores],
+  const statusOptions = useMemo(
+    () => [
+      { value: 'active', label: 'Activo' },
+      { value: 'inactive', label: 'Inactivo' },
+    ],
+    [],
   )
+
+  const storesOptions = useMemo(() => allStores.map(s => ({ value: s.id, label: s.name })), [allStores])
 
   // Filter display label helper
   const getFilterLabel = useCallback((values: string[], options: { value: string; label: string }[]) => {
@@ -336,9 +348,7 @@ export function UsersManagement() {
 
   const assignableRoles = useMemo(() => {
     if (!currentUserRole) return []
-    return getModifiableRoles(currentUserRole).filter(
-      r => r !== StaffRole.SUPERADMIN && r !== StaffRole.OWNER,
-    )
+    return getModifiableRoles(currentUserRole).filter(r => r !== StaffRole.SUPERADMIN && r !== StaffRole.OWNER)
   }, [currentUserRole])
 
   // ---------- Handlers ----------
@@ -359,9 +369,7 @@ export function UsersManagement() {
         const currentUser = usersFullData.find(u => u.id === selectedUserId)
         const currentStores = currentUser?.selectedStores || []
         const newStores = updates.selectedStores
-        const hasVenueChanges =
-          currentStores.length !== newStores.length ||
-          currentStores.some(id => !newStores.includes(id))
+        const hasVenueChanges = currentStores.length !== newStores.length || currentStores.some(id => !newStores.includes(id))
         if (hasVenueChanges) {
           syncVenuesMutation.mutate({ staffId: selectedUserId, venueIds: newStores })
         }
@@ -388,7 +396,7 @@ export function UsersManagement() {
 
   const handleInviteSuccess = useCallback(() => {
     setShowInviteDialog(false)
-    queryClient.invalidateQueries({ queryKey: teamQueryKey(venueId) })
+    queryClient.invalidateQueries({ queryKey: ['stores-analysis', venueId, 'team'] })
     queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
     queryClient.invalidateQueries({ queryKey: ['team-invitations', venueId] })
   }, [venueId, queryClient])
@@ -397,9 +405,7 @@ export function UsersManagement() {
   const handleSearch = useCallback((search: string, rows: UserRow[]) => {
     if (!search) return rows
     const q = search.toLowerCase()
-    return rows.filter(u =>
-      u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q),
-    )
+    return rows.filter(u => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
   }, [])
 
   const isSaving = updateRoleMutation.isPending || updateStatusMutation.isPending || syncVenuesMutation.isPending
@@ -448,11 +454,7 @@ export function UsersManagement() {
                 'inline-flex items-center h-5 px-2 text-[10px] font-medium rounded-full leading-none',
                 customColor ? 'border border-current/20' : fallbackClasses,
               )}
-              style={
-                customColor
-                  ? { backgroundColor: `${customColor}20`, color: customColor, borderColor: `${customColor}40` }
-                  : undefined
-              }
+              style={customColor ? { backgroundColor: `${customColor}20`, color: customColor, borderColor: `${customColor}40` } : undefined}
             >
               {getDisplayName(role)}
             </span>
@@ -467,9 +469,15 @@ export function UsersManagement() {
           return (
             <Badge variant={isActive ? 'default' : 'secondary'} className="text-[11px] h-5 px-2">
               {isActive ? (
-                <><UserCheck className="w-3 h-3 mr-1" />{t('playtelecom:users.status.active', { defaultValue: 'Activo' })}</>
+                <>
+                  <UserCheck className="w-3 h-3 mr-1" />
+                  {t('playtelecom:users.status.active', { defaultValue: 'Activo' })}
+                </>
               ) : (
-                <><UserX className="w-3 h-3 mr-1" />{t('playtelecom:users.status.inactive', { defaultValue: 'Inactivo' })}</>
+                <>
+                  <UserX className="w-3 h-3 mr-1" />
+                  {t('playtelecom:users.status.inactive', { defaultValue: 'Inactivo' })}
+                </>
               )}
             </Badge>
           )
@@ -521,12 +529,7 @@ export function UsersManagement() {
           isActive={roleFilter.length > 0}
           onClear={() => setRoleFilter([])}
         >
-          <CheckboxFilterContent
-            title="Filtrar por Rol"
-            options={roleOptions}
-            selectedValues={roleFilter}
-            onApply={setRoleFilter}
-          />
+          <CheckboxFilterContent title="Filtrar por Rol" options={roleOptions} selectedValues={roleFilter} onApply={setRoleFilter} />
         </FilterPill>
 
         {/* Estado filter */}
@@ -562,23 +565,22 @@ export function UsersManagement() {
 
         {/* Reset filters button */}
         {activeFiltersCount > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={resetFilters}
-            className="h-8 gap-1.5 rounded-full cursor-pointer"
-          >
+          <Button variant="outline" size="sm" onClick={resetFilters} className="h-8 gap-1.5 rounded-full cursor-pointer">
             <X className="h-3.5 w-3.5" />
             Borrar filtros
           </Button>
         )}
 
-        {/* Push invite button right */}
-        <div className="ml-auto flex items-center gap-2">
-          <Button
-            onClick={() => setShowInviteDialog(true)}
-            className="h-10 gap-1.5 rounded-xl cursor-pointer px-4"
-          >
+        {/* Push toggle + invite button right */}
+        <div className="ml-auto flex items-center gap-3">
+          {canViewAllOrgStaff && (
+            <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground">
+              <Building2 className="w-3.5 h-3.5" />
+              <span>{t('playtelecom:users.allStores', { defaultValue: 'Todas las tiendas' })}</span>
+              <Switch checked={teamScope === 'org'} onCheckedChange={checked => setTeamScope(checked ? 'org' : 'venue')} />
+            </label>
+          )}
+          <Button onClick={() => setShowInviteDialog(true)} className="h-10 gap-1.5 rounded-xl cursor-pointer px-4">
             <UserPlus className="w-4 h-4" />
             {t('playtelecom:users.invite', { defaultValue: 'Invitar' })}
           </Button>
@@ -591,7 +593,7 @@ export function UsersManagement() {
         columns={columns}
         rowCount={filteredRows.length}
         isLoading={isLoading}
-        onRowClick={(row) => setSelectedUserId(row.id)}
+        onRowClick={row => setSelectedUserId(row.id)}
         tableId="playtelecom:users"
         enableSearch
         searchPlaceholder={t('playtelecom:users.searchPlaceholder', { defaultValue: 'Buscar usuario...' })}
@@ -601,7 +603,10 @@ export function UsersManagement() {
       {/* User Detail Modal */}
       <FullScreenModal
         open={!!selectedUserId}
-        onClose={() => { setSelectedUserId(null); setDetailHasChanges(false) }}
+        onClose={() => {
+          setSelectedUserId(null)
+          setDetailHasChanges(false)
+        }}
         title={selectedUser?.name || ''}
         contentClassName="bg-muted/30"
         actions={
@@ -687,12 +692,15 @@ export function UsersManagement() {
       )}
 
       {/* Temp Password Dialog */}
-      <Dialog open={!!tempPassword} onOpenChange={open => { if (!open) setTempPassword(null) }}>
+      <Dialog
+        open={!!tempPassword}
+        onOpenChange={open => {
+          if (!open) setTempPassword(null)
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {t('playtelecom:users.resetPasswordSuccess', { defaultValue: 'Contraseña restablecida' })}
-            </DialogTitle>
+            <DialogTitle>{t('playtelecom:users.resetPasswordSuccess', { defaultValue: 'Contraseña restablecida' })}</DialogTitle>
             <DialogDescription>
               {t('playtelecom:users.resetPasswordHint', {
                 defaultValue: 'Comparte esta contraseña temporal de forma segura. El usuario deberá cambiarla al iniciar sesión.',

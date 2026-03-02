@@ -435,11 +435,16 @@ export interface TeamMember {
 }
 
 /**
- * Get organization team members
+ * Get team members (venue-scoped by default, org-scoped for OWNER/SUPERADMIN)
  */
-export const getTeam = async (venueId: string): Promise<TeamMember[]> => {
-  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/team`)
-  return response.data.data
+export const getTeam = async (
+  venueId: string,
+  scope: 'venue' | 'org' = 'venue',
+): Promise<{ team: TeamMember[]; meta: { scope: string; canViewAllOrgStaff: boolean } }> => {
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/team`, {
+    params: { scope },
+  })
+  return { team: response.data.data, meta: response.data.meta }
 }
 
 /**
