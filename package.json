@@ -130,7 +130,7 @@
     "eslint": "^9.38.0",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.24",
-    "eslint-plugin-unused-imports": "^4.3.0",
+    "eslint-plugin-unused-imports": "^4.4.1",
     "globals": "^15.15.0",
     "jsdom": "^27.3.0",
     "knip": "^5.83.1",
