@@ -8,6 +8,15 @@ import './i18n'
 import './index.css'
 import './theme.css'
 
+// Handle Vite preload errors (CSS/JS chunks missing after deploy)
+// Vite emits this event when a dynamic import's preloaded dependency fails to load
+window.addEventListener('vite:preloadError', () => {
+  if (!sessionStorage.getItem('chunk-reload-attempted')) {
+    sessionStorage.setItem('chunk-reload-attempted', 'true')
+    window.location.reload()
+  }
+})
+
 const queryClient = new QueryClient()
 
 const rootElement = document.getElementById('root')
