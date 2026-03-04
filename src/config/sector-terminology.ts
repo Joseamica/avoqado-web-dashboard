@@ -119,8 +119,8 @@ export const SECTOR_TERMINOLOGY: Record<BusinessCategory, Record<SupportedLocale
   },
   SERVICES: {
     es: {
-      menu: 'Servicios',
-      menuPlural: 'Servicios',
+      menu: 'Artículos/Servicios',
+      menuPlural: 'Artículos/Servicios',
       item: 'Servicio',
       itemPlural: 'Servicios',
       order: 'Cita',
@@ -137,8 +137,8 @@ export const SECTOR_TERMINOLOGY: Record<BusinessCategory, Record<SupportedLocale
       hostPlural: 'Recepcionistas',
     },
     en: {
-      menu: 'Services',
-      menuPlural: 'Services',
+      menu: 'Items/Services',
+      menuPlural: 'Items/Services',
       item: 'Service',
       itemPlural: 'Services',
       order: 'Appointment',
