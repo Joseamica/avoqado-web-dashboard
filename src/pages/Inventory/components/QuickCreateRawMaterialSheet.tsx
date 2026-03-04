@@ -117,6 +117,7 @@ export function QuickCreateRawMaterialSheet({ open, onOpenChange, initialName, o
       currentStock: 0,
       minimumStock: 0,
       reorderPoint: 0,
+      notifyOnLowStock: true,
       perishable: false,
     }
 

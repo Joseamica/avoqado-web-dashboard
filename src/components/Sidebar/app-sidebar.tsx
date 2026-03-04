@@ -39,6 +39,7 @@
 } from 'lucide-react'
 import * as React from 'react'
 import { useLocation } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 
 import { NavMain } from '@/components/Sidebar/nav-main'
 import { NavUser } from '@/components/Sidebar/nav-user'
@@ -51,6 +52,7 @@ import { useAccess } from '@/hooks/use-access'
 import { canAccessOperationalFeatures } from '@/lib/kyc-utils'
 import { useWhiteLabelConfig, getFeatureRoute } from '@/hooks/useWhiteLabelConfig'
 import { useTerminology } from '@/hooks/use-terminology'
+import api from '@/api'
 
 // ============================================
 // Icon Mapping for White-Label Navigation
@@ -175,6 +177,41 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
   // ========== Sector-Aware Terminology ==========
   const { term } = useTerminology()
 
+  const queryClient = useQueryClient()
+
+  // ========== Sidebar Visibility (Superadmin Toggle) ==========
+  const isSuperadmin = effectiveRole === 'SUPERADMIN'
+  const [hiddenSidebarItems, setHiddenSidebarItems] = React.useState<string[]>(activeVenue?.settings?.hiddenSidebarItems ?? [])
+
+  // Sync local state when venue changes
+  React.useEffect(() => {
+    setHiddenSidebarItems(activeVenue?.settings?.hiddenSidebarItems ?? [])
+  }, [activeVenue?.id, activeVenue?.settings?.hiddenSidebarItems])
+
+  const handleToggleVisibility = React.useCallback(
+    async (url: string) => {
+      if (!activeVenue?.id) return
+
+      const current = hiddenSidebarItems
+      const updated = current.includes(url) ? current.filter(u => u !== url) : [...current, url]
+
+      // Optimistic update
+      setHiddenSidebarItems(updated)
+
+      try {
+        await api.put(`/api/v1/dashboard/venues/${activeVenue.id}/settings`, {
+          hiddenSidebarItems: updated,
+        })
+        // Refresh venue data so other components stay in sync
+        await queryClient.refetchQueries({ queryKey: ['status'] })
+      } catch {
+        // Revert on failure
+        setHiddenSidebarItems(current)
+      }
+    },
+    [activeVenue?.id, hiddenSidebarItems, queryClient],
+  )
+
   // ========== White-Label Dashboard Mode ==========
   const { isWhiteLabelEnabled, navigation: wlNavigation, isFeatureEnabled } = useWhiteLabelConfig()
 
@@ -241,11 +278,19 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       },
       {
         title: term('menu'),
-        isActive: true,
+        isActive: location.pathname.includes('/menumaker'),
         url: 'menumaker/overview',
         icon: BookOpen,
         permission: 'menu:read',
         locked: false,
+        items: [
+          { title: t('menu:menumaker.nav.overview'), url: 'menumaker/overview', permission: 'menu:read' },
+          { title: t('menu:menumaker.nav.menus'), url: 'menumaker/menus', permission: 'menu:read' },
+          { title: t('menu:menumaker.nav.categories'), url: 'menumaker/categories', permission: 'menu:read' },
+          { title: t('menu:menumaker.nav.products'), url: 'menumaker/products', permission: 'menu:read' },
+          { title: t('menu:menumaker.nav.services'), url: 'menumaker/services', permission: 'menu:read' },
+          { title: t('menu:menumaker.nav.modifierGroups'), url: 'menumaker/modifier-groups', permission: 'menu:read' },
+        ],
       },
       {
         title: t('sidebar:routes.inventory'),
@@ -258,14 +303,14 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         items: [
           { title: 'Resumen de existencias', url: 'inventory/stock-overview', permission: 'inventory:read' },
           { title: 'Historial', url: 'inventory/history', permission: 'inventory:read' },
-          { title: 'Recuentos de existencias', url: 'inventory/counts', permission: 'inventory:read' },
           { title: 'Pedidos', url: 'inventory/purchase-orders', permission: 'inventory:read' },
           { title: 'Proveedores', url: 'inventory/suppliers', permission: 'inventory:read' },
-          { title: 'Reabastecimientos pendientes', url: 'inventory/restocks', permission: 'inventory:read' },
           { title: 'Ingredientes', url: 'inventory/ingredients', permission: 'inventory:read' },
           { title: t('sidebar:routes.recipes', { defaultValue: 'Recetas' }), url: 'inventory/recipes', permission: 'inventory:read' },
           { title: 'Precios', url: 'inventory/pricing', permission: 'inventory:read' },
           { title: 'Modificadores', url: 'inventory/modifier-analytics', permission: 'inventory:read' },
+          { title: 'Recuentos de existencias', url: 'inventory/counts', permission: 'inventory:read', comingSoon: true },
+          { title: 'Reabastecimientos pendientes', url: 'inventory/restocks', permission: 'inventory:read', comingSoon: true },
         ],
       },
       // NOTE: Payments and Orders moved to "Ventas" collapsible section below
@@ -322,16 +367,16 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     // Map of standard sidebar URLs to their white-label feature codes
     // EVERY Avoqado core item must be here so white-label venues only show explicitly-enabled features
     const urlToWhiteLabelFeature: Record<string, string> = {
-      'home': 'AVOQADO_DASHBOARD',
+      home: 'AVOQADO_DASHBOARD',
       'menumaker/overview': 'AVOQADO_MENU',
       'inventory/raw-materials': 'AVOQADO_INVENTORY',
-      'team': 'AVOQADO_TEAM',
-      'reviews': 'AVOQADO_REVIEWS',
-      'tpv': 'AVOQADO_TPVS',
-      'commissions': 'AVOQADO_COMMISSIONS',
+      team: 'AVOQADO_TEAM',
+      reviews: 'AVOQADO_REVIEWS',
+      tpv: 'AVOQADO_TPVS',
+      commissions: 'AVOQADO_COMMISSIONS',
       'available-balance': 'AVOQADO_BALANCE',
-      'shifts': 'AVOQADO_SHIFTS',
-      'reservations': 'AVOQADO_RESERVATIONS',
+      shifts: 'AVOQADO_SHIFTS',
+      reservations: 'AVOQADO_RESERVATIONS',
     }
 
     // Filter items based on permissions AND active features
@@ -373,7 +418,12 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     // Following Square's "Orders & payments" pattern for better UX
     const salesSubItems = [
       { title: term('orderPlural'), url: 'orders', permission: 'orders:read', whiteLabelFeature: 'AVOQADO_ORDERS' },
-      { title: t('sidebar:salesMenu.transactions', { defaultValue: 'Transacciones' }), url: 'payments', permission: 'payments:read', whiteLabelFeature: 'AVOQADO_PAYMENTS' },
+      {
+        title: t('sidebar:salesMenu.transactions', { defaultValue: 'Transacciones' }),
+        url: 'payments',
+        permission: 'payments:read',
+        whiteLabelFeature: 'AVOQADO_PAYMENTS',
+      },
     ].filter(item => {
       // Check permission
       if (item.permission && !can(item.permission)) return false
@@ -491,6 +541,8 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
         ? [{ title: t('sidebar:routes.billing'), url: 'settings/billing', permission: 'billing:read' }]
         : []),
+      // Notifications preferences
+      { title: t('sidebar:routes.notifications'), url: 'notifications/preferences', permission: 'settings:read' },
     ].filter(item => !item.permission || can(item.permission))
 
     // Only show Settings menu if user has at least one subitem
@@ -581,12 +633,18 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>{defaultVenue && <VenuesSwitcher venues={venuesToShow} defaultVenue={defaultVenue} />}</SidebarHeader>
+      <SidebarHeader className="p-0 border-b border-sidebar-border">{defaultVenue && <VenuesSwitcher venues={venuesToShow} defaultVenue={defaultVenue} />}</SidebarHeader>
       <SidebarContent>
-        <NavMain items={navMain} superadminItems={user.role === 'SUPERADMIN' ? superAdminRoutes : []} />
+        <NavMain
+          items={navMain}
+          superadminItems={user.role === 'SUPERADMIN' ? superAdminRoutes : []}
+          hiddenSidebarItems={hiddenSidebarItems}
+          isSuperadmin={isSuperadmin}
+          onToggleVisibility={isSuperadmin ? handleToggleVisibility : undefined}
+        />
         {/* <NavProjects projects={data.projects} /> */}
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="p-0 border-t border-sidebar-border">
         <NavUser user={navUser} />
       </SidebarFooter>
       <SidebarRail />

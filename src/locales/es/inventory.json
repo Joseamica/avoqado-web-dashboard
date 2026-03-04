@@ -85,6 +85,7 @@
       "avgCostPerUnit": "Costo Promedio",
       "perishable": "Perecedero",
       "shelfLifeDays": "Vida Útil (días)",
+      "notifyOnLowStock": "Notificar cuando el stock sea bajo",
       "active": "Activo",
       "description": "Descripción"
     },
@@ -195,8 +196,20 @@
       "reorderPoint": "El nivel de stock que activa una orden de compra. Debe ser mayor que el stock mínimo para considerar el tiempo de entrega. Ejemplo: Si el mínimo es 5kg y la entrega toma 3 días, configura el punto de reorden en 10kg.",
       "maximumStock": "Capacidad máxima de almacenamiento para este ingrediente. Ayuda a prevenir exceso de pedidos y desperdicio. Opcional pero recomendado para items perecederos.",
       "costPerUnit": "El costo por la unidad de medida que seleccionaste. Por ejemplo, si seleccionaste 'kg', ingresa el costo por kilogramo. Si 'litros', ingresa el costo por litro.",
+      "notifyOnLowStock": "Envía notificación por correo y en la app cuando el stock llegue al punto de reorden. La alerta se sigue registrando en el dashboard aunque esté desactivado.",
       "perishable": "Marca esto si el ingrediente tiene fecha de vencimiento o vida útil limitada (carne, lácteos, frutas/verduras). Activa el seguimiento de vencimiento y alertas.",
       "shelfLifeDays": "El número de días que este ingrediente se mantiene fresco después de recibirlo. Esto se usa para calcular automáticamente las fechas de vencimiento de cada lote que recibas. Por ejemplo, si la leche tiene una vida útil de 7 días, un lote recibido hoy vencerá en 7 días."
+    },
+    "costCalculator": {
+      "sectionTitle": "Costo y Compra",
+      "toggle": "Calculadora de costo",
+      "hint": "Opcional: Completa los 3 pasos para calcular tu costo por unidad",
+      "pricePaid": "¿Cuánto pagaste?",
+      "quantity": "¿Cuánto compraste?",
+      "unit": "Unidad",
+      "applied": "Aplicado ✓",
+      "manualEdit": "Editar manualmente",
+      "useCalculator": "Usar calculadora"
     }
   },
 

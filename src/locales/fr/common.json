@@ -279,6 +279,30 @@
       "paymentCard": "Carte",
       "paymentWaiter": "Serveur",
       "paymentTotal": "Total"
+    },
+    "createProduct": {
+      "formTitle": "Créer un produit depuis le chat",
+      "fields": {
+        "name": "Nom",
+        "price": "Prix",
+        "sku": "SKU",
+        "category": "Catégorie",
+        "categoryPlaceholder": "Sélectionnez une catégorie",
+        "needsModifiers": "Ce produit utilise des groupes de modificateurs"
+      },
+      "actions": {
+        "create": "Créer le produit"
+      },
+      "validation": {
+        "nameRequired": "Saisissez le nom du produit.",
+        "priceRequired": "Saisissez un prix valide supérieur à 0.",
+        "skuInvalid": "Le SKU accepte uniquement lettres, chiffres, tirets et underscores.",
+        "categoryRequired": "Sélectionnez une catégorie pour le produit.",
+        "modifierGroupRequired": "Sélectionnez au moins un groupe de modificateurs."
+      },
+      "submitMessage": "Créer le produit {{name}}",
+      "noCategories": "Aucune catégorie active n'est disponible pour ce lieu.",
+      "createdTitle": "Produit créé"
     }
   },
   "flags": {

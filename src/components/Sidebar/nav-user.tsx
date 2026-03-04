@@ -42,14 +42,14 @@ export function NavUser({
       <SidebarMenuItem>
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuButton size="lg" className="cursor-pointer data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
-              <Avatar className="w-8 h-8 rounded-lg">
+            <SidebarMenuButton size="lg" className="cursor-pointer data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground rounded-none h-auto! px-4! py-6!">
+              <Avatar className="w-9 h-9 rounded-lg">
                 <AvatarImage src={user.image} alt={user.name} />
                 <AvatarFallback className="rounded-lg">{user.email.charAt(0).toLocaleUpperCase()}</AvatarFallback>
               </Avatar>
-              <div className="grid flex-1 text-sm leading-tight text-left">
+              <div className="grid flex-1 gap-0.5 text-sm leading-normal text-left">
                 <span className="font-semibold truncate">{user.name}</span>
-                <span className="text-xs truncate">{user.email}</span>
+                <span className="text-xs truncate text-muted-foreground">{user.email}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>

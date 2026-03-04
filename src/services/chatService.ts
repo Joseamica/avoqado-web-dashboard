@@ -15,6 +15,65 @@ const devLog = (...args: unknown[]) => {
   }
 }
 
+export const CREATE_PRODUCT_ACTION_COMMAND_PREFIX = '__AIOPS_CREATE_PRODUCT__:'
+
+export interface CreateProductActionPayload {
+  name: string
+  price: number
+  sku: string
+  categoryId: string
+  type?: string
+  needsModifiers?: boolean
+  modifierGroupIds?: string[]
+}
+
+export const buildCreateProductActionCommand = (payload: CreateProductActionPayload): string => {
+  return `${CREATE_PRODUCT_ACTION_COMMAND_PREFIX}${JSON.stringify(payload)}`
+}
+
+export interface CreateProductActionOption {
+  id: string
+  name: string
+}
+
+export interface CreateProductActionDraft {
+  name?: string
+  price?: number
+  sku?: string
+  categoryId?: string
+  type?: string
+  needsModifiers?: boolean
+  modifierGroupIds?: string[]
+}
+
+export interface CreateProductActionMetadata {
+  type: 'create_product'
+  stage: 'collect' | 'created'
+  requiredFields: Array<'name' | 'price' | 'sku' | 'categoryId'>
+  missingFields: Array<'name' | 'price' | 'sku' | 'categoryId'>
+  draft: CreateProductActionDraft
+  categories: CreateProductActionOption[]
+  modifierGroups: CreateProductActionOption[]
+  createdProduct?: {
+    id: string
+    name: string
+    sku: string
+    categoryName: string
+    price: number
+  }
+}
+
+export interface ChatResponseMetadata {
+  confidence?: number
+  queryGenerated?: boolean
+  queryExecuted?: boolean
+  rowsReturned?: number
+  executionTime?: number
+  dataSourcesUsed?: string[]
+  sqlQuery?: string
+  action?: CreateProductActionMetadata
+}
+
 // Tipos para el chat
 export interface ChatMessage {
   id: string
@@ -23,15 +82,7 @@ export interface ChatMessage {
   timestamp: Date
   cached?: boolean
   trainingDataId?: string
-  metadata?: {
-    confidence?: number
-    queryGenerated?: boolean
-    queryExecuted?: boolean
-    rowsReturned?: number
-    executionTime?: number
-    dataSourcesUsed?: string[]
-    sqlQuery?: string
-  }
+  metadata?: ChatResponseMetadata
 }
 
 interface ConversationEntry {
@@ -97,15 +148,7 @@ interface ChatResponse {
     completionTokens: number
     totalTokens: number
   }
-  metadata?: {
-    confidence: number
-    queryGenerated?: boolean
-    queryExecuted?: boolean
-    rowsReturned?: number
-    executionTime?: number
-    dataSourcesUsed: string[]
-    sqlQuery?: string
-  }
+  metadata?: ChatResponseMetadata
 }
 
 // Funciones de utilidad para localStorage

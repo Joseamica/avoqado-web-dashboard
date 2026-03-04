@@ -448,10 +448,10 @@ export interface OrderItem {
   id: string
   orderId: string
   order?: Order
-  productId: string | null  // Nullable for serialized inventory items
-  product?: Product | null  // Nullable for serialized inventory items
-  productName?: string | null  // Snapshot field - used when productId is null (e.g., serialized items)
-  productSku?: string | null  // Snapshot field - used for serialized item serial numbers
+  productId: string | null // Nullable for serialized inventory items
+  product?: Product | null // Nullable for serialized inventory items
+  productName?: string | null // Snapshot field - used when productId is null (e.g., serialized items)
+  productSku?: string | null // Snapshot field - used for serialized item serial numbers
   quantity: number
   unitPrice: number
   total: number
@@ -628,6 +628,9 @@ export interface VenueSettings {
   acceptCard: boolean
   acceptDigitalWallet: boolean
   tipSuggestions: any | null // Json type
+
+  // Sidebar visibility (superadmin toggle per venue)
+  hiddenSidebarItems: string[]
 
   updatedAt: string
 }
@@ -1150,8 +1153,8 @@ export interface OrderItemSimple {
   unitPrice: number
   total: number
   notes: string | null
-  product?: Product | null  // Optional for serialized inventory items
-  productName?: string | null  // Snapshot field for when productId is null
+  product?: Product | null // Optional for serialized inventory items
+  productName?: string | null // Snapshot field for when productId is null
 }
 
 // ==========================================
@@ -1666,6 +1669,11 @@ export interface SessionVenue {
     enabled: boolean
     config?: Record<string, unknown>
   }>
+  // Sidebar visibility settings (from VenueSettings)
+  settings?: {
+    enableShifts: boolean
+    hiddenSidebarItems: string[]
+  } | null
 }
 
 // ==========================================

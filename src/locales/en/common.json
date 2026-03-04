@@ -370,6 +370,30 @@
       "paymentCard": "Card",
       "paymentWaiter": "Waiter",
       "paymentTotal": "Total"
+    },
+    "createProduct": {
+      "formTitle": "Create product from chat",
+      "fields": {
+        "name": "Name",
+        "price": "Price",
+        "sku": "SKU",
+        "category": "Category",
+        "categoryPlaceholder": "Select a category",
+        "needsModifiers": "This product uses modifier groups"
+      },
+      "actions": {
+        "create": "Create product"
+      },
+      "validation": {
+        "nameRequired": "Enter the product name.",
+        "priceRequired": "Enter a valid price greater than 0.",
+        "skuInvalid": "SKU only allows letters, numbers, dashes, and underscores.",
+        "categoryRequired": "Select a category for the product.",
+        "modifierGroupRequired": "Select at least one modifier group."
+      },
+      "submitMessage": "Create product {{name}}",
+      "noCategories": "No active categories are available for this venue.",
+      "createdTitle": "Product created"
     }
   },
   "flags": {

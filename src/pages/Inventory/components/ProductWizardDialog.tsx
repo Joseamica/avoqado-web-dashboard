@@ -202,8 +202,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const [highlightAddButton, setHighlightAddButton] = useState(false)
   const [advancedRecipeOpen, setAdvancedRecipeOpen] = useState(false)
 
-  // ✅ FIX: Track if we've already loaded existing data to prevent overwriting user changes
+  // Track if we've already loaded existing data to prevent overwriting user changes
   const [hasLoadedExistingData, setHasLoadedExistingData] = useState(false)
+  const [hasLoadedProductDetails, setHasLoadedProductDetails] = useState(false)
 
   // Step 1 Form
   const step1Form = useForm<Step1FormData>({
@@ -551,7 +552,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     setStep2Data(null)
     setHighlightAddButton(false)
     setAdvancedRecipeOpen(false)
-    setHasLoadedExistingData(false) // ✅ Reset flag so next opening loads fresh data
+    setHasLoadedExistingData(false)
+    setHasLoadedProductDetails(false)
     step1Form.reset()
     step2Form.reset()
     step3SimpleForm.reset()
@@ -566,8 +568,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   }, [open, resetWizard])
 
   // Load existing product data into step1Form in edit mode
+  // Uses its own flag (hasLoadedProductDetails) independent from inventory data loading
   useEffect(() => {
-    if (open && mode === 'edit' && existingProduct && !isLoadingProduct && !hasLoadedExistingData) {
+    if (open && mode === 'edit' && existingProduct && !isLoadingProduct && !hasLoadedProductDetails) {
       // Populate step1Form with existing product data
       step1Form.setValue('name', existingProduct.name || '')
       step1Form.setValue('description', existingProduct.description || '')
@@ -576,10 +579,11 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       step1Form.setValue('imageUrl', existingProduct.imageUrl || '')
 
       // Load modifier groups if available
+      // modifierGroups is the junction table (ProductModifierGroup[]), each with a .group relation
       if (existingProduct.modifierGroups && existingProduct.modifierGroups.length > 0) {
         const modifierGroupsForForm = existingProduct.modifierGroups.map((mg: any) => ({
-          label: mg.name,
-          value: mg.id,
+          label: mg.group?.name ?? mg.name,
+          value: mg.group?.id ?? mg.groupId ?? mg.id,
         }))
         step1Form.setValue('modifierGroups', modifierGroupsForForm)
       }
@@ -596,14 +600,16 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       if (existingProduct.maxParticipants != null) {
         step1Form.setValue('maxParticipants', existingProduct.maxParticipants)
       }
+
+      setHasLoadedProductDetails(true)
     }
-  }, [open, mode, existingProduct, isLoadingProduct, hasLoadedExistingData, step1Form])
+  }, [open, mode, existingProduct, isLoadingProduct, hasLoadedProductDetails, step1Form])
 
   // Load existing inventory data in edit mode
   useEffect(() => {
-    // ✅ FIX: Only load data ONCE when first opening the wizard
+    // Only load data ONCE when first opening the wizard
     // This prevents overwriting user changes when they modify inventory settings
-    if (open && mode === 'edit' && existingProductData && !isLoadingExistingData) {
+    if (open && mode === 'edit' && existingProductData && !isLoadingExistingData && !hasLoadedExistingData) {
       const { inventoryMethod, details } = existingProductData
 
       // ✅ WORLD-CLASS: inventoryMethod column is the SOURCE OF TRUTH

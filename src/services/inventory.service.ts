@@ -21,6 +21,7 @@ export interface RawMaterial {
   avgCostPerUnit: number
   perishable: boolean
   shelfLifeDays?: number // Used to calculate batch expiration dates
+  notifyOnLowStock: boolean
   active: boolean
   lastCountAt?: string
   lastRestockAt?: string
@@ -46,6 +47,7 @@ export interface CreateRawMaterialDto {
   avgCostPerUnit?: number
   perishable: boolean
   shelfLifeDays?: number // Required if perishable=true
+  notifyOnLowStock?: boolean
 }
 
 export interface UpdateRawMaterialDto {
@@ -63,6 +65,7 @@ export interface UpdateRawMaterialDto {
   perishable?: boolean
   shelfLifeDays?: number
   active?: boolean
+  notifyOnLowStock?: boolean
 }
 
 export interface AdjustStockDto {

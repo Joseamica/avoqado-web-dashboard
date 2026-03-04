@@ -85,6 +85,7 @@
       "avgCostPerUnit": "Average Cost",
       "perishable": "Perishable",
       "shelfLifeDays": "Shelf Life (days)",
+      "notifyOnLowStock": "Notify when stock is low",
       "active": "Active",
       "description": "Description"
     },
@@ -195,8 +196,20 @@
       "reorderPoint": "The stock level that triggers a purchase order. Should be higher than minimum stock to account for delivery time. Example: If minimum is 5kg and delivery takes 3 days, set reorder point to 10kg.",
       "maximumStock": "Maximum storage capacity for this ingredient. Helps prevent over-ordering and waste. Optional but recommended for perishable items.",
       "costPerUnit": "The cost per unit of measurement you selected. For example, if you selected 'kg', enter the cost per kilogram. If 'liters', enter cost per liter.",
+      "notifyOnLowStock": "Sends email and in-app notifications when stock reaches the reorder point. The alert is still recorded on the dashboard even if disabled.",
       "perishable": "Check this if the ingredient has an expiration date or limited shelf life (meat, dairy, produce). Enables expiration tracking and alerts.",
       "shelfLifeDays": "The number of days this ingredient stays fresh after receiving it. This is used to automatically calculate expiration dates for each batch you receive. For example, if milk has a 7-day shelf life, a batch received today will expire in 7 days."
+    },
+    "costCalculator": {
+      "sectionTitle": "Cost & Purchase",
+      "toggle": "Cost calculator",
+      "hint": "Complete the 3 steps to calculate your cost per unit",
+      "pricePaid": "How much did you pay?",
+      "quantity": "How much did you buy?",
+      "unit": "Unit",
+      "applied": "Applied ✓",
+      "manualEdit": "Edit manually",
+      "useCalculator": "Use calculator"
     }
   },
 

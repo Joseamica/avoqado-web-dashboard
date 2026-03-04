@@ -107,6 +107,17 @@
         "RETURN": "Retour",
         "COUNT": "Comptage"
       }
+    },
+    "costCalculator": {
+      "sectionTitle": "Coût et Achat",
+      "toggle": "Calculatrice de coût",
+      "hint": "Complétez les 3 étapes pour calculer votre coût par unité",
+      "pricePaid": "Combien avez-vous payé?",
+      "quantity": "Combien avez-vous acheté?",
+      "unit": "Unité",
+      "applied": "Appliqué ✓",
+      "manualEdit": "Modifier manuellement",
+      "useCalculator": "Utiliser la calculatrice"
     }
   },
 

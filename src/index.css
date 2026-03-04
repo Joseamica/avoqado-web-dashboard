@@ -100,6 +100,16 @@
 }
 
 @layer utilities {
+  /* Hide scrollbars while preserving scroll behavior */
+  .scrollbar-hidden {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+
   /* Sticky table header helpers */
   .table-sticky thead th {
     position: sticky;

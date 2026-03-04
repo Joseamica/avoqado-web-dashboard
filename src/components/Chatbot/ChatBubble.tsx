@@ -22,6 +22,8 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog'
 import { Form, FormControl, FormField, FormItem, FormLabel } from '../../components/ui/form'
 import { Input } from '../../components/ui/input'
+import { Checkbox } from '../../components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select'
 import { Switch } from '../../components/ui/switch'
 import { Textarea } from '../../components/ui/textarea'
 import { useToast } from '../../hooks/use-toast'
@@ -38,9 +40,12 @@ import {
   isVisualizationSkipped,
   loadConversation,
   saveConversation,
+  buildCreateProductActionCommand,
   sendChatMessage,
   submitFeedback,
   submitFeedbackWithCorrection,
+  type ChatResponseMetadata,
+  type CreateProductActionMetadata,
   type VisualizationResult,
 } from '../../services/chatService'
 
@@ -73,6 +78,16 @@ interface ChatMessage {
     completionTokens: number
     totalTokens: number
   }
+  metadata?: ChatResponseMetadata
+}
+
+interface CreateProductFormState {
+  name: string
+  price: string
+  sku: string
+  categoryId: string
+  needsModifiers: boolean
+  modifierGroupIds: string[]
 }
 
 // Helper function to convert conversation history to chat messages
@@ -154,6 +169,17 @@ function parseMessageText(text: string, isUserMessage: boolean): React.ReactNode
   })
 }
 
+const getCreateProductFormFromAction = (action: CreateProductActionMetadata): CreateProductFormState => {
+  return {
+    name: action.draft.name || '',
+    price: typeof action.draft.price === 'number' ? String(action.draft.price) : '',
+    sku: action.draft.sku || '',
+    categoryId: action.draft.categoryId || '',
+    needsModifiers: Boolean(action.draft.needsModifiers),
+    modifierGroupIds: action.draft.modifierGroupIds || [],
+  }
+}
+
 // Chat interface component inside the same file to avoid TypeScript module errors
 function ChatInterface({ onClose }: { onClose: () => void }) {
   const { t, i18n } = useTranslation()
@@ -192,6 +218,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   const [isSaving, setIsSaving] = useState(false) // Prevent multiple save operations
   const [lastSavedMessageCount, setLastSavedMessageCount] = useState(0) // Track last saved state
   const [includeVisualization, setIncludeVisualization] = useState(false) // Toggle for chart generation
+  const [productActionForms, setProductActionForms] = useState<Record<string, CreateProductFormState>>({})
 
   // Estados para diálogos de confirmación
   const [showClearConfirm, setShowClearConfirm] = useState(false)
@@ -399,6 +426,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
       }
 
       setMessages([welcomeMessage])
+      setProductActionForms({})
 
       devLog('✅ Chat history cleared successfully')
 
@@ -502,6 +530,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         feedbackGiven: null,
       }
       setMessages([welcomeMessage])
+      setProductActionForms({})
 
       toast({
         title: t('chat.toast.newConversation.title'),
@@ -551,6 +580,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         const history = getConversationHistory(venueSlug)
         const convertedMessages = convertHistoryToMessages(history, t('chat.welcome'))
         setMessages(convertedMessages)
+        setProductActionForms({})
         setCurrentConversationId(conversationId)
 
         const currentMessageCount = convertedMessages.filter(msg => msg.id !== 'welcome').length
@@ -604,6 +634,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
           feedbackGiven: null, // Initialize feedback state
         }
         setMessages([welcomeMessage])
+        setProductActionForms({})
         setCurrentConversationId(null)
       }
 
@@ -695,11 +726,14 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   // Check token warning and show dialog if needed
   const tokenWarning = useMemo(() => shouldWarnBeforeSending(tokenBudget), [tokenBudget])
 
-  // Function to actually send the message (used by both direct send and after warning confirmation)
-  const sendMessage = useCallback((message: string) => {
+  // Function to actually send the message (used by both direct send and action forms)
+  const sendMessage = useCallback((message: string, options?: { backendMessage?: string; visibleMessage?: string }) => {
+    const visibleMessage = options?.visibleMessage ?? message
+    const backendMessage = options?.backendMessage ?? message
+
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
-      text: message,
+      text: visibleMessage,
       isUser: true,
       timestamp: new Date(),
       feedbackGiven: null, // Initialize feedback state
@@ -707,13 +741,13 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 
     // Add user message to UI and localStorage immediately
     setMessages(prev => [...prev, userMessage])
-    addMessageToHistory('user', message, venueSlug)
+    addMessageToHistory('user', visibleMessage, venueSlug)
 
     // Get references context if there are any references
     const referencesContext = referenceCount > 0 ? getContextPrompt() : undefined
 
     // Use TanStack Query mutation to send the message
-    chatMutation.mutate({ message, withVisualization: includeVisualization, referencesContext }, {
+    chatMutation.mutate({ message: backendMessage, withVisualization: includeVisualization, referencesContext }, {
       onSuccess: result => {
         const botMessage: ChatMessage = {
           id: `bot-${Date.now()}`,
@@ -725,6 +759,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
           feedbackGiven: null, // Initialize feedback state
           visualization: result.visualization,
           tokenUsage: result.tokenUsage,
+          metadata: result.metadata,
         }
 
         // Debug: Log trainingDataId to console
@@ -733,6 +768,14 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         // Add bot message to UI and localStorage
         setMessages(prev => [...prev, botMessage])
         addMessageToHistory('assistant', result.response, venueSlug, result.trainingDataId)
+
+        const action = result.metadata?.action
+        if (action?.type === 'create_product' && action.stage === 'collect') {
+          setProductActionForms(prev => ({
+            ...prev,
+            [botMessage.id]: getCreateProductFormFromAction(action),
+          }))
+        }
 
         // Show cache indicator if response was cached (debounced)
         if (result.cached && !window.__cache_toast_shown) {
@@ -777,6 +820,113 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
     form.reset()
     sendMessage(values.message)
   }
+
+  const updateProductActionForm = useCallback((messageId: string, updates: Partial<CreateProductFormState>) => {
+    setProductActionForms(prev => ({
+      ...prev,
+      [messageId]: {
+        ...(prev[messageId] || {
+          name: '',
+          price: '',
+          sku: '',
+          categoryId: '',
+          needsModifiers: false,
+          modifierGroupIds: [],
+        }),
+        ...updates,
+      },
+    }))
+  }, [])
+
+  const handleToggleModifierGroup = useCallback((messageId: string, groupId: string, checked: boolean) => {
+    setProductActionForms(prev => {
+      const current = prev[messageId] || {
+        name: '',
+        price: '',
+        sku: '',
+        categoryId: '',
+        needsModifiers: false,
+        modifierGroupIds: [],
+      }
+      const nextModifierGroupIds = checked
+        ? Array.from(new Set([...(current.modifierGroupIds || []), groupId]))
+        : (current.modifierGroupIds || []).filter(id => id !== groupId)
+
+      return {
+        ...prev,
+        [messageId]: {
+          ...current,
+          modifierGroupIds: nextModifierGroupIds,
+        },
+      }
+    })
+  }, [])
+
+  const submitCreateProductAction = useCallback((messageId: string, action: CreateProductActionMetadata) => {
+    const formState = productActionForms[messageId] || getCreateProductFormFromAction(action)
+    const parsedPrice = Number(formState.price.replace(',', '.'))
+
+    if (!formState.name.trim()) {
+      toast({
+        variant: 'destructive',
+        title: tCommon('error'),
+        description: t('chat.createProduct.validation.nameRequired'),
+      })
+      return
+    }
+
+    if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+      toast({
+        variant: 'destructive',
+        title: tCommon('error'),
+        description: t('chat.createProduct.validation.priceRequired'),
+      })
+      return
+    }
+
+    if (!formState.sku.trim() || !/^[A-Za-z0-9_-]+$/.test(formState.sku.trim())) {
+      toast({
+        variant: 'destructive',
+        title: tCommon('error'),
+        description: t('chat.createProduct.validation.skuInvalid'),
+      })
+      return
+    }
+
+    if (!formState.categoryId) {
+      toast({
+        variant: 'destructive',
+        title: tCommon('error'),
+        description: t('chat.createProduct.validation.categoryRequired'),
+      })
+      return
+    }
+
+    if (formState.needsModifiers && action.modifierGroups.length > 0 && formState.modifierGroupIds.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: tCommon('error'),
+        description: t('chat.createProduct.validation.modifierGroupRequired'),
+      })
+      return
+    }
+
+    const payload = {
+      name: formState.name.trim(),
+      price: Number(parsedPrice.toFixed(2)),
+      sku: formState.sku.trim().toUpperCase(),
+      categoryId: formState.categoryId,
+      type: action.draft.type,
+      needsModifiers: formState.needsModifiers,
+      modifierGroupIds: formState.needsModifiers ? formState.modifierGroupIds : [],
+    }
+
+    const visibleMessage = t('chat.createProduct.submitMessage', { name: payload.name })
+    const backendMessage = buildCreateProductActionCommand(payload)
+
+    sendMessage(visibleMessage, { visibleMessage, backendMessage })
+  }, [productActionForms, sendMessage, t, tCommon, toast])
+
   // Calcular ancho basado en estado
   const cardWidth = useMemo(() => {
     if (!isExpanded) return 'w-80 sm:w-96'
@@ -1131,6 +1281,136 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                       </Button>
                     </div>
                   )}
+                  {!message.isUser &&
+                    message.metadata?.action?.type === 'create_product' &&
+                    message.metadata.action.stage === 'collect' && (
+                      <div className="mt-3 p-3 rounded-md border border-border bg-muted/30 space-y-3">
+                        <p className="text-xs font-medium">{t('chat.createProduct.formTitle')}</p>
+
+                        <div className="space-y-2">
+                          <label className="text-xs">{t('chat.createProduct.fields.name')}</label>
+                          <Input
+                            value={(productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)).name}
+                            onChange={e => updateProductActionForm(message.id, { name: e.target.value })}
+                            disabled={chatMutation.isPending}
+                            className="h-8 text-xs"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-2">
+                            <label className="text-xs">{t('chat.createProduct.fields.price')}</label>
+                            <Input
+                              value={(productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)).price}
+                              onChange={e => updateProductActionForm(message.id, { price: e.target.value })}
+                              disabled={chatMutation.isPending}
+                              className="h-8 text-xs"
+                              inputMode="decimal"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs">{t('chat.createProduct.fields.sku')}</label>
+                            <Input
+                              value={(productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)).sku}
+                              onChange={e => updateProductActionForm(message.id, { sku: e.target.value.toUpperCase() })}
+                              disabled={chatMutation.isPending}
+                              className="h-8 text-xs uppercase"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-xs">{t('chat.createProduct.fields.category')}</label>
+                          <Select
+                            value={(productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)).categoryId}
+                            onValueChange={value => updateProductActionForm(message.id, { categoryId: value })}
+                            disabled={chatMutation.isPending || message.metadata.action.categories.length === 0}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder={t('chat.createProduct.fields.categoryPlaceholder')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {message.metadata.action.categories.map(category => (
+                                <SelectItem key={category.id} value={category.id}>
+                                  {category.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {message.metadata.action.modifierGroups.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                id={`needs-modifiers-${message.id}`}
+                                checked={(productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)).needsModifiers}
+                                onCheckedChange={checked =>
+                                  updateProductActionForm(message.id, {
+                                    needsModifiers: checked === true,
+                                    modifierGroupIds: checked === true
+                                      ? (productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)).modifierGroupIds
+                                      : [],
+                                  })
+                                }
+                                disabled={chatMutation.isPending}
+                              />
+                              <label htmlFor={`needs-modifiers-${message.id}`} className="text-xs cursor-pointer">
+                                {t('chat.createProduct.fields.needsModifiers')}
+                              </label>
+                            </div>
+
+                            {(productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)).needsModifiers && (
+                              <div className="space-y-1.5 max-h-24 overflow-y-auto rounded border border-border p-2">
+                                {message.metadata.action.modifierGroups.map(group => (
+                                  <div key={group.id} className="flex items-center gap-2">
+                                    <Checkbox
+                                      id={`modifier-group-${message.id}-${group.id}`}
+                                      checked={(
+                                        productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)
+                                      ).modifierGroupIds.includes(group.id)}
+                                      onCheckedChange={checked => handleToggleModifierGroup(message.id, group.id, checked === true)}
+                                      disabled={chatMutation.isPending}
+                                    />
+                                    <label htmlFor={`modifier-group-${message.id}-${group.id}`} className="text-xs cursor-pointer">
+                                      {group.name}
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {message.metadata.action.categories.length === 0 && (
+                          <p className="text-[11px] text-destructive">{t('chat.createProduct.noCategories')}</p>
+                        )}
+
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="w-full h-8 text-xs"
+                          onClick={() => submitCreateProductAction(message.id, message.metadata.action)}
+                          disabled={chatMutation.isPending || message.metadata.action.categories.length === 0}
+                        >
+                          {chatMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+                          {t('chat.createProduct.actions.create')}
+                        </Button>
+                      </div>
+                    )}
+                  {!message.isUser &&
+                    message.metadata?.action?.type === 'create_product' &&
+                    message.metadata.action.stage === 'created' &&
+                    message.metadata.action.createdProduct && (
+                      <div className="mt-2 px-2.5 py-2 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30">
+                        <p className="text-xs font-medium text-green-800 dark:text-green-300">
+                          {t('chat.createProduct.createdTitle')}
+                        </p>
+                        <p className="text-xs text-green-700 dark:text-green-400">
+                          {message.metadata.action.createdProduct.name} • {message.metadata.action.createdProduct.sku}
+                        </p>
+                      </div>
+                    )}
                   {/* Chart visualization or skip message */}
                   {!message.isUser && message.visualization && (
                     isVisualizationSkipped(message.visualization) ? (

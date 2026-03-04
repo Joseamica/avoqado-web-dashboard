@@ -25,11 +25,16 @@ import { FilterPill } from '@/components/filters/FilterPill'
 import { CheckboxFilterContent } from '@/components/filters/CheckboxFilterContent'
 import { ColumnCustomizer } from '@/components/filters/ColumnCustomizer'
 
+// Product types that can have recipes (excludes services, classes, digital, donations)
+const NO_RECIPE_PRODUCT_TYPES = ['APPOINTMENTS_SERVICE', 'SERVICE', 'CLASS', 'DIGITAL', 'DONATION']
+
 interface ProductWithRecipe {
   id: string
   name: string
   price: number
   active: boolean
+  type?: string
+  trackInventory?: boolean
   category: {
     id: string
     name: string
@@ -93,6 +98,12 @@ export default function Recipes() {
   // Client-side filtering for Stripe-style filters
   const products = useMemo(() => {
     let filtered = productsData || []
+
+    // Exclude product types that can't have recipes (services, classes, digital, donations)
+    filtered = filtered.filter(p => !NO_RECIPE_PRODUCT_TYPES.includes(p.type || ''))
+
+    // Only show products with inventory tracking enabled or that already have a recipe
+    filtered = filtered.filter(p => p.trackInventory || p.recipe)
 
     // Apply category filter (multi-select)
     if (categoryFilter.length > 0) {

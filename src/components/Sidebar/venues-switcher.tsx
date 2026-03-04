@@ -175,7 +175,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
             <PopoverTrigger asChild>
               <SidebarMenuButton
                 size="lg"
-                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer"
+                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer rounded-none h-auto! px-4! py-6!"
                 disabled={isLoading}
               >
                 <Avatar className={`flex justify-center items-center rounded-lg aspect-square ${isCollapsed ? 'size-7' : 'size-8'}`}>

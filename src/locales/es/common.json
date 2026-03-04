@@ -370,6 +370,30 @@
       "paymentCard": "Tarjeta",
       "paymentWaiter": "Mesero",
       "paymentTotal": "Total"
+    },
+    "createProduct": {
+      "formTitle": "Crear producto desde chat",
+      "fields": {
+        "name": "Nombre",
+        "price": "Precio",
+        "sku": "SKU",
+        "category": "Categoría",
+        "categoryPlaceholder": "Selecciona una categoría",
+        "needsModifiers": "Este producto usa modificadores"
+      },
+      "actions": {
+        "create": "Crear producto"
+      },
+      "validation": {
+        "nameRequired": "Ingresa el nombre del producto.",
+        "priceRequired": "Ingresa un precio válido mayor a 0.",
+        "skuInvalid": "El SKU solo acepta letras, números, guion y guion bajo.",
+        "categoryRequired": "Selecciona una categoría para el producto.",
+        "modifierGroupRequired": "Selecciona al menos un grupo de modificadores."
+      },
+      "submitMessage": "Crear producto {{name}}",
+      "noCategories": "No hay categorías activas disponibles en este venue.",
+      "createdTitle": "Producto creado"
     }
   },
   "flags": {

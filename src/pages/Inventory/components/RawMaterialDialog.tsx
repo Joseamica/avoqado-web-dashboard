@@ -12,9 +12,43 @@ import { SearchableSelect, type SearchableSelectOption } from '@/components/ui/s
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { rawMaterialsApi, type RawMaterial, type CreateRawMaterialDto } from '@/services/inventory.service'
-import { Loader2, Info, Package, DollarSign, BarChart3, FileText, Wand2 } from 'lucide-react'
+import { Loader2, Info, Package, DollarSign, BarChart3, FileText, Wand2, Sparkles, Timer } from 'lucide-react'
 import { ALL_UNIT_OPTIONS, RAW_MATERIAL_CATEGORY_OPTIONS } from '@/lib/inventory-constants'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+
+// Maps base unit → purchase sub-unit options with conversion factors
+const PURCHASE_UNIT_OPTIONS: Record<string, { label: string; toBase: number }[]> = {
+  KILOGRAM: [
+    { label: 'g', toBase: 0.001 },
+    { label: 'kg', toBase: 1 },
+  ],
+  GRAM: [
+    { label: 'g', toBase: 1 },
+    { label: 'kg', toBase: 1000 },
+  ],
+  POUND: [
+    { label: 'lb', toBase: 1 },
+    { label: 'oz', toBase: 0.0625 },
+  ],
+  OUNCE: [
+    { label: 'oz', toBase: 1 },
+    { label: 'lb', toBase: 16 },
+  ],
+  LITER: [
+    { label: 'ml', toBase: 0.001 },
+    { label: 'L', toBase: 1 },
+  ],
+  MILLILITER: [
+    { label: 'ml', toBase: 1 },
+    { label: 'L', toBase: 1000 },
+  ],
+  UNIT: [{ label: 'pzas', toBase: 1 }],
+  PIECE: [{ label: 'pzas', toBase: 1 }],
+  DOZEN: [
+    { label: 'pzas', toBase: 1 / 12 },
+    { label: 'dz', toBase: 1 },
+  ],
+}
 
 interface RawMaterialDialogProps {
   open: boolean
@@ -49,6 +83,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
       reorderPoint: undefined,
       maximumStock: undefined,
       costPerUnit: undefined,
+      notifyOnLowStock: true,
       perishable: false,
       shelfLifeDays: undefined,
       description: '',
@@ -61,6 +96,12 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
 
   // State for SKU generation loading
   const [isGeneratingSku, setIsGeneratingSku] = useState(false)
+
+  // Purchase cost calculator state
+  const [purchasePrice, setPurchasePrice] = useState('')
+  const [purchaseQty, setPurchaseQty] = useState('')
+  const [purchaseUnit, setPurchaseUnit] = useState('')
+  const [manualCostMode, setManualCostMode] = useState(false)
 
   // Auto-generate SKU like Square (e.g., "C754889")
   const generateSku = () => {
@@ -95,7 +136,8 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
       } else {
         toast({
           title: 'Error',
-          description: t('rawMaterials.messages.skuGenerationFailed') || 'Could not generate unique SKU. Please try again or enter manually.',
+          description:
+            t('rawMaterials.messages.skuGenerationFailed') || 'Could not generate unique SKU. Please try again or enter manually.',
           variant: 'destructive',
         })
       }
@@ -116,7 +158,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
         label: t(`rawMaterials.categories.${cat.value}`),
         icon: cat.icon,
       })),
-    [t]
+    [t],
   )
 
   const unitOptions = useMemo<SearchableSelectOption[]>(
@@ -125,7 +167,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
         value: unit.value,
         label: `${unit.label} (${t(`units.${unit.value}`)})`,
       })),
-    [t]
+    [t],
   )
 
   // Reset form when dialog opens with edit data
@@ -144,6 +186,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
         costPerUnit: Number(rawMaterial.costPerUnit),
         perishable: rawMaterial.perishable,
         shelfLifeDays: rawMaterial.shelfLifeDays || undefined,
+        notifyOnLowStock: rawMaterial.notifyOnLowStock ?? true,
         description: rawMaterial.description || '',
       })
     } else if (open && mode === 'create') {
@@ -158,12 +201,39 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
         reorderPoint: undefined,
         maximumStock: undefined,
         costPerUnit: undefined,
+        notifyOnLowStock: true,
         perishable: false,
         shelfLifeDays: undefined,
         description: '',
       })
     }
+    if (open) {
+      setPurchasePrice('')
+      setPurchaseQty('')
+      setPurchaseUnit('')
+      setManualCostMode(false)
+    }
   }, [open, mode, rawMaterial, reset])
+
+  // Reset purchase unit when base unit changes or dialog opens — default to the base unit (toBase === 1)
+  useEffect(() => {
+    const options = PURCHASE_UNIT_OPTIONS[selectedUnit]
+    if (options?.length) {
+      const baseOption = options.find(o => o.toBase === 1)
+      setPurchaseUnit(baseOption ? baseOption.label : options[0].label)
+    }
+  }, [selectedUnit, open])
+
+  // Auto-calculate cost per unit from purchase inputs
+  useEffect(() => {
+    const price = parseFloat(purchasePrice)
+    const qty = parseFloat(purchaseQty)
+    const selectedOpt = PURCHASE_UNIT_OPTIONS[selectedUnit]?.find(o => o.label === purchaseUnit)
+    if (price > 0 && qty > 0 && selectedOpt) {
+      const result = price / (qty * selectedOpt.toBase)
+      setValue('costPerUnit', Math.round(result * 100) / 100)
+    }
+  }, [purchasePrice, purchaseQty, purchaseUnit, selectedUnit, setValue])
 
   // Create mutation
   const createMutation = useMutation({
@@ -269,11 +339,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
       onClose={() => onOpenChange(false)}
       title={mode === 'create' ? t('rawMaterials.add') : t('rawMaterials.edit')}
       actions={
-        <Button
-          onClick={handleSubmit(onSubmit)}
-          disabled={isLoading}
-          className="h-10 px-6"
-        >
+        <Button onClick={handleSubmit(onSubmit)} disabled={isLoading} className="h-10 px-6">
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {t('save')}
         </Button>
@@ -302,12 +368,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
             <div>
               <FieldLabel htmlFor="sku" label={t('rawMaterials.fields.sku')} required helpKey="rawMaterials.fieldHelp.sku" />
               <div className="flex gap-2">
-                <Input
-                  id="sku"
-                  {...register('sku', { required: true })}
-                  className="h-12 text-base flex-1"
-                  placeholder="TOM-001"
-                />
+                <Input id="sku" {...register('sku', { required: true })} className="h-12 text-base flex-1" placeholder="TOM-001" />
                 <TooltipProvider delayDuration={200}>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -319,11 +380,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
                         onClick={handleGenerateSku}
                         disabled={isGeneratingSku}
                       >
-                        {isGeneratingSku ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Wand2 className="h-4 w-4" />
-                        )}
+                        {isGeneratingSku ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent className="bg-popover text-popover-foreground border border-border">
@@ -338,12 +395,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
             {/* GTIN */}
             <div>
               <FieldLabel htmlFor="gtin" label={t('rawMaterials.fields.gtin')} helpKey="rawMaterials.fieldHelp.gtin" />
-              <Input
-                id="gtin"
-                {...register('gtin')}
-                className="h-12 text-base"
-                placeholder={t('rawMaterials.fields.gtinPlaceholder')}
-              />
+              <Input id="gtin" {...register('gtin')} className="h-12 text-base" placeholder={t('rawMaterials.fields.gtinPlaceholder')} />
             </div>
 
             {/* Category */}
@@ -383,7 +435,12 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Current Stock */}
             <div>
-              <FieldLabel htmlFor="currentStock" label={t('rawMaterials.fields.currentStock')} required helpKey="rawMaterials.fieldHelp.currentStock" />
+              <FieldLabel
+                htmlFor="currentStock"
+                label={t('rawMaterials.fields.currentStock')}
+                required
+                helpKey="rawMaterials.fieldHelp.currentStock"
+              />
               <Input
                 id="currentStock"
                 type="number"
@@ -397,7 +454,12 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
 
             {/* Minimum Stock */}
             <div>
-              <FieldLabel htmlFor="minimumStock" label={t('rawMaterials.fields.minimumStock')} required helpKey="rawMaterials.fieldHelp.minimumStock" />
+              <FieldLabel
+                htmlFor="minimumStock"
+                label={t('rawMaterials.fields.minimumStock')}
+                required
+                helpKey="rawMaterials.fieldHelp.minimumStock"
+              />
               <Input
                 id="minimumStock"
                 type="number"
@@ -411,7 +473,12 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
 
             {/* Reorder Point */}
             <div>
-              <FieldLabel htmlFor="reorderPoint" label={t('rawMaterials.fields.reorderPoint')} required helpKey="rawMaterials.fieldHelp.reorderPoint" />
+              <FieldLabel
+                htmlFor="reorderPoint"
+                label={t('rawMaterials.fields.reorderPoint')}
+                required
+                helpKey="rawMaterials.fieldHelp.reorderPoint"
+              />
               <Input
                 id="reorderPoint"
                 type="number"
@@ -423,9 +490,28 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
               {errors.reorderPoint && <p className="text-xs text-destructive mt-1">{t('validation.required')}</p>}
             </div>
 
+            {/* Notify on Low Stock */}
+            <div className="flex items-start gap-3 col-span-full">
+              <Checkbox
+                id="notifyOnLowStock"
+                checked={watch('notifyOnLowStock') ?? true}
+                onCheckedChange={(checked: boolean) => setValue('notifyOnLowStock', checked)}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="notifyOnLowStock" className="text-sm font-medium cursor-pointer">
+                  {t('rawMaterials.fields.notifyOnLowStock')}
+                </Label>
+                <p className="text-xs text-muted-foreground">{t('rawMaterials.fieldHelp.notifyOnLowStock')}</p>
+              </div>
+            </div>
+
             {/* Maximum Stock */}
             <div>
-              <FieldLabel htmlFor="maximumStock" label={t('rawMaterials.fields.maximumStock')} helpKey="rawMaterials.fieldHelp.maximumStock" />
+              <FieldLabel
+                htmlFor="maximumStock"
+                label={t('rawMaterials.fields.maximumStock')}
+                helpKey="rawMaterials.fieldHelp.maximumStock"
+              />
               <Input
                 id="maximumStock"
                 type="number"
@@ -440,51 +526,171 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
 
         {/* Cost Section */}
         <section className="bg-card rounded-2xl border border-border/50 p-6">
-          <SectionHeader icon={DollarSign} title={t('rawMaterials.fields.costPerUnit')} />
+          <SectionHeader icon={DollarSign} title={t('rawMaterials.costCalculator.sectionTitle')} />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Cost Per Unit */}
-            <div>
-              <FieldLabel htmlFor="costPerUnit" label={t('rawMaterials.fields.costPerUnit')} required helpKey="rawMaterials.fieldHelp.costPerUnit" />
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-base">$</span>
-                <Input
-                  id="costPerUnit"
-                  type="number"
-                  step="0.01"
-                  {...register('costPerUnit', { required: true, valueAsNumber: true })}
-                  className="h-12 text-base pl-8"
-                  placeholder="0.00"
-                />
-              </div>
-              {errors.costPerUnit && <p className="text-xs text-destructive mt-1">{t('validation.required')}</p>}
-            </div>
+          {/* Cost calculator — guided steps (hidden in manual mode) */}
+          {PURCHASE_UNIT_OPTIONS[selectedUnit] && !manualCostMode && (
+            <div className="p-5 rounded-xl border border-border/50 bg-muted/30 space-y-4">
+              <p className="text-xs text-muted-foreground">{t('rawMaterials.costCalculator.hint')}</p>
+              <div className="grid grid-cols-[1fr_1fr_auto] gap-4 items-end">
+                {/* Step 1: How much did you pay? */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="flex items-center justify-center h-5 w-5 rounded-full bg-primary/15 text-primary text-[11px] font-bold shrink-0">
+                      1
+                    </span>
+                    <Label className="text-sm font-medium">{t('rawMaterials.costCalculator.pricePaid')}</Label>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-base">$</span>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={purchasePrice}
+                      onChange={e => setPurchasePrice(e.target.value)}
+                      className="h-12 text-base pl-8"
+                      placeholder="Ej: 203.57"
+                    />
+                  </div>
+                </div>
 
-            {/* Perishable Toggle */}
-            <div className="flex flex-col justify-center">
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-muted/50 border border-border/50">
-                <Checkbox
-                  id="perishable"
-                  checked={perishable}
-                  onCheckedChange={checked => setValue('perishable', checked as boolean)}
-                  className="h-5 w-5"
-                />
-                <div className="flex-1">
-                  <Label htmlFor="perishable" className="cursor-pointer text-base font-medium">
-                    {t('rawMaterials.fields.perishable')}
-                  </Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {t('rawMaterials.fieldHelp.perishable')}
-                  </p>
+                {/* Step 2: How much did you buy? */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="flex items-center justify-center h-5 w-5 rounded-full bg-primary/15 text-primary text-[11px] font-bold shrink-0">
+                      2
+                    </span>
+                    <Label className="text-sm font-medium">{t('rawMaterials.costCalculator.quantity')}</Label>
+                  </div>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={purchaseQty}
+                    onChange={e => setPurchaseQty(e.target.value)}
+                    className="h-12 text-base"
+                    placeholder="Ej: 908"
+                  />
+                </div>
+
+                {/* Step 3: Unit selector as badges */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="flex items-center justify-center h-5 w-5 rounded-full bg-primary/15 text-primary text-[11px] font-bold shrink-0">
+                      3
+                    </span>
+                    <Label className="text-sm font-medium">{t('rawMaterials.costCalculator.unit')}</Label>
+                  </div>
+                  <div className="flex gap-2">
+                    {PURCHASE_UNIT_OPTIONS[selectedUnit]?.map(opt => (
+                      <button
+                        key={opt.label}
+                        type="button"
+                        onClick={() => setPurchaseUnit(opt.label)}
+                        className={`h-10 min-w-10 px-3 rounded-lg text-sm font-medium transition-colors border ${
+                          purchaseUnit === opt.label
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-transparent text-muted-foreground border-input hover:text-foreground hover:border-foreground/30'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Shelf Life Days - Only shown when perishable is checked */}
-          {perishable && (
-            <div className="mt-6 pt-6 border-t border-border/50">
-              <div className="max-w-md">
+          {/* Cost Per Unit */}
+          {(() => {
+            const calculatorActive = parseFloat(purchasePrice) > 0 && parseFloat(purchaseQty) > 0 && !manualCostMode
+            const unitAbbr = selectedUnit ? t(`units.${selectedUnit}_abbr`, { defaultValue: selectedUnit?.toLowerCase() }) : ''
+            return (
+              <div className="mt-5">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <FieldLabel
+                      htmlFor="costPerUnit"
+                      label={t('rawMaterials.fields.costPerUnit')}
+                      required
+                      helpKey="rawMaterials.fieldHelp.costPerUnit"
+                    />
+                    {calculatorActive && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full -mt-1.5">
+                        <Sparkles className="h-3 w-3" />
+                        {t('rawMaterials.costCalculator.applied')}
+                      </span>
+                    )}
+                  </div>
+                  {calculatorActive && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setManualCostMode(true)
+                        setPurchasePrice('')
+                        setPurchaseQty('')
+                      }}
+                      className="text-xs px-3 py-1 rounded-full border border-input text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+                    >
+                      {t('rawMaterials.costCalculator.manualEdit')}
+                    </button>
+                  )}
+                  {manualCostMode && PURCHASE_UNIT_OPTIONS[selectedUnit] && (
+                    <button
+                      type="button"
+                      onClick={() => setManualCostMode(false)}
+                      className="text-xs px-3 py-1 rounded-full border border-primary/50 text-primary hover:bg-primary/10 transition-colors"
+                    >
+                      {t('rawMaterials.costCalculator.useCalculator')}
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-base">$</span>
+                  <Input
+                    id="costPerUnit"
+                    type="number"
+                    step="0.01"
+                    {...register('costPerUnit', { required: true, valueAsNumber: true })}
+                    readOnly={calculatorActive}
+                    className={`h-12 text-base pl-8 ${unitAbbr ? 'pr-16' : ''} ${
+                      calculatorActive ? 'border-primary/50 ring-1 ring-primary/20 bg-primary/5 text-foreground font-semibold' : ''
+                    }`}
+                    placeholder="0.00"
+                  />
+                  {unitAbbr && (
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">/ {unitAbbr}</span>
+                  )}
+                </div>
+                {errors.costPerUnit && <p className="text-xs text-destructive mt-1">{t('validation.required')}</p>}
+              </div>
+            )
+          })()}
+
+        </section>
+
+        {/* Perishable Section */}
+        <section className="bg-card rounded-2xl border border-border/50 p-6">
+          <SectionHeader icon={Timer} title={t('rawMaterials.fields.perishable')} />
+
+          <div className="flex items-start gap-6">
+            <div className="flex items-center gap-3 flex-1">
+              <Checkbox
+                id="perishable"
+                checked={perishable}
+                onCheckedChange={checked => setValue('perishable', checked as boolean)}
+                className="h-5 w-5 mt-0.5"
+              />
+              <div className="flex-1">
+                <Label htmlFor="perishable" className="cursor-pointer text-base font-medium">
+                  {t('rawMaterials.fields.perishable')}
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">{t('rawMaterials.fieldHelp.perishable')}</p>
+              </div>
+            </div>
+
+            {perishable && (
+              <div className="w-48 shrink-0">
                 <FieldLabel htmlFor="shelfLifeDays" label={t('rawMaterials.fields.shelfLifeDays')} required />
                 <Input
                   id="shelfLifeDays"
@@ -494,12 +700,9 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
                   placeholder="7"
                 />
                 {errors.shelfLifeDays && <p className="text-xs text-destructive mt-1">{t('validation.required')}</p>}
-                <p className="text-sm text-muted-foreground mt-2">
-                  {t('rawMaterials.fieldHelp.shelfLifeDays')}
-                </p>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </section>
 
         {/* Description Section */}
