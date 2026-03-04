@@ -35,6 +35,21 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    // Auto-reload on chunk load failures (happens after deploys when old chunks are gone)
+    const message = error.message.toLowerCase()
+    const isChunkError =
+      message.includes('failed to fetch dynamically imported module') ||
+      message.includes('loading chunk') ||
+      message.includes('loading css chunk') ||
+      message.includes('dynamically imported module') ||
+      (error.name === 'SyntaxError' && message.includes("unexpected token '<'"))
+
+    if (isChunkError && !sessionStorage.getItem('chunk-reload-attempted')) {
+      sessionStorage.setItem('chunk-reload-attempted', 'true')
+      window.location.reload()
+      return
+    }
+
     // Log error to console in development only
     // In production, you could send this to an error tracking service like Sentry
     if (import.meta.env.DEV) {
@@ -74,9 +89,7 @@ class ErrorBoundary extends Component<Props, State> {
                 <AlertTriangle className="h-6 w-6 text-destructive" />
               </div>
               <CardTitle className="text-xl">{i18n.t('common:errorBoundary.title')}</CardTitle>
-              <CardDescription>
-                {i18n.t('common:errorBoundary.description')}
-              </CardDescription>
+              <CardDescription>{i18n.t('common:errorBoundary.description')}</CardDescription>
             </CardHeader>
 
             <CardContent>

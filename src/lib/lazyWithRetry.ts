@@ -24,14 +24,17 @@ function isChunkLoadError(error: unknown): boolean {
       message.includes('failed to fetch dynamically imported module') ||
       message.includes('loading chunk') ||
       message.includes('loading css chunk') ||
-      message.includes('dynamically imported module')
+      message.includes('dynamically imported module') ||
+      // When the server returns HTML (index.html) instead of JS,
+      // the browser tries to parse HTML as JS and throws this error
+      (error.name === 'SyntaxError' && message.includes("unexpected token '<'"))
     )
   }
   return false
 }
 
 export function lazyWithRetry<T extends ComponentType<unknown>>(
-  componentImport: () => Promise<{ default: T }>
+  componentImport: () => Promise<{ default: T }>,
 ): React.LazyExoticComponent<T> {
   return React.lazy(async () => {
     const hasReloaded = sessionStorage.getItem(RELOAD_KEY)
