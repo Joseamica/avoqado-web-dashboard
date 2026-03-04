@@ -15,7 +15,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -332,9 +332,6 @@ export function TpvConfiguration() {
     },
   })
 
-  // Pill tab class (same pattern as CommissionsPage)
-  const pillClass =
-    'group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground'
 
   return (
     <div className="space-y-6">
@@ -370,36 +367,89 @@ export function TpvConfiguration() {
         )}
       </div>
 
-      {/* Pill Tabs */}
+      {/* Underline Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border">
-          <TabsTrigger value="general" className={pillClass}>
-            <span>{t('playtelecom:tpvConfig.tabs.general', { defaultValue: 'General' })}</span>
-          </TabsTrigger>
-          <TabsTrigger value="metas" className={pillClass}>
-            <span>{t('playtelecom:tpvConfig.tabs.metas', { defaultValue: 'Metas' })}</span>
-          </TabsTrigger>
-          <TabsTrigger value="tpv" className={pillClass}>
-            <span>{t('playtelecom:tpvConfig.tabs.tpv', { defaultValue: 'TPV' })}</span>
-          </TabsTrigger>
-          <TabsTrigger value="categorias" className={pillClass}>
-            <span>{t('playtelecom:tpvConfig.tabs.categorias', { defaultValue: 'Categorias' })}</span>
-          </TabsTrigger>
-          <TabsTrigger value="mensajes" className={pillClass}>
-            <span>{t('playtelecom:tpvConfig.tabs.mensajes', { defaultValue: 'Mensajes' })}</span>
-          </TabsTrigger>
-          {isOwnerPlus && (
-            <>
-              <div className="w-px h-5 bg-border mx-1" />
-              <TabsTrigger
-                value="organizacional"
-                className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-dashed border-primary/40 hover:bg-primary/10 hover:text-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary"
-              >
-                <span>{t('playtelecom:tpvConfig.tabs.organizacional', { defaultValue: 'Organizacional' })}</span>
-              </TabsTrigger>
-            </>
-          )}
-        </TabsList>
+        <div className="border-b border-border">
+          <nav role="tablist" className="flex items-center gap-6">
+            <button
+              role="tab"
+              onClick={() => handleTabChange('general')}
+              className={`relative pb-3 text-sm font-medium transition-colors ${
+                activeTab === 'general' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t('playtelecom:tpvConfig.tabs.general', { defaultValue: 'General' })}
+              {activeTab === 'general' && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+              )}
+            </button>
+            <button
+              role="tab"
+              onClick={() => handleTabChange('metas')}
+              className={`relative pb-3 text-sm font-medium transition-colors ${
+                activeTab === 'metas' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t('playtelecom:tpvConfig.tabs.metas', { defaultValue: 'Metas' })}
+              {activeTab === 'metas' && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+              )}
+            </button>
+            <button
+              role="tab"
+              onClick={() => handleTabChange('tpv')}
+              className={`relative pb-3 text-sm font-medium transition-colors ${
+                activeTab === 'tpv' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t('playtelecom:tpvConfig.tabs.tpv', { defaultValue: 'TPV' })}
+              {activeTab === 'tpv' && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+              )}
+            </button>
+            <button
+              role="tab"
+              onClick={() => handleTabChange('categorias')}
+              className={`relative pb-3 text-sm font-medium transition-colors ${
+                activeTab === 'categorias' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t('playtelecom:tpvConfig.tabs.categorias', { defaultValue: 'Categorias' })}
+              {activeTab === 'categorias' && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+              )}
+            </button>
+            <button
+              role="tab"
+              onClick={() => handleTabChange('mensajes')}
+              className={`relative pb-3 text-sm font-medium transition-colors ${
+                activeTab === 'mensajes' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t('playtelecom:tpvConfig.tabs.mensajes', { defaultValue: 'Mensajes' })}
+              {activeTab === 'mensajes' && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+              )}
+            </button>
+            {isOwnerPlus && (
+              <>
+                <div className="w-px h-5 bg-border mx-1" />
+                <button
+                  role="tab"
+                  onClick={() => handleTabChange('organizacional')}
+                  className={`relative pb-3 text-sm font-medium transition-colors ${
+                    activeTab === 'organizacional' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {t('playtelecom:tpvConfig.tabs.organizacional', { defaultValue: 'Organizacional' })}
+                  {activeTab === 'organizacional' && (
+                    <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+                  )}
+                </button>
+              </>
+            )}
+          </nav>
+        </div>
 
         {/* General Tab — Venue Info + Summary Dashboard */}
         <TabsContent value="general" className="space-y-6">

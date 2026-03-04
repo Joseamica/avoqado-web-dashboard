@@ -102,5 +102,47 @@
     "system": "System",
     "admin": "Admin",
     "general": "General"
+  },
+  "categoryDescriptions": {
+    "orders": "Receive updates about order status, new orders, and cancellations",
+    "payments": "Stay informed about payment transactions, refunds, and failures",
+    "reviews": "Monitor customer feedback, reviews, and ratings",
+    "staff": "Manage staff schedules, shifts, and team updates",
+    "system": "System health, POS connection, and inventory alerts",
+    "admin": "Administrative alerts for managers and owners only",
+    "general": "General announcements, reminders, and alerts"
+  },
+  "typeDescriptions": {
+    "NEW_ORDER": "Notified immediately when a new order is received",
+    "ORDER_UPDATED": "Get updates when order details are modified",
+    "ORDER_READY": "Know when orders are ready for pickup or delivery",
+    "ORDER_CANCELLED": "Receive alerts when orders are cancelled",
+    "PAYMENT_RECEIVED": "Receive confirmation when payments are successfully processed",
+    "PAYMENT_FAILED": "Get immediately notified of failed payment attempts",
+    "REFUND_PROCESSED": "Know when refunds have been successfully processed",
+    "NEW_REVIEW": "Be notified when customers leave new reviews",
+    "BAD_REVIEW": "Get urgent alerts for low-rated reviews (1-2 stars)",
+    "REVIEW_RESPONSE_NEEDED": "Reminders for reviews that need your response",
+    "SHIFT_REMINDER": "Receive reminders before your scheduled shifts",
+    "SHIFT_ENDED": "Know when your shift has officially ended",
+    "NEW_STAFF_JOINED": "Be informed when new team members join",
+    "POS_DISCONNECTED": "Critical alerts when POS terminal disconnects",
+    "POS_RECONNECTED": "Confirmation when POS terminal reconnects",
+    "LOW_INVENTORY": "Alerts when inventory levels fall below threshold",
+    "SYSTEM_MAINTENANCE": "Important system maintenance notifications",
+    "FEATURE_UPDATED": "Updates about new features and improvements",
+    "VENUE_APPROVAL_NEEDED": "Approval requests for venue operations",
+    "VENUE_SUSPENDED": "Critical alerts when venue is suspended",
+    "HIGH_COMMISSION_ALERT": "Alerts for unusually high commission charges",
+    "REVENUE_MILESTONE": "Celebrate when revenue milestones are reached",
+    "ANNOUNCEMENT": "Platform-wide announcements and news",
+    "REMINDER": "Custom reminders and scheduled notifications",
+    "ALERT": "General alerts requiring your attention"
+  },
+  "channelNames": {
+    "IN_APP": "In App",
+    "EMAIL": "Email",
+    "SMS": "SMS",
+    "PUSH": "Push"
   }
 }

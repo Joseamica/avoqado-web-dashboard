@@ -39,6 +39,12 @@
   "superadminTools": "SA Tools",
   "rolePermissions": "Role Permissions",
   "platform": "Platform",
+  "groups": {
+    "operations": "Operations",
+    "people": "People",
+    "reports": "Reports",
+    "settings": "Settings"
+  },
   "features": "Features",
   "modules": "Modules",
   "organizations": "Organizations",

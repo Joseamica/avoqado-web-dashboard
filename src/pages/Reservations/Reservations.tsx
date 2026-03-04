@@ -13,7 +13,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -271,21 +270,26 @@ export default function Reservations() {
         </div>
       )}
 
-      {/* Pill tabs + filters row */}
+      {/* Underline tabs + filters row */}
       <div className="flex items-center justify-between gap-4 mb-4">
-        <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className="rounded-full bg-muted/60 px-1 py-1 border border-border">
+        <div className="border-b border-border">
+          <nav className="flex items-center gap-6">
             {validTabs.map(tab => (
-              <TabsTrigger
+              <button
                 key={tab}
-                value={tab}
-                className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background"
+                onClick={() => handleTabChange(tab)}
+                className={`relative pb-3 text-sm font-medium transition-colors ${
+                  activeTab === tab ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                }`}
               >
                 {t(`tabs.${tab}`)}
-              </TabsTrigger>
+                {activeTab === tab && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+                )}
+              </button>
             ))}
-          </TabsList>
-        </Tabs>
+          </nav>
+        </div>
 
         <div className="flex items-center gap-2">
           {/* Channel filter */}

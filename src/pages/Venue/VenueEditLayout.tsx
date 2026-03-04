@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { cn } from '@/lib/utils'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Outlet, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { NavTabs } from '@/components/ui/nav-tabs'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 
@@ -42,7 +42,7 @@ export const useVenueEditActions = () => {
 }
 
 export default function VenueEditLayout() {
-  const { venueSlug, fullBasePath } = useCurrentVenue()
+  const { fullBasePath } = useCurrentVenue()
   const navigate = useNavigate()
   const { t } = useTranslation('venue')
 
@@ -71,7 +71,7 @@ export default function VenueEditLayout() {
     <VenueEditContext.Provider value={{ setActions }}>
       <div className="flex flex-col min-h-screen bg-background">
         {/* Sticky Header */}
-        <div className="sticky top-0 z-10 flex flex-row justify-between w-full px-4 py-3 bg-background/95 border-b shadow-md backdrop-blur-sm">
+        <div className="sticky top-0 z-10 flex flex-row justify-between w-full px-4 py-3 bg-background/95 backdrop-blur-sm">
           <div className="space-x-3 flex items-center">
             <Button variant="ghost" size="icon" onClick={() => navigate(fullBasePath)}>
               <ArrowLeft className="h-5 w-5" />
@@ -136,61 +136,19 @@ export default function VenueEditLayout() {
         </div>
 
         {/* Horizontal Navigation */}
-        <VenueEditNav className="sticky top-14 bg-card h-14 z-10 shadow-sm" />
+        <NavTabs
+          className="sticky top-14 bg-background h-14 z-10"
+          items={[
+            { to: `${fullBasePath}/edit/basic-info`, label: t('edit.nav.basicInfo', { defaultValue: 'Información Básica' }) },
+            { to: `${fullBasePath}/edit/contact-images`, label: t('edit.nav.contactImages', { defaultValue: 'Contacto e Imágenes' }) },
+            { to: `${fullBasePath}/edit/documents`, label: t('edit.nav.documents', { defaultValue: 'Documentación' }) },
+            { to: `${fullBasePath}/edit/integrations`, label: t('edit.nav.integrations', { defaultValue: 'Integraciones' }) },
+          ]}
+        />
 
         {/* Content */}
         <Outlet />
       </div>
     </VenueEditContext.Provider>
-  )
-}
-
-export function VenueEditNav({ className, ...props }: React.HTMLAttributes<HTMLElement>) {
-  const { t } = useTranslation('venue')
-  const { fullBasePath } = useCurrentVenue()
-
-  return (
-    <nav className={cn('flex items-center space-x-6 lg:space-x-8 border-b border-border px-6', className)} {...props}>
-      <NavLink
-        to={`${fullBasePath}/edit/basic-info`}
-        className={({ isActive }) =>
-          `text-sm font-medium transition-colors py-4 border-b-2 ${
-            isActive ? 'text-foreground border-primary' : 'text-muted-foreground border-transparent hover:text-primary'
-          }`
-        }
-      >
-        {t('edit.nav.basicInfo', { defaultValue: 'Información Básica' })}
-      </NavLink>
-      <NavLink
-        to={`${fullBasePath}/edit/contact-images`}
-        className={({ isActive }) =>
-          `text-sm font-medium transition-colors py-4 border-b-2 ${
-            isActive ? 'text-foreground border-primary' : 'text-muted-foreground border-transparent hover:text-primary'
-          }`
-        }
-      >
-        {t('edit.nav.contactImages', { defaultValue: 'Contacto e Imágenes' })}
-      </NavLink>
-      <NavLink
-        to={`${fullBasePath}/edit/documents`}
-        className={({ isActive }) =>
-          `text-sm font-medium transition-colors py-4 border-b-2 ${
-            isActive ? 'text-foreground border-primary' : 'text-muted-foreground border-transparent hover:text-primary'
-          }`
-        }
-      >
-        {t('edit.nav.documents', { defaultValue: 'Documentación' })}
-      </NavLink>
-      <NavLink
-        to={`${fullBasePath}/edit/integrations`}
-        className={({ isActive }) =>
-          `text-sm font-medium transition-colors py-4 border-b-2 ${
-            isActive ? 'text-foreground border-primary' : 'text-muted-foreground border-transparent hover:text-primary'
-          }`
-        }
-      >
-        {t('edit.nav.integrations', { defaultValue: 'Integraciones' })}
-      </NavLink>
-    </nav>
   )
 }

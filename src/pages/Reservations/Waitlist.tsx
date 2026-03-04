@@ -25,7 +25,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -252,19 +251,43 @@ export default function Waitlist() {
 
       {/* Tabs */}
       <div className="mb-4">
-        <Tabs value={activeTab} onValueChange={v => setActiveTab(v as TabValue)}>
-          <TabsList className="rounded-full bg-muted/60 px-1 py-1 border border-border">
-            <TabsTrigger value="all" className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background">
+        <div className="border-b border-border">
+          <nav className="flex items-center gap-6">
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`relative pb-3 text-sm font-medium transition-colors ${
+                activeTab === 'all' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
               {t('tabs.all')}
-            </TabsTrigger>
-            <TabsTrigger value="waiting" className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background">
+              {activeTab === 'all' && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('waiting')}
+              className={`relative pb-3 text-sm font-medium transition-colors ${
+                activeTab === 'waiting' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
               {t('waitlist.status.WAITING')}
-            </TabsTrigger>
-            <TabsTrigger value="notified" className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background">
+              {activeTab === 'waiting' && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('notified')}
+              className={`relative pb-3 text-sm font-medium transition-colors ${
+                activeTab === 'notified' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
               {t('waitlist.status.NOTIFIED')}
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+              {activeTab === 'notified' && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+              )}
+            </button>
+          </nav>
+        </div>
       </div>
 
       {/* Table */}

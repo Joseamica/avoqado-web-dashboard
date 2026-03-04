@@ -18,7 +18,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import { exportToCSV, exportToExcel, formatCurrencyForExport, formatDateForExport, generateFilename } from '@/utils/export'
 import getIcon from '@/utils/getIcon'
@@ -489,19 +489,26 @@ export function SupervisorDashboard() {
         </div>
       </div>
 
-      {/* Pill Tabs */}
+      {/* Underline Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="rounded-full bg-muted/60 px-1 py-1 border border-border w-fit">
-          {VALID_TABS.map(tab => (
-            <TabsTrigger
-              key={tab}
-              value={tab}
-              className="rounded-full px-4 py-2 text-sm font-medium data-[state=active]:bg-foreground data-[state=active]:text-background"
-            >
-              {t(`playtelecom:supervisor.tabs.${tab}`)}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="border-b border-border">
+          <nav className="flex items-center gap-6">
+            {VALID_TABS.map(tab => (
+              <button
+                key={tab}
+                onClick={() => handleTabChange(tab)}
+                className={`relative pb-3 text-sm font-medium transition-colors ${
+                  activeTab === tab ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {t(`playtelecom:supervisor.tabs.${tab}`)}
+                {activeTab === tab && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+                )}
+              </button>
+            ))}
+          </nav>
+        </div>
 
         {/* Tab: Operativo */}
         <TabsContent value="operativo" className="space-y-6 mt-4">

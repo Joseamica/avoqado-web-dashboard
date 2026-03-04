@@ -1,70 +1,50 @@
-import React from 'react'
+import { createContext, useContext, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Outlet } from 'react-router-dom'
+import { NavTabs } from '@/components/ui/nav-tabs'
 
-import { cn } from '@/lib/utils'
-import { NavLink, Outlet } from 'react-router-dom'
-
-export default function MenuMakerLayout() {
-  return (
-    <div className="pb-4 bg-background">
-      <MenuNav className="sticky top-0 bg-card h-14 z-50 shadow-sm" />
-      <Outlet />
-    </div>
-  )
+// Context so child pages can push their title + action buttons into the layout header
+interface MenuMakerHeaderContextType {
+  setHeader: (header: { title?: ReactNode; actions?: ReactNode }) => void
 }
 
-export function MenuNav({ className, ...props }: React.HTMLAttributes<HTMLElement>) {
+const MenuMakerHeaderContext = createContext<MenuMakerHeaderContextType | undefined>(undefined)
+
+export const useMenuMakerHeader = () => {
+  const ctx = useContext(MenuMakerHeaderContext)
+  if (!ctx) throw new Error('useMenuMakerHeader must be used within MenuMakerLayout')
+  return ctx
+}
+
+export default function MenuMakerLayout() {
   const { t } = useTranslation('menu')
+  const [header, setHeader] = useState<{ title?: ReactNode; actions?: ReactNode }>({})
+
   return (
-    <nav className={cn('flex items-center space-x-6 lg:space-x-8 border-y border-border p-4', className)} {...props}>
-      <NavLink
-        to="overview"
-        className={({ isActive }) =>
-          `text-sm font-medium transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground hover:text-primary'}`
-        }
-      >
-        {t('menumaker.nav.overview', { defaultValue: 'Overview' })}
-      </NavLink>
-      <NavLink
-        to="menus"
-        className={({ isActive }) =>
-          `text-sm font-medium transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground hover:text-primary'}`
-        }
-      >
-        {t('menumaker.nav.menus', { defaultValue: 'Menus' })}
-      </NavLink>
-      <NavLink
-        to="categories"
-        className={({ isActive }) =>
-          `text-sm font-medium transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground hover:text-primary'}`
-        }
-      >
-        {t('menumaker.nav.categories', { defaultValue: 'Categories' })}
-      </NavLink>
-      <NavLink
-        to="products"
-        className={({ isActive }) =>
-          `text-sm font-medium transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground hover:text-primary'}`
-        }
-      >
-        {t('menumaker.nav.products', { defaultValue: 'Products' })}
-      </NavLink>
-      <NavLink
-        to="services"
-        className={({ isActive }) =>
-          `text-sm font-medium transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground hover:text-primary'}`
-        }
-      >
-        {t('menumaker.nav.services', { defaultValue: 'Services' })}
-      </NavLink>
-      <NavLink
-        to="modifier-groups"
-        className={({ isActive }) =>
-          `text-sm font-medium transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground hover:text-primary'}`
-        }
-      >
-        {t('menumaker.nav.modifierGroups', { defaultValue: 'Modifier Groups' })}
-      </NavLink>
-    </nav>
+    <MenuMakerHeaderContext.Provider value={{ setHeader }}>
+      <div className="pb-4 bg-background">
+        {/* Header — populated by child pages via useMenuMakerHeader */}
+        {(header.title || header.actions) && (
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-6 pt-6 pb-4">
+            <div>{header.title}</div>
+            {header.actions && <div className="flex items-center gap-2">{header.actions}</div>}
+          </div>
+        )}
+
+        {/* Tabs */}
+        <NavTabs
+          className="sticky top-0 bg-background h-14 z-50"
+          items={[
+            { to: 'overview', label: t('menumaker.nav.overview', { defaultValue: 'Overview' }) },
+            { to: 'menus', label: t('menumaker.nav.menus', { defaultValue: 'Menus' }) },
+            { to: 'categories', label: t('menumaker.nav.categories', { defaultValue: 'Categories' }) },
+            { to: 'products', label: t('menumaker.nav.products', { defaultValue: 'Products' }) },
+            { to: 'services', label: t('menumaker.nav.services', { defaultValue: 'Services' }) },
+            { to: 'modifier-groups', label: t('menumaker.nav.modifierGroups', { defaultValue: 'Modifier Groups' }) },
+          ]}
+        />
+        <Outlet />
+      </div>
+    </MenuMakerHeaderContext.Provider>
   )
 }

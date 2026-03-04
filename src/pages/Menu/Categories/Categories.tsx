@@ -3,7 +3,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useLocation } from 'react-router-dom'
@@ -17,6 +17,7 @@ import { PermissionGate } from '@/components/PermissionGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { CategoryWizardDialog } from './components/CategoryWizardDialog'
 import { Sparkles } from 'lucide-react'
+import { useMenuMakerHeader } from '../MenuMakerLayout'
 
 export default function Categories() {
   const { t } = useTranslation('menu')
@@ -26,6 +27,31 @@ export default function Categories() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const [wizardOpen, setWizardOpen] = useState(false)
+
+  // Push header into MenuMakerLayout (title + actions appear above tabs)
+  const { setHeader } = useMenuMakerHeader()
+  useEffect(() => {
+    setHeader({
+      title: (
+        <PageTitleWithInfo
+          title={t('categories.title')}
+          className="text-xl font-semibold"
+          tooltip={t('info.categories', {
+            defaultValue: 'Crea y organiza categorias para agrupar productos del menu.',
+          })}
+        />
+      ),
+      actions: (
+        <PermissionGate permission="menu:create">
+          <Button onClick={() => setWizardOpen(true)}>
+            <Sparkles className="mr-2 h-4 w-4" />
+            <span>{t('categories.newCategory')}</span>
+          </Button>
+        </PermissionGate>
+      ),
+    })
+    return () => setHeader({})
+  }, [t, setHeader])
 
   const { data: categories, isLoading } = useQuery({
     queryKey: ['categories', venueId],
@@ -151,23 +177,6 @@ export default function Categories() {
 
   return (
     <div className="p-4">
-      <div className="flex flex-row items-center justify-between mb-6">
-        <PageTitleWithInfo
-          title={t('categories.title')}
-          className="text-xl font-semibold"
-          tooltip={t('info.categories', {
-            defaultValue: 'Crea y organiza categorias para agrupar productos del menu.',
-          })}
-        />
-        <PermissionGate permission="menu:create">
-          <PermissionGate permission="menu:create">
-            <Button onClick={() => setWizardOpen(true)}>
-              <Sparkles className="mr-2 h-4 w-4" />
-              <span>{t('categories.newCategory')}</span>
-            </Button>
-          </PermissionGate>
-        </PermissionGate>
-      </div>
 
       <DataTable
         data={categories || []}

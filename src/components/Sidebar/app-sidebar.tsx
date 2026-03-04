@@ -35,6 +35,7 @@
   Wallet,
   Warehouse,
   Zap,
+  Search,
   LucideIcon,
 } from 'lucide-react'
 import * as React from 'react'
@@ -44,7 +45,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { NavMain } from '@/components/Sidebar/nav-main'
 import { NavUser } from '@/components/Sidebar/nav-user'
 import { VenuesSwitcher } from '@/components/Sidebar/venues-switcher'
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from '@/components/ui/sidebar'
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail, useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/context/AuthContext'
 import { SessionVenue, User, Venue } from '@/types'
 import { useTranslation } from 'react-i18next'
@@ -53,6 +54,7 @@ import { canAccessOperationalFeatures } from '@/lib/kyc-utils'
 import { useWhiteLabelConfig, getFeatureRoute } from '@/hooks/useWhiteLabelConfig'
 import { useTerminology } from '@/hooks/use-terminology'
 import api from '@/api'
+import { cn } from '@/lib/utils'
 
 // ============================================
 // Icon Mapping for White-Label Navigation
@@ -163,7 +165,22 @@ const FEATURE_CODE_TO_TRANSLATION_KEY: Record<string, string> = {
   SALES_REPORT: 'playtelecom.sales',
 }
 
-export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sidebar> & { user: User }) {
+export type SidebarMeta = {
+  navItems: any[]
+  hiddenSidebarItems: string[]
+  isSuperadmin: boolean
+}
+
+export function AppSidebar({
+  user,
+  onSidebarReady,
+  onSearchClick,
+  ...props
+}: React.ComponentProps<typeof Sidebar> & {
+  user: User
+  onSidebarReady?: (meta: SidebarMeta) => void
+  onSearchClick?: () => void
+}) {
   const { allVenues, activeVenue, staffInfo, checkFeatureAccess } = useAuth()
   const { t } = useTranslation(['translation', 'sidebar'])
   const { can, canFeature } = useAccess()
@@ -259,23 +276,10 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
 
     // Define all possible items with their required permissions and features
     const allItems = [
-      { title: t('sidebar:routes.home'), isActive: true, url: 'home', icon: Home, permission: 'home:read', locked: false },
-      // {
-      //   title: t('sidebar:analytics'),
-      //   isActive: true,
-      //   url: 'analytics',
-      //   icon: TrendingUp,
-      //   permission: 'analytics:read',
-      //   locked: !hasKYCAccess,
-      // },
-      {
-        title: t('sidebar:availableBalance'),
-        isActive: true,
-        url: 'available-balance',
-        icon: Wallet,
-        permission: 'settlements:read',
-        locked: !hasKYCAccess,
-      },
+      // ── Main (no group label) ──
+      { title: t('sidebar:routes.home'), isActive: true, url: 'home', icon: Home, permission: 'home:read', locked: false, group: 'main' },
+
+      // ── Operaciones ──
       {
         title: term('menu'),
         isActive: location.pathname.includes('/menumaker'),
@@ -283,6 +287,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         icon: BookOpen,
         permission: 'menu:read',
         locked: false,
+        group: 'operations',
         items: [
           { title: t('menu:menumaker.nav.overview'), url: 'menumaker/overview', permission: 'menu:read' },
           { title: t('menu:menumaker.nav.menus'), url: 'menumaker/menus', permission: 'menu:read' },
@@ -295,11 +300,12 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       {
         title: t('sidebar:routes.inventory'),
         isActive: location.pathname.startsWith('/inventory'),
-        url: 'inventory/raw-materials', // Keep base URL active for parent match
+        url: 'inventory/raw-materials',
         icon: Package,
         permission: 'inventory:read',
         locked: !hasKYCAccess,
         requiredFeature: 'INVENTORY_TRACKING',
+        group: 'operations',
         items: [
           { title: 'Resumen de existencias', url: 'inventory/stock-overview', permission: 'inventory:read' },
           { title: 'Historial', url: 'inventory/history', permission: 'inventory:read' },
@@ -313,7 +319,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
           { title: 'Reabastecimientos pendientes', url: 'inventory/restocks', permission: 'inventory:read', comingSoon: true },
         ],
       },
-      // NOTE: Payments and Orders moved to "Ventas" collapsible section below
+      // NOTE: Sales (Ventas) collapsible section inserted below via splice
       {
         title: t('sidebar:routes.shifts'),
         isActive: true,
@@ -321,7 +327,8 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         icon: Ungroup,
         permission: 'shifts:read',
         locked: !hasKYCAccess,
-        requiresShiftsEnabled: true, // Only show if venue has shifts enabled
+        requiresShiftsEnabled: true,
+        group: 'operations',
       },
       {
         title: t('sidebar:routes.tpv'),
@@ -330,7 +337,25 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         icon: Smartphone,
         permission: 'tpv:read',
         locked: !hasKYCAccess,
+        group: 'operations',
       },
+      {
+        title: t('sidebar:routes.reservations'),
+        isActive: true,
+        url: 'reservations',
+        icon: CalendarDays,
+        permission: 'reservations:read',
+        locked: false,
+        group: 'operations',
+        items: [
+          { title: t('sidebar:reservationsMenu.overview'), url: 'reservations', permission: 'reservations:read' },
+          { title: t('sidebar:reservationsMenu.calendar'), url: 'reservations/calendar', permission: 'reservations:read' },
+          { title: t('sidebar:reservationsMenu.waitlist'), url: 'reservations/waitlist', permission: 'reservations:read' },
+          { title: t('sidebar:reservationsMenu.settings'), url: 'reservations/settings', permission: 'reservations:read' },
+        ],
+      },
+
+      // ── Personas ──
       {
         title: t('sidebar:routes.teams'),
         isActive: true,
@@ -338,6 +363,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         icon: Users,
         permission: 'teams:read',
         locked: false,
+        group: 'people',
       },
       {
         title: t('sidebar:routes.commissions'),
@@ -346,22 +372,9 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         icon: DollarSign,
         permission: 'commissions:read',
         locked: !hasKYCAccess,
+        group: 'people',
       },
-      { title: t('sidebar:routes.reviews'), isActive: true, url: 'reviews', icon: Star, permission: 'reviews:read', locked: false },
-      {
-        title: t('sidebar:routes.reservations'),
-        isActive: true,
-        url: 'reservations',
-        icon: CalendarDays,
-        permission: 'reservations:read',
-        locked: false,
-        items: [
-          { title: t('sidebar:reservationsMenu.overview'), url: 'reservations', permission: 'reservations:read' },
-          { title: t('sidebar:reservationsMenu.calendar'), url: 'reservations/calendar', permission: 'reservations:read' },
-          { title: t('sidebar:reservationsMenu.waitlist'), url: 'reservations/waitlist', permission: 'reservations:read' },
-          { title: t('sidebar:reservationsMenu.settings'), url: 'reservations/settings', permission: 'reservations:read' },
-        ],
-      },
+      { title: t('sidebar:routes.reviews'), isActive: true, url: 'reviews', icon: Star, permission: 'reviews:read', locked: false, group: 'people' },
     ]
 
     // Map of standard sidebar URLs to their white-label feature codes
@@ -444,6 +457,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         locked: !hasKYCAccess,
         items: salesSubItems,
         permission: null as any,
+        group: 'operations',
       } as any)
     }
 
@@ -464,9 +478,9 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
 
     // Only show Customers menu if user has at least one subitem AND (not white-label OR customers feature enabled)
     if (customersSubItems.length > 0 && (!isWhiteLabelVenue || isFeatureEnabled('AVOQADO_CUSTOMERS'))) {
-      // Find index after Reviews to insert Customers menu
-      const reviewsIndex = filteredItems.findIndex(item => item.url === 'reviews')
-      const insertIndex = reviewsIndex !== -1 ? reviewsIndex + 1 : filteredItems.length
+      // Find index after Teams to insert Customers menu (before Commissions)
+      const teamsIndex = filteredItems.findIndex(item => item.url === 'team')
+      const insertIndex = teamsIndex !== -1 ? teamsIndex + 1 : filteredItems.length
       filteredItems.splice(insertIndex, 0, {
         title: t('sidebar:customersMenu.title'),
         url: '#customers',
@@ -474,6 +488,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         locked: false,
         items: customersSubItems,
         permission: null as any,
+        group: 'people',
       } as any)
     }
 
@@ -485,9 +500,9 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
 
     // Only show Promotions menu if user has at least one subitem AND (not white-label OR promotions feature enabled)
     if (promotionsSubItems.length > 0 && (!isWhiteLabelVenue || isFeatureEnabled('AVOQADO_PROMOTIONS'))) {
-      // Find index after Customers menu to insert Promotions menu
-      const customersIndex = filteredItems.findIndex(item => item.url === '#customers')
-      const insertIndex = customersIndex !== -1 ? customersIndex + 1 : filteredItems.length
+      // Find index after Reviews to insert Promotions menu
+      const reviewsIndex = filteredItems.findIndex(item => item.url === 'reviews')
+      const insertIndex = reviewsIndex !== -1 ? reviewsIndex + 1 : filteredItems.length
       filteredItems.splice(insertIndex, 0, {
         title: t('sidebar:promotionsMenu.title'),
         url: '#promotions',
@@ -495,67 +510,77 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         locked: false,
         items: promotionsSubItems,
         permission: null as any,
+        group: 'people',
       } as any)
     }
 
-    // Reports submenu - filter subitems based on permissions
-    const reportsSubItems = [
+    // Available Balance — first item in Reportes group
+    if (can('settlements:read') && (!isWhiteLabelVenue || isFeatureEnabled('AVOQADO_BALANCE'))) {
+      filteredItems.push({
+        title: t('sidebar:availableBalance'),
+        isActive: true,
+        url: 'available-balance',
+        icon: Wallet,
+        permission: 'settlements:read',
+        locked: !hasKYCAccess,
+        group: 'reports',
+      } as any)
+    }
+
+    // Reports — flat items (no collapsible parent) under "Reportes" group
+    const reportItems = [
       {
         title: t('sidebar:reportsMenu.payLaterAging', { defaultValue: 'Cuentas por Cobrar' }),
         url: 'reports/pay-later-aging',
+        icon: HandCoins,
         permission: 'tpv-reports:pay-later-aging',
+        group: 'reports',
       },
-      { title: t('sidebar:reportsMenu.salesSummary'), url: 'reports/sales-summary', permission: 'reports:read' },
-      { title: t('sidebar:reportsMenu.salesByItem'), url: 'reports/sales-by-item', permission: 'reports:read' },
-      { title: t('sidebar:reportsMenu.salesByCategory'), url: 'reports/sales-by-category', permission: 'reports:read', comingSoon: true },
-      { title: t('sidebar:reportsMenu.paymentMethods'), url: 'reports/payment-methods', permission: 'reports:read', comingSoon: true },
-      { title: t('sidebar:reportsMenu.taxes'), url: 'reports/taxes', permission: 'reports:read', comingSoon: true },
-      { title: t('sidebar:reportsMenu.voids'), url: 'reports/voids', permission: 'reports:read', comingSoon: true },
-      { title: t('sidebar:reportsMenu.modifiers'), url: 'reports/modifiers', permission: 'reports:read', comingSoon: true },
+      { title: t('sidebar:reportsMenu.salesSummary'), url: 'reports/sales-summary', icon: BarChart3, permission: 'reports:read', group: 'reports' },
+      { title: t('sidebar:reportsMenu.salesByItem'), url: 'reports/sales-by-item', icon: Receipt, permission: 'reports:read', group: 'reports' },
+      { title: t('sidebar:reportsMenu.salesByCategory'), url: 'reports/sales-by-category', icon: Receipt, permission: 'reports:read', group: 'reports', comingSoon: true },
+      { title: t('sidebar:reportsMenu.paymentMethods'), url: 'reports/payment-methods', icon: CreditCard, permission: 'reports:read', group: 'reports', comingSoon: true },
+      { title: t('sidebar:reportsMenu.taxes'), url: 'reports/taxes', icon: FileSpreadsheet, permission: 'reports:read', group: 'reports', comingSoon: true },
+      { title: t('sidebar:reportsMenu.voids'), url: 'reports/voids', icon: Receipt, permission: 'reports:read', group: 'reports', comingSoon: true },
+      { title: t('sidebar:reportsMenu.modifiers'), url: 'reports/modifiers', icon: Receipt, permission: 'reports:read', group: 'reports', comingSoon: true },
     ].filter(item => !item.permission || can(item.permission))
 
-    // Only show Reports menu if user has at least one subitem AND (not white-label OR reports feature enabled)
-    if (reportsSubItems.length > 0 && (!isWhiteLabelVenue || isFeatureEnabled('AVOQADO_REPORTS'))) {
-      // Find index after Promotions menu to insert Reports menu
-      const promotionsIndex = filteredItems.findIndex(item => item.url === '#promotions')
-      const insertIndex = promotionsIndex !== -1 ? promotionsIndex + 1 : filteredItems.length
-      filteredItems.splice(insertIndex, 0, {
-        title: t('sidebar:reportsMenu.title', { defaultValue: 'Reportes' }),
-        url: '#reports',
-        icon: Receipt,
-        locked: !hasKYCAccess,
-        items: reportsSubItems,
-        permission: null as any,
-      } as any)
+    // Only add reports if user has permissions AND (not white-label OR reports feature enabled)
+    if (reportItems.length > 0 && (!isWhiteLabelVenue || isFeatureEnabled('AVOQADO_REPORTS'))) {
+      for (const report of reportItems) {
+        filteredItems.push({
+          ...report,
+          isActive: true,
+          locked: !hasKYCAccess,
+        } as any)
+      }
     }
 
-    // Settings submenu - filter subitems based on permissions
-    // NOTE: Superadmin-specific items (payment-config, ecommerce-merchants) moved to separate Superadmin dropdown
-    const settingsSubItems = [
-      { title: t('sidebar:routes.editvenue'), url: 'edit', permission: 'venues:read' },
+    // Settings — flat items under "Configuración" group (no collapsible parent)
+    const settingsItems = [
+      { title: t('sidebar:routes.editvenue'), url: 'edit', icon: Store, permission: 'venues:read' },
       // Role permissions only for ADMIN+
       ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
-        ? [{ title: t('sidebar:rolePermissions'), url: 'settings/role-permissions', permission: null }]
+        ? [{ title: t('sidebar:rolePermissions'), url: 'settings/role-permissions', icon: Shield, permission: null }]
         : []),
       // Billing only for ADMIN+
       ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
-        ? [{ title: t('sidebar:routes.billing'), url: 'settings/billing', permission: 'billing:read' }]
+        ? [{ title: t('sidebar:routes.billing'), url: 'settings/billing', icon: CreditCard, permission: 'billing:read' }]
         : []),
       // Notifications preferences
-      { title: t('sidebar:routes.notifications'), url: 'notifications/preferences', permission: 'settings:read' },
+      { title: t('sidebar:routes.notifications'), url: 'notifications/preferences', icon: Settings2, permission: 'settings:read' },
     ].filter(item => !item.permission || can(item.permission))
 
-    // Only show Settings menu if user has at least one subitem
-    // For white-label venues, only show if AVOQADO_SETTINGS feature is enabled
-    if (settingsSubItems.length > 0 && (!isWhiteLabelVenue || isFeatureEnabled('AVOQADO_SETTINGS'))) {
-      filteredItems.push({
-        title: t('sidebar:routes.settings'),
-        url: '#',
-        icon: Settings2,
-        locked: false,
-        items: settingsSubItems,
-        permission: null as any,
-      } as any)
+    // Only add settings if user has at least one item AND (not white-label OR settings feature enabled)
+    if (settingsItems.length > 0 && (!isWhiteLabelVenue || isFeatureEnabled('AVOQADO_SETTINGS'))) {
+      for (const setting of settingsItems) {
+        filteredItems.push({
+          ...setting,
+          isActive: true,
+          locked: false,
+          group: 'settings',
+        } as any)
+      }
     }
 
     // Superadmin Venue Tools dropdown - only for SUPERADMIN
@@ -575,6 +600,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         items: superadminVenueItems,
         superadminOnly: true,
         permission: null as any,
+        group: 'settings',
       } as any)
     }
 
@@ -601,6 +627,11 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     isFeatureEnabled,
     canFeature,
   ])
+
+  // Expose sidebar data to parent for command palette
+  React.useEffect(() => {
+    onSidebarReady?.({ navItems: navMain, hiddenSidebarItems, isSuperadmin })
+  }, [navMain, hiddenSidebarItems, isSuperadmin, onSidebarReady])
 
   const superAdminRoutes = React.useMemo(
     () => [
@@ -631,9 +662,36 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     [user.firstName, user.lastName, user.email, user.photoUrl],
   )
 
+  const { state: sidebarState, isMobile } = useSidebar()
+  const isSidebarCollapsed = sidebarState === 'collapsed' && !isMobile
+  const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent)
+
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader className="p-0 border-b border-sidebar-border">{defaultVenue && <VenuesSwitcher venues={venuesToShow} defaultVenue={defaultVenue} />}</SidebarHeader>
+      <SidebarHeader className="p-0 border-b border-sidebar-border">
+        {defaultVenue && <VenuesSwitcher venues={venuesToShow} defaultVenue={defaultVenue} />}
+      </SidebarHeader>
+      {/* Search trigger for command palette */}
+      <div className="px-2 py-2">
+        <button
+          type="button"
+          onClick={onSearchClick}
+          className={cn(
+            'flex w-full items-center gap-2 rounded-md border border-sidebar-border bg-sidebar-accent/50 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground',
+            isSidebarCollapsed && 'justify-center px-0',
+          )}
+        >
+          <Search className="h-4 w-4 shrink-0" />
+          {!isSidebarCollapsed && (
+            <>
+              <span className="flex-1 text-left">Buscar...</span>
+              <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-0.5 rounded border border-sidebar-border bg-sidebar px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                {isMac ? '⌘' : 'Ctrl+'} K
+              </kbd>
+            </>
+          )}
+        </button>
+      </div>
       <SidebarContent>
         <NavMain
           items={navMain}

@@ -19,6 +19,7 @@ import { AlertCircle, GripVertical, Image as ImageIcon, Search, Info, Upload } f
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import { useMenuMakerHeader } from './MenuMakerLayout'
 
 // Skeleton Components
 function SkeletonProduct() {
@@ -205,6 +206,51 @@ export default function Overview() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false)
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
+
+  // Push header into MenuMakerLayout (title + actions appear above tabs)
+  const { setHeader } = useMenuMakerHeader()
+  useEffect(() => {
+    setHeader({
+      title: (
+        <PageTitleWithInfo
+          title={t('overview.title')}
+          className="text-3xl font-bold tracking-tight"
+          tooltip={t('info.overview', {
+            defaultValue: 'Resumen del menu con categorias y productos para gestionar estructura y disponibilidad.',
+          })}
+        />
+      ),
+      actions: (
+        <>
+          {can('menu:import') && (
+            <Button variant="outline" onClick={() => setIsImportDialogOpen(true)} className="gap-2">
+              <Upload className="h-4 w-4" />
+              {t('overview.importMenu')}
+            </Button>
+          )}
+          {can('menu:create') && (
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <Button>{t('overview.create')}</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent sideOffset={5} className="w-56">
+                <DropdownMenuItem onClick={() => navigate(`${fullBasePath}/menumaker/menus/create`)}>
+                  {t('overview.newMenu')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate(`${fullBasePath}/menumaker/categories/create`)}>
+                  {t('overview.newCategory')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate(`${fullBasePath}/menumaker/products`)}>
+                  {t('overview.createNewProduct')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </>
+      ),
+    })
+    return () => setHeader({})
+  }, [t, can, navigate, fullBasePath, setHeader])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -506,45 +552,6 @@ export default function Overview() {
 
   return (
     <div className="p-6">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <PageTitleWithInfo
-          title={t('overview.title')}
-          className="text-3xl font-bold"
-          tooltip={t('info.overview', {
-            defaultValue: 'Resumen del menu con categorias y productos para gestionar estructura y disponibilidad.',
-          })}
-        />
-        <div className="flex items-center space-x-2">
-          {/* Import button - Requires menu:import permission (MANAGER+) */}
-          {can('menu:import') && (
-            <Button variant="outline" onClick={() => setIsImportDialogOpen(true)} className="gap-2">
-              <Upload className="h-4 w-4" />
-              {t('overview.importMenu')}
-            </Button>
-          )}
-          {/* Create buttons - Requires menu:create permission (MANAGER+) */}
-          {can('menu:create') && (
-            <DropdownMenu modal={false}>
-              <DropdownMenuTrigger asChild>
-                <Button>{t('overview.create')}</Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent sideOffset={5} className="w-56">
-                <DropdownMenuItem onClick={() => navigate(`${fullBasePath}/menumaker/menus/create`)}>
-                  {t('overview.newMenu')}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate(`${fullBasePath}/menumaker/categories/create`)}>
-                  {t('overview.newCategory')}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate(`${fullBasePath}/menumaker/products`)}>
-                  {t('overview.createNewProduct')}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-      </div>
-
       {/* Global search */}
       <div className="flex items-center space-x-4 mb-4">
         <div className="relative w-full max-w-2xl">

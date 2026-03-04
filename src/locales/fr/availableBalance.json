@@ -94,6 +94,7 @@
       "calendarDays_other": "jours calendaires",
       "cutoffTime": "Heure limite: {{time}}"
     },
+    "noConfig": "Aucune configuration de règlement trouvée pour ce type de carte. Veuillez d'abord configurer les règles de règlement.",
     "error": "Échec de la simulation de la transaction"
   },
 

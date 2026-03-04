@@ -106,6 +106,7 @@
       "calendarDays_other": "días calendario",
       "cutoffTime": "Hora de corte: {{time}}"
     },
+    "noConfig": "No se encontró configuración de liquidación para este tipo de tarjeta. Por favor, configura las reglas de liquidación primero.",
     "error": "Error al simular transacción"
   },
 

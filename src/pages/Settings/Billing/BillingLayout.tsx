@@ -1,11 +1,13 @@
-import { cn } from '@/lib/utils'
-import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { NavLink, Outlet } from 'react-router-dom'
+import { Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { NavTabs } from '@/components/ui/nav-tabs'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 
 export default function BillingLayout() {
   const { t } = useTranslation('billing')
+  const { fullBasePath } = useCurrentVenue()
+  const basePath = `${fullBasePath}/settings/billing`
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -21,42 +23,20 @@ export default function BillingLayout() {
       </div>
 
       {/* Horizontal Navigation */}
-      <BillingNav className="bg-card h-14" />
+      <NavTabs
+        className="bg-background h-14"
+        items={[
+          { to: `${basePath}/subscriptions`, label: t('tabs.subscriptions') },
+          { to: `${basePath}/history`, label: t('tabs.history') },
+          { to: `${basePath}/payment-methods`, label: t('tabs.paymentMethods') },
+          { to: `${basePath}/tokens`, label: t('tabs.tokens') },
+        ]}
+      />
 
       {/* Content - Child routes render here */}
       <div className="flex-1 pb-4">
         <Outlet />
       </div>
     </div>
-  )
-}
-
-function BillingNav({ className, ...props }: React.HTMLAttributes<HTMLElement>) {
-  const { t } = useTranslation('billing')
-  const { fullBasePath } = useCurrentVenue()
-  const basePath = `${fullBasePath}/settings/billing`
-
-  const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `text-sm font-medium transition-colors py-4 border-b-2 cursor-pointer ${
-      isActive
-        ? 'text-foreground border-primary'
-        : 'text-muted-foreground border-transparent hover:text-primary'
-    }`
-
-  return (
-    <nav className={cn('flex items-center space-x-6 lg:space-x-8 border-b border-border px-6', className)} {...props}>
-      <NavLink to={`${basePath}/subscriptions`} className={navLinkClass}>
-        {t('tabs.subscriptions')}
-      </NavLink>
-      <NavLink to={`${basePath}/history`} className={navLinkClass}>
-        {t('tabs.history')}
-      </NavLink>
-      <NavLink to={`${basePath}/payment-methods`} className={navLinkClass}>
-        {t('tabs.paymentMethods')}
-      </NavLink>
-      <NavLink to={`${basePath}/tokens`} className={navLinkClass}>
-        {t('tabs.tokens')}
-      </NavLink>
-    </nav>
   )
 }

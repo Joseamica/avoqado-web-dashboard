@@ -8,7 +8,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog,
   DialogContent,
@@ -532,48 +531,63 @@ export default function AvailableBalance() {
               defaultValue: 'Consulta el saldo disponible y simula fechas de deposito.',
             })}
           />
-          <p className="text-muted-foreground">{t('description')}</p>
+          <p className="text-sm text-muted-foreground mt-1">{t('description')}</p>
         </div>
-        <Button onClick={() => setShowSimulationDialog(true)}>
-          <Calculator className="mr-2 h-4 w-4" />
+        <Button variant="outline" onClick={() => setShowSimulationDialog(true)} className="gap-2">
+          <Calculator className="h-4 w-4" />
           {t('simulate.button')}
         </Button>
       </div>
 
-      {/* Pill-Style Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
-        <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border">
-          <TabsTrigger
-            value="all"
-            className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+      {/* Stripe-style underline tabs */}
+      <div className="border-b border-border">
+        <nav className="flex items-center gap-6">
+          <button
+            onClick={() => setActiveTab('all')}
+            className={`relative flex items-center gap-2 pb-3 text-sm font-medium transition-colors ${
+              activeTab === 'all' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+            }`}
           >
             <span>{t('tabs.all')}</span>
-            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
+            <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs bg-muted text-muted-foreground">
               {tabCounts.total}
             </span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="cards"
-            className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+            {activeTab === 'all' && (
+              <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('cards')}
+            className={`relative flex items-center gap-1.5 pb-3 text-sm font-medium transition-colors ${
+              activeTab === 'cards' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+            }`}
           >
-            <CreditCard className="w-4 h-4 mr-1.5" />
+            <CreditCard className="w-4 h-4" />
             <span>{t('tabs.cards')}</span>
-            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
+            <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs bg-muted text-muted-foreground">
               {tabCounts.cardsCount}
             </span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="cash"
-            className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+            {activeTab === 'cards' && (
+              <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('cash')}
+            className={`relative flex items-center gap-1.5 pb-3 text-sm font-medium transition-colors ${
+              activeTab === 'cash' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+            }`}
           >
-            <Banknote className="w-4 h-4 mr-1.5" />
+            <Banknote className="w-4 h-4" />
             <span>{t('tabs.cash')}</span>
-            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
+            <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs bg-muted text-muted-foreground">
               {tabCounts.cashCount}
             </span>
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+            {activeTab === 'cash' && (
+              <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+            )}
+          </button>
+        </nav>
+      </div>
 
       {/* Pending Incidents Alert */}
       {venueId && <PendingIncidentsAlert venueId={venueId} />}
@@ -754,7 +768,7 @@ export default function AvailableBalance() {
                 : 0
 
               return (
-                <GlassCard key={card.cardType} className="p-4 space-y-3">
+                <GlassCard key={card.cardType} hover className="p-4 space-y-3">
                   {/* Header: icon + type */}
                   <div className="flex items-center gap-2">
                     <div className={cn(
@@ -1083,68 +1097,70 @@ export default function AvailableBalance() {
 
               {/* Simulation Result */}
               {simulationResult && (
-                <div className="mt-6 p-4 bg-muted/50 rounded-lg space-y-4">
-                  <h3 className="font-semibold text-lg">{t('simulate.result.title')}</h3>
+                <div className="mt-6 rounded-xl border border-input bg-muted/30 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-input bg-muted/50">
+                    <h3 className="font-semibold text-sm">{t('simulate.result.title')}</h3>
+                  </div>
 
                   {simulationResult.estimatedSettlementDate && simulationResult.settlementDays !== null ? (
-                    <>
+                    <div className="p-4 space-y-4">
                       <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm text-muted-foreground">{t('simulate.result.settlementDate')}</p>
-                          <p className="text-xl font-bold">
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">{t('simulate.result.settlementDate')}</p>
+                          <p className="text-lg font-bold">
                             {formatDate(simulationResult.estimatedSettlementDate)}
                           </p>
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-xs text-muted-foreground">
                             ({simulationResult.settlementDays} {t('simulate.result.settlementDays')})
                           </p>
                         </div>
 
-                        <div>
-                          <p className="text-sm text-muted-foreground">{t('simulate.result.netAmount')}</p>
-                          <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">{t('simulate.result.netAmount')}</p>
+                          <p className="text-lg font-bold text-green-600 dark:text-green-400">
                             {Currency(simulationResult.netAmount)}
                           </p>
                         </div>
                       </div>
 
-                      <div className="space-y-2 text-sm">
+                      <div className="space-y-1.5 text-sm">
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">{t('simulate.result.grossAmount')}:</span>
+                          <span className="text-muted-foreground">{t('simulate.result.grossAmount')}</span>
                           <span className="font-medium">{Currency(simulationResult.grossAmount)}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">{t('simulate.result.fees')}:</span>
+                          <span className="text-muted-foreground">{t('simulate.result.fees')}</span>
                           <span className="font-medium text-destructive">-{Currency(simulationResult.fees)}</span>
                         </div>
-                        <div className="flex justify-between pt-2 border-t">
-                          <span className="font-semibold">{t('simulate.result.netAmount')}:</span>
+                        <div className="flex justify-between pt-2 border-t border-input">
+                          <span className="font-semibold">{t('simulate.result.netAmount')}</span>
                           <span className="font-bold">{Currency(simulationResult.netAmount)}</span>
                         </div>
                       </div>
 
                       {simulationResult.configuration && (
-                        <div className="pt-3 border-t">
-                          <p className="text-sm font-medium mb-2">{t('simulate.result.configuration')}</p>
-                          <div className="space-y-1 text-xs text-muted-foreground">
+                        <div className="pt-3 border-t border-input">
+                          <p className="text-xs font-medium text-muted-foreground mb-1.5">{t('simulate.result.configuration')}</p>
+                          <div className="space-y-0.5 text-xs text-muted-foreground">
                             <p>
-                              • {t('simulate.result.configDays', {
+                              {t('simulate.result.configDays', {
                                 count: simulationResult.configuration.settlementDays,
                                 type: simulationResult.configuration.settlementDayType === 'BUSINESS_DAYS'
                                   ? t('simulate.result.businessDays', { count: simulationResult.configuration.settlementDays })
                                   : t('simulate.result.calendarDays', { count: simulationResult.configuration.settlementDays })
                               })}
-                            </p>
-                            <p>
-                              • {t('simulate.result.cutoffTime', { time: simulationResult.configuration.cutoffTime })}
+                              {' · '}
+                              {t('simulate.result.cutoffTime', { time: simulationResult.configuration.cutoffTime })}
                             </p>
                           </div>
                         </div>
                       )}
-                    </>
+                    </div>
                   ) : (
-                    <div className="text-center py-4">
-                      <p className="text-muted-foreground">
-                        No se encontró configuración de liquidación para este tipo de tarjeta. Por favor, configura las reglas de liquidación primero.
+                    <div className="p-6 text-center">
+                      <AlertCircle className="h-5 w-5 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        {t('simulate.result.noConfig')}
                       </p>
                     </div>
                   )}

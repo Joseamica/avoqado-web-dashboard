@@ -102,5 +102,47 @@
     "system": "Sistema",
     "admin": "Administración",
     "general": "General"
+  },
+  "categoryDescriptions": {
+    "orders": "Recibe actualizaciones sobre el estado de pedidos, nuevos pedidos y cancelaciones",
+    "payments": "Mantente informado sobre transacciones de pago, reembolsos y fallos",
+    "reviews": "Monitorea comentarios, reseñas y calificaciones de clientes",
+    "staff": "Gestiona horarios, turnos y actualizaciones del equipo",
+    "system": "Salud del sistema, conexión POS y alertas de inventario",
+    "admin": "Alertas administrativas solo para gerentes y propietarios",
+    "general": "Anuncios generales, recordatorios y alertas"
+  },
+  "typeDescriptions": {
+    "NEW_ORDER": "Notificación inmediata cuando se recibe un nuevo pedido",
+    "ORDER_UPDATED": "Actualizaciones cuando se modifican los detalles del pedido",
+    "ORDER_READY": "Aviso cuando los pedidos están listos para recoger o entregar",
+    "ORDER_CANCELLED": "Alertas cuando se cancelan pedidos",
+    "PAYMENT_RECEIVED": "Confirmación cuando los pagos se procesan exitosamente",
+    "PAYMENT_FAILED": "Notificación inmediata de intentos de pago fallidos",
+    "REFUND_PROCESSED": "Aviso cuando los reembolsos se procesan exitosamente",
+    "NEW_REVIEW": "Notificación cuando los clientes dejan nuevas reseñas",
+    "BAD_REVIEW": "Alertas urgentes para reseñas con calificación baja (1-2 estrellas)",
+    "REVIEW_RESPONSE_NEEDED": "Recordatorios para reseñas que necesitan tu respuesta",
+    "SHIFT_REMINDER": "Recordatorios antes de tus turnos programados",
+    "SHIFT_ENDED": "Aviso cuando tu turno ha terminado oficialmente",
+    "NEW_STAFF_JOINED": "Información cuando nuevos miembros se unen al equipo",
+    "POS_DISCONNECTED": "Alertas críticas cuando el terminal POS se desconecta",
+    "POS_RECONNECTED": "Confirmación cuando el terminal POS se reconecta",
+    "LOW_INVENTORY": "Alertas cuando los niveles de inventario caen por debajo del mínimo",
+    "SYSTEM_MAINTENANCE": "Notificaciones importantes de mantenimiento del sistema",
+    "FEATURE_UPDATED": "Actualizaciones sobre nuevas funciones y mejoras",
+    "VENUE_APPROVAL_NEEDED": "Solicitudes de aprobación para operaciones del venue",
+    "VENUE_SUSPENDED": "Alertas críticas cuando el venue es suspendido",
+    "HIGH_COMMISSION_ALERT": "Alertas por cargos de comisión inusualmente altos",
+    "REVENUE_MILESTONE": "Celebración cuando se alcanzan hitos de ingresos",
+    "ANNOUNCEMENT": "Anuncios y noticias de la plataforma",
+    "REMINDER": "Recordatorios personalizados y notificaciones programadas",
+    "ALERT": "Alertas generales que requieren tu atención"
+  },
+  "channelNames": {
+    "IN_APP": "En App",
+    "EMAIL": "Correo",
+    "SMS": "SMS",
+    "PUSH": "Push"
   }
 }

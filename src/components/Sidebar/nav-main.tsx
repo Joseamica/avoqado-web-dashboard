@@ -18,7 +18,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import avoqadoIsotipo from '@/assets/Isotipo.png'
 
-type NavSubItem = {
+export type NavSubItem = {
   title: string
   url: string
   superadminOnly?: boolean
@@ -26,7 +26,7 @@ type NavSubItem = {
   comingSoon?: boolean
 }
 
-type NavItem = {
+export type NavItem = {
   title: string
   url: string
   icon?: LucideIcon
@@ -36,6 +36,8 @@ type NavItem = {
   permission?: string
   isAvoqadoCore?: boolean
   items?: NavSubItem[]
+  group?: string
+  comingSoon?: boolean
 }
 
 type SuperadminNavItem = {
@@ -114,7 +116,7 @@ export function NavMain({
         })
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname])
 
   // Tiny Avoqado badge for core platform items in white-label venues
@@ -171,12 +173,30 @@ export function NavMain({
     )
   }
 
-  return (
-    <>
-      <SidebarGroup>
-        <SidebarGroupLabel>{t('platform')}</SidebarGroupLabel>
-        <SidebarMenu>
-          {items.map(item => {
+  // Group items by their `group` field, preserving order
+  const GROUP_ORDER = ['main', 'operations', 'people', 'reports', 'settings']
+  const GROUP_LABELS: Record<string, string> = {
+    main: '', // No label for top items
+    operations: t('groups.operations', { defaultValue: 'Operaciones' }),
+    people: t('groups.people', { defaultValue: 'Personas' }),
+    reports: t('groups.reports', { defaultValue: 'Reportes' }),
+    settings: t('groups.settings', { defaultValue: 'Configuración' }),
+  }
+
+  const groupedItems = GROUP_ORDER.reduce<Record<string, typeof items>>((acc, group) => {
+    const groupItems = items.filter(item => (item.group || 'main') === group)
+    if (groupItems.length > 0) acc[group] = groupItems
+    return acc
+  }, {})
+
+  // Catch any items with unknown groups
+  const knownGroups = new Set(GROUP_ORDER)
+  const ungroupedItems = items.filter(item => item.group && !knownGroups.has(item.group))
+  if (ungroupedItems.length > 0) {
+    groupedItems['other'] = ungroupedItems
+  }
+
+  const renderItem = (item: NavItem) => {
             const isSuperadminItem = isSuperadminPath(item.url) || !!item.superadminOnly
             const itemHidden = isHidden(item.url)
 
@@ -334,6 +354,23 @@ export function NavMain({
               )
             }
 
+            // Coming soon items — disabled with badge
+            if (item.comingSoon) {
+              return (
+                <SidebarMenuItem key={item.url} className={cn('group/sidebar-item', itemHidden && isSuperadmin && 'opacity-40')}>
+                  <SidebarMenuButton tooltip={item.title} className="opacity-50 cursor-not-allowed pointer-events-none">
+                    {item.icon && <item.icon />}
+                    <span className="flex items-center gap-2">
+                      {item.title}
+                      <span className="rounded-full bg-muted-foreground/10 px-1.5 py-px text-[9px] font-medium text-muted-foreground">
+                        Muy pronto
+                      </span>
+                    </span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )
+            }
+
             return (
               // Render direct link for items without sub-items
               <SidebarMenuItem key={item.url} className={cn('group/sidebar-item', itemHidden && isSuperadmin && 'opacity-40')}>
@@ -371,9 +408,18 @@ export function NavMain({
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )
-          })}
-        </SidebarMenu>
-      </SidebarGroup>
+  }
+
+  return (
+    <>
+      {Object.entries(groupedItems).map(([group, groupItems]) => (
+        <SidebarGroup key={group}>
+          {GROUP_LABELS[group] && <SidebarGroupLabel>{GROUP_LABELS[group]}</SidebarGroupLabel>}
+          <SidebarMenu>
+            {groupItems.map(item => renderItem(item))}
+          </SidebarMenu>
+        </SidebarGroup>
+      ))}
 
       {superadminItems && superadminItems.length > 0 && (
         <SidebarGroup>

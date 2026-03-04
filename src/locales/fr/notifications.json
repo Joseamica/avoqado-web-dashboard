@@ -102,5 +102,47 @@
     "system": "Système",
     "admin": "Administration",
     "general": "Général"
+  },
+  "categoryDescriptions": {
+    "orders": "Recevez des mises à jour sur l'état des commandes, les nouvelles commandes et les annulations",
+    "payments": "Restez informé des transactions de paiement, remboursements et échecs",
+    "reviews": "Surveillez les commentaires, avis et évaluations des clients",
+    "staff": "Gérez les horaires, les quarts de travail et les mises à jour de l'équipe",
+    "system": "Santé du système, connexion TPV et alertes d'inventaire",
+    "admin": "Alertes administratives pour les gestionnaires et propriétaires uniquement",
+    "general": "Annonces générales, rappels et alertes"
+  },
+  "typeDescriptions": {
+    "NEW_ORDER": "Notification immédiate lors de la réception d'une nouvelle commande",
+    "ORDER_UPDATED": "Mises à jour lorsque les détails de la commande sont modifiés",
+    "ORDER_READY": "Savoir quand les commandes sont prêtes pour le retrait ou la livraison",
+    "ORDER_CANCELLED": "Alertes lorsque des commandes sont annulées",
+    "PAYMENT_RECEIVED": "Confirmation lorsque les paiements sont traités avec succès",
+    "PAYMENT_FAILED": "Notification immédiate des tentatives de paiement échouées",
+    "REFUND_PROCESSED": "Savoir quand les remboursements sont traités avec succès",
+    "NEW_REVIEW": "Notification lorsque les clients laissent de nouveaux avis",
+    "BAD_REVIEW": "Alertes urgentes pour les avis mal notés (1-2 étoiles)",
+    "REVIEW_RESPONSE_NEEDED": "Rappels pour les avis nécessitant votre réponse",
+    "SHIFT_REMINDER": "Rappels avant vos quarts de travail programmés",
+    "SHIFT_ENDED": "Savoir quand votre quart de travail est officiellement terminé",
+    "NEW_STAFF_JOINED": "Information lorsque de nouveaux membres rejoignent l'équipe",
+    "POS_DISCONNECTED": "Alertes critiques lorsque le terminal TPV se déconnecte",
+    "POS_RECONNECTED": "Confirmation lorsque le terminal TPV se reconnecte",
+    "LOW_INVENTORY": "Alertes lorsque les niveaux de stock tombent en dessous du seuil",
+    "SYSTEM_MAINTENANCE": "Notifications importantes de maintenance du système",
+    "FEATURE_UPDATED": "Mises à jour sur les nouvelles fonctionnalités et améliorations",
+    "VENUE_APPROVAL_NEEDED": "Demandes d'approbation pour les opérations du lieu",
+    "VENUE_SUSPENDED": "Alertes critiques lorsque le lieu est suspendu",
+    "HIGH_COMMISSION_ALERT": "Alertes pour des frais de commission inhabituellement élevés",
+    "REVENUE_MILESTONE": "Célébration lorsque des jalons de revenus sont atteints",
+    "ANNOUNCEMENT": "Annonces et nouvelles de la plateforme",
+    "REMINDER": "Rappels personnalisés et notifications programmées",
+    "ALERT": "Alertes générales nécessitant votre attention"
+  },
+  "channelNames": {
+    "IN_APP": "Dans l'App",
+    "EMAIL": "E-mail",
+    "SMS": "SMS",
+    "PUSH": "Push"
   }
 }

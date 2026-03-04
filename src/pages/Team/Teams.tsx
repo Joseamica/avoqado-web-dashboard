@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, Clock, Mail, MoreHorizontal, Pencil, Trash2, UserPlus, Search, X } from 'lucide-react'
+import { ArrowUpDown, Clock, MoreHorizontal, Pencil, Trash2, UserPlus, Search, X } from 'lucide-react'
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 
 import DataTable from '@/components/data-table'
@@ -31,7 +31,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   DropdownMenu,
@@ -40,7 +39,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -124,6 +123,7 @@ export default function Teams() {
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [activeTeamTab, setActiveTeamTab] = useState<'members' | 'invitations'>('members')
 
   const teamMembersQueryKey = ['team-members', venueId, pagination.pageIndex, pagination.pageSize] as const
 
@@ -757,27 +757,35 @@ export default function Teams() {
         </PermissionGate>
       </div>
 
-      <Tabs defaultValue="members" className="space-y-6">
-        <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border">
-          <TabsTrigger
-            value="members"
-            className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
-          >
-            <span>{t('tabs.members')}</span>
-            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
-              {teamData?.meta.totalCount || 0}
-            </span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="invitations"
-            className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
-          >
-            <span>{t('tabs.invitations')}</span>
-            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
-              {invitationsData?.data.length || 0}
-            </span>
-          </TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTeamTab} onValueChange={v => setActiveTeamTab(v as any)} className="space-y-6">
+        <div className="border-b border-border">
+          <nav className="flex items-center gap-6">
+            <button
+              onClick={() => setActiveTeamTab('members')}
+              className={`relative pb-3 text-sm font-medium transition-colors ${
+                activeTeamTab === 'members' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t('tabs.members')}
+              <span className="ml-1.5 text-xs opacity-60">{teamData?.meta.totalCount || 0}</span>
+              {activeTeamTab === 'members' && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTeamTab('invitations')}
+              className={`relative pb-3 text-sm font-medium transition-colors ${
+                activeTeamTab === 'invitations' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t('tabs.invitations')}
+              <span className="ml-1.5 text-xs opacity-60">{invitationsData?.data.length || 0}</span>
+              {activeTeamTab === 'invitations' && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+              )}
+            </button>
+          </nav>
+        </div>
 
         <TabsContent value="members" className="space-y-4">
           {/* Stripe-style Filter Bar */}
@@ -896,29 +904,22 @@ export default function Teams() {
         </TabsContent>
 
         <TabsContent value="invitations" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Mail className="h-5 w-5 mr-2" />
-                {t('cards.pendingInvitationsTitle')}
-              </CardTitle>
-              <CardDescription>{t('cards.pendingInvitationsDesc')}</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <DataTable
-                data={filteredInvitations}
-                columns={invitationColumns}
-                isLoading={isLoadingInvitations}
-                pagination={{ pageIndex: 0, pageSize: 50 }}
-                setPagination={() => {}}
-                tableId="team:invitations"
-                rowCount={invitationsData?.data.length || 0}
-                enableSearch={true}
-                searchPlaceholder={tCommon('search')}
-                onSearch={handleInvitationSearch}
-              />
-            </CardContent>
-          </Card>
+          <p className="text-sm text-muted-foreground">
+            {t('cards.pendingInvitationsDesc')}
+          </p>
+
+          <DataTable
+            data={filteredInvitations}
+            columns={invitationColumns}
+            isLoading={isLoadingInvitations}
+            pagination={{ pageIndex: 0, pageSize: 50 }}
+            setPagination={() => {}}
+            tableId="team:invitations"
+            rowCount={invitationsData?.data.length || 0}
+            enableSearch={true}
+            searchPlaceholder={tCommon('search')}
+            onSearch={handleInvitationSearch}
+          />
         </TabsContent>
       </Tabs>
 

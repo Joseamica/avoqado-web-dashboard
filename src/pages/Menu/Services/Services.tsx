@@ -15,7 +15,7 @@ import {
   Users,
   Plus,
 } from 'lucide-react'
-import { useCallback, useState, useMemo } from 'react'
+import { useCallback, useEffect, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDebounce } from '@/hooks/useDebounce'
 import { FilterPill, CheckboxFilterContent } from '@/components/filters'
@@ -51,6 +51,7 @@ import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { type ProductType } from '@/services/inventory.service'
 import { ServiceTypeSelectorDialog } from './ServiceTypeSelectorDialog'
 import { ServiceFormDialog } from './ServiceFormDialog'
+import { useMenuMakerHeader } from '../MenuMakerLayout'
 
 const SERVICE_TYPES: ProductType[] = ['APPOINTMENTS_SERVICE', 'CLASS']
 
@@ -74,6 +75,29 @@ export default function Services() {
   // Edit flow state
   const [editProductId, setEditProductId] = useState<string | null>(null)
   const [editWizardOpen, setEditWizardOpen] = useState(false)
+
+  // Push header into MenuMakerLayout (title + actions appear above tabs)
+  const { setHeader } = useMenuMakerHeader()
+  useEffect(() => {
+    setHeader({
+      title: (
+        <PageTitleWithInfo
+          title={t('services.title')}
+          className="text-xl font-semibold"
+          tooltip={t('services.emptyState')}
+        />
+      ),
+      actions: (
+        <PermissionGate permission="menu:create">
+          <Button onClick={() => setTypeSelectorOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            <span>{t('services.new')}</span>
+          </Button>
+        </PermissionGate>
+      ),
+    })
+    return () => setHeader({})
+  }, [t, setHeader])
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('')
@@ -414,19 +438,6 @@ export default function Services() {
 
   return (
     <div className="p-4">
-      <div className="flex flex-row items-center justify-between mb-6">
-        <PageTitleWithInfo
-          title={t('services.title')}
-          className="text-xl font-semibold"
-          tooltip={t('services.emptyState')}
-        />
-        <PermissionGate permission="menu:create">
-          <Button onClick={() => setTypeSelectorOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            <span>{t('services.new')}</span>
-          </Button>
-        </PermissionGate>
-      </div>
 
       {/* Filters */}
       <div className="mb-4 flex flex-wrap items-center gap-2">

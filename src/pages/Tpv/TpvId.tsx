@@ -23,7 +23,7 @@ import { MetricCard } from '@/components/ui/metric-card'
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuth } from '@/context/AuthContext'
 import { useSocket } from '@/context/SocketContext'
@@ -649,7 +649,7 @@ export default function TpvId() {
     <TooltipProvider>
       <div className="min-h-screen bg-background">
         {/* Enhanced Header with gradient background */}
-        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border shadow-sm">
+        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center space-x-4">
@@ -739,37 +739,61 @@ export default function TpvId() {
         {/* Main Content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-            {/* Pill-style Tabs */}
-            <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border">
-              <TabsTrigger
-                value="info"
-                className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+            {/* Stripe-style underline tabs */}
+            <div className="flex items-center gap-6 border-b border-border">
+              <button
+                onClick={() => handleTabChange('info')}
+                className={`relative pb-3 text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                  activeTab === 'info' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                }`}
               >
+                <Info className="h-4 w-4" />
                 {t('common:information', 'Información')}
-              </TabsTrigger>
-              <TabsTrigger
-                value="commands"
-                className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+                {activeTab === 'info' && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+                )}
+              </button>
+              <button
+                onClick={() => handleTabChange('commands')}
+                className={`relative pb-3 text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                  activeTab === 'commands' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                }`}
               >
+                <Zap className="h-4 w-4" />
                 {t('commands.remoteCommands')}
-              </TabsTrigger>
+                {activeTab === 'commands' && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+                )}
+              </button>
               <PermissionGate permission="tpv-messages:read">
-                <TabsTrigger
-                  value="messages"
-                  className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+                <button
+                  onClick={() => handleTabChange('messages')}
+                  className={`relative pb-3 text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                    activeTab === 'messages' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                  }`}
                 >
+                  <Activity className="h-4 w-4" />
                   Mensajes
-                </TabsTrigger>
+                  {activeTab === 'messages' && (
+                    <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+                  )}
+                </button>
               </PermissionGate>
               <PermissionGate permission="tpv:update">
-                <TabsTrigger
-                  value="settings"
-                  className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+                <button
+                  onClick={() => handleTabChange('settings')}
+                  className={`relative pb-3 text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                    activeTab === 'settings' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                  }`}
                 >
+                  <Settings className="h-4 w-4" />
                   {t('tpvSettings.title')}
-                </TabsTrigger>
+                  {activeTab === 'settings' && (
+                    <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+                  )}
+                </button>
               </PermissionGate>
-            </TabsList>
+            </div>
 
             {/* Info Tab */}
             <TabsContent value="info" className="space-y-6">

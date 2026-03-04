@@ -18,7 +18,7 @@ import {
   X,
   ChevronRight,
 } from 'lucide-react'
-import { useCallback, useState, useMemo } from 'react'
+import { useCallback, useEffect, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDebounce } from '@/hooks/useDebounce'
 import { FilterPill, CheckboxFilterContent, ColumnCustomizer } from '@/components/filters'
@@ -65,6 +65,7 @@ import { ProductTypeSelectorModal } from '@/pages/Inventory/components/ProductTy
 import { type ProductType } from '@/services/inventory.service'
 import { Sparkles, ArrowRightLeft } from 'lucide-react'
 import { ConvertToServiceDialog } from '@/pages/Menu/Services/ConvertToServiceDialog'
+import { useMenuMakerHeader } from '../MenuMakerLayout'
 
 export default function Products() {
   const { t } = useTranslation('menu')
@@ -96,6 +97,31 @@ export default function Products() {
   const [editWizardOpen, setEditWizardOpen] = useState(false)
   const [convertDialogOpen, setConvertDialogOpen] = useState(false)
   const [productToConvert, setProductToConvert] = useState<Product | null>(null)
+
+  // Push header into MenuMakerLayout (title + actions appear above tabs)
+  const { setHeader } = useMenuMakerHeader()
+  useEffect(() => {
+    setHeader({
+      title: (
+        <PageTitleWithInfo
+          title={t('products.title')}
+          className="text-xl font-semibold"
+          tooltip={t('info.products', {
+            defaultValue: 'Lista y administra productos, precios, inventario y visibilidad en el menu.',
+          })}
+        />
+      ),
+      actions: (
+        <PermissionGate permission="menu:create">
+          <Button onClick={() => setTypeSelectorOpen(true)}>
+            <Sparkles className="mr-2 h-4 w-4" />
+            <span>{t('products.new')}</span>
+          </Button>
+        </PermissionGate>
+      ),
+    })
+    return () => setHeader({})
+  }, [t, setHeader])
 
   // ✅ STRIPE-STYLE FILTERS: State for FilterPills
   const [searchTerm, setSearchTerm] = useState('')
@@ -731,21 +757,6 @@ export default function Products() {
 
   return (
     <div className="p-4">
-      <div className="flex flex-row items-center justify-between mb-6">
-        <PageTitleWithInfo
-          title={t('products.title')}
-          className="text-xl font-semibold"
-          tooltip={t('info.products', {
-            defaultValue: 'Lista y administra productos, precios, inventario y visibilidad en el menu.',
-          })}
-        />
-        <PermissionGate permission="menu:create">
-          <Button onClick={() => setTypeSelectorOpen(true)}>
-            <Sparkles className="mr-2 h-4 w-4" />
-            <span>{t('products.new')}</span>
-          </Button>
-        </PermissionGate>
-      </div>
 
       {/* ✅ Low stock alert banner - Pricing page style */}
       {lowStockProducts.length > 0 && activeFiltersCount === 0 && (

@@ -37,6 +37,7 @@ import { ModifierGroup } from '@/types'
 import { PermissionGate } from '@/components/PermissionGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { CreateModifierGroupWizard } from './components/CreateModifierGroupWizard'
+import { useMenuMakerHeader } from '../MenuMakerLayout'
 
 export default function ModifierGroups() {
   const { t } = useTranslation('menu')
@@ -49,6 +50,31 @@ export default function ModifierGroups() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [modifierGroupToDelete, setModifierGroupToDelete] = useState<string | null>(null)
+
+  // Push header into MenuMakerLayout (title + actions appear above tabs)
+  const { setHeader } = useMenuMakerHeader()
+  useEffect(() => {
+    setHeader({
+      title: (
+        <PageTitleWithInfo
+          title={t('modifiers.title')}
+          className="text-xl font-semibold"
+          tooltip={t('info.modifierGroups', {
+            defaultValue: 'Configura grupos de modificadores para personalizar productos (ej. extras o tamanos).',
+          })}
+        />
+      ),
+      actions: (
+        <PermissionGate permission="menu:create">
+          <Button type="button" onClick={() => setCreateDialogOpen(true)}>
+            <Sparkles className="mr-2 h-4 w-4" />
+            <span>{t('modifiers.newModifierGroup')}</span>
+          </Button>
+        </PermissionGate>
+      ),
+    })
+    return () => setHeader({})
+  }, [t, setHeader])
 
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -287,53 +313,36 @@ export default function ModifierGroups() {
   }
   return (
     <div className="p-4">
-      <div className="flex flex-row items-center justify-between mb-6">
-        <PageTitleWithInfo
-          title={t('modifiers.title')}
-          className="text-xl font-semibold"
-          tooltip={t('info.modifierGroups', {
-            defaultValue: 'Configura grupos de modificadores para personalizar productos (ej. extras o tamanos).',
-          })}
-        />
-
-        <PermissionGate permission="menu:create">
-          <Button type="button" onClick={() => setCreateDialogOpen(true)}>
-            <Sparkles className="mr-2 h-4 w-4" />
-            <span>{t('modifiers.newModifierGroup')}</span>
-          </Button>
-        </PermissionGate>
-
-        {/* Delete Confirmation Dialog */}
-        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t('modifiers.dialogs.delete.title')}</DialogTitle>
-              <DialogDescription>{t('modifiers.dialogs.delete.description')}</DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-                {t('cancel')}
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => modifierGroupToDelete && deleteModifierGroupMutation.mutate(modifierGroupToDelete)}
-                disabled={deleteModifierGroupMutation.isPending}
-              >
-                {deleteModifierGroupMutation.isPending ? t('modifiers.dialogs.delete.deleting') : t('modifiers.dialogs.delete.delete')}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{t('modifiers.createGroup.title')}</DialogTitle>
-              <DialogDescription>{t('modifiers.createGroup.basicInfoDesc')}</DialogDescription>
-            </DialogHeader>
-            <CreateModifierGroupWizard onCancel={() => setCreateDialogOpen(false)} onSuccess={() => setCreateDialogOpen(false)} />
-          </DialogContent>
-        </Dialog>
-      </div>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('modifiers.dialogs.delete.title')}</DialogTitle>
+            <DialogDescription>{t('modifiers.dialogs.delete.description')}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              {t('cancel')}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => modifierGroupToDelete && deleteModifierGroupMutation.mutate(modifierGroupToDelete)}
+              disabled={deleteModifierGroupMutation.isPending}
+            >
+              {deleteModifierGroupMutation.isPending ? t('modifiers.dialogs.delete.deleting') : t('modifiers.dialogs.delete.delete')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t('modifiers.createGroup.title')}</DialogTitle>
+            <DialogDescription>{t('modifiers.createGroup.basicInfoDesc')}</DialogDescription>
+          </DialogHeader>
+          <CreateModifierGroupWizard onCancel={() => setCreateDialogOpen(false)} onSuccess={() => setCreateDialogOpen(false)} />
+        </DialogContent>
+      </Dialog>
 
       <DataTable
         data={modifierGroups || []}

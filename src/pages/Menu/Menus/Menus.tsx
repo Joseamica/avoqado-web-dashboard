@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
-import { useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { getMenus } from '@/services/menu.service'
 import { MenuWizardDialog } from './components/MenuWizardDialog'
-import { useState } from 'react'
+import { useMenuMakerHeader } from '../MenuMakerLayout'
 
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Menu, MenuCategory } from '@/types'
@@ -29,6 +29,28 @@ export default function Menus() {
   })
 
   const [wizardOpen, setWizardOpen] = useState(false)
+
+  // Push header into MenuMakerLayout (title + actions appear above tabs)
+  const { setHeader } = useMenuMakerHeader()
+  useEffect(() => {
+    setHeader({
+      title: (
+        <PageTitleWithInfo
+          title={t('menus.title')}
+          className="text-xl font-semibold"
+          tooltip={t('info.menus', {
+            defaultValue: 'Gestiona los menus del venue, horarios y categorias asignadas.',
+          })}
+        />
+      ),
+      actions: (
+        <Button onClick={() => setWizardOpen(true)} className="flex items-center space-x-2">
+          <span>{t('menus.newMenu')}</span>
+        </Button>
+      ),
+    })
+    return () => setHeader({})
+  }, [t, setHeader])
 
   const columns: ColumnDef<Menu, unknown>[] = [
     {
@@ -97,19 +119,6 @@ export default function Menus() {
 
   return (
     <div className="p-4">
-      <div className="flex flex-row items-center justify-between mb-6">
-        <PageTitleWithInfo
-          title={t('menus.title')}
-          className="text-xl font-semibold"
-          tooltip={t('info.menus', {
-            defaultValue: 'Gestiona los menus del venue, horarios y categorias asignadas.',
-          })}
-        />
-        <Button onClick={() => setWizardOpen(true)} className="flex items-center space-x-2">
-          <span>{t('menus.newMenu')}</span>
-        </Button>
-      </div>
-
       <MenuWizardDialog open={wizardOpen} onOpenChange={setWizardOpen} />
 
       <DataTable

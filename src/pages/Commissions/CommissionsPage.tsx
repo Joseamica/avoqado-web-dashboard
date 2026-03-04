@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Plus } from 'lucide-react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { PermissionGate } from '@/components/PermissionGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
@@ -94,56 +94,84 @@ export default function CommissionsPage() {
 			</div>
 
 			<Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-				<TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border">
-					<TabsTrigger
-						value="overview"
-						className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
-					>
-						<span>{t('tabs.overview')}</span>
-					</TabsTrigger>
-					<TabsTrigger
-						value="ranking"
-						className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
-					>
-						<span>{t('tabs.ranking')}</span>
-					</TabsTrigger>
-					<TabsTrigger
-						value="goals"
-						className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
-					>
-						<span>{t('tabs.goals')}</span>
-					</TabsTrigger>
-					<TabsTrigger
-						value="config"
-						className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
-					>
-						<span>{t('tabs.config')}</span>
-						{configCount > 0 && (
-							<span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
-								{configCount}
-							</span>
-						)}
-					</TabsTrigger>
-					<TabsTrigger
-						value="approvals"
-						className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
-					>
-						<span>{t('tabs.approvals')}</span>
-						{pendingCount > 0 && (
-							<span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
-								{pendingCount}
-							</span>
-						)}
-					</TabsTrigger>
-					{canViewPayouts && (
-						<TabsTrigger
-							value="payouts"
-							className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+				<div className="border-b border-border">
+					<nav className="flex items-center gap-6">
+						<button
+							onClick={() => handleTabChange('overview')}
+							className={`relative pb-3 text-sm font-medium transition-colors ${
+								activeTab === 'overview' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+							}`}
 						>
-							<span>{t('tabs.payouts')}</span>
-						</TabsTrigger>
-					)}
-				</TabsList>
+							{t('tabs.overview')}
+							{activeTab === 'overview' && (
+								<span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+							)}
+						</button>
+						<button
+							onClick={() => handleTabChange('ranking')}
+							className={`relative pb-3 text-sm font-medium transition-colors ${
+								activeTab === 'ranking' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+							}`}
+						>
+							{t('tabs.ranking')}
+							{activeTab === 'ranking' && (
+								<span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+							)}
+						</button>
+						<button
+							onClick={() => handleTabChange('goals')}
+							className={`relative pb-3 text-sm font-medium transition-colors ${
+								activeTab === 'goals' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+							}`}
+						>
+							{t('tabs.goals')}
+							{activeTab === 'goals' && (
+								<span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+							)}
+						</button>
+						<button
+							onClick={() => handleTabChange('config')}
+							className={`relative pb-3 text-sm font-medium transition-colors ${
+								activeTab === 'config' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+							}`}
+						>
+							{t('tabs.config')}
+							{configCount > 0 && (
+								<span className="ml-1.5 text-xs opacity-60">{configCount}</span>
+							)}
+							{activeTab === 'config' && (
+								<span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+							)}
+						</button>
+						<button
+							onClick={() => handleTabChange('approvals')}
+							className={`relative pb-3 text-sm font-medium transition-colors ${
+								activeTab === 'approvals' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+							}`}
+						>
+							{t('tabs.approvals')}
+							{pendingCount > 0 && (
+								<span className="ml-1.5 text-xs opacity-60">{pendingCount}</span>
+							)}
+							{activeTab === 'approvals' && (
+								<span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+							)}
+						</button>
+						{canViewPayouts && (
+							<button
+								onClick={() => handleTabChange('payouts')}
+								className={`relative pb-3 text-sm font-medium transition-colors ${
+									activeTab === 'payouts' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+								}`}
+							>
+								{t('tabs.payouts')}
+								{activeTab === 'payouts' && (
+									<span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+								)}
+							</button>
+						)}
+					</nav>
+				</div>
 
 				{/* Overview Tab */}
 				<TabsContent value="overview" className="space-y-6">

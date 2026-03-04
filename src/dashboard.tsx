@@ -7,6 +7,8 @@ import { ThemeToggle } from './components/theme-toggle'
 import { useAuth } from './context/AuthContext'
 import { useEffect, useState } from 'react'
 import { ChatBubble } from './components/Chatbot'
+import DashboardCommandPalette from './components/Sidebar/DashboardCommandPalette'
+import type { SidebarMeta } from './components/Sidebar/app-sidebar'
 import { DemoBanner } from './components/DemoBanner'
 import { TrialStatusBanner } from './components/TrialStatusBanner'
 import { PaymentSetupAlert } from './components/PaymentSetupAlert'
@@ -49,6 +51,22 @@ function DashboardContent() {
   const { user, authorizeVenue, allVenues, checkFeatureAccess } = useAuth()
   const { venue, venueSlug, isLoading, hasVenueAccess } = useCurrentVenue()
   const { customSegments } = useBreadcrumb()
+
+  // Command palette state
+  const [commandOpen, setCommandOpen] = useState(false)
+  const [sidebarMeta, setSidebarMeta] = useState<SidebarMeta>({ navItems: [], hiddenSidebarItems: [], isSuperadmin: false })
+
+  // Cmd+K / Ctrl+K shortcut
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        setCommandOpen(prev => !prev)
+      }
+    }
+    document.addEventListener('keydown', down)
+    return () => document.removeEventListener('keydown', down)
+  }, [])
 
   // Record the last venue slug where the user had access, to recover from invalid deep links.
   const [lastAccessibleVenueSlug, setLastAccessibleVenueSlug] = useState<string | null>(null)
@@ -206,7 +224,7 @@ function DashboardContent() {
 
   return (
     <SidebarProvider className="theme-scaled">
-      <AppSidebar user={user} variant="inset" />
+      <AppSidebar user={user} variant="inset" onSidebarReady={setSidebarMeta} onSearchClick={() => setCommandOpen(true)} />
       <SidebarInset
         style={
           {
@@ -284,6 +302,13 @@ function DashboardContent() {
           </div>
         )}
       </SidebarInset>
+      <DashboardCommandPalette
+        open={commandOpen}
+        onOpenChange={setCommandOpen}
+        navItems={sidebarMeta.navItems}
+        hiddenSidebarItems={sidebarMeta.hiddenSidebarItems}
+        isSuperadmin={sidebarMeta.isSuperadmin}
+      />
     </SidebarProvider>
   )
 }

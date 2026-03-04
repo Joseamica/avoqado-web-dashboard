@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent } from '@/components/ui/tabs'
 import DataTable from '@/components/data-table'
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -18,12 +18,13 @@ import { supplierService, type Supplier } from '@/services/supplier.service'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { AlertTriangle, ChevronDown, Download, MoreHorizontal, Plus, Search, Star, Upload, X } from 'lucide-react'
+import { AlertTriangle, ChevronDown, Download, MoreHorizontal, Printer, Search, Star, Upload, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '@/hooks/use-toast'
 import { useDebounce } from '@/hooks/useDebounce'
+import { InventoryLabelModal } from './components/InventoryLabelModal'
 
 // Type for product data
 interface InventoryProduct {
@@ -57,6 +58,7 @@ export default function InventorySummary() {
   const [disponibleFilter, setDisponibleFilter] = useState<string[]>([])
   const [priceFilter, setPriceFilter] = useState<AmountFilter | null>(null)
   const [activeTab, setActiveTab] = useState('physical')
+  const [labelModalOpen, setLabelModalOpen] = useState(false)
 
   // Fetch real products with inventory data
   const { data: products, isLoading } = useQuery({
@@ -430,44 +432,64 @@ export default function InventorySummary() {
   const activeFiltersCount = (searchTerm ? 1 : 0) + stockFilter.length + disponibleFilter.length + (priceFilter ? 1 : 0)
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="p-4 sm:p-6">
-      {/* Header: Tabs (left) + Actions (right) */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border">
-          <TabsTrigger
-            value="physical"
-            className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
-          >
-            <span>Artículos Contables</span>
-            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
-              {physicalItems.length}
-            </span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="recipes"
-            className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
-          >
-            <span>Basados en Receta</span>
-            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
-              {recipeItems.length}
-            </span>
-          </TabsTrigger>
-        </TabsList>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Upload className="mr-2 h-4 w-4" /> Importar
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="mr-2 h-4 w-4" /> Exportar
-          </Button>
-          <Button size="sm" onClick={() => navigate('create')}>
-            <Plus className="mr-2 h-4 w-4" /> Crear Artículo
-          </Button>
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <div className="px-4 sm:px-6">
+        {/* Title + Actions */}
+        <div className="flex items-center justify-between pt-6 pb-5">
+          <h1 className="text-2xl font-bold text-foreground">Resumen de Existencias</h1>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm">
+              <Upload className="mr-2 h-4 w-4" /> Importar
+            </Button>
+            <Button variant="outline" size="sm">
+              <Download className="mr-2 h-4 w-4" /> Exportar
+            </Button>
+            <Button size="sm" onClick={() => setLabelModalOpen(true)}>
+              <Printer className="mr-2 h-4 w-4" /> Imprimir etiquetas
+            </Button>
+          </div>
+        </div>
+
+        {/* Tab nav with underline — Stripe pattern */}
+        <div className="border-b border-border">
+          <nav className="flex items-center gap-6">
+            <button
+              onClick={() => setActiveTab('physical')}
+              className={`relative pb-3 text-sm font-medium transition-colors ${
+                activeTab === 'physical'
+                  ? 'text-primary'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Artículos Contables
+              <span className="ml-1.5 text-xs opacity-60">{physicalItems.length}</span>
+              {activeTab === 'physical' && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('recipes')}
+              className={`relative pb-3 text-sm font-medium transition-colors ${
+                activeTab === 'recipes'
+                  ? 'text-primary'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Basados en Receta
+              <span className="ml-1.5 text-xs opacity-60">{recipeItems.length}</span>
+              {activeTab === 'recipes' && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+              )}
+            </button>
+          </nav>
         </div>
       </div>
 
+      {/* Content */}
+      <div className="px-4 sm:px-6 pt-5">
+
       {/* Stripe-style Filter Bar */}
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-3 mt-5">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
         {/* Expandable Search Icon */}
         <div className="relative flex items-center">
           {isSearchOpen ? (
@@ -604,6 +626,16 @@ export default function InventorySummary() {
           tableId="inventory:recipes"
         />
       </TabsContent>
+
+      </div>
+
+      {venueId && (
+        <InventoryLabelModal
+          open={labelModalOpen}
+          onClose={() => setLabelModalOpen(false)}
+          venueId={venueId}
+        />
+      )}
     </Tabs>
   )
 }

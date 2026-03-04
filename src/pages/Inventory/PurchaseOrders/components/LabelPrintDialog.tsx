@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { LABEL_TYPES, LabelGenerationConfig, PurchaseOrder, purchaseOrderService } from '@/services/purchaseOrder.service'
@@ -259,20 +259,32 @@ export function LabelPrintDialog({ open, onOpenChange, purchaseOrder, venueId }:
             <div>
               <Label className="text-sm font-medium">{t('labels.selectItems')}</Label>
               <Tabs value={selectionMode} onValueChange={value => setSelectionMode(value as SelectionMode)} className="mt-2">
-                <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border">
-                  <TabsTrigger
-                    value="category"
-                    className="rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
-                  >
-                    {t('labels.selectionMode.category')}
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="order"
-                    className="rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
-                  >
-                    {t('labels.selectionMode.order')}
-                  </TabsTrigger>
-                </TabsList>
+                <div className="border-b border-border">
+                  <nav className="flex items-center gap-6">
+                    <button
+                      onClick={() => setSelectionMode('category')}
+                      className={`relative pb-3 text-sm font-medium transition-colors ${
+                        selectionMode === 'category' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {t('labels.selectionMode.category')}
+                      {selectionMode === 'category' && (
+                        <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setSelectionMode('order')}
+                      className={`relative pb-3 text-sm font-medium transition-colors ${
+                        selectionMode === 'order' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {t('labels.selectionMode.order')}
+                      {selectionMode === 'order' && (
+                        <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+                      )}
+                    </button>
+                  </nav>
+                </div>
 
                 <TabsContent value="order" className="mt-6 space-y-3">
                   <div className="rounded-lg border border-border overflow-hidden">

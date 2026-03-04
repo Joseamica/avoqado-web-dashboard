@@ -38,6 +38,12 @@
   "superadminTools": "Herramientas SA",
   "rolePermissions": "Permisos de Roles",
   "platform": "Plataforma",
+  "groups": {
+    "operations": "Operaciones",
+    "people": "Personas",
+    "reports": "Reportes",
+    "settings": "Configuración"
+  },
   "features": "Funciones",
   "modules": "Módulos",
   "organizations": "Organizaciones",

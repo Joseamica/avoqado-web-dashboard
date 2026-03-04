@@ -14,7 +14,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
@@ -441,22 +440,34 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Tabs
-            value={guestMode}
-            onValueChange={v => {
-              setGuestMode(v as any)
-              setValue('guestMode', v as any)
-            }}
-          >
-            <TabsList className="rounded-full bg-muted/60 px-1 py-1 border border-border">
-              <TabsTrigger value="new" className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background">
+          <div className="border-b border-border">
+            <nav className="flex items-center gap-6">
+              <button
+                type="button"
+                onClick={() => { setGuestMode('new'); setValue('guestMode', 'new') }}
+                className={`relative pb-3 text-sm font-medium transition-colors ${
+                  guestMode === 'new' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
                 {t('form.guestMode.new')}
-              </TabsTrigger>
-              <TabsTrigger value="existing" className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background">
+                {guestMode === 'new' && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setGuestMode('existing'); setValue('guestMode', 'existing') }}
+                className={`relative pb-3 text-sm font-medium transition-colors ${
+                  guestMode === 'existing' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
                 {t('form.guestMode.existing')}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+                {guestMode === 'existing' && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+                )}
+              </button>
+            </nav>
+          </div>
 
           {guestMode === 'new' ? (
             <div className="grid grid-cols-2 gap-4">

@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
 import { StaffRole } from '@/types'
@@ -359,7 +359,7 @@ export default function RolePermissions() {
   return (
     <>
       {/* Sticky Header - sticks to viewport top when scrolling */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 border-b border-border/50 shadow-sm">
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
         <div className="container mx-auto px-4 sm:px-6 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="space-y-1 min-w-0">
@@ -443,22 +443,34 @@ export default function RolePermissions() {
       <div className="container mx-auto py-6 space-y-6 px-4 sm:px-6">
       {/* Main Tabs */}
       <Tabs value={activeRoleTab} onValueChange={value => setActiveRoleTab(value as RolePermissionsTab)} className="space-y-4 sm:space-y-6">
-        <TabsList className="inline-flex h-9 sm:h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border w-fit">
-          <TabsTrigger
-            value="permissions"
-            className="group rounded-full px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
-          >
-            <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
-            <span>{t('rolePermissions.tabs.permissions', 'Permissions')}</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="display-names"
-            className="group rounded-full px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
-          >
-            <Tags className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
-            <span>{t('rolePermissions.tabs.displayNames', 'Display Names')}</span>
-          </TabsTrigger>
-        </TabsList>
+        <div className="border-b border-border">
+          <nav className="flex items-center gap-6">
+            <button
+              onClick={() => setActiveRoleTab('permissions')}
+              className={`relative pb-3 text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                activeRoleTab === 'permissions' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Shield className="h-4 w-4" />
+              {t('rolePermissions.tabs.permissions', 'Permissions')}
+              {activeRoleTab === 'permissions' && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveRoleTab('display-names')}
+              className={`relative pb-3 text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                activeRoleTab === 'display-names' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Tags className="h-4 w-4" />
+              {t('rolePermissions.tabs.displayNames', 'Display Names')}
+              {activeRoleTab === 'display-names' && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+              )}
+            </button>
+          </nav>
+        </div>
 
         {/* Permissions Tab */}
         <TabsContent value="permissions" className="space-y-4 sm:space-y-6">
@@ -600,22 +612,34 @@ export default function RolePermissions() {
                 {/* Inner Tabs: Dashboard / TPV */}
                 <Tabs value={activePermissionTab} onValueChange={v => setActivePermissionTab(v as PermissionTab)}>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                    <TabsList className="inline-flex h-9 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border w-fit">
-                      <TabsTrigger
-                        value="dashboard"
-                        className="group rounded-full px-3 py-1.5 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
-                      >
-                        <LayoutDashboard className="h-4 w-4 mr-1.5" />
-                        <span>{t('rolePermissions.tabs.dashboard', 'Dashboard')}</span>
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="tpv"
-                        className="group rounded-full px-3 py-1.5 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
-                      >
-                        <Monitor className="h-4 w-4 mr-1.5" />
-                        <span>{t('rolePermissions.tabs.tpv', 'TPV')}</span>
-                      </TabsTrigger>
-                    </TabsList>
+                    <div className="border-b border-border">
+                      <nav className="flex items-center gap-6">
+                        <button
+                          onClick={() => setActivePermissionTab('dashboard')}
+                          className={`relative pb-3 text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                            activePermissionTab === 'dashboard' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          <LayoutDashboard className="h-4 w-4" />
+                          {t('rolePermissions.tabs.dashboard', 'Dashboard')}
+                          {activePermissionTab === 'dashboard' && (
+                            <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setActivePermissionTab('tpv')}
+                          className={`relative pb-3 text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                            activePermissionTab === 'tpv' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          <Monitor className="h-4 w-4" />
+                          {t('rolePermissions.tabs.tpv', 'TPV')}
+                          {activePermissionTab === 'tpv' && (
+                            <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+                          )}
+                        </button>
+                      </nav>
+                    </div>
 
                     {/* Search */}
                     <PermissionSearch value={searchTerm} onChange={setSearchTerm} className="w-full sm:w-64" />

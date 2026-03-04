@@ -6,7 +6,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { GlassCard } from '@/components/ui/glass-card'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import { useOrgTpvDefaults, useOrgTpvStats, useUpsertOrgTpvDefaults } from '@/hooks/useStoresAnalysis'
@@ -31,12 +31,9 @@ const organizationSchema = z.object({
 
 type OrganizationFormData = z.infer<typeof organizationSchema>
 
-// Pill tab trigger shared style
-const TAB_TRIGGER_CLASS =
-  'rounded-full px-4 py-1.5 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground'
-
 const OrganizationSettings: React.FC = () => {
   const { t } = useTranslation('organization')
+  const [activeOrgTab, setActiveOrgTab] = useState<'general' | 'tpv'>('general')
   const { orgId } = useParams<{ orgId: string }>()
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -110,17 +107,35 @@ const OrganizationSettings: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="general">
-        <TabsList className="inline-flex h-9 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border w-fit">
-          <TabsTrigger value="general" className={TAB_TRIGGER_CLASS}>
-            <Building2 className="h-3.5 w-3.5 mr-1.5" />
-            {t('settings.tabGeneral', { defaultValue: 'General' })}
-          </TabsTrigger>
-          <TabsTrigger value="tpv" className={TAB_TRIGGER_CLASS}>
-            <Monitor className="h-3.5 w-3.5 mr-1.5" />
-            {t('settings.tabTpv', { defaultValue: 'TPV' })}
-          </TabsTrigger>
-        </TabsList>
+      <Tabs value={activeOrgTab} onValueChange={v => setActiveOrgTab(v as any)}>
+        <div className="border-b border-border">
+          <nav className="flex items-center gap-6">
+            <button
+              onClick={() => setActiveOrgTab('general')}
+              className={`relative pb-3 text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                activeOrgTab === 'general' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Building2 className="h-4 w-4" />
+              {t('settings.tabGeneral', { defaultValue: 'General' })}
+              {activeOrgTab === 'general' && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveOrgTab('tpv')}
+              className={`relative pb-3 text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                activeOrgTab === 'tpv' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Monitor className="h-4 w-4" />
+              {t('settings.tabTpv', { defaultValue: 'TPV' })}
+              {activeOrgTab === 'tpv' && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+              )}
+            </button>
+          </nav>
+        </div>
 
         {/* ── General Tab ─────────────────────────────────────────────── */}
         <TabsContent value="general" className="mt-6">

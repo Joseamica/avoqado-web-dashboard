@@ -24,88 +24,128 @@ and maintain visual coherence across the application.
 
 ---
 
-## Pill-Style Tabs (MANDATORY)
+## Underline Tabs (MANDATORY — Stripe Pattern)
 
-**⚠️ ALWAYS use this pattern for tabs. DO NOT use the default Radix tabs styling.**
+**ALWAYS use this pattern for page-level tabs. DO NOT use pill-style tabs or default Radix tabs styling.**
 
 **When to use:** Any interface with tab navigation (2+ tabs) for switching between content sections.
 
-**Reference implementation:** `/src/pages/Team/Teams.tsx` (lines 372-392)
+**Reference implementation:** `/src/pages/Inventory/InventorySummary.tsx`
 
 ### Visual Specifications
 
-- **Container**: Rounded-full with subtle background (`rounded-full bg-muted/60`)
-- **Border**: 1px border (`border border-border`)
-- **Padding**: 4px container padding (`px-1 py-1`)
-- **Tab Triggers**: Rounded-full pills with hover and active states
-- **Count Badge**: Inline rounded badge showing item counts
+- **Container**: `border-b border-border` — horizontal line under all tabs
+- **Tab buttons**: Plain text, no background, `text-sm font-medium`
+- **Active state**: `text-primary` + 2px underline (`bg-primary`) at bottom
+- **Inactive state**: `text-muted-foreground hover:text-foreground`
+- **Optional count**: Inline `text-xs opacity-60` next to label
+- Works in both light and dark mode via semantic tokens
 
-### Code Example
+### Page Layout Pattern
+
+Title + actions on top, tabs below with underline, content below tabs:
 
 ```typescript
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-;<Tabs defaultValue="items" className="space-y-4">
-  <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border">
-    <TabsTrigger
-      value="items"
-      className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
-    >
-      <span>{t('tabs.items')}</span>
-      <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
-        {itemCount}
-      </span>
-    </TabsTrigger>
-    <TabsTrigger
-      value="history"
-      className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
-    >
-      <span>{t('tabs.history')}</span>
-      <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
-        {historyCount}
-      </span>
-    </TabsTrigger>
-  </TabsList>
+<Tabs value={activeTab} onValueChange={setActiveTab}>
+  <div className="px-4 sm:px-6">
+    {/* Title + Actions */}
+    <div className="flex items-center justify-between pt-6 pb-5">
+      <h1 className="text-2xl font-bold text-foreground">Page Title</h1>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm">Action</Button>
+      </div>
+    </div>
 
-  <TabsContent value="items">{/* Content */}</TabsContent>
-  <TabsContent value="history">{/* Content */}</TabsContent>
+    {/* Tab nav with underline */}
+    <div className="border-b border-border">
+      <nav className="flex items-center gap-6">
+        <button
+          onClick={() => setActiveTab('tab1')}
+          className={`relative pb-3 text-sm font-medium transition-colors ${
+            activeTab === 'tab1'
+              ? 'text-primary'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Tab Label
+          <span className="ml-1.5 text-xs opacity-60">{count}</span>
+          {activeTab === 'tab1' && (
+            <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+          )}
+        </button>
+      </nav>
+    </div>
+  </div>
+
+  {/* Content */}
+  <div className="px-4 sm:px-6 pt-5">
+    <TabsContent value="tab1">{/* Content */}</TabsContent>
+  </div>
+</Tabs>
+```
+
+### Inline Tabs (within a card or section, no page title)
+
+```typescript
+<Tabs value={activeTab} onValueChange={setActiveTab}>
+  <div className="border-b border-border">
+    <nav className="flex items-center gap-6">
+      <button
+        onClick={() => setActiveTab('tab1')}
+        className={`relative pb-3 text-sm font-medium transition-colors ${
+          activeTab === 'tab1' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+        }`}
+      >
+        Tab Label
+        {activeTab === 'tab1' && (
+          <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+        )}
+      </button>
+    </nav>
+  </div>
+  <TabsContent value="tab1" className="pt-4">{/* Content */}</TabsContent>
 </Tabs>
 ```
 
 ### Key Classes Breakdown
 
-| Element              | Classes                                                                 | Purpose                           |
-| -------------------- | ----------------------------------------------------------------------- | --------------------------------- |
-| `TabsList`           | `rounded-full bg-muted/60 border border-border`                         | Pill-shaped container             |
-| `TabsTrigger`        | `rounded-full px-4 py-2`                                                | Pill-shaped buttons               |
-| `TabsTrigger` active | `data-[state=active]:bg-foreground data-[state=active]:text-background` | Inverted colors when active       |
-| Count badge          | `bg-foreground/10 group-data-[state=active]:bg-background/20`           | Subtle badge that adapts to state |
+| Element | Classes | Purpose |
+|---------|---------|---------|
+| Container | `border-b border-border` | Horizontal line under tabs |
+| Tab button | `relative pb-3 text-sm font-medium transition-colors` | Tab label |
+| Active tab | `text-primary` | Primary color text |
+| Inactive tab | `text-muted-foreground hover:text-foreground` | Gray with hover |
+| Underline | `absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full` | Active indicator |
+| Count badge | `ml-1.5 text-xs opacity-60` | Subtle inline count |
 
-### Without Count Badge
+### Route-Based Tabs (`NavTabs` component)
 
-If you don't need count badges, simplify the trigger:
+For layouts using React Router `NavLink` (each tab = a child route), use the `<NavTabs>` component:
 
 ```typescript
-<TabsTrigger
-  value="items"
-  className="rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
->
-  {t('tabs.items')}
-</TabsTrigger>
+import { NavTabs } from '@/components/ui/nav-tabs'
+
+<NavTabs
+  className="sticky top-0 bg-card h-14 z-50"
+  items={[
+    { to: 'overview', label: t('nav.overview') },
+    { to: 'products', label: t('nav.products'), badge: 12 },
+    { to: 'settings', label: t('nav.settings'), icon: <Settings className="h-4 w-4" /> },
+  ]}
+/>
 ```
 
-### Real-World Usage
+Used in: `MenuMakerLayout`, `VenueEditLayout`, `BillingLayout`.
 
-**Examples in codebase:**
+### Where to apply
 
-- `/src/pages/Team/Teams.tsx` (lines 372-392) - **Reference implementation**
-- `/src/pages/Customers/CustomerDetail.tsx` (lines 417-437)
-
-**Where to apply:**
-
-- ✅ ALL tab interfaces in the application
-- ✅ Page sections (Orders/History, Members/Invitations)
-- ✅ Detail views with multiple content sections
+- ✅ ALL page-level tab interfaces
+- ✅ Section tabs within pages
+- ✅ Route-based layouts → use `<NavTabs>` component
+- ✅ Settings pages, inventory, reservations, commissions, etc.
+- ❌ Do NOT use pill-style tabs (`rounded-full bg-muted/60`)
 - ❌ Do NOT use default Radix `TabsList` styling
+- Exception: Dialog-level 2-option selectors (`grid w-full grid-cols-2`) are OK
 
 ---
 

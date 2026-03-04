@@ -34,6 +34,12 @@
   "creditAssessment": "Évaluation de Crédit",
   "paymentConfig": "Configuration des paiements",
   "platform": "Plateforme",
+  "groups": {
+    "operations": "Opérations",
+    "people": "Personnes",
+    "reports": "Rapports",
+    "settings": "Paramètres"
+  },
   "features": "Fonctionnalités",
   "modules": "Modules",
   "system": "État du système",
