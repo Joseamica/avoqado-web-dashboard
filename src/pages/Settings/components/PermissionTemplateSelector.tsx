@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import {
-  Sparkles,
+  Check,
   ShieldCheck,
   Crown,
   Briefcase,
@@ -12,62 +12,24 @@ import {
   Settings,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { StaffRole } from '@/types'
 import { detectMatchingTemplate, getRelevantTemplates } from '@/lib/permissions/permissionGroups'
 import { useRoleConfig } from '@/hooks/use-role-config'
 
-// Icon mapping for role templates
+// Icon mapping for role templates (compact size)
 const ROLE_ICON_MAP: Record<string, React.ReactNode> = {
-  ShieldCheck: <ShieldCheck className="w-4 h-4" />,
-  Crown: <Crown className="w-4 h-4" />,
-  Briefcase: <Briefcase className="w-4 h-4" />,
-  Wallet: <Wallet className="w-4 h-4" />,
-  UtensilsCrossed: <UtensilsCrossed className="w-4 h-4" />,
-  ChefHat: <ChefHat className="w-4 h-4" />,
-  UserCircle: <UserCircle className="w-4 h-4" />,
-  Eye: <Eye className="w-4 h-4" />,
-  Settings: <Settings className="w-4 h-4" />,
+  ShieldCheck: <ShieldCheck className="w-3.5 h-3.5" />,
+  Crown: <Crown className="w-3.5 h-3.5" />,
+  Briefcase: <Briefcase className="w-3.5 h-3.5" />,
+  Wallet: <Wallet className="w-3.5 h-3.5" />,
+  UtensilsCrossed: <UtensilsCrossed className="w-3.5 h-3.5" />,
+  ChefHat: <ChefHat className="w-3.5 h-3.5" />,
+  UserCircle: <UserCircle className="w-3.5 h-3.5" />,
+  Eye: <Eye className="w-3.5 h-3.5" />,
+  Settings: <Settings className="w-3.5 h-3.5" />,
 }
-
-/**
- * StatusPulse - Animated status indicator
- * Matches VenuePaymentConfig.tsx design
- */
-const StatusPulse: React.FC<{ status: 'success' | 'warning' | 'error' | 'neutral' }> = ({ status }) => {
-  const colors = {
-    success: 'bg-green-500',
-    warning: 'bg-yellow-500',
-    error: 'bg-red-500',
-    neutral: 'bg-muted-foreground',
-  }
-
-  return (
-    <span className="relative flex h-2.5 w-2.5">
-      <span className={cn('animate-ping absolute inline-flex h-full w-full rounded-full opacity-75', colors[status])} />
-      <span className={cn('relative inline-flex rounded-full h-2.5 w-2.5', colors[status])} />
-    </span>
-  )
-}
-
-/**
- * GlassCard wrapper
- */
-const GlassCard: React.FC<{
-  children: React.ReactNode
-  className?: string
-}> = ({ children, className }) => (
-  <div
-    className={cn(
-      'relative rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm',
-      'shadow-sm transition-all duration-300 overflow-hidden',
-      className
-    )}
-  >
-    {children}
-  </div>
-)
 
 interface PermissionTemplateSelectorProps {
   selectedRole: StaffRole
@@ -77,68 +39,10 @@ interface PermissionTemplateSelectorProps {
 }
 
 /**
- * TemplateCard - Individual role template card
- */
-interface TemplateCardProps {
-  role: StaffRole | 'custom'
-  icon: React.ReactNode
-  roleLabel: string
-  description: string
-  permissionCount?: number
-  isActive: boolean
-  onClick: () => void
-  disabled?: boolean
-}
-
-function TemplateCard({ role, icon, roleLabel, description, permissionCount, isActive, onClick, disabled }: TemplateCardProps) {
-  const { t } = useTranslation('settings')
-  const isCustom = role === 'custom'
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled || isCustom}
-      className={cn(
-        'flex-shrink-0 w-28 sm:w-36 p-2 sm:p-3 rounded-xl border transition-all text-left',
-        isActive
-          ? 'border-green-500 bg-green-50 dark:bg-green-950/30 ring-2 ring-green-500/20'
-          : 'border-border/50 bg-card/50 hover:bg-card/80 hover:border-border',
-        (disabled || isCustom) && 'opacity-60 cursor-not-allowed',
-        !disabled && !isCustom && 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md'
-      )}
-    >
-      <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-        <div className={cn('p-1 sm:p-1.5 rounded-lg', isActive ? 'bg-green-500/20' : 'bg-muted')}>{icon}</div>
-        {isActive && <StatusPulse status="success" />}
-      </div>
-      <p className="font-medium text-xs sm:text-sm truncate">{roleLabel}</p>
-      <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 line-clamp-2 h-6 sm:h-8">{description}</p>
-      {permissionCount !== undefined && !isCustom && (
-        <Badge variant="outline" className="mt-1.5 sm:mt-2 text-[10px] sm:text-xs">
-          {permissionCount}
-        </Badge>
-      )}
-      {isCustom && isActive && (
-        <Badge variant="outline" className="mt-1.5 sm:mt-2 text-[10px] sm:text-xs border-green-500 text-green-600 dark:text-green-400">
-          {t('rolePermissions.templates.currentlyActive', 'Active')}
-        </Badge>
-      )}
-    </button>
-  )
-}
-
-/**
- * PermissionTemplateSelector - Role template horizontal card selector
+ * PermissionTemplateSelector - Compact pill-based role template selector
  *
- * Features:
- * - Shows available role templates based on target role
- * - Detects which template is currently active
- * - Horizontal scrollable layout
- * - Visual indicator for active template (pulse)
- * - Custom indicator when permissions don't match any template
- *
- * Design: Inspired by Stripe's role presets
+ * Redesigned from horizontal scroll cards to inline pills for
+ * minimal vertical footprint. Tooltip shows description + permission count.
  */
 export function PermissionTemplateSelector({
   selectedRole,
@@ -149,62 +53,67 @@ export function PermissionTemplateSelector({
   const { t } = useTranslation('settings')
   const { getDisplayName: getRoleDisplayName } = useRoleConfig()
 
-  // Get relevant templates for the selected role
   const relevantTemplates = useMemo(() => getRelevantTemplates(selectedRole), [selectedRole])
-
-  // Detect which template matches current permissions
   const matchingTemplate = useMemo(
     () => detectMatchingTemplate(currentPermissions, selectedRole),
     [currentPermissions, selectedRole]
   )
 
   return (
-    <GlassCard className="p-3 sm:p-4 mb-4 sm:mb-6">
-      <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-        <div className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5 flex-shrink-0">
-          <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-        </div>
-        <div className="min-w-0">
-          <h3 className="font-medium text-sm">{t('rolePermissions.templates.title', 'Quick Presets')}</h3>
-          <p className="text-xs text-muted-foreground truncate sm:whitespace-normal">
-            {t('rolePermissions.templates.description', 'Select a role template to quickly apply a permission set')}
-          </p>
-        </div>
-      </div>
-
-      {/* Horizontal scrollable template cards */}
-      <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+    <div className="flex items-center gap-2 flex-wrap">
+      <span className="text-xs text-muted-foreground font-medium shrink-0">
+        {t('rolePermissions.templates.title', 'Quick Presets')}:
+      </span>
+      <div className="flex items-center gap-1.5 flex-wrap">
         {relevantTemplates.map(template => {
-          const icon = ROLE_ICON_MAP[template.icon] || <Settings className="w-4 h-4" />
+          const icon = ROLE_ICON_MAP[template.icon] || <Settings className="w-3.5 h-3.5" />
           const isActive = matchingTemplate === template.role
 
           return (
-            <TemplateCard
-              key={template.role}
-              role={template.role}
-              icon={icon}
-              roleLabel={getRoleDisplayName(template.role)}
-              description={t(template.descriptionKey, '')}
-              permissionCount={template.permissionCount}
-              isActive={isActive}
-              onClick={() => onTemplateSelect(template.role)}
-              disabled={disabled}
-            />
+            <TooltipProvider key={template.role} delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => onTemplateSelect(template.role)}
+                    disabled={disabled}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
+                      isActive
+                        ? 'bg-green-50 dark:bg-green-950/30 border-green-500 text-green-700 dark:text-green-400'
+                        : 'border-border/60 text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border',
+                      disabled && 'opacity-60 cursor-not-allowed',
+                      !disabled && 'cursor-pointer'
+                    )}
+                  >
+                    {icon}
+                    <span className="truncate">{getRoleDisplayName(template.role)}</span>
+                    {isActive && <Check className="w-3 h-3" />}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <p className="text-xs">{t(template.descriptionKey, '')}</p>
+                  {template.permissionCount !== undefined && (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {template.permissionCount} {t('rolePermissions.permissions', 'permissions')}
+                    </p>
+                  )}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )
         })}
 
-        {/* Custom indicator - always show if current permissions are custom */}
-        <TemplateCard
-          role="custom"
-          icon={<Settings className="w-4 h-4" />}
-          roleLabel={t('rolePermissions.templates.custom', 'Custom')}
-          description={t('rolePermissions.templates.customDesc', 'Custom permissions configured')}
-          isActive={matchingTemplate === 'custom'}
-          onClick={() => {}}
-          disabled
-        />
+        {/* Custom indicator - shown when permissions don't match any template */}
+        {matchingTemplate === 'custom' && (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-border/60 bg-muted/50 text-muted-foreground">
+            <Settings className="w-3.5 h-3.5" />
+            {t('rolePermissions.templates.custom', 'Custom')}
+            <Check className="w-3 h-3" />
+          </span>
+        )}
       </div>
-    </GlassCard>
+    </div>
   )
 }
 

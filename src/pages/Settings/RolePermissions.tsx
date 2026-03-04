@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { Shield, Save, RotateCcw, AlertCircle, Info, Check, X, AlertTriangle, Tags, Monitor, LayoutDashboard } from 'lucide-react'
+import { Shield, Save, RotateCcw, AlertCircle, Info, AlertTriangle, Tags, Monitor, LayoutDashboard } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -10,7 +10,7 @@ import { useRoleConfig } from '@/hooks/use-role-config'
 import { Button } from '@/components/ui/button'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { SimpleConfirmDialog } from '@/pages/Inventory/components/SimpleConfirmDialog'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -382,24 +382,38 @@ export default function RolePermissions() {
 
             {/* Header actions (contextual by tab) */}
             {activeRoleTab === 'permissions' && selectedRole && (
-              <Button
-                onClick={handleSave}
-                disabled={!hasChanges || updateMutation.isPending}
-                size="default"
-                className="w-full sm:w-auto flex-shrink-0"
-              >
-                {updateMutation.isPending ? (
-                  <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
-                    {t('rolePermissions.saving')}
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    {t('rolePermissions.saveChanges')}
-                  </>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                {currentRolePermission?.isCustom && (
+                  <Button
+                    variant="outline"
+                    size="default"
+                    onClick={handleRevert}
+                    disabled={revertMutation.isPending}
+                    className="w-full sm:w-auto flex-shrink-0"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    <span className="truncate">{t('rolePermissions.revertToDefaults', 'Revert to Defaults')}</span>
+                  </Button>
                 )}
-              </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={!hasChanges || updateMutation.isPending}
+                  size="default"
+                  className="w-full sm:w-auto flex-shrink-0"
+                >
+                  {updateMutation.isPending ? (
+                    <>
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
+                      {t('rolePermissions.saving')}
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      {t('rolePermissions.saveChanges')}
+                    </>
+                  )}
+                </Button>
+              </div>
             )}
             {activeRoleTab === 'display-names' && (
               <PermissionGate permission="role-config:update">
@@ -474,26 +488,12 @@ export default function RolePermissions() {
 
         {/* Permissions Tab */}
         <TabsContent value="permissions" className="space-y-4 sm:space-y-6">
-          {/* Info Alert */}
-          <Alert className="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800">
-            <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-            <AlertDescription className="text-xs sm:text-sm text-blue-800 dark:text-blue-200">
-              {t(
-                'rolePermissions.infoAlert',
-                'Changes to role permissions will affect all users with that role. Individual staff members can have custom permissions in Team Management.'
-              )}
-            </AlertDescription>
-          </Alert>
-
           {/* Main Content Grid */}
           <div className="grid gap-4 sm:gap-6 lg:grid-cols-[260px_1fr]">
             {/* Role Selector Sidebar */}
             <Card className="h-fit">
               <CardHeader className="p-4 sm:p-6">
                 <CardTitle className="text-base sm:text-lg">{t('rolePermissions.selectRole', 'Select Role')}</CardTitle>
-                <CardDescription className="text-xs sm:text-sm">
-                  {t('rolePermissions.selectRoleDesc', 'Choose a role to customize permissions')}
-                </CardDescription>
               </CardHeader>
               <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
                 {isLoading ? (
@@ -536,58 +536,23 @@ export default function RolePermissions() {
                     })}
                   </div>
                 )}
+                {currentRolePermission?.modifiedBy && (
+                  <p className="text-[10px] text-muted-foreground mt-3 pt-3 border-t border-border/50">
+                    {t('rolePermissions.lastModified', 'Last modified by')}{' '}
+                    <span className="font-medium">
+                      {currentRolePermission.modifiedBy.firstName} {currentRolePermission.modifiedBy.lastName}
+                    </span>
+                    {currentRolePermission.modifiedAt && (
+                      <span className="block mt-0.5">{formatDate(currentRolePermission.modifiedAt)}</span>
+                    )}
+                  </p>
+                )}
               </CardContent>
             </Card>
 
             {/* Permission Editor */}
             {selectedRole && currentRolePermission && (
-              <div className="space-y-4 sm:space-y-6 min-w-0">
-                {/* Role Header */}
-                <Card>
-                  <CardHeader className="p-4 sm:p-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                      <div className="space-y-1 min-w-0">
-                        <CardTitle className="flex items-center gap-2 flex-wrap text-base sm:text-lg">
-                          <span className="truncate">{getRoleLabel(selectedRole)}</span>
-                          {currentRolePermission.isCustom && (
-                            <Badge variant="secondary" className="text-xs">{t('rolePermissions.customized', 'Customized')}</Badge>
-                          )}
-                        </CardTitle>
-                        <CardDescription className="text-xs sm:text-sm">
-                          {currentRolePermission.isCustom
-                            ? t('rolePermissions.customPermissionsDesc', 'Custom permissions are active for this role')
-                            : t('rolePermissions.defaultPermissionsDesc', 'Using default permissions for this role')}
-                        </CardDescription>
-                      </div>
-                      {currentRolePermission.isCustom && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleRevert}
-                          disabled={revertMutation.isPending}
-                          className="w-full sm:w-auto flex-shrink-0"
-                        >
-                          <RotateCcw className="h-4 w-4 mr-2" />
-                          <span className="truncate">{t('rolePermissions.revertToDefaults', 'Revert to Defaults')}</span>
-                        </Button>
-                      )}
-                    </div>
-                    {currentRolePermission.modifiedBy && (
-                      <div className="text-xs sm:text-sm text-muted-foreground mt-2">
-                        {t('rolePermissions.lastModified', 'Last modified by')}{' '}
-                        <span className="font-medium">
-                          {currentRolePermission.modifiedBy.firstName} {currentRolePermission.modifiedBy.lastName}
-                        </span>{' '}
-                        {currentRolePermission.modifiedAt && (
-                          <span>
-                            {tCommon('on')} {formatDate(currentRolePermission.modifiedAt)}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </CardHeader>
-                </Card>
-
+              <div className="space-y-4 min-w-0">
                 {/* Self-modification warning */}
                 {isOwnRole && (
                   <Alert className="bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800">
@@ -643,34 +608,6 @@ export default function RolePermissions() {
 
                     {/* Search */}
                     <PermissionSearch value={searchTerm} onChange={setSearchTerm} className="w-full sm:w-64" />
-                  </div>
-
-                  {/* Legend */}
-                  <div className="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm text-muted-foreground flex-wrap mb-4">
-                    <div className="flex items-center gap-1.5">
-                      <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500 dark:text-green-400" />
-                      <span>{t('rolePermissions.legendEnabled', 'Permission enabled')}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                      <span>{t('rolePermissions.legendDisabled', 'Permission disabled')}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-600 dark:text-yellow-400" />
-                      <span>{t('rolePermissions.legendCritical', 'Critical permission')}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Badge variant="outline" className="text-xs px-1 py-0">
-                        +
-                      </Badge>
-                      <span>{t('rolePermissions.legendAdded', 'Added to defaults')}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Badge variant="outline" className="text-xs px-1 py-0">
-                        -
-                      </Badge>
-                      <span>{t('rolePermissions.legendRemoved', 'Removed from defaults')}</span>
-                    </div>
                   </div>
 
                   {/* Dashboard Permissions */}
