@@ -430,7 +430,7 @@ export default function InventorySummary() {
   const activeFiltersCount = (searchTerm ? 1 : 0) + stockFilter.length + disponibleFilter.length + (priceFilter ? 1 : 0)
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab}>
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="p-4 sm:p-6">
       {/* Header: Tabs (left) + Actions (right) */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border">
@@ -467,7 +467,7 @@ export default function InventorySummary() {
       </div>
 
       {/* Stripe-style Filter Bar */}
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-3 mt-3">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-3 mt-5">
         {/* Expandable Search Icon */}
         <div className="relative flex items-center">
           {isSearchOpen ? (
@@ -582,7 +582,7 @@ export default function InventorySummary() {
         )}
       </div>
 
-      <TabsContent value="physical" className="mt-0">
+      <TabsContent value="physical" className="mt-4">
         <DataTable
           data={physicalItems}
           rowCount={physicalItems.length}
@@ -593,7 +593,7 @@ export default function InventorySummary() {
           tableId="inventory:physical"
         />
       </TabsContent>
-      <TabsContent value="recipes" className="mt-0">
+      <TabsContent value="recipes" className="mt-4">
         <DataTable
           data={recipeItems}
           rowCount={recipeItems.length}
