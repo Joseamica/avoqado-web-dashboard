@@ -6,7 +6,7 @@
 		"ranking": "Ranking",
 		"goals": "Goals",
 		"config": "Configuration",
-		"approvals": "Approvals",
+		"approvals": "Approvals & Payouts",
 		"payouts": "Payouts"
 	},
 	"ranking": {
@@ -238,7 +238,8 @@
 			"BANK_TRANSFER": "Bank Transfer",
 			"CASH": "Cash",
 			"CHECK": "Check",
-			"OTHER": "Other"
+			"OTHER": "Other",
+			"PAYROLL": "Payroll"
 		},
 		"reference": "Reference",
 		"referencePlaceholder": "Transfer number, check number, etc.",
@@ -282,7 +283,9 @@
 		"venueGoal": "Venue-wide Goal",
 		"selectStaff": "Select employee...",
 		"assignTo": "Assign To",
-		"assignToHint": "Select an employee or leave empty for a venue-wide goal",
+		"assignToHint": "Select employees or choose a venue-wide goal",
+		"searchStaff": "Search employee...",
+		"multipleStaff": "{{count}} employees selected",
 		"goalAmount": "Sales Goal",
 		"goalAmountHint": "The target sales amount for this period",
 		"period": "Period",
@@ -327,7 +330,8 @@
 		"updateError": "Error updating",
 		"deleteError": "Error deleting",
 		"approveError": "Error approving",
-		"disputeError": "Error disputing"
+		"disputeError": "Error disputing",
+		"someGoalsFailed": "{{count}} goal(s) could not be created"
 	},
 	"success": {
 		"configCreated": "Configuration created successfully",
@@ -350,6 +354,7 @@
 		"payoutCompleted": "Payout completed successfully",
 		"payoutCancelled": "Payout cancelled",
 		"goalCreated": "Goal created successfully",
+		"goalsCreatedBatch": "{{count}} goals created successfully",
 		"goalUpdated": "Goal updated successfully",
 		"goalDeleted": "Goal deleted successfully"
 	},
@@ -404,7 +409,21 @@
 			"exampleCommission": "Commission:",
 			"exampleResult": "The employee would earn {commission} in commission for this sale",
 			"advanced": "Advanced Configuration",
-			"advancedDesc": "For businesses with more complex rules"
+			"advancedDesc": "For businesses with more complex rules",
+			"calculationBase": "Calculation base",
+			"includeTax": "Include tax",
+			"taxExcludedHint": "Commission will be calculated on the amount excluding tax (16%)",
+			"includeTips": "Include tips",
+			"includeDiscount": "Include discounts",
+			"categories": "Categories",
+			"onlySpecificCategories": "Commission will only be calculated on sales from these categories",
+			"selectCategories": "Select categories...",
+			"addMoreCategories": "Add more categories...",
+			"noCategories": "No categories available",
+			"goalTier": "Goal as tier",
+			"goalTierDescription": "Change rate when the staff member exceeds their monthly goal",
+			"baseRate": "Base rate",
+			"bonusRate": "Rate when exceeded"
 		},
 		"step3": {
 			"title": "Almost done! Name this configuration",

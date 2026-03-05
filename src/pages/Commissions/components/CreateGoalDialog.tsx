@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Check, ChevronsUpDown, Building2 } from 'lucide-react'
+import { Check, ChevronsUpDown, Building2, Users } from 'lucide-react'
 import {
 	Dialog,
 	DialogContent,
@@ -28,6 +28,7 @@ import {
 	Command,
 	CommandEmpty,
 	CommandGroup,
+	CommandInput,
 	CommandItem,
 	CommandList,
 } from '@/components/ui/command'
@@ -43,6 +44,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { useQuery } from '@tanstack/react-query'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useCreateSalesGoal, useUpdateSalesGoal } from '@/hooks/useCommissions'
@@ -52,13 +54,15 @@ import type { SalesGoal, SalesGoalPeriod } from '@/types/commission'
 import { cn } from '@/lib/utils'
 
 const goalSchema = z.object({
-	staffId: z.string().nullable(),
-	goal: z.number().min(1, 'Goal must be greater than 0'),
+	goal: z.number().min(1, 'La meta debe ser mayor a 0'),
 	period: z.enum(['DAILY', 'WEEKLY', 'MONTHLY'] as const),
 	active: z.boolean(),
 })
 
 type GoalFormData = z.infer<typeof goalSchema>
+
+// Special constant for venue-wide goal
+const VENUE_WIDE = '__VENUE_WIDE__'
 
 interface CreateGoalDialogProps {
 	open: boolean
@@ -76,7 +80,9 @@ export default function CreateGoalDialog({
 	const { venueId } = useCurrentVenue()
 
 	const [staffSearchOpen, setStaffSearchOpen] = useState(false)
-	const [selectedStaff, setSelectedStaff] = useState<{ id: string; name: string } | null>(null)
+	const [staffSearch, setStaffSearch] = useState('')
+	// For create: multiple selections (staff IDs or VENUE_WIDE)
+	const [selectedIds, setSelectedIds] = useState<string[]>([VENUE_WIDE])
 
 	const isEditing = !!goal
 
@@ -88,41 +94,42 @@ export default function CreateGoalDialog({
 	})
 	const staffList = staffData?.data || []
 
+	const filteredStaff = useMemo(() => {
+		if (!staffSearch) return staffList
+		const search = staffSearch.toLowerCase()
+		return staffList.filter(
+			(s) =>
+				`${s.firstName} ${s.lastName}`.toLowerCase().includes(search) ||
+				(s.email && s.email.toLowerCase().includes(search))
+		)
+	}, [staffList, staffSearch])
+
 	const createGoalMutation = useCreateSalesGoal()
 	const updateGoalMutation = useUpdateSalesGoal()
 
 	const form = useForm<GoalFormData>({
 		resolver: zodResolver(goalSchema),
 		defaultValues: {
-			staffId: goal?.staffId || null,
 			goal: goal?.goal || 10000,
 			period: goal?.period || 'DAILY',
 			active: goal?.active ?? true,
 		},
 	})
 
-	// Reset form when goal changes
+	// Reset form when dialog opens
 	useEffect(() => {
 		if (open) {
+			setStaffSearch('')
 			if (goal) {
-				setSelectedStaff(
-					goal.staff
-						? {
-								id: goal.staffId!,
-								name: `${goal.staff.firstName} ${goal.staff.lastName}`,
-						  }
-						: null
-				)
+				setSelectedIds(goal.staffId ? [goal.staffId] : [VENUE_WIDE])
 				form.reset({
-					staffId: goal.staffId || null,
 					goal: goal.goal,
 					period: goal.period,
 					active: goal.active ?? true,
 				})
 			} else {
-				setSelectedStaff(null)
+				setSelectedIds([VENUE_WIDE])
 				form.reset({
-					staffId: null,
 					goal: 10000,
 					period: 'DAILY',
 					active: true,
@@ -130,6 +137,46 @@ export default function CreateGoalDialog({
 			}
 		}
 	}, [open, goal, form])
+
+	const toggleSelection = (id: string) => {
+		setSelectedIds((prev) => {
+			if (id === VENUE_WIDE) {
+				// If selecting venue-wide, deselect all staff
+				return prev.includes(VENUE_WIDE) ? [] : [VENUE_WIDE]
+			}
+			// If selecting a staff member, remove venue-wide
+			const withoutVenue = prev.filter((v) => v !== VENUE_WIDE)
+			if (withoutVenue.includes(id)) {
+				return withoutVenue.filter((v) => v !== id)
+			}
+			return [...withoutVenue, id]
+		})
+	}
+
+	// Build display label for the trigger button
+	const triggerLabel = useMemo(() => {
+		if (selectedIds.length === 0) return null
+		if (selectedIds.includes(VENUE_WIDE)) {
+			return { icon: <Building2 className="h-4 w-4" />, text: t('goals.venueGoal') }
+		}
+		if (selectedIds.length === 1) {
+			const staff = staffList.find((s) => s.staffId === selectedIds[0])
+			if (staff) {
+				return {
+					icon: (
+						<span className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-xs">
+							{staff.firstName.charAt(0)}
+						</span>
+					),
+					text: `${staff.firstName} ${staff.lastName}`,
+				}
+			}
+		}
+		return {
+			icon: <Users className="h-4 w-4" />,
+			text: t('goals.multipleStaff', { count: selectedIds.length }),
+		}
+	}, [selectedIds, staffList, t])
 
 	const onSubmit = async (data: GoalFormData) => {
 		try {
@@ -142,21 +189,44 @@ export default function CreateGoalDialog({
 						active: data.active,
 					},
 				})
-				toast({
-					title: t('success.goalUpdated'),
-				})
+				toast({ title: t('success.goalUpdated') })
 			} else {
-				await createGoalMutation.mutateAsync({
-					staffId: data.staffId,
-					goal: data.goal,
-					period: data.period as SalesGoalPeriod,
-				})
-				toast({
-					title: t('success.goalCreated'),
-				})
+				// Batch create: one goal per selected target
+				const targets = selectedIds.includes(VENUE_WIDE)
+					? [null] // venue-wide
+					: selectedIds // individual staff IDs
+
+				let created = 0
+				let errors = 0
+				for (const staffId of targets) {
+					try {
+						await createGoalMutation.mutateAsync({
+							staffId,
+							goal: data.goal,
+							period: data.period as SalesGoalPeriod,
+						})
+						created++
+					} catch {
+						errors++
+					}
+				}
+
+				if (created > 0) {
+					toast({
+						title: targets.length === 1
+							? t('success.goalCreated')
+							: t('success.goalsCreatedBatch', { count: created }),
+					})
+				}
+				if (errors > 0) {
+					toast({
+						title: t('errors.someGoalsFailed', { count: errors }),
+						variant: 'destructive',
+					})
+				}
 			}
 			onOpenChange(false)
-		} catch (_error) {
+		} catch {
 			toast({
 				title: isEditing ? t('errors.updateError') : t('errors.createError'),
 				variant: 'destructive',
@@ -165,6 +235,7 @@ export default function CreateGoalDialog({
 	}
 
 	const isLoading = createGoalMutation.isPending || updateGoalMutation.isPending
+	const canSubmit = selectedIds.length > 0
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -180,104 +251,91 @@ export default function CreateGoalDialog({
 					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 						{/* Staff Selection (only for create) */}
 						{!isEditing && (
-							<FormField
-								control={form.control}
-								name="staffId"
-								render={({ field }) => (
-									<FormItem className="flex flex-col">
-										<FormLabel>{t('goals.assignTo')}</FormLabel>
-										<Popover open={staffSearchOpen} onOpenChange={setStaffSearchOpen}>
-											<PopoverTrigger asChild>
-												<FormControl>
-													<Button
-														variant="outline"
-														role="combobox"
-														aria-expanded={staffSearchOpen}
-														className={cn(
-															'w-full justify-between',
-															!field.value && !selectedStaff && 'text-muted-foreground'
-														)}
-													>
-														{selectedStaff ? (
-															<span className="flex items-center gap-2">
-																<span className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-xs">
-																	{selectedStaff.name.charAt(0)}
-																</span>
-																{selectedStaff.name}
-															</span>
-														) : field.value === null ? (
-															<span className="flex items-center gap-2">
-																<Building2 className="h-4 w-4" />
-																{t('goals.venueGoal')}
-															</span>
-														) : (
-															t('goals.selectStaff')
-														)}
-														<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-													</Button>
-												</FormControl>
-											</PopoverTrigger>
-											<PopoverContent className="w-[300px] p-0">
-												<Command>
-													<CommandList>
-														<CommandEmpty>{t('overrides.noStaffFound')}</CommandEmpty>
-														<CommandGroup>
-															{/* Venue-wide option */}
+							<div className="space-y-2">
+								<FormLabel>{t('goals.assignTo')}</FormLabel>
+								<Popover open={staffSearchOpen} onOpenChange={setStaffSearchOpen} modal={true}>
+									<PopoverTrigger asChild>
+										<Button
+											type="button"
+											variant="outline"
+											role="combobox"
+											aria-expanded={staffSearchOpen}
+											className={cn(
+												'w-full justify-between font-normal bg-transparent shadow-xs',
+												!triggerLabel && 'text-muted-foreground'
+											)}
+										>
+											{triggerLabel ? (
+												<span className="flex items-center gap-2 truncate">
+													{triggerLabel.icon}
+													{triggerLabel.text}
+												</span>
+											) : (
+												t('goals.selectStaff')
+											)}
+											<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+										</Button>
+									</PopoverTrigger>
+									<PopoverContent
+										className="!w-[--radix-popover-trigger-width] p-0 bg-card border-input"
+										align="start"
+										style={{ width: 'var(--radix-popover-trigger-width)' }}
+									>
+										<Command shouldFilter={false} className="bg-card">
+											{staffList.length >= 5 && (
+												<CommandInput
+													placeholder={t('goals.searchStaff')}
+													value={staffSearch}
+													onValueChange={setStaffSearch}
+												/>
+											)}
+											<CommandList>
+												<CommandEmpty>{t('overrides.noStaffFound')}</CommandEmpty>
+												<ScrollArea className={staffList.length >= 5 ? 'h-[250px]' : 'max-h-[250px]'}>
+													<CommandGroup>
+														{/* Venue-wide option */}
+														<CommandItem
+															value="venue-wide"
+															onSelect={() => toggleSelection(VENUE_WIDE)}
+															className="cursor-pointer"
+														>
+															<Check
+																className={cn(
+																	'mr-2 h-4 w-4',
+																	selectedIds.includes(VENUE_WIDE) ? 'opacity-100' : 'opacity-0'
+																)}
+															/>
+															<Building2 className="mr-2 h-4 w-4" />
+															{t('goals.venueGoal')}
+														</CommandItem>
+														{/* Staff members */}
+														{filteredStaff.map((staff) => (
 															<CommandItem
-																value="venue-wide"
-																onSelect={() => {
-																	field.onChange(null)
-																	setSelectedStaff(null)
-																	setStaffSearchOpen(false)
-																}}
+																key={staff.staffId}
+																value={`${staff.firstName} ${staff.lastName}`}
+																onSelect={() => toggleSelection(staff.staffId)}
 																className="cursor-pointer"
 															>
 																<Check
 																	className={cn(
 																		'mr-2 h-4 w-4',
-																		field.value === null ? 'opacity-100' : 'opacity-0'
+																		selectedIds.includes(staff.staffId) ? 'opacity-100' : 'opacity-0'
 																	)}
 																/>
-																<Building2 className="mr-2 h-4 w-4" />
-																{t('goals.venueGoal')}
+																<span className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-xs mr-2">
+																	{staff.firstName.charAt(0)}
+																</span>
+																{staff.firstName} {staff.lastName}
 															</CommandItem>
-															{/* Staff members */}
-															{staffList.map(staff => (
-																<CommandItem
-																	key={staff.staffId}
-																	value={`${staff.firstName} ${staff.lastName}`}
-																	onSelect={() => {
-																		field.onChange(staff.staffId)
-																		setSelectedStaff({
-																			id: staff.staffId,
-																			name: `${staff.firstName} ${staff.lastName}`,
-																		})
-																		setStaffSearchOpen(false)
-																	}}
-																	className="cursor-pointer"
-																>
-																	<Check
-																		className={cn(
-																			'mr-2 h-4 w-4',
-																			field.value === staff.staffId ? 'opacity-100' : 'opacity-0'
-																		)}
-																	/>
-																	<span className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-xs mr-2">
-																		{staff.firstName.charAt(0)}
-																	</span>
-																	{staff.firstName} {staff.lastName}
-																</CommandItem>
-															))}
-														</CommandGroup>
-													</CommandList>
-												</Command>
-											</PopoverContent>
-										</Popover>
-										<FormDescription>{t('goals.assignToHint')}</FormDescription>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
+														))}
+													</CommandGroup>
+												</ScrollArea>
+											</CommandList>
+										</Command>
+									</PopoverContent>
+								</Popover>
+								<p className="text-[0.8rem] text-muted-foreground">{t('goals.assignToHint')}</p>
+							</div>
 						)}
 
 						{/* Goal Amount */}
@@ -353,7 +411,7 @@ export default function CreateGoalDialog({
 							<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
 								{t('actions.cancel')}
 							</Button>
-							<Button type="submit" disabled={isLoading}>
+							<Button type="submit" disabled={isLoading || !canSubmit}>
 								{isLoading ? t('actions.saving') : isEditing ? t('actions.save') : t('actions.create')}
 							</Button>
 						</DialogFooter>

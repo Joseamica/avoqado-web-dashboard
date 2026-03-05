@@ -55,16 +55,11 @@ export function useChatReferences() {
 
       const tipPercent = amount > 0 ? ((tipAmount / amount) * 100).toFixed(1) : '0'
 
-      let cardInfo = ''
-      if (payment.cardBrand || payment.last4) {
-        cardInfo = `\n   - Tarjeta: ${payment.cardBrand || ''} ****${payment.last4 || ''}`
-      }
-
-      const summary = `PAGO #${payment.id.slice(-8)}
+      const summary = `PAGO
    - Fecha: ${dateStr}, ${timeStr}
    - Monto: ${Currency(amount)}
    - Propina: ${Currency(tipAmount)} (${tipPercent}%)
-   - Método: ${methodLabel}${cardInfo}
+   - Método: ${methodLabel}
    - Mesero: ${waiterName}
    - Total: ${Currency(total)}`
 
@@ -123,7 +118,7 @@ export function useChatReferences() {
         }
       }
 
-      const summary = `ORDEN #${order.orderNumber || order.id.slice(-8)}
+      const summary = `ORDEN${order.orderNumber ? ` #${order.orderNumber}` : ''}
    - Fecha: ${dateStr}, ${timeStr}
    - Estado: ${statusLabel}
    - Mesero: ${waiterName}

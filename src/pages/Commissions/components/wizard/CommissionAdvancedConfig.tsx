@@ -84,15 +84,25 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange 
 	const updateTier = (index: number, updates: Partial<CreateCommissionTierInput>) => {
 		const newTiers = [...data.tiers]
 		newTiers[index] = { ...newTiers[index], ...updates }
+
+		// Auto-chain: when maxThreshold changes, set next tier's minThreshold to match
+		if (updates.maxThreshold !== undefined && index < newTiers.length - 1) {
+			newTiers[index + 1] = { ...newTiers[index + 1], minThreshold: updates.maxThreshold ?? 0 }
+		}
+		// Auto-chain: when minThreshold changes, set previous tier's maxThreshold to match
+		if (updates.minThreshold !== undefined && index > 0) {
+			newTiers[index - 1] = { ...newTiers[index - 1], maxThreshold: updates.minThreshold }
+		}
+
 		updateData({ tiers: newTiers })
 	}
 
-	// Role rates
-	const roleOptions = [
-		{ key: 'WAITER', label: getRoleDisplayName('WAITER') },
-		{ key: 'CASHIER', label: getRoleDisplayName('CASHIER') },
-		{ key: 'MANAGER', label: getRoleDisplayName('MANAGER') },
-	]
+	// Role rates — use venue's active roles, excluding non-sales roles
+	const { activeRoles } = useRoleConfig()
+	const NON_SALES_ROLES = ['SUPERADMIN', 'VIEWER']
+	const roleOptions = activeRoles
+		.filter(r => !NON_SALES_ROLES.includes(r.role))
+		.map(r => ({ key: r.role, label: getRoleDisplayName(r.role) }))
 
 	const updateRoleRate = (role: string, rate: number) => {
 		updateData({
@@ -281,6 +291,8 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange 
 														value={tier.minThreshold}
 														onChange={(e) => updateTier(index, { minThreshold: parseFloat(e.target.value) || 0 })}
 														className="h-9 text-sm pl-5"
+														readOnly={index > 0}
+														tabIndex={index > 0 ? -1 : undefined}
 													/>
 												</div>
 											</div>
@@ -375,7 +387,21 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange 
 											description: t('wizard.advanced.mutualExclusive.tiersDisabled'),
 										})
 									}
-									updateData({ roleRatesEnabled: true, tiersEnabled: false })
+									// Initialize with 3 default roles (user can add more)
+									const DEFAULT_ROLES = ['WAITER', 'CASHIER', 'MANAGER']
+									const initialRates: Record<string, number> = {}
+									for (const key of DEFAULT_ROLES) {
+										if (roleOptions.some(r => r.key === key)) {
+											initialRates[key] = data.roleRates[key] ?? data.defaultRate
+										}
+									}
+									// If none of the defaults exist, use first 3 available
+									if (Object.keys(initialRates).length === 0) {
+										for (const role of roleOptions.slice(0, 3)) {
+											initialRates[role.key] = data.roleRates[role.key] ?? data.defaultRate
+										}
+									}
+									updateData({ roleRatesEnabled: true, tiersEnabled: false, roleRates: initialRates })
 								} else {
 									updateData({ roleRatesEnabled: false })
 								}
@@ -384,39 +410,99 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange 
 					</div>
 
 					{data.roleRatesEnabled && (
-						<div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-							{roleOptions.map((role) => (
-								<div
-									key={role.key}
-									className="flex flex-col p-4 rounded-xl bg-gradient-to-br from-muted/50 to-muted/20 border border-border/50"
-								>
-									{/* Role header - fixed height area */}
-									<div className="flex items-start gap-2 min-h-[48px]">
-										<div className="p-2 rounded-lg bg-blue-500/10 shrink-0">
-											<Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+						<div className="space-y-3 pt-2">
+							<div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+								{roleOptions
+									.filter((role) => role.key in data.roleRates)
+									.map((role) => (
+									<div
+										key={role.key}
+										className="relative flex flex-col p-4 rounded-xl bg-gradient-to-br from-muted/50 to-muted/20 border border-border/50"
+									>
+										{/* Remove button */}
+										<Button
+											type="button"
+											variant="ghost"
+											size="icon"
+											className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-destructive"
+											onClick={() => {
+												const newRates = { ...data.roleRates }
+												delete newRates[role.key]
+												updateData({ roleRates: newRates })
+											}}
+										>
+											<Trash2 className="w-3.5 h-3.5" />
+										</Button>
+
+										{/* Role header - fixed height area */}
+										<div className="flex items-start gap-2 min-h-[48px]">
+											<div className="p-2 rounded-lg bg-blue-500/10 shrink-0">
+												<Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+											</div>
+											<span className="font-medium text-sm line-clamp-2">{role.label}</span>
 										</div>
-										<span className="font-medium text-sm line-clamp-2">{role.label}</span>
-									</div>
-									{/* Commission input - always at bottom */}
-									<div className="mt-3">
-										<label className="text-xs text-muted-foreground">{t('wizard.advanced.roleRates.commissionHeader')}</label>
-										<div className="relative mt-1">
-											<Input
-												type="number"
-												step="0.1"
-												min={0}
-												max={100}
-												value={((data.roleRates[role.key] || 0) * 100).toFixed(1)}
-												onChange={(e) => updateRoleRate(role.key, parseFloat(e.target.value) || 0)}
-												className="h-10 text-lg font-semibold pr-8"
-											/>
-											<span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
-												%
-											</span>
+										{/* Commission input - always at bottom */}
+										<div className="mt-3">
+											<label className="text-xs text-muted-foreground">{t('wizard.advanced.roleRates.commissionHeader')}</label>
+											<div className="relative mt-1">
+												<Input
+													type="number"
+													step="0.1"
+													min={0}
+													max={100}
+													value={((data.roleRates[role.key] || 0) * 100).toFixed(1)}
+													onChange={(e) => updateRoleRate(role.key, parseFloat(e.target.value) || 0)}
+													className="h-10 text-lg font-semibold pr-8"
+												/>
+												<span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
+													%
+												</span>
+											</div>
 										</div>
 									</div>
-								</div>
-							))}
+								))}
+
+								{/* Add role button — only if there are roles not yet added */}
+								{roleOptions.filter((r) => !(r.key in data.roleRates)).length > 0 && (
+									<Popover>
+										<PopoverTrigger asChild>
+											<button
+												type="button"
+												className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-dashed border-border/50 hover:border-primary/50 hover:bg-muted/30 transition-colors min-h-[140px] cursor-pointer"
+											>
+												<Plus className="w-6 h-6 text-muted-foreground mb-2" />
+												<span className="text-sm font-medium text-muted-foreground">
+													Agregar rol
+												</span>
+											</button>
+										</PopoverTrigger>
+										<PopoverContent className="w-[240px] p-1" align="start">
+											<div className="max-h-[240px] overflow-y-auto">
+												{roleOptions
+													.filter((r) => !(r.key in data.roleRates))
+													.map((role) => (
+														<button
+															key={role.key}
+															type="button"
+															onClick={() => {
+																updateData({
+																	roleRates: {
+																		...data.roleRates,
+																		[role.key]: data.defaultRate,
+																	},
+																})
+															}}
+															className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left hover:bg-accent cursor-pointer"
+														>
+															<Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+															<span className="text-sm font-medium">{role.label}</span>
+														</button>
+													))}
+											</div>
+										</PopoverContent>
+									</Popover>
+								)}
+							</div>
 						</div>
 					)}
 				</div>
@@ -448,7 +534,11 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange 
 					</div>
 
 					{data.limitsEnabled && (
-						<div className="grid grid-cols-2 gap-4 pt-2">
+						<div className="space-y-4 pt-2">
+						<p className="text-sm text-muted-foreground">
+							Aplica por cada venta individual. Si un empleado hace 10 ventas al día, el límite se aplica a cada una por separado, no al total acumulado.
+						</p>
+						<div className="grid grid-cols-2 gap-4">
 							<div>
 								<label className="text-sm font-medium">{t('wizard.advanced.limits.min')}</label>
 								<div className="relative mt-1.5">
@@ -495,6 +585,7 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange 
 									})}
 								</div>
 							)}
+						</div>
 						</div>
 					)}
 				</div>

@@ -150,6 +150,10 @@ Environment variables are in **GitHub Environments** (NOT Cloudflare Pages UI). 
 
 If a dashboard change affects TPV configuration: verify backend supports it, don't assume TPV has latest version.
 
+## UX Design Principle
+
+**Design for the least technical user.** Assume the person using this system has never used a software platform before — they could be elderly, non-tech-savvy, or simply unfamiliar with SaaS dashboards. Every screen, component, and interaction must be immediately understandable without a manual. Prefer fewer tabs, fewer options visible at once, and clear visual hierarchy. Labels must be self-explanatory. When in doubt, simplify — fewer choices beat more flexibility. Beautiful, clean, and obvious always wins over feature-dense and clever.
+
 ## Pre-Deploy Checklist
 
 See `.claude/rules/testing-and-git.md` for full checklist. Minimum:

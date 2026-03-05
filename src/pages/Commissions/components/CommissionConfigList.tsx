@@ -97,13 +97,6 @@ export default function CommissionConfigList({
 
 	return (
 		<div className="space-y-6">
-			<div className="flex items-center justify-between">
-				<div>
-					<h2 className="text-lg font-semibold">{t('config.title')}</h2>
-					<p className="text-sm text-muted-foreground">{t('config.subtitle')}</p>
-				</div>
-			</div>
-
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 				{configs.map(({ config, source }: { config: EffectiveCommissionConfig['config']; source: CommissionConfigSource }) => (
 					<CommissionConfigCard

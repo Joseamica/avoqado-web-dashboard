@@ -785,12 +785,13 @@ export default function BasicInfo() {
 
                   <div className="pt-4">
                     <h4 className="text-sm font-medium mb-3">Configuración Operativa</h4>
-                    <div className="space-y-3">
-                      <FormField
-                        control={form.control}
-                        name="enableShifts"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-card p-4 shadow-sm">
+                    <FormField
+                      control={form.control}
+                      name="enableShifts"
+                      render={({ field }) => (
+                        <div className="rounded-xl border border-border/50 bg-card shadow-sm">
+                          {/* Main toggle */}
+                          <FormItem className="flex flex-row items-center justify-between p-4">
                             <div className="space-y-0.5">
                               <FormLabel className="text-base cursor-pointer">Sistema de Turnos</FormLabel>
                               <FormDescription>Habilita el control de caja y turnos para el personal.</FormDescription>
@@ -801,7 +802,6 @@ export default function BasicInfo() {
                                 <Switch
                                   checked={field.value}
                                   onCheckedChange={checked => {
-                                    // Immediate API call on toggle (not on form save)
                                     toggleShifts.mutate(checked)
                                   }}
                                   disabled={!canEdit || toggleShifts.isPending}
@@ -809,133 +809,129 @@ export default function BasicInfo() {
                               </FormControl>
                             </div>
                           </FormItem>
-                        )}
-                      />
 
-                      <FormField
-                        control={form.control}
-                        name="requireClockInPhoto"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-card p-4 shadow-sm">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-base cursor-pointer">Foto de Entrada (Anti-fraude)</FormLabel>
-                              <FormDescription>Requiere que los empleados tomen una foto al registrar su entrada.</FormDescription>
+                          {/* Sub-options — only when shifts enabled */}
+                          {field.value && (
+                            <div className="px-4 pb-4 space-y-4">
+                              {/* Clock-in photo */}
+                              <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                  <p className="text-sm font-medium">Foto de Entrada (Anti-fraude)</p>
+                                  <p className="text-xs text-muted-foreground">Requiere foto al registrar entrada.</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {toggleClockInPhoto.isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                                  <Switch
+                                    checked={form.watch('requireClockInPhoto') ?? false}
+                                    onCheckedChange={checked => toggleClockInPhoto.mutate(checked)}
+                                    disabled={!canEdit || toggleClockInPhoto.isPending}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Auto clock-out section */}
+                              <div className="space-y-3">
+                                <div>
+                                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Salida Automática</p>
+                                  <p className="text-xs text-muted-foreground">Cierra turnos automáticamente para prevenir olvidos.</p>
+                                </div>
+
+                                {/* Fixed-time auto clock-out */}
+                                <div className="rounded-xl border border-border/50 p-3 space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                      <p className="text-sm font-medium">Cierre por Hora Fija</p>
+                                      <p className="text-xs text-muted-foreground">Cierra todos los turnos abiertos a una hora específica.</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {toggleAutoClockOut.isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                                      <Switch
+                                        checked={form.watch('autoClockOutEnabled') ?? false}
+                                        onCheckedChange={checked => {
+                                          const currentTime = form.getValues('autoClockOutTime') || '03:00'
+                                          toggleAutoClockOut.mutate({
+                                            autoClockOutEnabled: checked,
+                                            autoClockOutTime: checked ? currentTime : null,
+                                          })
+                                        }}
+                                        disabled={!canEdit || toggleAutoClockOut.isPending}
+                                      />
+                                    </div>
+                                  </div>
+                                  {form.watch('autoClockOutEnabled') && (
+                                    <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+                                      <span className="text-sm text-muted-foreground">Hora de cierre:</span>
+                                      <Input
+                                        type="time"
+                                        className="w-32"
+                                        value={form.watch('autoClockOutTime') || '03:00'}
+                                        onChange={e => {
+                                          const newTime = e.target.value
+                                          form.setValue('autoClockOutTime', newTime, { shouldDirty: false })
+                                          toggleAutoClockOut.mutate({
+                                            autoClockOutEnabled: true,
+                                            autoClockOutTime: newTime,
+                                          })
+                                        }}
+                                        disabled={!canEdit || toggleAutoClockOut.isPending}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Max shift duration */}
+                                <div className="rounded-xl border border-border/50 p-3 space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                      <p className="text-sm font-medium">Duración Máxima de Turno</p>
+                                      <p className="text-xs text-muted-foreground">Cierra turnos que excedan una cantidad de horas.</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {toggleMaxShiftDuration.isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                                      <Switch
+                                        checked={form.watch('maxShiftDurationEnabled') ?? false}
+                                        onCheckedChange={checked => {
+                                          const currentHours = form.getValues('maxShiftDurationHours') || 12
+                                          toggleMaxShiftDuration.mutate({
+                                            maxShiftDurationEnabled: checked,
+                                            maxShiftDurationHours: currentHours,
+                                          })
+                                        }}
+                                        disabled={!canEdit || toggleMaxShiftDuration.isPending}
+                                      />
+                                    </div>
+                                  </div>
+                                  {form.watch('maxShiftDurationEnabled') && (
+                                    <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+                                      <span className="text-sm text-muted-foreground">Máximo de horas:</span>
+                                      <Input
+                                        type="number"
+                                        className="w-20"
+                                        min={1}
+                                        max={24}
+                                        value={form.watch('maxShiftDurationHours') || 12}
+                                        onChange={e => {
+                                          const newHours = parseInt(e.target.value, 10)
+                                          if (newHours >= 1 && newHours <= 24) {
+                                            form.setValue('maxShiftDurationHours', newHours, { shouldDirty: false })
+                                            toggleMaxShiftDuration.mutate({
+                                              maxShiftDurationEnabled: true,
+                                              maxShiftDurationHours: newHours,
+                                            })
+                                          }
+                                        }}
+                                        disabled={!canEdit || toggleMaxShiftDuration.isPending}
+                                      />
+                                      <span className="text-sm text-muted-foreground">horas</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              {toggleClockInPhoto.isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                              <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={checked => {
-                                    // Immediate API call on toggle (not on form save)
-                                    toggleClockInPhoto.mutate(checked)
-                                  }}
-                                  disabled={!canEdit || toggleClockInPhoto.isPending}
-                                />
-                              </FormControl>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Auto Clock-Out Section - HR Automation (Square-style) */}
-                  <div className="pt-6">
-                    <h4 className="text-sm font-medium mb-1">Salida Automática</h4>
-                    <p className="text-xs text-muted-foreground mb-3">Cierra turnos automáticamente para prevenir olvidos de marcaje.</p>
-                    <div className="space-y-3">
-                      {/* Fixed-time auto clock-out */}
-                      <div className="rounded-lg border bg-card p-4 shadow-sm space-y-3">
-                        <div className="flex flex-row items-center justify-between">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-base cursor-pointer">Cierre por Hora Fija</FormLabel>
-                            <FormDescription>Cierra todos los turnos abiertos a una hora específica.</FormDescription>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {toggleAutoClockOut.isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                            <Switch
-                              checked={form.watch('autoClockOutEnabled') ?? false}
-                              onCheckedChange={checked => {
-                                const currentTime = form.getValues('autoClockOutTime') || '03:00'
-                                toggleAutoClockOut.mutate({
-                                  autoClockOutEnabled: checked,
-                                  autoClockOutTime: checked ? currentTime : null,
-                                })
-                              }}
-                              disabled={!canEdit || toggleAutoClockOut.isPending}
-                            />
-                          </div>
+                          )}
                         </div>
-                        {form.watch('autoClockOutEnabled') && (
-                          <div className="flex items-center gap-2 pt-2 border-t">
-                            <span className="text-sm text-muted-foreground">Hora de cierre:</span>
-                            <Input
-                              type="time"
-                              className="w-32"
-                              value={form.watch('autoClockOutTime') || '03:00'}
-                              onChange={e => {
-                                const newTime = e.target.value
-                                form.setValue('autoClockOutTime', newTime, { shouldDirty: false })
-                                toggleAutoClockOut.mutate({
-                                  autoClockOutEnabled: true,
-                                  autoClockOutTime: newTime,
-                                })
-                              }}
-                              disabled={!canEdit || toggleAutoClockOut.isPending}
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Max shift duration */}
-                      <div className="rounded-lg border bg-card p-4 shadow-sm space-y-3">
-                        <div className="flex flex-row items-center justify-between">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-base cursor-pointer">Duración Máxima de Turno</FormLabel>
-                            <FormDescription>Cierra turnos que excedan una cantidad de horas.</FormDescription>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {toggleMaxShiftDuration.isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                            <Switch
-                              checked={form.watch('maxShiftDurationEnabled') ?? false}
-                              onCheckedChange={checked => {
-                                const currentHours = form.getValues('maxShiftDurationHours') || 12
-                                toggleMaxShiftDuration.mutate({
-                                  maxShiftDurationEnabled: checked,
-                                  maxShiftDurationHours: currentHours,
-                                })
-                              }}
-                              disabled={!canEdit || toggleMaxShiftDuration.isPending}
-                            />
-                          </div>
-                        </div>
-                        {form.watch('maxShiftDurationEnabled') && (
-                          <div className="flex items-center gap-2 pt-2 border-t">
-                            <span className="text-sm text-muted-foreground">Máximo de horas:</span>
-                            <Input
-                              type="number"
-                              className="w-20"
-                              min={1}
-                              max={24}
-                              value={form.watch('maxShiftDurationHours') || 12}
-                              onChange={e => {
-                                const newHours = parseInt(e.target.value, 10)
-                                if (newHours >= 1 && newHours <= 24) {
-                                  form.setValue('maxShiftDurationHours', newHours, { shouldDirty: false })
-                                  toggleMaxShiftDuration.mutate({
-                                    maxShiftDurationEnabled: true,
-                                    maxShiftDurationHours: newHours,
-                                  })
-                                }
-                              }}
-                              disabled={!canEdit || toggleMaxShiftDuration.isPending}
-                            />
-                            <span className="text-sm text-muted-foreground">horas</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                      )}
+                    />
                   </div>
                 </div>
 

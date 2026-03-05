@@ -313,7 +313,6 @@ export function AppSidebar({
           { title: 'Proveedores', url: 'inventory/suppliers', permission: 'inventory:read' },
           { title: 'Ingredientes', url: 'inventory/ingredients', permission: 'inventory:read' },
           { title: t('sidebar:routes.recipes', { defaultValue: 'Recetas' }), url: 'inventory/recipes', permission: 'inventory:read' },
-          { title: 'Precios', url: 'inventory/pricing', permission: 'inventory:read' },
           { title: 'Modificadores', url: 'inventory/modifier-analytics', permission: 'inventory:read' },
           { title: 'Recuentos de existencias', url: 'inventory/counts', permission: 'inventory:read', comingSoon: true },
           { title: 'Reabastecimientos pendientes', url: 'inventory/restocks', permission: 'inventory:read', comingSoon: true },

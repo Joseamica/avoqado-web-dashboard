@@ -125,7 +125,6 @@ export const RawMaterials = lazyWithRetry(() => import('@/pages/Inventory/RawMat
 export const ProductStock = lazyWithRetry(() => import('@/pages/Inventory/ProductStock'))
 export const InventoryHistory = lazyWithRetry(() => import('@/pages/Inventory/InventoryHistory'))
 export const Recipes = lazyWithRetry(() => import('@/pages/Inventory/Recipes'))
-export const Pricing = lazyWithRetry(() => import('@/pages/Inventory/Pricing'))
 export const ModifierInventory = lazyWithRetry(() => import('@/pages/Inventory/ModifierInventory'))
 export const ModifierAnalytics = lazyWithRetry(() => import('@/pages/Inventory/ModifierAnalytics'))
 export const SuppliersPage = lazyWithRetry(() => import('@/pages/Inventory/Suppliers/SuppliersPage'))

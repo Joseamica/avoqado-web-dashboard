@@ -15,6 +15,7 @@ interface StepConfirmProps {
 	onPrevious: () => void
 	onSubmit: () => void
 	isSubmitting: boolean
+	hideNavigation?: boolean
 }
 
 export default function StepConfirm({
@@ -23,6 +24,7 @@ export default function StepConfirm({
 	onPrevious,
 	onSubmit,
 	isSubmitting,
+	hideNavigation,
 }: StepConfirmProps) {
 	const { t, i18n } = useTranslation('commissions')
 	const { t: tCommon } = useTranslation()
@@ -96,12 +98,14 @@ export default function StepConfirm({
 
 	return (
 		<div className="space-y-6">
-			{/* Header */}
-			<div className="text-center space-y-2">
-				<h2 className="text-xl font-semibold">
-					{t('wizard.step3.title')}
-				</h2>
-			</div>
+			{/* Header — hidden when navigation is in the modal header */}
+			{!hideNavigation && (
+				<div className="text-center space-y-2">
+					<h2 className="text-xl font-semibold">
+						{t('wizard.step3.title')}
+					</h2>
+				</div>
+			)}
 
 			{/* Name Input */}
 			<div>
@@ -315,14 +319,16 @@ export default function StepConfirm({
 			</div>
 
 			{/* Navigation */}
-			<div className="flex justify-between pt-4">
-				<Button variant="outline" onClick={onPrevious}>
-					← {t('wizard.buttons.previous')}
-				</Button>
-				<Button onClick={onSubmit} disabled={!canSubmit || isSubmitting}>
-					{isSubmitting ? tCommon('loading') : `✓ ${t('wizard.buttons.create')}`}
-				</Button>
-			</div>
+			{!hideNavigation && (
+				<div className="flex justify-between pt-4">
+					<Button variant="outline" onClick={onPrevious}>
+						← {t('wizard.buttons.previous')}
+					</Button>
+					<Button onClick={onSubmit} disabled={!canSubmit || isSubmitting}>
+						{isSubmitting ? tCommon('loading') : `✓ ${t('wizard.buttons.create')}`}
+					</Button>
+				</div>
+			)}
 		</div>
 	)
 }

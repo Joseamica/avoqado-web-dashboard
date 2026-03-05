@@ -1,8 +1,37 @@
+import { cn } from '@/lib/utils'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, BarChart3, ChevronDown, ChevronUp, History, Loader2, Maximize2, Minimize2, MoreVertical, PanelLeft, PanelLeftClose, Plus, Save, Send, Sparkles, ThumbsDown, ThumbsUp, Trash2, X, Zap } from 'lucide-react'
-import { useTokenBudget, getTokenWarningLevel, formatTokenCount, tokenBudgetQueryKey, shouldWarnBeforeSending } from '@/hooks/use-token-budget'
+import {
+  AlertTriangle,
+  BarChart3,
+  ChevronDown,
+  ChevronUp,
+  History,
+  Loader2,
+  Maximize2,
+  Minimize2,
+  MoreVertical,
+  PanelLeft,
+  PanelLeftClose,
+  Plus,
+  Save,
+  Send,
+  Sparkles,
+  ThumbsDown,
+  ThumbsUp,
+  Trash2,
+  X,
+  Zap,
+} from 'lucide-react'
+import {
+  useTokenBudget,
+  getTokenWarningLevel,
+  formatTokenCount,
+  tokenBudgetQueryKey,
+  shouldWarnBeforeSending,
+} from '@/hooks/use-token-budget'
 import { useChatReferences } from '@/hooks/use-chat-references'
+import { useAuth } from '@/context/AuthContext'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -156,11 +185,7 @@ function parseMessageText(text: string, isUserMessage: boolean): React.ReactNode
     if (part.startsWith('**') && part.endsWith('**')) {
       const content = part.slice(2, -2)
       return (
-        <Badge
-          key={index}
-          variant={isUserMessage ? 'secondary' : 'default'}
-          className="mx-0.5 text-xs py-0.5 px-1.5"
-        >
+        <Badge key={index} variant={isUserMessage ? 'secondary' : 'default'} className="mx-0.5 text-xs py-0.5 px-1.5">
           {content}
         </Badge>
       )
@@ -185,10 +210,12 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   const { t, i18n } = useTranslation()
   const { t: tCommon } = useTranslation('common')
   const { slug } = useParams<{ slug: string }>()
+  const { user } = useAuth()
+  const userId = user?.id ?? null
   const venueSlug = slug ?? null
   const [showSidebar, setShowSidebar] = useState(true)
-  const [savedConversations, setSavedConversations] = useState(() => getSavedConversations(venueSlug))
-  const [currentConversationId, setCurrentConversationId] = useState(() => getCurrentConversationId())
+  const [savedConversations, setSavedConversations] = useState(() => getSavedConversations(venueSlug, userId))
+  const [currentConversationId, setCurrentConversationId] = useState(() => getCurrentConversationId(venueSlug, userId))
   const [isExpanded, setIsExpanded] = useState(true)
   const [showReferencesPanel, setShowReferencesPanel] = useState(true)
 
@@ -197,7 +224,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   // Initialize messages with conversation history
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try {
-      const history = getConversationHistory(venueSlug)
+      const history = getConversationHistory(venueSlug, userId)
       return convertHistoryToMessages(history, t('chat.welcome'))
     } catch (error) {
       console.warn('Error loading chat history:', error)
@@ -245,7 +272,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   const { data: tokenBudget, isLoading: isTokenBudgetLoading } = useTokenBudget()
 
   // Memoize usage stats; function reads external store, not component state
-  const usageStats = useMemo(() => getUsageStats(venueSlug), [venueSlug])
+  const usageStats = useMemo(() => getUsageStats(venueSlug, userId), [venueSlug, userId])
 
   // Token warning level for styling
   const tokenWarningLevel = useMemo(() => {
@@ -287,10 +314,22 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 
   // Use TanStack Query mutation for chat messages
   const chatMutation = useMutation({
-    mutationFn: async ({ message, withVisualization, referencesContext }: { message: string; withVisualization: boolean; referencesContext?: string }) => {
+    mutationFn: async ({
+      message,
+      withVisualization,
+      referencesContext,
+    }: {
+      message: string
+      withVisualization: boolean
+      referencesContext?: string
+    }) => {
       // Debug: verificar estado de autenticación antes de enviar
-      devLog('Enviando mensaje al asistente:', message, { venueSlug, includeVisualization: withVisualization, hasReferences: !!referencesContext })
-      return await sendChatMessage(message, { venueSlug, includeVisualization: withVisualization, referencesContext })
+      devLog('Enviando mensaje al asistente:', message, {
+        venueSlug,
+        includeVisualization: withVisualization,
+        hasReferences: !!referencesContext,
+      })
+      return await sendChatMessage(message, { venueSlug, userId, includeVisualization: withVisualization, referencesContext })
     },
     onError: (error: Error) => {
       console.error('Chat error:', error)
@@ -345,7 +384,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
       problemDescription: string
       originalQuestion: string
       messageId: string
-    }) => submitFeedbackWithCorrection(trainingDataId, problemDescription, originalQuestion),
+    }) => submitFeedbackWithCorrection(trainingDataId, problemDescription, originalQuestion, { venueSlug, userId }),
     onSuccess: (result, variables) => {
       // Mark original message as having negative feedback
       setMessages(prev => prev.map(msg => (msg.id === variables.messageId ? { ...msg, feedbackGiven: 'INCORRECT' } : msg)))
@@ -363,7 +402,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         }
 
         setMessages(prev => [...prev, correctedMessage])
-        addMessageToHistory('assistant', result.correctedResponse, venueSlug, result.trainingDataId)
+        addMessageToHistory('assistant', result.correctedResponse, venueSlug, result.trainingDataId, userId)
       }
 
       // Close dialog
@@ -412,7 +451,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 
       devLog('🗑️ Starting chat history clear operation')
 
-      clearConversationHistory(venueSlug)
+      clearConversationHistory(venueSlug, userId)
       setCurrentConversationId(null)
       setLastSavedMessageCount(0) // Reset save tracking when clearing
 
@@ -453,7 +492,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   const handleSaveConversation = useCallback(async () => {
     if (isSaving) return
 
-    const currentHistory = getConversationHistory(venueSlug)
+    const currentHistory = getConversationHistory(venueSlug, userId)
     if (currentHistory.length <= 1) {
       toast({
         title: t('chat.toast.nothingToSave.title', { defaultValue: 'Nothing to save' }),
@@ -473,14 +512,14 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         venueSlug,
       })
 
-      const conversationId = await saveConversation(undefined, venueSlug, currentConversationId)
+      const conversationId = await saveConversation(undefined, venueSlug, currentConversationId, userId)
 
       devLog('✅ Conversación guardada con ID:', conversationId)
 
       if (conversationId) {
         const wasUpdate = currentConversationId === conversationId
         setCurrentConversationId(conversationId)
-        setSavedConversations(getSavedConversations(venueSlug))
+        setSavedConversations(getSavedConversations(venueSlug, userId))
 
         // Update last saved message count to prevent re-saving the same content
         const currentMessageCount = messages.filter(msg => msg.id !== 'welcome').length
@@ -517,9 +556,9 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
     setIsCreatingNew(true)
 
     try {
-      createNewConversation(venueSlug)
+      createNewConversation(venueSlug, userId)
       setCurrentConversationId(null)
-      setSavedConversations(getSavedConversations(venueSlug))
+      setSavedConversations(getSavedConversations(venueSlug, userId))
       setLastSavedMessageCount(0)
 
       const welcomeMessage = {
@@ -576,8 +615,8 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   // Función que ejecuta la carga de conversación
   const performLoadConversation = useCallback(
     (conversationId: string) => {
-      if (loadConversation(conversationId, venueSlug)) {
-        const history = getConversationHistory(venueSlug)
+      if (loadConversation(conversationId, venueSlug, userId)) {
+        const history = getConversationHistory(venueSlug, userId)
         const convertedMessages = convertHistoryToMessages(history, t('chat.welcome'))
         setMessages(convertedMessages)
         setProductActionForms({})
@@ -621,8 +660,8 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 
     const conversation = savedConversations.find(conv => conv.id === conversationToDelete)
 
-    if (deleteConversation(conversationToDelete)) {
-      setSavedConversations(getSavedConversations(venueSlug))
+    if (deleteConversation(conversationToDelete, venueSlug, userId)) {
+      setSavedConversations(getSavedConversations(venueSlug, userId))
 
       // Si es la conversación actual, resetear
       if (conversationToDelete === currentConversationId) {
@@ -708,7 +747,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 
   // Add debug logging and sync check
   useEffect(() => {
-    const history = getConversationHistory(venueSlug)
+    const history = getConversationHistory(venueSlug, userId)
 
     devLog('📚 Chat history status:', {
       venueSlug,
@@ -727,76 +766,82 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   const tokenWarning = useMemo(() => shouldWarnBeforeSending(tokenBudget), [tokenBudget])
 
   // Function to actually send the message (used by both direct send and action forms)
-  const sendMessage = useCallback((message: string, options?: { backendMessage?: string; visibleMessage?: string }) => {
-    const visibleMessage = options?.visibleMessage ?? message
-    const backendMessage = options?.backendMessage ?? message
+  const sendMessage = useCallback(
+    (message: string, options?: { backendMessage?: string; visibleMessage?: string }) => {
+      const visibleMessage = options?.visibleMessage ?? message
+      const backendMessage = options?.backendMessage ?? message
 
-    const userMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
-      text: visibleMessage,
-      isUser: true,
-      timestamp: new Date(),
-      feedbackGiven: null, // Initialize feedback state
-    }
+      const userMessage: ChatMessage = {
+        id: `user-${Date.now()}`,
+        text: visibleMessage,
+        isUser: true,
+        timestamp: new Date(),
+        feedbackGiven: null, // Initialize feedback state
+      }
 
-    // Add user message to UI and localStorage immediately
-    setMessages(prev => [...prev, userMessage])
-    addMessageToHistory('user', visibleMessage, venueSlug)
+      // Add user message to UI and localStorage immediately
+      setMessages(prev => [...prev, userMessage])
+      addMessageToHistory('user', visibleMessage, venueSlug, undefined, userId)
 
-    // Get references context if there are any references
-    const referencesContext = referenceCount > 0 ? getContextPrompt() : undefined
+      // Get references context if there are any references
+      const referencesContext = referenceCount > 0 ? getContextPrompt() : undefined
 
-    // Use TanStack Query mutation to send the message
-    chatMutation.mutate({ message: backendMessage, withVisualization: includeVisualization, referencesContext }, {
-      onSuccess: result => {
-        const botMessage: ChatMessage = {
-          id: `bot-${Date.now()}`,
-          text: result.response,
-          isUser: false,
-          timestamp: new Date(),
-          cached: result.cached,
-          trainingDataId: result.trainingDataId,
-          feedbackGiven: null, // Initialize feedback state
-          visualization: result.visualization,
-          tokenUsage: result.tokenUsage,
-          metadata: result.metadata,
-        }
+      // Use TanStack Query mutation to send the message
+      chatMutation.mutate(
+        { message: backendMessage, withVisualization: includeVisualization, referencesContext },
+        {
+          onSuccess: result => {
+            const botMessage: ChatMessage = {
+              id: `bot-${Date.now()}`,
+              text: result.response,
+              isUser: false,
+              timestamp: new Date(),
+              cached: result.cached,
+              trainingDataId: result.trainingDataId,
+              feedbackGiven: null, // Initialize feedback state
+              visualization: result.visualization,
+              tokenUsage: result.tokenUsage,
+              metadata: result.metadata,
+            }
 
-        // Debug: Log trainingDataId to console
-        devLog('🔍 Bot message trainingDataId:', result.trainingDataId)
+            // Debug: Log trainingDataId to console
+            devLog('🔍 Bot message trainingDataId:', result.trainingDataId)
 
-        // Add bot message to UI and localStorage
-        setMessages(prev => [...prev, botMessage])
-        addMessageToHistory('assistant', result.response, venueSlug, result.trainingDataId)
+            // Add bot message to UI and localStorage
+            setMessages(prev => [...prev, botMessage])
+            addMessageToHistory('assistant', result.response, venueSlug, result.trainingDataId, userId)
 
-        const action = result.metadata?.action
-        if (action?.type === 'create_product' && action.stage === 'collect') {
-          setProductActionForms(prev => ({
-            ...prev,
-            [botMessage.id]: getCreateProductFormFromAction(action),
-          }))
-        }
+            const action = result.metadata?.action
+            if (action?.type === 'create_product' && action.stage === 'collect') {
+              setProductActionForms(prev => ({
+                ...prev,
+                [botMessage.id]: getCreateProductFormFromAction(action),
+              }))
+            }
 
-        // Show cache indicator if response was cached (debounced)
-        if (result.cached && !window.__cache_toast_shown) {
-          window.__cache_toast_shown = true
-          toast({
-            title: 'Respuesta desde cache',
-            description: 'Esta respuesta se obtuvo del cache local para ahorrar recursos.',
-          })
-          // Reset cache toast after 5 seconds
-          setTimeout(() => {
-            delete window.__cache_toast_shown
-          }, 5000)
-        }
+            // Show cache indicator if response was cached (debounced)
+            if (result.cached && !window.__cache_toast_shown) {
+              window.__cache_toast_shown = true
+              toast({
+                title: 'Respuesta desde cache',
+                description: 'Esta respuesta se obtuvo del cache local para ahorrar recursos.',
+              })
+              // Reset cache toast after 5 seconds
+              setTimeout(() => {
+                delete window.__cache_toast_shown
+              }, 5000)
+            }
 
-        // Invalidate token budget to refresh the count after usage
-        queryClient.invalidateQueries({ queryKey: tokenBudgetQueryKey })
+            // Invalidate token budget to refresh the count after usage
+            queryClient.invalidateQueries({ queryKey: tokenBudgetQueryKey })
 
-        devLog('✅ Message exchange completed and saved to history')
-      },
-    })
-  }, [chatMutation, includeVisualization, queryClient, toast, venueSlug, referenceCount, getContextPrompt])
+            devLog('✅ Message exchange completed and saved to history')
+          },
+        },
+      )
+    },
+    [chatMutation, includeVisualization, queryClient, toast, venueSlug, referenceCount, getContextPrompt],
+  )
 
   // Handle confirmation to send despite token warning
   const handleConfirmSendWithWarning = useCallback(() => {
@@ -862,70 +907,73 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
     })
   }, [])
 
-  const submitCreateProductAction = useCallback((messageId: string, action: CreateProductActionMetadata) => {
-    const formState = productActionForms[messageId] || getCreateProductFormFromAction(action)
-    const parsedPrice = Number(formState.price.replace(',', '.'))
+  const submitCreateProductAction = useCallback(
+    (messageId: string, action: CreateProductActionMetadata) => {
+      const formState = productActionForms[messageId] || getCreateProductFormFromAction(action)
+      const parsedPrice = Number(formState.price.replace(',', '.'))
 
-    if (!formState.name.trim()) {
-      toast({
-        variant: 'destructive',
-        title: tCommon('error'),
-        description: t('chat.createProduct.validation.nameRequired'),
-      })
-      return
-    }
+      if (!formState.name.trim()) {
+        toast({
+          variant: 'destructive',
+          title: tCommon('error'),
+          description: t('chat.createProduct.validation.nameRequired'),
+        })
+        return
+      }
 
-    if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
-      toast({
-        variant: 'destructive',
-        title: tCommon('error'),
-        description: t('chat.createProduct.validation.priceRequired'),
-      })
-      return
-    }
+      if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+        toast({
+          variant: 'destructive',
+          title: tCommon('error'),
+          description: t('chat.createProduct.validation.priceRequired'),
+        })
+        return
+      }
 
-    if (!formState.sku.trim() || !/^[A-Za-z0-9_-]+$/.test(formState.sku.trim())) {
-      toast({
-        variant: 'destructive',
-        title: tCommon('error'),
-        description: t('chat.createProduct.validation.skuInvalid'),
-      })
-      return
-    }
+      if (!formState.sku.trim() || !/^[A-Za-z0-9_-]+$/.test(formState.sku.trim())) {
+        toast({
+          variant: 'destructive',
+          title: tCommon('error'),
+          description: t('chat.createProduct.validation.skuInvalid'),
+        })
+        return
+      }
 
-    if (!formState.categoryId) {
-      toast({
-        variant: 'destructive',
-        title: tCommon('error'),
-        description: t('chat.createProduct.validation.categoryRequired'),
-      })
-      return
-    }
+      if (!formState.categoryId) {
+        toast({
+          variant: 'destructive',
+          title: tCommon('error'),
+          description: t('chat.createProduct.validation.categoryRequired'),
+        })
+        return
+      }
 
-    if (formState.needsModifiers && action.modifierGroups.length > 0 && formState.modifierGroupIds.length === 0) {
-      toast({
-        variant: 'destructive',
-        title: tCommon('error'),
-        description: t('chat.createProduct.validation.modifierGroupRequired'),
-      })
-      return
-    }
+      if (formState.needsModifiers && action.modifierGroups.length > 0 && formState.modifierGroupIds.length === 0) {
+        toast({
+          variant: 'destructive',
+          title: tCommon('error'),
+          description: t('chat.createProduct.validation.modifierGroupRequired'),
+        })
+        return
+      }
 
-    const payload = {
-      name: formState.name.trim(),
-      price: Number(parsedPrice.toFixed(2)),
-      sku: formState.sku.trim().toUpperCase(),
-      categoryId: formState.categoryId,
-      type: action.draft.type,
-      needsModifiers: formState.needsModifiers,
-      modifierGroupIds: formState.needsModifiers ? formState.modifierGroupIds : [],
-    }
+      const payload = {
+        name: formState.name.trim(),
+        price: Number(parsedPrice.toFixed(2)),
+        sku: formState.sku.trim().toUpperCase(),
+        categoryId: formState.categoryId,
+        type: action.draft.type,
+        needsModifiers: formState.needsModifiers,
+        modifierGroupIds: formState.needsModifiers ? formState.modifierGroupIds : [],
+      }
 
-    const visibleMessage = t('chat.createProduct.submitMessage', { name: payload.name })
-    const backendMessage = buildCreateProductActionCommand(payload)
+      const visibleMessage = t('chat.createProduct.submitMessage', { name: payload.name })
+      const backendMessage = buildCreateProductActionCommand(payload)
 
-    sendMessage(visibleMessage, { visibleMessage, backendMessage })
-  }, [productActionForms, sendMessage, t, tCommon, toast])
+      sendMessage(visibleMessage, { visibleMessage, backendMessage })
+    },
+    [productActionForms, sendMessage, t, tCommon, toast],
+  )
 
   // Calcular ancho basado en estado
   const cardWidth = useMemo(() => {
@@ -938,9 +986,9 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
     <Card
       className={`${cardWidth} ${
         isExpanded ? 'h-[700px]' : 'h-auto'
-      } fixed bottom-20 right-20 z-9999 shadow-lg theme-transition bg-white overflow-hidden border border-border isolate mix-blend-normal flex flex-col`}
+      } bg-popover overflow-hidden rounded-2xl border-0 flex flex-col`}
     >
-      <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0 bg-background border-b border-border shrink-0">
+      <CardHeader className="py-2.5 px-4 flex flex-row items-center justify-between space-y-0 bg-popover border-b border-border/40 shrink-0">
         <div className="flex items-center gap-2">
           {/* Toggle Sidebar - only show when expanded */}
           {isExpanded && (
@@ -955,7 +1003,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
               {showSidebar ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
             </Button>
           )}
-          <CardTitle className="text-lg font-medium flex items-center gap-2">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
             {t('chat.title')}
             {canSaveConversation && (
               <Badge variant="outline" className="text-xs font-normal flex items-center gap-1">
@@ -987,11 +1035,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                 }`}
                 title={tokenBudget.warning || t('chat.tokens.available')}
               >
-                {tokenWarningLevel === 'overage' ? (
-                  <AlertTriangle className="h-3 w-3" />
-                ) : (
-                  <Zap className="h-3 w-3" />
-                )}
+                {tokenWarningLevel === 'overage' ? <AlertTriangle className="h-3 w-3" /> : <Zap className="h-3 w-3" />}
                 {formatTokenCount(tokenBudget.totalAvailable)} {t('chat.tokens.remaining')}
               </Badge>
             ) : (
@@ -1035,7 +1079,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" sideOffset={5} className="z-[10000]">
+            <DropdownMenuContent align="end" sideOffset={5} className="z-10000">
               <DropdownMenuItem onClick={() => setIsExpanded(!isExpanded)}>
                 {isExpanded ? (
                   <>
@@ -1099,9 +1143,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                   <div
                     key={conversation.id}
                     className={`p-2 rounded-md cursor-pointer transition-colors group ${
-                      conversation.id === currentConversationId
-                        ? 'bg-accent text-accent-foreground'
-                        : 'hover:bg-accent/50'
+                      conversation.id === currentConversationId ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'
                     }`}
                     onClick={() => handleLoadConversation(conversation.id)}
                   >
@@ -1184,249 +1226,251 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
           {/* Messages */}
           <div className={`flex-1 p-4 overflow-y-auto bg-background ${!isExpanded ? 'h-72' : ''}`}>
             <div className="space-y-4">
-            {messages.map((message, index) => (
-              <div key={message.id} className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
-                <div
-                  className={`max-w-[80%] px-3 py-2 rounded-lg theme-transition ${
-                    message.isUser ? 'bg-primary text-primary-foreground' : 'bg-card text-card-foreground border border-border'
-                  }`}
-                >
-                  <p className="text-sm whitespace-pre-wrap">{parseMessageText(message.text, message.isUser)}</p>
-                  <div className="flex items-center justify-between mt-1">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-xs opacity-70">
-                        {message.timestamp.toLocaleTimeString(getIntlLocale(i18n.language), {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </p>
-                      {message.tokenUsage && message.tokenUsage.totalTokens > 0 && (
-                        <TooltipProvider delayDuration={0}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="text-xs opacity-50 cursor-help flex items-center gap-0.5">
-                                <Zap className="w-3 h-3" />
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="text-xs">
-                              {message.tokenUsage.totalTokens.toLocaleString()} tokens
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+              {messages.map((message, index) => (
+                <div key={message.id} className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
+                  <div
+                    className={`max-w-[80%] px-3 py-2 rounded-lg theme-transition ${
+                      message.isUser ? 'bg-primary text-primary-foreground' : 'bg-card text-card-foreground border border-border'
+                    }`}
+                  >
+                    <p className="text-sm whitespace-pre-wrap">{parseMessageText(message.text, message.isUser)}</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-xs opacity-70">
+                          {message.timestamp.toLocaleTimeString(getIntlLocale(i18n.language), {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </p>
+                        {message.tokenUsage && message.tokenUsage.totalTokens > 0 && (
+                          <TooltipProvider delayDuration={0}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="text-xs opacity-50 cursor-help flex items-center gap-0.5">
+                                  <Zap className="w-3 h-3" />
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs">
+                                {message.tokenUsage.totalTokens.toLocaleString()} tokens
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
+                      {message.cached && (
+                        <span className="text-xs px-1 rounded border bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200">
+                          {t('chat.labels.cache')}
+                        </span>
                       )}
                     </div>
-                    {message.cached && (
-                      <span className="text-xs px-1 rounded border bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200">
-                        {t('chat.labels.cache')}
-                      </span>
-                    )}
-                  </div>
-                  {!message.isUser && index > 0 && (
-                    <div className="flex items-center space-x-2 mt-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={`h-6 w-6 p-0 ${
-                          message.feedbackGiven === 'CORRECT'
-                            ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/50'
-                            : ''
-                        }`}
-                        aria-label={t('chat.a11y.positiveFeedback')}
-                        onClick={() => {
-                          devLog('👍 Thumbs up clicked, trainingDataId:', message.trainingDataId)
-                          if (message.trainingDataId) {
-                            positiveFeedbackMutation.mutate({
-                              trainingDataId: message.trainingDataId,
-                              messageId: message.id,
-                            })
-                          } else {
-                            devLog('❌ No trainingDataId found for message:', message)
-                            toast({
-                              title: t('chat.feedback.unavailableTitle'),
-                              description: t('chat.feedback.unavailableDesc'),
-                              variant: 'destructive',
-                            })
-                          }
-                        }}
-                        disabled={positiveFeedbackMutation.isPending}
-                      >
-                        <ThumbsUp className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={`h-6 w-6 p-0 ${
-                          message.feedbackGiven === 'INCORRECT'
-                            ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50'
-                            : ''
-                        }`}
-                        aria-label={t('chat.a11y.negativeFeedback')}
-                        onClick={() => {
-                          devLog('👎 Thumbs down clicked, trainingDataId:', message.trainingDataId)
-                          if (message.trainingDataId) {
-                            setFeedbackMessage(message)
-                            setShowFeedbackDialog(true)
-                          } else {
-                            devLog('❌ No trainingDataId found for message:', message)
-                            toast({
-                              title: t('chat.feedback.unavailableTitle'),
-                              description: t('chat.feedback.unavailableDesc'),
-                              variant: 'destructive',
-                            })
-                          }
-                        }}
-                        disabled={negativeFeedbackMutation.isPending}
-                      >
-                        <ThumbsDown className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  )}
-                  {!message.isUser &&
-                    message.metadata?.action?.type === 'create_product' &&
-                    message.metadata.action.stage === 'collect' && (
-                      <div className="mt-3 p-3 rounded-md border border-border bg-muted/30 space-y-3">
-                        <p className="text-xs font-medium">{t('chat.createProduct.formTitle')}</p>
-
-                        <div className="space-y-2">
-                          <label className="text-xs">{t('chat.createProduct.fields.name')}</label>
-                          <Input
-                            value={(productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)).name}
-                            onChange={e => updateProductActionForm(message.id, { name: e.target.value })}
-                            disabled={chatMutation.isPending}
-                            className="h-8 text-xs"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="space-y-2">
-                            <label className="text-xs">{t('chat.createProduct.fields.price')}</label>
-                            <Input
-                              value={(productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)).price}
-                              onChange={e => updateProductActionForm(message.id, { price: e.target.value })}
-                              disabled={chatMutation.isPending}
-                              className="h-8 text-xs"
-                              inputMode="decimal"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs">{t('chat.createProduct.fields.sku')}</label>
-                            <Input
-                              value={(productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)).sku}
-                              onChange={e => updateProductActionForm(message.id, { sku: e.target.value.toUpperCase() })}
-                              disabled={chatMutation.isPending}
-                              className="h-8 text-xs uppercase"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-xs">{t('chat.createProduct.fields.category')}</label>
-                          <Select
-                            value={(productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)).categoryId}
-                            onValueChange={value => updateProductActionForm(message.id, { categoryId: value })}
-                            disabled={chatMutation.isPending || message.metadata.action.categories.length === 0}
-                          >
-                            <SelectTrigger className="h-8 text-xs">
-                              <SelectValue placeholder={t('chat.createProduct.fields.categoryPlaceholder')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {message.metadata.action.categories.map(category => (
-                                <SelectItem key={category.id} value={category.id}>
-                                  {category.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {message.metadata.action.modifierGroups.length > 0 && (
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <Checkbox
-                                id={`needs-modifiers-${message.id}`}
-                                checked={(productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)).needsModifiers}
-                                onCheckedChange={checked =>
-                                  updateProductActionForm(message.id, {
-                                    needsModifiers: checked === true,
-                                    modifierGroupIds: checked === true
-                                      ? (productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)).modifierGroupIds
-                                      : [],
-                                  })
-                                }
-                                disabled={chatMutation.isPending}
-                              />
-                              <label htmlFor={`needs-modifiers-${message.id}`} className="text-xs cursor-pointer">
-                                {t('chat.createProduct.fields.needsModifiers')}
-                              </label>
-                            </div>
-
-                            {(productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)).needsModifiers && (
-                              <div className="space-y-1.5 max-h-24 overflow-y-auto rounded border border-border p-2">
-                                {message.metadata.action.modifierGroups.map(group => (
-                                  <div key={group.id} className="flex items-center gap-2">
-                                    <Checkbox
-                                      id={`modifier-group-${message.id}-${group.id}`}
-                                      checked={(
-                                        productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)
-                                      ).modifierGroupIds.includes(group.id)}
-                                      onCheckedChange={checked => handleToggleModifierGroup(message.id, group.id, checked === true)}
-                                      disabled={chatMutation.isPending}
-                                    />
-                                    <label htmlFor={`modifier-group-${message.id}-${group.id}`} className="text-xs cursor-pointer">
-                                      {group.name}
-                                    </label>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {message.metadata.action.categories.length === 0 && (
-                          <p className="text-[11px] text-destructive">{t('chat.createProduct.noCategories')}</p>
-                        )}
-
+                    {!message.isUser && index > 0 && (
+                      <div className="flex items-center space-x-2 mt-2">
                         <Button
-                          type="button"
+                          variant="ghost"
                           size="sm"
-                          className="w-full h-8 text-xs"
-                          onClick={() => submitCreateProductAction(message.id, message.metadata.action)}
-                          disabled={chatMutation.isPending || message.metadata.action.categories.length === 0}
+                          className={`h-6 w-6 p-0 ${
+                            message.feedbackGiven === 'CORRECT'
+                              ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/50'
+                              : ''
+                          }`}
+                          aria-label={t('chat.a11y.positiveFeedback')}
+                          onClick={() => {
+                            devLog('👍 Thumbs up clicked, trainingDataId:', message.trainingDataId)
+                            if (message.trainingDataId) {
+                              positiveFeedbackMutation.mutate({
+                                trainingDataId: message.trainingDataId,
+                                messageId: message.id,
+                              })
+                            } else {
+                              devLog('❌ No trainingDataId found for message:', message)
+                              toast({
+                                title: t('chat.feedback.unavailableTitle'),
+                                description: t('chat.feedback.unavailableDesc'),
+                                variant: 'destructive',
+                              })
+                            }
+                          }}
+                          disabled={positiveFeedbackMutation.isPending}
                         >
-                          {chatMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
-                          {t('chat.createProduct.actions.create')}
+                          <ThumbsUp className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={`h-6 w-6 p-0 ${
+                            message.feedbackGiven === 'INCORRECT'
+                              ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50'
+                              : ''
+                          }`}
+                          aria-label={t('chat.a11y.negativeFeedback')}
+                          onClick={() => {
+                            devLog('👎 Thumbs down clicked, trainingDataId:', message.trainingDataId)
+                            if (message.trainingDataId) {
+                              setFeedbackMessage(message)
+                              setShowFeedbackDialog(true)
+                            } else {
+                              devLog('❌ No trainingDataId found for message:', message)
+                              toast({
+                                title: t('chat.feedback.unavailableTitle'),
+                                description: t('chat.feedback.unavailableDesc'),
+                                variant: 'destructive',
+                              })
+                            }
+                          }}
+                          disabled={negativeFeedbackMutation.isPending}
+                        >
+                          <ThumbsDown className="h-3 w-3" />
                         </Button>
                       </div>
                     )}
-                  {!message.isUser &&
-                    message.metadata?.action?.type === 'create_product' &&
-                    message.metadata.action.stage === 'created' &&
-                    message.metadata.action.createdProduct && (
-                      <div className="mt-2 px-2.5 py-2 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30">
-                        <p className="text-xs font-medium text-green-800 dark:text-green-300">
-                          {t('chat.createProduct.createdTitle')}
-                        </p>
-                        <p className="text-xs text-green-700 dark:text-green-400">
-                          {message.metadata.action.createdProduct.name} • {message.metadata.action.createdProduct.sku}
-                        </p>
-                      </div>
-                    )}
-                  {/* Chart visualization or skip message */}
-                  {!message.isUser && message.visualization && (
-                    isVisualizationSkipped(message.visualization) ? (
-                      <div className="mt-2 px-2.5 py-1.5 rounded-md bg-muted/50 border border-border/50 flex items-center gap-2">
-                        <BarChart3 className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
-                        <span className="text-xs text-muted-foreground">
-                          {message.visualization.reason}
-                        </span>
-                      </div>
-                    ) : (
-                      <ChatChart visualization={message.visualization} />
-                    )
-                  )}
+                    {!message.isUser &&
+                      message.metadata?.action?.type === 'create_product' &&
+                      message.metadata.action.stage === 'collect' && (
+                        <div className="mt-3 p-3 rounded-md border border-border bg-muted/30 space-y-3">
+                          <p className="text-xs font-medium">{t('chat.createProduct.formTitle')}</p>
+
+                          <div className="space-y-2">
+                            <label className="text-xs">{t('chat.createProduct.fields.name')}</label>
+                            <Input
+                              value={(productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)).name}
+                              onChange={e => updateProductActionForm(message.id, { name: e.target.value })}
+                              disabled={chatMutation.isPending}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-2">
+                              <label className="text-xs">{t('chat.createProduct.fields.price')}</label>
+                              <Input
+                                value={(productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)).price}
+                                onChange={e => updateProductActionForm(message.id, { price: e.target.value })}
+                                disabled={chatMutation.isPending}
+                                className="h-8 text-xs"
+                                inputMode="decimal"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-xs">{t('chat.createProduct.fields.sku')}</label>
+                              <Input
+                                value={(productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)).sku}
+                                onChange={e => updateProductActionForm(message.id, { sku: e.target.value.toUpperCase() })}
+                                disabled={chatMutation.isPending}
+                                className="h-8 text-xs uppercase"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-xs">{t('chat.createProduct.fields.category')}</label>
+                            <Select
+                              value={(productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)).categoryId}
+                              onValueChange={value => updateProductActionForm(message.id, { categoryId: value })}
+                              disabled={chatMutation.isPending || message.metadata.action.categories.length === 0}
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder={t('chat.createProduct.fields.categoryPlaceholder')} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {message.metadata.action.categories.map(category => (
+                                  <SelectItem key={category.id} value={category.id}>
+                                    {category.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {message.metadata.action.modifierGroups.length > 0 && (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <Checkbox
+                                  id={`needs-modifiers-${message.id}`}
+                                  checked={
+                                    (productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action))
+                                      .needsModifiers
+                                  }
+                                  onCheckedChange={checked =>
+                                    updateProductActionForm(message.id, {
+                                      needsModifiers: checked === true,
+                                      modifierGroupIds:
+                                        checked === true
+                                          ? (productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action))
+                                              .modifierGroupIds
+                                          : [],
+                                    })
+                                  }
+                                  disabled={chatMutation.isPending}
+                                />
+                                <label htmlFor={`needs-modifiers-${message.id}`} className="text-xs cursor-pointer">
+                                  {t('chat.createProduct.fields.needsModifiers')}
+                                </label>
+                              </div>
+
+                              {(productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action))
+                                .needsModifiers && (
+                                <div className="space-y-1.5 max-h-24 overflow-y-auto rounded border border-border p-2">
+                                  {message.metadata.action.modifierGroups.map(group => (
+                                    <div key={group.id} className="flex items-center gap-2">
+                                      <Checkbox
+                                        id={`modifier-group-${message.id}-${group.id}`}
+                                        checked={(
+                                          productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)
+                                        ).modifierGroupIds.includes(group.id)}
+                                        onCheckedChange={checked => handleToggleModifierGroup(message.id, group.id, checked === true)}
+                                        disabled={chatMutation.isPending}
+                                      />
+                                      <label htmlFor={`modifier-group-${message.id}-${group.id}`} className="text-xs cursor-pointer">
+                                        {group.name}
+                                      </label>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {message.metadata.action.categories.length === 0 && (
+                            <p className="text-[11px] text-destructive">{t('chat.createProduct.noCategories')}</p>
+                          )}
+
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="w-full h-8 text-xs"
+                            onClick={() => submitCreateProductAction(message.id, message.metadata.action)}
+                            disabled={chatMutation.isPending || message.metadata.action.categories.length === 0}
+                          >
+                            {chatMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+                            {t('chat.createProduct.actions.create')}
+                          </Button>
+                        </div>
+                      )}
+                    {!message.isUser &&
+                      message.metadata?.action?.type === 'create_product' &&
+                      message.metadata.action.stage === 'created' &&
+                      message.metadata.action.createdProduct && (
+                        <div className="mt-2 px-2.5 py-2 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30">
+                          <p className="text-xs font-medium text-green-800 dark:text-green-300">{t('chat.createProduct.createdTitle')}</p>
+                          <p className="text-xs text-green-700 dark:text-green-400">
+                            {message.metadata.action.createdProduct.name} • {message.metadata.action.createdProduct.sku}
+                          </p>
+                        </div>
+                      )}
+                    {/* Chart visualization or skip message */}
+                    {!message.isUser &&
+                      message.visualization &&
+                      (isVisualizationSkipped(message.visualization) ? (
+                        <div className="mt-2 px-2.5 py-1.5 rounded-md bg-muted/50 border border-border/50 flex items-center gap-2">
+                          <BarChart3 className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+                          <span className="text-xs text-muted-foreground">{message.visualization.reason}</span>
+                        </div>
+                      ) : (
+                        <ChatChart visualization={message.visualization} />
+                      ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
               <div ref={setMessagesEndRef} />
             </div>
           </div>
@@ -1436,16 +1480,8 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
             {/* Visualization toggle */}
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
-                <Switch
-                  id="viz-toggle"
-                  checked={includeVisualization}
-                  onCheckedChange={setIncludeVisualization}
-                  className="scale-75"
-                />
-                <label
-                  htmlFor="viz-toggle"
-                  className="text-xs text-muted-foreground flex items-center gap-1 cursor-pointer"
-                >
+                <Switch id="viz-toggle" checked={includeVisualization} onCheckedChange={setIncludeVisualization} className="scale-75" />
+                <label htmlFor="viz-toggle" className="text-xs text-muted-foreground flex items-center gap-1 cursor-pointer">
                   <BarChart3 className="h-3 w-3" />
                   {t('chat.visualization.toggle')}
                 </label>
@@ -1457,41 +1493,41 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
               )}
             </div>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex w-full space-x-2">
-            <FormField
-              control={form.control}
-              name="message"
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormControl>
-                    <Input
-                      placeholder={t('chat.input.placeholder')}
-                      className="border-input bg-background text-foreground"
-                      {...field}
-                      disabled={chatMutation.isPending}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            <Button type="submit" size="icon" disabled={chatMutation.isPending}>
-              {chatMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </Button>
-          </form>
-        </Form>
-        <p className="text-[10px] leading-tight text-muted-foreground/60 text-center">
-          AI-generated content may be inaccurate. The chatbot is restricted to your current venue and will not disclose internal system
-          details. Do not submit sensitive personal data. Learn more in our{' '}
-          <Link to="/terms" className="underline hover:text-muted-foreground/80">
-            Terms
-          </Link>
-          {' and '}
-          <Link to="/privacy" className="underline hover:text-muted-foreground/80">
-            Privacy Policy
-          </Link>
-          .
-        </p>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="flex w-full space-x-2">
+                <FormField
+                  control={form.control}
+                  name="message"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormControl>
+                        <Input
+                          placeholder={t('chat.input.placeholder')}
+                          className="border-input bg-background text-foreground"
+                          {...field}
+                          disabled={chatMutation.isPending}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" size="icon" disabled={chatMutation.isPending}>
+                  {chatMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                </Button>
+              </form>
+            </Form>
+            <p className="text-[10px] leading-tight text-muted-foreground/60 text-center">
+              AI-generated content may be inaccurate. The chatbot is restricted to your current venue and will not disclose internal system
+              details. Do not submit sensitive personal data. Learn more in our{' '}
+              <Link to="/terms" className="underline hover:text-muted-foreground/80">
+                Terms
+              </Link>
+              {' and '}
+              <Link to="/privacy" className="underline hover:text-muted-foreground/80">
+                Privacy Policy
+              </Link>
+              .
+            </p>
           </div>
         </div>
       </div>
@@ -1594,12 +1630,15 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
       </Dialog>
 
       {/* Token Warning Dialog */}
-      <Dialog open={showTokenWarningDialog} onOpenChange={(open) => {
-        if (!open) {
-          setPendingMessage(null)
-        }
-        setShowTokenWarningDialog(open)
-      }}>
+      <Dialog
+        open={showTokenWarningDialog}
+        onOpenChange={open => {
+          if (!open) {
+            setPendingMessage(null)
+          }
+          setShowTokenWarningDialog(open)
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1609,14 +1648,11 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
             <DialogDescription>
               {tokenWarning.warningType === 'overage'
                 ? t('chat.tokenWarning.overageDesc', { cost: tokenBudget?.overageCost.toFixed(2) || '0.00' })
-                : t('chat.tokenWarning.exhaustedDesc')
-              }
+                : t('chat.tokenWarning.exhaustedDesc')}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <p className="text-sm text-muted-foreground">
-              {t('chat.tokenWarning.continueQuestion')}
-            </p>
+            <p className="text-sm text-muted-foreground">{t('chat.tokenWarning.continueQuestion')}</p>
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
@@ -1646,6 +1682,8 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 
 export function ChatBubble() {
   const [isOpen, setIsOpen] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
+  const [isVisible, setIsVisible] = useState(false)
   const { venueId } = useParams()
   const { t } = useTranslation()
   const { referenceCount } = useChatReferences()
@@ -1655,41 +1693,91 @@ export function ChatBubble() {
 
   // Effect to close chat when venue changes
   useEffect(() => {
-    // If the venue changed and chat is open, close it
     if (previousVenueIdRef.current !== venueId && isOpen) {
-      setIsOpen(false)
+      // Animate out, then unmount
+      setIsVisible(false)
+      const timer = setTimeout(() => {
+        setIsMounted(false)
+        setIsOpen(false)
+      }, 200)
+      previousVenueIdRef.current = venueId
+      return () => clearTimeout(timer)
     }
-
-    // Update the ref to the current venue
     previousVenueIdRef.current = venueId
   }, [venueId, isOpen])
 
-  // Toggle chat open/closed
-  const toggleChat = () => {
-    setIsOpen(prev => !prev)
-  }
+  const toggleChat = useCallback(() => {
+    if (isOpen) {
+      // Exit: trigger animation, then unmount after 200ms
+      setIsVisible(false)
+      setTimeout(() => {
+        setIsMounted(false)
+        setIsOpen(false)
+      }, 200)
+    } else {
+      // Enter: mount first, then trigger animation on next frame
+      setIsOpen(true)
+      setIsMounted(true)
+      requestAnimationFrame(() => requestAnimationFrame(() => setIsVisible(true)))
+    }
+  }, [isOpen])
+
+  const handleClose = useCallback(() => {
+    setIsVisible(false)
+    setTimeout(() => {
+      setIsMounted(false)
+      setIsOpen(false)
+    }, 200)
+  }, [])
 
   return (
-    <div className="relative">
-      {isOpen && (
-        <div className="fixed top-16 right-4 z-50">
-          <ChatInterface key={`chat-${venueId}`} onClose={() => setIsOpen(false)} />
+    <>
+      {/* Speech-bubble: card + tail + circle as one unified shape */}
+      {isMounted && (
+        <div
+          className={cn(
+            'fixed bottom-4 right-4 z-[9999] transition-opacity duration-200',
+            isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none',
+          )}
+          style={{
+            filter:
+              'drop-shadow(0 25px 50px rgba(0,0,0,0.18)) drop-shadow(0 6px 16px rgba(0,0,0,0.1))',
+          }}
+        >
+          {/* Card — negative margin so circle overlaps bottom-right */}
+          <div style={{ marginBottom: -28 }}>
+            <ChatInterface key={`chat-${venueId}`} onClose={handleClose} />
+          </div>
+
+          {/* Close circle — overlaps into the card's bottom-right corner */}
+          <div className="flex justify-end">
+            <button
+              onClick={toggleChat}
+              className="h-14 w-14 rounded-full bg-popover flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              aria-label={t('chat.a11y.close')}
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
       )}
 
-      <Button
-        onClick={toggleChat}
-        size="icon"
-        className="h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-200 relative"
-        aria-label={isOpen ? t('chat.a11y.close') : t('chat.a11y.open')}
-      >
-        <Sparkles className="h-5 w-5" />
-        {referenceCount > 0 && (
-          <span className="absolute -top-1 -right-1 h-5 min-w-[20px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs font-medium px-1">
-            {referenceCount}
-          </span>
-        )}
-      </Button>
-    </div>
+      {/* FAB — visible only when chat is closed */}
+      {!isOpen && (
+        <Button
+          onClick={toggleChat}
+          size="icon"
+          className="h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-200 relative"
+          aria-label={t('chat.a11y.open')}
+        >
+          <Sparkles className="h-6 w-6" />
+          {referenceCount > 0 && (
+            <span className="absolute -top-1 -right-1 h-5 min-w-[20px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs font-medium px-1">
+              {referenceCount}
+            </span>
+          )}
+        </Button>
+      )}
+    </>
   )
 }

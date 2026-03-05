@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, Banknote, Clock, MoreHorizontal, Pencil, Plus, Trash2, Users } from 'lucide-react'
-import { useState, useCallback, useMemo } from 'react'
+import { ArrowUpDown, Banknote, Clock, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import DataTable from '@/components/data-table'
@@ -67,10 +67,22 @@ export default function Customers() {
 	const [settlingCustomer, setSettlingCustomer] = useState<Customer | null>(null)
 	const [settleNotes, setSettleNotes] = useState('')
 	const [showPendingOnly, setShowPendingOnly] = useState(false)
+	const [searchTerm, setSearchTerm] = useState('')
+	const [debouncedSearch, setDebouncedSearch] = useState('')
+	const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+
+	// Debounce search and reset pagination
+	useEffect(() => {
+		debounceRef.current = setTimeout(() => {
+			setDebouncedSearch(searchTerm)
+			setPagination(prev => ({ ...prev, pageIndex: 0 }))
+		}, 400)
+		return () => clearTimeout(debounceRef.current)
+	}, [searchTerm])
 
 	// Fetch customers
 	const { data: customersData, isLoading: isLoadingCustomers } = useQuery({
-		queryKey: ['customers', venueId, pagination.pageIndex, pagination.pageSize, sortBy, sortOrder, selectedGroupId, showPendingOnly],
+		queryKey: ['customers', venueId, pagination.pageIndex, pagination.pageSize, sortBy, sortOrder, selectedGroupId, showPendingOnly, debouncedSearch],
 		queryFn: () =>
 			customerService.getCustomers(venueId, {
 				page: pagination.pageIndex + 1,
@@ -81,6 +93,7 @@ export default function Customers() {
 				customerGroupId: selectedGroupId && selectedGroupId !== 'none' ? selectedGroupId : undefined,
 				noGroup: selectedGroupId === 'none' ? true : undefined,
 				hasPendingBalance: showPendingOnly || undefined,
+				search: debouncedSearch || undefined,
 			}),
 		refetchOnWindowFocus: true,
 	})
@@ -153,18 +166,6 @@ export default function Customers() {
 	// Count customers with pending balance for the badge (from server)
 	const pendingCustomersCount = pendingBalanceData?.meta.totalCount || 0
 
-	// Client-side search
-	const handleSearch = useCallback((search: string, rows: Customer[]) => {
-		if (!search) return rows
-		const q = search.toLowerCase()
-		return rows.filter(c => {
-			const name = `${c.firstName} ${c.lastName}`.toLowerCase()
-			const email = (c.email || '').toLowerCase()
-			const phone = (c.phone || '').toLowerCase()
-			return name.includes(q) || email.includes(q) || phone.includes(q)
-		})
-	}, [])
-
 	// Format currency
 	const formatCurrency = useCallback(
 		(amount: number) => {
@@ -194,28 +195,33 @@ export default function Customers() {
 		[formatDate, t, tCommon]
 	)
 
+	// Toggle server-side sorting
+	const toggleSort = useCallback((field: typeof sortBy) => {
+		if (sortBy === field) {
+			setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'))
+		} else {
+			setSortBy(field)
+			setSortOrder('desc')
+		}
+		setPagination(prev => ({ ...prev, pageIndex: 0 }))
+	}, [sortBy])
+
 	// Column definitions
 	const columns: ColumnDef<Customer>[] = useMemo(
 		() => [
 			{
 				accessorKey: 'firstName',
-				header: ({ column }) => (
-					<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+				header: () => (
+					<span className="font-medium">
 						{t('list.columns.name')}
-						<ArrowUpDown className="w-4 h-4 ml-2" />
-					</Button>
+					</span>
 				),
 				cell: ({ row }) => (
-					<div className="flex items-center space-x-2">
-						<div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted">
-							<Users className="w-4 h-4 text-muted-foreground" />
+					<div>
+						<div className="font-medium">
+							{row.original.firstName} {row.original.lastName}
 						</div>
-						<div>
-							<div className="font-medium">
-								{row.original.firstName} {row.original.lastName}
-							</div>
-							<div className="text-sm text-muted-foreground">{row.original.email}</div>
-						</div>
+						<div className="text-sm text-muted-foreground">{row.original.email}</div>
 					</div>
 				),
 			},
@@ -244,8 +250,8 @@ export default function Customers() {
 			},
 			{
 				accessorKey: 'totalSpent',
-				header: ({ column }) => (
-					<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+				header: () => (
+					<Button variant="ghost" onClick={() => toggleSort('totalSpent')}>
 						{t('list.columns.totalSpent')}
 						<ArrowUpDown className="w-4 h-4 ml-2" />
 					</Button>
@@ -254,8 +260,8 @@ export default function Customers() {
 			},
 			{
 				accessorKey: 'visitCount',
-				header: ({ column }) => (
-					<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+				header: () => (
+					<Button variant="ghost" onClick={() => toggleSort('visitCount')}>
 						{t('list.columns.visits')}
 						<ArrowUpDown className="w-4 h-4 ml-2" />
 					</Button>
@@ -347,7 +353,7 @@ export default function Customers() {
 				),
 			},
 		],
-		[t, tCommon, formatCurrency, formatRelativeDate]
+		[t, tCommon, formatCurrency, formatRelativeDate, toggleSort]
 	)
 
 	return (
@@ -392,26 +398,10 @@ export default function Customers() {
 				</PermissionGate>
 			</div>
 
-			{/* Filters */}
-			<div className="flex items-center gap-4 mb-4">
-				{/* Pending balance filter */}
-				<Button
-					variant={showPendingOnly ? 'default' : 'outline'}
-					size="sm"
-					className="gap-2"
-					onClick={() => setShowPendingOnly(!showPendingOnly)}
-				>
-					<Clock className="h-4 w-4" />
-					{t('list.filters.pendingBalance', { defaultValue: 'Con Saldo Pendiente' })}
-					{pendingCustomersCount > 0 && (
-						<Badge variant={showPendingOnly ? 'secondary' : 'destructive'} className="ml-1">
-							{pendingCustomersCount}
-						</Badge>
-					)}
-				</Button>
-
-				<Select value={selectedGroupId || 'all'} onValueChange={(value) => setSelectedGroupId(value === 'all' ? '' : value)}>
-					<SelectTrigger className="w-[200px]">
+			{/* Filters — pill selects */}
+			<div className="flex items-center gap-2 mb-4 flex-wrap">
+				<Select value={selectedGroupId || 'all'} onValueChange={(value) => { setSelectedGroupId(value === 'all' ? '' : value); setPagination(prev => ({ ...prev, pageIndex: 0 })) }}>
+					<SelectTrigger className="h-8 w-auto rounded-full border-border/60 bg-transparent px-3 text-sm gap-1.5 [&>svg]:h-3.5 [&>svg]:w-3.5 [&>svg]:opacity-50">
 						<SelectValue placeholder={t('list.filters.allGroups')} />
 					</SelectTrigger>
 					<SelectContent>
@@ -428,8 +418,8 @@ export default function Customers() {
 					</SelectContent>
 				</Select>
 
-				<Select value={sortBy} onValueChange={(value) => setSortBy(value as typeof sortBy)}>
-					<SelectTrigger className="w-[180px]">
+				<Select value={sortBy} onValueChange={(value) => { setSortBy(value as typeof sortBy); setPagination(prev => ({ ...prev, pageIndex: 0 })) }}>
+					<SelectTrigger className="h-8 w-auto rounded-full border-border/60 bg-transparent px-3 text-sm gap-1.5 [&>svg]:h-3.5 [&>svg]:w-3.5 [&>svg]:opacity-50">
 						<SelectValue placeholder={t('list.sort.label')} />
 					</SelectTrigger>
 					<SelectContent>
@@ -441,7 +431,7 @@ export default function Customers() {
 				</Select>
 
 				<Select value={sortOrder} onValueChange={(value) => setSortOrder(value as 'asc' | 'desc')}>
-					<SelectTrigger className="w-[140px]">
+					<SelectTrigger className="h-8 w-auto rounded-full border-border/60 bg-transparent px-3 text-sm gap-1.5 [&>svg]:h-3.5 [&>svg]:w-3.5 [&>svg]:opacity-50">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
@@ -449,6 +439,20 @@ export default function Customers() {
 						<SelectItem value="asc">{tCommon('ascending')}</SelectItem>
 					</SelectContent>
 				</Select>
+
+				<button
+					type="button"
+					onClick={() => { setShowPendingOnly(!showPendingOnly); setPagination(prev => ({ ...prev, pageIndex: 0 })) }}
+					className={`inline-flex items-center gap-1.5 h-8 rounded-full px-3 text-sm border transition-colors ${showPendingOnly ? 'bg-primary text-primary-foreground border-primary' : 'bg-transparent border-border/60 text-foreground hover:bg-muted'}`}
+				>
+					<Clock className="h-3.5 w-3.5" />
+					{t('list.filters.pendingBalance', { defaultValue: 'Con Saldo Pendiente' })}
+					{pendingCustomersCount > 0 && (
+						<Badge variant={showPendingOnly ? 'secondary' : 'destructive'} className="ml-0.5 h-5 min-w-5 px-1 text-xs">
+							{pendingCustomersCount}
+						</Badge>
+					)}
+				</button>
 			</div>
 
 			{/* Data Table */}
@@ -462,7 +466,8 @@ export default function Customers() {
 				rowCount={customersData?.meta.totalCount || 0}
 				enableSearch={true}
 				searchPlaceholder={t('list.searchPlaceholder')}
-				onSearch={handleSearch}
+				searchValue={searchTerm}
+				onSearchChange={setSearchTerm}
 				clickableRow={row => ({ to: row.id })}
 				stickyFirstColumn={true}
 			/>

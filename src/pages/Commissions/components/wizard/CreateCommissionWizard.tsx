@@ -1,7 +1,5 @@
-import { useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Check } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { useCreateCommissionConfig, useCreateOrgCommissionConfig } from '@/hooks/useCommissions'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
@@ -27,6 +25,19 @@ export interface WizardData {
 	calcType: CommissionCalcType // 'PERCENTAGE' or 'FIXED'
 	defaultRate: number // Stored as decimal (0.03 = 3%) - used for PERCENTAGE
 	fixedAmount: number // Fixed amount per transaction - used for FIXED
+
+	// Base de cálculo
+	includeTax: boolean
+	includeTips: boolean
+	includeDiscount: boolean
+
+	// Category filtering
+	filterByCategories: boolean
+	categoryIds: string[]
+
+	// Goal-based tier (use staff's monthly goal as tier threshold)
+	useGoalAsTier: boolean
+	goalBonusRate: number // decimal, e.g. 0.06 for 6%
 
 	// Advanced: Tiers
 	tiersEnabled: boolean
@@ -67,6 +78,13 @@ const initialData: WizardData = {
 	defaultRate: 0.03, // 3%
 	calcType: 'PERCENTAGE',
 	fixedAmount: 10, // $10 default for fixed amount
+	includeTax: false,
+	includeTips: false,
+	includeDiscount: false,
+	filterByCategories: false,
+	categoryIds: [],
+	useGoalAsTier: false,
+	goalBonusRate: 0.06, // 6% default bonus rate
 	tiersEnabled: false,
 	tierPeriod: 'MONTHLY',
 	tiers: [
@@ -93,13 +111,31 @@ const initialData: WizardData = {
 	priority: 1, // Default priority (higher = takes precedence when multiple configs exist)
 }
 
+export interface WizardHandle {
+	goNext: () => void
+	goPrevious: () => void
+	submit: () => Promise<void>
+}
+
+export interface WizardStepInfo {
+	currentStep: number
+	totalSteps: number
+	canSubmit: boolean
+	isSubmitting: boolean
+}
+
 interface CreateCommissionWizardProps {
 	onSuccess: () => void
 	onCancel?: () => void
 	isOrgLevel?: boolean
+	/** Called whenever wizard step or submit-readiness changes */
+	onStepChange?: (info: WizardStepInfo) => void
+	/** When true, steps won't render their own bottom navigation buttons */
+	hideNavigation?: boolean
 }
 
-export default function CreateCommissionWizard({ onSuccess, isOrgLevel = false }: CreateCommissionWizardProps) {
+const CreateCommissionWizard = forwardRef<WizardHandle, CreateCommissionWizardProps>(
+	({ onSuccess, isOrgLevel = false, onStepChange, hideNavigation = false }, ref) => {
 	const { t } = useTranslation('commissions')
 	const { t: tCommon } = useTranslation()
 	const { toast } = useToast()
@@ -133,25 +169,31 @@ export default function CreateCommissionWizard({ onSuccess, isOrgLevel = false }
 			const effectiveCalcType = data.tiersEnabled ? 'TIERED' : data.calcType
 			const effectiveRate = data.calcType === 'FIXED' ? data.fixedAmount : data.defaultRate
 
+			// When goal-based tier is enabled, set calcType to TIERED internally
+			const finalCalcType = data.useGoalAsTier ? 'TIERED' : effectiveCalcType
+
 			// Convert date strings to ISO-8601 DateTime format (Prisma requires full DateTime)
 			const toISODateTime = (dateStr: string) => new Date(dateStr + 'T00:00:00').toISOString()
 
 			const input: CreateCommissionConfigInput = {
 				name: data.name,
 				recipient: data.recipient,
-				calcType: effectiveCalcType,
+				calcType: finalCalcType,
 				defaultRate: effectiveRate,
 				minAmount: data.limitsEnabled ? data.minAmount : null,
 				maxAmount: data.limitsEnabled ? data.maxAmount : null,
-				// Always use subtotal - these are fixed (as per plan)
-				includeTips: false,
-				includeDiscount: false,
-				includeTax: false,
+				includeTips: data.includeTips,
+				includeDiscount: data.includeDiscount,
+				includeTax: data.includeTax,
 				roleRates: data.roleRatesEnabled ? data.roleRates : null,
+				filterByCategories: data.filterByCategories,
+				categoryIds: data.filterByCategories ? data.categoryIds : [],
+				useGoalAsTier: data.useGoalAsTier,
+				goalBonusRate: data.useGoalAsTier ? data.goalBonusRate : null,
 				priority: data.priority,
 				effectiveFrom: toISODateTime(data.effectiveFrom),
 				effectiveTo: data.effectiveTo ? toISODateTime(data.effectiveTo) : null,
-				aggregationPeriod: data.aggregationPeriod, // Period for grouping commissions into summaries
+				aggregationPeriod: data.aggregationPeriod,
 			}
 
 			const createdConfig = await activeMutation.mutateAsync(input)
@@ -190,49 +232,31 @@ export default function CreateCommissionWizard({ onSuccess, isOrgLevel = false }
 		}
 	}
 
-	// Step indicator component (2 steps only)
-	const StepIndicator = () => (
-		<div className="flex items-center justify-center mb-8">
-			{[1, 2].map((step, index) => (
-				<div key={step} className="flex items-center">
-					<div
-						className={cn(
-							'flex items-center justify-center w-10 h-10 rounded-full font-medium text-sm transition-all',
-							currentStep > step
-								? 'bg-primary text-primary-foreground'
-								: currentStep === step
-									? 'bg-primary text-primary-foreground ring-4 ring-primary/20'
-									: 'bg-muted text-muted-foreground'
-						)}
-					>
-						{currentStep > step ? (
-							<Check className="w-5 h-5" />
-						) : (
-							step
-						)}
-					</div>
-					{index < 1 && (
-						<div
-							className={cn(
-								'w-16 h-0.5 mx-2',
-								currentStep > step ? 'bg-primary' : 'bg-muted'
-							)}
-						/>
-					)}
-				</div>
-			))}
-		</div>
-	)
+	// Expose navigation methods to parent via ref
+	useImperativeHandle(ref, () => ({
+		goNext: handleNext,
+		goPrevious: handlePrevious,
+		submit: handleSubmit,
+	}))
+
+	// Notify parent of step changes
+	useEffect(() => {
+		onStepChange?.({
+			currentStep,
+			totalSteps: 2,
+			canSubmit: data.name.trim().length > 0,
+			isSubmitting: activeMutation.isPending,
+		})
+	}, [currentStep, data.name, activeMutation.isPending])
 
 	return (
 		<div className="space-y-6">
-			<StepIndicator />
-
 			{currentStep === 1 && (
 				<StepAmount
 					data={data}
 					updateData={updateData}
 					onNext={handleNext}
+					hideNavigation={hideNavigation}
 				/>
 			)}
 
@@ -243,8 +267,12 @@ export default function CreateCommissionWizard({ onSuccess, isOrgLevel = false }
 					onPrevious={handlePrevious}
 					onSubmit={handleSubmit}
 					isSubmitting={activeMutation.isPending}
+					hideNavigation={hideNavigation}
 				/>
 			)}
 		</div>
 	)
-}
+})
+
+CreateCommissionWizard.displayName = 'CreateCommissionWizard'
+export default CreateCommissionWizard

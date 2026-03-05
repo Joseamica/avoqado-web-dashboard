@@ -254,6 +254,10 @@
   "recipes": {
     "title": "Recetas",
     "subtitle": "Administra recetas de productos e ingredientes",
+    "tabs": {
+      "recipes": "Recetas",
+      "pricing": "Precios"
+    },
     "add": "Agregar Receta",
     "edit": "Editar Receta",
     "delete": "Eliminar Receta",

@@ -37,6 +37,10 @@ type DataTableProps<TData> = {
   enableSearch?: boolean
   searchPlaceholder?: string
   onSearch?: (searchTerm: string, data: TData[]) => TData[]
+  /** Controlled search value (for server-side search). When provided, the internal search state is bypassed. */
+  searchValue?: string
+  /** Called when the search input changes. Use with searchValue for controlled/server-side search. */
+  onSearchChange?: (value: string) => void
   // Row styling
   getRowClassName?: (row: TData) => string | undefined
   /** Enable sticky first column with shadow indicator on horizontal scroll (Stripe/Linear pattern) */
@@ -59,6 +63,8 @@ function DataTable<TData>({
   enableSearch = false,
   searchPlaceholder,
   onSearch,
+  searchValue,
+  onSearchChange,
   getRowClassName,
   stickyFirstColumn = false,
   enableColumnResizing = false,
@@ -90,8 +96,13 @@ function DataTable<TData>({
     }
   })
 
-  // Search state
-  const [searchTerm, setSearchTerm] = useState('')
+  // Search state (internal, used when not controlled via searchValue/onSearchChange)
+  const [internalSearchTerm, setInternalSearchTerm] = useState('')
+  const isControlledSearch = searchValue !== undefined
+  const currentSearchTerm = isControlledSearch ? searchValue : internalSearchTerm
+  const handleSearchChange = isControlledSearch
+    ? (onSearchChange || (() => {}))
+    : setInternalSearchTerm
 
   // Internal pagination state (used when pagination/setPagination not provided)
   const [internalPagination, setInternalPagination] = useState<PaginationState>({
@@ -99,13 +110,13 @@ function DataTable<TData>({
     pageSize: 20,
   })
 
-  // Filter data based on search
+  // Filter data based on search (only for client-side/uncontrolled search)
   const filteredData = useMemo(() => {
-    if (!enableSearch || !searchTerm || !onSearch) {
+    if (!enableSearch || isControlledSearch || !currentSearchTerm || !onSearch) {
       return data || []
     }
-    return onSearch(searchTerm, data || [])
-  }, [enableSearch, searchTerm, onSearch, data])
+    return onSearch(currentSearchTerm, data || [])
+  }, [enableSearch, isControlledSearch, currentSearchTerm, onSearch, data])
 
   // Use external pagination if provided, otherwise use internal state
   const currentPagination = pagination || internalPagination
@@ -195,7 +206,7 @@ function DataTable<TData>({
       {(enableSearch || showColumnCustomizer) && (
         <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           {/* Search Bar */}
-          {enableSearch && <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder={searchPlaceholder || t('search')} />}
+          {enableSearch && <SearchBar value={currentSearchTerm} onChange={handleSearchChange} placeholder={searchPlaceholder || t('search')} />}
 
           {/* Column Customizer */}
           {showColumnCustomizer && (
@@ -283,7 +294,7 @@ function DataTable<TData>({
                     data-state={row.getIsSelected() && 'selected'}
                     to={to}
                     state={state}
-                    className={`bg-background border-border hover:bg-background data-[state=selected]:bg-background ${customRowClass}`}
+                    className={`bg-background border-border ${customRowClass}`}
                   >
                     {row.getVisibleCells().map(cell => (
                       <TableCell

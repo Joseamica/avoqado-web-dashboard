@@ -66,7 +66,6 @@ import {
   PayLaterAging,
   PaymentId,
   Payments,
-  Pricing,
   ProductId,
   Products,
   ProductStock,
@@ -447,7 +446,7 @@ export function createVenueRoutes(): RouteObject[] {
                     { path: 'ingredients', element: <RawMaterials /> }, // Ingredients = Raw Materials
                     { path: 'product-stock', element: <ProductStock /> },
                     { path: 'recipes', element: <Recipes /> },
-                    { path: 'pricing', element: <Pricing /> },
+                    { path: 'pricing', element: <Navigate to="../recipes" replace /> },
                     { path: 'modifiers', element: <ModifierInventory /> },
                     { path: 'modifier-analytics', element: <ModifierAnalytics /> },
                   ],

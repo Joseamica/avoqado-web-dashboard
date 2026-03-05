@@ -66,12 +66,14 @@ export default function GoalsTab() {
 					<p className="text-sm text-muted-foreground">{t('goals.subtitle')}</p>
 				</div>
 
-				<PermissionGate permission="commissions:create">
-					<Button onClick={() => setShowCreateDialog(true)}>
-						<Plus className="h-4 w-4 mr-2" />
-						{t('goals.create')}
-					</Button>
-				</PermissionGate>
+				{!isLoading && goals && goals.length > 0 && (
+					<PermissionGate permission="commissions:create">
+						<Button onClick={() => setShowCreateDialog(true)}>
+							<Plus className="h-4 w-4 mr-2" />
+							{t('goals.create')}
+						</Button>
+					</PermissionGate>
+				)}
 			</div>
 
 			{/* Loading State */}

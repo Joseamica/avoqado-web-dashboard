@@ -6,7 +6,7 @@
 		"ranking": "Ranking",
 		"goals": "Metas",
 		"config": "Configuración",
-		"approvals": "Aprobaciones",
+		"approvals": "Aprobaciones y Pagos",
 		"payouts": "Pagos"
 	},
 	"ranking": {
@@ -238,7 +238,8 @@
 			"BANK_TRANSFER": "Transferencia Bancaria",
 			"CASH": "Efectivo",
 			"CHECK": "Cheque",
-			"OTHER": "Otro"
+			"OTHER": "Otro",
+			"PAYROLL": "Nómina"
 		},
 		"reference": "Referencia",
 		"referencePlaceholder": "Número de transferencia, cheque, etc.",
@@ -282,7 +283,9 @@
 		"venueGoal": "Meta de toda la sucursal",
 		"selectStaff": "Seleccionar empleado...",
 		"assignTo": "Asignar a",
-		"assignToHint": "Selecciona un empleado o deja vacío para una meta general de la sucursal",
+		"assignToHint": "Selecciona empleados o elige una meta general de la sucursal",
+		"searchStaff": "Buscar empleado...",
+		"multipleStaff": "{{count}} empleados seleccionados",
 		"goalAmount": "Meta de ventas",
 		"goalAmountHint": "El monto objetivo de ventas para este período",
 		"period": "Período",
@@ -327,7 +330,8 @@
 		"updateError": "Error al actualizar",
 		"deleteError": "Error al eliminar",
 		"approveError": "Error al aprobar",
-		"disputeError": "Error al disputar"
+		"disputeError": "Error al disputar",
+		"someGoalsFailed": "{{count}} meta(s) no se pudieron crear"
 	},
 	"success": {
 		"configCreated": "Configuración creada exitosamente",
@@ -350,6 +354,7 @@
 		"payoutCompleted": "Pago completado exitosamente",
 		"payoutCancelled": "Pago cancelado",
 		"goalCreated": "Meta creada exitosamente",
+		"goalsCreatedBatch": "{{count}} metas creadas exitosamente",
 		"goalUpdated": "Meta actualizada exitosamente",
 		"goalDeleted": "Meta eliminada exitosamente"
 	},
@@ -404,7 +409,21 @@
 			"exampleCommission": "Comisión:",
 			"exampleResult": "El empleado ganaría {{commission}} de comisión por esta venta",
 			"advanced": "Configuración avanzada",
-			"advancedDesc": "Para negocios con reglas más complejas"
+			"advancedDesc": "Para negocios con reglas más complejas",
+			"calculationBase": "Base de cálculo",
+			"includeTax": "Incluir IVA",
+			"taxExcludedHint": "La comisión se calculará sobre el monto sin IVA (16%)",
+			"includeTips": "Incluir propinas",
+			"includeDiscount": "Incluir descuentos",
+			"categories": "Categorías",
+			"onlySpecificCategories": "Solo se calculará comisión sobre ventas de estas categorías",
+			"selectCategories": "Seleccionar categorías...",
+			"addMoreCategories": "Agregar más categorías...",
+			"noCategories": "No hay categorías disponibles",
+			"goalTier": "Meta como escalón",
+			"goalTierDescription": "Cambiar la tasa al superar la meta mensual del empleado",
+			"baseRate": "Tasa base",
+			"bonusRate": "Tasa al superar"
 		},
 		"step3": {
 			"title": "¡Casi listo! Nombra esta configuración",

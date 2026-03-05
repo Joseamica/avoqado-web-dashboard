@@ -254,6 +254,10 @@
   "recipes": {
     "title": "Recipes",
     "subtitle": "Manage product recipes and ingredients",
+    "tabs": {
+      "recipes": "Recipes",
+      "pricing": "Pricing"
+    },
     "add": "Add Recipe",
     "edit": "Edit Recipe",
     "delete": "Delete Recipe",

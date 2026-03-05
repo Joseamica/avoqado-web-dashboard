@@ -11,6 +11,7 @@ import {
 
 // Create context with undefined default
 export const ChatReferencesContext = createContext<ChatReferencesContextType | undefined>(undefined)
+const MAX_REFERENCES_CONTEXT_CHARS = 3000
 
 interface ChatReferencesProviderProps {
   children: ReactNode
@@ -32,7 +33,11 @@ export function ChatReferencesProvider({ children }: ChatReferencesProviderProps
         const parsed = JSON.parse(stored)
         // Restore Date objects
         return parsed.map((ref: ChatReference) => ({
-          ...ref,
+          id: ref.id,
+          type: ref.type,
+          label: ref.label,
+          summary: ref.summary,
+          data: null,
           addedAt: new Date(ref.addedAt),
         }))
       }
@@ -48,7 +53,15 @@ export function ChatReferencesProvider({ children }: ChatReferencesProviderProps
     try {
       const key = getChatReferencesStorageKey(venueSlug, userId)
       if (references.length > 0) {
-        localStorage.setItem(key, JSON.stringify(references))
+        // Persist only non-sensitive metadata; avoid storing raw entity payloads in browser storage
+        const persistableReferences = references.map(ref => ({
+          id: ref.id,
+          type: ref.type,
+          label: ref.label,
+          summary: ref.summary,
+          addedAt: ref.addedAt,
+        }))
+        localStorage.setItem(key, JSON.stringify(persistableReferences))
       } else {
         localStorage.removeItem(key)
       }
@@ -68,7 +81,11 @@ export function ChatReferencesProvider({ children }: ChatReferencesProviderProps
           const parsed = JSON.parse(stored)
           setReferences(
             parsed.map((ref: ChatReference) => ({
-              ...ref,
+              id: ref.id,
+              type: ref.type,
+              label: ref.label,
+              summary: ref.summary,
+              data: null,
               addedAt: new Date(ref.addedAt),
             })),
           )
@@ -124,7 +141,12 @@ export function ChatReferencesProvider({ children }: ChatReferencesProviderProps
       return `\n${index + 1}. ${ref.summary}`
     })
 
-    return `${header}${items.join('')}${footer}`
+    const prompt = `${header}${items.join('')}${footer}`
+    if (prompt.length <= MAX_REFERENCES_CONTEXT_CHARS) {
+      return prompt
+    }
+
+    return `${prompt.slice(0, MAX_REFERENCES_CONTEXT_CHARS)}\n[REFERENCIAS TRUNCADAS]`
   }, [references, t])
 
   const referenceCount = useMemo(() => references.length, [references])

@@ -5,6 +5,7 @@ import { DateTime } from 'luxon'
 export const CHAT_CONFIG = {
   MAX_HISTORY_LENGTH: 10, // Máximo 10 mensajes en historial para reducir tokens
   MAX_DAILY_REQUESTS: 50, // Límite diario por usuario
+  MAX_HISTORY_ENTRY_CHARS: 1000, // Límite frontend para controlar costo/tokens
 }
 
 const isDevEnvironment = import.meta.env.DEV
@@ -423,6 +424,27 @@ interface SendChatMessageOptions {
   referencesContext?: string // AI references context prompt
 }
 
+const serializeConversationHistoryForRequest = (history: ConversationEntry[]) => {
+  const truncateWithEllipsis = (value: string, maxChars: number): string => {
+    if (value.length <= maxChars) {
+      return value
+    }
+
+    const suffix = '...'
+    if (maxChars <= suffix.length) {
+      return value.slice(0, maxChars)
+    }
+
+    return `${value.slice(0, maxChars - suffix.length)}${suffix}`
+  }
+
+  return history.map(entry => ({
+    ...entry,
+    content: truncateWithEllipsis(entry.content, CHAT_CONFIG.MAX_HISTORY_ENTRY_CHARS),
+    timestamp: entry.timestamp instanceof Date ? entry.timestamp.toISOString() : entry.timestamp,
+  }))
+}
+
 // Función principal para enviar mensajes usando API directamente
 export const sendChatMessage = async (message: string, options?: SendChatMessageOptions): Promise<ChatResponse> => {
   // Validaciones
@@ -465,10 +487,7 @@ export const sendChatMessage = async (message: string, options?: SendChatMessage
     }
 
     // Llamar a la API Text-to-SQL usando axios (que ya tiene la configuración correcta)
-    const serializedHistory = history.map(entry => ({
-      ...entry,
-      timestamp: entry.timestamp instanceof Date ? entry.timestamp.toISOString() : entry.timestamp,
-    }))
+    const serializedHistory = serializeConversationHistoryForRequest(history)
 
     const payload: Record<string, unknown> = {
       message,
@@ -770,10 +789,10 @@ export const loadConversation = (conversationId: string, venueSlug?: string | nu
 }
 
 // Eliminar una conversación guardada
-export const deleteConversation = (conversationId: string): boolean => {
+export const deleteConversation = (conversationId: string, venueSlug?: string | null, userId?: string | null): boolean => {
   try {
-    const currentVenue = getCurrentVenueSlug()
-    const currentUserId = getCurrentUserId()
+    const currentVenue = venueSlug ?? getCurrentVenueSlug()
+    const currentUserId = userId ?? getCurrentUserId()
     const conversations = getSavedConversations(currentVenue, currentUserId)
     const updatedConversations = conversations.filter(conv => conv.id !== conversationId)
     const conversationsKey = getUserVenueSpecificKey(STORAGE_KEYS.CONVERSATIONS_LIST, currentVenue, currentUserId)
@@ -857,12 +876,12 @@ const generateConversationTitleFallback = (history: ConversationEntry[]): string
 // const generateConversationTitle = generateConversationTitleFallback
 
 // Legacy synchronous wrapper for backward compatibility
-export const saveConversationSync = (title?: string, venueSlug?: string | null): string => {
+export const saveConversationSync = (title?: string, venueSlug?: string | null, userId?: string | null): string => {
   // For existing calls that expect synchronous behavior, we'll generate a simple ID
   const conversationId = `conv_${venueSlug || getCurrentVenueSlug()}_${Date.now()}`
 
   // Queue the async save operation but don't wait for it
-  saveConversation(title, venueSlug).catch(error => {
+  saveConversation(title, venueSlug, undefined, userId).catch(error => {
     console.error('Error in background conversation save:', error)
   })
 
@@ -870,15 +889,15 @@ export const saveConversationSync = (title?: string, venueSlug?: string | null):
 }
 
 // Crear nueva conversación (limpiar la actual) para venue específico
-export const createNewConversation = (venueSlug?: string | null): void => {
+export const createNewConversation = (venueSlug?: string | null, userId?: string | null): void => {
   const currentVenue = venueSlug || getCurrentVenueSlug()
-  const currentUserId = getCurrentUserId()
+  const currentUserId = userId ?? getCurrentUserId()
 
   // Guardar automáticamente la conversación actual si tiene contenido
   const currentHistory = getConversationHistory(currentVenue, currentUserId)
   if (currentHistory.length > 1) {
     // Más de solo el mensaje de bienvenida
-    saveConversationSync(undefined, currentVenue)
+    saveConversationSync(undefined, currentVenue, currentUserId)
   }
 
   // Limpiar la conversación actual
@@ -889,9 +908,9 @@ export const createNewConversation = (venueSlug?: string | null): void => {
 }
 
 // Obtener ID de la conversación actual
-export const getCurrentConversationId = (): string | null => {
-  const currentVenue = getCurrentVenueSlug()
-  const currentUserId = getCurrentUserId()
+export const getCurrentConversationId = (venueSlug?: string | null, userId?: string | null): string | null => {
+  const currentVenue = venueSlug ?? getCurrentVenueSlug()
+  const currentUserId = userId ?? getCurrentUserId()
   const currentConversationKey = getUserVenueSpecificKey(STORAGE_KEYS.CURRENT_CONVERSATION, currentVenue, currentUserId)
   return localStorage.getItem(currentConversationKey)
 }
@@ -925,6 +944,10 @@ export const submitFeedbackWithCorrection = async (
   trainingDataId: string,
   problemDescription: string,
   originalQuestion: string,
+  options?: {
+    venueSlug?: string | null
+    userId?: string | null
+  },
 ): Promise<{
   success: boolean
   correctedResponse?: string
@@ -935,12 +958,9 @@ export const submitFeedbackWithCorrection = async (
     await submitFeedback(trainingDataId, 'INCORRECT', undefined, undefined, problemDescription)
 
     // Then request a corrected response based on the feedback
-    const venueSlug = getCurrentVenueSlug()
-    const userId = getCurrentUserId()
-    const history = getConversationHistory(venueSlug, userId).map(entry => ({
-      ...entry,
-      timestamp: entry.timestamp instanceof Date ? entry.timestamp.toISOString() : entry.timestamp,
-    }))
+    const venueSlug = options?.venueSlug ?? getCurrentVenueSlug()
+    const userId = options?.userId ?? getCurrentUserId()
+    const history = serializeConversationHistoryForRequest(getConversationHistory(venueSlug, userId))
     const payload: Record<string, unknown> = {
       message: `${originalQuestion}\n\nFeedback del usuario: ${problemDescription}`,
       conversationHistory: history,

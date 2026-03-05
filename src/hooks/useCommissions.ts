@@ -142,6 +142,7 @@ export function useDeleteCommissionConfig() {
 		mutationFn: (configId: string) => commissionService.deleteConfig(venueId!, configId),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: commissionKeys.configs(venueId) })
+			queryClient.invalidateQueries({ queryKey: commissionKeys.effectiveConfigs(venueId) })
 		},
 	})
 }

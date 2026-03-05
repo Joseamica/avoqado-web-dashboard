@@ -38,6 +38,10 @@ export interface CommissionConfig {
 	includeDiscount: boolean
 	includeTax: boolean
 	roleRates: Record<string, number> | null
+	filterByCategories: boolean
+	categoryIds: string[]
+	useGoalAsTier: boolean
+	goalBonusRate: number | null
 	effectiveFrom: string
 	effectiveTo: string | null
 	aggregationPeriod: TierPeriod // Period for grouping commissions into summaries (payroll alignment)
@@ -277,6 +281,10 @@ export interface CreateCommissionConfigInput {
 	includeDiscount?: boolean
 	includeTax?: boolean
 	roleRates?: Record<string, number> | null
+	filterByCategories?: boolean
+	categoryIds?: string[]
+	useGoalAsTier?: boolean
+	goalBonusRate?: number | null
 	effectiveFrom?: string
 	effectiveTo?: string | null
 	priority?: number
@@ -294,6 +302,10 @@ export interface UpdateCommissionConfigInput {
 	includeDiscount?: boolean
 	includeTax?: boolean
 	roleRates?: Record<string, number> | null
+	filterByCategories?: boolean
+	categoryIds?: string[]
+	useGoalAsTier?: boolean
+	goalBonusRate?: number | null
 	effectiveFrom?: string
 	effectiveTo?: string | null
 	priority?: number

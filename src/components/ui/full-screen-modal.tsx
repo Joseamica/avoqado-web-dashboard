@@ -37,10 +37,10 @@ export function FullScreenModal({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-background" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-card" />
         <DialogPrimitive.Content
           className={cn(
-            'fixed inset-0 z-50 flex flex-col bg-background',
+            'fixed inset-0 z-50 flex flex-col bg-card',
             // Animation: slide up from bottom on open, slide down on close
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
             'data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
@@ -50,7 +50,7 @@ export function FullScreenModal({
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           {/* Header */}
-          <header className="sticky top-0 z-10 flex h-16 items-center justify-between bg-background px-4 border-b border-border/30">
+          <header className="sticky top-0 z-10 flex h-16 items-center justify-between bg-card px-4 border-b border-border/30">
             {/* Left - Close button */}
             <DialogPrimitive.Close asChild>
               <Button

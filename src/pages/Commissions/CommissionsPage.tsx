@@ -6,20 +6,17 @@ import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { PermissionGate } from '@/components/PermissionGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
-import { useCommissionStats, useEffectiveCommissionConfigs, useOrgCommissionConfigs, usePendingCommissionSummaries, useCommissionPayouts } from '@/hooks/useCommissions'
+import { useCommissionStats, useEffectiveCommissionConfigs, usePendingCommissionSummaries, useCommissionPayouts } from '@/hooks/useCommissions'
 import { useAccess } from '@/hooks/use-access'
 import CommissionKPICards from './components/CommissionKPICards'
 import TeamCommissionTable from './components/TeamCommissionTable'
-import TeamCommissionRanking from './components/TeamCommissionRanking'
 import CommissionConfigList from './components/CommissionConfigList'
 import SummaryApprovalList from './components/SummaryApprovalList'
 import PayoutList from './components/PayoutList'
 import GoalsTab from './components/GoalsTab'
 import CreateConfigDialog from './components/CreateConfigDialog'
-import OrgCommissionConfigSection from './components/OrgCommissionConfigSection'
-import OrgPayoutConfigSection from './components/OrgPayoutConfigSection'
 
-const VALID_TABS = ['overview', 'ranking', 'goals', 'config', 'approvals', 'payouts'] as const
+const VALID_TABS = ['overview', 'goals', 'config', 'approvals'] as const
 type TabValue = typeof VALID_TABS[number]
 
 export default function CommissionsPage() {
@@ -43,16 +40,15 @@ export default function CommissionsPage() {
 	// Sync tab with URL hash
 	useEffect(() => {
 		const tabFromHash = getTabFromHash()
-		// If user tries to access payouts tab without permission, redirect to overview
-		if (tabFromHash === 'payouts' && !canViewPayouts) {
-			setActiveTab('overview')
-			navigate(`${location.pathname}#overview`, { replace: true })
+		// Legacy: redirect old #payouts hash to #approvals (merged tab)
+		if (location.hash === '#payouts') {
+			navigate(`${location.pathname}#approvals`, { replace: true })
 			return
 		}
 		if (tabFromHash !== activeTab) {
 			setActiveTab(tabFromHash)
 		}
-	}, [location.hash, canViewPayouts])
+	}, [location.hash])
 
 	// Update URL hash when tab changes
 	const handleTabChange = (value: string) => {
@@ -64,33 +60,22 @@ export default function CommissionsPage() {
 	// Data fetching
 	const { data: stats, isLoading: isLoadingStats } = useCommissionStats()
 	const { data: effectiveConfigs, isLoading: isLoadingConfigs } = useEffectiveCommissionConfigs()
-	const { data: orgConfigs } = useOrgCommissionConfigs()
 	const { data: pendingSummaries, isLoading: isLoadingPending } = usePendingCommissionSummaries()
 	// Only fetch payouts if user has permission
 	const { data: payouts, isLoading: isLoadingPayouts } = useCommissionPayouts(undefined, { enabled: canViewPayouts })
 
 	const pendingCount = pendingSummaries?.length || 0
 	const configCount = effectiveConfigs?.length || 0
-	const hasOrgConfigs = (orgConfigs?.length || 0) > 0
 
 	return (
 		<div className="p-4 bg-background text-foreground">
-			<div className="flex items-center justify-between mb-6">
-				<div>
-					<PageTitleWithInfo
-						title={t('title')}
-						className="text-2xl font-bold"
-						tooltip={t('subtitle')}
-					/>
-					<p className="text-muted-foreground">{t('subtitle')}</p>
-				</div>
-
-				<PermissionGate permission="commissions:create">
-					<Button onClick={() => setShowCreateDialog(true)}>
-						<Plus className="h-4 w-4 mr-2" />
-						{t('config.create')}
-					</Button>
-				</PermissionGate>
+			<div className="mb-6">
+				<PageTitleWithInfo
+					title={t('title')}
+					className="text-2xl font-bold"
+					tooltip={t('subtitle')}
+				/>
+				<p className="text-muted-foreground">{t('subtitle')}</p>
 			</div>
 
 			<Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
@@ -108,17 +93,6 @@ export default function CommissionsPage() {
 							)}
 						</button>
 						<button
-							onClick={() => handleTabChange('ranking')}
-							className={`relative pb-3 text-sm font-medium transition-colors ${
-								activeTab === 'ranking' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-							}`}
-						>
-							{t('tabs.ranking')}
-							{activeTab === 'ranking' && (
-								<span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-							)}
-						</button>
-						<button
 							onClick={() => handleTabChange('goals')}
 							className={`relative pb-3 text-sm font-medium transition-colors ${
 								activeTab === 'goals' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
@@ -126,20 +100,6 @@ export default function CommissionsPage() {
 						>
 							{t('tabs.goals')}
 							{activeTab === 'goals' && (
-								<span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-							)}
-						</button>
-						<button
-							onClick={() => handleTabChange('config')}
-							className={`relative pb-3 text-sm font-medium transition-colors ${
-								activeTab === 'config' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-							}`}
-						>
-							{t('tabs.config')}
-							{configCount > 0 && (
-								<span className="ml-1.5 text-xs opacity-60">{configCount}</span>
-							)}
-							{activeTab === 'config' && (
 								<span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
 							)}
 						</button>
@@ -157,19 +117,20 @@ export default function CommissionsPage() {
 								<span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
 							)}
 						</button>
-						{canViewPayouts && (
-							<button
-								onClick={() => handleTabChange('payouts')}
-								className={`relative pb-3 text-sm font-medium transition-colors ${
-									activeTab === 'payouts' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-								}`}
-							>
-								{t('tabs.payouts')}
-								{activeTab === 'payouts' && (
-									<span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-								)}
-							</button>
-						)}
+						<button
+							onClick={() => handleTabChange('config')}
+							className={`relative pb-3 text-sm font-medium transition-colors ${
+								activeTab === 'config' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+							}`}
+						>
+							{t('tabs.config')}
+							{configCount > 0 && (
+								<span className="ml-1.5 text-xs opacity-60">{configCount}</span>
+							)}
+							{activeTab === 'config' && (
+								<span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+							)}
+						</button>
 					</nav>
 				</div>
 
@@ -179,11 +140,6 @@ export default function CommissionsPage() {
 					<TeamCommissionTable />
 				</TabsContent>
 
-				{/* Ranking Tab */}
-				<TabsContent value="ranking" className="space-y-6">
-					<TeamCommissionRanking />
-				</TabsContent>
-
 				{/* Goals Tab */}
 				<TabsContent value="goals" className="space-y-6">
 					<GoalsTab />
@@ -191,29 +147,34 @@ export default function CommissionsPage() {
 
 				{/* Configuration Tab */}
 				<TabsContent value="config" className="space-y-6">
-					<OrgCommissionConfigSection />
-					<OrgPayoutConfigSection />
+					<div className="flex items-center justify-between">
+						<div>
+							<h2 className="text-lg font-semibold">{t('config.title')}</h2>
+							<p className="text-sm text-muted-foreground">{t('config.subtitle')}</p>
+						</div>
+						<PermissionGate permission="commissions:create">
+							<Button onClick={() => setShowCreateDialog(true)}>
+								<Plus className="h-4 w-4 mr-2" />
+								{t('config.create')}
+							</Button>
+						</PermissionGate>
+					</div>
 					<CommissionConfigList
 						effectiveConfigs={effectiveConfigs}
 						isLoading={isLoadingConfigs}
-						hasOrgConfigs={hasOrgConfigs}
 					/>
 				</TabsContent>
 
-				{/* Approvals Tab */}
-				<TabsContent value="approvals" className="space-y-6">
+				{/* Approvals & Payouts Tab */}
+				<TabsContent value="approvals" className="space-y-8">
 					<SummaryApprovalList
 						summaries={pendingSummaries || []}
 						isLoading={isLoadingPending}
 					/>
-				</TabsContent>
-
-				{/* Payouts Tab */}
-				{canViewPayouts && (
-					<TabsContent value="payouts" className="space-y-6">
+					{canViewPayouts && (
 						<PayoutList payouts={payouts || []} isLoading={isLoadingPayouts} />
-					</TabsContent>
-				)}
+					)}
+				</TabsContent>
 			</Tabs>
 
 			{/* Create Config Dialog */}

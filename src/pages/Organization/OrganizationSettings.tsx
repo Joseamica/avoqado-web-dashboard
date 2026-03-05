@@ -14,12 +14,14 @@ import { getOrganization, updateOrganization, type OrganizationInfo } from '@/se
 import type { TpvSettings } from '@/services/tpv-settings.service'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Building2, Info, Loader2, Mail, Monitor, Phone, Receipt, Save, Settings } from 'lucide-react'
+import { Building2, Info, Loader2, Mail, Monitor, Phone, Receipt, Save, Settings, TrendingUp } from 'lucide-react'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
 import { z } from 'zod'
+import OrgCommissionConfigSection from '@/pages/Commissions/components/OrgCommissionConfigSection'
+import OrgPayoutConfigSection from '@/pages/Commissions/components/OrgPayoutConfigSection'
 
 const organizationSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -33,7 +35,7 @@ type OrganizationFormData = z.infer<typeof organizationSchema>
 
 const OrganizationSettings: React.FC = () => {
   const { t } = useTranslation('organization')
-  const [activeOrgTab, setActiveOrgTab] = useState<'general' | 'tpv'>('general')
+  const [activeOrgTab, setActiveOrgTab] = useState<'general' | 'tpv' | 'commissions'>('general')
   const { orgId } = useParams<{ orgId: string }>()
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -131,6 +133,18 @@ const OrganizationSettings: React.FC = () => {
               <Monitor className="h-4 w-4" />
               {t('settings.tabTpv', { defaultValue: 'TPV' })}
               {activeOrgTab === 'tpv' && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveOrgTab('commissions')}
+              className={`relative pb-3 text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                activeOrgTab === 'commissions' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <TrendingUp className="h-4 w-4" />
+              {t('settings.tabCommissions', { defaultValue: 'Comisiones' })}
+              {activeOrgTab === 'commissions' && (
                 <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
               )}
             </button>
@@ -281,6 +295,12 @@ const OrganizationSettings: React.FC = () => {
         {/* ── TPV Tab ──────────────────────────────────────────────────── */}
         <TabsContent value="tpv" className="mt-6">
           <OrgTpvConfigSection orgId={orgId!} />
+        </TabsContent>
+
+        {/* ── Commissions Tab ────────────────────────────────────────── */}
+        <TabsContent value="commissions" className="mt-6 space-y-6">
+          <OrgCommissionConfigSection />
+          <OrgPayoutConfigSection />
         </TabsContent>
       </Tabs>
     </div>

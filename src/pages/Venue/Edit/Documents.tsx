@@ -475,8 +475,8 @@ export default function VenueDocuments() {
         </Alert>
       )}
 
-      {/* Superadmin KYC Actions - Only visible to superadmins when status is PENDING_REVIEW */}
-      {isSuperadmin && venue.kycStatus === 'PENDING_REVIEW' && (
+      {/* Superadmin KYC Actions - Visible to superadmins when not already VERIFIED */}
+      {isSuperadmin && venue.kycStatus !== 'VERIFIED' && (
         <Card className="border-2 border-amber-400/50 bg-gradient-to-r from-amber-500/10 to-pink-500/10 dark:from-amber-500/20 dark:to-pink-500/20">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
