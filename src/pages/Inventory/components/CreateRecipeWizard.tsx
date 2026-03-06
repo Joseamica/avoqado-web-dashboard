@@ -5,7 +5,6 @@ import {
   ChefHat,
   ArrowRight,
   ChevronDown,
-  Plus,
   Trash2,
   Package,
   TrendingUp,
@@ -23,6 +22,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -35,7 +35,7 @@ import { recipesApi, rawMaterialsApi, type RawMaterial, type CreateRecipeDto } f
 import api from '@/api'
 import { Currency } from '@/utils/currency'
 import { cn } from '@/lib/utils'
-import { AddIngredientDialog } from './AddIngredientDialog'
+import { QuickCreateRawMaterialSheet } from './QuickCreateRawMaterialSheet'
 
 interface ProductWithRecipe {
   id: string
@@ -92,8 +92,16 @@ export function CreateRecipeWizard({ open, onClose }: CreateRecipeWizardProps) {
   const [cookTime, setCookTime] = useState<number | undefined>(undefined)
   const [notes, setNotes] = useState('')
   const [ingredients, setIngredients] = useState<TempIngredient[]>([])
-  const [addIngredientOpen, setAddIngredientOpen] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
+
+  // Inline ingredient adding state
+  const [ingredientSearchTerm, setIngredientSearchTerm] = useState('')
+  const [pendingMaterial, setPendingMaterial] = useState<RawMaterial | null>(null)
+  const [pendingQuantity, setPendingQuantity] = useState('')
+  const [pendingIsOptional, setPendingIsOptional] = useState(false)
+  const [pendingSubstituteNotes, setPendingSubstituteNotes] = useState('')
+  const [showPendingOptions, setShowPendingOptions] = useState(false)
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false)
 
   // Reset wizard when closed
   useEffect(() => {
@@ -193,6 +201,49 @@ export function CreateRecipeWizard({ open, onClose }: CreateRecipeWizardProps) {
       }
     })
   }, [products, t])
+
+  // Map raw materials to combobox items for ingredient search
+  const ingredientComboboxItems = useMemo<SearchComboboxItem[]>(() => {
+    if (!rawMaterialsData) return []
+    const lowerSearch = ingredientSearchTerm.toLowerCase()
+    return rawMaterialsData
+      .filter(rm => !ingredientSearchTerm || rm.name.toLowerCase().includes(lowerSearch))
+      .map(rm => {
+        const isAdded = ingredients.some(ing => ing.rawMaterialId === rm.id)
+        return {
+          id: rm.id,
+          label: rm.name,
+          description: formatUnit(rm.unit),
+          endLabel: Currency(Number(rm.costPerUnit)),
+          disabled: isAdded,
+          disabledLabel: isAdded ? t('recipeWizard.step2.alreadyAdded') : undefined,
+        }
+      })
+  }, [rawMaterialsData, ingredientSearchTerm, ingredients, formatUnit, t])
+
+  // Handle adding an ingredient from the inline form
+  const handleAddInlineIngredient = () => {
+    if (!pendingMaterial || !pendingQuantity || Number(pendingQuantity) <= 0) return
+
+    const newIngredient: TempIngredient = {
+      rawMaterialId: pendingMaterial.id,
+      rawMaterialName: pendingMaterial.name,
+      quantity: Number(pendingQuantity),
+      unit: pendingMaterial.unit,
+      isOptional: pendingIsOptional || undefined,
+      substituteNotes: pendingSubstituteNotes || undefined,
+    }
+
+    setIngredients(prev => [...prev, newIngredient])
+
+    // Reset inline form
+    setPendingMaterial(null)
+    setPendingQuantity('')
+    setPendingIsOptional(false)
+    setPendingSubstituteNotes('')
+    setShowPendingOptions(false)
+    setIngredientSearchTerm('')
+  }
 
   // Calculate costs
   const costCalculations = useMemo(() => {
@@ -511,28 +562,136 @@ export function CreateRecipeWizard({ open, onClose }: CreateRecipeWizardProps) {
 
                   {/* Ingredients Section */}
                   <section className="bg-card rounded-2xl border border-border/50 p-6">
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-xl bg-primary/10">
-                          <Package className="h-5 w-5 text-primary" />
-                        </div>
-                        <h2 className="text-lg font-semibold">{t('recipes.ingredients.title')}</h2>
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-2.5 rounded-xl bg-primary/10">
+                        <Package className="h-5 w-5 text-primary" />
                       </div>
-                      <Button variant="outline" size="sm" onClick={() => setAddIngredientOpen(true)}>
-                        <Plus className="h-4 w-4 mr-1.5" />
-                        {t('recipes.addIngredient')}
-                      </Button>
+                      <h2 className="text-lg font-semibold">{t('recipes.ingredients.title')}</h2>
                     </div>
 
-                    {ingredients.length === 0 ? (
+                    {/* Inline Search Combobox */}
+                    <SearchCombobox
+                      placeholder={t('recipeWizard.step2.searchIngredientPlaceholder')}
+                      value={ingredientSearchTerm}
+                      onChange={setIngredientSearchTerm}
+                      items={ingredientComboboxItems}
+                      isLoading={!rawMaterialsData}
+                      onSelect={item => {
+                        const material = rawMaterialsData?.find(rm => rm.id === item.id)
+                        if (material) {
+                          setPendingMaterial(material)
+                          setIngredientSearchTerm('')
+                        }
+                      }}
+                      onCreateNew={() => setQuickCreateOpen(true)}
+                      createNewLabel={() => t('recipeWizard.step2.createRawMaterial')}
+                    />
+
+                    {/* Pending material configuration row */}
+                    {pendingMaterial && (
+                      <div className="mt-3 rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+                        {/* Material info + quantity + add button */}
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold truncate">{pendingMaterial.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {Currency(Number(pendingMaterial.costPerUnit))} / {formatUnit(pendingMaterial.unit)}
+                            </p>
+                          </div>
+                          <div className="relative w-36">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0.01"
+                              placeholder="0"
+                              value={pendingQuantity}
+                              onChange={e => setPendingQuantity(e.target.value)}
+                              className="h-10 pr-12 text-base"
+                              autoFocus
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground pointer-events-none">
+                              {formatUnit(pendingMaterial.unit)}
+                            </span>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={handleAddInlineIngredient}
+                            disabled={!pendingQuantity || Number(pendingQuantity) <= 0}
+                            className="shrink-0"
+                          >
+                            {t('recipeWizard.step2.addToRecipe')}
+                          </Button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPendingMaterial(null)
+                              setPendingQuantity('')
+                              setPendingIsOptional(false)
+                              setPendingSubstituteNotes('')
+                              setShowPendingOptions(false)
+                            }}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+
+                        {/* Estimated cost hint */}
+                        {pendingQuantity && Number(pendingQuantity) > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            {t('recipes.ingredients.cost')}: <span className="font-semibold text-foreground">{Currency(Number(pendingMaterial.costPerUnit) * Number(pendingQuantity))}</span>
+                          </p>
+                        )}
+
+                        {/* More options toggle */}
+                        <button
+                          type="button"
+                          onClick={() => setShowPendingOptions(prev => !prev)}
+                          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', showPendingOptions && 'rotate-180')} />
+                          <span>{t('recipeWizard.step2.moreOptions')}</span>
+                        </button>
+
+                        {showPendingOptions && (
+                          <div className="space-y-3 pt-1">
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id="pendingOptional"
+                                checked={pendingIsOptional}
+                                onCheckedChange={checked => setPendingIsOptional(checked as boolean)}
+                              />
+                              <Label htmlFor="pendingOptional" className="text-sm cursor-pointer">
+                                {t('recipes.ingredients.optional')}
+                              </Label>
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label htmlFor="pendingSubNotes" className="text-xs">
+                                {t('recipes.ingredients.substituteNotes')}
+                              </Label>
+                              <Textarea
+                                id="pendingSubNotes"
+                                rows={2}
+                                value={pendingSubstituteNotes}
+                                onChange={e => setPendingSubstituteNotes(e.target.value)}
+                                className="text-sm resize-none"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Ingredients list */}
+                    {ingredients.length === 0 && !pendingMaterial ? (
                       <div className="flex flex-col items-center justify-center py-10 text-center">
                         <div className="p-3 rounded-full bg-muted mb-3">
                           <Package className="h-6 w-6 text-muted-foreground" />
                         </div>
                         <p className="text-sm text-muted-foreground">{t('recipeWizard.step2.noIngredients')}</p>
                       </div>
-                    ) : (
-                      <div className="space-y-2">
+                    ) : ingredients.length > 0 ? (
+                      <div className="space-y-2 mt-4">
                         {ingredients.map((ing, index) => {
                           const rawMaterial = rawMaterialsData?.find(rm => rm.id === ing.rawMaterialId)
                           const costPerUnit = rawMaterial ? Number(rawMaterial.costPerUnit) : 0
@@ -573,7 +732,7 @@ export function CreateRecipeWizard({ open, onClose }: CreateRecipeWizardProps) {
                           )
                         })}
                       </div>
-                    )}
+                    ) : null}
 
                     {/* Cost Summary inline */}
                     {ingredients.length > 0 && (
@@ -764,18 +923,16 @@ export function CreateRecipeWizard({ open, onClose }: CreateRecipeWizardProps) {
         </div>
       </FullScreenModal>
 
-      {/* Add Ingredient Dialog */}
-      {selectedProduct && (
-        <AddIngredientDialog
-          open={addIngredientOpen}
-          onOpenChange={setAddIngredientOpen}
-          product={selectedProduct}
-          mode="create"
-          onAddTempIngredient={ingredient => {
-            setIngredients(prev => [...prev, ingredient])
-          }}
-        />
-      )}
+      {/* Quick Create Raw Material Sheet */}
+      <QuickCreateRawMaterialSheet
+        open={quickCreateOpen}
+        onOpenChange={setQuickCreateOpen}
+        initialName={ingredientSearchTerm}
+        onSuccess={material => {
+          setPendingMaterial(material)
+          setIngredientSearchTerm('')
+        }}
+      />
     </>
   )
 }

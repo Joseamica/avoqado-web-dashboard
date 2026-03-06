@@ -36,7 +36,7 @@ export const notificationCategories: NotificationCategory[] = [
         defaultEnabled: true,
         defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.PUSH],
         defaultPriority: NotificationPriority.HIGH,
-        canDisable: false, // Critical for operations
+        canDisable: true, // Critical for operations
         description: 'Notified immediately when a new order is received',
       },
       {
@@ -52,7 +52,7 @@ export const notificationCategories: NotificationCategory[] = [
         defaultEnabled: true,
         defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.PUSH],
         defaultPriority: NotificationPriority.HIGH,
-        canDisable: false,
+        canDisable: true,
         description: 'Know when orders are ready for pickup or delivery',
       },
       {
@@ -60,7 +60,7 @@ export const notificationCategories: NotificationCategory[] = [
         defaultEnabled: true,
         defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.PUSH],
         defaultPriority: NotificationPriority.HIGH,
-        canDisable: false,
+        canDisable: true,
         description: 'Receive alerts when orders are cancelled',
       },
     ],
@@ -83,7 +83,7 @@ export const notificationCategories: NotificationCategory[] = [
         defaultEnabled: true,
         defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
         defaultPriority: NotificationPriority.HIGH,
-        canDisable: false,
+        canDisable: true,
         description: 'Get immediately notified of failed payment attempts',
       },
       {
@@ -114,7 +114,7 @@ export const notificationCategories: NotificationCategory[] = [
         defaultEnabled: true,
         defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
         defaultPriority: NotificationPriority.HIGH,
-        canDisable: false,
+        canDisable: true,
         description: 'Get urgent alerts for low-rated reviews (1-2 stars)',
       },
       {
@@ -168,7 +168,7 @@ export const notificationCategories: NotificationCategory[] = [
         defaultEnabled: true,
         defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.PUSH, NotificationChannel.EMAIL],
         defaultPriority: NotificationPriority.URGENT,
-        canDisable: false,
+        canDisable: true,
         description: 'Critical alerts when POS terminal disconnects',
       },
       {
@@ -192,7 +192,7 @@ export const notificationCategories: NotificationCategory[] = [
         defaultEnabled: true,
         defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
         defaultPriority: NotificationPriority.HIGH,
-        canDisable: false,
+        canDisable: true,
         description: 'Important system maintenance notifications',
       },
       {
@@ -215,7 +215,7 @@ export const notificationCategories: NotificationCategory[] = [
         defaultEnabled: true,
         defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
         defaultPriority: NotificationPriority.HIGH,
-        canDisable: false,
+        canDisable: true,
         description: 'Approval requests for venue operations',
       },
       {
@@ -223,7 +223,7 @@ export const notificationCategories: NotificationCategory[] = [
         defaultEnabled: true,
         defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL, NotificationChannel.SMS],
         defaultPriority: NotificationPriority.URGENT,
-        canDisable: false,
+        canDisable: true,
         description: 'Critical alerts when venue is suspended',
       },
       {

@@ -29,12 +29,12 @@ export function NotificationPreferences({ className }: NotificationPreferencesPr
   // Fetch preferences
   const { data: preferences = [], isLoading } = useQuery({
     queryKey: ['notification-preferences'],
-    queryFn: notificationService.getPreferences,
+    queryFn: () => notificationService.getPreferences(),
   })
 
   // Update preference mutation
   const updatePreferenceMutation = useMutation({
-    mutationFn: notificationService.updatePreferences,
+    mutationFn: (pref: Parameters<typeof notificationService.updatePreferences>[0]) => notificationService.updatePreferences(pref),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notification-preferences'] })
       toast({

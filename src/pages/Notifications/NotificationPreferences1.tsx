@@ -4,7 +4,6 @@
  * Channels are auto-assigned by criticality defaults.
  */
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import { notificationCategories } from '@/lib/notifications/categories'
@@ -45,11 +44,11 @@ export default function NotificationPreferences1() {
 
   const { data: preferences = [], isLoading } = useQuery({
     queryKey: ['notification-preferences'],
-    queryFn: notificationService.getPreferences,
+    queryFn: () => notificationService.getPreferences(),
   })
 
   const updatePreferenceMutation = useMutation({
-    mutationFn: notificationService.updatePreferences,
+    mutationFn: (pref: Parameters<typeof notificationService.updatePreferences>[0]) => notificationService.updatePreferences(pref),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notification-preferences'] })
       toast({ title: t('saved'), description: t('preferencesSaved') })

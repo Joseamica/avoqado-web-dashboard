@@ -7,11 +7,11 @@ import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
-import { notificationCategories } from '@/lib/notifications/categories'
-import { NotificationChannel, NotificationPriority, NotificationType } from '@/services/notification.service'
+import { getAllNotificationTypes, notificationCategories } from '@/lib/notifications/categories'
+import { NotificationChannel, NotificationPriority, NotificationType, NotificationPreference } from '@/services/notification.service'
 import * as notificationService from '@/services/notification.service'
 import { canShowNotifications, requestNotificationPermission } from '@/utils/notification.utils'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   BarChart3,
   Bell,
@@ -22,8 +22,6 @@ import {
   Mail,
   Shield,
   ShoppingBag,
-  MessageSquare,
-  // Smartphone,
   Star,
   Settings,
   Users,
@@ -32,14 +30,6 @@ import { cn } from '@/lib/utils'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-
-type NotificationPreference = {
-  type: NotificationType
-  enabled: boolean
-  channels: NotificationChannel[]
-  priority: NotificationPriority
-  [key: string]: any
-}
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ShoppingBag,
@@ -55,11 +45,9 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 const channelConfig = [
   { channel: NotificationChannel.IN_APP, icon: Bell, label: 'IN_APP' },
   { channel: NotificationChannel.EMAIL, icon: Mail, label: 'EMAIL' },
-  // { channel: NotificationChannel.PUSH, icon: Smartphone, label: 'PUSH' },
-  { channel: NotificationChannel.SMS, icon: MessageSquare, label: 'SMS' },
 ]
 
-const allNotificationTypes = notificationCategories.flatMap(c => c.types)
+const allNotificationTypes = getAllNotificationTypes()
 
 export default function NotificationPreferences5() {
   const { toast } = useToast()
@@ -199,7 +187,6 @@ export default function NotificationPreferences5() {
 
       if (action === 'disable') {
         newChannels = currentChannels.filter(c => c !== channel)
-        if (newChannels.length === 0) continue
       } else {
         if (currentChannels.includes(channel)) continue
         newChannels = [...currentChannels, channel]
@@ -237,7 +224,6 @@ export default function NotificationPreferences5() {
     let newChannels: NotificationChannel[]
     if (currentChannels.includes(channel)) {
       newChannels = currentChannels.filter(c => c !== channel)
-      if (newChannels.length === 0) return
     } else {
       newChannels = [...currentChannels, channel]
     }
@@ -278,9 +264,9 @@ export default function NotificationPreferences5() {
       <div className="mb-4">
         <h2 className="text-sm font-semibold text-foreground mb-1">{t('channels')}</h2>
         <p className="text-xs text-muted-foreground mb-3">
-          Desactiva un canal para dejar de recibir notificaciones por esa vía.
+          {t('channelsDescription')}
         </p>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {channelConfig.map(ch => {
             const isActive = isChannelGloballyActive(ch.channel)
             const count = channelUsageCount[ch.channel] || 0
@@ -309,8 +295,8 @@ export default function NotificationPreferences5() {
                 <span className="text-sm font-medium text-foreground block">{t(`channelNames.${ch.label}`)}</span>
                 <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
                   {isActive
-                    ? `${count} ${count === 1 ? 'notificación' : 'notificaciones'}`
-                    : 'Desactivado'}
+                    ? t('notificationCount', { count })
+                    : t('disabled')}
                 </p>
               </div>
             )
@@ -400,11 +386,6 @@ export default function NotificationPreferences5() {
                               <span className="text-sm font-medium text-foreground">
                                 {t(`types.${typeData.type}`)}
                               </span>
-                              {!typeData.canDisable && (
-                                <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                                  {t('required')}
-                                </span>
-                              )}
                             </div>
                             <p className="text-xs text-muted-foreground mt-0.5">
                               {t(`typeDescriptions.${typeData.type}`)}
@@ -413,7 +394,7 @@ export default function NotificationPreferences5() {
                           <Switch
                             checked={isEnabled}
                             onCheckedChange={enabled => handleToggle(typeData.type, enabled)}
-                            disabled={!typeData.canDisable || pendingKeys.has(`toggle-${typeData.type}`)}
+                            disabled={pendingKeys.has(`toggle-${typeData.type}`)}
                           />
                         </div>
 
@@ -490,16 +471,16 @@ export default function NotificationPreferences5() {
         onOpenChange={open => setConfirmDialog(prev => ({ ...prev, open }))}
         title={
           confirmDialog.action === 'disable'
-            ? `¿Desactivar ${confirmDialog.channelLabel}?`
-            : `¿Activar ${confirmDialog.channelLabel}?`
+            ? t('confirmDisableChannel', { channel: confirmDialog.channelLabel })
+            : t('confirmEnableChannel', { channel: confirmDialog.channelLabel })
         }
         description={
           confirmDialog.action === 'disable'
-            ? `Dejarás de recibir todas las notificaciones por ${confirmDialog.channelLabel}. Puedes volver a activarlo en cualquier momento.`
-            : `Activarás ${confirmDialog.channelLabel} para todas las notificaciones habilitadas.`
+            ? t('confirmDisableChannelDesc', { channel: confirmDialog.channelLabel })
+            : t('confirmEnableChannelDesc', { channel: confirmDialog.channelLabel })
         }
-        confirmText={confirmDialog.action === 'disable' ? 'Desactivar' : 'Activar'}
-        cancelText="Cancelar"
+        confirmText={confirmDialog.action === 'disable' ? t('disable') : t('enable')}
+        cancelText={t('cancel')}
         variant={confirmDialog.action === 'disable' ? 'destructive' : 'default'}
         onConfirm={executeMasterChannelToggle}
       />

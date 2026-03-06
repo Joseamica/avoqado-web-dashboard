@@ -1049,10 +1049,15 @@
     },
     "step2": {
       "title": "Agregar Ingredientes",
-      "noIngredients": "Aún no has agregado ingredientes. Haz clic en \"Agregar Ingrediente\" para comenzar.",
+      "noIngredients": "Busca y agrega materias primas para esta receta",
       "notesPlaceholder": "Instrucciones de preparación, notas de cocina, etc.",
       "costSummary": "Resumen de Costos",
-      "advancedConfig": "Configuración avanzada"
+      "advancedConfig": "Configuración avanzada",
+      "searchIngredientPlaceholder": "Buscar materia prima por nombre...",
+      "createRawMaterial": "Crear materia prima",
+      "alreadyAdded": "Ya agregado",
+      "addToRecipe": "Agregar",
+      "moreOptions": "Más opciones"
     },
     "step3": {
       "title": "Revisar y Confirmar",

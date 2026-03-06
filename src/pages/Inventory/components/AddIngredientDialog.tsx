@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { recipesApi, rawMaterialsApi, type RawMaterial } from '@/services/inventory.service'
 import { getModifierGroups } from '@/services/menu.service'
-import { Loader2, Search, RefreshCw, Plus, Package, ChevronDown, X, ArrowUpDown, ArrowUp, ArrowDown, Sparkles, Layers, Box } from 'lucide-react'
+import { Loader2, Search, RefreshCw, Plus, Package, ChevronDown, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { Currency } from '@/utils/currency'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { QuickCreateRawMaterialSheet } from './QuickCreateRawMaterialSheet'
@@ -500,7 +500,7 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
               </div>
             ) : (
               /* Step 2: Configure Quantity */
-              <div className="flex-1 space-y-4">
+              <div className="flex-1 space-y-5">
                 {/* Selected Ingredient Card */}
                 <div className="flex items-center gap-3 p-4 rounded-xl border border-primary/30 bg-primary/5">
                   <div className="text-2xl">
@@ -525,7 +525,7 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
                   </Button>
                 </div>
 
-                {/* Quantity Input - Main Focus */}
+                {/* Quantity + Cost Row */}
                 <div className="space-y-2">
                   <Label htmlFor="quantity">{t('recipes.ingredients.quantity')} *</Label>
                   <div className="relative">
@@ -542,11 +542,26 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
                       {formatUnit(selectedRawMaterial.unit)}
                     </span>
                   </div>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>
+                      {t('recipes.preview.currentStock', 'Stock actual')}: {Number(selectedRawMaterial.currentStock).toFixed(2)} {formatUnit(selectedRawMaterial.unit)}
+                      {quantity > 0 && Number(selectedRawMaterial.currentStock) < quantity && (
+                        <span className="text-amber-600 dark:text-amber-400 font-medium ml-1.5">
+                          — {t('recipes.preview.lowStock', 'Stock bajo')}
+                        </span>
+                      )}
+                    </span>
+                    {estimatedCost > 0 && (
+                      <span>
+                        {t('recipes.ingredients.cost')}: <span className="font-semibold text-foreground">{Currency(estimatedCost)}</span>
+                      </span>
+                    )}
+                  </div>
                   {errors.quantity && <p className="text-xs text-destructive">{t('validation.requiredMinValue', { value: '0.01' })}</p>}
                 </div>
 
-                {/* Optional Checkbox */}
-                <div className="flex items-center space-x-2 py-1">
+                {/* Optional */}
+                <div className="flex items-center space-x-2">
                   <Checkbox
                     id="isOptional"
                     checked={isOptional}
@@ -558,146 +573,68 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
                   </Label>
                 </div>
 
-                {/* Advanced Options - Collapsible */}
+                {/* Substitute Notes */}
+                <div className="space-y-2">
+                  <Label htmlFor="substituteNotes" className="text-sm">
+                    {t('recipes.ingredients.substituteNotes')}
+                  </Label>
+                  <Textarea id="substituteNotes" rows={2} {...register('substituteNotes')} placeholder={t('recipes.ingredients.substituteNotesPlaceholder', 'Ej: Se puede reemplazar por...')} />
+                </div>
+
+                {/* Variable Ingredient — Collapsible */}
                 <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
                   <CollapsibleTrigger asChild>
-                    <Button type="button" variant="ghost" size="sm" className="w-full justify-between text-muted-foreground">
-                      <span>{t('common:advancedOptions', { defaultValue: 'Opciones avanzadas' })}</span>
-                      <ChevronDown className={`h-4 w-4 transition-transform ${advancedOpen ? 'rotate-180' : ''}`} />
-                    </Button>
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      <span>{t('recipes.ingredients.variableIngredient', 'Ingrediente Variable')}</span>
+                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${advancedOpen ? 'rotate-180' : ''}`} />
+                    </button>
                   </CollapsibleTrigger>
-                  <CollapsibleContent className="space-y-4 pt-2">
-                    {/* Variable Ingredient */}
-                    <div className="space-y-3 p-3 rounded-lg border border-border">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="isVariable" className="text-sm font-medium flex items-center gap-2">
-                            <RefreshCw className="h-4 w-4" />
-                            {t('recipes.ingredients.variableIngredient', 'Ingrediente Variable')}
-                          </Label>
-                          <p className="text-xs text-muted-foreground">
-                            {t('recipes.ingredients.variableIngredientDesc', 'Permite a los clientes sustituir este ingrediente')}
-                          </p>
-                        </div>
-                        <Switch id="isVariable" checked={isVariable} onCheckedChange={checked => setValue('isVariable', checked)} />
+                  <CollapsibleContent className="pt-3 space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-lg border border-input">
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-medium">
+                          {t('recipes.ingredients.variableIngredient', 'Ingrediente Variable')}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {t('recipes.ingredients.variableIngredientDesc', 'Permite a los clientes sustituir este ingrediente')}
+                        </p>
                       </div>
-
-                      {isVariable && (
-                        <div className="space-y-2 pt-2 border-t">
-                          <Label className="text-xs">{t('recipes.ingredients.linkedModifierGroup', 'Grupo de Modificadores')}</Label>
-                          <Select value={linkedModifierGroupId || ''} onValueChange={value => setValue('linkedModifierGroupId', value || null)}>
-                            <SelectTrigger className="h-9">
-                              <SelectValue placeholder={t('recipes.ingredients.selectModifierGroup', 'Seleccionar grupo...')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {modifierGroupsLoading ? (
-                                <div className="flex items-center justify-center py-4">
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                </div>
-                              ) : substitutionModifierGroups.length > 0 ? (
-                                substitutionModifierGroups.map(group => (
-                                  <SelectItem key={group.id} value={group.id}>
-                                    {group.name}
-                                  </SelectItem>
-                                ))
-                              ) : (
-                                <div className="px-2 py-4 text-xs text-muted-foreground text-center">
-                                  {t('recipes.ingredients.noSubstitutionGroups', 'No hay grupos con modificadores de sustitución')}
-                                </div>
-                              )}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
+                      <Switch id="isVariable" checked={isVariable} onCheckedChange={checked => setValue('isVariable', checked)} />
                     </div>
 
-                    {/* Substitute Notes */}
-                    <div className="space-y-2">
-                      <Label htmlFor="substituteNotes" className="text-sm">
-                        {t('recipes.ingredients.substituteNotes')}
-                      </Label>
-                      <Textarea id="substituteNotes" rows={2} {...register('substituteNotes')} placeholder={t('recipes.ingredients.substituteNotes')} />
-                    </div>
+                    {isVariable && (
+                      <div className="space-y-2">
+                        <Label className="text-xs">{t('recipes.ingredients.linkedModifierGroup', 'Grupo de Modificadores')}</Label>
+                        <Select value={linkedModifierGroupId || ''} onValueChange={value => setValue('linkedModifierGroupId', value || null)}>
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder={t('recipes.ingredients.selectModifierGroup', 'Seleccionar grupo...')} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {modifierGroupsLoading ? (
+                              <div className="flex items-center justify-center py-4">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              </div>
+                            ) : substitutionModifierGroups.length > 0 ? (
+                              substitutionModifierGroups.map(group => (
+                                <SelectItem key={group.id} value={group.id}>
+                                  {group.name}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <div className="px-2 py-4 text-xs text-muted-foreground text-center">
+                                {t('recipes.ingredients.noSubstitutionGroups', 'No hay grupos con modificadores de sustitución')}
+                              </div>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </CollapsibleContent>
                 </Collapsible>
-
-                {/* Live Preview Card */}
-                <div className="rounded-xl border border-dashed bg-muted/30 p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
-                    <Sparkles className="h-4 w-4" />
-                    <span>{t('recipes.preview.title', 'Vista previa')}</span>
-                  </div>
-
-                  <div className="space-y-3">
-                    {/* Ingredient preview */}
-                    <div className="flex items-start gap-3">
-                      <span className="text-xl">{getCategoryEmoji(selectedRawMaterial.category)}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm">{selectedRawMaterial.name}</p>
-                        {quantity > 0 && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {t('recipes.preview.uses', 'Usa')} {quantity} {formatUnit(selectedRawMaterial.unit)}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Stock info */}
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-background/50 border border-border/50">
-                      <Box className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">{t('recipes.preview.currentStock', 'Stock actual')}:</span>
-                      <span className="text-xs font-semibold">
-                        {Number(selectedRawMaterial.currentStock).toFixed(2)} {formatUnit(selectedRawMaterial.unit)}
-                      </span>
-                      {quantity > 0 && Number(selectedRawMaterial.currentStock) < quantity && (
-                        <span className="text-xs text-amber-600 dark:text-amber-400 font-medium ml-auto">
-                          ⚠️ {t('recipes.preview.lowStock', 'Stock bajo')}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Badges */}
-                    <div className="flex flex-wrap gap-2">
-                      {isOptional && (
-                        <span className="rounded-full border px-2.5 py-1 text-xs text-muted-foreground">
-                          {t('recipes.ingredients.optional')}
-                        </span>
-                      )}
-                      {isVariable && (
-                        <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                          <RefreshCw className="h-3 w-3" />
-                          {t('recipes.ingredients.variableIngredient', 'Variable')}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Linked modifier group preview */}
-                    {isVariable && linkedModifierGroupId && (
-                      <div className="space-y-2 pt-2 border-t border-dashed">
-                        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                          <Layers className="h-3.5 w-3.5" />
-                          {t('recipes.preview.linkedGroup', 'Grupo vinculado')}:
-                        </p>
-                        <div className="rounded-lg border px-3 py-2 bg-background/50">
-                          <p className="text-sm font-medium">
-                            {modifierGroups?.find(g => g.id === linkedModifierGroupId)?.name || '...'}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {t('recipes.preview.customerCanSubstitute', 'El cliente podrá sustituir este ingrediente')}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Cost preview */}
-                    {estimatedCost > 0 && (
-                      <div className="flex items-center justify-between pt-2 border-t border-dashed">
-                        <span className="text-xs text-muted-foreground">{t('recipes.ingredients.cost')}</span>
-                        <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{Currency(estimatedCost)}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
             )}
 

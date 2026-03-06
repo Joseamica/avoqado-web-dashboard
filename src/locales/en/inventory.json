@@ -1049,10 +1049,15 @@
     },
     "step2": {
       "title": "Add Ingredients",
-      "noIngredients": "You haven't added any ingredients yet. Click \"Add Ingredient\" to get started.",
+      "noIngredients": "Search and add raw materials for this recipe",
       "notesPlaceholder": "Preparation instructions, cooking notes, etc.",
       "costSummary": "Cost Summary",
-      "advancedConfig": "Advanced settings"
+      "advancedConfig": "Advanced settings",
+      "searchIngredientPlaceholder": "Search raw material by name...",
+      "createRawMaterial": "Create raw material",
+      "alreadyAdded": "Already added",
+      "addToRecipe": "Add",
+      "moreOptions": "More options"
     },
     "step3": {
       "title": "Review & Confirm",
