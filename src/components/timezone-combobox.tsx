@@ -10,7 +10,7 @@
 
 import { useState } from 'react'
 import { Check, ChevronsUpDown } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   Command,
@@ -44,9 +44,9 @@ export function TimezoneCombobox({ value, onValueChange, disabled }: TimezoneCom
   const filteredTimezones = searchQuery
     ? TIMEZONES.filter(
         tz =>
-          tz.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          tz.value.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          tz.country.toLowerCase().includes(searchQuery.toLowerCase()),
+          includesNormalized(tz.label, searchQuery) ||
+          includesNormalized(tz.value, searchQuery) ||
+          includesNormalized(tz.country, searchQuery),
       )
     : TIMEZONES
 

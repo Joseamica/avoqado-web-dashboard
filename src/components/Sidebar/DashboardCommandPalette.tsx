@@ -1,6 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LogOut } from 'lucide-react'
+import { useCommandState } from 'cmdk'
 import {
   CommandDialog,
   CommandInput,
@@ -10,6 +11,7 @@ import {
   CommandItem,
   CommandSeparator,
 } from '@/components/ui/command'
+import { normalizeSearch, includesNormalized } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 import type { NavItem } from '@/components/Sidebar/nav-main'
 
@@ -19,6 +21,40 @@ interface DashboardCommandPaletteProps {
   navItems: NavItem[]
   hiddenSidebarItems?: string[]
   isSuperadmin?: boolean
+}
+
+/** Substring-based filter: every search word must appear in the value (accent-insensitive). */
+function substringFilter(value: string, search: string): number {
+  const v = normalizeSearch(value)
+  const words = normalizeSearch(search).trim().split(/\s+/)
+  return words.every(word => v.includes(word)) ? 1 : 0
+}
+
+function SynonymHint({ title, parentTitle, keywords, parentKeywords }: { title: string; parentTitle?: string; keywords?: string[]; parentKeywords?: string[] }) {
+  const search = useCommandState(state => state.search)
+  if (!search) return null
+  const s = normalizeSearch(search).trim()
+  if (!s) return null
+  // If search matches the title or parent title directly, no hint needed
+  if (normalizeSearch(title).includes(s)) return null
+  if (parentTitle && normalizeSearch(parentTitle).includes(s)) return null
+  // Check if it matches a sub-item keyword → show sub-item title
+  if (keywords?.some(kw => includesNormalized(kw, s))) {
+    return (
+      <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+        &ldquo;{search.trim()}&rdquo; → {title}
+      </span>
+    )
+  }
+  // Check if it matches a parent keyword → show parent title
+  if (parentTitle && parentKeywords?.some(kw => includesNormalized(kw, s))) {
+    return (
+      <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+        &ldquo;{search.trim()}&rdquo; → {parentTitle}
+      </span>
+    )
+  }
+  return null
 }
 
 const DashboardCommandPalette: React.FC<DashboardCommandPaletteProps> = ({
@@ -44,7 +80,7 @@ const DashboardCommandPalette: React.FC<DashboardCommandPaletteProps> = ({
   })
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange} contentClassName="max-w-2xl">
+    <CommandDialog open={open} onOpenChange={onOpenChange} contentClassName="max-w-2xl" filter={substringFilter}>
       <CommandInput placeholder="Buscar páginas, secciones..." />
       <CommandList className="max-h-[min(60vh,500px)]">
         <CommandEmpty>Sin resultados.</CommandEmpty>
@@ -67,14 +103,22 @@ const DashboardCommandPalette: React.FC<DashboardCommandPaletteProps> = ({
             if (visibleSubItems.length > 0) {
               return (
                 <React.Fragment key={item.url}>
-                  {visibleSubItems.map(sub => (
-                    <CommandItem key={sub.url} value={`${item.title} ${sub.title}`} onSelect={() => handleSelect(sub.url)}>
-                      {Icon && <Icon className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />}
-                      <span className="text-muted-foreground">{item.title}</span>
-                      <span className="mx-1 text-muted-foreground/50">/</span>
-                      <span>{sub.title}</span>
-                    </CommandItem>
-                  ))}
+                  {visibleSubItems.map(sub => {
+                    const allKeywords = [...(sub.keywords || []), ...(item.keywords || [])]
+                    return (
+                      <CommandItem
+                        key={sub.url}
+                        value={[item.title, sub.title, ...allKeywords].join(' ')}
+                        onSelect={() => handleSelect(sub.url)}
+                      >
+                        {Icon && <Icon className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />}
+                        <span className="text-muted-foreground">{item.title}</span>
+                        <span className="mx-1 text-muted-foreground/50">/</span>
+                        <span>{sub.title}</span>
+                        <SynonymHint title={sub.title} parentTitle={item.title} keywords={sub.keywords} parentKeywords={item.keywords} />
+                      </CommandItem>
+                    )
+                  })}
                 </React.Fragment>
               )
             }
@@ -84,9 +128,14 @@ const DashboardCommandPalette: React.FC<DashboardCommandPaletteProps> = ({
             if (item.url.startsWith('#')) return null
 
             return (
-              <CommandItem key={item.url} value={item.title} onSelect={() => handleSelect(item.url)}>
+              <CommandItem
+                key={item.url}
+                value={[item.title, ...(item.keywords || [])].join(' ')}
+                onSelect={() => handleSelect(item.url)}
+              >
                 {Icon && <Icon className="mr-2 h-4 w-4 shrink-0" />}
                 <span>{item.title}</span>
+                <SynonymHint title={item.title} keywords={item.keywords} parentKeywords={[]} />
               </CommandItem>
             )
           })}

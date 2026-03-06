@@ -4,7 +4,7 @@ import * as React from 'react'
 import { forwardRef, useEffect } from 'react'
 
 import { Command, CommandGroup, CommandItem, CommandList } from '@/components/ui/command'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import { Badge } from './ui/badge'
 
 export interface Option {
@@ -406,7 +406,7 @@ const MultipleSelector = React.forwardRef<MultipleSelectorRef, MultipleSelectorP
 
       if (creatable) {
         return (value: string, search: string) => {
-          return value.toLowerCase().includes(search.toLowerCase()) ? 1 : -1
+          return includesNormalized(value, search) ? 1 : -1
         }
       }
       // Using default filter in `cmdk`. We don't have to provide it.

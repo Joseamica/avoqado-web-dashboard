@@ -277,7 +277,7 @@ export function AppSidebar({
     // Define all possible items with their required permissions and features
     const allItems = [
       // ── Main (no group label) ──
-      { title: t('sidebar:routes.home'), isActive: true, url: 'home', icon: Home, permission: 'home:read', locked: false, group: 'main' },
+      { title: t('sidebar:routes.home'), isActive: true, url: 'home', icon: Home, permission: 'home:read', locked: false, group: 'main', keywords: ['inicio', 'dashboard', 'resumen', 'panel'] },
 
       // ── Operaciones ──
       {
@@ -288,11 +288,12 @@ export function AppSidebar({
         permission: 'menu:read',
         locked: false,
         group: 'operations',
+        keywords: ['carta', 'menu', 'platillos'],
         items: [
           { title: t('menu:menumaker.nav.overview'), url: 'menumaker/overview', permission: 'menu:read' },
           { title: t('menu:menumaker.nav.menus'), url: 'menumaker/menus', permission: 'menu:read' },
-          { title: t('menu:menumaker.nav.categories'), url: 'menumaker/categories', permission: 'menu:read' },
-          { title: t('menu:menumaker.nav.products'), url: 'menumaker/products', permission: 'menu:read' },
+          { title: t('menu:menumaker.nav.categories'), url: 'menumaker/categories', permission: 'menu:read', keywords: ['secciones', 'grupos'] },
+          { title: t('menu:menumaker.nav.products'), url: 'menumaker/products', permission: 'menu:read', keywords: ['platillos', 'articulos', 'items'] },
           { title: t('menu:menumaker.nav.services'), url: 'menumaker/services', permission: 'menu:read' },
           { title: t('menu:menumaker.nav.modifierGroups'), url: 'menumaker/modifier-groups', permission: 'menu:read' },
         ],
@@ -306,13 +307,14 @@ export function AppSidebar({
         locked: !hasKYCAccess,
         requiredFeature: 'INVENTORY_TRACKING',
         group: 'operations',
+        keywords: ['almacen', 'bodega', 'stock'],
         items: [
-          { title: 'Resumen de existencias', url: 'inventory/stock-overview', permission: 'inventory:read' },
-          { title: 'Historial', url: 'inventory/history', permission: 'inventory:read' },
-          { title: 'Pedidos', url: 'inventory/purchase-orders', permission: 'inventory:read' },
-          { title: 'Proveedores', url: 'inventory/suppliers', permission: 'inventory:read' },
-          { title: 'Ingredientes', url: 'inventory/ingredients', permission: 'inventory:read' },
-          { title: t('sidebar:routes.recipes', { defaultValue: 'Recetas' }), url: 'inventory/recipes', permission: 'inventory:read' },
+          { title: 'Resumen de existencias', url: 'inventory/stock-overview', permission: 'inventory:read', keywords: ['stock', 'materia prima', 'almacen'] },
+          { title: 'Historial', url: 'inventory/history', permission: 'inventory:read', keywords: ['movimientos', 'registro'] },
+          { title: 'Pedidos', url: 'inventory/purchase-orders', permission: 'inventory:read', keywords: ['ordenes de compra', 'abastecimiento'] },
+          { title: 'Proveedores', url: 'inventory/suppliers', permission: 'inventory:read', keywords: ['suppliers', 'compras', 'abastecimiento'] },
+          { title: 'Ingredientes', url: 'inventory/ingredients', permission: 'inventory:read', keywords: ['materia prima', 'insumos', 'materiales'] },
+          { title: t('sidebar:routes.recipes', { defaultValue: 'Recetas' }), url: 'inventory/recipes', permission: 'inventory:read', keywords: ['preparaciones', 'formulas', 'costos'] },
           { title: 'Modificadores', url: 'inventory/modifier-analytics', permission: 'inventory:read' },
           { title: 'Recuentos de existencias', url: 'inventory/counts', permission: 'inventory:read', comingSoon: true },
           { title: 'Reabastecimientos pendientes', url: 'inventory/restocks', permission: 'inventory:read', comingSoon: true },
@@ -328,6 +330,7 @@ export function AppSidebar({
         locked: !hasKYCAccess,
         requiresShiftsEnabled: true,
         group: 'operations',
+        keywords: ['horarios', 'turnos', 'reloj checador', 'cortes de caja', 'caja', 'cierre', 'arqueo'],
       },
       {
         title: t('sidebar:routes.tpv'),
@@ -337,6 +340,7 @@ export function AppSidebar({
         permission: 'tpv:read',
         locked: !hasKYCAccess,
         group: 'operations',
+        keywords: ['terminal', 'punto de venta', 'pos', 'dispositivo'],
       },
       {
         title: t('sidebar:routes.reservations'),
@@ -346,10 +350,11 @@ export function AppSidebar({
         permission: 'reservations:read',
         locked: false,
         group: 'operations',
+        keywords: ['reservas', 'mesas', 'booking'],
         items: [
           { title: t('sidebar:reservationsMenu.overview'), url: 'reservations', permission: 'reservations:read' },
           { title: t('sidebar:reservationsMenu.calendar'), url: 'reservations/calendar', permission: 'reservations:read' },
-          { title: t('sidebar:reservationsMenu.waitlist'), url: 'reservations/waitlist', permission: 'reservations:read' },
+          { title: t('sidebar:reservationsMenu.waitlist'), url: 'reservations/waitlist', permission: 'reservations:read', keywords: ['lista de espera', 'fila'] },
           { title: t('sidebar:reservationsMenu.settings'), url: 'reservations/settings', permission: 'reservations:read' },
         ],
       },
@@ -363,6 +368,7 @@ export function AppSidebar({
         permission: 'teams:read',
         locked: false,
         group: 'people',
+        keywords: ['usuarios', 'empleados', 'meseros', 'personal', 'staff', 'recursos humanos'],
       },
       {
         title: t('sidebar:routes.commissions'),
@@ -372,8 +378,9 @@ export function AppSidebar({
         permission: 'commissions:read',
         locked: !hasKYCAccess,
         group: 'people',
+        keywords: ['propinas', 'bonos', 'metas', 'goals'],
       },
-      { title: t('sidebar:routes.reviews'), isActive: true, url: 'reviews', icon: Star, permission: 'reviews:read', locked: false, group: 'people' },
+      { title: t('sidebar:routes.reviews'), isActive: true, url: 'reviews', icon: Star, permission: 'reviews:read', locked: false, group: 'people', keywords: ['comentarios', 'opiniones', 'calificaciones', 'feedback', 'ratings'] },
     ]
 
     // Map of standard sidebar URLs to their white-label feature codes
@@ -429,12 +436,13 @@ export function AppSidebar({
     // Sales submenu (Ventas) - Orders and Transactions grouped together
     // Following Square's "Orders & payments" pattern for better UX
     const salesSubItems = [
-      { title: term('orderPlural'), url: 'orders', permission: 'orders:read', whiteLabelFeature: 'AVOQADO_ORDERS' },
+      { title: term('orderPlural'), url: 'orders', permission: 'orders:read', whiteLabelFeature: 'AVOQADO_ORDERS', keywords: ['ordenes', 'comandas', 'tickets'] },
       {
         title: t('sidebar:salesMenu.transactions', { defaultValue: 'Transacciones' }),
         url: 'payments',
         permission: 'payments:read',
         whiteLabelFeature: 'AVOQADO_PAYMENTS',
+        keywords: ['cobros', 'pagos', 'dinero'],
       },
     ].filter(item => {
       // Check permission
@@ -457,14 +465,15 @@ export function AppSidebar({
         items: salesSubItems,
         permission: null as any,
         group: 'operations',
+        keywords: ['pedidos', 'cobros', 'pagos'],
       } as any)
     }
 
     // Customers submenu - filter subitems based on permissions AND features
     const customersSubItems = [
-      { title: t('sidebar:customersMenu.all'), url: 'customers', permission: 'customers:read' },
-      { title: t('sidebar:customersMenu.groups'), url: 'customers/groups', permission: 'customer-groups:read' },
-      { title: t('sidebar:customersMenu.loyalty'), url: 'loyalty', permission: 'loyalty:read', requiredFeature: 'LOYALTY_PROGRAM' },
+      { title: t('sidebar:customersMenu.all'), url: 'customers', permission: 'customers:read', keywords: ['consumidores', 'comensales'] },
+      { title: t('sidebar:customersMenu.groups'), url: 'customers/groups', permission: 'customer-groups:read', keywords: ['segmentos'] },
+      { title: t('sidebar:customersMenu.loyalty'), url: 'loyalty', permission: 'loyalty:read', requiredFeature: 'LOYALTY_PROGRAM', keywords: ['lealtad', 'puntos', 'fidelidad'] },
     ].filter(item => {
       // Check permission
       if (item.permission && !can(item.permission)) return false
@@ -488,13 +497,14 @@ export function AppSidebar({
         items: customersSubItems,
         permission: null as any,
         group: 'people',
+        keywords: ['consumidores', 'comensales'],
       } as any)
     }
 
     // Promotions submenu - filter subitems based on permissions
     const promotionsSubItems = [
-      { title: t('sidebar:promotionsMenu.discounts'), url: 'promotions/discounts', permission: 'discounts:read' },
-      { title: t('sidebar:promotionsMenu.coupons'), url: 'promotions/coupons', permission: 'coupons:read' },
+      { title: t('sidebar:promotionsMenu.discounts'), url: 'promotions/discounts', permission: 'discounts:read', keywords: ['ofertas', 'promociones'] },
+      { title: t('sidebar:promotionsMenu.coupons'), url: 'promotions/coupons', permission: 'coupons:read', keywords: ['codigos', 'vouchers'] },
     ].filter(item => !item.permission || can(item.permission))
 
     // Only show Promotions menu if user has at least one subitem AND (not white-label OR promotions feature enabled)
@@ -510,6 +520,7 @@ export function AppSidebar({
         items: promotionsSubItems,
         permission: null as any,
         group: 'people',
+        keywords: ['ofertas', 'descuentos', 'codigos'],
       } as any)
     }
 
@@ -523,6 +534,7 @@ export function AppSidebar({
         permission: 'settlements:read',
         locked: !hasKYCAccess,
         group: 'reports',
+        keywords: ['balance', 'liquidaciones', 'depositos', 'transferencias'],
       } as any)
     }
 
@@ -534,9 +546,10 @@ export function AppSidebar({
         icon: HandCoins,
         permission: 'tpv-reports:pay-later-aging',
         group: 'reports',
+        keywords: ['pay later', 'fiado', 'deudas'],
       },
-      { title: t('sidebar:reportsMenu.salesSummary'), url: 'reports/sales-summary', icon: BarChart3, permission: 'reports:read', group: 'reports' },
-      { title: t('sidebar:reportsMenu.salesByItem'), url: 'reports/sales-by-item', icon: Receipt, permission: 'reports:read', group: 'reports' },
+      { title: t('sidebar:reportsMenu.salesSummary'), url: 'reports/sales-summary', icon: BarChart3, permission: 'reports:read', group: 'reports', keywords: ['reporte', 'ventas diarias', 'ganancias', 'ingresos'] },
+      { title: t('sidebar:reportsMenu.salesByItem'), url: 'reports/sales-by-item', icon: Receipt, permission: 'reports:read', group: 'reports', keywords: ['reporte de productos', 'items vendidos'] },
       { title: t('sidebar:reportsMenu.salesByCategory'), url: 'reports/sales-by-category', icon: Receipt, permission: 'reports:read', group: 'reports', comingSoon: true },
       { title: t('sidebar:reportsMenu.paymentMethods'), url: 'reports/payment-methods', icon: CreditCard, permission: 'reports:read', group: 'reports', comingSoon: true },
       { title: t('sidebar:reportsMenu.taxes'), url: 'reports/taxes', icon: FileSpreadsheet, permission: 'reports:read', group: 'reports', comingSoon: true },
@@ -557,17 +570,17 @@ export function AppSidebar({
 
     // Settings — flat items under "Configuración" group (no collapsible parent)
     const settingsItems = [
-      { title: t('sidebar:routes.editvenue'), url: 'edit', icon: Store, permission: 'venues:read' },
+      { title: t('sidebar:routes.editvenue'), url: 'edit', icon: Store, permission: 'venues:read', keywords: ['ajustes', 'settings', 'negocio'] },
       // Role permissions only for ADMIN+
       ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
         ? [{ title: t('sidebar:rolePermissions'), url: 'settings/role-permissions', icon: Shield, permission: null }]
         : []),
       // Billing only for ADMIN+
       ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
-        ? [{ title: t('sidebar:routes.billing'), url: 'settings/billing', icon: CreditCard, permission: 'billing:read' }]
+        ? [{ title: t('sidebar:routes.billing'), url: 'settings/billing', icon: CreditCard, permission: 'billing:read', keywords: ['facturacion', 'plan', 'suscripcion', 'cobro'] }]
         : []),
       // Notifications preferences
-      { title: t('sidebar:routes.notifications'), url: 'notifications/preferences', icon: Settings2, permission: 'settings:read' },
+      { title: t('sidebar:routes.notifications'), url: 'notifications/preferences', icon: Settings2, permission: 'settings:read', keywords: ['alertas', 'avisos', 'preferencias'] },
     ].filter(item => !item.permission || can(item.permission))
 
     // Only add settings if user has at least one item AND (not white-label OR settings feature enabled)

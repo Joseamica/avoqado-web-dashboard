@@ -9,7 +9,7 @@
 
 import { useState } from 'react'
 import { Check, ChevronsUpDown } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   Command,
@@ -49,9 +49,7 @@ export function BusinessTypeCombobox({ value, onValueChange, disabled }: Busines
 
   // Filter based on search query
   const filteredTypes = searchQuery
-    ? businessTypes.filter(type =>
-        type.label.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+    ? businessTypes.filter(type => includesNormalized(type.label, searchQuery))
     : businessTypes
 
   const displayValue = value

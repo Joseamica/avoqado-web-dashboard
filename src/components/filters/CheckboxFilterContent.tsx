@@ -1,6 +1,6 @@
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import { Search } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import { FilterPopoverHeader, FilterPopoverFooter } from './FilterPill'
@@ -44,8 +44,7 @@ export function CheckboxFilterContent({
 
   const filteredOptions = useMemo(() => {
     if (!searchTerm) return options
-    const lower = searchTerm.toLowerCase()
-    return options.filter(opt => opt.label.toLowerCase().includes(lower))
+    return options.filter(opt => includesNormalized(opt.label, searchTerm))
   }, [options, searchTerm])
 
   const handleToggle = (value: string) => {

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import { Check, ChevronsUpDown, Loader2, X } from 'lucide-react'
 
 interface Option {
@@ -34,7 +34,7 @@ export function MultiSelectCombobox({
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
 
-  const filtered = options.filter(option => option.label.toLowerCase().includes(search.toLowerCase()))
+  const filtered = options.filter(option => includesNormalized(option.label, search))
 
   return (
     <div className={cn('space-y-2', className)}>

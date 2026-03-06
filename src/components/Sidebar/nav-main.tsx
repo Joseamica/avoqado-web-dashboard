@@ -24,6 +24,7 @@ export type NavSubItem = {
   superadminOnly?: boolean
   permission?: string | null
   comingSoon?: boolean
+  keywords?: string[]
 }
 
 export type NavItem = {
@@ -38,6 +39,7 @@ export type NavItem = {
   items?: NavSubItem[]
   group?: string
   comingSoon?: boolean
+  keywords?: string[]
 }
 
 type SuperadminNavItem = {

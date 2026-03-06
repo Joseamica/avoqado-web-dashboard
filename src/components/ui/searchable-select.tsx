@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 
 export interface SearchableSelectOption {
   value: string
@@ -62,7 +62,7 @@ export function SearchableSelect({
       return options.filter(opt => filterFn(opt, searchLower))
     }
 
-    return options.filter(opt => opt.label.toLowerCase().includes(searchLower))
+    return options.filter(opt => includesNormalized(opt.label, searchLower))
   }, [options, search, filterFn, showSearch])
 
   return (

@@ -12,7 +12,7 @@ import { useEffect } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Command, CommandGroup, CommandItem, CommandList } from '@/components/ui/command'
 import { Separator } from '@/components/ui/separator'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 
 /* -----------------------------------------
    Original MultipleSelector types & utils
@@ -425,7 +425,7 @@ const DnDMultipleSelector = React.forwardRef<MultipleSelectorRef, DnDMultipleSel
     const commandFilter = React.useCallback(() => {
       if (commandProps?.filter) return commandProps.filter
       if (creatable) {
-        return (value: string, search: string) => (value.toLowerCase().includes(search.toLowerCase()) ? 1 : -1)
+        return (value: string, search: string) => (includesNormalized(value, search) ? 1 : -1)
       }
       return undefined
     }, [creatable, commandProps?.filter])
