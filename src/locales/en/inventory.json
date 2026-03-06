@@ -87,7 +87,15 @@
       "shelfLifeDays": "Shelf Life (days)",
       "notifyOnLowStock": "Notify when stock is low",
       "active": "Active",
-      "description": "Description"
+      "description": "Description",
+      "suppliers": "Suppliers",
+      "suppliersPlaceholder": "Search and select suppliers...",
+      "noSuppliersFound": "No suppliers found",
+      "suppliersHint": "Select the suppliers that provide this ingredient"
+    },
+    "validation": {
+      "gtinDuplicate": "An ingredient with this GTIN code already exists in this venue",
+      "skuDuplicate": "An ingredient with this SKU already exists in this venue"
     },
     "categories": {
       "MEAT": "Meat",
@@ -271,7 +279,7 @@
     "fields": {
       "product": "Product",
       "currentPrice": "Current Price",
-      "portionYield": "How many portions does this recipe make?",
+      "portionYield": "Portions per recipe",
       "prepTime": "Prep Time (min)",
       "cookTime": "Cook Time (min)",
       "notes": "Notes",
@@ -284,7 +292,8 @@
       "examples": "More examples:",
       "example1": "Hamburger = 1 portion",
       "example2": "Large Pizza = 8 portions (8 slices)",
-      "example3": "Pitcher of lemonade = 6 portions (6 glasses)"
+      "example3": "Pitcher of lemonade = 6 portions (6 glasses)",
+      "hint": "Ex: 8-slice pizza = 8"
     },
     "ingredients": {
       "title": "Ingredients",
@@ -1031,15 +1040,19 @@
       "title": "Select Product",
       "header": "Select a Product",
       "description": "Choose a product from your menu that doesn't have a recipe yet. You'll add ingredients and calculate costs in the following steps.",
-      "searchPlaceholder": "Search products by name or category...",
+      "searchPlaceholder": "Enter product name, SKU or GTIN...",
       "allHaveRecipes": "All products have recipes!",
-      "allHaveRecipesDesc": "All your products already have recipes configured. You can edit them from the main table."
+      "allHaveRecipesDesc": "All your products already have recipes configured. You can edit them from the main table.",
+      "hasRecipe": "Has recipe",
+      "noProducts": "No products available",
+      "createProduct": "Create \"{{name}}\" as a new product"
     },
     "step2": {
       "title": "Add Ingredients",
       "noIngredients": "You haven't added any ingredients yet. Click \"Add Ingredient\" to get started.",
       "notesPlaceholder": "Preparation instructions, cooking notes, etc.",
-      "costSummary": "Cost Summary"
+      "costSummary": "Cost Summary",
+      "advancedConfig": "Advanced settings"
     },
     "step3": {
       "title": "Review & Confirm",

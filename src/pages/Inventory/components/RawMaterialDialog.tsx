@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,10 +9,12 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { SearchableSelect, type SearchableSelectOption } from '@/components/ui/searchable-select'
+import { MultiSelectCombobox } from '@/components/multi-select-combobox'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { rawMaterialsApi, type RawMaterial, type CreateRawMaterialDto } from '@/services/inventory.service'
-import { Loader2, Info, Package, DollarSign, BarChart3, FileText, Wand2, Sparkles, Timer } from 'lucide-react'
+import { supplierService } from '@/services/supplier.service'
+import { Loader2, Info, Package, DollarSign, BarChart3, FileText, Wand2, Sparkles, Timer, Truck } from 'lucide-react'
 import { ALL_UNIT_OPTIONS, RAW_MATERIAL_CATEGORY_OPTIONS } from '@/lib/inventory-constants'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
@@ -70,6 +72,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
     reset,
     setValue,
     watch,
+    setError,
     formState: { errors },
   } = useForm<CreateRawMaterialDto>({
     defaultValues: {
@@ -96,6 +99,32 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
 
   // State for SKU generation loading
   const [isGeneratingSku, setIsGeneratingSku] = useState(false)
+
+  // Supplier selection state
+  const [selectedSuppliers, setSelectedSuppliers] = useState<{ label: string; value: string }[]>([])
+
+  // Fetch raw material detail (includes supplierPricing) when editing
+  const { data: rawMaterialDetail } = useQuery({
+    queryKey: ['rawMaterial', venueId, rawMaterial?.id],
+    queryFn: () => rawMaterialsApi.getById(venueId, rawMaterial!.id),
+    enabled: !!venueId && open && mode === 'edit' && !!rawMaterial?.id,
+  })
+
+  // Fetch suppliers
+  const { data: suppliersData, isLoading: isSuppliersLoading } = useQuery({
+    queryKey: ['suppliers', venueId],
+    queryFn: () => supplierService.getSuppliers(venueId, { active: true }),
+    enabled: !!venueId && open,
+  })
+
+  const supplierOptions = useMemo(() => {
+    const list = suppliersData?.data ?? suppliersData ?? []
+    if (!Array.isArray(list)) return []
+    return list.map((s: { id: string; name: string }) => ({
+      value: s.id,
+      label: s.name,
+    }))
+  }, [suppliersData])
 
   // Purchase cost calculator state
   const [purchasePrice, setPurchasePrice] = useState('')
@@ -212,8 +241,26 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
       setPurchaseQty('')
       setPurchaseUnit('')
       setManualCostMode(false)
+
+      // Suppliers are pre-populated via the detail query effect below
+      if (mode === 'create') {
+        setSelectedSuppliers([])
+      }
     }
   }, [open, mode, rawMaterial, reset])
+
+  // Pre-populate suppliers when raw material detail loads (has supplierPricing)
+  useEffect(() => {
+    if (mode === 'edit' && rawMaterialDetail) {
+      const detail = rawMaterialDetail?.data?.data || rawMaterialDetail?.data || rawMaterialDetail
+      if (detail?.supplierPricing && Array.isArray(detail.supplierPricing)) {
+        const existing = detail.supplierPricing
+          .filter((sp: any) => sp.active && sp.supplier)
+          .map((sp: any) => ({ value: sp.supplier.id, label: sp.supplier.name }))
+        setSelectedSuppliers(existing)
+      }
+    }
+  }, [mode, rawMaterialDetail])
 
   // Reset purchase unit when base unit changes or dialog opens — default to the base unit (toBase === 1)
   useEffect(() => {
@@ -237,8 +284,12 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
 
   // Create mutation
   const createMutation = useMutation({
-    mutationFn: (data: CreateRawMaterialDto) => rawMaterialsApi.create(venueId, data),
-    onSuccess: () => {
+    mutationFn: (data: CreateRawMaterialDto & { supplierIds?: string[] }) => rawMaterialsApi.create(venueId, data),
+    onSuccess: async (result: any) => {
+      const newId = result?.data?.data?.id || result?.data?.id || result?.id
+      if (newId && selectedSuppliers.length > 0) {
+        await linkSuppliers(newId, watch('costPerUnit'), watch('unit'))
+      }
       queryClient.invalidateQueries({ queryKey: ['rawMaterials', venueId] })
       toast({
         title: t('rawMaterials.messages.created'),
@@ -248,18 +299,26 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
       reset()
     },
     onError: (error: any) => {
-      toast({
-        title: 'Error',
-        description: error.response?.data?.message || 'Failed to create raw material',
-        variant: 'destructive',
-      })
+      const msg = error.response?.data?.message || ''
+      if (msg.toLowerCase().includes('unique') && msg.toLowerCase().includes('gtin')) {
+        setError('gtin', { type: 'server', message: t('rawMaterials.validation.gtinDuplicate') })
+        scrollToField('gtin')
+      } else if (msg.toLowerCase().includes('unique') && msg.toLowerCase().includes('sku')) {
+        setError('sku', { type: 'server', message: t('rawMaterials.validation.skuDuplicate') })
+        scrollToField('sku')
+      } else {
+        toast({ title: 'Error', description: msg || 'Failed to create raw material', variant: 'destructive' })
+      }
     },
   })
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: (data: CreateRawMaterialDto) => rawMaterialsApi.update(venueId, rawMaterial!.id, data),
-    onSuccess: () => {
+    mutationFn: (data: CreateRawMaterialDto & { supplierIds?: string[] }) => rawMaterialsApi.update(venueId, rawMaterial!.id, data),
+    onSuccess: async () => {
+      if (selectedSuppliers.length > 0) {
+        await linkSuppliers(rawMaterial!.id, watch('costPerUnit'), watch('unit'))
+      }
       queryClient.invalidateQueries({ queryKey: ['rawMaterials', venueId] })
       toast({
         title: t('rawMaterials.messages.updated'),
@@ -269,28 +328,66 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
       reset()
     },
     onError: (error: any) => {
-      toast({
-        title: 'Error',
-        description: error.response?.data?.message || 'Failed to update raw material',
-        variant: 'destructive',
-      })
+      const msg = error.response?.data?.message || ''
+      if (msg.toLowerCase().includes('unique') && msg.toLowerCase().includes('gtin')) {
+        setError('gtin', { type: 'server', message: t('rawMaterials.validation.gtinDuplicate') })
+        scrollToField('gtin')
+      } else if (msg.toLowerCase().includes('unique') && msg.toLowerCase().includes('sku')) {
+        setError('sku', { type: 'server', message: t('rawMaterials.validation.skuDuplicate') })
+        scrollToField('sku')
+      } else {
+        toast({ title: 'Error', description: msg || 'Failed to update raw material', variant: 'destructive' })
+      }
     },
   })
 
+  // Link suppliers after creating/updating a raw material
+  const linkSuppliers = async (rawMaterialId: string, costPerUnit: number, unit: string) => {
+    if (!venueId || selectedSuppliers.length === 0) return
+
+    try {
+      await Promise.all(
+        selectedSuppliers.map(supplier =>
+          supplierService.addPricing(venueId, supplier.value, {
+            rawMaterialId,
+            pricePerUnit: costPerUnit,
+            unit,
+            minimumQuantity: 1,
+            effectiveFrom: new Date().toISOString(),
+          }),
+        ),
+      )
+    } catch (error) {
+      console.error('Error linking suppliers:', error)
+      // Non-blocking — the raw material is already saved
+    }
+  }
+
+  // Scroll to the first field with an error
+  const scrollToField = (fieldName: string) => {
+    setTimeout(() => {
+      const el = document.getElementById(fieldName)
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el?.focus()
+    }, 50)
+  }
+
   const onSubmit = (data: CreateRawMaterialDto) => {
-    // Validate minimumStock <= reorderPoint
+    // Validate minimumStock <= reorderPoint — show inline on the field
     if (data.minimumStock > data.reorderPoint) {
-      toast({
-        title: t('validation.invalidStockLevels'),
-        description: t('validation.minimumStockMustBeLessOrEqualToReorderPoint'),
-        variant: 'destructive',
+      setError('minimumStock', {
+        type: 'validate',
+        message: t('validation.minimumStockMustBeLessOrEqualToReorderPoint'),
       })
+      scrollToField('minimumStock')
       return
     }
 
     const payload = {
       ...data,
+      gtin: data.gtin?.trim() || undefined, // Omit empty GTIN — backend Zod rejects null
       avgCostPerUnit: data.costPerUnit,
+      supplierIds: selectedSuppliers.map(s => s.value),
     }
 
     if (mode === 'create') {
@@ -389,13 +486,14 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              {errors.sku && <p className="text-xs text-destructive mt-1">{t('validation.required')}</p>}
+              {errors.sku && <p className="text-xs text-destructive mt-1">{errors.sku.message || t('validation.required')}</p>}
             </div>
 
             {/* GTIN */}
             <div>
               <FieldLabel htmlFor="gtin" label={t('rawMaterials.fields.gtin')} helpKey="rawMaterials.fieldHelp.gtin" />
               <Input id="gtin" {...register('gtin')} className="h-12 text-base" placeholder={t('rawMaterials.fields.gtinPlaceholder')} />
+              {errors.gtin && <p className="text-xs text-destructive mt-1">{errors.gtin.message}</p>}
             </div>
 
             {/* Category */}
@@ -426,6 +524,20 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
               />
             </div>
           </div>
+        </section>
+
+        {/* Suppliers Section */}
+        <section className="bg-card rounded-2xl border border-border/50 p-6">
+          <SectionHeader icon={Truck} title={t('rawMaterials.fields.suppliers')} />
+          <MultiSelectCombobox
+            options={supplierOptions}
+            selected={selectedSuppliers}
+            onChange={setSelectedSuppliers}
+            placeholder={t('rawMaterials.fields.suppliersPlaceholder')}
+            emptyText={t('rawMaterials.fields.noSuppliersFound')}
+            isLoading={isSuppliersLoading}
+          />
+          <p className="text-xs text-muted-foreground mt-2">{t('rawMaterials.fields.suppliersHint')}</p>
         </section>
 
         {/* Stock Levels Section */}
@@ -468,7 +580,11 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
                 className="h-12 text-base"
                 placeholder="0"
               />
-              {errors.minimumStock && <p className="text-xs text-destructive mt-1">{t('validation.required')}</p>}
+              {errors.minimumStock && (
+                <p className="text-xs text-destructive mt-1">
+                  {errors.minimumStock.message || t('validation.required')}
+                </p>
+              )}
             </div>
 
             {/* Reorder Point */}

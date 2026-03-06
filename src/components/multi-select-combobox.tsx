@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { Check, ChevronsUpDown, Loader2, X } from 'lucide-react'
 
@@ -33,57 +34,60 @@ export function MultiSelectCombobox({
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
 
+  const filtered = options.filter(option => option.label.toLowerCase().includes(search.toLowerCase()))
+
   return (
     <div className={cn('space-y-2', className)}>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={setOpen} modal={true}>
         <PopoverTrigger asChild>
           <Button
+            type="button"
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full justify-between h-auto min-h-10 py-2 px-3 text-left font-normal"
+            className="w-full justify-between h-auto min-h-12 py-2 px-3 text-left font-normal bg-transparent shadow-xs text-sm overflow-hidden"
           >
-            <div className="flex flex-wrap gap-1">
-              {selected.length === 0 && <span className="text-muted-foreground">{placeholder}</span>}
+            <div className="flex min-w-0 flex-1 flex-wrap gap-1.5 overflow-hidden">
+              {selected.length === 0 && <span className="text-muted-foreground text-sm truncate">{placeholder}</span>}
               {selected.map(item => (
                 <div
                   key={item.value}
-                  className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-0.5 rounded-md text-xs border border-secondary-foreground/20 cursor-pointer hover:bg-secondary/80"
+                  className="flex items-center gap-1 bg-primary/10 text-primary px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer hover:bg-primary/20 transition-colors"
                   onClick={e => {
                     e.stopPropagation()
                     onChange(selected.filter(i => i.value !== item.value))
                   }}
                 >
                   {item.label}
-                  <div className="hover:bg-secondary-foreground/20 rounded-full p-0.5">
-                    <X className="h-3 w-3" />
-                  </div>
+                  <X className="h-3 w-3 opacity-60 hover:opacity-100" />
                 </div>
               ))}
             </div>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-          <Command shouldFilter={false}>
+        <PopoverContent
+          className="!w-[--radix-popover-trigger-width] p-0 bg-card border-input"
+          align="start"
+          style={{ width: 'var(--radix-popover-trigger-width)' }}
+        >
+          <Command shouldFilter={false} className="bg-card">
             <CommandInput placeholder={placeholder} value={search} onValueChange={setSearch} />
             <CommandList>
               {isLoading && (
                 <div className="py-6 text-center text-sm text-muted-foreground">
                   <Loader2 className="mr-2 h-4 w-4 animate-spin inline-block" />
-                  Loading...
                 </div>
               )}
-              {!isLoading && options.length === 0 && <CommandEmpty>{emptyText}</CommandEmpty>}
-              <CommandGroup>
-                {options
-                  .filter(option => option.label.toLowerCase().includes(search.toLowerCase()))
-                  .map(option => {
+              {!isLoading && filtered.length === 0 && <CommandEmpty>{emptyText}</CommandEmpty>}
+              <ScrollArea className="max-h-[300px]">
+                <CommandGroup>
+                  {filtered.map(option => {
                     const isSelected = selected.some(item => item.value === option.value)
                     return (
                       <CommandItem
                         key={option.value}
-                        value={option.label}
+                        value={option.value}
                         onSelect={() => {
                           if (isSelected) {
                             onChange(selected.filter(item => item.value !== option.value))
@@ -91,20 +95,17 @@ export function MultiSelectCombobox({
                             onChange([...selected, option])
                           }
                         }}
+                        className="flex items-center gap-3 cursor-pointer py-3"
                       >
-                        <div
-                          className={cn(
-                            'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
-                            isSelected ? 'bg-primary text-primary-foreground' : 'opacity-50 [&_svg]:invisible',
-                          )}
-                        >
-                          <Check className="h-4 w-4" />
-                        </div>
-                        <span>{option.label}</span>
+                        <Check
+                          className={cn('h-4 w-4 shrink-0', isSelected ? 'opacity-100' : 'opacity-0')}
+                        />
+                        <span className="truncate text-sm">{option.label}</span>
                       </CommandItem>
                     )
                   })}
-              </CommandGroup>
+                </CommandGroup>
+              </ScrollArea>
             </CommandList>
           </Command>
         </PopoverContent>

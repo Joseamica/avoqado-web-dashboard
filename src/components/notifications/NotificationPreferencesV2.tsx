@@ -10,7 +10,7 @@ import { NotificationChannel, NotificationPriority, NotificationType } from '@/s
 import * as notificationService from '@/services/notification.service'
 import { canShowNotifications, requestNotificationPermission } from '@/utils/notification.utils'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bell, Check, Clock, CreditCard, Mail, Shield, ShoppingBag, Smartphone, Star, Settings, Users } from 'lucide-react'
+import { BarChart3, Bell, Check, Clock, CreditCard, Mail, Shield, ShoppingBag, Smartphone, Star, Settings, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -27,6 +27,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Settings,
   Shield,
   Bell,
+  BarChart3,
 }
 
 const channelIconMap = {

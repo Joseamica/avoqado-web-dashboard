@@ -13,10 +13,10 @@
   "enableInSettings": "Activer dans les Paramètres",
   "enableNotifications": "Activer les Notifications",
   "enabled": "Activées",
-  "inAppTitle": "Notifications dans l'Application",
+  "inAppTitle": "Notifications Web",
   "inAppDesc": "Notifications affichées dans le tableau de bord",
   "alwaysEnabled": "Toujours Activées",
-  "inAppAlwaysActive": "Les notifications dans l'application sont toujours actives et ne peuvent pas être désactivées",
+  "inAppAlwaysActive": "Les notifications web sont toujours actives et ne peuvent pas être désactivées",
   "active": "Actives",
   "quietHours": "Heures Silencieuses",
   "quietHoursDesc": "Définir les heures pendant lesquelles vous ne souhaitez pas recevoir de notifications",
@@ -140,7 +140,7 @@
     "ALERT": "Alertes générales nécessitant votre attention"
   },
   "channelNames": {
-    "IN_APP": "Dans l'App",
+    "IN_APP": "Web",
     "EMAIL": "E-mail",
     "SMS": "SMS",
     "PUSH": "Push"

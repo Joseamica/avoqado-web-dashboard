@@ -3,21 +3,19 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ChefHat,
-  Search,
-  ArrowLeft,
   ArrowRight,
+  ChevronDown,
   Plus,
   Trash2,
   Package,
-  DollarSign,
   TrendingUp,
-  Clock,
   FileText,
   AlertTriangle,
   CheckCircle2,
   Loader2,
   Info,
-  Sparkles,
+  Settings2,
+  X,
 } from 'lucide-react'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Button } from '@/components/ui/button'
@@ -26,9 +24,9 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
@@ -44,6 +42,9 @@ interface ProductWithRecipe {
   name: string
   price: number
   active: boolean
+  sku?: string | null
+  gtin?: string | null
+  imageUrl?: string | null
   category: {
     id: string
     name: string
@@ -92,6 +93,7 @@ export function CreateRecipeWizard({ open, onClose }: CreateRecipeWizardProps) {
   const [notes, setNotes] = useState('')
   const [ingredients, setIngredients] = useState<TempIngredient[]>([])
   const [addIngredientOpen, setAddIngredientOpen] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   // Reset wizard when closed
   useEffect(() => {
@@ -116,16 +118,24 @@ export function CreateRecipeWizard({ open, onClose }: CreateRecipeWizardProps) {
       })
       let productsData = response.data.data as ProductWithRecipe[]
 
-      // Filter to only products without recipes
-      productsData = productsData.filter(p => !p.recipe)
-
       // Apply search filter
       if (debouncedSearchTerm) {
         const lowerSearch = debouncedSearchTerm.toLowerCase()
         productsData = productsData.filter(
-          p => p.name.toLowerCase().includes(lowerSearch) || p.category.name.toLowerCase().includes(lowerSearch)
+          p =>
+            p.name.toLowerCase().includes(lowerSearch) ||
+            p.category.name.toLowerCase().includes(lowerSearch) ||
+            (p.sku && p.sku.toLowerCase().includes(lowerSearch)) ||
+            (p.gtin && p.gtin.toLowerCase().includes(lowerSearch))
         )
       }
+
+      // Sort: products without recipes first, then with recipes
+      productsData.sort((a, b) => {
+        if (!a.recipe && b.recipe) return -1
+        if (a.recipe && !b.recipe) return 1
+        return 0
+      })
 
       return productsData
     },
@@ -165,6 +175,24 @@ export function CreateRecipeWizard({ open, onClose }: CreateRecipeWizardProps) {
       })
     },
   })
+
+  // Map products to combobox items
+  const productComboboxItems = useMemo<SearchComboboxItem[]>(() => {
+    if (!products) return []
+    return products.map(p => {
+      const parts = [p.category.name]
+      if (p.sku) parts.push(`SKU: ${p.sku}`)
+      if (p.gtin) parts.push(`GTIN: ${p.gtin}`)
+      return {
+        id: p.id,
+        label: p.name,
+        description: parts.join(' • '),
+        endLabel: Currency(Number(p.price)),
+        disabled: !!p.recipe,
+        disabledLabel: p.recipe ? t('recipeWizard.step1.hasRecipe') : undefined,
+      }
+    })
+  }, [products, t])
 
   // Calculate costs
   const costCalculations = useMemo(() => {
@@ -257,183 +285,162 @@ export function CreateRecipeWizard({ open, onClose }: CreateRecipeWizardProps) {
         onClose={onClose}
         title={t('recipeWizard.title')}
         actions={
-          currentStep === 3 ? (
-            <Button
-              onClick={handleCreateRecipe}
-              disabled={createRecipeMutation.isPending}
-              className="gap-2"
-            >
-              {createRecipeMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              <CheckCircle2 className="h-4 w-4" />
-              {t('recipeWizard.createRecipe')}
-            </Button>
-          ) : undefined
+          <div className="flex items-center gap-2">
+            {currentStep > 1 && (
+              <Button
+                variant="outline"
+                onClick={handleBack}
+                className="h-10 px-6"
+              >
+                {tCommon('back')}
+              </Button>
+            )}
+            {currentStep < 3 ? (
+              <Button
+                onClick={handleNext}
+                disabled={!canGoNext() || createRecipeMutation.isPending}
+                className="h-10 px-6"
+              >
+                {tCommon('next')}
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            ) : (
+              <Button
+                onClick={handleCreateRecipe}
+                disabled={createRecipeMutation.isPending}
+                className="h-10 px-6 gap-2"
+              >
+                {createRecipeMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                {t('recipeWizard.createRecipe')}
+              </Button>
+            )}
+          </div>
         }
       >
-        <div className="flex flex-col h-full">
-          {/* Progress Header */}
-          <div className="border-b border-border/30 bg-muted/30">
-            <div className="max-w-4xl mx-auto px-6 py-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">
-                  {t('recipeWizard.stepProgress', { current: currentStep, total: 3 })}
-                </span>
-                <span className="text-sm font-medium">{stepTitles[currentStep]}</span>
-              </div>
-              <Progress value={progressPercentage} className="h-2" />
-
-              {/* Step indicators */}
-              <div className="flex justify-between mt-4">
-                {[1, 2, 3].map(step => (
-                  <div key={step} className="flex items-center gap-2">
-                    <div
-                      className={cn(
-                        'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors',
-                        currentStep >= step
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-muted-foreground'
-                      )}
-                    >
-                      {step}
-                    </div>
-                    <span
-                      className={cn(
-                        'text-sm hidden sm:inline',
-                        currentStep >= step ? 'text-foreground' : 'text-muted-foreground'
-                      )}
-                    >
-                      {stepTitles[step as 1 | 2 | 3]}
-                    </span>
+        <div className="max-w-4xl mx-auto p-6 space-y-8">
+          {/* Progress Steps */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">
+                {t('recipeWizard.stepProgress', { current: currentStep, total: 3 })}
+              </span>
+              <span className="text-sm font-medium">{stepTitles[currentStep]}</span>
+            </div>
+            <Progress value={progressPercentage} className="h-1.5" />
+            <div className="flex justify-between">
+              {[1, 2, 3].map(step => (
+                <div key={step} className="flex items-center gap-2">
+                  <div
+                    className={cn(
+                      'w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-colors',
+                      currentStep >= step
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground'
+                    )}
+                  >
+                    {currentStep > step ? (
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    ) : (
+                      step
+                    )}
                   </div>
-                ))}
-              </div>
+                  <span
+                    className={cn(
+                      'text-sm hidden sm:inline',
+                      currentStep >= step ? 'text-foreground' : 'text-muted-foreground'
+                    )}
+                  >
+                    {stepTitles[step as 1 | 2 | 3]}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
-
-          {/* Main Content */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="max-w-4xl mx-auto px-6 py-8">
               {/* Step 1: Select Product */}
               {currentStep === 1 && (
                 <div className="space-y-6">
-                  {/* Educational Header */}
-                  <div className="flex items-start gap-4 p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
-                    <div className="p-3 rounded-xl bg-primary/20">
-                      <ChefHat className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="space-y-1">
-                      <h2 className="text-lg font-semibold">{t('recipeWizard.step1.header')}</h2>
-                      <p className="text-sm text-muted-foreground">
-                        {t('recipeWizard.step1.description')}
-                      </p>
-                    </div>
-                  </div>
+                  {/* Search Combobox */}
+                  <SearchCombobox
+                    placeholder={t('recipeWizard.step1.searchPlaceholder')}
+                    value={searchTerm}
+                    onChange={setSearchTerm}
+                    items={productComboboxItems}
+                    isLoading={productsLoading}
+                    onSelect={item => {
+                      const product = products?.find(p => p.id === item.id)
+                      if (product) {
+                        setSelectedProduct(product)
+                        setSearchTerm('')
+                      }
+                    }}
+                    onCreateNew={(term) => {
+                      // TODO: open create product flow
+                    }}
+                    createNewLabel={(term) => t('recipeWizard.step1.createProduct', { name: term })}
+                  />
 
-                  {/* Search */}
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder={t('recipeWizard.step1.searchPlaceholder')}
-                      value={searchTerm}
-                      onChange={e => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-
-                  {/* Products List */}
-                  <ScrollArea className="h-[400px]">
-                    {productsLoading ? (
-                      <div className="flex items-center justify-center py-12">
-                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : products && products.length > 0 ? (
-                      <div className="space-y-2">
-                        {products.map(product => (
-                          <div
-                            key={product.id}
-                            onClick={() => setSelectedProduct(product)}
-                            className={cn(
-                              'flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all',
-                              selectedProduct?.id === product.id
-                                ? 'border-primary bg-primary/5 shadow-sm'
-                                : 'border-border hover:border-border/80 hover:bg-muted/30'
-                            )}
-                          >
-                            <div
-                              className={cn(
-                                'flex items-center justify-center w-12 h-12 rounded-lg border',
-                                selectedProduct?.id === product.id
-                                  ? 'bg-primary/20 border-primary/30'
-                                  : 'bg-muted border-border'
-                              )}
-                            >
-                              <ChefHat
-                                className={cn(
-                                  'h-6 w-6',
-                                  selectedProduct?.id === product.id ? 'text-primary' : 'text-muted-foreground'
-                                )}
-                              />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-foreground truncate">{product.name}</p>
-                              <p className="text-sm text-muted-foreground">{product.category.name}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-semibold text-foreground">{Currency(Number(product.price))}</p>
-                              <Badge variant="secondary" className="text-xs">
-                                {t('recipes.messages.noRecipeShort')}
-                              </Badge>
-                            </div>
-                            {selectedProduct?.id === product.id && (
-                              <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <div className="p-4 rounded-full bg-muted mb-4">
-                          <Sparkles className="h-8 w-8 text-muted-foreground" />
+                  {/* Selected Product Card */}
+                  {selectedProduct && (
+                    <div className="flex items-center gap-4 p-5 rounded-xl border border-primary/30 bg-primary/5">
+                      {selectedProduct.imageUrl ? (
+                        <img
+                          src={selectedProduct.imageUrl}
+                          alt={selectedProduct.name}
+                          className="w-12 h-12 rounded-xl object-cover shrink-0"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center shrink-0">
+                          <Package className="h-5 w-5 text-muted-foreground" />
                         </div>
-                        <h3 className="font-medium text-foreground mb-1">{t('recipeWizard.step1.allHaveRecipes')}</h3>
-                        <p className="text-sm text-muted-foreground max-w-md">
-                          {t('recipeWizard.step1.allHaveRecipesDesc')}
-                        </p>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-foreground">{selectedProduct.name}</p>
+                        <p className="text-sm text-muted-foreground">{selectedProduct.category.name}</p>
                       </div>
-                    )}
-                  </ScrollArea>
+                      <div className="text-right shrink-0">
+                        <p className="text-xl font-bold tabular-nums">{Currency(Number(selectedProduct.price))}</p>
+                        <p className="text-xs text-muted-foreground">{t('recipes.fields.currentPrice')}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedProduct(null)}
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Step 2: Add Ingredients */}
               {currentStep === 2 && selectedProduct && (
-                <div className="space-y-6">
-                  {/* Selected Product Card */}
-                  <div className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card">
-                    <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 border border-primary/20">
-                      <ChefHat className="h-6 w-6 text-primary" />
+                <div className="space-y-8">
+                  {/* Recipe Configuration Section */}
+                  <section className="bg-card rounded-2xl border border-border/50 p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-2.5 rounded-xl bg-primary/10">
+                        <ChefHat className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-semibold">{selectedProduct.name}</h2>
+                        <p className="text-sm text-muted-foreground">
+                          {selectedProduct.category.name} • {Currency(Number(selectedProduct.price))}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">{selectedProduct.name}</p>
-                      <p className="text-sm text-muted-foreground">{selectedProduct.category.name}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold">{Currency(Number(selectedProduct.price))}</p>
-                      <p className="text-xs text-muted-foreground">{t('recipes.fields.currentPrice')}</p>
-                    </div>
-                  </div>
 
-                  {/* Recipe Configuration */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="portionYield">{t('recipes.fields.portionYield')} *</Label>
+                    <div className="max-w-xs">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Label htmlFor="portionYield" className="text-sm font-medium">
+                          {t('recipes.fields.portionYield')} <span className="text-destructive">*</span>
+                        </Label>
                         <TooltipProvider delayDuration={200}>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                             </TooltipTrigger>
-                            <TooltipContent className="max-w-sm" side="right">
+                            <TooltipContent className="max-w-sm bg-popover text-popover-foreground border border-border" side="right">
                               <div className="space-y-2 text-sm">
                                 <p className="font-semibold">{t('recipes.portionYieldHelp.title')}</p>
                                 <p>{t('recipes.portionYieldHelp.description')}</p>
@@ -450,63 +457,82 @@ export function CreateRecipeWizard({ open, onClose }: CreateRecipeWizardProps) {
                           </Tooltip>
                         </TooltipProvider>
                       </div>
+                      <p className="text-xs text-muted-foreground mb-2">{t('recipes.portionYieldHelp.hint')}</p>
                       <Input
                         id="portionYield"
                         type="number"
                         min={1}
                         value={portionYield}
                         onChange={e => setPortionYield(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="h-12 text-base"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="prepTime" className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        {t('recipes.fields.prepTime')}
-                      </Label>
-                      <Input
-                        id="prepTime"
-                        type="number"
-                        min={0}
-                        placeholder="0"
-                        value={prepTime || ''}
-                        onChange={e => setPrepTime(parseInt(e.target.value) || undefined)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="cookTime" className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        {t('recipes.fields.cookTime')}
-                      </Label>
-                      <Input
-                        id="cookTime"
-                        type="number"
-                        min={0}
-                        placeholder="0"
-                        value={cookTime || ''}
-                        onChange={e => setCookTime(parseInt(e.target.value) || undefined)}
-                      />
-                    </div>
-                  </div>
+
+                    {/* Advanced config toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setShowAdvanced(prev => !prev)}
+                      className="flex items-center gap-2 mt-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Settings2 className="h-4 w-4" />
+                      <span>{t('recipeWizard.step2.advancedConfig')}</span>
+                      <ChevronDown className={cn('h-4 w-4 transition-transform', showAdvanced && 'rotate-180')} />
+                    </button>
+
+                    {showAdvanced && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 pt-4 border-t border-border/50">
+                        <div>
+                          <Label htmlFor="prepTime" className="text-sm font-medium mb-2 block">{t('recipes.fields.prepTime')}</Label>
+                          <Input
+                            id="prepTime"
+                            type="number"
+                            min={0}
+                            placeholder="0"
+                            value={prepTime || ''}
+                            onChange={e => setPrepTime(parseInt(e.target.value) || undefined)}
+                            className="h-12 text-base"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="cookTime" className="text-sm font-medium mb-2 block">{t('recipes.fields.cookTime')}</Label>
+                          <Input
+                            id="cookTime"
+                            type="number"
+                            min={0}
+                            placeholder="0"
+                            value={cookTime || ''}
+                            onChange={e => setCookTime(parseInt(e.target.value) || undefined)}
+                            className="h-12 text-base"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </section>
 
                   {/* Ingredients Section */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-base">{t('recipes.ingredients.title')}</Label>
-                      <Button variant="ghost" size="sm" className="border border-border" onClick={() => setAddIngredientOpen(true)}>
-                        <Plus className="h-4 w-4 mr-1" />
+                  <section className="bg-card rounded-2xl border border-border/50 p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-primary/10">
+                          <Package className="h-5 w-5 text-primary" />
+                        </div>
+                        <h2 className="text-lg font-semibold">{t('recipes.ingredients.title')}</h2>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => setAddIngredientOpen(true)}>
+                        <Plus className="h-4 w-4 mr-1.5" />
                         {t('recipes.addIngredient')}
                       </Button>
                     </div>
 
                     {ingredients.length === 0 ? (
-                      <Alert>
-                        <AlertDescription className="flex items-center gap-2">
-                          <Info className="h-4 w-4" />
-                          {t('recipeWizard.step2.noIngredients')}
-                        </AlertDescription>
-                      </Alert>
+                      <div className="flex flex-col items-center justify-center py-10 text-center">
+                        <div className="p-3 rounded-full bg-muted mb-3">
+                          <Package className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm text-muted-foreground">{t('recipeWizard.step2.noIngredients')}</p>
+                      </div>
                     ) : (
-                      <div className="space-y-2 max-h-[250px] overflow-y-auto rounded-lg border border-border p-2">
+                      <div className="space-y-2">
                         {ingredients.map((ing, index) => {
                           const rawMaterial = rawMaterialsData?.find(rm => rm.id === ing.rawMaterialId)
                           const costPerUnit = rawMaterial ? Number(rawMaterial.costPerUnit) : 0
@@ -515,63 +541,43 @@ export function CreateRecipeWizard({ open, onClose }: CreateRecipeWizardProps) {
                           return (
                             <div
                               key={index}
-                              className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors"
+                              className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border/50 hover:bg-muted/30 transition-colors"
                             >
-                              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 border border-border">
-                                <Package className="h-5 w-5 text-primary" />
-                              </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-foreground truncate">
                                   {ing.rawMaterialName || rawMaterial?.name || ing.rawMaterialId}
                                   {ing.isOptional && (
-                                    <span className="ml-2 text-xs text-muted-foreground">
-                                      ({t('recipes.ingredients.optional')})
-                                    </span>
+                                    <Badge variant="secondary" className="ml-2 text-[10px] h-4 px-1.5">
+                                      {t('recipes.ingredients.optional')}
+                                    </Badge>
                                   )}
                                 </p>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-xs text-muted-foreground mt-0.5">
                                   {ing.quantity.toFixed(2)} {formatUnit(ing.unit)}
                                   {rawMaterial && (
-                                    <>
-                                      {' '}× {Currency(costPerUnit)} = {Currency(lineCost)}
-                                    </>
+                                    <> × {Currency(costPerUnit)}</>
                                   )}
                                 </p>
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
+                              <span className="text-sm font-semibold tabular-nums shrink-0">
+                                {Currency(lineCost)}
+                              </span>
+                              <button
+                                type="button"
                                 onClick={() => handleRemoveIngredient(index)}
+                                className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
                               >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
+                                <Trash2 className="h-4 w-4" />
+                              </button>
                             </div>
                           )
                         })}
                       </div>
                     )}
-                  </div>
 
-                  {/* Notes */}
-                  <div className="space-y-2">
-                    <Label htmlFor="notes" className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      {t('recipes.fields.notes')}
-                    </Label>
-                    <Textarea
-                      id="notes"
-                      rows={2}
-                      placeholder={t('recipeWizard.step2.notesPlaceholder')}
-                      value={notes}
-                      onChange={e => setNotes(e.target.value)}
-                    />
-                  </div>
-
-                  {/* Cost Summary - Sticky Bottom */}
-                  {ingredients.length > 0 && (
-                    <div className="p-4 rounded-xl border border-border bg-muted/50 space-y-3">
-                      <h3 className="font-medium text-sm text-muted-foreground">{t('recipeWizard.step2.costSummary')}</h3>
-                      <div className="grid grid-cols-3 gap-4">
+                    {/* Cost Summary inline */}
+                    {ingredients.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-border/50 grid grid-cols-3 gap-4">
                         <div>
                           <p className="text-xs text-muted-foreground">{t('recipes.fields.totalCost')}</p>
                           <p className="text-lg font-bold">{Currency(costCalculations.totalCost)}</p>
@@ -587,190 +593,174 @@ export function CreateRecipeWizard({ open, onClose }: CreateRecipeWizardProps) {
                           </p>
                         </div>
                       </div>
+                    )}
+                  </section>
+
+                  {/* Notes Section */}
+                  <section className="bg-card rounded-2xl border border-border/50 p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-2.5 rounded-xl bg-primary/10">
+                        <FileText className="h-5 w-5 text-primary" />
+                      </div>
+                      <h2 className="text-lg font-semibold">{t('recipes.fields.notes')}</h2>
                     </div>
-                  )}
+                    <Textarea
+                      id="notes"
+                      rows={3}
+                      placeholder={t('recipeWizard.step2.notesPlaceholder')}
+                      value={notes}
+                      onChange={e => setNotes(e.target.value)}
+                      className="text-base resize-none"
+                    />
+                  </section>
                 </div>
               )}
 
               {/* Step 3: Review & Confirm */}
               {currentStep === 3 && selectedProduct && (
-                <div className="space-y-6">
-                  {/* Success Preview */}
-                  <div className="flex items-start gap-4 p-6 rounded-2xl bg-gradient-to-br from-green-500/10 to-green-500/5 border border-green-500/20">
-                    <div className="p-3 rounded-xl bg-green-500/20">
-                      <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
-                    </div>
-                    <div className="space-y-1">
-                      <h2 className="text-lg font-semibold">{t('recipeWizard.step3.header')}</h2>
-                      <p className="text-sm text-muted-foreground">
-                        {t('recipeWizard.step3.description')}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Product Summary */}
-                  <div className="p-4 rounded-xl border border-border bg-card">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-primary/10 border border-primary/20">
-                        <ChefHat className="h-7 w-7 text-primary" />
+                <div className="space-y-8">
+                  {/* Product Summary Section */}
+                  <section className="bg-card rounded-2xl border border-border/50 p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-2.5 rounded-xl bg-green-500/10">
+                        <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
                       </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold">{selectedProduct.name}</h3>
+                      <div>
+                        <h2 className="text-lg font-semibold">{t('recipeWizard.step3.header')}</h2>
+                        <p className="text-sm text-muted-foreground">{t('recipeWizard.step3.description')}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/30">
+                      <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10">
+                        <ChefHat className="h-6 w-6 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-foreground">{selectedProduct.name}</p>
                         <p className="text-sm text-muted-foreground">
                           {selectedProduct.category.name} • {t('recipes.fields.portionYield')}: {portionYield}
+                          {prepTime ? ` • ${t('recipes.fields.prepTime')}: ${prepTime}min` : ''}
+                          {cookTime ? ` • ${t('recipes.fields.cookTime')}: ${cookTime}min` : ''}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xl font-bold">{Currency(Number(selectedProduct.price))}</p>
+                      <div className="text-right shrink-0">
+                        <p className="text-xl font-bold tabular-nums">{Currency(Number(selectedProduct.price))}</p>
                         <p className="text-xs text-muted-foreground">{t('recipes.fields.currentPrice')}</p>
                       </div>
                     </div>
-                  </div>
+                  </section>
 
-                  {/* Ingredients Table */}
-                  <div className="space-y-3">
-                    <h3 className="font-medium">{t('recipes.ingredients.title')} ({ingredients.length})</h3>
-                    <div className="rounded-xl border border-border overflow-hidden">
-                      <div className="bg-muted/50 px-4 py-2 grid grid-cols-[1fr_auto_auto_auto] gap-4 text-sm font-medium text-muted-foreground">
+                  {/* Ingredients Table Section */}
+                  <section className="bg-card rounded-2xl border border-border/50 p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-2.5 rounded-xl bg-primary/10">
+                        <Package className="h-5 w-5 text-primary" />
+                      </div>
+                      <h2 className="text-lg font-semibold">
+                        {t('recipes.ingredients.title')}
+                        <span className="ml-1.5 text-sm font-normal text-muted-foreground">({ingredients.length})</span>
+                      </h2>
+                    </div>
+
+                    <div className="rounded-xl border border-border/50 overflow-hidden">
+                      <div className="bg-muted/40 px-4 py-2.5 grid grid-cols-[1fr_auto_auto_auto] gap-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         <span>{t('recipes.ingredients.ingredient')}</span>
                         <span className="text-right">{t('recipes.ingredients.quantity')}</span>
                         <span className="text-right">{t('rawMaterials.fields.costPerUnit')}</span>
                         <span className="text-right">{t('recipes.ingredients.cost')}</span>
                       </div>
-                      <div className="divide-y divide-border">
+                      <div className="divide-y divide-border/50">
                         {ingredients.map((ing, index) => {
                           const rawMaterial = rawMaterialsData?.find(rm => rm.id === ing.rawMaterialId)
                           const costPerUnit = rawMaterial ? Number(rawMaterial.costPerUnit) : 0
                           const lineCost = costPerUnit * ing.quantity
 
                           return (
-                            <div key={index} className="px-4 py-3 grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
+                            <div key={index} className="px-4 py-3 grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center text-sm">
                               <span className="font-medium truncate">
                                 {ing.rawMaterialName || rawMaterial?.name || ing.rawMaterialId}
+                                {ing.isOptional && (
+                                  <Badge variant="secondary" className="ml-2 text-[10px] h-4 px-1.5">
+                                    {t('recipes.ingredients.optional')}
+                                  </Badge>
+                                )}
                               </span>
-                              <span className="text-right text-muted-foreground">
+                              <span className="text-right text-muted-foreground tabular-nums">
                                 {ing.quantity.toFixed(2)} {formatUnit(ing.unit)}
                               </span>
-                              <span className="text-right text-muted-foreground">{Currency(costPerUnit)}</span>
-                              <span className="text-right font-medium">{Currency(lineCost)}</span>
+                              <span className="text-right text-muted-foreground tabular-nums">{Currency(costPerUnit)}</span>
+                              <span className="text-right font-semibold tabular-nums">{Currency(lineCost)}</span>
                             </div>
                           )
                         })}
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Cost Analysis Bento Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div className="p-4 rounded-xl border border-border bg-card">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="p-2 rounded-lg bg-blue-500/20">
-                          <DollarSign className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <span className="text-xs text-muted-foreground">{t('recipes.fields.totalCost')}</span>
+                      {/* Total row */}
+                      <div className="bg-muted/40 px-4 py-3 grid grid-cols-[1fr_auto] gap-4 items-center">
+                        <span className="text-sm font-semibold">{t('recipes.fields.totalCost')}</span>
+                        <span className="text-right text-base font-bold tabular-nums">{Currency(costCalculations.totalCost)}</span>
                       </div>
-                      <p className="text-2xl font-bold">{Currency(costCalculations.totalCost)}</p>
                     </div>
+                  </section>
 
-                    <div className="p-4 rounded-xl border border-border bg-card">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="p-2 rounded-lg bg-purple-500/20">
-                          <Package className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                        </div>
-                        <span className="text-xs text-muted-foreground">{t('recipes.fields.costPerServing')}</span>
+                  {/* Cost Analysis Section */}
+                  <section className="bg-card rounded-2xl border border-border/50 p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-2.5 rounded-xl bg-primary/10">
+                        <TrendingUp className="h-5 w-5 text-primary" />
                       </div>
-                      <p className="text-2xl font-bold">{Currency(costCalculations.costPerPortion)}</p>
+                      <h2 className="text-lg font-semibold">{t('recipeWizard.step2.costSummary')}</h2>
                     </div>
 
-                    <div className="p-4 rounded-xl border border-border bg-card">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className={cn(
-                          'p-2 rounded-lg',
-                          costCalculations.foodCostPercentage > 40 ? 'bg-red-500/20' :
-                          costCalculations.foodCostPercentage > 30 ? 'bg-yellow-500/20' : 'bg-green-500/20'
-                        )}>
-                          <TrendingUp className={cn(
-                            'h-4 w-4',
-                            getFoodCostColorClass(costCalculations.foodCostPercentage)
-                          )} />
-                        </div>
-                        <span className="text-xs text-muted-foreground">{t('pricing.fields.foodCostPercentage')}</span>
+                    {costCalculations.foodCostPercentage > 40 && (
+                      <Alert variant="destructive" className="mb-6">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>{t('recipeWizard.step3.highFoodCostWarning')}</AlertDescription>
+                      </Alert>
+                    )}
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="p-4 rounded-xl bg-muted/30">
+                        <p className="text-xs text-muted-foreground mb-1">{t('recipes.fields.costPerServing')}</p>
+                        <p className="text-xl font-bold tabular-nums">{Currency(costCalculations.costPerPortion)}</p>
                       </div>
-                      <p className={cn('text-2xl font-bold', getFoodCostColorClass(costCalculations.foodCostPercentage))}>
-                        {costCalculations.foodCostPercentage.toFixed(1)}%
-                      </p>
-                    </div>
-
-                    <div className="p-4 rounded-xl border border-border bg-card">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="p-2 rounded-lg bg-green-500/20">
-                          <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-                        </div>
-                        <span className="text-xs text-muted-foreground">{t('recipeWizard.step3.marginPerUnit')}</span>
+                      <div className="p-4 rounded-xl bg-muted/30">
+                        <p className="text-xs text-muted-foreground mb-1">{t('pricing.fields.foodCostPercentage')}</p>
+                        <p className={cn('text-xl font-bold tabular-nums', getFoodCostColorClass(costCalculations.foodCostPercentage))}>
+                          {costCalculations.foodCostPercentage.toFixed(1)}%
+                        </p>
                       </div>
-                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                        {Currency(costCalculations.marginPerUnit)}
-                      </p>
-                    </div>
-
-                    <div className="p-4 rounded-xl border border-border bg-card col-span-2 md:col-span-2">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="p-2 rounded-lg bg-green-500/20">
-                          <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-                        </div>
-                        <span className="text-xs text-muted-foreground">{t('recipeWizard.step3.marginPercentage')}</span>
+                      <div className="p-4 rounded-xl bg-muted/30">
+                        <p className="text-xs text-muted-foreground mb-1">{t('recipeWizard.step3.marginPerUnit')}</p>
+                        <p className="text-xl font-bold tabular-nums text-green-600 dark:text-green-400">
+                          {Currency(costCalculations.marginPerUnit)}
+                        </p>
                       </div>
-                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                        {costCalculations.marginPercentage.toFixed(1)}%
-                      </p>
+                      <div className="p-4 rounded-xl bg-muted/30">
+                        <p className="text-xs text-muted-foreground mb-1">{t('recipeWizard.step3.marginPercentage')}</p>
+                        <p className="text-xl font-bold tabular-nums text-green-600 dark:text-green-400">
+                          {costCalculations.marginPercentage.toFixed(1)}%
+                        </p>
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Warning Alert if Food Cost > 40% */}
-                  {costCalculations.foodCostPercentage > 40 && (
-                    <Alert variant="destructive">
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>
-                        {t('recipeWizard.step3.highFoodCostWarning')}
-                      </AlertDescription>
-                    </Alert>
-                  )}
+                  </section>
 
                   {/* Notes Preview */}
                   {notes && (
-                    <div className="p-4 rounded-xl border border-border bg-muted/30">
-                      <p className="text-sm text-muted-foreground mb-1">{t('recipes.fields.notes')}</p>
-                      <p className="text-sm">{notes}</p>
-                    </div>
+                    <section className="bg-card rounded-2xl border border-border/50 p-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2.5 rounded-xl bg-primary/10">
+                          <FileText className="h-5 w-5 text-primary" />
+                        </div>
+                        <h2 className="text-lg font-semibold">{t('recipes.fields.notes')}</h2>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{notes}</p>
+                    </section>
                   )}
+
+                  {/* Bottom padding */}
+                  <div className="h-8" />
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* Footer Navigation */}
-          <div className="border-t border-border/30 bg-background">
-            <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-              <Button
-                variant="ghost"
-                onClick={currentStep === 1 ? onClose : handleBack}
-                disabled={createRecipeMutation.isPending}
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                {currentStep === 1 ? tCommon('cancel') : tCommon('back')}
-              </Button>
-
-              {currentStep < 3 && (
-                <Button
-                  onClick={handleNext}
-                  disabled={!canGoNext() || createRecipeMutation.isPending}
-                >
-                  {tCommon('next')}
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              )}
-            </div>
-          </div>
         </div>
       </FullScreenModal>
 

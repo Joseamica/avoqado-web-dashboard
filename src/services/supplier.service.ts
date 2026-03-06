@@ -52,10 +52,11 @@ export type UpdateSupplierDto = Partial<CreateSupplierDto>
 
 export interface SupplierPricingDto {
   rawMaterialId: string
-  unitPrice: number
+  pricePerUnit: number
+  unit: string
   minimumQuantity?: number
-  discountRate?: number
-  effectiveFrom?: string
+  bulkDiscount?: number
+  effectiveFrom: string
   effectiveTo?: string
 }
 

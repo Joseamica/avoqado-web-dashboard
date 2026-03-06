@@ -23,7 +23,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Currency } from '@/utils/currency'
 import Cropper from 'react-easy-crop'
 import { AddIngredientDialog } from './AddIngredientDialog'
-import MultipleSelector from '@/components/multi-selector'
+import { MultiSelectCombobox } from '@/components/multi-select-combobox'
 import { SimpleConfirmDialog } from './SimpleConfirmDialog'
 import api from '@/api'
 import { cn } from '@/lib/utils'
@@ -1722,34 +1722,29 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                       {t('wizard.step1.modifierGroupsHelp', { defaultValue: 'Agrega opciones y extras que los clientes pueden elegir.' })}
                     </p>
 
-                    {/* MultipleSelector - only show unselected options */}
+                    {/* Searchable multiselect dropdown for modifier groups */}
                     {(() => {
-                      const selectedIds = (step1Form.watch('modifierGroups') || []).map(g => g.value)
-                      const availableOptions = (modifierGroups ?? [])
-                        .filter(mg => !selectedIds.includes(mg.id))
+                      const modifierGroupOptions = (modifierGroups ?? [])
                         .map(modifierGroup => ({
                           label: modifierGroup.name,
                           value: modifierGroup.id,
                           disabled: false,
                         }))
+                      const hasModifierGroups = modifierGroupOptions.length > 0
+                      const selectedModifierGroups = step1Form.watch('modifierGroups') || []
 
-                      return availableOptions.length > 0 ? (
-                        <MultipleSelector
-                          value={[]}
-                          onChange={newValues => {
-                            const currentValues = step1Form.watch('modifierGroups') || []
-                            step1Form.setValue('modifierGroups', [...currentValues, ...newValues])
-                          }}
-                          options={availableOptions}
-                          hidePlaceholderWhenSelected
+                      return hasModifierGroups ? (
+                        <MultiSelectCombobox
+                          options={modifierGroupOptions}
+                          selected={selectedModifierGroups}
+                          onChange={newValues => step1Form.setValue('modifierGroups', newValues)}
                           placeholder={t('wizard.step1.selectModifierGroups')}
-                          disabled={isModifierGroupsLoading}
+                          emptyText={t('wizard.step1.noModifierGroupsAvailable', { defaultValue: 'No hay grupos de modificadores disponibles' })}
+                          isLoading={isModifierGroupsLoading}
                         />
                       ) : (
                         <p className="text-xs text-muted-foreground italic">
-                          {(modifierGroups ?? []).length === 0
-                            ? t('wizard.step1.noModifierGroupsAvailable', { defaultValue: 'No hay grupos de modificadores disponibles' })
-                            : t('wizard.step1.allModifierGroupsSelected', { defaultValue: 'Todos los grupos de modificadores han sido seleccionados' })}
+                          {t('wizard.step1.noModifierGroupsAvailable', { defaultValue: 'No hay grupos de modificadores disponibles' })}
                         </p>
                       )
                     })()}

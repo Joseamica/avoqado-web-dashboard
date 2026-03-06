@@ -13,10 +13,10 @@
   "enableInSettings": "Enable in Settings",
   "enableNotifications": "Enable Notifications",
   "enabled": "Enabled",
-  "inAppTitle": "In-App Notifications",
+  "inAppTitle": "Web Notifications",
   "inAppDesc": "Notifications shown within the dashboard",
   "alwaysEnabled": "Always Enabled",
-  "inAppAlwaysActive": "In-app notifications are always active and cannot be disabled",
+  "inAppAlwaysActive": "Web notifications are always active and cannot be disabled",
   "active": "Active",
   "quietHours": "Quiet Hours",
   "quietHoursDesc": "Set times when you don't want to receive notifications",
@@ -72,6 +72,7 @@
     "VENUE_SUSPENDED": "Venue Suspended",
     "HIGH_COMMISSION_ALERT": "High Commission Alert",
     "REVENUE_MILESTONE": "Revenue Milestone",
+    "DAILY_SALES_SUMMARY": "Daily Sales Summary",
     "ANNOUNCEMENT": "Announcement",
     "REMINDER": "Reminder",
     "ALERT": "Alert"
@@ -101,6 +102,7 @@
     "staff": "Staff",
     "system": "System",
     "admin": "Admin",
+    "reports": "Reports",
     "general": "General"
   },
   "categoryDescriptions": {
@@ -110,6 +112,7 @@
     "staff": "Manage staff schedules, shifts, and team updates",
     "system": "System health, POS connection, and inventory alerts",
     "admin": "Administrative alerts for managers and owners only",
+    "reports": "Daily and periodic sales reports delivered by email",
     "general": "General announcements, reminders, and alerts"
   },
   "typeDescriptions": {
@@ -135,12 +138,13 @@
     "VENUE_SUSPENDED": "Critical alerts when venue is suspended",
     "HIGH_COMMISSION_ALERT": "Alerts for unusually high commission charges",
     "REVENUE_MILESTONE": "Celebrate when revenue milestones are reached",
+    "DAILY_SALES_SUMMARY": "Nightly email with a summary of the day's sales",
     "ANNOUNCEMENT": "Platform-wide announcements and news",
     "REMINDER": "Custom reminders and scheduled notifications",
     "ALERT": "General alerts requiring your attention"
   },
   "channelNames": {
-    "IN_APP": "In App",
+    "IN_APP": "Web",
     "EMAIL": "Email",
     "SMS": "SMS",
     "PUSH": "Push"

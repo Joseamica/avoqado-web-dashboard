@@ -245,6 +245,21 @@ export const notificationCategories: NotificationCategory[] = [
     ],
   },
   {
+    id: 'reports',
+    icon: 'BarChart3',
+    description: 'Daily and periodic sales reports delivered by email',
+    types: [
+      {
+        type: NotificationType.DAILY_SALES_SUMMARY,
+        defaultEnabled: true,
+        defaultChannels: [NotificationChannel.EMAIL],
+        defaultPriority: NotificationPriority.NORMAL,
+        canDisable: true,
+        description: 'Nightly email with a summary of the day\'s sales',
+      },
+    ],
+  },
+  {
     id: 'general',
     icon: 'Bell',
     description: 'General announcements, reminders, and alerts',

@@ -105,15 +105,17 @@ describe('Suppliers & Purchase Orders', () => {
 
       const response = await supplierService.addPricing(venueId, supplierId, {
         rawMaterialId: 'rm_123',
-        unitPrice: 2.5,
+        pricePerUnit: 2.5,
+        unit: 'KILOGRAM',
         minimumQuantity: 10,
+        effectiveFrom: new Date().toISOString(),
       })
 
       expect(response.success).toBe(true)
       expect(response.data).toMatchObject({
         supplierId,
         rawMaterialId: 'rm_123',
-        unitPrice: 2.5,
+        pricePerUnit: 2.5,
         minimumQuantity: 10,
       })
     })

@@ -528,30 +528,29 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
                 {/* Quantity Input - Main Focus */}
                 <div className="space-y-2">
                   <Label htmlFor="quantity">{t('recipes.ingredients.quantity')} *</Label>
-                  <div className="flex gap-2">
+                  <div className="relative">
                     <Input
                       id="quantity"
                       type="number"
                       step="0.01"
                       placeholder="0"
-                      className="flex-1 text-lg h-11"
+                      className="text-lg h-11 pr-24"
                       autoFocus
                       {...register('quantity', { required: true, valueAsNumber: true, min: 0.01 })}
                     />
-                    <div className="flex items-center px-4 rounded-md border border-input bg-muted text-sm font-medium min-w-[100px] justify-center h-11">
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground pointer-events-none">
                       {formatUnit(selectedRawMaterial.unit)}
-                    </div>
+                    </span>
                   </div>
                   {errors.quantity && <p className="text-xs text-destructive">{t('validation.requiredMinValue', { value: '0.01' })}</p>}
                 </div>
 
                 {/* Optional Checkbox */}
-                <div className="flex items-center space-x-2 py-1 cursor-pointer" onClick={() => setValue('isOptional', !isOptional)}>
+                <div className="flex items-center space-x-2 py-1">
                   <Checkbox
                     id="isOptional"
                     checked={isOptional}
                     onCheckedChange={checked => setValue('isOptional', checked as boolean)}
-                    onClick={e => e.stopPropagation()}
                     className="cursor-pointer"
                   />
                   <Label htmlFor="isOptional" className="cursor-pointer text-sm">

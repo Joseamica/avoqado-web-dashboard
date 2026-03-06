@@ -127,12 +127,20 @@ export function NavMain({
     if (!isSuperadmin || !onToggleVisibility) return null
     const hidden = isHidden(url)
     return (
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={e => {
           e.preventDefault()
           e.stopPropagation()
           onToggleVisibility(url)
+        }}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            e.stopPropagation()
+            onToggleVisibility(url)
+          }
         }}
         className={cn(
           'shrink-0 rounded-sm p-0.5 transition-opacity',
@@ -144,7 +152,7 @@ export function NavMain({
         title={hidden ? 'Mostrar para usuarios' : 'Ocultar para usuarios'}
       >
         {hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-      </button>
+      </div>
     )
   }
 
@@ -153,12 +161,20 @@ export function NavMain({
     if (!isSuperadmin || !onToggleVisibility) return null
     const hidden = isHidden(url)
     return (
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={e => {
           e.preventDefault()
           e.stopPropagation()
           onToggleVisibility(url)
+        }}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            e.stopPropagation()
+            onToggleVisibility(url)
+          }
         }}
         className={cn(
           'absolute right-1 top-1/2 -translate-y-1/2 z-10 rounded-sm p-0.5 transition-opacity',
@@ -169,7 +185,7 @@ export function NavMain({
         title={hidden ? 'Mostrar para usuarios' : 'Ocultar para usuarios'}
       >
         {hidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-      </button>
+      </div>
     )
   }
 

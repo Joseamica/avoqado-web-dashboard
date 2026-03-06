@@ -87,7 +87,15 @@
       "shelfLifeDays": "Vida Útil (días)",
       "notifyOnLowStock": "Notificar cuando el stock sea bajo",
       "active": "Activo",
-      "description": "Descripción"
+      "description": "Descripción",
+      "suppliers": "Proveedores",
+      "suppliersPlaceholder": "Buscar y seleccionar proveedores...",
+      "noSuppliersFound": "No se encontraron proveedores",
+      "suppliersHint": "Selecciona los proveedores que surten este ingrediente"
+    },
+    "validation": {
+      "gtinDuplicate": "Ya existe un ingrediente con este código GTIN en este establecimiento",
+      "skuDuplicate": "Ya existe un ingrediente con este SKU en este establecimiento"
     },
     "categories": {
       "MEAT": "Carne",
@@ -271,7 +279,7 @@
     "fields": {
       "product": "Producto",
       "currentPrice": "Precio Actual",
-      "portionYield": "¿Cuántas porciones salen de esta receta?",
+      "portionYield": "Porciones por receta",
       "prepTime": "Tiempo de Preparación (min)",
       "cookTime": "Tiempo de Cocción (min)",
       "notes": "Notas",
@@ -284,7 +292,8 @@
       "examples": "Más ejemplos:",
       "example1": "Hamburguesa = 1 porción",
       "example2": "Pizza grande = 8 porciones (8 rebanadas)",
-      "example3": "Jarra de limonada = 6 porciones (6 vasos)"
+      "example3": "Jarra de limonada = 6 porciones (6 vasos)",
+      "hint": "Ej: Pizza de 8 rebanadas = 8"
     },
     "ingredients": {
       "title": "Ingredientes",
@@ -1031,15 +1040,19 @@
       "title": "Seleccionar Producto",
       "header": "Selecciona un Producto",
       "description": "Elige un producto de tu menú que aún no tenga receta. Agregarás ingredientes y calcularás costos en los siguientes pasos.",
-      "searchPlaceholder": "Buscar productos por nombre o categoría...",
+      "searchPlaceholder": "Escribir el nombre del producto, SKU o GTIN...",
       "allHaveRecipes": "¡Todos los productos tienen receta!",
-      "allHaveRecipesDesc": "Todos tus productos ya tienen recetas configuradas. Puedes editarlas desde la tabla principal."
+      "allHaveRecipesDesc": "Todos tus productos ya tienen recetas configuradas. Puedes editarlas desde la tabla principal.",
+      "hasRecipe": "Ya tiene receta",
+      "noProducts": "No hay productos disponibles",
+      "createProduct": "Crear \"{{name}}\" como nuevo producto"
     },
     "step2": {
       "title": "Agregar Ingredientes",
       "noIngredients": "Aún no has agregado ingredientes. Haz clic en \"Agregar Ingrediente\" para comenzar.",
       "notesPlaceholder": "Instrucciones de preparación, notas de cocina, etc.",
-      "costSummary": "Resumen de Costos"
+      "costSummary": "Resumen de Costos",
+      "advancedConfig": "Configuración avanzada"
     },
     "step3": {
       "title": "Revisar y Confirmar",

@@ -60,6 +60,11 @@ import {
   ModifierInventory,
   ModifierAnalytics,
   NotificationPreferences,
+  NotificationPreferences1,
+  NotificationPreferences2,
+  NotificationPreferences3,
+  NotificationPreferences4,
+  NotificationPreferences5,
   Notifications,
   OrderId,
   Orders,
@@ -372,6 +377,11 @@ export function createVenueRoutes(): RouteObject[] {
     // Notifications
     { path: 'notifications', element: <Notifications /> },
     { path: 'notifications/preferences', element: <NotificationPreferences /> },
+    { path: 'notifications/preferences/1', element: <NotificationPreferences1 /> },
+    { path: 'notifications/preferences/2', element: <NotificationPreferences2 /> },
+    { path: 'notifications/preferences/3', element: <NotificationPreferences3 /> },
+    { path: 'notifications/preferences/4', element: <NotificationPreferences4 /> },
+    { path: 'notifications/preferences/5', element: <NotificationPreferences5 /> },
 
     // Role Permissions Management (OWNER and ADMIN only)
     {

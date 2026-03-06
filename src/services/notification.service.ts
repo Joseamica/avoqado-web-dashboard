@@ -141,6 +141,9 @@ export enum NotificationType {
   SYSTEM_MAINTENANCE = 'SYSTEM_MAINTENANCE',
   FEATURE_UPDATED = 'FEATURE_UPDATED',
 
+  // Report notifications
+  DAILY_SALES_SUMMARY = 'DAILY_SALES_SUMMARY',
+
   // Admin notifications
   VENUE_APPROVAL_NEEDED = 'VENUE_APPROVAL_NEEDED',
   VENUE_SUSPENDED = 'VENUE_SUSPENDED',
@@ -220,23 +223,30 @@ export async function deleteNotification(notificationId: string): Promise<void> 
 /**
  * Get notification preferences
  */
-export async function getPreferences(): Promise<NotificationPreference[]> {
-  const response = await api.get('/api/v1/dashboard/notifications/preferences')
+export async function getPreferences(venueId?: string | null): Promise<NotificationPreference[]> {
+  const headers: Record<string, string> = {}
+  if (venueId) headers['x-venue-id'] = venueId
+  const response = await api.get('/api/v1/dashboard/notifications/preferences', { headers })
   return response.data.data
 }
 
 /**
  * Update notification preferences
  */
-export async function updatePreferences(preference: {
-  type: NotificationType
-  enabled?: boolean
-  channels?: NotificationChannel[]
-  priority?: NotificationPriority
-  quietStart?: string
-  quietEnd?: string
-}): Promise<NotificationPreference> {
-  const response = await api.put('/api/v1/dashboard/notifications/preferences', preference)
+export async function updatePreferences(
+  preference: {
+    type: NotificationType
+    enabled?: boolean
+    channels?: NotificationChannel[]
+    priority?: NotificationPriority
+    quietStart?: string
+    quietEnd?: string
+  },
+  venueId?: string | null,
+): Promise<NotificationPreference> {
+  const headers: Record<string, string> = {}
+  if (venueId) headers['x-venue-id'] = venueId
+  const response = await api.put('/api/v1/dashboard/notifications/preferences', preference, { headers })
   return response.data.data
 }
 

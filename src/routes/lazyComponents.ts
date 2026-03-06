@@ -71,6 +71,11 @@ export const SuperAdminVenueEdit = lazyWithRetry(() => import('@/pages/Admin/Sup
 export const Venues = lazyWithRetry(() => import('@/pages/Venue/Venues'))
 export const Notifications = lazyWithRetry(() => import('@/pages/Notifications/Notifications'))
 export const NotificationPreferences = lazyWithRetry(() => import('@/pages/Notifications/NotificationPreferences'))
+export const NotificationPreferences1 = lazyWithRetry(() => import('@/pages/Notifications/NotificationPreferences1'))
+export const NotificationPreferences2 = lazyWithRetry(() => import('@/pages/Notifications/NotificationPreferences2'))
+export const NotificationPreferences3 = lazyWithRetry(() => import('@/pages/Notifications/NotificationPreferences3'))
+export const NotificationPreferences4 = lazyWithRetry(() => import('@/pages/Notifications/NotificationPreferences4'))
+export const NotificationPreferences5 = lazyWithRetry(() => import('@/pages/Notifications/NotificationPreferences5'))
 
 // New Superadmin System Components (temporary direct imports for debugging)
 export { default as SuperadminLayout } from '@/pages/Superadmin/SuperadminLayout'
