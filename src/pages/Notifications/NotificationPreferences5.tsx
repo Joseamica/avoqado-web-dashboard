@@ -1,45 +1,33 @@
 /**
- * Notification Preferences — Collapsible categories + channel pills per type
+ * Notification Preferences — Collapsible categories + channel pills per type.
  * Master channel toggles at top with confirmation dialog.
  */
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { BarChart3, Bell, Check, ChevronDown, CreditCard, Loader2, Mail, Settings, Shield, ShoppingBag, Star, Users } from 'lucide-react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Switch } from '@/components/ui/switch'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { getAllNotificationTypes, notificationCategories } from '@/lib/notifications/categories'
-import { NotificationChannel, NotificationPriority, NotificationType, NotificationPreference } from '@/services/notification.service'
-import * as notificationService from '@/services/notification.service'
-import { canShowNotifications, requestNotificationPermission } from '@/utils/notification.utils'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  BarChart3,
-  Bell,
-  Check,
-  ChevronDown,
-  CreditCard,
-  Loader2,
-  Mail,
-  Shield,
-  ShoppingBag,
-  Star,
-  Settings,
-  Users,
-} from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useCallback, useMemo, useRef, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useCurrentVenue } from '@/hooks/use-current-venue'
+import * as notificationService from '@/services/notification.service'
+import { NotificationChannel, NotificationPreference, NotificationPriority, NotificationType } from '@/services/notification.service'
+import { canShowNotifications, requestNotificationPermission } from '@/utils/notification.utils'
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  ShoppingBag,
+  BarChart3,
+  Bell,
   CreditCard,
-  Star,
-  Users,
   Settings,
   Shield,
-  Bell,
-  BarChart3,
+  ShoppingBag,
+  Star,
+  Users,
 }
 
 const channelConfig = [
@@ -48,12 +36,14 @@ const channelConfig = [
 ]
 
 const allNotificationTypes = getAllNotificationTypes()
+const notificationTypeMetadataMap = new Map(allNotificationTypes.map(td => [td.type, td]))
 
 export default function NotificationPreferences5() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { t } = useTranslation('notifications')
   const { venueId } = useCurrentVenue()
+
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
   const [browserPermission, setBrowserPermission] = useState<NotificationPermission>(
     typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default',
@@ -64,7 +54,6 @@ export default function NotificationPreferences5() {
     channelLabel: string
     action: 'enable' | 'disable'
   }>({ open: false, channel: NotificationChannel.IN_APP, channelLabel: '', action: 'disable' })
-
   const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set())
   const inFlightCount = useRef(0)
 
@@ -73,13 +62,51 @@ export default function NotificationPreferences5() {
     queryFn: () => notificationService.getPreferences(venueId),
   })
 
-  const addPending = (key: string) => setPendingKeys(prev => new Set(prev).add(key))
-  const removePending = (key: string) =>
+  function addPending(key: string): void {
+    setPendingKeys(prev => new Set(prev).add(key))
+  }
+
+  function removePending(key: string): void {
     setPendingKeys(prev => {
       const next = new Set(prev)
       next.delete(key)
       return next
     })
+  }
+
+  const preferenceMap = useMemo(() => {
+    const map = new Map<NotificationType, NotificationPreference>()
+    for (const p of preferences) map.set(p.type, p)
+    return map
+  }, [preferences])
+
+  const getPreference = useCallback(
+    (type: NotificationType): NotificationPreference => {
+      const existing = preferenceMap.get(type)
+      if (existing) return existing
+      const metadata = notificationTypeMetadataMap.get(type)
+      return {
+        type,
+        enabled: metadata?.defaultEnabled ?? true,
+        channels: metadata?.defaultChannels ?? [NotificationChannel.IN_APP],
+        priority: metadata?.defaultPriority ?? NotificationPriority.NORMAL,
+      } as NotificationPreference
+    },
+    [preferenceMap],
+  )
+
+  const channelUsageCount = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const ch of channelConfig) counts[ch.channel] = 0
+    for (const td of allNotificationTypes) {
+      const pref = getPreference(td.type)
+      if (!pref.enabled) continue
+      for (const ch of channelConfig) {
+        if (pref.channels?.includes(ch.channel)) counts[ch.channel]++
+      }
+    }
+    return counts
+  }, [getPreference])
 
   const applyOptimisticUpdate = useCallback(
     (type: NotificationType, updates: Partial<NotificationPreference>) => {
@@ -91,22 +118,10 @@ export default function NotificationPreferences5() {
           updated[idx] = { ...updated[idx], ...updates }
           return updated
         }
-        // No existing record — create an optimistic one
-        const category = notificationCategories.find(cat => cat.types.some(t => t.type === type))
-        const metadata = category?.types.find(t => t.type === type)
-        return [
-          ...old,
-          {
-            type,
-            enabled: metadata?.defaultEnabled ?? true,
-            channels: metadata?.defaultChannels ?? [NotificationChannel.IN_APP],
-            priority: metadata?.defaultPriority ?? NotificationPriority.NORMAL,
-            ...updates,
-          },
-        ]
+        return [...old, { ...getPreference(type), ...updates } as NotificationPreference]
       })
     },
-    [queryClient, venueId],
+    [queryClient, venueId, getPreference],
   )
 
   const updatePreference = useCallback(
@@ -120,7 +135,6 @@ export default function NotificationPreferences5() {
       } finally {
         inFlightCount.current--
         removePending(pendingKey)
-        // Only refetch when ALL mutations have settled
         if (inFlightCount.current === 0) {
           queryClient.invalidateQueries({ queryKey: ['notification-preferences', venueId] })
         }
@@ -129,114 +143,54 @@ export default function NotificationPreferences5() {
     [queryClient, venueId, toast, t],
   )
 
-  const getPreferenceForType = (type: NotificationType) => {
-    const preference = preferences.find(p => p.type === type)
-    if (preference) return preference
-    const category = notificationCategories.find(cat => cat.types.some(t => t.type === type))
-    const metadata = category?.types.find(t => t.type === type)
-    return {
-      type,
-      enabled: metadata?.defaultEnabled ?? true,
-      channels: metadata?.defaultChannels ?? [NotificationChannel.IN_APP],
-      priority: metadata?.defaultPriority ?? NotificationPriority.NORMAL,
-    }
+  async function handleToggle(type: NotificationType, enabled: boolean): Promise<void> {
+    applyOptimisticUpdate(type, { enabled })
+    await updatePreference(`toggle-${type}`, { type, enabled })
   }
 
-  // Check if a channel is active on ANY notification type
-  const isChannelGloballyActive = (channel: NotificationChannel) => {
-    return allNotificationTypes.some(td => {
-      const pref = getPreferenceForType(td.type)
-      return pref.enabled && pref.channels?.includes(channel)
-    })
+  async function handleToggleChannel(type: NotificationType, channel: NotificationChannel): Promise<void> {
+    const currentChannels = getPreference(type).channels || []
+    const newChannels = currentChannels.includes(channel) ? currentChannels.filter(c => c !== channel) : [...currentChannels, channel]
+    applyOptimisticUpdate(type, { channels: newChannels })
+    await updatePreference(`channel-${type}-${channel}`, { type, channels: newChannels })
   }
 
-  // Count how many types use this channel
-  const channelUsageCount = useMemo(() => {
-    const counts: Record<string, number> = {}
-    for (const ch of channelConfig) {
-      counts[ch.channel] = allNotificationTypes.filter(td => {
-        const pref = getPreferenceForType(td.type)
-        return pref.enabled && pref.channels?.includes(ch.channel)
-      }).length
-    }
-    return counts
-  }, [preferences])
-
-  const handleMasterChannelToggle = (channel: NotificationChannel, label: string) => {
-    const isActive = isChannelGloballyActive(channel)
-    setConfirmDialog({
-      open: true,
-      channel,
-      channelLabel: label,
-      action: isActive ? 'disable' : 'enable',
-    })
+  function handleMasterChannelToggle(channel: NotificationChannel, label: string): void {
+    const isActive = (channelUsageCount[channel] || 0) > 0
+    setConfirmDialog({ open: true, channel, channelLabel: label, action: isActive ? 'disable' : 'enable' })
   }
 
-  const executeMasterChannelToggle = async () => {
+  async function executeMasterChannelToggle(): Promise<void> {
     const { channel, action } = confirmDialog
     setConfirmDialog(prev => ({ ...prev, open: false }))
 
-    // 1. Pre-compute all changes from current state
     const changes: { type: NotificationType; channels: NotificationChannel[] }[] = []
-    for (const typeData of allNotificationTypes) {
-      const pref = getPreferenceForType(typeData.type)
+    for (const td of allNotificationTypes) {
+      const pref = getPreference(td.type)
       if (!pref.enabled) continue
-
-      const currentChannels = pref.channels || []
-      let newChannels: NotificationChannel[]
-
+      const curr = pref.channels || []
+      let next: NotificationChannel[]
       if (action === 'disable') {
-        newChannels = currentChannels.filter(c => c !== channel)
+        next = curr.filter(c => c !== channel)
       } else {
-        if (currentChannels.includes(channel)) continue
-        newChannels = [...currentChannels, channel]
+        next = curr.includes(channel) ? curr : [...curr, channel]
       }
-
-      if (newChannels.length !== currentChannels.length) {
-        changes.push({ type: typeData.type, channels: newChannels })
-      }
+      if (next.length !== curr.length) changes.push({ type: td.type, channels: next })
     }
 
-    // 2. Apply ALL optimistic updates at once
-    for (const change of changes) {
-      applyOptimisticUpdate(change.type, { channels: change.channels })
-    }
-
-    // 3. Fire all API calls (in-flight counter handles deferred invalidation)
-    await Promise.all(
-      changes.map(change =>
-        updatePreference(`master-${channel}`, { type: change.type, channels: change.channels }),
-      ),
-    )
-
+    for (const c of changes) applyOptimisticUpdate(c.type, { channels: c.channels })
+    await Promise.all(changes.map(c => updatePreference(`master-${channel}`, { type: c.type, channels: c.channels })))
     toast({ title: t('saved'), description: t('preferencesSaved') })
   }
 
-  const handleToggle = async (type: NotificationType, enabled: boolean) => {
-    const key = `toggle-${type}`
-    applyOptimisticUpdate(type, { enabled })
-    await updatePreference(key, { type, enabled })
-  }
-
-  const handleToggleChannel = async (type: NotificationType, channel: NotificationChannel) => {
-    const currentPref = getPreferenceForType(type)
-    const currentChannels = currentPref.channels || []
-    let newChannels: NotificationChannel[]
-    if (currentChannels.includes(channel)) {
-      newChannels = currentChannels.filter(c => c !== channel)
-    } else {
-      newChannels = [...currentChannels, channel]
-    }
-    const key = `channel-${type}-${channel}`
-    applyOptimisticUpdate(type, { channels: newChannels })
-    await updatePreference(key, { type, channels: newChannels })
-  }
-
-  const toggleCategory = (categoryId: string) => {
+  function toggleCategory(id: string): void {
     setExpandedCategories(prev => {
       const next = new Set(prev)
-      if (next.has(categoryId)) next.delete(categoryId)
-      else next.add(categoryId)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
       return next
     })
   }
@@ -252,9 +206,11 @@ export default function NotificationPreferences5() {
     )
   }
 
+  const isDisabling = confirmDialog.action === 'disable'
+  const channelInterpolation = { channel: confirmDialog.channelLabel }
+
   return (
     <div className="p-4 sm:p-6 max-w-2xl mx-auto">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground">{t('preferences')}</h1>
         <p className="text-sm text-muted-foreground mt-1">{t('preferencesSubtitle')}</p>
@@ -263,19 +219,17 @@ export default function NotificationPreferences5() {
       {/* Master channel toggles */}
       <div className="mb-4">
         <h2 className="text-sm font-semibold text-foreground mb-1">{t('channels')}</h2>
-        <p className="text-xs text-muted-foreground mb-3">
-          {t('channelsDescription')}
-        </p>
+        <p className="text-xs text-muted-foreground mb-3">{t('channelsDescription')}</p>
         <div className="grid grid-cols-2 gap-2">
           {channelConfig.map(ch => {
-            const isActive = isChannelGloballyActive(ch.channel)
             const count = channelUsageCount[ch.channel] || 0
+            const isActive = count > 0
             return (
               <div
                 key={ch.channel}
                 className={cn(
                   'relative rounded-xl border bg-card p-3.5 transition-colors',
-                  isActive ? 'border-border/50' : 'border-border/30 opacity-60',
+                  isActive ? 'border-input' : 'border-input/60 opacity-60',
                 )}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
@@ -287,16 +241,11 @@ export default function NotificationPreferences5() {
                   >
                     <ch.icon className={cn('h-4 w-4', isActive ? 'text-foreground' : 'text-muted-foreground')} />
                   </div>
-                  <Switch
-                    checked={isActive}
-                    onCheckedChange={() => handleMasterChannelToggle(ch.channel, t(`channelNames.${ch.label}`))}
-                  />
+                  <Switch checked={isActive} onCheckedChange={() => handleMasterChannelToggle(ch.channel, t(`channelNames.${ch.label}`))} />
                 </div>
                 <span className="text-sm font-medium text-foreground block">{t(`channelNames.${ch.label}`)}</span>
                 <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
-                  {isActive
-                    ? t('notificationCount', { count })
-                    : t('disabled')}
+                  {isActive ? t('notificationCount', { count }) : t('disabled')}
                 </p>
               </div>
             )
@@ -306,7 +255,7 @@ export default function NotificationPreferences5() {
 
       {/* Browser notification banner */}
       {browserPermission !== 'granted' && (
-        <div className="flex items-center justify-between rounded-xl border border-border/50 bg-card px-4 py-3 mb-4">
+        <div className="flex items-center justify-between rounded-xl border border-input bg-card px-4 py-3 mb-4">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-muted shrink-0">
               <Bell className="h-4 w-4 text-muted-foreground" />
@@ -334,12 +283,10 @@ export default function NotificationPreferences5() {
         {notificationCategories.map(category => {
           const Icon = iconMap[category.icon] || Bell
           const isExpanded = expandedCategories.has(category.id)
-          const enabledCount = category.types.filter(td => getPreferenceForType(td.type).enabled).length
-          const totalCount = category.types.length
+          const enabledCount = category.types.filter(td => getPreference(td.type).enabled).length
 
           return (
-            <div key={category.id} className="rounded-xl border border-border/50 bg-card overflow-hidden">
-              {/* Category header */}
+            <div key={category.id} className="rounded-xl border border-input bg-card overflow-hidden">
               <button
                 onClick={() => toggleCategory(category.id)}
                 className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors cursor-pointer"
@@ -349,57 +296,36 @@ export default function NotificationPreferences5() {
                 </div>
                 <div className="flex-1 text-left min-w-0">
                   <span className="text-sm font-medium text-foreground">{t(`categories.${category.id}`)}</span>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {t(`categoryDescriptions.${category.id}`)}
-                  </p>
+                  <p className="text-xs text-muted-foreground truncate">{t(`categoryDescriptions.${category.id}`)}</p>
                 </div>
                 <Badge variant="secondary" className="text-xs tabular-nums shrink-0">
-                  {enabledCount}/{totalCount}
+                  {enabledCount}/{category.types.length}
                 </Badge>
-                <ChevronDown
-                  className={cn(
-                    'h-4 w-4 text-muted-foreground transition-transform shrink-0',
-                    isExpanded && 'rotate-180',
-                  )}
-                />
+                <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform shrink-0', isExpanded && 'rotate-180')} />
               </button>
 
-              {/* Expanded types with channel pills */}
               {isExpanded && (
-                <div className="border-t border-border/30">
+                <div className="border-t border-input/60">
                   {category.types.map((typeData, i) => {
-                    const pref = getPreferenceForType(typeData.type)
-                    const isEnabled = pref.enabled
-
+                    const pref = getPreference(typeData.type)
                     return (
                       <div
                         key={typeData.type}
-                        className={cn(
-                          'px-4 py-3 pl-16',
-                          i < category.types.length - 1 && 'border-b border-border/20',
-                        )}
+                        className={cn('px-4 py-3 pl-16', i < category.types.length - 1 && 'border-b border-input/40')}
                       >
-                        {/* Row: name + toggle */}
                         <div className="flex items-center justify-between">
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-foreground">
-                                {t(`types.${typeData.type}`)}
-                              </span>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {t(`typeDescriptions.${typeData.type}`)}
-                            </p>
+                            <span className="text-sm font-medium text-foreground">{t(`types.${typeData.type}`)}</span>
+                            <p className="text-xs text-muted-foreground mt-0.5">{t(`typeDescriptions.${typeData.type}`)}</p>
                           </div>
                           <Switch
-                            checked={isEnabled}
+                            checked={pref.enabled}
                             onCheckedChange={enabled => handleToggle(typeData.type, enabled)}
                             disabled={pendingKeys.has(`toggle-${typeData.type}`)}
                           />
                         </div>
 
-                        {/* Channel pills — only when enabled */}
-                        {isEnabled && (
+                        {pref.enabled && (
                           <div className="flex items-center gap-1.5 mt-2">
                             {channelConfig.map(({ channel, icon: ChannelIcon, label }) => {
                               const isActive = pref.channels?.includes(channel) || false
@@ -417,11 +343,7 @@ export default function NotificationPreferences5() {
                                     isPending && 'opacity-70',
                                   )}
                                 >
-                                  {isPending ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <ChannelIcon className="h-3 w-3" />
-                                  )}
+                                  {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <ChannelIcon className="h-3 w-3" />}
                                   {t(`channelNames.${label}`)}
                                   {isActive && !isPending && <Check className="h-3 w-3" />}
                                 </button>
@@ -440,7 +362,7 @@ export default function NotificationPreferences5() {
       </div>
 
       {/* Test notification */}
-      <div className="rounded-xl border border-border/50 bg-card px-4 py-3 mt-6">
+      <div className="rounded-xl border border-input bg-card px-4 py-3 mt-6">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-foreground">{t('testTitle')}</p>
@@ -451,10 +373,7 @@ export default function NotificationPreferences5() {
             size="sm"
             onClick={() => {
               if (canShowNotifications()) {
-                new Notification(t('testTitle'), {
-                  body: t('testBody'),
-                  icon: '/favicon.ico',
-                })
+                new Notification(t('testTitle'), { body: t('testBody'), icon: '/favicon.ico' })
               } else {
                 toast({ title: t('testTitle'), description: t('testBody') })
               }
@@ -465,23 +384,14 @@ export default function NotificationPreferences5() {
         </div>
       </div>
 
-      {/* Confirmation dialog for master channel toggle */}
       <ConfirmDialog
         open={confirmDialog.open}
         onOpenChange={open => setConfirmDialog(prev => ({ ...prev, open }))}
-        title={
-          confirmDialog.action === 'disable'
-            ? t('confirmDisableChannel', { channel: confirmDialog.channelLabel })
-            : t('confirmEnableChannel', { channel: confirmDialog.channelLabel })
-        }
-        description={
-          confirmDialog.action === 'disable'
-            ? t('confirmDisableChannelDesc', { channel: confirmDialog.channelLabel })
-            : t('confirmEnableChannelDesc', { channel: confirmDialog.channelLabel })
-        }
-        confirmText={confirmDialog.action === 'disable' ? t('disable') : t('enable')}
+        title={t(isDisabling ? 'confirmDisableChannel' : 'confirmEnableChannel', channelInterpolation)}
+        description={t(isDisabling ? 'confirmDisableChannelDesc' : 'confirmEnableChannelDesc', channelInterpolation)}
+        confirmText={t(isDisabling ? 'disable' : 'enable')}
         cancelText={t('cancel')}
-        variant={confirmDialog.action === 'disable' ? 'destructive' : 'default'}
+        variant={isDisabling ? 'destructive' : 'default'}
         onConfirm={executeMasterChannelToggle}
       />
     </div>

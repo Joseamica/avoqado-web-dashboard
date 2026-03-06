@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useDebounce } from '@/hooks/useDebounce'
 import { useToast } from '@/hooks/use-toast'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { recipesApi, rawMaterialsApi, type RawMaterial } from '@/services/inventory.service'
@@ -102,13 +103,12 @@ const getCategoryEmoji = (category: string | null | undefined): string => {
 export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTempIngredient }: AddIngredientDialogProps) {
   const { t } = useTranslation('inventory')
   const { t: tCommon } = useTranslation('common')
-  const { t: _tMenu } = useTranslation('menu')
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { formatUnit } = useUnitTranslation()
   const [searchTerm, setSearchTerm] = useState('')
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [selectedRawMaterial, setSelectedRawMaterial] = useState<RawMaterial | null>(null)
   const [quickCreateOpen, setQuickCreateOpen] = useState(false)
   const [advancedOpen, setAdvancedOpen] = useState(false)
@@ -138,14 +138,6 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
   const isVariable = watch('isVariable')
   const linkedModifierGroupId = watch('linkedModifierGroupId')
   const quantity = watch('quantity')
-
-  // Debounce search term
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm)
-    }, 400)
-    return () => clearTimeout(timer)
-  }, [searchTerm])
 
   // Fetch raw materials
   const { data: rawMaterials, isLoading: materialsLoading } = useQuery({
@@ -234,7 +226,6 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
       })
       setSelectedRawMaterial(null)
       setSearchTerm('')
-      setDebouncedSearchTerm('')
       setAdvancedOpen(false)
       setCategoryFilter([])
       setSortBy('name-asc')
@@ -333,7 +324,7 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
     setSelectedRawMaterial(null)
     setValue('rawMaterialId', '')
     setValue('unit', '')
-    setValue('quantity', undefined as any)
+    setValue('quantity', undefined)
     setSearchTerm('')
   }
 
@@ -658,7 +649,6 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
         onSuccess={material => {
           handleSelectRawMaterial(material)
           setSearchTerm('')
-          setDebouncedSearchTerm('')
         }}
       />
     </>
