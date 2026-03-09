@@ -13,6 +13,7 @@ export interface RolePermission {
     email: string
   } | null
   modifiedAt: string | null
+  staffCount?: number
 }
 
 export interface RoleHierarchyInfo {

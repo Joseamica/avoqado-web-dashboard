@@ -1695,6 +1695,8 @@ export interface TeamMember {
   totalTips: number
   totalOrders: number
   averageRating: number
+  permissionSetId: string | null
+  permissionSetName: string | null
 }
 
 export interface TeamMemberDetails extends TeamMember {

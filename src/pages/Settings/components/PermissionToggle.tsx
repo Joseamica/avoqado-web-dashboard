@@ -21,10 +21,20 @@ interface PermissionToggleProps {
  * e.g., "orders:create" -> { resource: "Orders", action: "Create" }
  */
 function formatPermission(permission: string, t: (key: string, options?: { defaultValue?: string }) => string) {
-  const [resource, action] = permission.split(':')
+  const parts = permission.split(':')
+  const resource = parts[0]
+  const action = parts.slice(1).join(':')
+
+  // Try compound action key first (e.g., "command:lock"), fallback to joining individual parts
+  const actionKey = `rolePermissions.actions.${action}`
+  const actionLabel = t(actionKey, { defaultValue: '' })
+  const resolvedAction = actionLabel || parts.slice(1).map(part =>
+    t(`rolePermissions.actions.${part}`, { defaultValue: part.charAt(0).toUpperCase() + part.slice(1) })
+  ).join(': ')
+
   return {
     resource: resource ? t(`rolePermissions.resources.${resource}`, { defaultValue: resource.charAt(0).toUpperCase() + resource.slice(1) }) : '',
-    action: action ? t(`rolePermissions.actions.${action}`, { defaultValue: action.charAt(0).toUpperCase() + action.slice(1) }) : '',
+    action: resolvedAction,
   }
 }
 

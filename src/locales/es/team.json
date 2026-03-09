@@ -35,6 +35,9 @@
       "viewer": "Visualizador",
       "viewerDesc": "Acceso de solo lectura a análisis y reportes"
     },
+    "permissionSet": "Conjunto de Permisos",
+    "permissionSetNone": "Usar permisos del rol (predeterminado)",
+    "permissionSetOverride": "Los permisos del conjunto seleccionado reemplazarán los permisos del rol.",
     "validation": {
       "pinMinLength": "El PIN debe tener al menos 4 dígitos",
       "pinMaxLength": "El PIN no puede tener más de 10 dígitos",

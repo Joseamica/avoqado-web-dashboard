@@ -143,10 +143,20 @@ export function PermissionGrid({
   }
 
   const formatPermission = (permission: string) => {
-    const [resource, action] = permission.split(':')
+    const parts = permission.split(':')
+    const resource = parts[0]
+    const action = parts.slice(1).join(':')
+
+    const actionKey = `rolePermissions.actions.${action}`
+    const actionLabel = t(actionKey, action)
+    // If the translation returned the raw key, fallback to joining individual parts
+    const resolvedAction = actionLabel !== action ? actionLabel : parts.slice(1).map(part =>
+      t(`rolePermissions.actions.${part}`, part.charAt(0).toUpperCase() + part.slice(1))
+    ).join(': ')
+
     return {
       resource: resource ? t(`rolePermissions.resources.${resource}`, resource.charAt(0).toUpperCase() + resource.slice(1)) : '',
-      action: action ? t(`rolePermissions.actions.${action}`, action.charAt(0).toUpperCase() + action.slice(1)) : '',
+      action: resolvedAction,
     }
   }
 

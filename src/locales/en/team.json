@@ -35,6 +35,9 @@
       "viewer": "Viewer",
       "viewerDesc": "View-only access to analytics and reports"
     },
+    "permissionSet": "Permission Set",
+    "permissionSetNone": "Use role permissions (default)",
+    "permissionSetOverride": "The selected permission set will override the role's default permissions.",
     "validation": {
       "pinMinLength": "PIN must be at least 4 digits",
       "pinMaxLength": "PIN cannot exceed 10 digits",

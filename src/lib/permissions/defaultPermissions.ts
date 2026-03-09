@@ -118,6 +118,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'home:read',
     'analytics:read',
     'analytics:export',
+    'reports:read',
+    'reports:export',
     'settlements:read',
     'settlements:simulate',
     'menu:read',
@@ -274,7 +276,22 @@ export const PERMISSION_CATEGORIES = {
   },
   TPV: {
     label: 'TPV Management',
-    permissions: ['tpv:read', 'tpv:create', 'tpv:update', 'tpv:delete', 'tpv:command'],
+    permissions: [
+      'tpv:read',
+      'tpv:create',
+      'tpv:update',
+      'tpv:delete',
+      'tpv:command',
+      'tpv:command:lock',
+      'tpv:command:maintenance',
+      'tpv:command:restart',
+      'tpv:command:shutdown',
+      'tpv:command:config',
+      'tpv:command:wipe',
+      'tpv:command:bulk',
+      'tpv:command:schedule',
+      'tpv:command:geofence',
+    ],
   },
   INVENTORY: {
     label: 'Inventory',
@@ -349,10 +366,30 @@ export const PERMISSION_CATEGORIES = {
       'commissions:update',
       'commissions:delete',
       'commissions:approve',
-      'commissions:process_payout',
+      'commissions:payout',
       'commissions:view_own',
       'commissions:org-manage',
     ],
+  },
+  REPORTS: {
+    label: 'Reports',
+    permissions: ['reports:read', 'reports:export'],
+  },
+  FEATURES: {
+    label: 'Feature Flags',
+    permissions: ['features:read', 'features:update'],
+  },
+  NOTIFICATIONS: {
+    label: 'Notifications',
+    permissions: ['notifications:send'],
+  },
+  PRODUCTS: {
+    label: 'Products',
+    permissions: ['products:read', 'products:create', 'products:update', 'products:delete'],
+  },
+  ROLE_CONFIG: {
+    label: 'Role Configuration',
+    permissions: ['role-config:read', 'role-config:update'],
   },
   // ===========================
   // TPV-SPECIFIC PERMISSIONS (Granular TPV Features)
@@ -367,7 +404,7 @@ export const PERMISSION_CATEGORIES = {
   },
   TPV_PAYMENTS: {
     label: 'TPV Payments (Advanced)',
-    permissions: ['tpv-payments:send-receipt'],
+    permissions: ['tpv-payments:send-receipt', 'tpv-payments:pay-later'],
   },
   TPV_SHIFTS: {
     label: 'TPV Shifts',
@@ -400,6 +437,26 @@ export const PERMISSION_CATEGORIES = {
   TPV_FACTORY_RESET: {
     label: 'Factory Reset (CRITICAL)',
     permissions: ['tpv-factory-reset:execute'],
+  },
+  TPV_DEVICES: {
+    label: 'TPV Devices',
+    permissions: ['tpv-devices:manage'],
+  },
+  TPV_KIOSK: {
+    label: 'Kiosk Mode',
+    permissions: ['tpv-kiosk:enable'],
+  },
+  TPV_MESSAGES: {
+    label: 'TPV Messages',
+    permissions: ['tpv-messages:read', 'tpv-messages:send'],
+  },
+  SERIALIZED_INVENTORY: {
+    label: 'Serialized Inventory',
+    permissions: ['serialized-inventory:sell', 'serialized-inventory:create'],
+  },
+  VENUE_CRYPTO: {
+    label: 'Venue Crypto Config',
+    permissions: ['venue-crypto:manage'],
   },
   // ===========================
   // ORG-LEVEL MANAGEMENT

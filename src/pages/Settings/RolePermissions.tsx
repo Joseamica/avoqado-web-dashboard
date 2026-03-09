@@ -1,333 +1,121 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
-import { Shield, Save, RotateCcw, AlertCircle, Info, AlertTriangle, Tags, Monitor, LayoutDashboard } from 'lucide-react'
+import { AlertCircle, Info, Search, X, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useVenueDateTime } from '@/utils/datetime'
-import { useDebounce } from '@/hooks/useDebounce'
+import { useQuery } from '@tanstack/react-query'
+import { useAuth } from '@/context/AuthContext'
 import { useRoleConfig } from '@/hooks/use-role-config'
 
-import { Button } from '@/components/ui/button'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
-import { SimpleConfirmDialog } from '@/pages/Inventory/components/SimpleConfirmDialog'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tabs, TabsContent } from '@/components/ui/tabs'
-import { useToast } from '@/hooks/use-toast'
-import { useAuth } from '@/context/AuthContext'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import { StaffRole } from '@/types'
-import rolePermissionService from '@/services/rolePermission.service'
-import RoleDisplayNames, { type RoleDisplayNamesActions } from './components/RoleDisplayNames'
-import PermissionSearch from './components/PermissionSearch'
-import PermissionTemplateSelector from './components/PermissionTemplateSelector'
-import PermissionSuperCategory from './components/PermissionSuperCategory'
-import { getModifiableRoles, PERMISSION_CATEGORIES } from '@/lib/permissions/roleHierarchy'
-import { DEFAULT_PERMISSIONS } from '@/lib/permissions/defaultPermissions'
-import {
-  DASHBOARD_SUPER_CATEGORIES,
-  TPV_SUPER_CATEGORIES,
-  filterPermissionsBySearch,
-} from '@/lib/permissions/permissionGroups'
 import { PermissionGate } from '@/components/PermissionGate'
+import { getModifiableRoles, PERMISSION_CATEGORIES } from '@/lib/permissions/roleHierarchy'
+import rolePermissionService from '@/services/rolePermission.service'
+import permissionSetService, { type PermissionSet } from '@/services/permissionSet.service'
+import { DASHBOARD_SUPER_CATEGORIES, TPV_SUPER_CATEGORIES } from '@/lib/permissions/permissionGroups'
 
-type PermissionTab = 'dashboard' | 'tpv'
-type RolePermissionsTab = 'permissions' | 'display-names'
+import PermissionEditorModal from './components/PermissionEditorModal'
+import PermissionSetEditorModal from './components/PermissionSetEditorModal'
+
+/** Compute a short access summary from permissions list */
+function getAccessSummary(permissions: string[], t: any): string {
+  if (!permissions || permissions.length === 0) return t('rolePermissions.noAccess', 'No Access')
+  if (permissions.includes('*:*')) return t('rolePermissions.allPermissions', 'All access')
+
+  // Find which super-categories have active permissions
+  const allSuperCats = [...DASHBOARD_SUPER_CATEGORIES, ...TPV_SUPER_CATEGORIES]
+  const permSet = new Set(permissions)
+  const activeSuperCats: string[] = []
+
+  for (const superCat of allSuperCats) {
+    const superPerms = superCat.categoryKeys.flatMap(key => PERMISSION_CATEGORIES[key]?.permissions || [])
+    const hasAny = superPerms.some(p => permSet.has(p))
+    if (hasAny) {
+      activeSuperCats.push(t(superCat.titleKey, superCat.id))
+    }
+  }
+
+  if (activeSuperCats.length === 0) return `${permissions.length} ${t('rolePermissions.permissions', 'permissions')}`
+  return activeSuperCats.join(', ')
+}
 
 export default function RolePermissions() {
   const { slug } = useParams<{ slug: string }>()
-  const { activeVenue, staffInfo, user, checkFeatureAccess } = useAuth()
+  const { activeVenue, staffInfo, user } = useAuth()
   const { t } = useTranslation('settings')
   const { t: tCommon } = useTranslation('common')
-  const { toast } = useToast()
-  const { formatDate } = useVenueDateTime()
   const { getDisplayName: getRoleDisplayName } = useRoleConfig()
-  const [activeRoleTab, setActiveRoleTab] = useState<RolePermissionsTab>('permissions')
-  const [roleDisplayActions, setRoleDisplayActions] = useState<RoleDisplayNamesActions | null>(null)
-  const queryClient = useQueryClient()
 
-  // Get venueId from activeVenue or find it from user's venues using slug
+  const [editingRole, setEditingRole] = useState<StaffRole | null>(null)
+  const [editingPermissionSet, setEditingPermissionSet] = useState<PermissionSet | null>(null)
+  const [creatingPermissionSet, setCreatingPermissionSet] = useState(false)
+  const [filterTerm, setFilterTerm] = useState('')
+
   const venueId = activeVenue?.id || user?.venues.find(v => v.slug === slug)?.id
 
-  // Role selection state
-  const [selectedRole, setSelectedRole] = useState<StaffRole | null>(null)
-  const [modifiedPermissions, setModifiedPermissions] = useState<string[]>([])
-  const [hasChanges, setHasChanges] = useState(false)
+  // Modifiable roles for current user
+  const modifiableRoles = useMemo(() => (staffInfo?.role ? getModifiableRoles(staffInfo.role) : []), [staffInfo?.role])
 
-  // UI state
-  const [activePermissionTab, setActivePermissionTab] = useState<PermissionTab>('dashboard')
-  const [searchTerm, setSearchTerm] = useState('')
-  const debouncedSearchTerm = useDebounce(searchTerm, 300)
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
-
-  // Dialog states
-  const [pendingRoleChange, setPendingRoleChange] = useState<StaffRole | null>(null)
-  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false)
-  const [showRevertDialog, setShowRevertDialog] = useState(false)
-  const [pendingTemplate, setPendingTemplate] = useState<StaffRole | null>(null)
-  const [showTemplateConfirmDialog, setShowTemplateConfirmDialog] = useState(false)
-  const getRoleLabel = useCallback(
-    (role?: StaffRole | null) => (role ? getRoleDisplayName(role) : ''),
-    [getRoleDisplayName]
-  )
-
-  // Get all role permissions for the venue
+  // Fetch all role permissions
   const { data: rolePermissionsData, isLoading } = useQuery({
     queryKey: ['rolePermissions', venueId],
     queryFn: () => rolePermissionService.getAllRolePermissions(venueId!),
     enabled: !!venueId,
   })
 
-  // Get modifiable roles for current user
-  const modifiableRoles = useMemo(
-    () => (staffInfo?.role ? getModifiableRoles(staffInfo.role) : []),
-    [staffInfo?.role]
-  )
-
-  // Find the currently selected role's permissions
-  const currentRolePermission = rolePermissionsData?.data.find(rp => rp.role === selectedRole)
-
-  // Calculate total available permissions
-  const allPermissions = useMemo(
-    () => Object.values(PERMISSION_CATEGORIES).flatMap(cat => cat.permissions),
-    []
-  )
-
-  // Convert modifiedPermissions array to Set for efficient lookup
-  const selectedPermissionsSet = useMemo(() => new Set(modifiedPermissions), [modifiedPermissions])
-
-  // Helper to filter categories based on active features
-  const filterCategoriesByFeatures = useCallback((superCategories: typeof DASHBOARD_SUPER_CATEGORIES) => {
-    // Map permission category keys to their required features (using Feature.code from database)
-    const categoryFeatureMap: Record<string, string> = {
-      'INVENTORY': 'INVENTORY_TRACKING',
-      'LOYALTY': 'LOYALTY_PROGRAM',
-      'TABLES': 'RESERVATIONS',
-      'RESERVATIONS': 'RESERVATIONS',
-      'ORDERS': 'ONLINE_ORDERING',
-    }
-
-    return superCategories
-      .map(superCat => ({
-        ...superCat,
-        categoryKeys: superCat.categoryKeys.filter(catKey => {
-          const requiredFeature = categoryFeatureMap[catKey]
-          // If no feature required, always include
-          if (!requiredFeature) return true
-          // Only include if feature is active
-          return checkFeatureAccess(requiredFeature)
-        })
-      }))
-      .filter(superCat => superCat.categoryKeys.length > 0) // Remove empty super-categories
-  }, [checkFeatureAccess])
-
-  // Get filtered super-categories based on search AND active features
-  const filteredDashboardCategories = useMemo(
-    () => filterPermissionsBySearch(filterCategoriesByFeatures(DASHBOARD_SUPER_CATEGORIES), debouncedSearchTerm),
-    [debouncedSearchTerm, filterCategoriesByFeatures]
-  )
-
-  const filteredTpvCategories = useMemo(
-    () => filterPermissionsBySearch(filterCategoriesByFeatures(TPV_SUPER_CATEGORIES), debouncedSearchTerm),
-    [debouncedSearchTerm, filterCategoriesByFeatures]
-  )
-
-  // Get display count for permissions (show total if wildcard, otherwise show actual count)
-  const getPermissionCount = useCallback((permissions: string[] | undefined) => {
-    if (!permissions || permissions.length === 0) return 0
-    if (permissions.includes('*:*')) return allPermissions.length
-    return permissions.length
-  }, [allPermissions.length])
-
-  // Initialize selected role to first modifiable role
-  useEffect(() => {
-    if (!selectedRole && modifiableRoles.length > 0) {
-      setSelectedRole(modifiableRoles[0])
-    }
-  }, [selectedRole, modifiableRoles])
-
-  // Update mutation
-  const updateMutation = useMutation({
-    mutationFn: (data: { role: StaffRole; permissions: string[] }) =>
-      rolePermissionService.updateRolePermissions(venueId!, data.role, data.permissions),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['rolePermissions', venueId] })
-      toast({
-        title: t('rolePermissions.updateSuccess'),
-        description: t('rolePermissions.updateSuccessDesc', { role: getRoleLabel(variables.role) }),
-      })
-      setHasChanges(false)
-    },
-    onError: (error: any) => {
-      const errorMessage = error.response?.data?.error || t('rolePermissions.updateError')
-      toast({
-        title: tCommon('error'),
-        description: errorMessage,
-        variant: 'destructive',
-      })
-    },
+  // Fetch permission sets
+  const { data: permissionSetsData, isLoading: isLoadingPermSets } = useQuery({
+    queryKey: ['permission-sets', venueId],
+    queryFn: () => permissionSetService.getAll(venueId!),
+    enabled: !!venueId,
   })
 
-  // Revert to defaults mutation
-  const revertMutation = useMutation({
-    mutationFn: (role: StaffRole) => rolePermissionService.deleteRolePermissions(venueId!, role),
-    onSuccess: (_, role) => {
-      queryClient.invalidateQueries({ queryKey: ['rolePermissions', venueId] })
-      toast({
-        title: t('rolePermissions.revertSuccess'),
-        description: t('rolePermissions.revertSuccessDesc', { role: getRoleLabel(role) }),
+  // Build role rows
+  const roleRows = useMemo(() => {
+    return modifiableRoles
+      .filter(role => {
+        if (!filterTerm) return true
+        const label = getRoleDisplayName(role).toLowerCase()
+        return label.includes(filterTerm.toLowerCase())
       })
-      setHasChanges(false)
-    },
-    onError: (error: any) => {
-      const errorMessage = error.response?.data?.error || t('rolePermissions.revertError')
-      toast({
-        title: tCommon('error'),
-        description: errorMessage,
-        variant: 'destructive',
-      })
-    },
-  })
+      .map(role => {
+        const roleData = rolePermissionsData?.data.find(rp => rp.role === role)
+        const permissions = roleData?.permissions || []
+        const accessSummary = getAccessSummary(permissions, t)
 
-  const handleRoleChange = (role: string) => {
-    if (hasChanges) {
-      setPendingRoleChange(role as StaffRole)
-      setShowUnsavedChangesDialog(true)
-      return
-    }
-    setSelectedRole(role as StaffRole)
-    setHasChanges(false)
-    // Reset expanded categories when switching roles
-    setExpandedCategories(new Set())
-  }
-
-  const confirmRoleChange = () => {
-    if (pendingRoleChange) {
-      setSelectedRole(pendingRoleChange)
-      setHasChanges(false)
-      setPendingRoleChange(null)
-      setExpandedCategories(new Set())
-    }
-    setShowUnsavedChangesDialog(false)
-  }
-
-  // Initialize modifiedPermissions when selectedRole changes or API data loads
-  useEffect(() => {
-    if (selectedRole && rolePermissionsData?.data && !hasChanges) {
-      const roleData = rolePermissionsData.data.find(rp => rp.role === selectedRole)
-      if (roleData) {
-        // If wildcard, expand to all permissions for display
-        if (roleData.permissions.includes('*:*')) {
-          setModifiedPermissions(allPermissions)
-        } else {
-          setModifiedPermissions(roleData.permissions)
+        return {
+          role,
+          label: getRoleDisplayName(role),
+          permissions,
+          accessSummary,
+          staffCount: roleData?.staffCount || 0,
+          isCustom: roleData?.isCustom || false,
         }
-      }
-    }
-  }, [selectedRole, rolePermissionsData?.data, hasChanges, allPermissions])
+      })
+  }, [modifiableRoles, rolePermissionsData, filterTerm, getRoleDisplayName, t])
 
-  // Handle individual permission toggle
-  const handlePermissionChange = useCallback((permission: string, enabled: boolean) => {
-    setModifiedPermissions(prev => {
-      const newPermissions = enabled ? [...prev, permission] : prev.filter(p => p !== permission)
+  // Build permission set rows (filtered)
+  const permissionSetRows = useMemo(() => {
+    const sets = permissionSetsData?.data ?? []
+    if (!filterTerm) return sets
+    return sets.filter(s => s.name.toLowerCase().includes(filterTerm.toLowerCase()))
+  }, [permissionSetsData, filterTerm])
 
-      // Check if all permissions are selected - if so, use wildcard
-      if (newPermissions.length === allPermissions.length && allPermissions.every(p => newPermissions.includes(p))) {
-        return ['*:*']
-      }
+  const tableIsLoading = isLoading || isLoadingPermSets
+  const allRows = roleRows.length + permissionSetRows.length
 
-      return newPermissions
-    })
-    setHasChanges(true)
-  }, [allPermissions])
-
-  // Handle template selection
-  const handleTemplateSelect = (role: StaffRole) => {
-    if (hasChanges) {
-      setPendingTemplate(role)
-      setShowTemplateConfirmDialog(true)
-      return
-    }
-    applyTemplate(role)
-  }
-
-  const applyTemplate = (role: StaffRole) => {
-    const templatePermissions = DEFAULT_PERMISSIONS[role]
-    if (templatePermissions.includes('*:*')) {
-      setModifiedPermissions(allPermissions)
-    } else {
-      setModifiedPermissions([...templatePermissions])
-    }
-    setHasChanges(true)
-    setShowTemplateConfirmDialog(false)
-    setPendingTemplate(null)
-  }
-
-  const confirmTemplateApply = () => {
-    if (pendingTemplate) {
-      applyTemplate(pendingTemplate)
-    }
-  }
-
-  const handleSave = () => {
-    if (!selectedRole) return
-
-    // Convert back to wildcard if all permissions are selected
-    let permissionsToSave = modifiedPermissions
-    if (
-      modifiedPermissions.length === allPermissions.length &&
-      allPermissions.every(p => modifiedPermissions.includes(p))
-    ) {
-      permissionsToSave = ['*:*']
-    }
-
-    updateMutation.mutate({ role: selectedRole, permissions: permissionsToSave })
-  }
-
-  const handleRevert = () => {
-    if (!selectedRole) return
-    setShowRevertDialog(true)
-  }
-
-  const confirmRevert = () => {
-    if (!selectedRole) return
-    revertMutation.mutate(selectedRole)
-    setShowRevertDialog(false)
-  }
-
-  // Toggle category expansion
-  const toggleCategoryExpansion = useCallback((categoryId: string) => {
-    setExpandedCategories(prev => {
-      const next = new Set(prev)
-      if (next.has(categoryId)) {
-        next.delete(categoryId)
-      } else {
-        next.add(categoryId)
-      }
-      return next
-    })
-  }, [])
-
-  // Get default permissions for comparison
-  const defaultPermissions = useMemo(() => {
-    if (!selectedRole) return []
-    return DEFAULT_PERMISSIONS[selectedRole] || []
-  }, [selectedRole])
-
-  // Check if user is modifying their own role
-  const isOwnRole = staffInfo?.role === selectedRole
-
-  // Show loading state while auth is initializing
+  // Loading
   if (!user) {
     return (
       <div className="container mx-auto py-6 space-y-6">
         <Skeleton className="h-12 w-64" />
         <Skeleton className="h-px w-full" />
-        <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
-          <Skeleton className="h-[400px]" />
-          <Skeleton className="h-[600px]" />
-        </div>
+        <Skeleton className="h-[400px]" />
       </div>
     )
   }
@@ -358,16 +146,16 @@ export default function RolePermissions() {
 
   return (
     <>
-      {/* Sticky Header - sticks to viewport top when scrolling */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
+      {/* Header */}
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md supports-backdrop-filter:bg-background/80">
         <div className="container mx-auto px-4 sm:px-6 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="space-y-1 min-w-0">
               <PageTitleWithInfo
                 title={
                   <>
-                    <Shield className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0" />
-                    <span className="truncate">{t('rolePermissions.title', 'Role Permissions')}</span>
+                    {/* <Shield className="h-6 w-6 sm:h-8 sm:w-8 shrink-0" /> */}
+                    <span className="truncate">{t('rolePermissions.title', 'Permisos')}</span>
                   </>
                 }
                 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2"
@@ -380,336 +168,138 @@ export default function RolePermissions() {
               </p>
             </div>
 
-            {/* Header actions (contextual by tab) */}
-            {activeRoleTab === 'permissions' && selectedRole && (
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                {currentRolePermission?.isCustom && (
-                  <Button
-                    variant="outline"
-                    size="default"
-                    onClick={handleRevert}
-                    disabled={revertMutation.isPending}
-                    className="w-full sm:w-auto flex-shrink-0"
-                  >
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    <span className="truncate">{t('rolePermissions.revertToDefaults', 'Revert to Defaults')}</span>
-                  </Button>
-                )}
-                <Button
-                  onClick={handleSave}
-                  disabled={!hasChanges || updateMutation.isPending}
-                  size="default"
-                  className="w-full sm:w-auto flex-shrink-0"
-                >
-                  {updateMutation.isPending ? (
-                    <>
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
-                      {t('rolePermissions.saving')}
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      {t('rolePermissions.saveChanges')}
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
-            {activeRoleTab === 'display-names' && (
-              <PermissionGate permission="role-config:update">
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <Button
-                    variant="outline"
-                    onClick={() => roleDisplayActions?.onReset()}
-                    disabled={!roleDisplayActions || roleDisplayActions.isResetting}
-                    size="default"
-                    className="w-full sm:w-auto flex-shrink-0"
-                  >
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    {t('roleDisplayNames.resetAll')}
-                  </Button>
-                  <Button
-                    onClick={() => roleDisplayActions?.onSave()}
-                    disabled={!roleDisplayActions || !roleDisplayActions.hasChanges || roleDisplayActions.isUpdating}
-                    size="default"
-                    className="w-full sm:w-auto flex-shrink-0"
-                  >
-                    {roleDisplayActions?.isUpdating ? (
-                      <>
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
-                        {t('roleDisplayNames.saving')}
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4 mr-2" />
-                        {t('roleDisplayNames.saveChanges')}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </PermissionGate>
-            )}
+            <PermissionGate permission="role-permissions:update">
+              <Button onClick={() => setCreatingPermissionSet(true)} size="default" className="w-full sm:w-auto shrink-0">
+                <Plus className="h-4 w-4 mr-2" />
+                {t('rolePermissions.permissionSets.create', 'Crear conjunto de permisos')}
+              </Button>
+            </PermissionGate>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto py-6 space-y-6 px-4 sm:px-6">
-      {/* Main Tabs */}
-      <Tabs value={activeRoleTab} onValueChange={value => setActiveRoleTab(value as RolePermissionsTab)} className="space-y-4 sm:space-y-6">
-        <div className="border-b border-border">
-          <nav className="flex items-center gap-6">
-            <button
-              onClick={() => setActiveRoleTab('permissions')}
-              className={`relative pb-3 text-sm font-medium transition-colors flex items-center gap-1.5 ${
-                activeRoleTab === 'permissions' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Shield className="h-4 w-4" />
-              {t('rolePermissions.tabs.permissions', 'Permissions')}
-              {activeRoleTab === 'permissions' && (
-                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-              )}
-            </button>
-            <button
-              onClick={() => setActiveRoleTab('display-names')}
-              className={`relative pb-3 text-sm font-medium transition-colors flex items-center gap-1.5 ${
-                activeRoleTab === 'display-names' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Tags className="h-4 w-4" />
-              {t('rolePermissions.tabs.displayNames', 'Display Names')}
-              {activeRoleTab === 'display-names' && (
-                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-              )}
-            </button>
-          </nav>
-        </div>
-
-        {/* Permissions Tab */}
-        <TabsContent value="permissions" className="space-y-4 sm:space-y-6">
-          {/* Main Content Grid */}
-          <div className="grid gap-4 sm:gap-6 lg:grid-cols-[260px_1fr]">
-            {/* Role Selector Sidebar */}
-            <Card className="h-fit">
-              <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="text-base sm:text-lg">{t('rolePermissions.selectRole', 'Select Role')}</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
-                {isLoading ? (
-                  <div className="space-y-2">
-                    {[...Array(5)].map((_, i) => (
-                      <Skeleton key={i} className="h-10 w-full" />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-1 gap-2">
-                    {modifiableRoles.map(role => {
-                      const roleData = rolePermissionsData?.data.find(rp => rp.role === role)
-                      const isSelected = selectedRole === role
-
-                      return (
-                        <button
-                          key={role}
-                          onClick={() => handleRoleChange(role)}
-                          className={`w-full text-left p-2 sm:p-3 rounded-lg border transition-colors ${
-                            isSelected
-                              ? 'bg-primary text-primary-foreground border-primary'
-                              : 'bg-card hover:bg-accent border-border'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="font-medium text-xs sm:text-sm truncate">{getRoleLabel(role)}</span>
-                            {roleData?.isCustom && (
-                              <Badge variant={isSelected ? 'secondary' : 'outline'} className="text-[10px] sm:text-xs px-1 sm:px-1.5 flex-shrink-0">
-                                {t('rolePermissions.custom', 'Custom')}
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="text-[10px] sm:text-sm opacity-80 mt-0.5 sm:mt-1 truncate">
-                            {roleData?.permissions?.includes('*:*')
-                              ? t('rolePermissions.allPermissions', 'All permissions')
-                              : `${getPermissionCount(roleData?.permissions)} ${t('rolePermissions.permissions', 'permissions')}`}
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-                {currentRolePermission?.modifiedBy && (
-                  <p className="text-[10px] text-muted-foreground mt-3 pt-3 border-t border-border/50">
-                    {t('rolePermissions.lastModified', 'Last modified by')}{' '}
-                    <span className="font-medium">
-                      {currentRolePermission.modifiedBy.firstName} {currentRolePermission.modifiedBy.lastName}
-                    </span>
-                    {currentRolePermission.modifiedAt && (
-                      <span className="block mt-0.5">{formatDate(currentRolePermission.modifiedAt)}</span>
-                    )}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Permission Editor */}
-            {selectedRole && currentRolePermission && (
-              <div className="space-y-4 min-w-0">
-                {/* Self-modification warning */}
-                {isOwnRole && (
-                  <Alert className="bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800">
-                    <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
-                    <AlertDescription className="text-xs sm:text-sm text-yellow-800 dark:text-yellow-200">
-                      {t(
-                        'rolePermissions.modifyingOwnRole',
-                        'You are modifying permissions for your own role. Critical permissions cannot be removed to prevent self-lockout.'
-                      )}
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {/* Template Selector */}
-                <PermissionTemplateSelector
-                  selectedRole={selectedRole}
-                  currentPermissions={modifiedPermissions}
-                  onTemplateSelect={handleTemplateSelect}
-                  disabled={updateMutation.isPending || revertMutation.isPending}
-                />
-
-                {/* Inner Tabs: Dashboard / TPV */}
-                <Tabs value={activePermissionTab} onValueChange={v => setActivePermissionTab(v as PermissionTab)}>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                    <div className="border-b border-border">
-                      <nav className="flex items-center gap-6">
-                        <button
-                          onClick={() => setActivePermissionTab('dashboard')}
-                          className={`relative pb-3 text-sm font-medium transition-colors flex items-center gap-1.5 ${
-                            activePermissionTab === 'dashboard' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-                          }`}
-                        >
-                          <LayoutDashboard className="h-4 w-4" />
-                          {t('rolePermissions.tabs.dashboard', 'Dashboard')}
-                          {activePermissionTab === 'dashboard' && (
-                            <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-                          )}
-                        </button>
-                        <button
-                          onClick={() => setActivePermissionTab('tpv')}
-                          className={`relative pb-3 text-sm font-medium transition-colors flex items-center gap-1.5 ${
-                            activePermissionTab === 'tpv' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-                          }`}
-                        >
-                          <Monitor className="h-4 w-4" />
-                          {t('rolePermissions.tabs.tpv', 'TPV')}
-                          {activePermissionTab === 'tpv' && (
-                            <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-                          )}
-                        </button>
-                      </nav>
-                    </div>
-
-                    {/* Search */}
-                    <PermissionSearch value={searchTerm} onChange={setSearchTerm} className="w-full sm:w-64" />
-                  </div>
-
-                  {/* Dashboard Permissions */}
-                  <TabsContent value="dashboard" className="space-y-4 mt-0">
-                    {filteredDashboardCategories.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        {t('rolePermissions.noResultsFound', 'No permissions found matching your search')}
-                      </div>
-                    ) : (
-                      filteredDashboardCategories.map(superCategory => (
-                        <PermissionSuperCategory
-                          key={superCategory.id}
-                          superCategory={superCategory}
-                          selectedPermissions={selectedPermissionsSet}
-                          defaultPermissions={defaultPermissions}
-                          onChange={handlePermissionChange}
-                          searchTerm={debouncedSearchTerm}
-                          isExpanded={expandedCategories.has(superCategory.id)}
-                          onToggleExpand={() => toggleCategoryExpansion(superCategory.id)}
-                          disabled={updateMutation.isPending || revertMutation.isPending}
-                          isOwnRole={isOwnRole}
-                        />
-                      ))
-                    )}
-                  </TabsContent>
-
-                  {/* TPV Permissions */}
-                  <TabsContent value="tpv" className="space-y-4 mt-0">
-                    {filteredTpvCategories.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        {t('rolePermissions.noResultsFound', 'No permissions found matching your search')}
-                      </div>
-                    ) : (
-                      filteredTpvCategories.map(superCategory => (
-                        <PermissionSuperCategory
-                          key={superCategory.id}
-                          superCategory={superCategory}
-                          selectedPermissions={selectedPermissionsSet}
-                          defaultPermissions={defaultPermissions}
-                          onChange={handlePermissionChange}
-                          searchTerm={debouncedSearchTerm}
-                          isExpanded={expandedCategories.has(superCategory.id)}
-                          onToggleExpand={() => toggleCategoryExpansion(superCategory.id)}
-                          disabled={updateMutation.isPending || revertMutation.isPending}
-                          isOwnRole={isOwnRole}
-                        />
-                      ))
-                    )}
-                  </TabsContent>
-                </Tabs>
-              </div>
+      <div className="container mx-auto py-6 space-y-8 px-4 sm:px-6">
+        {/* ========== Permissions Table ========== */}
+        <div className="space-y-4">
+          {/* Filter input */}
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              type="text"
+              value={filterTerm}
+              onChange={e => setFilterTerm(e.target.value)}
+              placeholder={t('rolePermissions.filterPlaceholder', 'Filtrar conjuntos de permisos')}
+              className="pl-9 pr-9 h-10 bg-muted/30 border-border/50"
+            />
+            {filterTerm && (
+              <button
+                type="button"
+                onClick={() => setFilterTerm('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
             )}
           </div>
 
-          {/* Unsaved Changes Dialog */}
-          <SimpleConfirmDialog
-            open={showUnsavedChangesDialog}
-            onOpenChange={setShowUnsavedChangesDialog}
-            title={t('rolePermissions.unsavedChanges')}
-            message={t('rolePermissions.unsavedChangesMessage')}
-            confirmLabel={t('rolePermissions.discard')}
-            cancelLabel={t('rolePermissions.cancel')}
-            onConfirm={confirmRoleChange}
-            variant="destructive"
-          />
+          {/* Unified Table */}
+          {tableIsLoading ? (
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : (
+            <div className="border border-border rounded-xl overflow-hidden">
+              {/* Table header */}
+              <div className="flex items-center gap-4 px-4 sm:px-6 py-3 bg-muted/30 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <span className="w-[180px] sm:w-[220px] shrink-0">{t('rolePermissions.columnName', 'Nombre')}</span>
+                <span className="flex-1 hidden sm:block">{t('rolePermissions.columnAccess', 'Acceso')}</span>
+                <span className="w-[80px] sm:w-[100px] text-right shrink-0">{t('rolePermissions.columnEmployees', 'Empleados')}</span>
+              </div>
 
-          {/* Revert to Defaults Dialog */}
-          {selectedRole && (
-            <SimpleConfirmDialog
-              open={showRevertDialog}
-              onOpenChange={setShowRevertDialog}
-              title={t('rolePermissions.confirmRevert', { role: getRoleLabel(selectedRole) })}
-              message={t('rolePermissions.confirmRevertMessage')}
-              confirmLabel={t('rolePermissions.revertToDefaults')}
-              cancelLabel={t('rolePermissions.cancel')}
-              onConfirm={confirmRevert}
-              isLoading={revertMutation.isPending}
-              variant="destructive"
-            />
+              {allRows === 0 ? (
+                <div className="px-6 py-12 text-center text-muted-foreground text-sm">{t('rolePermissions.noResultsFound')}</div>
+              ) : (
+                <>
+                  {/* Role rows */}
+                  {roleRows.map((row, idx) => (
+                    <button
+                      key={`role-${row.role}`}
+                      onClick={() => setEditingRole(row.role)}
+                      className={`w-full flex items-center gap-4 px-4 sm:px-6 py-3.5 text-left hover:bg-accent/50 transition-colors cursor-pointer ${
+                        idx < roleRows.length - 1 || permissionSetRows.length > 0 ? 'border-b border-border/50' : ''
+                      }`}
+                    >
+                      <div className="w-[180px] sm:w-[220px] shrink-0 flex items-center gap-2 min-w-0">
+                        <span className="text-sm font-medium text-primary underline-offset-2 hover:underline truncate">{row.label}</span>
+                        {row.isCustom && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-[18px] shrink-0">
+                            {t('rolePermissions.custom', 'Custom')}
+                          </Badge>
+                        )}
+                      </div>
+                      <span className="flex-1 hidden sm:block text-sm text-muted-foreground line-clamp-2">{row.accessSummary}</span>
+                      <span className="w-[80px] sm:w-[100px] text-sm text-muted-foreground text-right shrink-0 tabular-nums">
+                        {row.staffCount}
+                      </span>
+                    </button>
+                  ))}
+
+                  {/* Permission set rows */}
+                  {permissionSetRows.map((set, idx) => (
+                    <button
+                      key={`set-${set.id}`}
+                      onClick={() => setEditingPermissionSet(set)}
+                      className={`w-full flex items-center gap-4 px-4 sm:px-6 py-3.5 text-left hover:bg-accent/50 transition-colors cursor-pointer ${
+                        idx < permissionSetRows.length - 1 ? 'border-b border-border/50' : ''
+                      }`}
+                    >
+                      <div className="w-[180px] sm:w-[220px] shrink-0 flex items-center gap-2 min-w-0">
+                        <span className="text-sm font-medium text-primary underline-offset-2 hover:underline truncate">{set.name}</span>
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-[18px] shrink-0">
+                          {t('rolePermissions.permissionSets.badge', 'Conjunto')}
+                        </Badge>
+                      </div>
+                      <span className="flex-1 hidden sm:block text-sm text-muted-foreground line-clamp-2">
+                        {getAccessSummary(set.permissions, t)}
+                      </span>
+                      <span className="w-[80px] sm:w-[100px] text-sm text-muted-foreground text-right shrink-0 tabular-nums">
+                        {set._count.staffVenues}
+                      </span>
+                    </button>
+                  ))}
+                </>
+              )}
+            </div>
           )}
+        </div>
 
-          {/* Template Confirm Dialog */}
-          {pendingTemplate && (
-            <SimpleConfirmDialog
-              open={showTemplateConfirmDialog}
-              onOpenChange={setShowTemplateConfirmDialog}
-              title={t('rolePermissions.templates.confirmApply', { role: getRoleLabel(pendingTemplate) })}
-              message={t('rolePermissions.templates.confirmApplyMessage', { role: getRoleLabel(pendingTemplate) })}
-              confirmLabel={t('rolePermissions.templates.applyTemplate')}
-              cancelLabel={t('rolePermissions.cancel')}
-              onConfirm={confirmTemplateApply}
-              variant="default"
-            />
-          )}
-        </TabsContent>
-
-        {/* Display Names Tab */}
-        <TabsContent value="display-names" className="space-y-6">
-          <RoleDisplayNames onActionsChange={setRoleDisplayActions} />
-        </TabsContent>
-      </Tabs>
       </div>
+
+      {/* Role Permission Editor Modal */}
+      {editingRole && venueId && (
+        <PermissionEditorModal open={!!editingRole} onClose={() => setEditingRole(null)} role={editingRole} venueId={venueId} />
+      )}
+
+      {/* Permission Set Editor Modal - Edit */}
+      {editingPermissionSet && venueId && (
+        <PermissionSetEditorModal
+          open={!!editingPermissionSet}
+          onClose={() => setEditingPermissionSet(null)}
+          permissionSet={editingPermissionSet}
+          venueId={venueId}
+        />
+      )}
+
+      {/* Permission Set Editor Modal - Create */}
+      <PermissionSetEditorModal
+        open={creatingPermissionSet}
+        onClose={() => setCreatingPermissionSet(false)}
+        permissionSet={null}
+        venueId={venueId}
+      />
     </>
   )
 }

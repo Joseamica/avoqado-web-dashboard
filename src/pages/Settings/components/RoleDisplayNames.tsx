@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Info, EyeOff, Eye, Palette, X } from 'lucide-react'
+import { EyeOff, Eye, Palette, X, Save, RotateCcw } from 'lucide-react'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
+import { Button } from '@/components/ui/button'
 import {
   Tooltip,
   TooltipContent,
@@ -41,19 +41,7 @@ interface RoleEditState {
   isActive: boolean
 }
 
-export type RoleDisplayNamesActions = {
-  onSave: () => void
-  onReset: () => void
-  hasChanges: boolean
-  isUpdating: boolean
-  isResetting: boolean
-}
-
-interface RoleDisplayNamesProps {
-  onActionsChange?: (actions: RoleDisplayNamesActions | null) => void
-}
-
-export default function RoleDisplayNames({ onActionsChange }: RoleDisplayNamesProps) {
+export default function RoleDisplayNames() {
   const { t } = useTranslation('settings')
   const { t: tCommon } = useTranslation('common')
   const { toast } = useToast()
@@ -218,22 +206,6 @@ export default function RoleDisplayNames({ onActionsChange }: RoleDisplayNamesPr
     }
   }
 
-  useEffect(() => {
-    if (!onActionsChange) return
-    onActionsChange({
-      onSave: handleSave,
-      onReset: () => setShowResetDialog(true),
-      hasChanges,
-      isUpdating,
-      isResetting,
-    })
-  }, [onActionsChange, handleSave, hasChanges, isUpdating, isResetting])
-
-  useEffect(() => {
-    if (!onActionsChange) return
-    return () => onActionsChange(null)
-  }, [onActionsChange])
-
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -246,16 +218,38 @@ export default function RoleDisplayNames({ onActionsChange }: RoleDisplayNamesPr
 
   return (
     <div className="space-y-6">
-      {/* Info Alert */}
-      <Alert className="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800">
-        <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-        <AlertDescription className="text-blue-800 dark:text-blue-200">
-          {t(
-            'roleDisplayNames.infoAlert',
-            'Customize how role names appear in your venue. This only affects the display name, not the actual permissions.'
-          )}
-        </AlertDescription>
-      </Alert>
+      {/* Section header with inline save/reset */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold">{t('roleDisplayNames.title', 'Nombres de Roles')}</h3>
+          <p className="text-sm text-muted-foreground">
+            {t('roleDisplayNames.infoAlert', 'Customize how role names appear in your venue. This only affects the display name, not the actual permissions.')}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            onClick={() => setShowResetDialog(true)}
+            disabled={isResetting}
+            size="sm"
+          >
+            <RotateCcw className="h-4 w-4 mr-1.5" />
+            {t('roleDisplayNames.resetAll')}
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={!hasChanges || isUpdating}
+            size="sm"
+          >
+            {isUpdating ? (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-1.5" />
+            ) : (
+              <Save className="h-4 w-4 mr-1.5" />
+            )}
+            {t('roleDisplayNames.saveChanges')}
+          </Button>
+        </div>
+      </div>
 
       {/* Role Cards */}
       <div className="grid gap-4 md:grid-cols-2">

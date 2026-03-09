@@ -46,7 +46,7 @@ export const DASHBOARD_SUPER_CATEGORIES: SuperCategory[] = [
     descriptionKey: 'rolePermissions.superCategories.coreOperationsDesc',
     icon: 'LayoutDashboard',
     accentColor: 'blue',
-    categoryKeys: ['HOME', 'ANALYTICS', 'SETTLEMENTS'],
+    categoryKeys: ['HOME', 'ANALYTICS', 'SETTLEMENTS', 'REPORTS'],
   },
   {
     id: 'sales-orders',
@@ -54,7 +54,7 @@ export const DASHBOARD_SUPER_CATEGORIES: SuperCategory[] = [
     descriptionKey: 'rolePermissions.superCategories.salesOrdersDesc',
     icon: 'ShoppingCart',
     accentColor: 'green',
-    categoryKeys: ['MENU', 'ORDERS', 'PAYMENTS'],
+    categoryKeys: ['MENU', 'ORDERS', 'PAYMENTS', 'PRODUCTS'],
   },
   {
     id: 'operations',
@@ -78,7 +78,7 @@ export const DASHBOARD_SUPER_CATEGORIES: SuperCategory[] = [
     descriptionKey: 'rolePermissions.superCategories.teamSettingsDesc',
     icon: 'Building',
     accentColor: 'blue',
-    categoryKeys: ['TEAMS', 'SETTINGS', 'VENUES', 'BILLING'],
+    categoryKeys: ['TEAMS', 'SETTINGS', 'VENUES', 'BILLING', 'ROLE_CONFIG', 'FEATURES', 'NOTIFICATIONS'],
   },
   {
     id: 'marketing-loyalty',
@@ -101,7 +101,7 @@ export const TPV_SUPER_CATEGORIES: SuperCategory[] = [
     descriptionKey: 'rolePermissions.superCategories.terminalOperationsDesc',
     icon: 'Monitor',
     accentColor: 'blue',
-    categoryKeys: ['TPV_TERMINAL', 'TPV_SHIFTS', 'TPV_FACTORY_RESET'],
+    categoryKeys: ['TPV_TERMINAL', 'TPV_SHIFTS', 'TPV_FACTORY_RESET', 'TPV_DEVICES', 'TPV_KIOSK'],
   },
   {
     id: 'tpv-orders-payments',
@@ -125,7 +125,7 @@ export const TPV_SUPER_CATEGORIES: SuperCategory[] = [
     descriptionKey: 'rolePermissions.superCategories.staffCustomersDesc',
     icon: 'Users',
     accentColor: 'orange',
-    categoryKeys: ['TPV_CUSTOMERS', 'TPV_TIME_ENTRIES', 'TPV_REPORTS', 'TPV_PRODUCTS'],
+    categoryKeys: ['TPV_CUSTOMERS', 'TPV_TIME_ENTRIES', 'TPV_REPORTS', 'TPV_PRODUCTS', 'TPV_MESSAGES', 'SERIALIZED_INVENTORY', 'VENUE_CRYPTO'],
   },
 ]
 

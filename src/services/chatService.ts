@@ -16,22 +16,6 @@ const devLog = (...args: unknown[]) => {
   }
 }
 
-export const CREATE_PRODUCT_ACTION_COMMAND_PREFIX = '__AIOPS_CREATE_PRODUCT__:'
-
-export interface CreateProductActionPayload {
-  name: string
-  price: number
-  sku: string
-  categoryId: string
-  type?: string
-  needsModifiers?: boolean
-  modifierGroupIds?: string[]
-}
-
-export const buildCreateProductActionCommand = (payload: CreateProductActionPayload): string => {
-  return `${CREATE_PRODUCT_ACTION_COMMAND_PREFIX}${JSON.stringify(payload)}`
-}
-
 export interface CreateProductActionOption {
   id: string
   name: string
@@ -72,6 +56,16 @@ export interface ChatResponseMetadata {
   executionTime?: number
   dataSourcesUsed?: string[]
   sqlQuery?: string
+  routedTo?: 'SharedQueryService' | 'TextToSqlPipeline' | 'Blocked' | 'ActionPreview' | 'ActionConfirm'
+  intent?: string
+  riskLevel?: 'low' | 'medium' | 'high' | 'critical'
+  reasonCode?: string
+  blocked?: boolean
+  warnings?: string[]
+  idempotency?: {
+    key: string
+    replayed: boolean
+  }
   action?: CreateProductActionMetadata
 }
 
@@ -149,6 +143,42 @@ interface ChatResponse {
     completionTokens: number
     totalTokens: number
   }
+  metadata?: ChatResponseMetadata
+}
+
+export interface AssistantActionPreviewRequest {
+  actionType: 'create_product'
+  draft?: {
+    name?: string
+    price?: number | string
+    sku?: string
+    categoryId?: string
+    type?: string
+    needsModifiers?: boolean
+    modifierGroupIds?: string[]
+  }
+  conversationId?: string
+}
+
+export interface AssistantActionPreviewResponse {
+  actionId: string
+  actionType: 'create_product'
+  normalizedDraft: CreateProductActionDraft
+  requiredFields: Array<'name' | 'price' | 'sku' | 'categoryId'>
+  missingFields: Array<'name' | 'price' | 'sku' | 'categoryId'>
+  categories: CreateProductActionOption[]
+  modifierGroups: CreateProductActionOption[]
+  canConfirm: boolean
+  confirmationSummary: string
+  expiresAt: string
+}
+
+export interface AssistantActionConfirmResponse {
+  actionId: string
+  status: 'confirmed' | 'requires_input' | 'expired' | 'noop'
+  response: string
+  entityId?: string
+  auditId?: string
   metadata?: ChatResponseMetadata
 }
 
@@ -577,6 +607,51 @@ export const sendChatMessage = async (message: string, options?: SendChatMessage
       throw new Error('Error desconocido al enviar el mensaje')
     }
   }
+}
+
+export const previewAssistantAction = async (
+  payload: AssistantActionPreviewRequest,
+  options?: { venueSlug?: string | null; userId?: string | null },
+): Promise<AssistantActionPreviewResponse> => {
+  const targetVenue = options?.venueSlug ?? getCurrentVenueSlug()
+  const targetUserId = options?.userId ?? getCurrentUserId()
+
+  const requestPayload: Record<string, unknown> = {
+    ...payload,
+  }
+
+  if (targetVenue) {
+    requestPayload.venueSlug = targetVenue
+  }
+
+  if (targetUserId) {
+    requestPayload.userId = targetUserId
+  }
+
+  const response = await api.post('/api/v1/dashboard/assistant/actions/preview', requestPayload)
+
+  if (!response.data?.success || !response.data?.data) {
+    throw new Error(response.data?.message || 'No se pudo generar la vista previa de la acción.')
+  }
+
+  return response.data.data as AssistantActionPreviewResponse
+}
+
+export const confirmAssistantAction = async (
+  actionId: string,
+  idempotencyKey: string,
+): Promise<AssistantActionConfirmResponse> => {
+  const response = await api.post('/api/v1/dashboard/assistant/actions/confirm', {
+    actionId,
+    idempotencyKey,
+    confirmed: true,
+  })
+
+  if (!response.data?.success || !response.data?.data) {
+    throw new Error(response.data?.message || 'No se pudo confirmar la acción.')
+  }
+
+  return response.data.data as AssistantActionConfirmResponse
 }
 
 // Función para obtener sugerencias

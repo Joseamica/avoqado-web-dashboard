@@ -60,6 +60,7 @@ import { ChatChart } from './ChatChart'
 import {
   addMessageToHistory,
   clearConversationHistory,
+  confirmAssistantAction,
   createNewConversation,
   deleteConversation,
   getConversationHistory,
@@ -68,8 +69,8 @@ import {
   getUsageStats,
   isVisualizationSkipped,
   loadConversation,
+  previewAssistantAction,
   saveConversation,
-  buildCreateProductActionCommand,
   sendChatMessage,
   submitFeedback,
   submitFeedbackWithCorrection,
@@ -117,6 +118,13 @@ interface CreateProductFormState {
   categoryId: string
   needsModifiers: boolean
   modifierGroupIds: string[]
+}
+
+interface PendingCreateProductConfirmation {
+  actionId: string
+  idempotencyKey: string
+  confirmationSummary: string
+  productName: string
 }
 
 // Helper function to convert conversation history to chat messages
@@ -246,6 +254,11 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   const [lastSavedMessageCount, setLastSavedMessageCount] = useState(0) // Track last saved state
   const [includeVisualization, setIncludeVisualization] = useState(false) // Toggle for chart generation
   const [productActionForms, setProductActionForms] = useState<Record<string, CreateProductFormState>>({})
+  const [isCreateProductSubmitting, setIsCreateProductSubmitting] = useState(false)
+  const [showCreateProductConfirm, setShowCreateProductConfirm] = useState(false)
+  const [pendingCreateProductConfirmation, setPendingCreateProductConfirmation] = useState<PendingCreateProductConfirmation | null>(
+    null,
+  )
 
   // Estados para diálogos de confirmación
   const [showClearConfirm, setShowClearConfirm] = useState(false)
@@ -908,7 +921,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   }, [])
 
   const submitCreateProductAction = useCallback(
-    (messageId: string, action: CreateProductActionMetadata) => {
+    async (messageId: string, action: CreateProductActionMetadata) => {
       const formState = productActionForms[messageId] || getCreateProductFormFromAction(action)
       const parsedPrice = Number(formState.price.replace(',', '.'))
 
@@ -957,7 +970,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         return
       }
 
-      const payload = {
+      const draftPayload = {
         name: formState.name.trim(),
         price: Number(parsedPrice.toFixed(2)),
         sku: formState.sku.trim().toUpperCase(),
@@ -967,13 +980,147 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         modifierGroupIds: formState.needsModifiers ? formState.modifierGroupIds : [],
       }
 
-      const visibleMessage = t('chat.createProduct.submitMessage', { name: payload.name })
-      const backendMessage = buildCreateProductActionCommand(payload)
+      const formatMissingField = (field: string): string => {
+        const labels: Record<string, string> = {
+          name: t('chat.createProduct.fields.name'),
+          price: t('chat.createProduct.fields.price'),
+          sku: t('chat.createProduct.fields.sku'),
+          categoryId: t('chat.createProduct.fields.category'),
+        }
+        return labels[field] || field
+      }
 
-      sendMessage(visibleMessage, { visibleMessage, backendMessage })
+      const idempotencyKey =
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, char => {
+              const randomNibble = Math.floor(Math.random() * 16)
+              const value = char === 'x' ? randomNibble : (randomNibble & 0x3) | 0x8
+              return value.toString(16)
+            })
+
+      setIsCreateProductSubmitting(true)
+      try {
+        const preview = await previewAssistantAction(
+          {
+            actionType: 'create_product',
+            draft: draftPayload,
+            conversationId: currentConversationId || undefined,
+          },
+          { venueSlug, userId },
+        )
+
+        updateProductActionForm(messageId, {
+          name: preview.normalizedDraft.name || '',
+          price: typeof preview.normalizedDraft.price === 'number' ? String(preview.normalizedDraft.price) : '',
+          sku: preview.normalizedDraft.sku || '',
+          categoryId: preview.normalizedDraft.categoryId || '',
+          needsModifiers: Boolean(preview.normalizedDraft.needsModifiers),
+          modifierGroupIds: preview.normalizedDraft.modifierGroupIds || [],
+        })
+
+        if (!preview.canConfirm || preview.missingFields.length > 0) {
+          toast({
+            variant: 'destructive',
+            title: tCommon('error'),
+            description: `Faltan campos obligatorios: ${preview.missingFields.map(formatMissingField).join(', ')}`,
+          })
+          return
+        }
+
+        setPendingCreateProductConfirmation({
+          actionId: preview.actionId,
+          idempotencyKey,
+          confirmationSummary: preview.confirmationSummary,
+          productName: preview.normalizedDraft.name || draftPayload.name,
+        })
+        setShowCreateProductConfirm(true)
+      } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: tCommon('error'),
+          description: error instanceof Error ? error.message : 'No se pudo completar la acción',
+        })
+      } finally {
+        setIsCreateProductSubmitting(false)
+      }
     },
-    [productActionForms, sendMessage, t, tCommon, toast],
+    [
+      currentConversationId,
+      productActionForms,
+      t,
+      tCommon,
+      toast,
+      updateProductActionForm,
+      userId,
+      venueSlug,
+      setPendingCreateProductConfirmation,
+      setShowCreateProductConfirm,
+    ],
   )
+
+  const confirmCreateProductAction = useCallback(async () => {
+    if (!pendingCreateProductConfirmation) {
+      return
+    }
+
+    setShowCreateProductConfirm(false)
+    setIsCreateProductSubmitting(true)
+
+    try {
+      const userConfirmationText = `Confirmo crear el producto "${pendingCreateProductConfirmation.productName}".`
+      const confirmationMessage: ChatMessage = {
+        id: `user-confirm-${Date.now()}`,
+        text: userConfirmationText,
+        isUser: true,
+        timestamp: new Date(),
+        feedbackGiven: null,
+      }
+
+      setMessages(prev => [...prev, confirmationMessage])
+      addMessageToHistory('user', userConfirmationText, venueSlug, undefined, userId)
+
+      const confirmResult = await confirmAssistantAction(
+        pendingCreateProductConfirmation.actionId,
+        pendingCreateProductConfirmation.idempotencyKey,
+      )
+
+      const botMessage: ChatMessage = {
+        id: `bot-${Date.now()}`,
+        text: confirmResult.response,
+        isUser: false,
+        timestamp: new Date(),
+        feedbackGiven: null,
+        metadata: confirmResult.metadata,
+        trainingDataId: confirmResult.auditId,
+      }
+
+      setMessages(prev => [...prev, botMessage])
+      addMessageToHistory('assistant', confirmResult.response, venueSlug, confirmResult.auditId, userId)
+
+      if (confirmResult.status === 'confirmed') {
+        toast({
+          title: t('chat.createProduct.createdTitle'),
+          description: confirmResult.response,
+        })
+      } else if (confirmResult.status === 'requires_input') {
+        toast({
+          variant: 'destructive',
+          title: tCommon('error'),
+          description: confirmResult.response,
+        })
+      }
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: tCommon('error'),
+        description: error instanceof Error ? error.message : 'No se pudo confirmar la acción',
+      })
+    } finally {
+      setPendingCreateProductConfirmation(null)
+      setIsCreateProductSubmitting(false)
+    }
+  }, [pendingCreateProductConfirmation, t, tCommon, toast, userId, venueSlug])
 
   // Calcular ancho basado en estado
   const cardWidth = useMemo(() => {
@@ -1334,7 +1481,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                             <Input
                               value={(productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)).name}
                               onChange={e => updateProductActionForm(message.id, { name: e.target.value })}
-                              disabled={chatMutation.isPending}
+                              disabled={chatMutation.isPending || isCreateProductSubmitting}
                               className="h-8 text-xs"
                             />
                           </div>
@@ -1345,7 +1492,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                               <Input
                                 value={(productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)).price}
                                 onChange={e => updateProductActionForm(message.id, { price: e.target.value })}
-                                disabled={chatMutation.isPending}
+                                disabled={chatMutation.isPending || isCreateProductSubmitting}
                                 className="h-8 text-xs"
                                 inputMode="decimal"
                               />
@@ -1355,7 +1502,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                               <Input
                                 value={(productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)).sku}
                                 onChange={e => updateProductActionForm(message.id, { sku: e.target.value.toUpperCase() })}
-                                disabled={chatMutation.isPending}
+                                disabled={chatMutation.isPending || isCreateProductSubmitting}
                                 className="h-8 text-xs uppercase"
                               />
                             </div>
@@ -1366,7 +1513,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                             <Select
                               value={(productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)).categoryId}
                               onValueChange={value => updateProductActionForm(message.id, { categoryId: value })}
-                              disabled={chatMutation.isPending || message.metadata.action.categories.length === 0}
+                              disabled={chatMutation.isPending || isCreateProductSubmitting || message.metadata.action.categories.length === 0}
                             >
                               <SelectTrigger className="h-8 text-xs">
                                 <SelectValue placeholder={t('chat.createProduct.fields.categoryPlaceholder')} />
@@ -1400,7 +1547,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                                           : [],
                                     })
                                   }
-                                  disabled={chatMutation.isPending}
+                                  disabled={chatMutation.isPending || isCreateProductSubmitting}
                                 />
                                 <label htmlFor={`needs-modifiers-${message.id}`} className="text-xs cursor-pointer">
                                   {t('chat.createProduct.fields.needsModifiers')}
@@ -1418,7 +1565,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                                           productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)
                                         ).modifierGroupIds.includes(group.id)}
                                         onCheckedChange={checked => handleToggleModifierGroup(message.id, group.id, checked === true)}
-                                        disabled={chatMutation.isPending}
+                                        disabled={chatMutation.isPending || isCreateProductSubmitting}
                                       />
                                       <label htmlFor={`modifier-group-${message.id}-${group.id}`} className="text-xs cursor-pointer">
                                         {group.name}
@@ -1439,9 +1586,11 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                             size="sm"
                             className="w-full h-8 text-xs"
                             onClick={() => submitCreateProductAction(message.id, message.metadata.action)}
-                            disabled={chatMutation.isPending || message.metadata.action.categories.length === 0}
+                            disabled={chatMutation.isPending || isCreateProductSubmitting || message.metadata.action.categories.length === 0}
                           >
-                            {chatMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+                            {chatMutation.isPending || isCreateProductSubmitting ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                            ) : null}
                             {t('chat.createProduct.actions.create')}
                           </Button>
                         </div>
@@ -1505,14 +1654,18 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                           placeholder={t('chat.input.placeholder')}
                           className="border-input bg-background text-foreground"
                           {...field}
-                          disabled={chatMutation.isPending}
+                          disabled={chatMutation.isPending || isCreateProductSubmitting}
                         />
                       </FormControl>
                     </FormItem>
                   )}
                 />
-                <Button type="submit" size="icon" disabled={chatMutation.isPending}>
-                  {chatMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                <Button type="submit" size="icon" disabled={chatMutation.isPending || isCreateProductSubmitting}>
+                  {chatMutation.isPending || isCreateProductSubmitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
                 </Button>
               </form>
             </Form>
@@ -1556,6 +1709,22 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         variant="destructive"
         onConfirm={confirmDeleteConversation}
         onCancel={() => setConversationToDelete(null)}
+      />
+
+      <ConfirmDialog
+        open={showCreateProductConfirm}
+        onOpenChange={open => {
+          setShowCreateProductConfirm(open)
+          if (!open) {
+            setPendingCreateProductConfirmation(null)
+          }
+        }}
+        title="Confirmar creación de producto"
+        description={pendingCreateProductConfirmation?.confirmationSummary || 'Confirma la creación del producto desde el chatbot.'}
+        confirmText="Confirmar creación"
+        cancelText={t('cancel')}
+        onConfirm={confirmCreateProductAction}
+        onCancel={() => setPendingCreateProductConfirmation(null)}
       />
 
       {/* Feedback Dialog */}
