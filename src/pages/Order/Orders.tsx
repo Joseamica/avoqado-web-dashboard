@@ -45,6 +45,7 @@ import { exportToCSV, exportToExcel, formatCurrencyForExport, generateFilename }
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowDown, ArrowUp, ArrowUpDown, Clock, Download, Pencil, Search, Trash2, X } from 'lucide-react'
+import { SelectionSummaryBar } from '@/components/selection-summary-bar'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -91,6 +92,8 @@ export default function Orders() {
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [selectedOrders, setSelectedOrders] = useState<Order[]>([])
+  const [clearSelectionTrigger, setClearSelectionTrigger] = useState(0)
 
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState<string[]>([
@@ -1268,6 +1271,19 @@ export default function Orders() {
         })}
         pagination={pagination}
         setPagination={setPagination}
+        enableRowSelection
+        onRowSelectionChange={setSelectedOrders}
+        clearSelectionTrigger={clearSelectionTrigger}
+      />
+
+      <SelectionSummaryBar
+        selectedRows={selectedOrders}
+        fields={[
+          { label: t('columns.subtotal', { defaultValue: 'Subtotal' }), getValue: row => Number(row.subtotal) || 0 },
+          { label: t('columns.tip'), getValue: row => Number(row.tipAmount) || 0 },
+          { label: t('columns.total'), getValue: row => Number(row.total) || 0 },
+        ]}
+        onClear={() => { setSelectedOrders([]); setClearSelectionTrigger(v => v + 1) }}
       />
 
       {/* Delete confirmation dialog (SUPERADMIN only) */}

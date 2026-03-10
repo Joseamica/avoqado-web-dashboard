@@ -241,7 +241,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                           return (
                             <CommandItem
                               key={venue.id}
-                              value={venue.name}
+                              value={`${venue.name}-${venue.id}`}
                               keywords={[venue.city || '', venue.slug, group.orgName || '']}
                               onSelect={() => handleVenueChange(venue)}
                               disabled={!hasAccess || isLoading}

@@ -83,6 +83,15 @@ ALWAYS add `cursor-pointer` to icon buttons, especially inside Tooltip wrappers.
 
 Radix `TooltipTrigger asChild` can interfere with default cursor.
 
+## Selection Summary Bar
+
+When a table supports row selection, show a floating bottom bar with aggregated totals for selected rows.
+
+- Fixed bottom-center, animated slide-in from bottom
+- Shows count + configurable summary fields (totals, averages)
+- Generic `<TData>` — works with any row type via `SummaryField[]` config
+- **Reference**: `src/components/selection-summary-bar.tsx`
+
 ## Clickable Selection Rows
 
 When a row has a checkbox/radio, make the ENTIRE row clickable.

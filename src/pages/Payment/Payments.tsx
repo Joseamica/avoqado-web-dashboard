@@ -47,6 +47,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
+import { SelectionSummaryBar } from '@/components/selection-summary-bar'
 import { useMemo, useState, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
@@ -89,6 +90,8 @@ export default function Payments() {
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [selectedPayments, setSelectedPayments] = useState<PaymentType[]>([])
+  const [clearSelectionTrigger, setClearSelectionTrigger] = useState(0)
 
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState<string[]>([
@@ -1275,6 +1278,19 @@ export default function Payments() {
             ? '!bg-red-50/50 dark:!bg-red-950/20 hover:!bg-red-100/50 dark:hover:!bg-red-950/30'
             : undefined
         }
+        enableRowSelection
+        onRowSelectionChange={setSelectedPayments}
+        clearSelectionTrigger={clearSelectionTrigger}
+      />
+
+      <SelectionSummaryBar
+        selectedRows={selectedPayments}
+        fields={[
+          { label: t('columns.subtotal'), getValue: row => Math.abs(Number(row.amount) || 0) },
+          { label: t('columns.tip'), getValue: row => Number(row.tipAmount) || 0 },
+          { label: t('columns.total'), getValue: row => Math.abs(Number(row.amount) || 0) + (Number(row.tipAmount) || 0) },
+        ]}
+        onClear={() => { setSelectedPayments([]); setClearSelectionTrigger(v => v + 1) }}
       />
 
       {/* Delete confirmation dialog (SUPERADMIN only) */}

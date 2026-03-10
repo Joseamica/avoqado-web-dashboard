@@ -50,6 +50,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
 import { terminalAPI } from '@/services/superadmin-terminals.service'
 import { StaffRole, Terminal as TerminalType } from '@/types'
+import { Currency } from '@/utils/currency'
 import { useTranslation } from 'react-i18next'
 import { ActivateTerminalModal } from './components/ActivateTerminalModal'
 import { TerminalPurchaseWizard } from './components/purchase-wizard/TerminalPurchaseWizard'
@@ -555,6 +556,31 @@ export default function Tpvs() {
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <Package className="w-4 h-4" />
             <span className="text-sm">{t('tpv.status.notActivated', { defaultValue: 'Sin activar' })}</span>
+          </div>
+        )
+      },
+    },
+    {
+      id: 'todaySales',
+      meta: { label: t('tpv.table.columns.todaySales', { defaultValue: 'Ventas hoy' }) },
+      header: t('tpv.table.columns.todaySales', { defaultValue: 'Ventas hoy' }),
+      cell: ({ row }) => {
+        const terminal = row.original as any
+        const count = terminal.todayPaymentCount || 0
+        const total = terminal.todayPaymentTotal || 0
+
+        if (count === 0) {
+          return <span className="text-sm text-muted-foreground">—</span>
+        }
+
+        return (
+          <div className="flex flex-col">
+            <span className="text-sm font-medium">{Currency(total)}</span>
+            <span className="text-xs text-muted-foreground">
+              {count} {count === 1
+                ? t('tpv.table.transaction', { defaultValue: 'transacción' })
+                : t('tpv.table.transactions', { defaultValue: 'transacciones' })}
+            </span>
           </div>
         )
       },

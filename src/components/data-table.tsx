@@ -1,6 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, ClickableTableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Checkbox } from '@/components/ui/checkbox'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Settings2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -18,7 +19,7 @@ import {
   VisibilityState,
   ColumnSizingState,
 } from '@tanstack/react-table'
-import { Dispatch, ReactNode, SetStateAction, useEffect, useState, useMemo } from 'react'
+import { Dispatch, ReactNode, SetStateAction, useCallback, useEffect, useState, useMemo } from 'react'
 import { DataTablePagination } from './pagination'
 import TableSkeleton from './skeleton-table'
 
@@ -49,6 +50,12 @@ type DataTableProps<TData> = {
   enableColumnResizing?: boolean
   /** Render expandable sub-content below a row. Return null/undefined to skip. */
   renderSubComponent?: (row: TData) => ReactNode | null | undefined
+  /** Enable row selection with checkboxes */
+  enableRowSelection?: boolean
+  /** Callback with selected row data whenever selection changes */
+  onRowSelectionChange?: (selectedRows: TData[]) => void
+  /** Change this value to programmatically clear row selection (e.g., increment a counter) */
+  clearSelectionTrigger?: number
 }
 
 function DataTable<TData>({
@@ -71,6 +78,9 @@ function DataTable<TData>({
   stickyFirstColumn = false,
   enableColumnResizing = false,
   renderSubComponent,
+  enableRowSelection: enableRowSelectionProp = false,
+  onRowSelectionChange: onRowSelectionChangeProp,
+  clearSelectionTrigger,
 }: DataTableProps<TData>) {
   // MUST call ALL hooks at the very top, before ANY conditional logic or returns
   const { t } = useTranslation()
@@ -121,13 +131,71 @@ function DataTable<TData>({
     return onSearch(currentSearchTerm, data || [])
   }, [enableSearch, isControlledSearch, currentSearchTerm, onSearch, data])
 
+  // Prepend checkbox column when row selection is enabled
+  const allColumns = useMemo<ColumnDef<TData, any>[]>(() => {
+    if (!enableRowSelectionProp) return columns
+    const selectColumn: ColumnDef<TData, any> = {
+      id: 'select',
+      header: ({ table: tbl }) => {
+        const isAllSelected = tbl.getIsAllPageRowsSelected()
+        const isSomeSelected = tbl.getIsSomePageRowsSelected()
+        return (
+          <div className="flex items-center justify-center">
+            <Checkbox
+              checked={isAllSelected ? true : isSomeSelected ? 'indeterminate' : false}
+              onCheckedChange={value => tbl.toggleAllPageRowsSelected(!!value)}
+              aria-label="Select all"
+              className="translate-y-[2px]"
+            />
+          </div>
+        )
+      },
+      cell: ({ row }) => (
+        <div
+          className="flex items-center justify-center"
+          onClick={e => { e.stopPropagation(); e.preventDefault() }}
+        >
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={value => row.toggleSelected(!!value)}
+            aria-label="Select row"
+            className="translate-y-[2px]"
+          />
+        </div>
+      ),
+      size: 40,
+      enableSorting: false,
+      enableHiding: false,
+      enableResizing: false,
+    }
+    return [selectColumn, ...columns]
+  }, [columns, enableRowSelectionProp])
+
+  // Clear selection when data changes (e.g., page change, filter change)
+  useEffect(() => {
+    setRowSelection({})
+  }, [filteredData])
+
+  // Clear selection when parent triggers it
+  useEffect(() => {
+    if (clearSelectionTrigger !== undefined) setRowSelection({})
+  }, [clearSelectionTrigger])
+
+  // Notify parent of selection changes
+  const handleRowSelectionChange = useCallback(
+    (updater: RowSelectionState | ((old: RowSelectionState) => RowSelectionState)) => {
+      setRowSelection(updater)
+    },
+    [],
+  )
+
   // Use external pagination if provided, otherwise use internal state
   const currentPagination = pagination || internalPagination
   const currentSetPagination = setPagination || setInternalPagination
 
   const table = useReactTable({
     data: filteredData,
-    columns,
+    columns: allColumns,
     state: {
       pagination: currentPagination,
       rowSelection,
@@ -135,7 +203,7 @@ function DataTable<TData>({
       columnSizing,
     },
     onPaginationChange: currentSetPagination,
-    onRowSelectionChange: setRowSelection,
+    onRowSelectionChange: handleRowSelectionChange,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnSizingChange: setColumnSizing,
     manualPagination: !!setPagination, // Use manual pagination when pagination state is controlled externally
@@ -154,8 +222,15 @@ function DataTable<TData>({
     getFilteredRowModel: getFilteredRowModel(),
     sortDescFirst: true, //sort by all columns in descending order first (default is ascending for string columns and descending for number columns)
     getPaginationRowModel: getPaginationRowModel(),
-    enableRowSelection: false, // Explicitly disable row selection to prevent errors
+    enableRowSelection: enableRowSelectionProp,
   })
+
+  // Notify parent when selection changes
+  useEffect(() => {
+    if (!onRowSelectionChangeProp) return
+    const selectedRows = table.getSelectedRowModel().rows.map(row => row.original)
+    onRowSelectionChangeProp(selectedRows)
+  }, [rowSelection, onRowSelectionChangeProp, table])
 
   // Persist visibility per tableId
   useEffect(() => {
@@ -297,7 +372,7 @@ function DataTable<TData>({
                     data-state={row.getIsSelected() && 'selected'}
                     to={to}
                     state={state}
-                    className={`bg-background border-border ${customRowClass}`}
+                    className={`bg-background border-border ${row.getIsSelected() ? 'bg-primary/5 dark:bg-primary/10' : ''} ${customRowClass}`}
                   >
                     {row.getVisibleCells().map(cell => (
                       <TableCell
@@ -319,7 +394,7 @@ function DataTable<TData>({
               <TableBody key={row.id} className={subContent ? 'group' : undefined}>
                 <TableRow
                   data-state={row.getIsSelected() && 'selected'}
-                  className={`bg-background border-border data-[state=selected]:bg-background ${
+                  className={`bg-background border-border ${row.getIsSelected() ? 'bg-primary/5! dark:bg-primary/10!' : 'data-[state=selected]:bg-background'} ${
                     onRowClick ? 'cursor-pointer transition-colors hover:bg-muted/30' : 'hover:bg-background'
                   } ${subContent ? 'group-hover:bg-muted/30' : ''} ${customRowClass}`}
                   onClick={() => onRowClick?.(row.original)}
@@ -338,7 +413,7 @@ function DataTable<TData>({
                 </TableRow>
                 {subContent && (
                   <TableRow className="bg-background border-border group-hover:bg-muted/30">
-                    <TableCell colSpan={columns.length} className="p-0">
+                    <TableCell colSpan={allColumns.length} className="p-0">
                       {subContent}
                     </TableCell>
                   </TableRow>
@@ -349,7 +424,7 @@ function DataTable<TData>({
         ) : (
           <TableBody>
             <TableRow>
-              <TableCell colSpan={columns.length} className={`h-10 text-center text-muted-foreground`}>
+              <TableCell colSpan={allColumns.length} className={`h-10 text-center text-muted-foreground`}>
                 {t('no_results')}
               </TableCell>
             </TableRow>
