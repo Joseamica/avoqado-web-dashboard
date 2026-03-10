@@ -1,26 +1,25 @@
 /**
  * StockControl - Serialized Inventory Management
  *
- * Displays:
- * - Summary cards by category (Chip Negra, Blanca, Roja, Recargas)
- * - Stock vs Sales chart with coverage estimation
- * - Low stock alerts with action buttons
- * - Filterable table of serialized items with serial numbers
- * - Bulk CSV upload for inventory
- * - Status indicators (available, sold, assigned)
- * - Batch management
- *
- * Based on mockup: inventario.html
+ * Features:
+ * - Summary cards by category with coverage estimation
+ * - Stock vs Sales chart
+ * - Low stock alerts
+ * - Movements table with search, filters, and export (CSV/Excel)
+ * - Bulk CSV upload
  */
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Package, Box, CheckCircle2, Plus, Upload, Settings2 } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Package, Box, CheckCircle2, Plus, Upload, Settings2, Search, Download, FileSpreadsheet, FileText } from 'lucide-react'
 import { StockVsSalesChart, LowStockAlerts, CategoryManagement, BulkUploadDialog } from './components'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useAuth } from '@/context/AuthContext'
@@ -31,59 +30,66 @@ import {
   type StockMovement,
 } from '@/services/stockDashboard.service'
 
-// Map API status to UI status
-type UIStatus = 'available' | 'sold' | 'assigned'
-
-const mapMovementTypeToStatus = (type: StockMovement['type']): UIStatus => {
-  switch (type) {
-    case 'SOLD':
-      return 'sold'
-    case 'REGISTERED':
-      return 'available'
-    case 'RETURNED':
-      return 'available'
-    case 'DAMAGED':
-      return 'sold' // Consider damaged as not available
-    default:
-      return 'available'
-  }
+// ─── Movement type config (Spanish labels + styling) ───
+const MOVEMENT_TYPE_CONFIG: Record<StockMovement['type'], { label: string; className: string }> = {
+  REGISTERED: { label: 'Registro SIM', className: 'bg-green-500/10 text-green-600 border-green-500/20' },
+  SOLD: { label: 'Vendido', className: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
+  RETURNED: { label: 'Devuelto', className: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' },
+  DAMAGED: { label: 'Dañado', className: 'bg-red-500/10 text-red-600 border-red-500/20' },
 }
 
-const STATUS_CONFIG = {
-  available: { label: 'Disponible', variant: 'default' as const, className: 'bg-green-500/10 text-green-600 border-green-500/20', icon: CheckCircle2 },
-  sold: { label: 'Vendido', variant: 'secondary' as const, className: '', icon: Package },
-  assigned: { label: 'Asignado', variant: 'outline' as const, className: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20', icon: Box },
-} as const
+// ─── Export helpers ───
+function escapeCSV(val: string): string {
+  if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+    return `"${val.replace(/"/g, '""')}"`
+  }
+  return val
+}
+
+function downloadFile(content: string, filename: string, mimeType: string) {
+  const BOM = '\uFEFF'
+  const blob = new Blob([BOM + content], { type: `${mimeType};charset=utf-8` })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
 
 export function StockControl() {
   const { t } = useTranslation(['playtelecom', 'common'])
-  const { venueId, venue: _venue } = useCurrentVenue()
+  const { venueId } = useCurrentVenue()
   const { activeVenue } = useAuth()
   const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
-  const _queryClient = useQueryClient()
 
   // Dialog state
   const [showCategoryManagement, setShowCategoryManagement] = useState(false)
   const [showBulkUpload, setShowBulkUpload] = useState(false)
 
-  // Fetch stock metrics
+  // Movements filters
+  const [movementSearch, setMovementSearch] = useState('')
+  const [movementTypeFilter, setMovementTypeFilter] = useState<string>('all')
+  const [movementCategoryFilter, setMovementCategoryFilter] = useState<string>('all')
+
+  // ─── Queries ───
   const { data: metricsData, isLoading: isLoadingMetrics } = useQuery({
     queryKey: ['stock', 'metrics', venueId],
     queryFn: () => getStockMetrics(venueId!),
     enabled: !!venueId,
   })
 
-  // Fetch category stock
   const { data: categoryData, isLoading: isLoadingCategories } = useQuery({
     queryKey: ['stock', 'categories', venueId],
     queryFn: () => getCategoryStock(venueId!),
     enabled: !!venueId,
   })
 
-  // Fetch recent movements for the table
   const { data: movementsData, isLoading: isLoadingMovements } = useQuery({
     queryKey: ['stock', 'movements', venueId],
-    queryFn: () => getStockMovements(venueId!, { limit: 20 }),
+    queryFn: () => getStockMovements(venueId!, { limit: 100 }),
     enabled: !!venueId,
   })
 
@@ -91,20 +97,96 @@ export function StockControl() {
   const categories = categoryData?.categories || []
   const movements = movementsData?.movements || []
 
-  // Calculate totals from metrics
+  // Totals
   const totals = useMemo(() => ({
     available: metricsData?.availablePieces || 0,
     sold: metricsData?.soldToday || 0,
     total: metricsData?.totalPieces || 0,
   }), [metricsData])
 
-  // Handle stock request from low stock alerts
+  // ─── Filtered movements ───
+  const filteredMovements = useMemo(() => {
+    let result = movements
+    if (movementSearch.trim()) {
+      const q = movementSearch.toLowerCase()
+      result = result.filter(m =>
+        m.serialNumber.toLowerCase().includes(q) ||
+        m.categoryName.toLowerCase().includes(q) ||
+        (m.userName && m.userName.toLowerCase().includes(q)) ||
+        (m.venueName && m.venueName.toLowerCase().includes(q))
+      )
+    }
+    if (movementTypeFilter !== 'all') {
+      result = result.filter(m => m.type === movementTypeFilter)
+    }
+    if (movementCategoryFilter !== 'all') {
+      result = result.filter(m => m.categoryName === movementCategoryFilter)
+    }
+    return result
+  }, [movements, movementSearch, movementTypeFilter, movementCategoryFilter])
+
+  // Unique category names for filter
+  const uniqueCategories = useMemo(() => {
+    const names = new Set(movements.map(m => m.categoryName))
+    return [...names].sort()
+  }, [movements])
+
+  // ─── Format helpers ───
+  const formatDate = useCallback((ts: string) => {
+    return new Date(ts).toLocaleString('es-MX', {
+      dateStyle: 'short',
+      timeStyle: 'short',
+      timeZone: venueTimezone,
+    })
+  }, [venueTimezone])
+
+  const getTypeLabel = (type: StockMovement['type']) => MOVEMENT_TYPE_CONFIG[type]?.label || type
+
+  // ─── Export ───
+  const buildExportRows = useCallback(() => {
+    const headers = ['SIM ID', 'Categoría', 'Tipo', 'Fecha', 'Tienda', 'Usuario']
+    const rows = filteredMovements.map(m => [
+      m.serialNumber,
+      m.categoryName,
+      getTypeLabel(m.type),
+      formatDate(m.timestamp),
+      m.venueName || '-',
+      m.userName || '-',
+    ])
+    return { headers, rows }
+  }, [filteredMovements, formatDate])
+
+  const handleExportCSV = useCallback(() => {
+    const { headers, rows } = buildExportRows()
+    const lines = [headers.map(escapeCSV).join(','), ...rows.map(r => r.map(escapeCSV).join(','))]
+    downloadFile(lines.join('\n'), `movimientos_stock_${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv')
+  }, [buildExportRows])
+
+  const handleExportExcel = useCallback(() => {
+    // Generate a simple XML-based Excel file (compatible with Excel, LibreOffice, Numbers)
+    const { headers, rows } = buildExportRows()
+    const escXml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    const headerCells = headers.map(h => `<Cell><Data ss:Type="String">${escXml(h)}</Data></Cell>`).join('')
+    const dataRows = rows.map(r => {
+      const cells = r.map(c => `<Cell><Data ss:Type="String">${escXml(c)}</Data></Cell>`).join('')
+      return `<Row>${cells}</Row>`
+    }).join('')
+    const xml = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Worksheet ss:Name="Movimientos"><Table>
+<Row>${headerCells}</Row>
+${dataRows}
+</Table></Worksheet></Workbook>`
+    downloadFile(xml, `movimientos_stock_${new Date().toISOString().slice(0, 10)}.xls`, 'application/vnd.ms-excel')
+  }, [buildExportRows])
+
+  // ─── Stock request handler ───
   const handleRequestStock = (productId: string) => {
     console.log('Requesting stock for product:', productId)
-    // TODO: Implement stock request API
   }
 
-  // Loading state
+  // ─── Loading ───
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -118,7 +200,6 @@ export function StockControl() {
           <Skeleton className="h-80 rounded-xl" />
           <Skeleton className="h-80 rounded-xl" />
         </div>
-        <Skeleton className="h-48 rounded-xl" />
         <Skeleton className="h-64 rounded-xl" />
       </div>
     )
@@ -126,7 +207,7 @@ export function StockControl() {
 
   return (
     <div className="space-y-6">
-      {/* Header with Actions */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-xl font-semibold">
@@ -233,59 +314,134 @@ export function StockControl() {
         <LowStockAlerts onRequestStock={handleRequestStock} />
       </div>
 
-      {/* Recent Movements Table */}
+      {/* ─── Movimientos Recientes ─── */}
       <GlassCard className="p-6">
-        <h3 className="text-lg font-semibold mb-4">
-          {t('playtelecom:stock.recentMovements', { defaultValue: 'Movimientos Recientes' })}
-        </h3>
+        {/* Header + Export */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+          <h3 className="text-lg font-semibold">
+            {t('playtelecom:stock.recentMovements', { defaultValue: 'Movimientos Recientes' })}
+          </h3>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Download className="w-4 h-4 mr-2" />
+                {t('playtelecom:stock.export', { defaultValue: 'Exportar' })}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportCSV}>
+                <FileText className="w-4 h-4 mr-2" />
+                CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportExcel}>
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Excel (.xls)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              value={movementSearch}
+              onChange={e => setMovementSearch(e.target.value)}
+              placeholder={t('playtelecom:stock.searchPlaceholder', { defaultValue: 'Buscar por SIM ID, categoría, usuario...' })}
+              className="pl-9 h-9"
+            />
+          </div>
+          <Select value={movementTypeFilter} onValueChange={setMovementTypeFilter}>
+            <SelectTrigger className="w-full sm:w-[160px] h-9">
+              <SelectValue placeholder={t('playtelecom:stock.filterType', { defaultValue: 'Tipo' })} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('playtelecom:stock.allTypes', { defaultValue: 'Todos los tipos' })}</SelectItem>
+              <SelectItem value="REGISTERED">Registro SIM</SelectItem>
+              <SelectItem value="SOLD">Vendido</SelectItem>
+              <SelectItem value="RETURNED">Devuelto</SelectItem>
+              <SelectItem value="DAMAGED">Dañado</SelectItem>
+            </SelectContent>
+          </Select>
+          {uniqueCategories.length > 1 && (
+            <Select value={movementCategoryFilter} onValueChange={setMovementCategoryFilter}>
+              <SelectTrigger className="w-full sm:w-[180px] h-9">
+                <SelectValue placeholder={t('playtelecom:stock.filterCategory', { defaultValue: 'Categoría' })} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('playtelecom:stock.allCategories', { defaultValue: 'Todas las categorías' })}</SelectItem>
+                {uniqueCategories.map(cat => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+
+        {/* Results count */}
+        {(movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all') && (
+          <p className="text-xs text-muted-foreground mb-3">
+            {filteredMovements.length} {filteredMovements.length === 1 ? 'resultado' : 'resultados'}
+          </p>
+        )}
+
+        {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border/50">
-                <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">
-                  {t('playtelecom:stock.serial', { defaultValue: 'Número de Serie' })}
-                </th>
-                <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">
+                <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">SIM ID</th>
+                <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   {t('playtelecom:stock.category', { defaultValue: 'Categoría' })}
                 </th>
-                <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">
+                <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   {t('playtelecom:stock.type', { defaultValue: 'Tipo' })}
                 </th>
-                <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">
+                <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   {t('playtelecom:stock.timestamp', { defaultValue: 'Fecha' })}
+                </th>
+                <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t('playtelecom:stock.store', { defaultValue: 'Tienda' })}
+                </th>
+                <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t('playtelecom:stock.user', { defaultValue: 'Usuario' })}
                 </th>
               </tr>
             </thead>
             <tbody>
-              {movements.length > 0 ? (
-                movements.map(movement => {
-                  const status = mapMovementTypeToStatus(movement.type)
-                  const statusConfig = STATUS_CONFIG[status]
+              {filteredMovements.length > 0 ? (
+                filteredMovements.map(movement => {
+                  const typeConfig = MOVEMENT_TYPE_CONFIG[movement.type]
                   return (
                     <tr key={movement.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
                       <td className="py-3 px-2">
-                        <code className="text-xs bg-muted/50 px-2 py-1 rounded">{movement.serialNumber}</code>
+                        <code className="text-xs bg-muted/50 px-2 py-1 rounded font-mono">{movement.serialNumber}</code>
                       </td>
                       <td className="py-3 px-2 text-sm">{movement.categoryName}</td>
                       <td className="py-3 px-2">
-                        <Badge variant={statusConfig.variant} className={`text-xs ${statusConfig.className}`}>
-                          {movement.type}
+                        <Badge variant="outline" className={`text-xs ${typeConfig.className}`}>
+                          {typeConfig.label}
                         </Badge>
                       </td>
-                      <td className="py-3 px-2 text-sm text-muted-foreground">
-                        {new Date(movement.timestamp).toLocaleString('es-MX', {
-                          dateStyle: 'short',
-                          timeStyle: 'short',
-                          timeZone: venueTimezone,
-                        })}
+                      <td className="py-3 px-2 text-sm text-muted-foreground whitespace-nowrap">
+                        {formatDate(movement.timestamp)}
+                      </td>
+                      <td className="py-3 px-2 text-sm">
+                        {movement.venueName || <span className="text-muted-foreground">-</span>}
+                      </td>
+                      <td className="py-3 px-2 text-sm">
+                        {movement.userName || <span className="text-muted-foreground">-</span>}
                       </td>
                     </tr>
                   )
                 })
               ) : (
                 <tr>
-                  <td colSpan={4} className="py-8 text-center text-muted-foreground">
-                    {t('playtelecom:stock.noMovements', { defaultValue: 'No hay movimientos recientes' })}
+                  <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                    {movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all'
+                      ? t('playtelecom:stock.noResults', { defaultValue: 'No se encontraron movimientos con esos filtros' })
+                      : t('playtelecom:stock.noMovements', { defaultValue: 'No hay movimientos recientes' })}
                   </td>
                 </tr>
               )}
@@ -294,13 +450,11 @@ export function StockControl() {
         </div>
       </GlassCard>
 
-      {/* Category Management Dialog */}
+      {/* Dialogs */}
       <CategoryManagement
         open={showCategoryManagement}
         onOpenChange={setShowCategoryManagement}
       />
-
-      {/* Bulk Upload Dialog */}
       <BulkUploadDialog
         open={showBulkUpload}
         onOpenChange={setShowBulkUpload}

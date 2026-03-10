@@ -109,8 +109,9 @@ export function BulkUploadDialog({ open, onOpenChange, preselectedCategoryId }: 
         const csvContent = await selectedFile.text()
         data = { csvContent }
       } else if (uploadMode === 'manual' && manualSerials.trim()) {
+        // Split by newlines, commas, tabs, or semicolons (supports any scanner config)
         const serialNumbers = manualSerials
-          .split('\n')
+          .split(/[\n,;\t]+/)
           .map((s) => s.trim())
           .filter((s) => s.length > 0)
         data = { serialNumbers }
@@ -225,7 +226,7 @@ export function BulkUploadDialog({ open, onOpenChange, preselectedCategoryId }: 
   const serialCount = useMemo(() => {
     if (uploadMode === 'manual') {
       return manualSerials
-        .split('\n')
+        .split(/[\n,;\t]+/)
         .map((s) => s.trim())
         .filter((s) => s.length > 0).length
     }
@@ -346,7 +347,7 @@ export function BulkUploadDialog({ open, onOpenChange, preselectedCategoryId }: 
                 />
                 <p className="text-xs text-muted-foreground">
                   {t('playtelecom:bulkUpload.onePerLine', {
-                    defaultValue: 'Un número de serie por línea',
+                    defaultValue: 'Un número de serie por línea, coma o tab (compatible con scanner)',
                   })}
                   {serialCount > 0 && (
                     <span className="ml-2 font-medium text-foreground">

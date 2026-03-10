@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -22,7 +22,7 @@ import api from '@/api'
 import { authService } from '@/services/auth.service'
 
 // Schema will be created inside the component to access t() function
-const createAcceptInvitationSchema = (t: any) =>
+const createAcceptInvitationSchema = (t: any, requirePin = false) =>
   z
     .object({
       firstName: z.string().min(1, t('validation.firstNameRequired')).max(50, t('validation.firstNameMax')),
@@ -34,11 +34,13 @@ const createAcceptInvitationSchema = (t: any) =>
         .regex(/[a-z]/, t('validation.passwordLowercase'))
         .regex(/[0-9]/, t('validation.passwordNumber')),
       confirmPassword: z.string(),
-      pin: z
-        .string()
-        .regex(/^\d{4,10}$/, t('validation.pinFormat'))
-        .optional()
-        .or(z.literal('')),
+      pin: requirePin
+        ? z.string().regex(/^\d{4,10}$/, t('validation.pinFormat'))
+        : z
+            .string()
+            .regex(/^\d{4,10}$/, t('validation.pinFormat'))
+            .optional()
+            .or(z.literal('')),
     })
     .refine(data => data.password === data.confirmPassword, {
       message: t('validation.passwordMatch'),
@@ -68,6 +70,7 @@ interface InvitationDetails {
   // Multi-venue support fields
   userAlreadyHasPassword?: boolean // If true, skip password form (user already has account)
   existsInDifferentOrg?: boolean // If true, show "contact support" message
+  requirePin?: boolean // If true, PIN is required (set by inviter)
 }
 
 export default function InviteAccept() {
@@ -97,14 +100,29 @@ export default function InviteAccept() {
     })
   }
 
+  const pinRequired = invitationDetails?.requirePin === true
+  const pinRequiredRef = useRef(pinRequired)
+  pinRequiredRef.current = pinRequired
+
+  // Dynamic resolver that reads pinRequired from ref to always have latest value
+  const dynamicResolver = useCallback(
+    (data: any, context: any, options: any) => {
+      const schema = createAcceptInvitationSchema(t, pinRequiredRef.current)
+      return zodResolver(schema)(data, context, options)
+    },
+    [t],
+  )
+
   const {
     register,
     handleSubmit,
     reset,
     watch,
+    trigger,
+    setError,
     formState: { errors, isValid },
   } = useForm<AcceptInvitationFormData>({
-    resolver: zodResolver(createAcceptInvitationSchema(t)),
+    resolver: dynamicResolver,
     mode: 'onChange',
     defaultValues: {
       firstName: '',
@@ -114,6 +132,13 @@ export default function InviteAccept() {
       pin: '',
     },
   })
+
+  // Re-validate when pinRequired changes (after invitation details load)
+  useEffect(() => {
+    if (invitationDetails) {
+      trigger('pin')
+    }
+  }, [pinRequired, invitationDetails, trigger])
 
   const passwordValue = watch('password') || ''
   const hasMinLength = passwordValue.length >= 8
@@ -190,7 +215,7 @@ export default function InviteAccept() {
       })
       return data
     },
-    onSuccess: async (formData) => {
+    onSuccess: async formData => {
       // Set flag to prevent showing DirectAcceptInvitation during auto-login
       setIsProcessingAutoLogin(true)
 
@@ -244,7 +269,15 @@ export default function InviteAccept() {
     },
     onError: (error: any) => {
       setIsProcessingAutoLogin(false)
+      const status = error.response?.status
       const errorMessage = error.response?.data?.message || t('errors.acceptError')
+
+      // Show PIN errors inline on the field (409 = PIN conflict, 400 = PIN required)
+      if ((status === 409 || status === 400) && errorMessage.toLowerCase().includes('pin')) {
+        setError('pin', { type: 'server', message: errorMessage })
+        return
+      }
+
       toast({
         title: t('common:error'),
         description: errorMessage,
@@ -434,7 +467,10 @@ export default function InviteAccept() {
             </div>
             <CardTitle>{t('existsInDifferentOrg.title', 'Cuenta ya registrada')}</CardTitle>
             <CardDescription>
-              {t('existsInDifferentOrg.description', 'Este email ya está registrado en otra organización. Por favor, contacta a soporte si necesitas acceso a múltiples organizaciones.')}
+              {t(
+                'existsInDifferentOrg.description',
+                'Este email ya está registrado en otra organización. Por favor, contacta a soporte si necesitas acceso a múltiples organizaciones.',
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -460,7 +496,7 @@ export default function InviteAccept() {
       <ExistingUserPasswordVerification
         invitationDetails={invitationDetails}
         token={token!}
-        onSuccess={async (password) => {
+        onSuccess={async password => {
           setIsProcessingAutoLogin(true)
 
           let freshStatus = await fetchFreshAuthStatus()
@@ -532,7 +568,7 @@ export default function InviteAccept() {
                     id="firstName"
                     placeholder={t('placeholders.firstName')}
                     autoComplete="given-name"
-                    readOnly={!!(invitationDetails?.firstName)}
+                    readOnly={!!invitationDetails?.firstName}
                     className={invitationDetails?.firstName ? 'bg-muted cursor-not-allowed' : ''}
                     {...register('firstName')}
                   />
@@ -545,7 +581,7 @@ export default function InviteAccept() {
                     id="lastName"
                     placeholder={t('placeholders.lastName')}
                     autoComplete="family-name"
-                    readOnly={!!(invitationDetails?.lastName)}
+                    readOnly={!!invitationDetails?.lastName}
                     className={invitationDetails?.lastName ? 'bg-muted cursor-not-allowed' : ''}
                     {...register('lastName')}
                   />
@@ -553,9 +589,7 @@ export default function InviteAccept() {
                 </div>
               </div>
               {invitationDetails?.firstName && invitationDetails?.lastName && (
-                <p className="text-xs text-muted-foreground">
-                  {t('nameEditNote')}
-                </p>
+                <p className="text-xs text-muted-foreground">{t('nameEditNote')}</p>
               )}
             </div>
 
@@ -615,17 +649,27 @@ export default function InviteAccept() {
 
             {/* PIN Field */}
             <div className="space-y-2">
-              <Label htmlFor="pin">{t('labels.pin')}</Label>
-              <Input id="pin" type="text" placeholder={t('placeholders.pin')} maxLength={10} {...register('pin')} />
+              <Label htmlFor="pin">{pinRequired ? t('labels.pinRequired', { defaultValue: 'PIN *' }) : t('labels.pin')}</Label>
+              <Input
+                id="pin"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder={t('placeholders.pin')}
+                maxLength={10}
+                {...register('pin')}
+              />
               {errors.pin && <p className="text-sm text-red-600">{errors.pin.message}</p>}
-              <p className="text-xs text-muted-foreground">{t('pinHelp')}</p>
+              <p className="text-xs text-muted-foreground">
+                {pinRequired
+                  ? t('pinHelpRequired', {
+                      defaultValue: 'El administrador requiere que crees un PIN para acceder a las terminales de cobro.',
+                    })
+                  : t('pinHelp')}
+              </p>
             </div>
 
-            <Button
-              type="submit"
-              disabled={!isValid || acceptInvitationMutation.isPending || !allRequirementsMet}
-              className="w-full"
-            >
+            <Button type="submit" disabled={!isValid || acceptInvitationMutation.isPending || !allRequirementsMet} className="w-full">
               {acceptInvitationMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -665,11 +709,7 @@ interface RequirementItemProps {
 const RequirementItem = ({ met, text }: RequirementItemProps) => {
   return (
     <div className="flex items-center gap-2">
-      {met ? (
-        <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-      ) : (
-        <X className="h-4 w-4 text-muted-foreground" />
-      )}
+      {met ? <Check className="h-4 w-4 text-green-600 dark:text-green-400" /> : <X className="h-4 w-4 text-muted-foreground" />}
       <span className={met ? 'text-foreground' : 'text-muted-foreground'}>{text}</span>
     </div>
   )
@@ -684,12 +724,7 @@ interface ExistingUserPasswordVerificationProps {
   t: any
 }
 
-const ExistingUserPasswordVerification: React.FC<ExistingUserPasswordVerificationProps> = ({
-  invitationDetails,
-  token,
-  onSuccess,
-  t,
-}) => {
+const ExistingUserPasswordVerification: React.FC<ExistingUserPasswordVerificationProps> = ({ invitationDetails, token, onSuccess, t }) => {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -731,7 +766,8 @@ const ExistingUserPasswordVerification: React.FC<ExistingUserPasswordVerificatio
               {t('invitedTo', 'Has sido invitado a')} <strong>{invitationDetails.organizationName}</strong>
               {invitationDetails.venueName && (
                 <>
-                  {' '}{t('at', 'en')} <strong>{invitationDetails.venueName}</strong>
+                  {' '}
+                  {t('at', 'en')} <strong>{invitationDetails.venueName}</strong>
                 </>
               )}{' '}
               {t('as', 'como')} <strong>{invitationDetails.roleDisplayName || invitationDetails.role}</strong>

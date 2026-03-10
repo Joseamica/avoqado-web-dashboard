@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
@@ -126,6 +127,8 @@ export default function ProductId() {
         gtin: formValues.gtin || undefined,
         categoryId: formValues.categoryId,
         modifierGroupIds: validModifierIds, // Only send valid modifier groups
+        allowCreditRedemption: formValues.allowCreditRedemption,
+        requireCreditForBooking: formValues.requireCreditForBooking,
         // Inventory tracking configuration
         trackInventory: trackInventory,
         inventoryMethod: trackInventory ? inventoryMethod : null,
@@ -191,6 +194,8 @@ export default function ProductId() {
       imageUrl: '',
       categoryId: '',
       modifierGroups: [],
+      allowCreditRedemption: true,
+      requireCreditForBooking: false,
       // Inventory fields
       trackInventory: false,
       inventoryMethod: null as 'QUANTITY' | 'RECIPE' | null,
@@ -297,6 +302,8 @@ export default function ProductId() {
       imageUrl: data.imageUrl || '',
       categoryId: categoryId,
       modifierGroups: mappedModifierGroups,
+      allowCreditRedemption: data.allowCreditRedemption ?? true,
+      requireCreditForBooking: data.requireCreditForBooking ?? false,
       // Inventory fields
       trackInventory: hasInventory,
       inventoryMethod: method,
@@ -783,6 +790,40 @@ export default function ProductId() {
                   </Select>
                 </FormControl>
                 <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Credit Redemption Toggle */}
+          <FormField
+            control={form.control}
+            name="allowCreditRedemption"
+            render={({ field }) => (
+              <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">{t('products.detail.allowCreditRedemption')}</FormLabel>
+                  <FormDescription>{t('products.detail.allowCreditRedemptionDesc')}</FormDescription>
+                </div>
+                <FormControl>
+                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+
+          {/* Require Credit for Booking Toggle */}
+          <FormField
+            control={form.control}
+            name="requireCreditForBooking"
+            render={({ field }) => (
+              <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">{t('products.detail.requireCreditForBooking')}</FormLabel>
+                  <FormDescription>{t('products.detail.requireCreditForBookingDesc')}</FormDescription>
+                </div>
+                <FormControl>
+                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                </FormControl>
               </FormItem>
             )}
           />

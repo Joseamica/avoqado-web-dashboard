@@ -80,7 +80,7 @@ export function FullScreenModal({
           </header>
 
           {/* Content */}
-          <main className={cn('flex-1 overflow-y-auto', contentClassName)}>
+          <main data-fsm-content="" className={cn('flex-1 overflow-y-auto', contentClassName)}>
             {children}
           </main>
         </DialogPrimitive.Content>

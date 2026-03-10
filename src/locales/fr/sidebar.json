@@ -20,6 +20,7 @@
     "discounts": "Réductions",
     "coupons": "Codes Promo"
   },
+  "creditPacks": "Forfaits de Crédits",
   "salesMenu": {
     "title": "Ventes",
     "orders": "Commandes",
@@ -76,7 +77,8 @@
     "products": "Produits",
     "users": "Utilisateurs",
     "waiters": "Serveurs",
-    "reservations": "Réservations"
+    "reservations": "Réservations",
+    "creditPacks": "Forfaits de Crédits"
   },
   "reservationsMenu": {
     "overview": "Aperçu",

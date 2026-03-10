@@ -3,12 +3,26 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Mail, AlertCircle, Smartphone, CheckCircle2, UserPlus, Info, Building2, AlertTriangle, Loader2, Copy, Shield } from 'lucide-react'
+import {
+  Mail,
+  AlertCircle,
+  Smartphone,
+  CheckCircle2,
+  UserPlus,
+  Info,
+  Building2,
+  AlertTriangle,
+  Loader2,
+  Copy,
+  Shield,
+  KeyRound,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
 import { useAuth } from '@/context/AuthContext'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -146,6 +160,7 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
     const { getDisplayName: getRoleDisplayName, isRoleActive } = useRoleConfig()
     const [inviteType, setInviteType] = useState<InviteType>('email')
     const [inviteToAllVenues, setInviteToAllVenues] = useState(false)
+    const [requirePin, setRequirePin] = useState(false)
     const { isWhiteLabelEnabled, enabledFeatures } = useWhiteLabelConfig()
     const isSuperadmin = (staffInfo?.role || user?.role) === StaffRole.SUPERADMIN
     const allowFakeEmailForSuperadmin = inviteType === 'email' && isSuperadmin
@@ -421,6 +436,7 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
         type: inviteType,
         inviteToAllVenues:
           selectedRole && [StaffRole.OWNER, StaffRole.ADMIN, StaffRole.MANAGER].includes(selectedRole) ? inviteToAllVenues : undefined,
+        requirePin: inviteType === 'email' && requirePin ? true : undefined,
         allowFakeEmail: shouldNormalizeFakeEmail || undefined,
         generateTestCredentials: shouldNormalizeFakeEmail || undefined,
         testInvite: shouldNormalizeFakeEmail || undefined,
@@ -700,6 +716,30 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
               </div>
             </div>
           </div>
+
+          {/* Require PIN Toggle - Only for email invitations */}
+          {inviteType === 'email' && (
+            <div className="rounded-2xl border border-border/50 bg-card p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-xl bg-amber-500/10">
+                    <KeyRound className="h-5 w-5 text-amber-500" />
+                  </div>
+                  <div>
+                    <label htmlFor="requirePin" className="font-semibold cursor-pointer">
+                      {t('invite.requirePinLabel', { defaultValue: 'Requerir PIN al aceptar' })}
+                    </label>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      {t('invite.requirePinDesc', {
+                        defaultValue: 'El invitado deberá crear un PIN para acceder a las terminales de cobro al aceptar la invitación.',
+                      })}
+                    </p>
+                  </div>
+                </div>
+                <Switch id="requirePin" checked={requirePin} onCheckedChange={setRequirePin} />
+              </div>
+            </div>
+          )}
 
           {/* Info Alert Card */}
           <div className="rounded-2xl border border-border/50 bg-card p-6">

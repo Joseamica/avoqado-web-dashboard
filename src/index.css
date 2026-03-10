@@ -307,6 +307,19 @@
     @apply bg-linear-to-b from-background to-surface/40 dark:bg-background;
   }
 
+  /* FullScreenModal content: rectangular inputs/buttons (override pill-shaped defaults) */
+  [data-fsm-content] input,
+  [data-fsm-content] textarea,
+  [data-fsm-content] button,
+  [data-fsm-content] [role='combobox'] {
+    border-radius: 0.5rem !important;
+  }
+
+  /* FullScreenModal: taller inputs for comfortable touch targets */
+  [data-fsm-content] input:not([type='checkbox']):not([type='radio']):not([type='hidden']):not([role='switch']) {
+    min-height: 2.75rem !important; /* 44px */
+  }
+
   /* Apply a gentle card tint like shadcn example */
   .cards-tinted [data-slot='card'] {
     @apply bg-linear-to-t from-primary/5 to-card shadow-xs;

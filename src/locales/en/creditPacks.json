@@ -1,0 +1,163 @@
+{
+  "title": "Credit Packs",
+  "subtitle": "Create and manage credit packs for your customers",
+  "create": {
+    "title": "Create Pack",
+    "subtitle": "Configure a new credit pack"
+  },
+  "edit": {
+    "title": "Edit Pack",
+    "subtitle": "Update pack settings"
+  },
+  "list": {
+    "searchPlaceholder": "Search packs...",
+    "emptyState": "No credit packs found",
+    "emptyStateDesc": "Create your first credit pack to start offering bundles",
+    "columns": {
+      "name": "Name",
+      "price": "Price",
+      "items": "Items",
+      "validity": "Validity",
+      "status": "Status"
+    },
+    "filters": {
+      "active": "Active Only",
+      "inactive": "Inactive Only",
+      "allStatuses": "All"
+    }
+  },
+  "form": {
+    "fields": {
+      "name": "Pack Name",
+      "description": "Description",
+      "price": "Price",
+      "currency": "Currency",
+      "validityDays": "Validity Days",
+      "maxPerCustomer": "Max Per Customer",
+      "displayOrder": "Display Order",
+      "items": "Pack Items",
+      "addItem": "Add Item",
+      "product": "Product",
+      "quantity": "Quantity"
+    },
+    "placeholders": {
+      "name": "e.g., 10-Class Pack",
+      "description": "Optional pack description",
+      "price": "0.00",
+      "validityDays": "No expiry",
+      "maxPerCustomer": "No limit",
+      "displayOrder": "0"
+    },
+    "validation": {
+      "nameRequired": "Name is required",
+      "priceRequired": "Price is required",
+      "pricePositive": "Price must be greater than 0",
+      "itemsRequired": "At least one item is required",
+      "productRequired": "Product is required",
+      "quantityRequired": "Quantity is required",
+      "quantityPositive": "Quantity must be greater than 0"
+    }
+  },
+  "purchases": {
+    "title": "Purchases",
+    "emptyState": "No purchases found",
+    "columns": {
+      "customer": "Customer",
+      "pack": "Pack",
+      "amountPaid": "Amount",
+      "status": "Status",
+      "expiresAt": "Expires",
+      "purchasedAt": "Date"
+    },
+    "balances": "Credit Balances",
+    "remaining": "{{remaining}} of {{original}} remaining"
+  },
+  "transactions": {
+    "title": "Transactions",
+    "emptyState": "No transactions found",
+    "columns": {
+      "date": "Date",
+      "customer": "Customer",
+      "type": "Type",
+      "quantity": "Quantity",
+      "reason": "Reason",
+      "createdBy": "Created By"
+    }
+  },
+  "actions": {
+    "create": "Create Pack",
+    "edit": "Edit",
+    "deactivate": "Deactivate",
+    "save": "Save Changes",
+    "refund": "Refund",
+    "redeem": "Redeem",
+    "adjust": "Adjust Balance",
+    "viewPurchases": "View Purchases",
+    "removeItem": "Remove Item"
+  },
+  "deactivate": {
+    "title": "Deactivate Pack",
+    "description": "Are you sure you want to deactivate \"{{name}}\"? Customers will no longer be able to purchase it.",
+    "confirm": "Deactivate",
+    "cancel": "Cancel"
+  },
+  "refund": {
+    "title": "Refund Purchase",
+    "description": "This will refund the purchase and cancel all remaining credits.",
+    "reasonLabel": "Refund reason",
+    "reasonPlaceholder": "Why is this being refunded?",
+    "confirm": "Confirm Refund",
+    "cancel": "Cancel"
+  },
+  "redeem": {
+    "title": "Redeem Credit",
+    "quantityLabel": "Quantity to redeem",
+    "confirm": "Redeem",
+    "cancel": "Cancel"
+  },
+  "adjust": {
+    "title": "Adjust Balance",
+    "quantityLabel": "Quantity (positive to add, negative to subtract)",
+    "reasonLabel": "Adjustment reason",
+    "reasonPlaceholder": "Why is the balance being adjusted?",
+    "confirm": "Adjust",
+    "cancel": "Cancel"
+  },
+  "toasts": {
+    "createSuccess": "Credit pack created successfully",
+    "updateSuccess": "Pack updated successfully",
+    "deactivateSuccess": "Pack deactivated successfully",
+    "redeemSuccess": "Credit redeemed successfully",
+    "adjustSuccess": "Balance adjusted successfully",
+    "refundSuccess": "Purchase refunded successfully",
+    "error": "An error occurred"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "ACTIVE": "Active",
+    "EXHAUSTED": "Exhausted",
+    "EXPIRED": "Expired",
+    "REFUNDED": "Refunded"
+  },
+  "transactionTypes": {
+    "PURCHASE": "Purchase",
+    "REDEEM": "Redeem",
+    "EXPIRE": "Expire",
+    "REFUND": "Refund",
+    "ADJUST": "Adjust"
+  },
+  "tabs": {
+    "packs": "Packs",
+    "purchases": "Purchases",
+    "transactions": "Transactions"
+  },
+  "validity": {
+    "days": "{{days}} days",
+    "noExpiry": "No expiry"
+  },
+  "itemsSummary": "{{count}} item(s)",
+  "filters": {
+    "clearAll": "Clear filters"
+  }
+}

@@ -2,9 +2,10 @@ import { LoadingButton } from '@/components/loading-button'
 import MultipleSelector from '@/components/multi-selector'
 import { LoadingScreen } from '@/components/spinner'
 import { Button } from '@/components/ui/button'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useImageUploader } from '@/hooks/use-image-uploader'
@@ -38,6 +39,8 @@ type CreateProductPayload = {
   price: number
   imageUrl?: string | null
   modifierGroupIds?: string[]
+  allowCreditRedemption?: boolean
+  requireCreditForBooking?: boolean
 }
 
 export default function CreateProduct() {
@@ -98,6 +101,8 @@ export default function CreateProduct() {
       imageUrl: '',
       categoryId: '',
       modifierGroups: [],
+      allowCreditRedemption: true,
+      requireCreditForBooking: false,
     },
     // values: {
     //   name: data?.avoqadoProduct.name || '',
@@ -183,6 +188,8 @@ export default function CreateProduct() {
       price: priceNumber,
       imageUrl: imageUrl || formValues.imageUrl || undefined,
       modifierGroupIds,
+      allowCreditRedemption: formValues.allowCreditRedemption,
+      requireCreditForBooking: formValues.requireCreditForBooking,
     })
   }
 
@@ -263,11 +270,7 @@ export default function CreateProduct() {
               <FormItem>
                 <FormLabel>{t('products.create.gtin')}</FormLabel>
                 <FormControl>
-                  <Input
-                    placeholder={t('products.create.gtinPlaceholder')}
-                    className="max-w-96"
-                    {...field}
-                  />
+                  <Input placeholder={t('products.create.gtinPlaceholder')} className="max-w-96" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -554,6 +557,40 @@ export default function CreateProduct() {
                   />
                 </FormControl>
                 <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Credit Redemption Toggle */}
+          <FormField
+            control={form.control}
+            name="allowCreditRedemption"
+            render={({ field }) => (
+              <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">{t('products.detail.allowCreditRedemption')}</FormLabel>
+                  <FormDescription>{t('products.detail.allowCreditRedemptionDesc')}</FormDescription>
+                </div>
+                <FormControl>
+                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+
+          {/* Require Credit for Booking Toggle */}
+          <FormField
+            control={form.control}
+            name="requireCreditForBooking"
+            render={({ field }) => (
+              <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">{t('products.detail.requireCreditForBooking')}</FormLabel>
+                  <FormDescription>{t('products.detail.requireCreditForBookingDesc')}</FormDescription>
+                </div>
+                <FormControl>
+                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                </FormControl>
               </FormItem>
             )}
           />

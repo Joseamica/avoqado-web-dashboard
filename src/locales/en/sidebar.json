@@ -21,6 +21,7 @@
     "discounts": "Discounts",
     "coupons": "Coupon Codes"
   },
+  "creditPacks": "Credit Packs",
   "salesMenu": {
     "title": "Sales",
     "orders": "Orders",
@@ -96,7 +97,8 @@
     "recipes": "Recipes",
     "users": "Users",
     "waiters": "Waiters",
-    "reservations": "Reservations"
+    "reservations": "Reservations",
+    "creditPacks": "Credit Packs"
   },
   "reservationsMenu": {
     "overview": "Overview",

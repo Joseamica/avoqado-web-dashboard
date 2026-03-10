@@ -25,6 +25,18 @@
     "active": "Actif",
     "dragToReorderProducts": "Glisser pour réorganiser les produits dans cette catégorie."
   },
+  "menumaker": {
+    "nav": {
+      "overview": "Aperçu",
+      "menus": "Menus",
+      "categories": "Catégories",
+      "products": "Produits",
+      "services": "Services",
+      "modifierGroups": "Groupes de Modificateurs",
+      "creditPacks": "Forfaits de Crédits",
+      "customers": "Clients"
+    }
+  },
   "menus": {
     "title": "Menus",
     "newMenu": "Nouveau Menu",
@@ -144,6 +156,10 @@
       "skuPattern": "Le SKU ne peut contenir que des lettres, des chiffres, des tirets et des traits de soulignement.",
       "imageUnavailable": "Image non disponible",
       "imageCouldNotLoad": "L'image n'a pas pu être chargée",
+      "allowCreditRedemption": "Accepte les packs de crédits",
+      "allowCreditRedemptionDesc": "Permet aux clients d'utiliser des crédits de packs pour réserver ce produit ou service.",
+      "requireCreditForBooking": "Crédit requis pour réserver",
+      "requireCreditForBookingDesc": "Les clients doivent avoir des crédits disponibles pour réserver. Sans crédits, ils ne pourront pas faire de réservations.",
       "inventory": {
         "trackingMethod": "Suivi de l'Inventaire",
         "noTracking": "Ne pas suivre l'inventaire",

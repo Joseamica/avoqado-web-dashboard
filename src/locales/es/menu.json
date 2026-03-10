@@ -33,6 +33,7 @@
       "products": "Productos",
       "services": "Servicios",
       "modifierGroups": "Grupos Modificadores",
+      "creditPacks": "Paquetes de Créditos",
       "customers": "Clientes"
     }
   },
@@ -503,6 +504,10 @@
       "skuPattern": "El SKU solo puede contener letras, números, guiones y guiones bajos.",
       "imageUnavailable": "Imagen no disponible",
       "imageCouldNotLoad": "La imagen no pudo cargarse",
+      "allowCreditRedemption": "Acepta paquetes de créditos",
+      "allowCreditRedemptionDesc": "Permite que los clientes usen créditos de paquetes para reservar este producto o servicio.",
+      "requireCreditForBooking": "Requiere crédito para reservar",
+      "requireCreditForBookingDesc": "Los clientes deben tener créditos disponibles para poder reservar. Sin créditos, no podrán hacer reservaciones.",
       "inventory": {
         "trackingMethod": "Seguimiento de Inventario",
         "noTracking": "No rastrear inventario",

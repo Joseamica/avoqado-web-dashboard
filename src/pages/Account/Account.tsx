@@ -13,7 +13,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { User, Mail, Shield, Calendar } from 'lucide-react'
+import { User, Mail, Shield, Calendar, KeyRound } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useVenueDateTime } from '@/utils/datetime'
 
@@ -27,12 +27,17 @@ export default function Account() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
 
+  // Get current PIN from venue data in auth context
+  const currentVenue = user?.venues?.find((v: any) => v.id === venueId)
+  const currentPin = currentVenue?.pin || ''
+
   const profileForm = useForm({
     defaultValues: {
       email: user?.email || '',
       firstName: user?.firstName || '',
       lastName: user?.lastName || '',
       phone: user?.phone || '',
+      pin: currentPin,
     },
   })
 
@@ -49,12 +54,13 @@ export default function Account() {
       const payload: any = {
         id: user?.id,
       }
-      
+
       if (formValues.firstName) payload.firstName = formValues.firstName
-      if (formValues.lastName) payload.lastName = formValues.lastName  
+      if (formValues.lastName) payload.lastName = formValues.lastName
       if (formValues.email) payload.email = formValues.email
       if (formValues.phone) payload.phone = formValues.phone
-      
+      if (formValues.pin !== undefined) payload.pin = formValues.pin || null
+
       // Only send password fields if both are provided (for password change)
       if (formValues.old_password && formValues.password) {
         payload.old_password = formValues.old_password
@@ -72,6 +78,7 @@ export default function Account() {
       // Clear password fields after successful update
       passwordForm.reset()
       queryClient.invalidateQueries({ queryKey: ['user'] })
+      queryClient.invalidateQueries({ queryKey: ['status'] })
       setIsDialogOpen(false)
     },
     onError: (error: any) => {
@@ -141,9 +148,7 @@ export default function Account() {
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <p className="text-sm font-medium">{t('accountInfo.memberSince')}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {user?.createdAt ? formatDate(user.createdAt) : 'N/A'}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{user?.createdAt ? formatDate(user.createdAt) : 'N/A'}</p>
                 </div>
               </div>
 
@@ -152,9 +157,7 @@ export default function Account() {
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium">{t('accountInfo.lastLogin')}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatDateTime(user.lastLogin)}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{formatDateTime(user.lastLogin)}</p>
                   </div>
                 </div>
               )}
@@ -229,6 +232,37 @@ export default function Account() {
                         <FormControl>
                           <Input {...field} type="tel" disabled={editProfile.isPending} />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* PIN */}
+                  <FormField
+                    control={profileForm.control}
+                    name="pin"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2">
+                          <KeyRound className="h-4 w-4" />
+                          {t('editProfile.pin', { defaultValue: 'PIN de acceso TPV' })}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            maxLength={10}
+                            placeholder={t('editProfile.pinPlaceholder', { defaultValue: '4-10 dígitos' })}
+                            disabled={editProfile.isPending}
+                          />
+                        </FormControl>
+                        <p className="text-xs text-muted-foreground">
+                          {t('editProfile.pinHelp', {
+                            defaultValue: 'Este PIN te permite iniciar sesión rápidamente en las terminales de cobro (TPV).',
+                          })}
+                        </p>
                         <FormMessage />
                       </FormItem>
                     )}

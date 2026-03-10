@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { Plus, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { TimePicker } from '@/components/ui/time-picker'
 import type { DaySchedule, OperatingHours } from '@/types/reservation'
 
 const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
@@ -83,18 +83,20 @@ export function OperatingHoursEditor({ value, onChange }: OperatingHoursEditorPr
 								<div className="space-y-2">
 									{schedule.ranges.map((range, index) => (
 										<div key={index} className="flex items-center gap-2">
-											<Input
-												type="time"
+											<TimePicker
 												value={range.open}
-												onChange={e => updateRange(day, index, 'open', e.target.value)}
+												onChange={time => updateRange(day, index, 'open', time)}
+												label=""
 												className="w-[120px]"
+												placeholder="--:--"
 											/>
 											<span className="text-muted-foreground">—</span>
-											<Input
-												type="time"
+											<TimePicker
 												value={range.close}
-												onChange={e => updateRange(day, index, 'close', e.target.value)}
+												onChange={time => updateRange(day, index, 'close', time)}
+												label=""
 												className="w-[120px]"
+												placeholder="--:--"
 											/>
 											{schedule.ranges.length > 1 && (
 												<Button

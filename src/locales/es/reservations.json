@@ -80,7 +80,7 @@
 		"goBack": "Volver"
 	},
 	"form": {
-		"createTitle": "Nueva Reservación",
+		"createTitle": "Crear cita",
 		"editTitle": "Editar Reservación",
 		"fields": {
 			"dateTime": "Fecha y Hora",
@@ -124,8 +124,8 @@
 			"emailInvalid": "Ingresa un email válido"
 		},
 		"sections": {
-			"service": "Servicio",
-			"dateTime": "Fecha y Hora",
+			"service": "Servicios y artículos",
+			"dateTime": "Fecha y hora",
 			"guest": "Información del Cliente",
 			"assignment": "Asignación",
 			"additional": "Información Adicional"

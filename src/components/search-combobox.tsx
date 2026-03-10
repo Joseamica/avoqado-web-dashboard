@@ -35,6 +35,12 @@ interface SearchComboboxProps {
   autoFocus?: boolean
   /** Additional class for the container */
   className?: string
+  /** Called when scroll reaches the bottom — for infinite scroll */
+  onLoadMore?: () => void
+  /** Whether there are more items to load */
+  hasMore?: boolean
+  /** Whether more items are currently loading */
+  isLoadingMore?: boolean
 }
 
 export function SearchCombobox({
@@ -48,11 +54,15 @@ export function SearchCombobox({
   onChange,
   autoFocus = false,
   className,
+  onLoadMore,
+  hasMore = false,
+  isLoadingMore = false,
 }: SearchComboboxProps) {
   const { t } = useTranslation('common')
   const [isFocused, setIsFocused] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
 
   const showDropdown = isFocused
 
@@ -69,6 +79,22 @@ export function SearchCombobox({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isFocused])
 
+  // Infinite scroll detection
+  useEffect(() => {
+    const list = listRef.current
+    if (!list || !onLoadMore || !hasMore || isLoadingMore) return
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = list
+      if (scrollHeight - scrollTop - clientHeight < 80) {
+        onLoadMore()
+      }
+    }
+
+    list.addEventListener('scroll', handleScroll)
+    return () => list.removeEventListener('scroll', handleScroll)
+  }, [onLoadMore, hasMore, isLoadingMore])
+
   const handleSelect = useCallback(
     (item: SearchComboboxItem) => {
       if (item.disabled) return
@@ -79,7 +105,7 @@ export function SearchCombobox({
   )
 
   const handleCreateNew = useCallback(() => {
-    if (!value.trim() || !onCreateNew) return
+    if (!onCreateNew) return
     onCreateNew(value.trim())
     setIsFocused(false)
   }, [value, onCreateNew])
@@ -97,7 +123,7 @@ export function SearchCombobox({
         onFocus={() => setIsFocused(true)}
         placeholder={placeholder}
         autoFocus={autoFocus}
-        autoComplete="off"
+        autoComplete="one-time-code"
         className={cn(
           'w-full h-12 px-4 text-base bg-transparent outline-none placeholder:text-muted-foreground rounded-lg border border-input transition-colors',
           isFocused && 'border-ring ring-1 ring-ring',
@@ -107,24 +133,24 @@ export function SearchCombobox({
       {/* Dropdown — absolute, floats over content */}
       {showDropdown && (
         <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-lg border border-input bg-popover shadow-md overflow-hidden">
-          {/* Create new option — always on top when there's a search term */}
-          {value.trim() && onCreateNew && (
+          {/* Create new option — always on top when available */}
+          {onCreateNew && (
             <button
               type="button"
               onClick={handleCreateNew}
-              className="flex items-center w-full px-4 py-3 text-sm text-left bg-muted hover:bg-accent transition-colors"
+              className="flex items-center w-full px-4 py-3 text-sm text-left font-medium bg-muted hover:bg-accent transition-colors"
             >
               {(createNewLabel || defaultCreateLabel)(value.trim())}
             </button>
           )}
 
-          {/* Loading */}
-          {isLoading ? (
+          {/* Loading (initial) */}
+          {isLoading && items.length === 0 ? (
             <div className="flex items-center justify-center py-6">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : items.length > 0 ? (
-            <div className="max-h-[360px] overflow-y-auto">
+            <div ref={listRef} className="max-h-[360px] overflow-y-auto">
               {items.map(item => (
                 <button
                   key={item.id}
@@ -156,10 +182,15 @@ export function SearchCombobox({
                   )}
                 </button>
               ))}
+              {isLoadingMore && (
+                <div className="flex items-center justify-center py-3">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              )}
             </div>
-          ) : !value.trim() ? (
+          ) : value.trim() ? (
             <div className="py-6 text-center text-sm text-muted-foreground">
-              {placeholder}
+              Sin resultados
             </div>
           ) : null}
         </div>

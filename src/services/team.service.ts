@@ -69,6 +69,7 @@ export interface InviteTeamMemberRequest {
   type?: InviteType // 'email' (default) or 'tpv-only'
   pin?: string // Required for TPV-only
   inviteToAllVenues?: boolean // When true, creates StaffVenue for all org venues (OWNER role only)
+  requirePin?: boolean // When true, PIN is required when accepting the invitation
   allowFakeEmail?: boolean // SUPERADMIN-only test mode
   generateTestCredentials?: boolean // Ask backend for temporary login credentials
   testInvite?: boolean // Marks invitation as test-only
@@ -117,17 +118,12 @@ export interface InviteTeamMemberResponse {
 // Team Management Service
 export const teamService = {
   // Get team members with pagination and search
-  async getTeamMembers(
-    venueId: string,
-    page: number = 1,
-    pageSize: number = 10,
-    search?: string,
-  ): Promise<PaginatedTeamResponse> {
+  async getTeamMembers(venueId: string, page: number = 1, pageSize: number = 10, search?: string): Promise<PaginatedTeamResponse> {
     const params = new URLSearchParams({
       page: page.toString(),
       pageSize: pageSize.toString(),
     })
-    
+
     if (search) {
       params.append('search', search)
     }
@@ -143,10 +139,7 @@ export const teamService = {
   },
 
   // Invite new team member
-  async inviteTeamMember(
-    venueId: string,
-    invitation: InviteTeamMemberRequest,
-  ): Promise<InviteTeamMemberResponse> {
+  async inviteTeamMember(venueId: string, invitation: InviteTeamMemberRequest): Promise<InviteTeamMemberResponse> {
     const response = await api.post(`/api/v1/dashboard/venues/${venueId}/team`, invitation)
     return response.data
   },
@@ -168,10 +161,7 @@ export const teamService = {
   },
 
   // Hard delete team member (SUPERADMIN only - permanently deletes all data)
-  async hardDeleteTeamMember(
-    venueId: string,
-    teamMemberId: string,
-  ): Promise<{ message: string; deletedRecords: Record<string, number> }> {
+  async hardDeleteTeamMember(venueId: string, teamMemberId: string): Promise<{ message: string; deletedRecords: Record<string, number> }> {
     const response = await api.delete(`/api/v1/dashboard/venues/${venueId}/team/${teamMemberId}/hard-delete`, {
       data: { confirmDeletion: true },
     })

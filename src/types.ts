@@ -842,6 +842,10 @@ export interface Product {
   duration?: number | null // For APPOINTMENTS_SERVICE (minutes)
   maxParticipants?: number | null // For CLASS
 
+  // Credit pack settings
+  allowCreditRedemption?: boolean
+  requireCreditForBooking?: boolean
+
   // Inventory tracking
   trackInventory: boolean
   inventoryMethod: 'QUANTITY' | 'RECIPE' | null
@@ -1642,6 +1646,8 @@ export interface SessionVenue {
   // Venue operational status (single source of truth)
   // Use status === 'TRIAL' to check if venue is in demo mode
   status?: VenueStatus
+  // PIN for TPV quick login (from StaffVenue.pin)
+  pin?: string | null
   // Custom permissions for this user in this venue (from StaffVenue.permissions)
   permissions?: string[] | null
   // KYC Verification (for payment processing access control)

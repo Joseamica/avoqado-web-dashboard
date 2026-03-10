@@ -20,13 +20,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -167,8 +161,7 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
 
   // Remove attendee mutation
   const removeAttendeeMutation = useMutation({
-    mutationFn: (reservationId: string) =>
-      classSessionService.removeAttendee(venueId!, sessionId!, reservationId),
+    mutationFn: (reservationId: string) => classSessionService.removeAttendee(venueId!, sessionId!, reservationId),
     onSuccess: () => {
       toast({ title: t('classSession.attendeeRemoved', { defaultValue: 'Asistente eliminado' }) })
       queryClient.invalidateQueries({ queryKey: ['class-session', venueId, sessionId] })
@@ -185,6 +178,20 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
   const isCancelled = session?.status === 'CANCELLED'
   const isCompleted = session?.status === 'COMPLETED'
   const isReadOnly = isCancelled || isCompleted
+
+  // Auto-calculate endTime from startTime + product duration
+  const productDuration = (session?.product as any)?.duration ?? null
+  const editStartTime = watch('startTime')
+  useEffect(() => {
+    if (!productDuration || !editStartTime) return
+    const [h, m] = editStartTime.split(':').map(Number)
+    if (isNaN(h) || isNaN(m)) return
+    const totalMinutes = h * 60 + m + productDuration
+    const endH = Math.floor(totalMinutes / 60) % 24
+    const endM = totalMinutes % 60
+    const endTimeStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
+    setValue('endTime', endTimeStr, { shouldValidate: true })
+  }, [editStartTime, productDuration, setValue])
 
   // Attendees are stored as reservations on the session
   const attendees = useMemo(() => (session as any)?.reservations ?? [], [session])
@@ -253,7 +260,7 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
             </div>
 
             {/* Start / End time row */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className={productDuration ? '' : 'grid grid-cols-2 gap-3'}>
               <div className="space-y-1.5">
                 <Label htmlFor="edit-startTime">{t('form.fields.startTime')}</Label>
                 <Input
@@ -264,26 +271,35 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
                   className={errors.startTime ? 'border-destructive' : ''}
                 />
                 {errors.startTime && <p className="text-xs text-destructive">{errors.startTime.message}</p>}
+                {productDuration && editStartTime && (
+                  <p className="text-[11px] text-muted-foreground">
+                    {t('classSession.autoEndTime', {
+                      defaultValue: 'Duración: {{duration}} min — Termina a las {{endTime}}',
+                      duration: productDuration,
+                      endTime: watch('endTime'),
+                    })}
+                  </p>
+                )}
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-endTime">{t('form.fields.endTime')}</Label>
-                <Input
-                  id="edit-endTime"
-                  type="time"
-                  {...register('endTime')}
-                  disabled={isReadOnly}
-                  className={errors.endTime ? 'border-destructive' : ''}
-                />
-                {errors.endTime && <p className="text-xs text-destructive">{errors.endTime.message}</p>}
-              </div>
+              {!productDuration && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-endTime">{t('form.fields.endTime')}</Label>
+                  <Input
+                    id="edit-endTime"
+                    type="time"
+                    {...register('endTime')}
+                    disabled={isReadOnly}
+                    className={errors.endTime ? 'border-destructive' : ''}
+                  />
+                  {errors.endTime && <p className="text-xs text-destructive">{errors.endTime.message}</p>}
+                </div>
+              )}
             </div>
 
             {/* Capacity + Staff row */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="edit-capacity">
-                  {t('classSession.fields.capacity', { defaultValue: 'Plazas disponibles' })}
-                </Label>
+                <Label htmlFor="edit-capacity">{t('classSession.fields.capacity', { defaultValue: 'Plazas disponibles' })}</Label>
                 <Input
                   id="edit-capacity"
                   type="number"
@@ -321,9 +337,7 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
             <div className="space-y-1.5">
               <Label htmlFor="edit-notes">
                 {t('form.fields.internalNotes')}
-                <span className="text-muted-foreground text-xs ml-1">
-                  ({tCommon('optional', { defaultValue: 'opcional' })})
-                </span>
+                <span className="text-muted-foreground text-xs ml-1">({tCommon('optional', { defaultValue: 'opcional' })})</span>
               </Label>
               <Textarea
                 id="edit-notes"
@@ -344,10 +358,7 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
                   </Label>
                   <div className="space-y-1.5 max-h-40 overflow-y-auto">
                     {attendees.map((a: any) => (
-                      <div
-                        key={a.id}
-                        className="flex items-center justify-between gap-2 px-3 py-2 rounded-md bg-muted/50 text-sm"
-                      >
+                      <div key={a.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-md bg-muted/50 text-sm">
                         <div className="min-w-0">
                           <span className="font-medium truncate block">
                             {a.customer

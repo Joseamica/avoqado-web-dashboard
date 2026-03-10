@@ -20,6 +20,7 @@
     "discounts": "Descuentos",
     "coupons": "Códigos de Cupón"
   },
+  "creditPacks": "Paquetes de Créditos",
   "salesMenu": {
     "title": "Ventas",
     "orders": "Órdenes",
@@ -105,7 +106,8 @@
     "recipes": "Recetas",
     "users": "Usuarios",
     "waiters": "Meseros",
-    "reservations": "Reservaciones"
+    "reservations": "Reservaciones",
+    "creditPacks": "Paquetes de Créditos"
   },
   "reservationsMenu": {
     "overview": "Resumen",

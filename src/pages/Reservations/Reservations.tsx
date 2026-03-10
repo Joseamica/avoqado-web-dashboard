@@ -11,6 +11,12 @@ import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { PermissionGate } from '@/components/PermissionGate'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -20,6 +26,7 @@ import reservationService from '@/services/reservation.service'
 import type { Reservation } from '@/types/reservation'
 
 import { CreateReservationForm } from './CreateReservation'
+import { CreateClassSessionDialog } from './components/CreateClassSessionDialog'
 import { ReservationStatusBadge } from './components/ReservationStatusBadge'
 
 type TabValue = 'all' | 'pending' | 'confirmed' | 'today' | 'noShow'
@@ -41,9 +48,12 @@ export default function Reservations() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  // FullScreenModal state for creating reservations
+  // FullScreenModal state for creating reservations (Cita)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const createFormSubmitRef = useMemo<MutableRefObject<(() => void) | null>>(() => ({ current: null }), [])
+
+  // CreateClassSessionDialog state (Clase)
+  const [showClassModal, setShowClassModal] = useState(false)
 
   // Tab state from URL hash
   const validTabs: TabValue[] = ['all', 'pending', 'confirmed', 'today', 'noShow']
@@ -229,10 +239,24 @@ export default function Reservations() {
           <p className="text-muted-foreground">{t('subtitle')}</p>
         </div>
         <PermissionGate permission="reservations:create">
-          <Button onClick={() => setShowCreateModal(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            {t('actions.newReservation')}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                {t('actions.create', { defaultValue: 'Crear' })}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => setShowCreateModal(true)}>
+                <CalendarDays className="h-4 w-4 mr-2 text-muted-foreground" />
+                {t('actions.newAppointment', { defaultValue: 'Cita' })}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowClassModal(true)}>
+                <Users className="h-4 w-4 mr-2 text-muted-foreground" />
+                {t('actions.newClass', { defaultValue: 'Clase' })}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </PermissionGate>
       </div>
 
@@ -372,6 +396,12 @@ export default function Reservations() {
           />
         </div>
       </FullScreenModal>
+
+      {/* Create Class Session Dialog */}
+      <CreateClassSessionDialog
+        open={showClassModal}
+        onOpenChange={setShowClassModal}
+      />
     </div>
   )
 }

@@ -18,7 +18,7 @@ import {
   VisibilityState,
   ColumnSizingState,
 } from '@tanstack/react-table'
-import { Dispatch, SetStateAction, useEffect, useState, useMemo } from 'react'
+import { Dispatch, ReactNode, SetStateAction, useEffect, useState, useMemo } from 'react'
 import { DataTablePagination } from './pagination'
 import TableSkeleton from './skeleton-table'
 
@@ -47,6 +47,8 @@ type DataTableProps<TData> = {
   stickyFirstColumn?: boolean
   /** Enable column resizing by dragging column borders */
   enableColumnResizing?: boolean
+  /** Render expandable sub-content below a row. Return null/undefined to skip. */
+  renderSubComponent?: (row: TData) => ReactNode | null | undefined
 }
 
 function DataTable<TData>({
@@ -68,6 +70,7 @@ function DataTable<TData>({
   getRowClassName,
   stickyFirstColumn = false,
   enableColumnResizing = false,
+  renderSubComponent,
 }: DataTableProps<TData>) {
   // MUST call ALL hooks at the very top, before ANY conditional logic or returns
   const { t } = useTranslation()
@@ -282,15 +285,15 @@ function DataTable<TData>({
             </TableRow>
           ))}
         </TableHeader>
-        <TableBody>
-          {hasRows ? (
-            table.getRowModel().rows.map(row => {
-              const customRowClass = getRowClassName?.(row.original) || ''
-              if (clickableRow) {
-                const { to, state } = clickableRow(row.original)
-                return (
+        {hasRows ? (
+          table.getRowModel().rows.map(row => {
+            const customRowClass = getRowClassName?.(row.original) || ''
+            const subContent = renderSubComponent?.(row.original)
+            if (clickableRow) {
+              const { to, state } = clickableRow(row.original)
+              return (
+                <TableBody key={row.id}>
                   <ClickableTableRow
-                    key={row.id}
                     data-state={row.getIsSelected() && 'selected'}
                     to={to}
                     state={state}
@@ -308,16 +311,17 @@ function DataTable<TData>({
                       </TableCell>
                     ))}
                   </ClickableTableRow>
-                )
-              }
+                </TableBody>
+              )
+            }
 
-              return (
+            return (
+              <TableBody key={row.id} className={subContent ? 'group' : undefined}>
                 <TableRow
-                  key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
                   className={`bg-background border-border data-[state=selected]:bg-background ${
                     onRowClick ? 'cursor-pointer transition-colors hover:bg-muted/30' : 'hover:bg-background'
-                  } ${customRowClass}`}
+                  } ${subContent ? 'group-hover:bg-muted/30' : ''} ${customRowClass}`}
                   onClick={() => onRowClick?.(row.original)}
                 >
                   {row.getVisibleCells().map(cell => (
@@ -332,16 +336,25 @@ function DataTable<TData>({
                     </TableCell>
                   ))}
                 </TableRow>
-              )
-            })
-          ) : (
+                {subContent && (
+                  <TableRow className="bg-background border-border group-hover:bg-muted/30">
+                    <TableCell colSpan={columns.length} className="p-0">
+                      {subContent}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            )
+          })
+        ) : (
+          <TableBody>
             <TableRow>
               <TableCell colSpan={columns.length} className={`h-10 text-center text-muted-foreground`}>
                 {t('no_results')}
               </TableCell>
             </TableRow>
-          )}
-        </TableBody>
+          </TableBody>
+        )}
       </Table>
       <DataTablePagination table={table} />
     </>

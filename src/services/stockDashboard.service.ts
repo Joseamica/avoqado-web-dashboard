@@ -74,6 +74,8 @@ export interface StockMovement {
   categoryName: string
   type: 'REGISTERED' | 'SOLD' | 'RETURNED' | 'DAMAGED'
   timestamp: string
+  venueName: string | null
+  userName: string | null
 }
 
 export interface StockMovementsResponse {

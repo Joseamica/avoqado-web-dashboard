@@ -158,7 +158,7 @@ function normalizeTemplateLiterals(urlPath) {
       if (simpleVar) {
         const varName = simpleVar[1]
         // Skip query-string variables (not path segments)
-        if (/^(queryString|query|params|searchParams|filters?|options)$/i.test(varName)) {
+        if (/^(queryString|query|qs|params|searchParams|filters?|options)$/i.test(varName)) {
           // discard — this is a query string, not a path segment
         } else {
           result += ':' + varName

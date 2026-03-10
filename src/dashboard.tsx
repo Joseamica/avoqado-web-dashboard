@@ -41,6 +41,7 @@ const routeKeyMap: Record<string, string> = {
   overview: 'sidebar:routes.overview',
   menumaker: 'sidebar:routes.menumaker',
   editvenue: 'sidebar:routes.editvenue',
+  'credit-packs': 'sidebar:routes.creditPacks',
 }
 
 function DashboardContent() {

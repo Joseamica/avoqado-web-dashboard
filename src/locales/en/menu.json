@@ -33,6 +33,7 @@
       "products": "Products",
       "services": "Services",
       "modifierGroups": "Modifier Groups",
+      "creditPacks": "Credit Packs",
       "customers": "Customers"
     }
   },
@@ -539,6 +540,10 @@
       "skuPattern": "SKU can only contain letters, numbers, hyphens and underscores.",
       "imageUnavailable": "Image unavailable",
       "imageCouldNotLoad": "The image could not be loaded",
+      "allowCreditRedemption": "Accepts credit packs",
+      "allowCreditRedemptionDesc": "Allow customers to use credit pack credits to book this product or service.",
+      "requireCreditForBooking": "Require credit to book",
+      "requireCreditForBookingDesc": "Customers must have available credits to book. Without credits, they won't be able to make reservations.",
       "inventory": {
         "trackingMethod": "Inventory Tracking",
         "noTracking": "Don't track inventory",

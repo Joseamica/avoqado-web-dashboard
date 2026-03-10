@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Switch } from '@/components/ui/switch'
-import { SearchableSelect, type SearchableSelectOption } from '@/components/ui/searchable-select'
+import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -23,7 +23,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Currency } from '@/utils/currency'
 import Cropper from 'react-easy-crop'
 import { AddIngredientDialog } from './AddIngredientDialog'
-import { MultiSelectCombobox } from '@/components/multi-select-combobox'
 import { SimpleConfirmDialog } from './SimpleConfirmDialog'
 import api from '@/api'
 import { cn } from '@/lib/utils'
@@ -205,6 +204,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // Track if we've already loaded existing data to prevent overwriting user changes
   const [hasLoadedExistingData, setHasLoadedExistingData] = useState(false)
   const [hasLoadedProductDetails, setHasLoadedProductDetails] = useState(false)
+  const [categorySearch, setCategorySearch] = useState('')
+  const [modifierGroupSearch, setModifierGroupSearch] = useState('')
 
   // Step 1 Form
   const step1Form = useForm<Step1FormData>({
@@ -332,7 +333,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   })
 
   // Fetch menu categories for category dropdown
-  const { data: categories } = useQuery({
+  const { data: categories, isLoading: isCategoriesLoading } = useQuery({
     queryKey: ['menu-categories', venueId],
     queryFn: () => getMenuCategories(venueId),
     enabled: !!venueId && open,
@@ -345,14 +346,29 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     enabled: !!venueId && open,
   })
 
-  // Memoized category options for SearchableSelect
-  const categoryOptions = useMemo<SearchableSelectOption[]>(
+  // Memoized category options for SearchCombobox
+  const categoryOptions = useMemo<SearchComboboxItem[]>(
     () =>
       (categories || []).map(cat => ({
-        value: cat.id,
+        id: cat.id,
         label: cat.name,
       })),
     [categories]
+  )
+
+  // Filtered category options based on search
+  const filteredCategoryOptions = useMemo(
+    () => categorySearch.trim()
+      ? categoryOptions.filter(opt => opt.label.toLowerCase().includes(categorySearch.toLowerCase()))
+      : categoryOptions,
+    [categoryOptions, categorySearch]
+  )
+
+  // Selected category label for display
+  const watchedCategoryId = step1Form.watch('categoryId')
+  const selectedCategoryLabel = useMemo(
+    () => categoryOptions.find(c => c.id === watchedCategoryId)?.label || '',
+    [categoryOptions, watchedCategoryId]
   )
 
   // Single mutation: Create product with inventory in one call
@@ -1699,14 +1715,19 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                     <p className="text-xs text-muted-foreground mb-3">
                       {t('wizard.step1.categoryHelp', { defaultValue: 'Organiza tus productos en categorías para facilitar la navegación.' })}
                     </p>
-                    <SearchableSelect
-                      options={categoryOptions}
-                      value={step1Form.watch('categoryId') || ''}
-                      onValueChange={value => step1Form.setValue('categoryId', value, { shouldValidate: true })}
+                    <SearchCombobox
+                      items={filteredCategoryOptions}
+                      value={categorySearch || selectedCategoryLabel}
+                      onChange={val => {
+                        setCategorySearch(val)
+                        if (!val) step1Form.setValue('categoryId', '', { shouldValidate: true })
+                      }}
+                      onSelect={item => {
+                        step1Form.setValue('categoryId', item.id, { shouldValidate: true })
+                        setCategorySearch('')
+                      }}
                       placeholder={t('wizard.step1.categoryPlaceholder')}
-                      searchPlaceholder={t('wizard.step1.searchCategory', { defaultValue: 'Buscar categoría...' })}
-                      emptyMessage={t('wizard.step1.noCategoryFound', { defaultValue: 'No se encontró categoría' })}
-                      size="lg"
+                      isLoading={isCategoriesLoading}
                     />
                     {step1Form.formState.errors.categoryId && (
                       <p className="text-xs text-destructive mt-2">{t('wizard.step1.categoryRequired')}</p>
@@ -1722,24 +1743,27 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                       {t('wizard.step1.modifierGroupsHelp', { defaultValue: 'Agrega opciones y extras que los clientes pueden elegir.' })}
                     </p>
 
-                    {/* Searchable multiselect dropdown for modifier groups */}
+                    {/* Searchable multiselect via SearchCombobox */}
                     {(() => {
-                      const modifierGroupOptions = (modifierGroups ?? [])
-                        .map(modifierGroup => ({
-                          label: modifierGroup.name,
-                          value: modifierGroup.id,
-                          disabled: false,
-                        }))
-                      const hasModifierGroups = modifierGroupOptions.length > 0
                       const selectedModifierGroups = step1Form.watch('modifierGroups') || []
+                      const selectedIds = new Set(selectedModifierGroups.map(g => g.value))
+                      const availableOptions: SearchComboboxItem[] = (modifierGroups ?? [])
+                        .filter(mg => !selectedIds.has(mg.id))
+                        .filter(mg => !modifierGroupSearch.trim() || mg.name.toLowerCase().includes(modifierGroupSearch.toLowerCase()))
+                        .map(mg => ({ id: mg.id, label: mg.name }))
+                      const hasModifierGroups = (modifierGroups ?? []).length > 0
 
                       return hasModifierGroups ? (
-                        <MultiSelectCombobox
-                          options={modifierGroupOptions}
-                          selected={selectedModifierGroups}
-                          onChange={newValues => step1Form.setValue('modifierGroups', newValues)}
+                        <SearchCombobox
+                          items={availableOptions}
+                          value={modifierGroupSearch}
+                          onChange={setModifierGroupSearch}
+                          onSelect={item => {
+                            const current = step1Form.watch('modifierGroups') || []
+                            step1Form.setValue('modifierGroups', [...current, { label: item.label, value: item.id }])
+                            setModifierGroupSearch('')
+                          }}
                           placeholder={t('wizard.step1.selectModifierGroups')}
-                          emptyText={t('wizard.step1.noModifierGroupsAvailable', { defaultValue: 'No hay grupos de modificadores disponibles' })}
                           isLoading={isModifierGroupsLoading}
                         />
                       ) : (

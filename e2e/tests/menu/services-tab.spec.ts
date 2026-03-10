@@ -437,14 +437,14 @@ test.describe('Services Tab in MenuMaker', () => {
     await page.locator('input#price').fill('500')
     await page.locator('input#duration').fill('90')
 
-    // Select a category — scope to dialog to avoid hitting DataTable's rows-per-page combobox
-    const dialog = page.locator('[role="dialog"]')
-    const categoryTrigger = dialog.locator('[role="combobox"]')
-    await categoryTrigger.click()
+    // Select a category — SearchCombobox is a plain input, not role="combobox"
+    const categoryInput = page.getByPlaceholder(/Select the category|Selecciona la categoría/i)
+    await categoryInput.click()
 
-    // Wait for popover dropdown items and select first category
-    await page.locator('[cmdk-item]').first().waitFor({ state: 'visible', timeout: 5_000 })
-    await page.locator('[cmdk-item]').first().click()
+    // Wait for dropdown items (SearchCombobox renders plain <button> elements)
+    const categoryOption = page.locator('.absolute.z-50 button').first()
+    await categoryOption.waitFor({ state: 'visible', timeout: 5_000 })
+    await categoryOption.click()
     await page.waitForTimeout(300)
 
     // Submit via the header Create button
@@ -498,14 +498,14 @@ test.describe('Services Tab in MenuMaker', () => {
     await page.locator('input#price').fill('200')
     await page.locator('input#maxParticipants').fill('20')
 
-    // Select a category — scope to dialog to avoid hitting DataTable's rows-per-page combobox
-    const dialog = page.locator('[role="dialog"]')
-    const categoryTrigger = dialog.locator('[role="combobox"]')
-    await categoryTrigger.click()
+    // Select a category — SearchCombobox is a plain input, not role="combobox"
+    const categoryInput = page.getByPlaceholder(/Select the category|Selecciona la categoría/i)
+    await categoryInput.click()
 
-    // Wait for popover dropdown items and select first category
-    await page.locator('[cmdk-item]').first().waitFor({ state: 'visible', timeout: 5_000 })
-    await page.locator('[cmdk-item]').first().click()
+    // Wait for dropdown items (SearchCombobox renders plain <button> elements)
+    const categoryOption = page.locator('.absolute.z-50 button').first()
+    await categoryOption.waitFor({ state: 'visible', timeout: 5_000 })
+    await categoryOption.click()
     await page.waitForTimeout(300)
 
     // Submit via the header Create button

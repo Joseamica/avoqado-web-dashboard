@@ -36,6 +36,7 @@ import {
   ContactImages,
   CouponForm,
   Coupons,
+  CreditPacks,
   CreateCategory,
   CreateMenu,
   CreateModifierGroup,
@@ -145,6 +146,7 @@ export function createVenueRoutes(): RouteObject[] {
             { path: 'modifier-groups', element: <ModifierGroups /> },
             { path: 'modifier-groups/:modifierGroupId', element: <ModifierGroupId /> },
             { path: 'modifier-groups/create', element: <CreateModifierGroup /> },
+            { path: 'credit-packs', element: <CreditPacks /> },
           ],
         },
       ],
@@ -373,6 +375,7 @@ export function createVenueRoutes(): RouteObject[] {
         { path: ':couponId', element: <CouponForm /> },
       ],
     },
+
 
     // Notifications
     { path: 'notifications', element: <Notifications /> },

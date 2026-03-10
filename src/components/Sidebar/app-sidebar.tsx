@@ -296,6 +296,7 @@ export function AppSidebar({
           { title: t('menu:menumaker.nav.products'), url: 'menumaker/products', permission: 'menu:read', keywords: ['platillos', 'articulos', 'items'] },
           { title: t('menu:menumaker.nav.services'), url: 'menumaker/services', permission: 'menu:read' },
           { title: t('menu:menumaker.nav.modifierGroups'), url: 'menumaker/modifier-groups', permission: 'menu:read' },
+          { title: t('sidebar:creditPacks'), url: 'menumaker/credit-packs', permission: 'creditPacks:read', keywords: ['creditos', 'paquetes', 'bundles', 'prepagados'] },
         ],
       },
       {

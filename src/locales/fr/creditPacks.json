@@ -1,0 +1,163 @@
+{
+  "title": "Forfaits de Crédits",
+  "subtitle": "Créez et gérez les forfaits de crédits pour vos clients",
+  "create": {
+    "title": "Créer un Forfait",
+    "subtitle": "Configurer un nouveau forfait de crédits"
+  },
+  "edit": {
+    "title": "Modifier le Forfait",
+    "subtitle": "Mettre à jour la configuration du forfait"
+  },
+  "list": {
+    "searchPlaceholder": "Rechercher des forfaits...",
+    "emptyState": "Aucun forfait de crédits trouvé",
+    "emptyStateDesc": "Créez votre premier forfait pour commencer à offrir des bundles",
+    "columns": {
+      "name": "Nom",
+      "price": "Prix",
+      "items": "Articles",
+      "validity": "Validité",
+      "status": "Statut"
+    },
+    "filters": {
+      "active": "Actifs uniquement",
+      "inactive": "Inactifs uniquement",
+      "allStatuses": "Tous"
+    }
+  },
+  "form": {
+    "fields": {
+      "name": "Nom du Forfait",
+      "description": "Description",
+      "price": "Prix",
+      "currency": "Devise",
+      "validityDays": "Jours de Validité",
+      "maxPerCustomer": "Max par Client",
+      "displayOrder": "Ordre d'Affichage",
+      "items": "Articles du Forfait",
+      "addItem": "Ajouter un Article",
+      "product": "Produit",
+      "quantity": "Quantité"
+    },
+    "placeholders": {
+      "name": "ex., Forfait 10 Cours",
+      "description": "Description optionnelle",
+      "price": "0.00",
+      "validityDays": "Sans expiration",
+      "maxPerCustomer": "Sans limite",
+      "displayOrder": "0"
+    },
+    "validation": {
+      "nameRequired": "Le nom est requis",
+      "priceRequired": "Le prix est requis",
+      "pricePositive": "Le prix doit être supérieur à 0",
+      "itemsRequired": "Au moins un article est requis",
+      "productRequired": "Le produit est requis",
+      "quantityRequired": "La quantité est requise",
+      "quantityPositive": "La quantité doit être supérieure à 0"
+    }
+  },
+  "purchases": {
+    "title": "Achats",
+    "emptyState": "Aucun achat trouvé",
+    "columns": {
+      "customer": "Client",
+      "pack": "Forfait",
+      "amountPaid": "Montant",
+      "status": "Statut",
+      "expiresAt": "Expire",
+      "purchasedAt": "Date"
+    },
+    "balances": "Soldes de Crédits",
+    "remaining": "{{remaining}} sur {{original}} restants"
+  },
+  "transactions": {
+    "title": "Transactions",
+    "emptyState": "Aucune transaction trouvée",
+    "columns": {
+      "date": "Date",
+      "customer": "Client",
+      "type": "Type",
+      "quantity": "Quantité",
+      "reason": "Raison",
+      "createdBy": "Créé par"
+    }
+  },
+  "actions": {
+    "create": "Créer un Forfait",
+    "edit": "Modifier",
+    "deactivate": "Désactiver",
+    "save": "Enregistrer",
+    "refund": "Rembourser",
+    "redeem": "Échanger",
+    "adjust": "Ajuster le Solde",
+    "viewPurchases": "Voir les Achats",
+    "removeItem": "Supprimer l'Article"
+  },
+  "deactivate": {
+    "title": "Désactiver le Forfait",
+    "description": "Voulez-vous vraiment désactiver \"{{name}}\" ? Les clients ne pourront plus l'acheter.",
+    "confirm": "Désactiver",
+    "cancel": "Annuler"
+  },
+  "refund": {
+    "title": "Rembourser l'Achat",
+    "description": "Cela remboursera l'achat et annulera tous les crédits restants.",
+    "reasonLabel": "Raison du remboursement",
+    "reasonPlaceholder": "Pourquoi ce remboursement ?",
+    "confirm": "Confirmer le Remboursement",
+    "cancel": "Annuler"
+  },
+  "redeem": {
+    "title": "Échanger un Crédit",
+    "quantityLabel": "Quantité à échanger",
+    "confirm": "Échanger",
+    "cancel": "Annuler"
+  },
+  "adjust": {
+    "title": "Ajuster le Solde",
+    "quantityLabel": "Quantité (positif pour ajouter, négatif pour soustraire)",
+    "reasonLabel": "Raison de l'ajustement",
+    "reasonPlaceholder": "Pourquoi le solde est-il ajusté ?",
+    "confirm": "Ajuster",
+    "cancel": "Annuler"
+  },
+  "toasts": {
+    "createSuccess": "Forfait de crédits créé avec succès",
+    "updateSuccess": "Forfait mis à jour avec succès",
+    "deactivateSuccess": "Forfait désactivé avec succès",
+    "redeemSuccess": "Crédit échangé avec succès",
+    "adjustSuccess": "Solde ajusté avec succès",
+    "refundSuccess": "Achat remboursé avec succès",
+    "error": "Une erreur est survenue"
+  },
+  "status": {
+    "active": "Actif",
+    "inactive": "Inactif",
+    "ACTIVE": "Actif",
+    "EXHAUSTED": "Épuisé",
+    "EXPIRED": "Expiré",
+    "REFUNDED": "Remboursé"
+  },
+  "transactionTypes": {
+    "PURCHASE": "Achat",
+    "REDEEM": "Échange",
+    "EXPIRE": "Expiration",
+    "REFUND": "Remboursement",
+    "ADJUST": "Ajustement"
+  },
+  "tabs": {
+    "packs": "Forfaits",
+    "purchases": "Achats",
+    "transactions": "Transactions"
+  },
+  "validity": {
+    "days": "{{days}} jours",
+    "noExpiry": "Sans expiration"
+  },
+  "itemsSummary": "{{count}} article(s)",
+  "filters": {
+    "clearAll": "Effacer les filtres"
+  }
+}

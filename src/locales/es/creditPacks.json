@@ -1,0 +1,163 @@
+{
+  "title": "Paquetes de Créditos",
+  "subtitle": "Crea y gestiona paquetes de créditos para tus clientes",
+  "create": {
+    "title": "Crear Paquete",
+    "subtitle": "Configura un nuevo paquete de créditos"
+  },
+  "edit": {
+    "title": "Editar Paquete",
+    "subtitle": "Actualizar configuración del paquete"
+  },
+  "list": {
+    "searchPlaceholder": "Buscar paquetes...",
+    "emptyState": "No se encontraron paquetes de créditos",
+    "emptyStateDesc": "Crea tu primer paquete de créditos para comenzar a ofrecer bundles",
+    "columns": {
+      "name": "Nombre",
+      "price": "Precio",
+      "items": "Items",
+      "validity": "Validez",
+      "status": "Estado"
+    },
+    "filters": {
+      "active": "Solo Activos",
+      "inactive": "Solo Inactivos",
+      "allStatuses": "Todos"
+    }
+  },
+  "form": {
+    "fields": {
+      "name": "Nombre del Paquete",
+      "description": "Descripción",
+      "price": "Precio",
+      "currency": "Moneda",
+      "validityDays": "Días de Validez",
+      "maxPerCustomer": "Máximo por Cliente",
+      "displayOrder": "Orden de Display",
+      "items": "Items del Paquete",
+      "addItem": "Agregar Item",
+      "product": "Producto",
+      "quantity": "Cantidad"
+    },
+    "placeholders": {
+      "name": "ej., Paquete 10 Clases",
+      "description": "Descripción opcional del paquete",
+      "price": "0.00",
+      "validityDays": "Sin expiración",
+      "maxPerCustomer": "Sin límite",
+      "displayOrder": "0"
+    },
+    "validation": {
+      "nameRequired": "El nombre es requerido",
+      "priceRequired": "El precio es requerido",
+      "pricePositive": "El precio debe ser mayor a 0",
+      "itemsRequired": "Se requiere al menos un item",
+      "productRequired": "El producto es requerido",
+      "quantityRequired": "La cantidad es requerida",
+      "quantityPositive": "La cantidad debe ser mayor a 0"
+    }
+  },
+  "purchases": {
+    "title": "Compras",
+    "emptyState": "No se encontraron compras",
+    "columns": {
+      "customer": "Cliente",
+      "pack": "Paquete",
+      "amountPaid": "Monto",
+      "status": "Estado",
+      "expiresAt": "Expira",
+      "purchasedAt": "Fecha"
+    },
+    "balances": "Balances de Créditos",
+    "remaining": "{{remaining}} de {{original}} restantes"
+  },
+  "transactions": {
+    "title": "Transacciones",
+    "emptyState": "No se encontraron transacciones",
+    "columns": {
+      "date": "Fecha",
+      "customer": "Cliente",
+      "type": "Tipo",
+      "quantity": "Cantidad",
+      "reason": "Razón",
+      "createdBy": "Realizado por"
+    }
+  },
+  "actions": {
+    "create": "Crear Paquete",
+    "edit": "Editar",
+    "deactivate": "Desactivar",
+    "save": "Guardar Cambios",
+    "refund": "Reembolsar",
+    "redeem": "Redimir",
+    "adjust": "Ajustar Balance",
+    "viewPurchases": "Ver Compras",
+    "removeItem": "Eliminar Item"
+  },
+  "deactivate": {
+    "title": "Desactivar Paquete",
+    "description": "¿Estás seguro de que deseas desactivar \"{{name}}\"? Los clientes ya no podrán comprarlo.",
+    "confirm": "Desactivar",
+    "cancel": "Cancelar"
+  },
+  "refund": {
+    "title": "Reembolsar Compra",
+    "description": "Esto reembolsará la compra y cancelará todos los créditos restantes.",
+    "reasonLabel": "Razón del reembolso",
+    "reasonPlaceholder": "¿Por qué se reembolsa?",
+    "confirm": "Confirmar Reembolso",
+    "cancel": "Cancelar"
+  },
+  "redeem": {
+    "title": "Redimir Crédito",
+    "quantityLabel": "Cantidad a redimir",
+    "confirm": "Redimir",
+    "cancel": "Cancelar"
+  },
+  "adjust": {
+    "title": "Ajustar Balance",
+    "quantityLabel": "Cantidad (positivo para agregar, negativo para restar)",
+    "reasonLabel": "Razón del ajuste",
+    "reasonPlaceholder": "¿Por qué se ajusta el balance?",
+    "confirm": "Ajustar",
+    "cancel": "Cancelar"
+  },
+  "toasts": {
+    "createSuccess": "Paquete de créditos creado exitosamente",
+    "updateSuccess": "Paquete actualizado exitosamente",
+    "deactivateSuccess": "Paquete desactivado exitosamente",
+    "redeemSuccess": "Crédito redimido exitosamente",
+    "adjustSuccess": "Balance ajustado exitosamente",
+    "refundSuccess": "Compra reembolsada exitosamente",
+    "error": "Ocurrió un error"
+  },
+  "status": {
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "ACTIVE": "Activo",
+    "EXHAUSTED": "Agotado",
+    "EXPIRED": "Expirado",
+    "REFUNDED": "Reembolsado"
+  },
+  "transactionTypes": {
+    "PURCHASE": "Compra",
+    "REDEEM": "Redimir",
+    "EXPIRE": "Expirar",
+    "REFUND": "Reembolso",
+    "ADJUST": "Ajuste"
+  },
+  "tabs": {
+    "packs": "Paquetes",
+    "purchases": "Compras",
+    "transactions": "Transacciones"
+  },
+  "validity": {
+    "days": "{{days}} días",
+    "noExpiry": "Sin expiración"
+  },
+  "itemsSummary": "{{count}} item(s)",
+  "filters": {
+    "clearAll": "Limpiar filtros"
+  }
+}

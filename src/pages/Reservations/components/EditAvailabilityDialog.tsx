@@ -12,8 +12,8 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { TimePicker } from '@/components/ui/time-picker'
 import { useToast } from '@/hooks/use-toast'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import reservationService from '@/services/reservation.service'
@@ -215,18 +215,22 @@ export function EditAvailabilityDialog({ open, onOpenChange }: EditAvailabilityD
 						{schedule.enabled ? (
 							schedule.ranges.map((range, index) => (
 								<div key={index} className="flex items-center gap-1.5">
-									<Input
-										type="time"
+									<TimePicker
 										value={range.open}
-										onChange={e => updateRange(day, index, 'open', e.target.value)}
-										className={`w-[100px] h-8 text-sm ${error ? 'border-destructive' : ''}`}
+										onChange={time => updateRange(day, index, 'open', time)}
+										label=""
+										error={!!error}
+										className="w-[110px]"
+										placeholder="--:--"
 									/>
 									<span className="text-muted-foreground text-xs">–</span>
-									<Input
-										type="time"
+									<TimePicker
 										value={range.close}
-										onChange={e => updateRange(day, index, 'close', e.target.value)}
-										className={`w-[100px] h-8 text-sm ${error ? 'border-destructive' : ''}`}
+										onChange={time => updateRange(day, index, 'close', time)}
+										label=""
+										error={!!error}
+										className="w-[110px]"
+										placeholder="--:--"
 									/>
 									{schedule.ranges.length > 1 && (
 										<Button
@@ -254,9 +258,9 @@ export function EditAvailabilityDialog({ open, onOpenChange }: EditAvailabilityD
 							))
 						) : (
 							<div className="flex items-center gap-1.5">
-								<Input type="time" disabled className="w-[100px] h-8 text-sm opacity-40" />
+								<TimePicker disabled label="" className="w-[110px] opacity-40" placeholder="--:--" />
 								<span className="text-muted-foreground text-xs">–</span>
-								<Input type="time" disabled className="w-[100px] h-8 text-sm opacity-40" />
+								<TimePicker disabled label="" className="w-[110px] opacity-40" placeholder="--:--" />
 							</div>
 						)}
 					</div>
@@ -290,13 +294,13 @@ export function EditAvailabilityDialog({ open, onOpenChange }: EditAvailabilityD
 						<TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none p-0 h-auto">
 							<TabsTrigger
 								value="single"
-								className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:shadow-none px-4 pb-2 pt-1 text-sm"
+								className="rounded-none border-b-2 border-transparent bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-foreground data-[state=active]:shadow-none px-4 pb-2 pt-1 text-sm"
 							>
 								{t('availability.singleChange', { defaultValue: 'Cambio único' })}
 							</TabsTrigger>
 							<TabsTrigger
 								value="recurring"
-								className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:shadow-none px-4 pb-2 pt-1 text-sm"
+								className="rounded-none border-b-2 border-transparent bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-foreground data-[state=active]:shadow-none px-4 pb-2 pt-1 text-sm"
 							>
 								{t('availability.recurringSchedule', { defaultValue: 'Calendario recurrente' })}
 							</TabsTrigger>

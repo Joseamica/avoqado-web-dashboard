@@ -8,16 +8,19 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -57,12 +60,7 @@ interface CreateClassSessionDialogProps {
   defaultStartTime?: string
 }
 
-export function CreateClassSessionDialog({
-  open,
-  onOpenChange,
-  defaultDate,
-  defaultStartTime,
-}: CreateClassSessionDialogProps) {
+export function CreateClassSessionDialog({ open, onOpenChange, defaultDate, defaultStartTime }: CreateClassSessionDialogProps) {
   const { t } = useTranslation('reservations')
   const { t: tCommon } = useTranslation()
   const { venueId } = useCurrentVenue()
@@ -93,6 +91,7 @@ export function CreateClassSessionDialog({
   })
 
   const selectedProductId = watch('productId')
+  const startTime = watch('startTime')
 
   // When an inline class is created, auto-select it and refresh products list
   const handleClassCreated = useCallback(
@@ -133,16 +132,10 @@ export function CreateClassSessionDialog({
     staleTime: 60_000,
   })
 
-  const classProducts = useMemo(
-    () => allProducts.filter(p => p.type === ProductType.CLASS && p.active),
-    [allProducts],
-  )
+  const classProducts = useMemo(() => allProducts.filter(p => p.type === ProductType.CLASS && p.active), [allProducts])
 
   // Auto-fill capacity from selected product's layout or maxParticipants
-  const selectedProduct = useMemo(
-    () => classProducts.find(p => p.id === selectedProductId),
-    [classProducts, selectedProductId],
-  )
+  const selectedProduct = useMemo(() => classProducts.find(p => p.id === selectedProductId), [classProducts, selectedProductId])
 
   const hasLayout = !!(selectedProduct as any)?.layoutConfig
   const layoutSpotCount = useMemo(() => {
@@ -158,6 +151,19 @@ export function CreateClassSessionDialog({
       setValue('capacity', (selectedProduct as any).maxParticipants)
     }
   }, [selectedProduct, layoutSpotCount, setValue])
+
+  // Auto-calculate endTime from startTime + product duration
+  const productDuration = selectedProduct?.duration ?? null
+  useEffect(() => {
+    if (!productDuration || !startTime) return
+    const [h, m] = startTime.split(':').map(Number)
+    if (isNaN(h) || isNaN(m)) return
+    const totalMinutes = h * 60 + m + productDuration
+    const endH = Math.floor(totalMinutes / 60) % 24
+    const endM = totalMinutes % 60
+    const endTimeStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
+    setValue('endTime', endTimeStr, { shouldValidate: true })
+  }, [startTime, productDuration, setValue])
 
   // Fetch staff
   const { data: staffData, isLoading: staffLoading } = useQuery({
@@ -223,9 +229,7 @@ export function CreateClassSessionDialog({
         <form onSubmit={onSubmit} className="space-y-5">
           {/* Class (product) — like Square's dropdown with "+ Añadir nueva clase" */}
           <div className="space-y-1.5">
-            <Label htmlFor="productId">
-              {t('classSession.fields.className', { defaultValue: 'Nombre de la clase' })}
-            </Label>
+            <Label htmlFor="productId">{t('classSession.fields.className', { defaultValue: 'Nombre de la clase' })}</Label>
             {productsLoading ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -239,13 +243,7 @@ export function CreateClassSessionDialog({
                     defaultValue: 'No hay clases creadas. Crea un producto tipo "Clase" primero.',
                   })}
                 </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={() => setCreateClassOpen(true)}
-                >
+                <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => setCreateClassOpen(true)}>
                   <Plus className="h-3.5 w-3.5" />
                   {t('classSession.createClass', { defaultValue: 'Crear clase' })}
                 </Button>
@@ -262,9 +260,7 @@ export function CreateClassSessionDialog({
                 }}
               >
                 <SelectTrigger id="productId" className={errors.productId ? 'border-destructive' : ''}>
-                  <SelectValue
-                    placeholder={t('classSession.fields.classPlaceholder', { defaultValue: 'Selecciona una clase' })}
-                  />
+                  <SelectValue placeholder={t('classSession.fields.classPlaceholder', { defaultValue: 'Selecciona una clase' })} />
                 </SelectTrigger>
                 <SelectContent disablePortal>
                   {/* "+ Añadir nueva clase" at top like Square */}
@@ -282,11 +278,7 @@ export function CreateClassSessionDialog({
                         <span className="flex items-center justify-between gap-3 w-full">
                           <span>
                             {p.name}
-                            {p.duration && (
-                              <span className="text-muted-foreground text-xs ml-1.5">
-                                {p.duration} min
-                              </span>
-                            )}
+                            {p.duration && <span className="text-muted-foreground text-xs ml-1.5">{p.duration} min</span>}
                           </span>
                           {Number(p.price) > 0 ? (
                             <span className="text-muted-foreground text-xs">${Number(p.price).toFixed(2)}</span>
@@ -305,52 +297,40 @@ export function CreateClassSessionDialog({
 
           {/* Date */}
           <div className="space-y-1.5">
-            <Label htmlFor="date">
-              {t('form.fields.date')}
-            </Label>
-            <Input
-              id="date"
-              type="date"
-              {...register('date')}
-              className={errors.date ? 'border-destructive' : ''}
-            />
+            <Label htmlFor="date">{t('form.fields.date')}</Label>
+            <Input id="date" type="date" {...register('date')} className={errors.date ? 'border-destructive' : ''} />
             {errors.date && <p className="text-xs text-destructive">{errors.date.message}</p>}
           </div>
 
           {/* Start / End time row */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className={productDuration ? '' : 'grid grid-cols-2 gap-3'}>
             <div className="space-y-1.5">
-              <Label htmlFor="startTime">
-                {t('form.fields.startTime')}
-              </Label>
-              <Input
-                id="startTime"
-                type="time"
-                {...register('startTime')}
-                className={errors.startTime ? 'border-destructive' : ''}
-              />
+              <Label htmlFor="startTime">{t('form.fields.startTime')}</Label>
+              <Input id="startTime" type="time" {...register('startTime')} className={errors.startTime ? 'border-destructive' : ''} />
               {errors.startTime && <p className="text-xs text-destructive">{errors.startTime.message}</p>}
+              {productDuration && startTime && (
+                <p className="text-[11px] text-muted-foreground">
+                  {t('classSession.autoEndTime', {
+                    defaultValue: 'Duración: {{duration}} min — Termina a las {{endTime}}',
+                    duration: productDuration,
+                    endTime: watch('endTime'),
+                  })}
+                </p>
+              )}
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="endTime">
-                {t('form.fields.endTime')}
-              </Label>
-              <Input
-                id="endTime"
-                type="time"
-                {...register('endTime')}
-                className={errors.endTime ? 'border-destructive' : ''}
-              />
-              {errors.endTime && <p className="text-xs text-destructive">{errors.endTime.message}</p>}
-            </div>
+            {!productDuration && (
+              <div className="space-y-1.5">
+                <Label htmlFor="endTime">{t('form.fields.endTime')}</Label>
+                <Input id="endTime" type="time" {...register('endTime')} className={errors.endTime ? 'border-destructive' : ''} />
+                {errors.endTime && <p className="text-xs text-destructive">{errors.endTime.message}</p>}
+              </div>
+            )}
           </div>
 
           {/* Capacity + Staff row */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="capacity">
-                {t('classSession.fields.capacity', { defaultValue: 'Plazas disponibles' })}
-              </Label>
+              <Label htmlFor="capacity">{t('classSession.fields.capacity', { defaultValue: 'Plazas disponibles' })}</Label>
               <Input
                 id="capacity"
                 type="number"
@@ -371,18 +351,13 @@ export function CreateClassSessionDialog({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="assignedStaffId">
-                {t('form.fields.staff')}
-              </Label>
+              <Label htmlFor="assignedStaffId">{t('form.fields.staff')}</Label>
               {staffLoading ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
                 </div>
               ) : (
-                <Select
-                  value={watch('assignedStaffId') || 'none'}
-                  onValueChange={v => setValue('assignedStaffId', v === 'none' ? '' : v)}
-                >
+                <Select value={watch('assignedStaffId') || 'none'} onValueChange={v => setValue('assignedStaffId', v === 'none' ? '' : v)}>
                   <SelectTrigger id="assignedStaffId">
                     <SelectValue placeholder={t('noStaff')} />
                   </SelectTrigger>
@@ -405,12 +380,7 @@ export function CreateClassSessionDialog({
               {t('form.fields.internalNotes')}
               <span className="text-muted-foreground text-xs ml-1">({tCommon('optional', { defaultValue: 'opcional' })})</span>
             </Label>
-            <Textarea
-              id="internalNotes"
-              rows={2}
-              placeholder={t('form.placeholders.internalNotes')}
-              {...register('internalNotes')}
-            />
+            <Textarea id="internalNotes" rows={2} placeholder={t('form.placeholders.internalNotes')} {...register('internalNotes')} />
           </div>
 
           <DialogFooter className="pt-2">

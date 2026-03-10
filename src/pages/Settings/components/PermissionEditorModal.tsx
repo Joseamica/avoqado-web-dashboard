@@ -270,27 +270,15 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
     },
   })
 
-  // Check if role config has changed
-  const checkConfigChanges = useCallback((name: string, desc: string, color: string | null) => {
+  // Reactively detect config changes
+  useEffect(() => {
+    if (!open) return
     const config = roleConfigs.find(c => c.role === role)
     const origName = config?.displayName || DEFAULT_ROLE_DISPLAY_NAMES[role]
     const origDesc = config?.description || ''
     const origColor = config?.color || null
-    setHasConfigChanges(name !== origName || desc !== origDesc || color !== origColor)
-  }, [roleConfigs, role])
-
-  const handleConfigFieldChange = useCallback((field: 'displayName' | 'description' | 'color', value: string | null) => {
-    if (field === 'displayName') {
-      setRoleDisplayName(value as string)
-      checkConfigChanges(value as string, roleDescription, roleColor)
-    } else if (field === 'description') {
-      setRoleDescription(value as string)
-      checkConfigChanges(roleDisplayName, value as string, roleColor)
-    } else {
-      setRoleColor(value)
-      checkConfigChanges(roleDisplayName, roleDescription, value)
-    }
-  }, [checkConfigChanges, roleDisplayName, roleDescription, roleColor])
+    setHasConfigChanges(roleDisplayName !== origName || roleDescription !== origDesc || roleColor !== origColor)
+  }, [open, roleDisplayName, roleDescription, roleColor, roleConfigs, role])
 
   const handleSave = useCallback(async () => {
     // Save role config changes if any
@@ -441,7 +429,7 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
                     <Input
                       id="role-display-name"
                       value={roleDisplayName}
-                      onChange={(e) => handleConfigFieldChange('displayName', e.target.value)}
+                      onChange={(e) => setRoleDisplayName(e.target.value)}
                       placeholder={DEFAULT_ROLE_DISPLAY_NAMES[role]}
                       maxLength={50}
                     />
@@ -454,7 +442,7 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
                     <Input
                       id="role-description"
                       value={roleDescription}
-                      onChange={(e) => handleConfigFieldChange('description', e.target.value)}
+                      onChange={(e) => setRoleDescription(e.target.value)}
                       placeholder={t('roleDisplayNames.descriptionPlaceholder', 'Breve descripción de este rol...')}
                       maxLength={200}
                     />
@@ -470,7 +458,7 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
                   <div className="flex items-center gap-2 flex-wrap">
                     <button
                       type="button"
-                      onClick={() => handleConfigFieldChange('color', null)}
+                      onClick={() => setRoleColor(null)}
                       className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
                         roleColor === null
                           ? 'border-primary ring-2 ring-primary/20'
@@ -484,7 +472,7 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
                       <button
                         key={color}
                         type="button"
-                        onClick={() => handleConfigFieldChange('color', color)}
+                        onClick={() => setRoleColor(color)}
                         className={`w-7 h-7 rounded-full border-2 transition-all ${
                           roleColor === color
                             ? 'border-primary ring-2 ring-primary/20 scale-110'
