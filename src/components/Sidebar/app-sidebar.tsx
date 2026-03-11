@@ -17,6 +17,7 @@
   Handshake,
   Home,
   LayoutDashboard,
+  Link2,
   Package,
   Receipt,
   Settings,
@@ -360,6 +361,22 @@ export function AppSidebar({
         ],
       },
 
+      {
+        title: t('sidebar:routes.paymentLinks'),
+        isActive: true,
+        url: 'payment-links',
+        icon: Link2,
+        permission: 'payment-link:read',
+        locked: !hasKYCAccess,
+        group: 'operations',
+        keywords: ['ligas de pago', 'cobrar', 'link', 'whatsapp', 'qr', 'liga'],
+        items: [
+          { title: t('sidebar:paymentLinksMenu.links'), url: 'payment-links', permission: 'payment-link:read' },
+          { title: t('sidebar:paymentLinksMenu.settings'), url: 'payment-links/settings', permission: 'payment-link:read' },
+          { title: t('sidebar:paymentLinksMenu.branding'), url: 'payment-links/branding', permission: 'payment-link:read' },
+        ],
+      },
+
       // ── Personas ──
       {
         title: t('sidebar:routes.teams'),
@@ -397,6 +414,7 @@ export function AppSidebar({
       'available-balance': 'AVOQADO_BALANCE',
       shifts: 'AVOQADO_SHIFTS',
       reservations: 'AVOQADO_RESERVATIONS',
+      'payment-links': 'AVOQADO_PAYMENT_LINKS',
     }
 
     // Filter items based on permissions AND active features

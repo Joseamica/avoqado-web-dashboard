@@ -165,6 +165,11 @@ export const ReservationWaitlist = lazyWithRetry(() => import('@/pages/Reservati
 export const ReservationSettingsPage = lazyWithRetry(() => import('@/pages/Reservations/ReservationSettings'))
 export const OnlineBookingPage = lazyWithRetry(() => import('@/pages/Reservations/OnlineBookingPage'))
 
+// Payment Links
+export const PaymentLinks = lazyWithRetry(() => import('@/pages/PaymentLinks/PaymentLinks'))
+export const PaymentLinkSettings = lazyWithRetry(() => import('@/pages/PaymentLinks/PaymentLinkSettings'))
+export const PaymentLinkBranding = lazyWithRetry(() => import('@/pages/PaymentLinks/PaymentLinkBranding'))
+
 // Loyalty
 export const LoyaltySettings = lazyWithRetry(() => import('@/pages/Loyalty/LoyaltySettings'))
 

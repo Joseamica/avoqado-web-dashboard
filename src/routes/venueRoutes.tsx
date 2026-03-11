@@ -71,6 +71,9 @@ import {
   Orders,
   PayLaterAging,
   PaymentId,
+  PaymentLinkBranding,
+  PaymentLinks,
+  PaymentLinkSettings,
   Payments,
   ProductId,
   Products,
@@ -344,6 +347,17 @@ export function createVenueRoutes(): RouteObject[] {
           children: [{ index: true, element: <OnlineBookingPage /> }],
         },
         { path: ':reservationId', element: <ReservationDetail /> },
+      ],
+    },
+
+    // Payment Links
+    {
+      path: 'payment-links',
+      element: <PermissionProtectedRoute permission="payment-link:read" />,
+      children: [
+        { index: true, element: <PaymentLinks /> },
+        { path: 'settings', element: <PaymentLinkSettings /> },
+        { path: 'branding', element: <PaymentLinkBranding /> },
       ],
     },
 

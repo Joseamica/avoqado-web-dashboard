@@ -766,6 +766,29 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
     defaultAccess: ACCESS_MANAGEMENT,
   },
 
+  AVOQADO_PAYMENT_LINKS: {
+    code: 'AVOQADO_PAYMENT_LINKS',
+    name: 'Ligas de Pago',
+    description: 'Crea y comparte ligas de pago para cobrar en línea vía WhatsApp, QR o link directo',
+    category: 'sales',
+    source: 'avoqado_core',
+
+    component: {
+      path: '@/pages/PaymentLinks/PaymentLinks',
+    },
+
+    routes: [{ path: 'payment-links', element: 'PaymentLinks' }],
+
+    configSchema: { type: 'object', properties: {} },
+
+    defaultNavItem: {
+      label: 'Ligas de Pago',
+      icon: 'Link2',
+    },
+
+    defaultAccess: ACCESS_MANAGEMENT,
+  },
+
   AVOQADO_SETTINGS: {
     code: 'AVOQADO_SETTINGS',
     name: 'Ajustes',

@@ -134,6 +134,8 @@ import reservationsFr from '@/locales/fr/reservations.json'
 import creditPacksEn from '@/locales/en/creditPacks.json'
 import creditPacksEs from '@/locales/es/creditPacks.json'
 import creditPacksFr from '@/locales/fr/creditPacks.json'
+import paymentLinksEn from '@/locales/en/paymentLinks.json'
+import paymentLinksEs from '@/locales/es/paymentLinks.json'
 // Lightweight language detector (avoids external dependency)
 const simpleDetector = {
   type: 'languageDetector' as const,
@@ -603,6 +605,14 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'creditPacks', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', paymentLinksEn],
+    ['es', paymentLinksEs],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'paymentLinks', bundle as Record<string, unknown>, true, true)
 })
 
 export default i18n

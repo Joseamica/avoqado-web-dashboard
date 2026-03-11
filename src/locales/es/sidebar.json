@@ -107,7 +107,13 @@
     "users": "Usuarios",
     "waiters": "Meseros",
     "reservations": "Reservaciones",
-    "creditPacks": "Paquetes de Créditos"
+    "creditPacks": "Paquetes de Créditos",
+    "paymentLinks": "Ligas de Pago"
+  },
+  "paymentLinksMenu": {
+    "links": "Ligas de pago",
+    "settings": "Ajustes generales",
+    "branding": "Marca"
   },
   "reservationsMenu": {
     "overview": "Resumen",

@@ -98,7 +98,13 @@
     "users": "Users",
     "waiters": "Waiters",
     "reservations": "Reservations",
-    "creditPacks": "Credit Packs"
+    "creditPacks": "Credit Packs",
+    "paymentLinks": "Payment Links"
+  },
+  "paymentLinksMenu": {
+    "links": "Payment links",
+    "settings": "General settings",
+    "branding": "Branding"
   },
   "reservationsMenu": {
     "overview": "Overview",

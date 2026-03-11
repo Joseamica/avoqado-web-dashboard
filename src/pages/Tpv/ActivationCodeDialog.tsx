@@ -110,8 +110,9 @@ export function ActivationCodeDialog({ open, onOpenChange, activationData }: Act
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex flex-col items-center space-y-4">
-                    {/* QR codes require high contrast (black on white) for proper scanning */}
-                    <div className="p-4 rounded-xl shadow-sm border border-border" style={{ backgroundColor: '#ffffff' }}>
+                    {/* QR codes MUST be black-on-white for scanners — hardcoded colors are intentional */}
+                    { }
+                    <div className="p-4 rounded-xl shadow-sm" style={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}>
                       <QRCodeSVG
                         value={qrData}
                         size={200}
