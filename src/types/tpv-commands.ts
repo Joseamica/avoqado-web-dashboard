@@ -262,7 +262,7 @@ export const COMMAND_DEFINITIONS: Record<TpvCommandType, CommandDefinition> = {
     type: TpvCommandType.RESTART,
     category: 'app_lifecycle',
     icon: 'RotateCcw',
-    requiresOnline: true,
+    requiresOnline: false, // Queued for delivery when terminal reconnects
     requiresConfirmation: true,
     isDangerous: false,
     defaultPriority: TpvCommandPriority.HIGH,

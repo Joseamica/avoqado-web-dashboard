@@ -776,7 +776,6 @@ export default function Tpvs() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    disabled={!isOnline}
                     onClick={e => {
                       e.stopPropagation()
                       sendTpvCommand(terminal.id, 'RESTART')
@@ -789,7 +788,7 @@ export default function Tpvs() {
                 <TooltipContent>
                   {isOnline
                     ? t('tpv.commandLabels.RESTART', { defaultValue: 'Reiniciar' })
-                    : t('tpv.actions.offline', { defaultValue: 'Desconectado' })}
+                    : t('tpv.commandLabels.RESTART_QUEUED', { defaultValue: 'Reiniciar (al conectarse)' })}
                 </TooltipContent>
               </Tooltip>
             </PermissionGate>
