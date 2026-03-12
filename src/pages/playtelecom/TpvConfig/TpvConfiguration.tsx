@@ -49,7 +49,7 @@ import { getItemCategories } from '@/services/stockDashboard.service'
 import { getTpvMessages } from '@/services/tpv-messages.service'
 import { useToast } from '@/hooks/use-toast'
 import { useStoresStorePerformance } from '@/hooks/useStoresAnalysis'
-import { ModuleToggles, CategoryEditor, PhonePreview, TerminalManagement, MessagesSection, type ModuleToggleState } from './components'
+import { ModuleToggles, CategoryEditor, PhonePreview, TerminalManagement, MessagesSection, OrgMessagesSection, type ModuleToggleState } from './components'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import OrgGoalConfigSection from '@/pages/playtelecom/Supervisor/OrgGoalConfigSection'
 import OrgCategoryConfigSection from './components/OrgCategoryConfigSection'
@@ -661,6 +661,7 @@ export function TpvConfiguration() {
             <OrgTpvConfigSection />
             <OrgGoalConfigSection />
             <OrgCategoryConfigSection />
+            <OrgMessagesSection />
           </TabsContent>
         )}
 

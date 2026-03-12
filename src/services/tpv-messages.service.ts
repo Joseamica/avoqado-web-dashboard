@@ -111,3 +111,14 @@ export const cancelTpvMessage = async (venueId: string, messageId: string) => {
   const response = await api.delete(`/api/v1/dashboard/venues/${venueId}/messages/${messageId}`)
   return response.data
 }
+
+export const broadcastOrgMessage = async (
+  orgId: string,
+  data: Omit<CreateTpvMessageRequest, 'targetType' | 'targetTerminalIds'>,
+) => {
+  const response = await api.post(`/api/v1/dashboard/organizations/${orgId}/messages/broadcast`, {
+    ...data,
+    targetType: 'ALL_TERMINALS',
+  })
+  return response.data
+}
