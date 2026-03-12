@@ -2,7 +2,7 @@
  * OrgTpvConfigSection - Organization-level TPV module & attendance defaults
  *
  * Shows org-level config: 6 module toggles + attendance parameters.
- * Gated behind attendance:org-manage permission (OWNER-only by default).
+ * Visible for OWNER+ roles (OWNER and SUPERADMIN).
  */
 
 import { useState, useEffect, useCallback } from 'react'
@@ -68,10 +68,11 @@ type ModuleKey = typeof MODULE_TOGGLES[number]['key']
 
 export default function OrgTpvConfigSection() {
   const { t } = useTranslation(['playtelecom', 'common'])
-  const { can } = useAccess()
+  const { can, role } = useAccess()
+  const isOwnerPlus = role === 'OWNER' || role === 'SUPERADMIN'
   const { toast } = useToast()
 
-  const { data: config, isLoading } = useOrgAttendanceConfig({ enabled: can('attendance:org-manage') })
+  const { data: config, isLoading } = useOrgAttendanceConfig({ enabled: isOwnerPlus })
   const upsertMutation = useUpsertOrgAttendanceConfig()
   const deleteMutation = useDeleteOrgAttendanceConfig()
 
@@ -153,7 +154,7 @@ export default function OrgTpvConfigSection() {
     }
   }, [deleteMutation, toast, t])
 
-  if (!can('attendance:org-manage')) return null
+  if (!isOwnerPlus) return null
 
   const isMutating = upsertMutation.isPending || deleteMutation.isPending
   const ns = 'playtelecom:tpvConfig.orgTpvConfig'
