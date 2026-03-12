@@ -1,11 +1,33 @@
 import api from '@/api'
 
+export interface CustomFieldDefinition {
+  id: string
+  type: 'TEXT' | 'SELECT'
+  label: string
+  required: boolean
+  options?: string[]
+}
+
+export interface TippingConfig {
+  presets: number[]
+  allowCustom: boolean
+}
+
 export interface PaymentLink {
   id: string
   shortCode: string
   venueId: string
   ecommerceMerchantId: string
   createdById: string
+  purpose: 'PAYMENT' | 'ITEM' | 'DONATION'
+  productId?: string
+  product?: {
+    id: string
+    name: string
+    description?: string
+    price: number
+    imageUrl?: string
+  }
   title: string
   description?: string
   imageUrl?: string
@@ -15,6 +37,8 @@ export interface PaymentLink {
   isReusable: boolean
   expiresAt?: string
   redirectUrl?: string
+  customFields?: CustomFieldDefinition[] | null
+  tippingConfig?: TippingConfig | null
   status: 'ACTIVE' | 'PAUSED' | 'EXPIRED' | 'ARCHIVED'
   totalCollected: number
   paymentCount: number
@@ -36,6 +60,10 @@ export interface CreatePaymentLinkRequest {
   isReusable?: boolean
   expiresAt?: string
   redirectUrl?: string
+  purpose?: 'PAYMENT' | 'ITEM' | 'DONATION'
+  productId?: string
+  customFields?: CustomFieldDefinition[] | null
+  tippingConfig?: TippingConfig | null
 }
 
 export interface UpdatePaymentLinkRequest {
@@ -48,12 +76,15 @@ export interface UpdatePaymentLinkRequest {
   expiresAt?: string | null
   redirectUrl?: string | null
   status?: 'ACTIVE' | 'PAUSED'
+  productId?: string | null
+  customFields?: CustomFieldDefinition[] | null
+  tippingConfig?: TippingConfig | null
 }
 
 export const paymentLinkService = {
   async getPaymentLinks(
     venueId: string,
-    params?: { page?: number; pageSize?: number; status?: string; search?: string }
+    params?: { page?: number; pageSize?: number; status?: string; search?: string },
   ): Promise<PaymentLink[]> {
     const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payment-links`, {
       params: {
@@ -80,7 +111,7 @@ export const paymentLinkService = {
   async updatePaymentLink(
     venueId: string,
     linkId: string,
-    data: UpdatePaymentLinkRequest
+    data: UpdatePaymentLinkRequest,
   ): Promise<{ success: boolean; data: PaymentLink }> {
     const response = await api.put(`/api/v1/dashboard/venues/${venueId}/payment-links/${linkId}`, data)
     return response.data

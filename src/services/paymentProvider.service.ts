@@ -44,6 +44,9 @@ export interface MerchantAccount {
   clabeNumber?: string
   bankName?: string
   accountHolder?: string
+  // Enriched relationship data (from superadmin endpoint)
+  venues?: Array<{ id: string; name: string; slug: string }>
+  terminals?: Array<{ id: string; serialNumber: string }>
   _count?: {
     costStructures: number
     venueConfigs: number

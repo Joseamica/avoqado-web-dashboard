@@ -19,6 +19,8 @@ interface FullScreenModalProps {
   open: boolean
   onClose: () => void
   title: string
+  /** Optional subtitle shown above the title (e.g. venue name) */
+  subtitle?: string
   children: React.ReactNode
   /** Optional action buttons for the right side of the header */
   actions?: React.ReactNode
@@ -30,6 +32,7 @@ export function FullScreenModal({
   open,
   onClose,
   title,
+  subtitle,
   children,
   actions,
   contentClassName,
@@ -64,9 +67,14 @@ export function FullScreenModal({
             </DialogPrimitive.Close>
 
             {/* Center - Title */}
-            <DialogPrimitive.Title className="absolute left-1/2 -translate-x-1/2 text-lg font-semibold">
-              {title}
-            </DialogPrimitive.Title>
+            <div className="absolute left-1/2 -translate-x-1/2 text-center">
+              {subtitle && (
+                <p className="text-xs text-muted-foreground leading-tight">{subtitle}</p>
+              )}
+              <DialogPrimitive.Title className="text-lg font-semibold leading-tight">
+                {title}
+              </DialogPrimitive.Title>
+            </div>
 
             {/* Hidden description for accessibility */}
             <DialogPrimitive.Description className="sr-only">

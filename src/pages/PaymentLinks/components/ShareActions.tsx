@@ -10,13 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 
 const CHECKOUT_BASE_URL = import.meta.env.VITE_CHECKOUT_URL || 'https://pay.avoqado.io'
@@ -106,11 +100,7 @@ export function ShareActions({ shortCode, title, asDropdown = false }: ShareActi
               <DialogDescription>{title}</DialogDescription>
             </DialogHeader>
             <div className="flex flex-col items-center gap-4 py-4">
-              <img
-                src={generateQrDataUrl(url, 256)}
-                alt="QR Code"
-                className="w-64 h-64 rounded-lg"
-              />
+              <img src={generateQrDataUrl(url, 256)} alt="QR Code" className="w-64 h-64 rounded-lg" />
               <p className="text-sm text-muted-foreground break-all text-center">{url}</p>
               <Button onClick={handleDownloadQr} variant="outline" className="cursor-pointer">
                 <Download className="h-4 w-4 mr-2" />
@@ -146,11 +136,7 @@ export function ShareActions({ shortCode, title, asDropdown = false }: ShareActi
             <DialogDescription>{title}</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center gap-4 py-4">
-            <img
-              src={generateQrDataUrl(url, 256)}
-              alt="QR Code"
-              className="w-64 h-64 rounded-lg"
-            />
+            <img src={generateQrDataUrl(url, 256)} alt="QR Code" className="w-64 h-64 rounded-lg" />
             <p className="text-sm text-muted-foreground break-all text-center">{url}</p>
             <Button onClick={handleDownloadQr} variant="outline" className="cursor-pointer">
               <Download className="h-4 w-4 mr-2" />

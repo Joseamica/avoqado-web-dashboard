@@ -1,20 +1,29 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Banknote, Calendar, ChevronDown, DollarSign, FileText, Heart, Settings, Tag } from 'lucide-react'
+import { Banknote, Calendar, ChevronDown, DollarSign, Heart, Plus, Settings, Tag, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import type {
+  CreatePaymentLinkRequest,
+  CustomFieldDefinition,
+  TippingConfig,
+  UpdatePaymentLinkRequest,
+} from '@/services/paymentLink.service'
 import paymentLinkService from '@/services/paymentLink.service'
-import type { CreatePaymentLinkRequest } from '@/services/paymentLink.service'
 import type { Product } from '@/types'
 
+import { DonationPreview } from './components/DonationPreview'
 import { ItemFormSection } from './components/ItemFormSection'
 import { ItemPreview } from './components/ItemPreview'
 import { PaymentLinkPreview } from './components/PaymentLinkPreview'
@@ -35,12 +44,9 @@ const PURPOSES: { key: LinkPurpose; icon: typeof DollarSign; comingSoon?: boolea
   { key: 'donation', icon: Heart },
 ]
 
-export default function CreatePaymentLinkDialog({
-  open,
-  onClose,
-  editingLinkId,
-}: CreatePaymentLinkDialogProps) {
-  const { venueId } = useCurrentVenue()
+export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }: CreatePaymentLinkDialogProps) {
+  const { venueId, venue, fullBasePath } = useCurrentVenue()
+  const navigate = useNavigate()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { t } = useTranslation('paymentLinks')
@@ -64,8 +70,9 @@ export default function CreatePaymentLinkDialog({
 
   // ─── Item-specific state ──────────────────────────────
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
-  const [customFields, setCustomFields] = useState(false)
-  const [tips, setTips] = useState(false)
+  const [customFields, setCustomFields] = useState<CustomFieldDefinition[]>([])
+  const [customFieldsEnabled, setCustomFieldsEnabled] = useState(false)
+  const [tippingConfig, setTippingConfig] = useState<TippingConfig | null>(null)
   const [purposeDropdownOpen, setPurposeDropdownOpen] = useState(false)
 
   // ─── Load existing link for editing ────────────────────
@@ -84,10 +91,41 @@ export default function CreatePaymentLinkDialog({
       setAmount(link.amount ? String(link.amount) : '')
       setIsReusable(link.isReusable)
       setRedirectUrl(link.redirectUrl || '')
+      setRedirectEnabled(!!link.redirectUrl)
       setStep('details')
-      // Infer purpose from existing data
-      if (link.amountType === 'OPEN' && !link.isReusable) setSelectedPurpose('donation')
-      else setSelectedPurpose('payment')
+
+      // Restore custom fields
+      if (link.customFields && link.customFields.length > 0) {
+        setCustomFields(link.customFields)
+        setCustomFieldsEnabled(true)
+      } else {
+        setCustomFields([])
+        setCustomFieldsEnabled(false)
+      }
+
+      // Restore tipping config
+      setTippingConfig(link.tippingConfig || null)
+
+      // Map purpose from backend enum to frontend key
+      const purposeReverseMap: Record<string, LinkPurpose> = {
+        PAYMENT: 'payment',
+        ITEM: 'item',
+        DONATION: 'donation',
+      }
+      setSelectedPurpose(purposeReverseMap[link.purpose] || 'payment')
+
+      // Restore product selection for ITEM links
+      if (link.purpose === 'ITEM' && link.product) {
+        setSelectedProduct({
+          id: link.product.id,
+          name: link.product.name,
+          description: link.product.description || null,
+          price: link.product.price,
+          imageUrl: link.product.imageUrl || null,
+        } as Product)
+      } else {
+        setSelectedProduct(null)
+      }
     }
   }, [existingLink])
 
@@ -103,8 +141,9 @@ export default function CreatePaymentLinkDialog({
       setRedirectUrl('')
       setRedirectEnabled(false)
       setSelectedProduct(null)
-      setCustomFields(false)
-      setTips(false)
+      setCustomFields([])
+      setCustomFieldsEnabled(false)
+      setTippingConfig(null)
       setPurposeDropdownOpen(false)
       setStep('type')
       setSelectedPurpose(null)
@@ -154,16 +193,15 @@ export default function CreatePaymentLinkDialog({
     },
     onError: (error: any) => {
       toast({
-        title: tCommon('common.error'),
-        description: error.response?.data?.message || t('toasts.error'),
+        title: tCommon('error'),
+        description: error.response?.data?.message || error.response?.data?.error || t('toasts.error'),
         variant: 'destructive',
       })
     },
   })
 
   const updateMutation = useMutation({
-    mutationFn: (data: CreatePaymentLinkRequest) =>
-      paymentLinkService.updatePaymentLink(venueId, editingLinkId!, data),
+    mutationFn: (data: UpdatePaymentLinkRequest) => paymentLinkService.updatePaymentLink(venueId, editingLinkId!, data),
     onSuccess: () => {
       toast({ title: t('toasts.updated') })
       queryClient.invalidateQueries({ queryKey: ['payment-links', venueId] })
@@ -171,8 +209,8 @@ export default function CreatePaymentLinkDialog({
     },
     onError: (error: any) => {
       toast({
-        title: tCommon('common.error'),
-        description: error.response?.data?.message || t('toasts.error'),
+        title: tCommon('error'),
+        description: error.response?.data?.message || error.response?.data?.error || t('toasts.error'),
         variant: 'destructive',
       })
     },
@@ -181,31 +219,64 @@ export default function CreatePaymentLinkDialog({
   const handleSave = () => {
     // For item purpose, use product data
     const effectiveTitle = selectedPurpose === 'item' && selectedProduct ? selectedProduct.name : title.trim()
-    const effectiveAmount = selectedPurpose === 'item' && selectedProduct ? selectedProduct.price : (amount ? parseFloat(amount) : undefined)
-    const effectiveDescription = selectedPurpose === 'item' && selectedProduct ? (selectedProduct.description || '') : description.trim()
+    const effectiveAmount =
+      selectedPurpose === 'item' && selectedProduct ? Number(selectedProduct.price) : amount ? parseFloat(amount) : undefined
+    const effectiveDescription = selectedPurpose === 'item' && selectedProduct ? selectedProduct.description || '' : description.trim()
 
     if (!effectiveTitle) return
 
-    const data: CreatePaymentLinkRequest = {
+    // Map purpose to backend enum
+    const purposeMap: Record<LinkPurpose, 'PAYMENT' | 'ITEM' | 'DONATION'> = {
+      payment: 'PAYMENT',
+      item: 'ITEM',
+      event: 'PAYMENT', // events not yet implemented
+      donation: 'DONATION',
+    }
+
+    // Sanitize custom fields: drop fields with no label, strip empty options
+    const sanitizedFields = customFields
+      .filter(f => f.label.trim().length > 0)
+      .map(f => ({
+        ...f,
+        label: f.label.trim(),
+        options: f.type === 'SELECT' ? (f.options || []).filter(o => o.trim().length > 0).map(o => o.trim()) : undefined,
+      }))
+
+    const baseData = {
       title: effectiveTitle,
       description: effectiveDescription || undefined,
       amountType,
       ...(amountType === 'FIXED' && effectiveAmount ? { amount: effectiveAmount } : {}),
       isReusable,
-      ...((redirectEnabled && redirectUrl.trim()) ? { redirectUrl: redirectUrl.trim() } : {}),
+      ...(customFieldsEnabled && sanitizedFields.length > 0 ? { customFields: sanitizedFields } : { customFields: null }),
+      ...(tippingConfig ? { tippingConfig } : { tippingConfig: null }),
     }
 
     setIsSaving(true)
     if (isEditing) {
-      updateMutation.mutate(data, { onSettled: () => setIsSaving(false) })
+      const updateData: UpdatePaymentLinkRequest = {
+        ...baseData,
+        // Explicitly null when disabled so backend clears existing value
+        redirectUrl: redirectEnabled && redirectUrl.trim() ? redirectUrl.trim() : null,
+        // Allow product changes for ITEM links
+        ...(selectedPurpose === 'item' && selectedProduct ? { productId: selectedProduct.id } : {}),
+      }
+      updateMutation.mutate(updateData, { onSettled: () => setIsSaving(false) })
     } else {
-      createMutation.mutate(data, { onSettled: () => setIsSaving(false) })
+      const createData: CreatePaymentLinkRequest = {
+        ...baseData,
+        ...(redirectEnabled && redirectUrl.trim() ? { redirectUrl: redirectUrl.trim() } : {}),
+        purpose: selectedPurpose ? purposeMap[selectedPurpose] : 'PAYMENT',
+        ...(selectedPurpose === 'item' && selectedProduct ? { productId: selectedProduct.id } : {}),
+      }
+      createMutation.mutate(createData, { onSettled: () => setIsSaving(false) })
     }
   }
 
-  const canSave = selectedPurpose === 'item'
-    ? !!selectedProduct
-    : title.trim().length > 0 && (amountType === 'OPEN' || (amountType === 'FIXED' && parseFloat(amount) > 0))
+  const canSave =
+    selectedPurpose === 'item'
+      ? !!selectedProduct
+      : title.trim().length > 0 && (amountType === 'OPEN' || (amountType === 'FIXED' && parseFloat(amount) > 0))
 
   const handleClose = () => {
     if (step === 'details' && !isEditing) {
@@ -215,96 +286,123 @@ export default function CreatePaymentLinkDialog({
     }
   }
 
+  // ─── Custom fields & tipping handlers (for payment/donation form) ──
+  const addCustomField = () => {
+    if (customFields.length >= 5) return
+    setCustomFields([...customFields, { id: `cf_${Date.now()}`, type: 'TEXT', label: '', required: false }])
+  }
+
+  const updateField = (index: number, updates: Partial<CustomFieldDefinition>) => {
+    const updated = [...customFields]
+    updated[index] = { ...updated[index], ...updates }
+    setCustomFields(updated)
+  }
+
+  const removeField = (index: number) => {
+    setCustomFields(customFields.filter((_, i) => i !== index))
+  }
+
+  const tippingEnabled = tippingConfig !== null
+  const handleTippingToggle = (enabled: boolean) => {
+    if (enabled) {
+      setTippingConfig({ presets: [10, 15, 20], allowCustom: true })
+    } else {
+      setTippingConfig(null)
+    }
+  }
+
+  const updatePreset = (index: number, value: string) => {
+    if (!tippingConfig) return
+    const num = parseInt(value, 10)
+    if (isNaN(num) || num < 1 || num > 100) return
+    const presets = [...tippingConfig.presets]
+    presets[index] = num
+    setTippingConfig({ ...tippingConfig, presets })
+  }
+
   return (
     <FullScreenModal
       open={open}
       onClose={handleClose}
-      title={
-        step === 'type'
-          ? t('form.createTitle')
-          : isEditing
-            ? t('form.editTitle')
-            : t('form.createTitle')
-      }
+      subtitle={venue?.name}
+      title={step === 'type' ? t('form.createTitle') : isEditing ? t('form.editTitle') : t('form.createTitle')}
       contentClassName="bg-muted/30"
       actions={
-        step === 'details' ? (
+        step === 'type' ? (
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              onClick={() => navigate(`${fullBasePath}/payment-links/settings`)}
+              aria-label={t('form.settings')}
+              className="h-10 w-10 rounded-full cursor-pointer"
+            >
+              <Settings className="h-5 w-5" />
+              <span className="sr-only">{t('form.settings')}</span>
+            </Button>
+            <Button onClick={handleContinue} disabled={!selectedPurpose} className="cursor-pointer">
+              {t('wizard.continue')}
+            </Button>
+          </div>
+        ) : (
           <div className="flex items-center gap-2">
             {isEditing && existingLink?.data && (
-              <ShareActions
-                shortCode={existingLink.data.shortCode}
-                title={existingLink.data.title}
-                asDropdown
-              />
+              <ShareActions shortCode={existingLink.data.shortCode} title={existingLink.data.title} asDropdown />
             )}
             <Button onClick={handleSave} disabled={!canSave || isSaving} className="cursor-pointer">
               {t('form.save')}
             </Button>
           </div>
-        ) : undefined
+        )
       }
     >
       {step === 'type' ? (
-        /* ─── Step 1: Purpose Selection (Square-style) ──────── */
+        /* ─── Step 1: Purpose Selection (Square-style flat list) ──────── */
         <div className="mx-auto max-w-6xl p-6">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             {/* Left: Type list */}
-            <div className="lg:col-span-2 space-y-3">
+            <div className="lg:col-span-2 space-y-2">
               {PURPOSES.map(({ key, icon: Icon, comingSoon }) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => handlePurposeSelect(key)}
                   disabled={comingSoon}
-                  className={`relative w-full flex items-center gap-4 rounded-xl border p-4 text-left transition-all duration-200 ${
+                  className={`w-full flex items-center gap-3 rounded-lg border-2 p-4 text-left transition-all duration-150 ${
                     comingSoon
                       ? 'opacity-50 cursor-not-allowed border-border'
                       : selectedPurpose === key
-                        ? 'border-foreground shadow-sm bg-card cursor-pointer'
-                        : 'border-border hover:border-foreground/30 hover:shadow-sm cursor-pointer'
+                        ? 'border-primary bg-primary/10 cursor-pointer'
+                        : 'border-border hover:border-foreground/30 cursor-pointer'
                   }`}
                 >
-                  <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-muted shrink-0">
-                    <Icon className="h-5 w-5 text-foreground" strokeWidth={1.5} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium text-[15px]">
-                        {t(`wizard.${key}Title`)}
-                      </h3>
-                      {comingSoon && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
-                          {tCommon('common.comingSoon', 'Muy pronto')}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      {t(`wizard.${key}Description`)}
-                    </p>
-                  </div>
+                  <Icon className="h-5 w-5 text-foreground shrink-0" strokeWidth={1.5} />
+                  <span className="font-medium text-sm">{t(`wizard.${key}Title`)}</span>
+                  {comingSoon && (
+                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground ml-auto">
+                      {tCommon('common.comingSoon', 'Muy pronto')}
+                    </span>
+                  )}
                 </button>
               ))}
-
-              <div className="pt-4">
-                <Button
-                  onClick={handleContinue}
-                  disabled={!selectedPurpose}
-                  className="cursor-pointer"
-                >
-                  {t('wizard.continue')}
-                </Button>
-              </div>
             </div>
 
             {/* Right: Live preview */}
             <div className="lg:col-span-3">
               <div className="sticky top-24">
-                <PaymentLinkPreview
-                  title={title || t('form.titlePlaceholder')}
-                  description={description}
-                  amountType={selectedPurpose === 'donation' ? 'OPEN' : 'FIXED'}
-                  amount={undefined}
-                />
+                {selectedPurpose === 'item' ? (
+                  <ItemPreview product={null} redirectEnabled={false} redirectUrl="" />
+                ) : selectedPurpose === 'donation' ? (
+                  <DonationPreview title={title || t('preview.donationTitlePlaceholder')} description={description} />
+                ) : (
+                  <PaymentLinkPreview
+                    title={title || t('form.titlePlaceholder')}
+                    description={description}
+                    amountType="OPEN"
+                    amount={undefined}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -323,19 +421,22 @@ export default function CreatePaymentLinkDialog({
                     onClick={() => setPurposeDropdownOpen(!purposeDropdownOpen)}
                     className="w-full flex items-center gap-3 rounded-xl border border-input bg-card p-4 text-left cursor-pointer hover:border-foreground/30 transition-colors"
                   >
-                    {selectedPurpose && (() => {
-                      const PurposeIcon = PURPOSES.find(p => p.key === selectedPurpose)?.icon || Banknote
-                      return (
-                        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted shrink-0">
-                          <PurposeIcon className="h-4 w-4 text-foreground" strokeWidth={1.5} />
-                        </div>
-                      )
-                    })()}
+                    {selectedPurpose &&
+                      (() => {
+                        const PurposeIcon = PURPOSES.find(p => p.key === selectedPurpose)?.icon || Banknote
+                        return (
+                          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted shrink-0">
+                            <PurposeIcon className="h-4 w-4 text-foreground" strokeWidth={1.5} />
+                          </div>
+                        )
+                      })()}
                     <div className="flex-1">
                       <p className="text-xs text-muted-foreground">{t('wizard.purposeLabel')}</p>
                       <p className="font-medium text-sm">{selectedPurpose ? t(`wizard.${selectedPurpose}Title`) : ''}</p>
                     </div>
-                    <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${purposeDropdownOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown
+                      className={`h-4 w-4 text-muted-foreground transition-transform ${purposeDropdownOpen ? 'rotate-180' : ''}`}
+                    />
                   </button>
 
                   {purposeDropdownOpen && (
@@ -375,22 +476,21 @@ export default function CreatePaymentLinkDialog({
                   }}
                   customFields={customFields}
                   onCustomFieldsChange={setCustomFields}
-                  tips={tips}
-                  onTipsChange={setTips}
+                  customFieldsEnabled={customFieldsEnabled}
+                  onCustomFieldsEnabledChange={setCustomFieldsEnabled}
+                  tippingConfig={tippingConfig}
+                  onTippingConfigChange={setTippingConfig}
                   redirectUrl={redirectUrl}
                   onRedirectUrlChange={setRedirectUrl}
                   redirectEnabled={redirectEnabled}
                   onRedirectEnabledChange={setRedirectEnabled}
                 />
               ) : (
-                /* Default payment/donation form */
-                <>
-                  {/* Details card */}
-                  <div className="rounded-xl border border-input bg-card p-6 space-y-4">
-                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                      <FileText className="h-4 w-4" />
-                      {t('form.details')}
-                    </div>
+                /* Default payment/donation form — flat sections (Square-style) */
+                <div className="space-y-8">
+                  {/* ── Details section ─────────────────────── */}
+                  <section className="space-y-3">
+                    <h2 className="text-lg font-semibold">{t('form.details')}</h2>
 
                     <div className="space-y-2">
                       <Label htmlFor="pl-title">{t('form.titleField')}</Label>
@@ -418,14 +518,13 @@ export default function CreatePaymentLinkDialog({
                         {t('form.descriptionCount', { count: description.length })}
                       </p>
                     </div>
-                  </div>
+                  </section>
 
-                  {/* Amount card */}
-                  <div className="rounded-xl border border-input bg-card p-6 space-y-4">
-                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                      <DollarSign className="h-4 w-4" />
-                      {t('form.amount')}
-                    </div>
+                  <hr className="border-border" />
+
+                  {/* ── Amount section ──────────────────────── */}
+                  <section className="space-y-3">
+                    <h2 className="text-lg font-semibold">{t('form.amount')}</h2>
 
                     <div className="space-y-2">
                       <Label>{t('form.amountType')}</Label>
@@ -434,9 +533,7 @@ export default function CreatePaymentLinkDialog({
                           type="button"
                           onClick={() => setAmountType('FIXED')}
                           className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
-                            amountType === 'FIXED'
-                              ? 'bg-card text-foreground shadow-sm'
-                              : 'text-muted-foreground hover:text-foreground'
+                            amountType === 'FIXED' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                           }`}
                         >
                           {t('form.fixed')}
@@ -445,17 +542,13 @@ export default function CreatePaymentLinkDialog({
                           type="button"
                           onClick={() => setAmountType('OPEN')}
                           className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
-                            amountType === 'OPEN'
-                              ? 'bg-card text-foreground shadow-sm'
-                              : 'text-muted-foreground hover:text-foreground'
+                            amountType === 'OPEN' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                           }`}
                         >
                           {t('form.open')}
                         </button>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {amountType === 'FIXED' ? t('form.fixedHint') : t('form.openHint')}
-                      </p>
+                      <p className="text-xs text-muted-foreground">{amountType === 'FIXED' ? t('form.fixedHint') : t('form.openHint')}</p>
                     </div>
 
                     {amountType === 'FIXED' && (
@@ -476,44 +569,224 @@ export default function CreatePaymentLinkDialog({
                         </div>
                       </div>
                     )}
-                  </div>
+                  </section>
 
-                  {/* Settings card */}
-                  <div className="rounded-xl border border-input bg-card p-6 space-y-5">
-                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                      <Settings className="h-4 w-4" />
-                      {t('form.settings')}
-                    </div>
+                  <hr className="border-border" />
 
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>{t('form.reusable')}</Label>
-                        <p className="text-xs text-muted-foreground">
-                          {isReusable ? t('form.reusableHint') : t('form.singleUse')}
-                        </p>
-                      </div>
+                  {/* ── Payment process section ───────────────── */}
+                  <section className="space-y-4">
+                    <h2 className="text-lg font-semibold">{t('itemForm.paymentProcess')}</h2>
+
+                    {/* Custom fields toggle */}
+                    <div className="flex items-center justify-between py-2">
+                      <span className="text-sm font-medium">{t('itemForm.customFields')}</span>
                       <Switch
-                        checked={isReusable}
-                        onCheckedChange={setIsReusable}
+                        checked={customFieldsEnabled}
+                        onCheckedChange={val => {
+                          setCustomFieldsEnabled(val)
+                          if (!val) {
+                            setCustomFields([])
+                          } else if (customFields.length === 0) {
+                            setCustomFields([{ id: `cf_${Date.now()}`, type: 'TEXT', label: '', required: false }])
+                          }
+                        }}
                         className="cursor-pointer"
                       />
                     </div>
 
-                    <div className="border-t border-input pt-4 space-y-2">
-                      <Label htmlFor="pl-redirect">{t('form.redirectUrl')}</Label>
-                      <Input
-                        id="pl-redirect"
-                        type="url"
-                        value={redirectUrl}
-                        onChange={e => setRedirectUrl(e.target.value)}
-                        placeholder={t('form.redirectUrlPlaceholder')}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        {t('form.redirectUrlHint')}
-                      </p>
+                    {/* Custom fields list */}
+                    {customFieldsEnabled && (
+                      <div className="space-y-3">
+                        {customFields.map((field, index) => (
+                          <div key={field.id} className="rounded-xl border border-input bg-card p-3.5 space-y-2.5">
+                            {/* Row 1: Label + Delete */}
+                            <div className="flex items-center gap-2">
+                              <Input
+                                value={field.label}
+                                onChange={e => updateField(index, { label: e.target.value })}
+                                placeholder={t('itemForm.customFieldPlaceholder')}
+                                className="flex-1 h-10"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-10 w-10 shrink-0 text-muted-foreground hover:text-destructive cursor-pointer"
+                                onClick={() => removeField(index)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+
+                            {/* Row 2: Type selector + Required checkbox */}
+                            <div className="flex items-center gap-3">
+                              <Select
+                                value={field.type}
+                                onValueChange={val =>
+                                  updateField(index, {
+                                    type: val as 'TEXT' | 'SELECT',
+                                    options: val === 'SELECT' ? field.options || [''] : undefined,
+                                  })
+                                }
+                              >
+                                <SelectTrigger className="w-[100px] h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="TEXT">{t('itemForm.fieldTypeText')}</SelectItem>
+                                  <SelectItem value="SELECT">{t('itemForm.fieldTypeSelect')}</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                                <Checkbox
+                                  checked={field.required}
+                                  onCheckedChange={val => updateField(index, { required: val === true })}
+                                  className="cursor-pointer"
+                                />
+                                <span className="text-xs text-muted-foreground">{t('itemForm.requiredField')}</span>
+                              </label>
+                            </div>
+
+                            {/* Options for SELECT type */}
+                            {field.type === 'SELECT' && (
+                              <div className="space-y-1.5 pl-1">
+                                {(field.options || ['']).map((opt, optIdx) => (
+                                  <div key={optIdx} className="flex items-center gap-1.5">
+                                    <span className="text-xs text-muted-foreground w-4">{optIdx + 1}.</span>
+                                    <Input
+                                      value={opt}
+                                      onChange={e => {
+                                        const opts = [...(field.options || [''])]
+                                        opts[optIdx] = e.target.value
+                                        updateField(index, { options: opts })
+                                      }}
+                                      placeholder={t('itemForm.optionPlaceholder')}
+                                      className="h-8 text-sm flex-1"
+                                    />
+                                    {(field.options || []).length > 1 && (
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 shrink-0"
+                                        onClick={() => {
+                                          const opts = (field.options || []).filter((_, i) => i !== optIdx)
+                                          updateField(index, { options: opts })
+                                        }}
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                ))}
+                                {(field.options || []).length < 10 && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 text-xs"
+                                    onClick={() => {
+                                      const opts = [...(field.options || []), '']
+                                      updateField(index, { options: opts })
+                                    }}
+                                  >
+                                    <Plus className="h-3 w-3 mr-1" />
+                                    {t('itemForm.addOption')}
+                                  </Button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+
+                        {customFields.length < 5 && (
+                          <button
+                            type="button"
+                            onClick={addCustomField}
+                            className="w-full rounded-full border border-dashed border-border bg-muted/40 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:border-foreground/20 transition-colors cursor-pointer"
+                          >
+                            {t('itemForm.addCustomField')}
+                          </button>
+                        )}
+                        <p className="text-xs text-muted-foreground text-center">
+                          {t('itemForm.customFieldsLimit', { count: customFields.length, max: 5 })}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Tips toggle */}
+                    <div className="flex items-center justify-between py-2">
+                      <span className="text-sm font-medium">{t('itemForm.tips')}</span>
+                      <Switch checked={tippingEnabled} onCheckedChange={handleTippingToggle} className="cursor-pointer" />
                     </div>
-                  </div>
-                </>
+
+                    {/* Tipping config */}
+                    {tippingEnabled && tippingConfig && (
+                      <div className="rounded-xl border border-input bg-card p-4 space-y-4">
+                        <div>
+                          <p className="text-sm font-medium mb-2.5">{t('itemForm.tipPresets')}</p>
+                          <div className="grid grid-cols-3 gap-2">
+                            {tippingConfig.presets.map((preset, index) => (
+                              <div key={index} className="relative">
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  max={100}
+                                  value={preset}
+                                  onChange={e => updatePreset(index, e.target.value)}
+                                  className="h-10 text-center pr-7 text-base font-medium"
+                                />
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1 border-t border-border/50">
+                          <span className="text-sm">{t('itemForm.allowCustomTip')}</span>
+                          <Switch
+                            checked={tippingConfig.allowCustom}
+                            onCheckedChange={val => setTippingConfig({ ...tippingConfig, allowCustom: val })}
+                            className="cursor-pointer"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </section>
+
+                  <hr className="border-border" />
+
+                  {/* ── Settings section ────────────────────── */}
+                  <section className="space-y-4">
+                    <h2 className="text-lg font-semibold">{t('form.settings')}</h2>
+
+                    <div className="flex items-center justify-between py-1">
+                      <div className="space-y-0.5">
+                        <span className="text-sm font-medium">{t('form.reusable')}</span>
+                        <p className="text-xs text-muted-foreground">{isReusable ? t('form.reusableHint') : t('form.singleUse')}</p>
+                      </div>
+                      <Switch checked={isReusable} onCheckedChange={setIsReusable} className="cursor-pointer" />
+                    </div>
+
+                    <div className="flex items-center justify-between py-1">
+                      <span className="text-sm font-medium">{t('form.redirectUrl')}</span>
+                      <Switch checked={redirectEnabled} onCheckedChange={setRedirectEnabled} className="cursor-pointer" />
+                    </div>
+
+                    {redirectEnabled && (
+                      <div className="space-y-2">
+                        <Input
+                          id="pl-redirect"
+                          type="url"
+                          value={redirectUrl}
+                          onChange={e => setRedirectUrl(e.target.value)}
+                          placeholder={t('form.redirectUrlPlaceholder')}
+                        />
+                        <p className="text-xs text-muted-foreground">{t('form.redirectUrlHint')}</p>
+                      </div>
+                    )}
+                  </section>
+                </div>
               )}
             </div>
 
@@ -525,14 +798,21 @@ export default function CreatePaymentLinkDialog({
                     product={selectedProduct}
                     redirectEnabled={redirectEnabled}
                     redirectUrl={redirectUrl}
-                    customFieldsEnabled={customFields}
+                    customFields={customFieldsEnabled ? customFields : undefined}
+                    tippingConfig={tippingConfig}
                   />
+                ) : selectedPurpose === 'donation' ? (
+                  <DonationPreview title={title} description={description} tippingConfig={tippingConfig} />
                 ) : (
                   <PaymentLinkPreview
                     title={title}
                     description={description}
                     amountType={amountType}
                     amount={amount ? parseFloat(amount) : undefined}
+                    tippingConfig={tippingConfig}
+                    customFields={customFieldsEnabled ? customFields : undefined}
+                    redirectEnabled={redirectEnabled}
+                    redirectUrl={redirectUrl}
                   />
                 )}
               </div>

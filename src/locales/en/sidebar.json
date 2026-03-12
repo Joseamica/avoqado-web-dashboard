@@ -51,6 +51,17 @@
   "organizations": "Organizations",
   "system": "System Status",
   "webhooks": "Webhooks",
+  "reportsMenu": {
+    "title": "Reports",
+    "payLaterAging": "Accounts Receivable",
+    "salesSummary": "Sales Summary",
+    "salesByItem": "Sales by Item",
+    "salesByCategory": "Sales by Category",
+    "paymentMethods": "Payment Methods",
+    "taxes": "Taxes",
+    "voids": "Voids",
+    "modifiers": "Modifiers"
+  },
   "playtelecom": {
     "title": "PlayTelecom",
     "commandCenter": "Global Overview",

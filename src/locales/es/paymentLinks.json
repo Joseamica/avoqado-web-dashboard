@@ -7,6 +7,10 @@
     "description": "Crea tu primera liga de pago para empezar a cobrar en línea por WhatsApp, QR o link directo.",
     "noEcommerce": "Para usar ligas de pago, tu venue necesita afiliación de e-commerce con Blumon. Contacta a soporte para activarla."
   },
+  "requirements": {
+    "merchantMissingTitle": "Configuracion de e-commerce requerida",
+    "createBlocked": "No podras crear ligas de pago hasta completar esta configuracion."
+  },
   "list": {
     "columns": {
       "title": "Título",
@@ -32,7 +36,7 @@
     "save": "Guardar",
     "details": "Detalles",
     "titleField": "Título",
-    "titlePlaceholder": "Ej. Mensualidad",
+    "titlePlaceholder": "Pago pendiente",
     "descriptionField": "Descripción",
     "descriptionPlaceholder": "Describe lo que el cliente va a pagar...",
     "descriptionCount": "{{count}}/400",
@@ -59,9 +63,16 @@
   },
   "preview": {
     "title": "Vista previa",
-    "payButton": "Pagar",
+    "payButton": "Proceso de pago",
+    "donateButton": "Donar",
     "securePayment": "Pago seguro con Avoqado",
-    "enterAmount": "Ingresa el monto"
+    "enterAmount": "Ingresar monto",
+    "enterDonationAmount": "Ingresar monto de la donación",
+    "defaultDescription": "Por favor ingresa y paga el monto total indicado.",
+    "donationDefaultDescription": "Apoya con una donación del monto que desees.",
+    "donationTitlePlaceholder": "Mi campaña",
+    "raised": "se recaudaron {{amount}} del objetivo",
+    "endsIn": "Termina en {{days}} días"
   },
   "share": {
     "copyLink": "Copiar liga",
@@ -155,7 +166,16 @@
     "customFieldTitle": "Titulo del campo personalizado",
     "customFieldPlaceholder": "Ej. Talla, Color, Notas...",
     "addCustomField": "Agregar campo personalizado",
+    "customFieldsLimit": "{{count}}/{{max}} campos",
+    "fieldTypeText": "Texto",
+    "fieldTypeSelect": "Opciones",
+    "optionPlaceholder": "Opcion...",
+    "addOption": "Agregar opcion",
+    "requiredField": "Obligatorio",
+    "optionalField": "Opcional",
     "tips": "Propinas",
+    "tipPresets": "Porcentajes de propina",
+    "allowCustomTip": "Permitir monto personalizado",
     "confirmation": "Confirmacion",
     "redirectAfterPayment": "Redirigir a un sitio web despues del proceso de pago",
     "redirectPlaceholder": "URL del sitio web"
@@ -165,16 +185,24 @@
     "paymentProcess": "Proceso de pago",
     "confirmation": "Confirmacion",
     "articlePlaceholder": "Articulo",
+    "imagePlaceholder": "Imagen del producto",
     "subtotal": "Subtotal",
     "totalCalculated": "El total se calcula en el proceso de pago",
     "processPayment": "Proceso de pago",
     "orderSummary": "Resumen del pedido ({{count}} articulo)",
     "orderTotal": "Total del pedido",
     "pay": "Pagar",
+    "addTip": "Agregar propina",
+    "tip": "Propina",
+    "customTip": "Otro",
     "redirectMessage": "Tu pagina web se mostrara despues de completar el pago",
     "paymentConfirmed": "Tu pago esta confirmado.",
     "summary": "Resumen",
-    "endingIn": "que termina en"
+    "endingIn": "que termina en",
+    "selectOne": "Seleccionar uno",
+    "fulfillment": "Cómo obtenerlo",
+    "shipping": "Envío",
+    "pickup": "Recolección en"
   },
   "confirm": {
     "archiveTitle": "¿Archivar esta liga de pago?",

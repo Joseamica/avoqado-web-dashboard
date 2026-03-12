@@ -7,6 +7,10 @@
     "description": "Create your first payment link to start collecting online payments via WhatsApp, QR code, or direct link.",
     "noEcommerce": "To use payment links, your venue needs an e-commerce affiliation with Blumon. Contact support to activate it."
   },
+  "requirements": {
+    "merchantMissingTitle": "E-commerce setup required",
+    "createBlocked": "You won't be able to create payment links until this setup is complete."
+  },
   "list": {
     "columns": {
       "title": "Title",
@@ -32,7 +36,7 @@
     "save": "Save",
     "details": "Details",
     "titleField": "Title",
-    "titlePlaceholder": "e.g. Monthly membership",
+    "titlePlaceholder": "Balance Payment",
     "descriptionField": "Description",
     "descriptionPlaceholder": "Describe what the customer is paying for...",
     "descriptionCount": "{{count}}/400",
@@ -60,8 +64,15 @@
   "preview": {
     "title": "Preview",
     "payButton": "Pay",
+    "donateButton": "Donate",
     "securePayment": "Secure payment with Avoqado",
-    "enterAmount": "Enter amount"
+    "enterAmount": "Enter amount",
+    "enterDonationAmount": "Enter donation amount",
+    "defaultDescription": "Please enter and pay the full balance outlined in your payment email.",
+    "donationDefaultDescription": "Support with a donation of any amount.",
+    "donationTitlePlaceholder": "My campaign",
+    "raised": "{{amount}} raised of goal",
+    "endsIn": "Ends in {{days}} days"
   },
   "share": {
     "copyLink": "Copy link",
@@ -155,7 +166,16 @@
     "customFieldTitle": "Custom field title",
     "customFieldPlaceholder": "e.g. Size, Color, Notes...",
     "addCustomField": "Add custom field",
+    "customFieldsLimit": "{{count}}/{{max}} fields",
+    "fieldTypeText": "Text",
+    "fieldTypeSelect": "Options",
+    "optionPlaceholder": "Option...",
+    "addOption": "Add option",
+    "requiredField": "Required",
+    "optionalField": "Optional",
     "tips": "Tips",
+    "tipPresets": "Tip percentages",
+    "allowCustomTip": "Allow custom amount",
     "confirmation": "Confirmation",
     "redirectAfterPayment": "Redirect to a website after the payment process",
     "redirectPlaceholder": "Website URL"
@@ -165,16 +185,24 @@
     "paymentProcess": "Payment process",
     "confirmation": "Confirmation",
     "articlePlaceholder": "Item",
+    "imagePlaceholder": "Product image",
     "subtotal": "Subtotal",
     "totalCalculated": "Total is calculated at checkout",
     "processPayment": "Proceed to payment",
     "orderSummary": "Order summary ({{count}} item)",
     "orderTotal": "Order total",
     "pay": "Pay",
+    "addTip": "Add a tip",
+    "tip": "Tip",
+    "customTip": "Other",
     "redirectMessage": "Your website will show after completing payment",
     "paymentConfirmed": "Your payment is confirmed.",
     "summary": "Summary",
-    "endingIn": "ending in"
+    "endingIn": "ending in",
+    "selectOne": "Select one",
+    "fulfillment": "How to get it",
+    "shipping": "Shipping",
+    "pickup": "Pickup at"
   },
   "confirm": {
     "archiveTitle": "Archive this payment link?",

@@ -18,11 +18,13 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import { exportToCSV, exportToExcel, formatCurrencyForExport, formatDateForExport, generateFilename } from '@/utils/export'
 import getIcon from '@/utils/getIcon'
 import {
+  AlertTriangle,
   Banknote,
   ChevronLeft,
   ChevronRight,
@@ -70,6 +72,9 @@ const AttendanceHeatmap = lazy(() => import('./components/AttendanceHeatmap').th
 const SalesHeatmap = lazy(() => import('./components/SalesHeatmap').then(m => ({ default: m.SalesHeatmap })))
 
 const VALID_TABS = ['operativo', 'checkin', 'ventas'] as const
+const STANDARD_REQUIRED_EVIDENCE_PHOTOS = 1
+const PORTABILITY_REQUIRED_EVIDENCE_PHOTOS = 2
+type SaleEvidenceType = 'portability' | 'linking' | 'unknown'
 type TabValue = (typeof VALID_TABS)[number]
 
 export function SupervisorDashboard() {
@@ -101,6 +106,7 @@ export function SupervisorDashboard() {
     lon: number | null
   } | null>(null)
   const [salePhotos, setSalePhotos] = useState<string[] | null>(null)
+  const [salePhotoTypes, setSalePhotoTypes] = useState<SaleEvidenceType[] | null>(null)
   const [salePhotoIndex, setSalePhotoIndex] = useState(0)
   const [locationDialog, setLocationDialog] = useState<{
     promoter: string
@@ -268,23 +274,84 @@ export function SupervisorDashboard() {
     return activityFeed.events
       .filter(e => e.type === 'sale')
       .slice(0, 10)
-      .map(e => ({
-        id: `#${e.id.slice(-6).toUpperCase()}`,
-        type: e.type as 'sale' | 'checkin',
-        store: e.venueName || '',
-        product: e.title,
-        iccid: (e.metadata?.iccid as string) || '--',
-        simType: e.type === 'sale' ? (e.metadata?.categoryName as string) || 'SIM' : null,
-        simColor: (e.metadata?.categoryColor as string) || DEFAULT_SIM_COLOR,
-        seller: e.staffName || '--',
-        amount: e.type === 'sale' ? (e.metadata?.total as number) || (e.metadata?.amount as number) || 0 : null,
-        paymentMethod: (e.metadata?.paymentMethod as string) || null,
-        cardBrand: (e.metadata?.cardBrand as string) || null,
-        isPortabilidad: (e.metadata?.tags as string[] | undefined)?.includes('portabilidad') ?? false,
-        photos: (e.metadata?.photos as string[]) || [],
-        timestamp: e.timestamp,
-      }))
+      .map(e => {
+        const metadata = (e.metadata ?? {}) as Record<string, unknown>
+        const tags = Array.isArray(e.metadata?.tags)
+          ? (e.metadata.tags as unknown[])
+              .filter((tag): tag is string => typeof tag === 'string')
+              .map(tag => tag.trim().toLowerCase())
+          : []
+        const sellerName = e.staffName?.trim() || '--'
+        const sellerUserFromMetadata = [
+          metadata.sellerUsername,
+          metadata.staffUsername,
+          metadata.username,
+          metadata.userName,
+          metadata.sellerUser,
+          metadata.staffUser,
+          metadata.staffEmail,
+          metadata.email,
+        ].find((value): value is string => typeof value === 'string' && value.trim().length > 0)
+        const sellerUser = sellerUserFromMetadata?.trim() || (e.staffId ? `ID:${e.staffId.slice(-6).toUpperCase()}` : null)
+        const isPortabilidad = tags.includes('portabilidad')
+        const isVinculacion = tags.includes('vinculacion') || tags.includes('vinculación')
+        const photos = Array.isArray(e.metadata?.photos) ? (e.metadata.photos as string[]).filter(Boolean) : []
+        const photoEvidenceTypes: SaleEvidenceType[] = photos.map((photoUrl, photoIndex) => {
+          // En flujo de portabilidad el orden de captura es fijo:
+          // foto 1 = vinculacion, foto 2 = portabilidad.
+          if (isPortabilidad && photos.length >= 2 && photoIndex < 2) {
+            return photoIndex === 0 ? 'linking' : 'portability'
+          }
+
+          const normalizedPhotoUrl = photoUrl.toLowerCase()
+          if (normalizedPhotoUrl.includes('vinculacion') || normalizedPhotoUrl.includes('vinculación') || normalizedPhotoUrl.includes('linking')) {
+            return 'linking'
+          }
+          if (normalizedPhotoUrl.includes('portabilidad') || normalizedPhotoUrl.includes('portability')) {
+            return 'portability'
+          }
+
+          // Fallback when backend does not provide per-photo type.
+          if (isPortabilidad) return 'portability'
+          if (isVinculacion) return 'linking'
+          return 'unknown'
+        })
+        const requiredEvidencePhotos = isPortabilidad ? PORTABILITY_REQUIRED_EVIDENCE_PHOTOS : STANDARD_REQUIRED_EVIDENCE_PHOTOS
+        const hasMissingEvidence = photos.length < requiredEvidencePhotos
+
+        return {
+          id: `#${e.id.slice(-6).toUpperCase()}`,
+          type: e.type as 'sale' | 'checkin',
+          store: e.venueName || '',
+          product: e.title,
+          iccid: (e.metadata?.iccid as string) || '--',
+          simType: e.type === 'sale' ? (e.metadata?.categoryName as string) || 'SIM' : null,
+          simColor: (e.metadata?.categoryColor as string) || DEFAULT_SIM_COLOR,
+          sellerName,
+          sellerUser,
+          amount: e.type === 'sale' ? (e.metadata?.total as number) || (e.metadata?.amount as number) || 0 : null,
+          paymentMethod: (e.metadata?.paymentMethod as string) || null,
+          cardBrand: (e.metadata?.cardBrand as string) || null,
+          isPortabilidad,
+          isVinculacion,
+          photos,
+          photoEvidenceTypes,
+          requiredEvidencePhotos,
+          hasMissingEvidence,
+          timestamp: e.timestamp,
+        }
+      })
   }, [activityFeed])
+
+  const getEvidenceTypeLabel = (type: SaleEvidenceType | undefined): string | null => {
+    if (type === 'portability') {
+      return t('playtelecom:supervisor.evidence.type.portability', { defaultValue: 'Portabilidad' })
+    }
+    if (type === 'linking') {
+      return t('playtelecom:supervisor.evidence.type.linking', { defaultValue: 'Vinculación' })
+    }
+    return null
+  }
 
   const storesOpen = overview?.activeStores ?? 0
   const totalStores = overview?.totalStores ?? venuesData?.length ?? storesOpen
@@ -381,17 +448,34 @@ export function SupervisorDashboard() {
     if (!activityFeed?.events?.length) return null
     const events = activityFeed.events.filter(e => e.type === 'sale')
     if (events.length === 0) return null
-    return events.map(e => ({
-      ID: e.id.slice(-6).toUpperCase(),
-      [t('playtelecom:supervisor.exportHeaders.store', { defaultValue: 'Tienda' })]: e.venueName || '',
-      [t('playtelecom:supervisor.exportHeaders.product', { defaultValue: 'Producto' })]: e.title,
-      ICCID: (e.metadata?.iccid as string) || '',
-      [t('playtelecom:supervisor.exportHeaders.seller', { defaultValue: 'Vendedor' })]: e.staffName || '',
-      [t('playtelecom:supervisor.exportHeaders.amount', { defaultValue: 'Monto' })]: formatCurrencyForExport(
-        (e.metadata?.total as number) || (e.metadata?.amount as number) || 0,
-      ),
-      [t('playtelecom:supervisor.exportHeaders.date', { defaultValue: 'Fecha' })]: formatDateForExport(e.timestamp),
-    }))
+    return events.map(e => {
+      const metadata = (e.metadata ?? {}) as Record<string, unknown>
+      const sellerName = e.staffName?.trim() || ''
+      const sellerUserFromMetadata = [
+        metadata.sellerUsername,
+        metadata.staffUsername,
+        metadata.username,
+        metadata.userName,
+        metadata.sellerUser,
+        metadata.staffUser,
+        metadata.staffEmail,
+        metadata.email,
+      ].find((value): value is string => typeof value === 'string' && value.trim().length > 0)
+      const sellerUser = sellerUserFromMetadata?.trim() || (e.staffId ? `ID:${e.staffId.slice(-6).toUpperCase()}` : '')
+
+      return {
+        ID: e.id.slice(-6).toUpperCase(),
+        [t('playtelecom:supervisor.exportHeaders.store', { defaultValue: 'Tienda' })]: e.venueName || '',
+        [t('playtelecom:supervisor.exportHeaders.product', { defaultValue: 'Producto' })]: e.title,
+        ICCID: (e.metadata?.iccid as string) || '',
+        [t('playtelecom:supervisor.exportHeaders.seller', { defaultValue: 'Vendedor' })]: sellerName,
+        [t('playtelecom:supervisor.exportHeaders.sellerUser', { defaultValue: 'Usuario vendedor' })]: sellerUser,
+        [t('playtelecom:supervisor.exportHeaders.amount', { defaultValue: 'Monto' })]: formatCurrencyForExport(
+          (e.metadata?.total as number) || (e.metadata?.amount as number) || 0,
+        ),
+        [t('playtelecom:supervisor.exportHeaders.date', { defaultValue: 'Fecha' })]: formatDateForExport(e.timestamp),
+      }
+    })
   }, [activityFeed, t])
 
   const handleExport = useCallback(
@@ -1035,30 +1119,153 @@ export function SupervisorDashboard() {
                           )}
                         </td>
                         <td className="px-6 py-3 text-center">
-                          {tx.photos.length > 0 ? (
-                            <button
-                              onClick={() => {
-                                setSalePhotos(tx.photos)
-                                setSalePhotoIndex(0)
-                              }}
-                              className="relative group inline-block cursor-pointer"
-                            >
-                              <img
-                                src={tx.photos[0]}
-                                alt="Evidencia"
-                                className="h-10 w-16 object-cover rounded border border-border shadow-sm transition-all group-hover:shadow-md group-hover:scale-105"
-                              />
-                              {tx.photos.length > 1 && (
-                                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                                  +{tx.photos.length - 1}
+                          {tx.photos.length >= 2 ? (
+                            <div className="relative inline-flex h-12 w-20 items-center justify-center group/evidence">
+                              {tx.photos.slice(0, 2).map((photo, photoIndex) => (
+                                <button
+                                  key={`${tx.id}-photo-${photoIndex}`}
+                                  onClick={() => {
+                                    setSalePhotos(tx.photos)
+                                    setSalePhotoTypes(tx.photoEvidenceTypes)
+                                    setSalePhotoIndex(photoIndex)
+                                  }}
+                                  className={cn(
+                                    'absolute h-10 w-16 overflow-hidden rounded border border-border shadow-sm transition-all duration-200 ease-out cursor-pointer hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+                                    photoIndex === 0
+                                      ? 'z-10 -translate-x-1 translate-y-1 group-hover/evidence:-translate-x-3 group-hover/evidence:translate-y-0'
+                                      : 'z-20 translate-x-1 -translate-y-1 group-hover/evidence:translate-x-3 group-hover/evidence:-translate-y-2'
+                                  )}
+                                >
+                                  <img src={photo} alt="Evidencia" className="h-full w-full object-cover" />
+                                  {getEvidenceTypeLabel(tx.photoEvidenceTypes[photoIndex]) != null && (
+                                    <span
+                                      className={cn(
+                                        'absolute left-0 top-0 z-30 max-w-[95%] rounded-br bg-black/80 px-1 py-0.5 text-[8px] font-semibold leading-none text-white pointer-events-none truncate transition-opacity',
+                                        photoIndex === 0 ? 'opacity-0 group-hover/evidence:opacity-100' : 'opacity-100'
+                                      )}
+                                    >
+                                      {getEvidenceTypeLabel(tx.photoEvidenceTypes[photoIndex])}
+                                    </span>
+                                  )}
+                                </button>
+                              ))}
+                              {tx.photos.length > 2 && (
+                                <span className="absolute -bottom-2 -right-1 z-40 bg-primary text-primary-foreground text-[9px] font-bold rounded-full min-w-4 h-4 px-1 flex items-center justify-center">
+                                  +{tx.photos.length - 2}
                                 </span>
                               )}
-                            </button>
+                              {tx.hasMissingEvidence && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="absolute -top-2 -right-2 z-50 inline-flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-white shadow">
+                                        <AlertTriangle className="h-2.5 w-2.5" />
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>
+                                        {t('playtelecom:supervisor.evidence.incomplete', {
+                                          defaultValue: 'Evidencia incompleta ({{uploaded}}/{{required}})',
+                                          uploaded: tx.photos.length,
+                                          required: tx.requiredEvidencePhotos,
+                                        })}
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                            </div>
+                          ) : tx.photos.length === 1 ? (
+                            tx.hasMissingEvidence ? (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      onClick={() => {
+                                        setSalePhotos(tx.photos)
+                                        setSalePhotoTypes(tx.photoEvidenceTypes)
+                                        setSalePhotoIndex(0)
+                                      }}
+                                      className="relative group inline-block cursor-pointer"
+                                    >
+                                      <img
+                                        src={tx.photos[0]}
+                                        alt="Evidencia"
+                                        className="h-10 w-16 object-cover rounded border border-border shadow-sm transition-all group-hover:shadow-md group-hover:scale-105"
+                                      />
+                                      {getEvidenceTypeLabel(tx.photoEvidenceTypes[0]) != null && (
+                                        <span className="absolute left-0 top-0 z-20 max-w-[95%] rounded-br bg-black/80 px-1 py-0.5 text-[8px] font-semibold leading-none text-white pointer-events-none truncate">
+                                          {getEvidenceTypeLabel(tx.photoEvidenceTypes[0])}
+                                        </span>
+                                      )}
+                                      <span className="absolute -top-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-white shadow pointer-events-none">
+                                        <AlertTriangle className="h-2.5 w-2.5" />
+                                      </span>
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>
+                                      {t('playtelecom:supervisor.evidence.incomplete', {
+                                        defaultValue: 'Evidencia incompleta ({{uploaded}}/{{required}})',
+                                        uploaded: tx.photos.length,
+                                        required: tx.requiredEvidencePhotos,
+                                      })}
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setSalePhotos(tx.photos)
+                                  setSalePhotoTypes(tx.photoEvidenceTypes)
+                                  setSalePhotoIndex(0)
+                                }}
+                                className="relative group inline-block cursor-pointer"
+                              >
+                                <img
+                                  src={tx.photos[0]}
+                                  alt="Evidencia"
+                                  className="h-10 w-16 object-cover rounded border border-border shadow-sm transition-all group-hover:shadow-md group-hover:scale-105"
+                                />
+                                {getEvidenceTypeLabel(tx.photoEvidenceTypes[0]) != null && (
+                                  <span className="absolute left-0 top-0 z-20 max-w-[95%] rounded-br bg-black/80 px-1 py-0.5 text-[8px] font-semibold leading-none text-white pointer-events-none truncate">
+                                    {getEvidenceTypeLabel(tx.photoEvidenceTypes[0])}
+                                  </span>
+                                )}
+                              </button>
+                            )
+                          ) : tx.hasMissingEvidence ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="inline-flex items-center justify-center text-amber-500">
+                                    <AlertTriangle className="w-4 h-4" />
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>
+                                    {t('playtelecom:supervisor.evidence.incomplete', {
+                                      defaultValue: 'Evidencia incompleta ({{uploaded}}/{{required}})',
+                                      uploaded: tx.photos.length,
+                                      required: tx.requiredEvidencePhotos,
+                                    })}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           ) : (
                             <span className="text-muted-foreground text-xs">—</span>
                           )}
                         </td>
-                        <td className="px-6 py-3 text-muted-foreground">{tx.seller}</td>
+                        <td className="px-6 py-3">
+                          <div className="leading-tight">
+                            <div className="text-foreground">{tx.sellerName}</div>
+                            {tx.sellerUser && (
+                              <div className="text-[10px] font-mono text-muted-foreground">{tx.sellerUser}</div>
+                            )}
+                          </div>
+                        </td>
                         <td className="px-6 py-3 text-right font-bold font-mono">
                           {tx.amount != null ? (
                             <div className="flex items-center justify-end gap-2">
@@ -1130,7 +1337,7 @@ export function SupervisorDashboard() {
         <DialogContent className="max-w-md p-0 overflow-hidden">
           {photoDialog && (
             <>
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-card">
+              <div className="flex items-center gap-2 pl-4 pr-14 py-3 border-b border-border/50 bg-card">
                 <User className="w-4 h-4 text-primary" />
                 <h3 className="font-semibold text-sm">
                   {photoDialog.promoter} — {photoDialog.label}
@@ -1164,20 +1371,36 @@ export function SupervisorDashboard() {
       </Dialog>
 
       {/* Sale Photo Preview Dialog */}
-      <Dialog open={!!salePhotos} onOpenChange={() => setSalePhotos(null)}>
+      <Dialog
+        open={!!salePhotos}
+        onOpenChange={open => {
+          if (!open) {
+            setSalePhotos(null)
+            setSalePhotoTypes(null)
+            setSalePhotoIndex(0)
+          }
+        }}
+      >
         <DialogContent className="max-w-lg p-0 overflow-hidden">
           {salePhotos && (
             <>
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-card">
+              <div className="flex items-center gap-2 pl-4 pr-14 py-3 border-b border-border/50 bg-card">
                 <Image className="w-4 h-4 text-primary" />
-                <h3 className="font-semibold text-sm">
-                  Evidencia de venta
-                  {salePhotos.length > 1 && (
-                    <span className="text-muted-foreground font-normal ml-1">
-                      ({salePhotoIndex + 1} / {salePhotos.length})
+                <div className="flex items-center gap-2 min-w-0">
+                  <h3 className="font-semibold text-sm">
+                    Evidencia de venta
+                    {salePhotos.length > 1 && (
+                      <span className="text-muted-foreground font-normal ml-1">
+                        ({salePhotoIndex + 1} / {salePhotos.length})
+                      </span>
+                    )}
+                  </h3>
+                  {getEvidenceTypeLabel(salePhotoTypes?.[salePhotoIndex]) && (
+                    <span className="shrink-0 rounded border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-semibold leading-none text-foreground">
+                      {getEvidenceTypeLabel(salePhotoTypes?.[salePhotoIndex])}
                     </span>
                   )}
-                </h3>
+                </div>
               </div>
               <div className="p-4 flex justify-center bg-background">
                 <img

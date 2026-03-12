@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import {
+  AlertTriangle,
   ArrowUpDown,
+  Banknote,
   Copy,
-  Link2,
+  Heart,
   MessageCircle,
   MoreHorizontal,
   Pause,
@@ -11,6 +13,7 @@ import {
   Play,
   Plus,
   Search,
+  Tag,
   Trash2,
   X,
 } from 'lucide-react'
@@ -30,6 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -44,6 +48,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useVenueDateTime } from '@/utils/datetime'
+import { ecommerceMerchantAPI } from '@/services/ecommerceMerchant.service'
 import paymentLinkService, { type PaymentLink } from '@/services/paymentLink.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
 
@@ -81,6 +86,18 @@ export default function PaymentLinks() {
       }),
   })
 
+  const {
+    data: ecommerceMerchants = [],
+    isLoading: isLoadingEcommerceMerchants,
+    isSuccess: isEcommerceCheckSuccess,
+  } = useQuery({
+    queryKey: ['ecommerce-merchants', venueId, 'active-for-payment-links'],
+    queryFn: () => ecommerceMerchantAPI.listByVenue(venueId, { limit: 1 }),
+    enabled: !!venueId,
+  })
+
+  const isEcommerceExplicitlyMissing = isEcommerceCheckSuccess && ecommerceMerchants.length === 0
+
   const links = useMemo(() => {
     let result = allLinks
     // Client-side multi-status filter (API supports single status)
@@ -99,8 +116,8 @@ export default function PaymentLinks() {
     },
     onError: (error: any) => {
       toast({
-        title: tCommon('common.error'),
-        description: error.response?.data?.message || t('toasts.error'),
+        title: tCommon('error'),
+        description: error.response?.data?.message || error.response?.data?.error || t('toasts.error'),
         variant: 'destructive',
       })
     },
@@ -115,8 +132,8 @@ export default function PaymentLinks() {
     },
     onError: (error: any) => {
       toast({
-        title: tCommon('common.error'),
-        description: error.response?.data?.message || t('toasts.error'),
+        title: tCommon('error'),
+        description: error.response?.data?.message || error.response?.data?.error || t('toasts.error'),
         variant: 'destructive',
       })
     },
@@ -124,8 +141,7 @@ export default function PaymentLinks() {
 
   // ─── Helpers ─────────────────────────────────────────────
   const formatPrice = useCallback(
-    (price: number, currency: string) =>
-      new Intl.NumberFormat(getIntlLocale(i18n.language), { style: 'currency', currency }).format(price),
+    (price: number, currency: string) => new Intl.NumberFormat(getIntlLocale(i18n.language), { style: 'currency', currency }).format(price),
     [i18n.language],
   )
 
@@ -163,14 +179,11 @@ export default function PaymentLinks() {
     }
   }, [])
 
-  const getFilterDisplayLabel = useCallback(
-    (values: string[], label: string, labels: Record<string, string>): string => {
-      if (values.length === 0) return label
-      if (values.length === 1) return `${label}: ${labels[values[0]] || values[0]}`
-      return `${label}: ${values.length}`
-    },
-    [],
-  )
+  const getFilterDisplayLabel = useCallback((values: string[], label: string, labels: Record<string, string>): string => {
+    if (values.length === 0) return label
+    if (values.length === 1) return `${label}: ${labels[values[0]] || values[0]}`
+    return `${label}: ${values.length}`
+  }, [])
 
   const handleCopyLink = useCallback(
     async (shortCode: string) => {
@@ -195,6 +208,14 @@ export default function PaymentLinks() {
   )
 
   const openCreate = () => {
+    if (isEcommerceExplicitlyMissing) {
+      toast({
+        title: tCommon('error'),
+        description: t('requirements.createBlocked'),
+        variant: 'destructive',
+      })
+      return
+    }
     setEditingLinkId(undefined)
     setDialogKey(prev => prev + 1)
     setShowForm(true)
@@ -216,21 +237,22 @@ export default function PaymentLinks() {
             <ArrowUpDown className="w-4 h-4 ml-2" />
           </Button>
         ),
-        cell: ({ row }) => (
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted">
-              <Link2 className="w-4 h-4 text-muted-foreground" />
+        cell: ({ row }) => {
+          const PurposeIcon = row.original.purpose === 'ITEM' ? Tag : row.original.purpose === 'DONATION' ? Heart : Banknote
+          return (
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted shrink-0">
+                <PurposeIcon className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
+              </div>
+              <div>
+                <div className="font-medium">{row.original.title}</div>
+                {row.original.description && (
+                  <div className="text-sm text-muted-foreground truncate max-w-[200px]">{row.original.description}</div>
+                )}
+              </div>
             </div>
-            <div>
-              <div className="font-medium">{row.original.title}</div>
-              {row.original.description && (
-                <div className="text-sm text-muted-foreground truncate max-w-[200px]">
-                  {row.original.description}
-                </div>
-              )}
-            </div>
-          </div>
-        ),
+          )
+        },
       },
       {
         accessorKey: 'amount',
@@ -246,9 +268,7 @@ export default function PaymentLinks() {
         accessorKey: 'status',
         header: t('list.columns.status'),
         cell: ({ row }) => (
-          <Badge variant={statusBadgeVariant(row.original.status)}>
-            {statusLabels[row.original.status] || row.original.status}
-          </Badge>
+          <Badge variant={statusBadgeVariant(row.original.status)}>{statusLabels[row.original.status] || row.original.status}</Badge>
         ),
       },
       {
@@ -259,20 +279,12 @@ export default function PaymentLinks() {
       {
         accessorKey: 'totalCollected',
         header: t('list.columns.totalCollected'),
-        cell: ({ row }) => (
-          <span className="text-sm font-medium">
-            {formatPrice(row.original.totalCollected, row.original.currency)}
-          </span>
-        ),
+        cell: ({ row }) => <span className="text-sm font-medium">{formatPrice(row.original.totalCollected, row.original.currency)}</span>,
       },
       {
         accessorKey: 'createdAt',
         header: t('list.columns.createdAt'),
-        cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground">
-            {formatDate(row.original.createdAt)}
-          </span>
-        ),
+        cell: ({ row }) => <span className="text-sm text-muted-foreground">{formatDate(row.original.createdAt)}</span>,
       },
       {
         id: 'actions',
@@ -317,9 +329,7 @@ export default function PaymentLinks() {
                 {row.original.status === 'ACTIVE' && (
                   <PermissionGate permission="payment-link:create">
                     <DropdownMenuItem
-                      onClick={() =>
-                        toggleStatusMutation.mutate({ linkId: row.original.id, status: 'PAUSED' })
-                      }
+                      onClick={() => toggleStatusMutation.mutate({ linkId: row.original.id, status: 'PAUSED' })}
                       className="cursor-pointer"
                     >
                       <Pause className="h-4 w-4 mr-2" />
@@ -331,9 +341,7 @@ export default function PaymentLinks() {
                 {row.original.status === 'PAUSED' && (
                   <PermissionGate permission="payment-link:create">
                     <DropdownMenuItem
-                      onClick={() =>
-                        toggleStatusMutation.mutate({ linkId: row.original.id, status: 'ACTIVE' })
-                      }
+                      onClick={() => toggleStatusMutation.mutate({ linkId: row.original.id, status: 'ACTIVE' })}
                       className="cursor-pointer"
                     >
                       <Play className="h-4 w-4 mr-2" />
@@ -345,10 +353,7 @@ export default function PaymentLinks() {
                 <DropdownMenuSeparator />
 
                 <PermissionGate permission="payment-link:create">
-                  <DropdownMenuItem
-                    onClick={() => setArchivingLink(row.original)}
-                    className="text-destructive cursor-pointer"
-                  >
+                  <DropdownMenuItem onClick={() => setArchivingLink(row.original)} className="text-destructive cursor-pointer">
                     <Trash2 className="h-4 w-4 mr-2" />
                     {t('actions.archive')}
                   </DropdownMenuItem>
@@ -359,7 +364,7 @@ export default function PaymentLinks() {
         ),
       },
     ],
-    [t, formatPrice, formatDate, statusBadgeVariant, statusLabels, handleCopyLink, handleWhatsApp],
+    [t, formatPrice, formatDate, statusBadgeVariant, statusLabels, handleCopyLink, handleWhatsApp, toggleStatusMutation],
   )
 
   // ─── Render ──────────────────────────────────────────────
@@ -373,12 +378,23 @@ export default function PaymentLinks() {
         </div>
 
         <PermissionGate permission="payment-link:create">
-          <Button onClick={openCreate} className="cursor-pointer">
+          <Button onClick={openCreate} className="cursor-pointer" disabled={isLoadingEcommerceMerchants || isEcommerceExplicitlyMissing}>
             <Plus className="h-4 w-4 mr-2" />
             {t('create')}
           </Button>
         </PermissionGate>
       </div>
+
+      {isEcommerceExplicitlyMissing && (
+        <Alert className="mb-4 border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100">
+          <AlertTriangle className="h-4 w-4 text-amber-700 dark:text-amber-300" />
+          <AlertTitle>{t('requirements.merchantMissingTitle')}</AlertTitle>
+          <AlertDescription className="text-amber-800 dark:text-amber-200">
+            <p>{t('emptyState.noEcommerce')}</p>
+            <p>{t('requirements.createBlocked')}</p>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -408,12 +424,7 @@ export default function PaymentLinks() {
               </Button>
             </div>
           ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 rounded-full cursor-pointer"
-              onClick={() => setIsSearchOpen(true)}
-            >
+            <Button variant="outline" size="sm" className="h-9 rounded-full cursor-pointer" onClick={() => setIsSearchOpen(true)}>
               <Search className="h-4 w-4 mr-2" />
               {t('list.search')}
             </Button>

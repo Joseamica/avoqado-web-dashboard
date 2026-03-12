@@ -44,6 +44,17 @@
   "features": "Fonctionnalités",
   "modules": "Modules",
   "system": "État du système",
+  "reportsMenu": {
+    "title": "Rapports",
+    "payLaterAging": "Comptes clients",
+    "salesSummary": "Résumé des ventes",
+    "salesByItem": "Ventes par article",
+    "salesByCategory": "Ventes par catégorie",
+    "paymentMethods": "Moyens de paiement",
+    "taxes": "Taxes",
+    "voids": "Annulations",
+    "modifiers": "Modificateurs"
+  },
   "reports": "Rapports",
   "support": "Support",
   "admin": "Administration",

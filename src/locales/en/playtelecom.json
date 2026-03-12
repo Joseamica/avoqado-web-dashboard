@@ -453,6 +453,13 @@
       "checkin": "Check-in",
       "ventas": "Sales"
     },
+    "evidence": {
+      "incomplete": "Incomplete evidence ({{uploaded}}/{{required}})",
+      "type": {
+        "portability": "Portability",
+        "linking": "Linking"
+      }
+    },
     "attendanceHeatmap": {
       "title": "Attendance Map",
       "present": "Present",

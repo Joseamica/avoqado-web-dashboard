@@ -67,6 +67,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import VenueModuleManagementDialog from './components/VenueModuleManagementDialog'
 import BulkVenueCreationDialog from './components/BulkVenueCreationDialog'
+import CreateVenueWizard from './components/CreateVenueWizard'
 import { cn } from '@/lib/utils'
 
 // ============================================================================
@@ -326,6 +327,7 @@ const VenueManagement: React.FC = () => {
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false)
   const [newStatus, setNewStatus] = useState<string>('')
   const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false)
+  const [isCreateWizardOpen, setIsCreateWizardOpen] = useState(false)
 
   // Filter venues
   const filteredVenues = useMemo(() => {
@@ -470,13 +472,23 @@ const VenueManagement: React.FC = () => {
             Administra y supervisa todos los venues de la plataforma
           </p>
         </div>
-        <Button
-          onClick={() => navigate('/superadmin/bulk-onboarding')}
-          className="cursor-pointer"
-        >
-          <Upload className="w-4 h-4 mr-2" />
-          Carga Masiva
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/superadmin/bulk-onboarding')}
+            className="cursor-pointer"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Carga Masiva
+          </Button>
+          <Button
+            onClick={() => setIsCreateWizardOpen(true)}
+            className="cursor-pointer"
+          >
+            <Store className="w-4 h-4 mr-2" />
+            Crear Venue
+          </Button>
+        </div>
       </div>
 
       {/* Metrics Grid */}
@@ -1031,6 +1043,11 @@ const VenueManagement: React.FC = () => {
       <BulkVenueCreationDialog
         open={isBulkDialogOpen}
         onOpenChange={setIsBulkDialogOpen}
+      />
+
+      <CreateVenueWizard
+        open={isCreateWizardOpen}
+        onOpenChange={setIsCreateWizardOpen}
       />
     </div>
   )
