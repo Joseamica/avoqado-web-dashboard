@@ -1,13 +1,18 @@
 // src/pages/Payments.tsx
 
 import api from '@/api'
+import { AddToAIButton } from '@/components/AddToAIButton'
 import DataTable from '@/components/data-table'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { FilterPill, CheckboxFilterContent, AmountFilterContent, ColumnCustomizer, type AmountFilter } from '@/components/filters'
+import {
+  AmountFilterContent,
+  CheckboxFilterContent,
+  ColumnCustomizer,
+  DateFilterContent,
+  FilterPill,
+  type AmountFilter,
+  type DateFilter,
+} from '@/components/filters'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,40 +23,33 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { AddToAIButton } from '@/components/AddToAIButton'
-import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
-import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { useDebounce } from '@/hooks/useDebounce'
-import { useSocketEvents } from '@/hooks/use-socket-events'
+import { SelectionSummaryBar } from '@/components/selection-summary-bar'
 import { useAuth } from '@/context/AuthContext'
-import { commissionService } from '@/services/commission.service'
-import { Payment as PaymentType, StaffRole, PaymentMethod, PaymentStatus, PaymentRecordType } from '@/types'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useSocketEvents } from '@/hooks/use-socket-events'
+import { useToast } from '@/hooks/use-toast'
+import { useDebounce } from '@/hooks/useDebounce'
 import { cn } from '@/lib/utils'
+import { commissionService } from '@/services/commission.service'
+import { PaymentMethod, PaymentRecordType, PaymentStatus, Payment as PaymentType, StaffRole } from '@/types'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
-import { exportToCSV, exportToExcel, generateFilename, formatCurrencyForExport } from '@/utils/export'
+import { exportToCSV, exportToExcel, formatCurrencyForExport, generateFilename } from '@/utils/export'
 import getIcon from '@/utils/getIcon'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import {
-  ArrowUpDown,
-  Banknote,
-  Bitcoin,
-  Download,
-  Pencil,
-  RotateCcw,
-  Search,
-  Trash2,
-  X,
-} from 'lucide-react'
-import { SelectionSummaryBar } from '@/components/selection-summary-bar'
-import { useMemo, useState, useCallback, useEffect } from 'react'
+import { ArrowUpDown, Banknote, Bitcoin, Download, Pencil, RotateCcw, Search, Trash2, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
-import { useToast } from '@/hooks/use-toast'
 
 export default function Payments() {
   const { t } = useTranslation('payment')
@@ -84,6 +82,7 @@ export default function Payments() {
   const [methodFilter, setMethodFilter] = useState<string[]>([])
   const [sourceFilter, setSourceFilter] = useState<string[]>([])
   const [waiterFilter, setWaiterFilter] = useState<string[]>([])
+  const [dateFilter, setDateFilter] = useState<DateFilter | null>(null)
   const [subtotalFilter, setSubtotalFilter] = useState<AmountFilter | null>(null)
   const [tipFilter, setTipFilter] = useState<AmountFilter | null>(null)
   const [totalFilter, setTotalFilter] = useState<AmountFilter | null>(null)
@@ -108,16 +107,56 @@ export default function Payments() {
   // Reset pagination when filters change (using debounced search to avoid flicker)
   useEffect(() => {
     setPagination(prev => ({ ...prev, pageIndex: 0 }))
-  }, [merchantAccountFilter, methodFilter, sourceFilter, waiterFilter, subtotalFilter, tipFilter, totalFilter, debouncedSearchTerm])
+  }, [
+    merchantAccountFilter,
+    methodFilter,
+    sourceFilter,
+    waiterFilter,
+    dateFilter,
+    subtotalFilter,
+    tipFilter,
+    totalFilter,
+    debouncedSearchTerm,
+  ])
+
+  // Convert DateFilter to startDate/endDate ISO strings for the API
+  const dateParams = useMemo(() => {
+    if (!dateFilter) return {}
+    const now = new Date()
+    if (dateFilter.operator === 'last' && typeof dateFilter.value === 'number' && dateFilter.unit) {
+      const ms = { hours: 3600000, days: 86400000, weeks: 604800000, months: 2592000000 }
+      return { startDate: new Date(now.getTime() - dateFilter.value * ms[dateFilter.unit]).toISOString() }
+    }
+    if (dateFilter.operator === 'after' && dateFilter.value) {
+      return { startDate: new Date(dateFilter.value as string).toISOString() }
+    }
+    if (dateFilter.operator === 'before' && dateFilter.value) {
+      return { endDate: new Date((dateFilter.value as string) + 'T23:59:59').toISOString() }
+    }
+    if (dateFilter.operator === 'between' && dateFilter.value && dateFilter.value2) {
+      return {
+        startDate: new Date(dateFilter.value as string).toISOString(),
+        endDate: new Date(dateFilter.value2 + 'T23:59:59').toISOString(),
+      }
+    }
+    if (dateFilter.operator === 'on' && dateFilter.value) {
+      return {
+        startDate: new Date(dateFilter.value as string).toISOString(),
+        endDate: new Date((dateFilter.value as string) + 'T23:59:59').toISOString(),
+      }
+    }
+    return {}
+  }, [dateFilter])
 
   // Fetch payments - client-side filtering for multi-select support
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['payments', venueId, pagination.pageIndex, pagination.pageSize],
+    queryKey: ['payments', venueId, pagination.pageIndex, pagination.pageSize, dateParams],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payments`, {
         params: {
           page: pagination.pageIndex + 1,
           pageSize: pagination.pageSize,
+          ...dateParams,
         },
       })
       return response.data
@@ -585,18 +624,18 @@ export default function Payments() {
             payment.method === 'CASH'
               ? t('methods.cash')
               : payment.method === 'CREDIT_CARD'
-              ? t('methods.creditCard')
-              : payment.method === 'DEBIT_CARD'
-              ? t('methods.debitCard')
-              : payment.method === 'DIGITAL_WALLET'
-              ? t('methods.digitalWallet')
-              : payment.method === 'BANK_TRANSFER'
-              ? t('methods.bankTransfer')
-              : (payment.method as string) === 'CRYPTOCURRENCY'
-              ? t('methods.cryptocurrency')
-              : payment.method === 'OTHER'
-              ? t('methods.other')
-              : t('methods.card')
+                ? t('methods.creditCard')
+                : payment.method === 'DEBIT_CARD'
+                  ? t('methods.debitCard')
+                  : payment.method === 'DIGITAL_WALLET'
+                    ? t('methods.digitalWallet')
+                    : payment.method === 'BANK_TRANSFER'
+                      ? t('methods.bankTransfer')
+                      : (payment.method as string) === 'CRYPTOCURRENCY'
+                        ? t('methods.cryptocurrency')
+                        : payment.method === 'OTHER'
+                          ? t('methods.other')
+                          : t('methods.card')
 
           // CAMBIO: `last4` y `cardBrand` podrían estar en `processorData`.
           // Simplificamos si no están directamente disponibles.
@@ -757,20 +796,23 @@ export default function Payments() {
                 }
 
                 const profit = Number(payment.transactionCost.grossProfit) || 0
-                const margin = Number(payment.transactionCost.profitMargin) || 0
+                const txAmount = Number(payment.transactionCost.amount) || 0
+                const realMargin = txAmount > 0 ? profit / Math.abs(txAmount) : 0
                 const providerCost = Number(payment.transactionCost.providerCostAmount) || 0
+                const providerFixed = Number(payment.transactionCost.providerFixedFee) || 0
                 const venueCharge = Number(payment.transactionCost.venueChargeAmount) || 0
+                const venueFixed = Number(payment.transactionCost.venueFixedFee) || 0
 
                 // For refunds, always use red styling (negative profit)
                 if (isRefund) {
                   return (
                     <div
                       className="flex flex-col items-start"
-                      title={`${t('types.refund')} | Provider: ${Currency(Math.abs(providerCost))} | Venue: ${Currency(
-                        Math.abs(venueCharge),
+                      title={`${t('types.refund')} | Provider: ${Currency(Math.abs(providerCost + providerFixed))} | Venue: ${Currency(
+                        Math.abs(venueCharge + venueFixed),
                       )}`}
                     >
-                      <span className="text-xs text-red-500 dark:text-red-400">−{(Math.abs(margin) * 100).toFixed(2)}%</span>
+                      <span className="text-xs text-red-500 dark:text-red-400">−{(Math.abs(realMargin) * 100).toFixed(2)}%</span>
                       <Badge
                         variant="outline"
                         className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border-red-200 dark:border-red-800 text-xs px-2 py-0.5"
@@ -781,21 +823,21 @@ export default function Payments() {
                   )
                 }
 
-                // Color based on profit margin for regular payments
+                // Color based on real profit margin (% of transaction)
                 let profitClasses = {
                   bg: 'bg-emerald-100 dark:bg-emerald-900/30',
                   text: 'text-emerald-800 dark:text-emerald-400',
                   border: 'border-emerald-200 dark:border-emerald-800',
                 }
-                if (margin < 0.01) {
-                  // Less than 1% margin
+                if (realMargin < 0.002) {
+                  // Less than 0.2% of transaction
                   profitClasses = {
                     bg: 'bg-red-100 dark:bg-red-900/30',
                     text: 'text-red-800 dark:text-red-400',
                     border: 'border-red-200 dark:border-red-800',
                   }
-                } else if (margin >= 0.01 && margin < 0.02) {
-                  // 1-2% margin
+                } else if (realMargin < 0.005) {
+                  // 0.2-0.5% of transaction
                   profitClasses = {
                     bg: 'bg-yellow-100 dark:bg-yellow-900/30',
                     text: 'text-yellow-800 dark:text-yellow-400',
@@ -806,9 +848,9 @@ export default function Payments() {
                 return (
                   <div
                     className="flex flex-col items-start"
-                    title={`Provider: ${Currency(providerCost)} | Venue: ${Currency(venueCharge)}`}
+                    title={`Provider: ${Currency(providerCost + providerFixed)} | Venue: ${Currency(venueCharge + venueFixed)}`}
                   >
-                    <span className="text-xs text-muted-foreground dark:text-foreground">{(margin * 100).toFixed(2)}%</span>
+                    <span className="text-xs text-muted-foreground dark:text-foreground">{(realMargin * 100).toFixed(2)}%</span>
                     <Badge
                       variant="outline"
                       className={`${profitClasses.bg} ${profitClasses.text} ${profitClasses.border} text-xs px-2 py-0.5`}
@@ -857,13 +899,13 @@ export default function Payments() {
             {
               id: 'actions',
               header: () => (
-                <span className="text-sm font-medium bg-gradient-to-r from-amber-400 to-pink-500 bg-clip-text text-transparent">
+                <span className="text-sm font-medium bg-linear-to-r from-amber-400 to-pink-500 bg-clip-text text-transparent">
                   Superadmin
                 </span>
               ),
               cell: ({ row }: { row: { original: PaymentType } }) => (
                 <div className="flex items-center justify-end">
-                  <div className="flex items-center gap-1 p-1 rounded-lg bg-gradient-to-r from-amber-400 to-pink-500">
+                  <div className="flex items-center gap-1 p-1 rounded-lg bg-linear-to-r from-amber-400 to-pink-500">
                     <Button
                       size="icon"
                       className="h-7 w-7 bg-background hover:bg-muted text-foreground border-0"
@@ -1055,6 +1097,23 @@ export default function Payments() {
             {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
           </div>
 
+          {/* Date Filter Pill */}
+          <FilterPill
+            label={t('columns.date')}
+            activeValue={
+              dateFilter
+                ? dateFilter.operator === 'last'
+                  ? `${dateFilter.value} ${dateFilter.unit}`
+                  : dateFilter.operator === 'between'
+                    ? `${dateFilter.value} — ${dateFilter.value2}`
+                    : `${dateFilter.operator} ${dateFilter.value}`
+                : undefined
+            }
+            onClear={() => setDateFilter(null)}
+          >
+            <DateFilterContent value={dateFilter} onApply={setDateFilter} />
+          </FilterPill>
+
           {/* Merchant Account Filter Pill */}
           <FilterPill
             label={t('columns.merchantAccount')}
@@ -1092,10 +1151,10 @@ export default function Payments() {
                   method === 'CASH'
                     ? t('methods.cash')
                     : method === 'CREDIT_CARD'
-                    ? t('methods.creditCard')
-                    : method === 'DEBIT_CARD'
-                    ? t('methods.debitCard')
-                    : t('methods.card'),
+                      ? t('methods.creditCard')
+                      : method === 'DEBIT_CARD'
+                        ? t('methods.debitCard')
+                        : t('methods.card'),
               })),
             )}
             isActive={methodFilter.length > 0}
@@ -1109,10 +1168,10 @@ export default function Payments() {
                   method === 'CASH'
                     ? t('methods.cash')
                     : method === 'CREDIT_CARD'
-                    ? t('methods.creditCard')
-                    : method === 'DEBIT_CARD'
-                    ? t('methods.debitCard')
-                    : t('methods.card'),
+                      ? t('methods.creditCard')
+                      : method === 'DEBIT_CARD'
+                        ? t('methods.debitCard')
+                        : t('methods.card'),
               }))}
               selectedValues={methodFilter}
               onApply={setMethodFilter}
@@ -1289,8 +1348,19 @@ export default function Payments() {
           { label: t('columns.subtotal'), getValue: row => Math.abs(Number(row.amount) || 0) },
           { label: t('columns.tip'), getValue: row => Number(row.tipAmount) || 0 },
           { label: t('columns.total'), getValue: row => Math.abs(Number(row.amount) || 0) + (Number(row.tipAmount) || 0) },
+          {
+            label: t('detail.summary.toBank'),
+            getValue: row => {
+              const total = Math.abs(Number(row.amount) || 0) + (Number(row.tipAmount) || 0)
+              const fee = (Number(row.transactionCost?.venueChargeAmount) || 0) + (Number(row.transactionCost?.venueFixedFee) || 0)
+              return total - fee
+            },
+          },
         ]}
-        onClear={() => { setSelectedPayments([]); setClearSelectionTrigger(v => v + 1) }}
+        onClear={() => {
+          setSelectedPayments([])
+          setClearSelectionTrigger(v => v + 1)
+        }}
       />
 
       {/* Delete confirmation dialog (SUPERADMIN only) */}
@@ -1398,8 +1468,8 @@ export default function Payments() {
             </div>
 
             {/* Total preview */}
-            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-amber-500/10 to-pink-500/10 rounded-lg border border-amber-400/30">
-              <span className="text-sm font-medium bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent">
+            <div className="flex items-center justify-between p-3 bg-linear-to-r from-amber-500/10 to-pink-500/10 rounded-lg border border-amber-400/30">
+              <span className="text-sm font-medium bg-linear-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent">
                 {t('columns.total')}
               </span>
               <span className="text-lg font-semibold">{Currency(editValues.amount + editValues.tipAmount)}</span>
@@ -1413,7 +1483,7 @@ export default function Payments() {
             <Button
               onClick={confirmEdit}
               disabled={updatePaymentMutation.isPending}
-              className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground border-0"
+              className="bg-linear-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground border-0"
             >
               {updatePaymentMutation.isPending ? tCommon('saving') : tCommon('save')}
             </Button>

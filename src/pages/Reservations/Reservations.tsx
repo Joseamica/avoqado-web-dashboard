@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { CalendarDays, Clock, Search, Users, X, AlertTriangle, Plus } from 'lucide-react'
+import { AlertTriangle, CalendarDays, Clock, Plus, Search, Users, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type MutableRefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -11,23 +11,18 @@ import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { PermissionGate } from '@/components/PermissionGate'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useDebounce } from '@/hooks/useDebounce'
-import { useVenueDateTime } from '@/utils/datetime'
 import reservationService from '@/services/reservation.service'
 import type { Reservation } from '@/types/reservation'
+import { useVenueDateTime } from '@/utils/datetime'
 
-import { CreateReservationForm } from './CreateReservation'
 import { CreateClassSessionDialog } from './components/CreateClassSessionDialog'
 import { ReservationStatusBadge } from './components/ReservationStatusBadge'
+import { CreateReservationForm } from './CreateReservation'
 
 type TabValue = 'all' | 'pending' | 'confirmed' | 'today' | 'noShow'
 
@@ -41,7 +36,7 @@ const TAB_TO_STATUS: Record<TabValue, string | undefined> = {
 
 export default function Reservations() {
   const { t } = useTranslation('reservations')
-  const { t: tCommon } = useTranslation()
+  const { t: _tCommon } = useTranslation()
   const { venueId, fullBasePath } = useCurrentVenue()
   const { formatDate, formatTime, formatDateISO } = useVenueDateTime()
   const location = useLocation()
@@ -307,9 +302,7 @@ export default function Reservations() {
                 }`}
               >
                 {t(`tabs.${tab}`)}
-                {activeTab === tab && (
-                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-                )}
+                {activeTab === tab && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
               </button>
             ))}
           </nav>
@@ -398,10 +391,7 @@ export default function Reservations() {
       </FullScreenModal>
 
       {/* Create Class Session Dialog */}
-      <CreateClassSessionDialog
-        open={showClassModal}
-        onOpenChange={setShowClassModal}
-      />
+      <CreateClassSessionDialog open={showClassModal} onOpenChange={setShowClassModal} />
     </div>
   )
 }

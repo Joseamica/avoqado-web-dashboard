@@ -306,7 +306,8 @@
       "totalCharged": "Total Charged",
       "transactionFee": "Transaction Fee",
       "netAmount": "Net Amount",
-      "feeAmount": "Fee Amount"
+      "feeAmount": "Fee Amount",
+      "toBank": "To Bank"
     },
     "settlement": {
       "title": "Settlement Status",

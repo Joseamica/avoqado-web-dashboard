@@ -40,6 +40,7 @@
   "currentPeriod": "Periodo actual",
   "total": "Total",
   "noChange": "Sin cambios",
+  "dataNotAvailable": "Datos no disponibles",
   "table": "Mesa",
   "tableTexts": {
     "paymentsList": "Lista de los pagos realizados."
@@ -111,6 +112,72 @@
     "BEVERAGE": "Bebida",
     "OTHER": "Otros"
   },
+  "salesByWeekday": {
+    "title": "Ventas por Día",
+    "desc": "Distribución de ingresos por día de la semana"
+  },
+  "categoryMix": {
+    "title": "Mix de Categorías",
+    "desc": "Ingresos por categoría de producto"
+  },
+  "channelMix": {
+    "title": "Mix de Canales",
+    "desc": "Ingresos por canal de venta"
+  },
+  "salesHeatmap": {
+    "title": "Mapa de Calor",
+    "desc": "Volumen de órdenes por hora y día"
+  },
+  "discountAnalysis": {
+    "title": "Análisis de Descuentos",
+    "desc": "Desglose de descuentos por tipo"
+  },
+  "reservationOverview": {
+    "title": "Resumen de Reservaciones",
+    "desc": "Estado de las reservaciones"
+  },
+  "staffRanking": {
+    "title": "Ranking de Personal",
+    "desc": "Personal con mejores ventas"
+  },
+  "weekdays": {
+    "mon": "Lun",
+    "tue": "Mar",
+    "wed": "Mié",
+    "thu": "Jue",
+    "fri": "Vie",
+    "sat": "Sáb",
+    "sun": "Dom"
+  },
+  "weekdaysFull": {
+    "mon": "Lunes",
+    "tue": "Martes",
+    "wed": "Miércoles",
+    "thu": "Jueves",
+    "fri": "Viernes",
+    "sat": "Sábado",
+    "sun": "Domingo"
+  },
+  "channels": {
+    "DINE_IN": "En sitio",
+    "TAKEOUT": "Para llevar",
+    "DELIVERY": "Delivery",
+    "PICKUP": "Recoger"
+  },
+  "reservationStatus": {
+    "CONFIRMED": "Confirmada",
+    "COMPLETED": "Completada",
+    "CANCELLED": "Cancelada",
+    "NO_SHOW": "No Show"
+  },
+  "staffRankingCols": {
+    "rank": "#",
+    "name": "Nombre",
+    "role": "Rol",
+    "sales": "Ventas",
+    "orders": "Órdenes",
+    "tips": "Propinas"
+  },
   "error": {
     "failedTitle": "Error al cargar datos del dashboard",
     "unknown": "Ocurrió un error desconocido"
@@ -121,6 +188,16 @@
     "totalTips": "Total propinas",
     "avgTipPercentage": "Promedio propinas %",
     "totalTransactions": "Total transacciones",
-    "avgTicket": "Ticket promedio"
+    "avgTicket": "Ticket promedio",
+    "totalOrders": "Órdenes totales",
+    "avgItemsPerOrder": "Artículos por orden",
+    "uniqueCustomers": "Clientes únicos",
+    "totalDiscounts": "Total descuentos",
+    "avgCovers": "Comensales promedio",
+    "totalLaborHours": "Horas laborales",
+    "splh": "Ventas por hora laboral",
+    "totalReservations": "Reservaciones",
+    "noShowRate": "No-show %",
+    "cancellationRate": "Cancelación %"
   }
 }

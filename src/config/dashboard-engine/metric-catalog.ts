@@ -1,0 +1,178 @@
+/**
+ * Dashboard Engine — Metric Catalog
+ *
+ * 16 KPI metrics available for dashboard hero cards.
+ * Each valueKey/changeKey maps to useDashboardData() return values.
+ */
+
+import type { MetricDefinition } from './types'
+
+export const METRIC_CATALOG: Record<string, MetricDefinition> = {
+  // ==========================================
+  // Original 6 KPIs (existing backend data)
+  // ==========================================
+  total_sales: {
+    id: 'total_sales',
+    nameKey: 'cards.totalSales',
+    format: 'currency',
+    iconName: 'DollarSign',
+    requiredDataModules: ['payments'],
+    trendGoodWhen: 'up',
+    valueKey: 'totalAmount',
+    changeKey: 'amountChangePercentage',
+  },
+  five_star_reviews: {
+    id: 'five_star_reviews',
+    nameKey: 'cards.fiveStars',
+    format: 'number',
+    iconName: 'Star',
+    requiredDataModules: ['reviews'],
+    trendGoodWhen: 'up',
+    valueKey: 'fiveStarReviews',
+    changeKey: 'reviewsChangePercentage',
+  },
+  total_tips: {
+    id: 'total_tips',
+    nameKey: 'cards.totalTips',
+    format: 'currency',
+    iconName: 'Gift',
+    requiredDataModules: ['payments', 'tips'],
+    trendGoodWhen: 'up',
+    valueKey: 'tipStats.totalTips',
+    changeKey: 'tipsChangePercentage',
+  },
+  avg_tip_pct: {
+    id: 'avg_tip_pct',
+    nameKey: 'cards.avgTipPercentage',
+    format: 'percentage',
+    iconName: 'Percent',
+    requiredDataModules: ['payments', 'tips'],
+    trendGoodWhen: 'up',
+    valueKey: 'tipStats.avgTipPercentage',
+    changeKey: 'tipAvgChangePercentage',
+  },
+  total_transactions: {
+    id: 'total_transactions',
+    nameKey: 'cards.totalTransactions',
+    format: 'number',
+    iconName: 'Hash',
+    requiredDataModules: ['payments'],
+    trendGoodWhen: 'up',
+    valueKey: 'totalTransactions',
+    changeKey: 'transactionsChangePercentage',
+  },
+  avg_ticket: {
+    id: 'avg_ticket',
+    nameKey: 'cards.avgTicket',
+    format: 'currency',
+    iconName: 'Receipt',
+    requiredDataModules: ['payments'],
+    trendGoodWhen: 'up',
+    valueKey: 'avgTicket',
+    changeKey: 'avgTicketChangePercentage',
+  },
+
+  // ==========================================
+  // 10 New KPIs (leveraging existing backend data)
+  // ==========================================
+  total_orders: {
+    id: 'total_orders',
+    nameKey: 'cards.totalOrders',
+    format: 'number',
+    iconName: 'ShoppingCart',
+    requiredDataModules: ['orders'],
+    trendGoodWhen: 'up',
+    valueKey: 'orderStats.totalOrders',
+    changeKey: 'orderStats.totalOrdersChange',
+  },
+  avg_items_per_order: {
+    id: 'avg_items_per_order',
+    nameKey: 'cards.avgItemsPerOrder',
+    format: 'number',
+    iconName: 'Package',
+    requiredDataModules: ['orders'],
+    trendGoodWhen: 'up',
+    valueKey: 'orderStats.avgItemsPerOrder',
+    changeKey: 'orderStats.avgItemsPerOrderChange',
+  },
+  unique_customers: {
+    id: 'unique_customers',
+    nameKey: 'cards.uniqueCustomers',
+    format: 'number',
+    iconName: 'Users',
+    requiredDataModules: ['orders'],
+    trendGoodWhen: 'up',
+    valueKey: 'orderStats.uniqueCustomers',
+    changeKey: 'orderStats.uniqueCustomersChange',
+  },
+  total_discounts: {
+    id: 'total_discounts',
+    nameKey: 'cards.totalDiscounts',
+    format: 'currency',
+    iconName: 'TagIcon',
+    requiredDataModules: ['orders'],
+    trendGoodWhen: 'down',
+    valueKey: 'orderStats.totalDiscounts',
+    changeKey: 'orderStats.totalDiscountsChange',
+  },
+  avg_covers: {
+    id: 'avg_covers',
+    nameKey: 'cards.avgCovers',
+    format: 'number',
+    iconName: 'Armchair',
+    requiredDataModules: ['orders'],
+    trendGoodWhen: 'up',
+    valueKey: 'orderStats.avgCovers',
+    changeKey: 'orderStats.avgCoversChange',
+  },
+  total_labor_hours: {
+    id: 'total_labor_hours',
+    nameKey: 'cards.totalLaborHours',
+    format: 'number',
+    iconName: 'Clock',
+    requiredDataModules: ['staff_performance'],
+    trendGoodWhen: 'up',
+    valueKey: 'laborStats.totalLaborHours',
+    changeKey: 'laborStats.totalLaborHoursChange',
+  },
+  splh: {
+    id: 'splh',
+    nameKey: 'cards.splh',
+    format: 'currency',
+    iconName: 'TrendingUp',
+    requiredDataModules: ['payments', 'staff_performance'],
+    trendGoodWhen: 'up',
+    valueKey: 'splh',
+    changeKey: 'splhChange',
+  },
+  total_reservations: {
+    id: 'total_reservations',
+    nameKey: 'cards.totalReservations',
+    format: 'number',
+    iconName: 'CalendarCheck',
+    requiredDataModules: ['reservations'],
+    trendGoodWhen: 'up',
+    valueKey: 'reservationStats.total',
+    changeKey: 'reservationStats.totalChange',
+  },
+  no_show_rate: {
+    id: 'no_show_rate',
+    nameKey: 'cards.noShowRate',
+    format: 'percentage',
+    iconName: 'UserX',
+    requiredDataModules: ['reservations'],
+    trendGoodWhen: 'down',
+    valueKey: 'reservationStats.noShowRate',
+    changeKey: 'reservationStats.noShowRateChange',
+  },
+  cancellation_rate: {
+    id: 'cancellation_rate',
+    nameKey: 'cards.cancellationRate',
+    format: 'percentage',
+    iconName: 'XCircle',
+    requiredDataModules: ['reservations'],
+    trendGoodWhen: 'down',
+    valueKey: 'reservationStats.cancellationRate',
+    changeKey: 'reservationStats.cancellationRateChange',
+  },
+}

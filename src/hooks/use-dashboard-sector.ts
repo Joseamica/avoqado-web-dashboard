@@ -1,8 +1,8 @@
 /**
  * Dashboard Sector Hook
  *
- * Returns the dashboard configuration (visible sections + KPI cards)
- * for the active venue's business sector.
+ * @deprecated Use `useDashboardPack` from `@/hooks/use-dashboard-pack` instead.
+ * This hook is replaced by the dashboard engine registry.
  *
  * @example
  * ```tsx

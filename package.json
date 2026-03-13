@@ -15,6 +15,7 @@
     "check:endpoints": "node scripts/check-endpoints.js",
     "check:endpoints:verbose": "node scripts/check-endpoints.js --verbose",
     "pre-deploy": "bash scripts/pre-deploy-check.sh",
+    "pre-deploy:smart": "bash scripts/pre-deploy-check.sh --smart --jobs=3 --max-old-space-size=8192",
     "deploy": "npm run build && wrangler pages deploy",
     "deploy:preview": "npm run build && wrangler pages deploy --env preview",
     "check:unused": "unimported",

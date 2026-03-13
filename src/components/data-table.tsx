@@ -19,7 +19,7 @@ import {
   VisibilityState,
   ColumnSizingState,
 } from '@tanstack/react-table'
-import { Dispatch, ReactNode, SetStateAction, useCallback, useEffect, useState, useMemo } from 'react'
+import { Dispatch, ReactNode, SetStateAction, useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { DataTablePagination } from './pagination'
 import TableSkeleton from './skeleton-table'
 
@@ -109,6 +109,47 @@ function DataTable<TData>({
     }
   })
 
+  // Drag-to-select: hold mousedown on checkbox column and drag to select multiple rows
+  const dragRef = useRef<{ active: boolean; startIdx: number; selectValue: boolean }>({
+    active: false,
+    startIdx: -1,
+    selectValue: true,
+  })
+
+  const handleDragStart = useCallback((rowIndex: number, isCurrentlySelected: boolean) => {
+    dragRef.current = { active: true, startIdx: rowIndex, selectValue: !isCurrentlySelected }
+  }, [])
+
+  const handleDragEnter = useCallback((rowIndex: number) => {
+    if (!dragRef.current.active) return
+    const { startIdx, selectValue } = dragRef.current
+    const min = Math.min(startIdx, rowIndex)
+    const max = Math.max(startIdx, rowIndex)
+    setRowSelection(prev => {
+      const next = { ...prev }
+      for (let i = min; i <= max; i++) {
+        if (selectValue) {
+          next[i] = true
+        } else {
+          delete next[i]
+        }
+      }
+      return next
+    })
+  }, [])
+
+  const handleDragEnd = useCallback(() => {
+    dragRef.current.active = false
+  }, [])
+
+  // Global mouseup listener to end drag even if mouse leaves the table
+  useEffect(() => {
+    if (!enableRowSelectionProp) return
+    const onMouseUp = () => { dragRef.current.active = false }
+    window.addEventListener('mouseup', onMouseUp)
+    return () => window.removeEventListener('mouseup', onMouseUp)
+  }, [enableRowSelectionProp])
+
   // Search state (internal, used when not controlled via searchValue/onSearchChange)
   const [internalSearchTerm, setInternalSearchTerm] = useState('')
   const isControlledSearch = searchValue !== undefined
@@ -152,14 +193,22 @@ function DataTable<TData>({
       },
       cell: ({ row }) => (
         <div
-          className="flex items-center justify-center"
+          className="flex items-center justify-center -mx-4 -my-3 px-4 py-3 cursor-pointer select-none"
           onClick={e => { e.stopPropagation(); e.preventDefault() }}
+          onMouseDown={e => {
+            e.stopPropagation()
+            e.preventDefault()
+            row.toggleSelected(!row.getIsSelected())
+            handleDragStart(row.index, row.getIsSelected())
+          }}
+          onMouseEnter={() => handleDragEnter(row.index)}
+          onMouseUp={handleDragEnd}
         >
           <Checkbox
             checked={row.getIsSelected()}
-            onCheckedChange={value => row.toggleSelected(!!value)}
+            tabIndex={-1}
             aria-label="Select row"
-            className="translate-y-[2px]"
+            className="translate-y-[2px] pointer-events-none"
           />
         </div>
       ),
@@ -364,7 +413,11 @@ function DataTable<TData>({
           table.getRowModel().rows.map(row => {
             const customRowClass = getRowClassName?.(row.original) || ''
             const subContent = renderSubComponent?.(row.original)
-            if (clickableRow) {
+            // When selection mode is active (any row selected) and row selection is enabled,
+            // clicking anywhere on the row toggles selection instead of navigating.
+            // This prevents accidental navigation when users miss the small checkbox target.
+            const isSelectionModeActive = enableRowSelectionProp && Object.keys(rowSelection).length > 0
+            if (clickableRow && !isSelectionModeActive) {
               const { to, state } = clickableRow(row.original)
               return (
                 <TableBody key={row.id}>
@@ -373,6 +426,7 @@ function DataTable<TData>({
                     to={to}
                     state={state}
                     className={`bg-background border-border ${row.getIsSelected() ? 'bg-primary/5 dark:bg-primary/10' : ''} ${customRowClass}`}
+                    onMouseEnter={() => handleDragEnter(row.index)}
                   >
                     {row.getVisibleCells().map(cell => (
                       <TableCell
@@ -395,9 +449,16 @@ function DataTable<TData>({
                 <TableRow
                   data-state={row.getIsSelected() && 'selected'}
                   className={`bg-background border-border ${row.getIsSelected() ? 'bg-primary/5! dark:bg-primary/10!' : 'data-[state=selected]:bg-background'} ${
-                    onRowClick ? 'cursor-pointer transition-colors hover:bg-muted/30' : 'hover:bg-background'
+                    onRowClick || isSelectionModeActive ? 'cursor-pointer transition-colors hover:bg-muted/30' : 'hover:bg-background'
                   } ${subContent ? 'group-hover:bg-muted/30' : ''} ${customRowClass}`}
-                  onClick={() => onRowClick?.(row.original)}
+                  onClick={() => {
+                    if (isSelectionModeActive) {
+                      row.toggleSelected(!row.getIsSelected())
+                    } else {
+                      onRowClick?.(row.original)
+                    }
+                  }}
+                  onMouseEnter={() => handleDragEnter(row.index)}
                 >
                   {row.getVisibleCells().map(cell => (
                     <TableCell
