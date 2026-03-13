@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
 import { AlertTriangle, Loader2, Trash2, Users, X } from 'lucide-react'
 import { useEffect, useMemo, useRef } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { TimePicker } from '@/components/ui/time-picker'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
@@ -66,6 +67,7 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
   const { toast } = useToast()
 
   const {
+    control,
     register,
     handleSubmit,
     watch,
@@ -263,12 +265,21 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
             <div className={productDuration ? '' : 'grid grid-cols-2 gap-3'}>
               <div className="space-y-1.5">
                 <Label htmlFor="edit-startTime">{t('form.fields.startTime')}</Label>
-                <Input
-                  id="edit-startTime"
-                  type="time"
-                  {...register('startTime')}
-                  disabled={isReadOnly}
-                  className={errors.startTime ? 'border-destructive' : ''}
+                <Controller
+                  control={control}
+                  name="startTime"
+                  render={({ field }) => (
+                    <TimePicker
+                      id="edit-startTime"
+                      value={field.value || undefined}
+                      onChange={time => field.onChange(time)}
+                      placeholder="--:--"
+                      label=""
+                      allowManualInput
+                      disabled={isReadOnly}
+                      error={!!errors.startTime}
+                    />
+                  )}
                 />
                 {errors.startTime && <p className="text-xs text-destructive">{errors.startTime.message}</p>}
                 {productDuration && editStartTime && (
@@ -284,12 +295,21 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
               {!productDuration && (
                 <div className="space-y-1.5">
                   <Label htmlFor="edit-endTime">{t('form.fields.endTime')}</Label>
-                  <Input
-                    id="edit-endTime"
-                    type="time"
-                    {...register('endTime')}
-                    disabled={isReadOnly}
-                    className={errors.endTime ? 'border-destructive' : ''}
+                  <Controller
+                    control={control}
+                    name="endTime"
+                    render={({ field }) => (
+                      <TimePicker
+                        id="edit-endTime"
+                        value={field.value || undefined}
+                        onChange={time => field.onChange(time)}
+                        placeholder="--:--"
+                        label=""
+                        allowManualInput
+                        disabled={isReadOnly}
+                        error={!!errors.endTime}
+                      />
+                    )}
                   />
                   {errors.endTime && <p className="text-xs text-destructive">{errors.endTime.message}</p>}
                 </div>

@@ -111,6 +111,72 @@
     "BEVERAGE": "Beverage",
     "OTHER": "Other"
   },
+  "salesByWeekday": {
+    "title": "Sales by Weekday",
+    "desc": "Revenue distribution across weekdays"
+  },
+  "categoryMix": {
+    "title": "Category Mix",
+    "desc": "Revenue by product category"
+  },
+  "channelMix": {
+    "title": "Channel Mix",
+    "desc": "Revenue by order channel"
+  },
+  "salesHeatmap": {
+    "title": "Sales Heatmap",
+    "desc": "Order volume by hour and weekday"
+  },
+  "discountAnalysis": {
+    "title": "Discount Analysis",
+    "desc": "Discount breakdown by type"
+  },
+  "reservationOverview": {
+    "title": "Reservations Overview",
+    "desc": "Reservation status summary"
+  },
+  "staffRanking": {
+    "title": "Staff Ranking",
+    "desc": "Top performing staff by sales"
+  },
+  "weekdays": {
+    "mon": "Mon",
+    "tue": "Tue",
+    "wed": "Wed",
+    "thu": "Thu",
+    "fri": "Fri",
+    "sat": "Sat",
+    "sun": "Sun"
+  },
+  "weekdaysFull": {
+    "mon": "Monday",
+    "tue": "Tuesday",
+    "wed": "Wednesday",
+    "thu": "Thursday",
+    "fri": "Friday",
+    "sat": "Saturday",
+    "sun": "Sunday"
+  },
+  "channels": {
+    "DINE_IN": "Dine-in",
+    "TAKEOUT": "Takeout",
+    "DELIVERY": "Delivery",
+    "PICKUP": "Pickup"
+  },
+  "reservationStatus": {
+    "CONFIRMED": "Confirmed",
+    "COMPLETED": "Completed",
+    "CANCELLED": "Cancelled",
+    "NO_SHOW": "No Show"
+  },
+  "staffRankingCols": {
+    "rank": "#",
+    "name": "Name",
+    "role": "Role",
+    "sales": "Sales",
+    "orders": "Orders",
+    "tips": "Tips"
+  },
   "error": {
     "failedTitle": "Failed to load dashboard data",
     "unknown": "An unknown error occurred"
@@ -119,6 +185,18 @@
     "totalSales": "Total sales",
     "fiveStars": "Google 5-stars",
     "totalTips": "Total tips",
-    "avgTipPercentage": "Average tips %"
+    "avgTipPercentage": "Average tips %",
+    "totalTransactions": "Total transactions",
+    "avgTicket": "Average ticket",
+    "totalOrders": "Total orders",
+    "avgItemsPerOrder": "Items per order",
+    "uniqueCustomers": "Unique customers",
+    "totalDiscounts": "Total discounts",
+    "avgCovers": "Avg. covers",
+    "totalLaborHours": "Labor hours",
+    "splh": "Sales per labor hour",
+    "totalReservations": "Reservations",
+    "noShowRate": "No-show %",
+    "cancellationRate": "Cancellation %"
   }
 }

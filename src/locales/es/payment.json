@@ -306,7 +306,8 @@
       "totalCharged": "Total Cobrado",
       "transactionFee": "Costo de Transacción",
       "netAmount": "Monto Neto",
-      "feeAmount": "Comisión"
+      "feeAmount": "Comisión",
+      "toBank": "A Bancos"
     },
     "settlement": {
       "title": "Estado de Liquidación",

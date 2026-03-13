@@ -265,6 +265,69 @@ export const useDashboardData = () => {
     return getComparisonPercentage(avgTicket, compareAvgTicket)
   }, [avgTicket, compareAvgTicket])
 
+  // New order stats from enhanced basic-metrics (backend provides these directly)
+  const orderStats = useMemo(() => {
+    const stats = basicData?.orderStats
+    const compareStats = compareData?.orderStats
+    if (!stats) {
+      return {
+        totalOrders: 0,
+        avgItemsPerOrder: 0,
+        uniqueCustomers: 0,
+        totalDiscounts: 0,
+        avgCovers: 0,
+        totalOrdersChange: 0,
+        avgItemsPerOrderChange: 0,
+        uniqueCustomersChange: 0,
+        totalDiscountsChange: 0,
+        avgCoversChange: 0,
+      }
+    }
+    return {
+      ...stats,
+      totalOrdersChange: compareStats ? getComparisonPercentage(stats.totalOrders, compareStats.totalOrders) : 0,
+      avgItemsPerOrderChange: compareStats ? getComparisonPercentage(stats.avgItemsPerOrder, compareStats.avgItemsPerOrder) : 0,
+      uniqueCustomersChange: compareStats ? getComparisonPercentage(stats.uniqueCustomers, compareStats.uniqueCustomers) : 0,
+      totalDiscountsChange: compareStats ? getComparisonPercentage(stats.totalDiscounts, compareStats.totalDiscounts) : 0,
+      avgCoversChange: compareStats ? getComparisonPercentage(stats.avgCovers, compareStats.avgCovers) : 0,
+    }
+  }, [basicData?.orderStats, compareData?.orderStats])
+
+  // New labor stats from enhanced basic-metrics
+  const laborStats = useMemo(() => {
+    const stats = basicData?.laborStats
+    const compareStats = compareData?.laborStats
+    if (!stats) {
+      return { totalLaborHours: 0, activeShifts: 0, totalLaborHoursChange: 0 }
+    }
+    return {
+      ...stats,
+      totalLaborHoursChange: compareStats ? getComparisonPercentage(stats.totalLaborHours, compareStats.totalLaborHours) : 0,
+    }
+  }, [basicData?.laborStats, compareData?.laborStats])
+
+  // SPLH = Sales Per Labor Hour
+  const splh = useMemo(() => {
+    if (!laborStats.totalLaborHours || laborStats.totalLaborHours === 0) return 0
+    return totalAmount / laborStats.totalLaborHours
+  }, [totalAmount, laborStats.totalLaborHours])
+
+  const splhChange = useMemo(() => {
+    const compareLaborHours = compareData?.laborStats?.totalLaborHours || 0
+    const compareSplh = compareLaborHours > 0 ? compareAmount / compareLaborHours : 0
+    return getComparisonPercentage(splh, compareSplh)
+  }, [splh, compareAmount, compareData?.laborStats?.totalLaborHours])
+
+  // Reservation stats (placeholder — will be populated when backend provides them)
+  const reservationStats = useMemo(() => ({
+    total: 0,
+    noShowRate: 0,
+    cancellationRate: 0,
+    totalChange: 0,
+    noShowRateChange: 0,
+    cancellationRateChange: 0,
+  }), [])
+
   return {
     venueId,
     activeVenue,
@@ -305,5 +368,11 @@ export const useDashboardData = () => {
     avgTicket,
     transactionsChangePercentage,
     avgTicketChangePercentage,
+    // New engine-driven values
+    orderStats,
+    laborStats,
+    splh,
+    splhChange,
+    reservationStats,
   }
 }

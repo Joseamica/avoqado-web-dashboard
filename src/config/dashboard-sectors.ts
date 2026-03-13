@@ -1,8 +1,9 @@
 /**
  * Dashboard Sector Configuration
  *
- * Declarative config for which chart sections and KPI cards
- * are visible per business sector on the Home dashboard.
+ * @deprecated Use `@/config/dashboard-engine` instead. This file is kept
+ * only for the KpiCardId type used by DashboardMetrics. Will be removed
+ * once DashboardMetrics is fully migrated to the engine types.
  */
 
 import type { BusinessCategory } from '@/types'

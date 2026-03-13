@@ -1,143 +1,124 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { DollarSign, Gift, Hash, Percent, Receipt, Star } from 'lucide-react'
+import {
+  Armchair,
+  CalendarCheck,
+  Clock,
+  DollarSign,
+  Gift,
+  Hash,
+  Package,
+  Percent,
+  Receipt,
+  ShoppingCart,
+  Star,
+  TagIcon,
+  TrendingUp,
+  UserX,
+  Users,
+  XCircle,
+} from 'lucide-react'
 import { MetricCard } from '@/components/home/metrics'
 import { Currency } from '@/utils/currency'
-import type { KpiCardId } from '@/config/dashboard-sectors'
+import type { MetricDefinition } from '@/config/dashboard-engine'
 
-// Simple icon components
-const DollarIcon = () => <DollarSign className="h-5 w-5 text-blue-500" />
-const StarIcon = () => <Star className="h-5 w-5 text-yellow-500" />
-const TipIcon = () => <Gift className="h-5 w-5 text-green-500" />
-const PercentIcon = () => <Percent className="h-5 w-5 text-purple-500" />
-const TransactionsIcon = () => <Hash className="h-5 w-5 text-indigo-500" />
-const TicketIcon = () => <Receipt className="h-5 w-5 text-orange-500" />
-
-interface DashboardMetricsProps {
-  isBasicLoading: boolean
-  totalAmount: number
-  compareType: any
-  amountChangePercentage: number
-  comparisonLabel: string
-  isCompareLoading: boolean
-  fiveStarReviews: number
-  reviewsChangePercentage: number
-  tipStats: { totalTips: number; avgTipPercentage: number | string }
-  tipsChangePercentage: number
-  tipAvgChangePercentage: number
-  totalTransactions: number
-  avgTicket: number
-  transactionsChangePercentage: number
-  avgTicketChangePercentage: number
-  kpiCards?: KpiCardId[]
+// Icon map — maps iconName string to React element
+const ICON_MAP: Record<string, React.ReactNode> = {
+  DollarSign: <DollarSign className="h-5 w-5 text-blue-500" />,
+  Star: <Star className="h-5 w-5 text-yellow-500" />,
+  Gift: <Gift className="h-5 w-5 text-green-500" />,
+  Percent: <Percent className="h-5 w-5 text-purple-500" />,
+  Hash: <Hash className="h-5 w-5 text-indigo-500" />,
+  Receipt: <Receipt className="h-5 w-5 text-orange-500" />,
+  ShoppingCart: <ShoppingCart className="h-5 w-5 text-cyan-500" />,
+  Package: <Package className="h-5 w-5 text-teal-500" />,
+  Users: <Users className="h-5 w-5 text-pink-500" />,
+  TagIcon: <TagIcon className="h-5 w-5 text-red-500" />,
+  Armchair: <Armchair className="h-5 w-5 text-amber-500" />,
+  Clock: <Clock className="h-5 w-5 text-slate-500" />,
+  TrendingUp: <TrendingUp className="h-5 w-5 text-emerald-500" />,
+  CalendarCheck: <CalendarCheck className="h-5 w-5 text-violet-500" />,
+  UserX: <UserX className="h-5 w-5 text-rose-500" />,
+  XCircle: <XCircle className="h-5 w-5 text-red-400" />,
 }
 
-interface CardDefinition {
-  title: string
-  value: string | number | null
-  icon: React.ReactNode
-  percentage: number | null
+// Resolve a dot-path like 'tipStats.totalTips' from an object
+function resolvePath(obj: any, path: string): any {
+  return path.split('.').reduce((acc, key) => acc?.[key], obj)
+}
+
+interface DashboardMetricsProps {
+  metricDefinitions: MetricDefinition[]
+  dashboardData: any
+  isBasicLoading: boolean
+  compareType: any
+  comparisonLabel: string
+  isCompareLoading: boolean
 }
 
 export const DashboardMetrics = ({
+  metricDefinitions,
+  dashboardData,
   isBasicLoading,
-  totalAmount,
   compareType,
-  amountChangePercentage,
   comparisonLabel,
   isCompareLoading,
-  fiveStarReviews,
-  reviewsChangePercentage,
-  tipStats,
-  tipsChangePercentage,
-  tipAvgChangePercentage,
-  totalTransactions,
-  avgTicket,
-  transactionsChangePercentage,
-  avgTicketChangePercentage,
-  kpiCards,
 }: DashboardMetricsProps) => {
   const { t } = useTranslation('home')
 
-  // Build card definitions map
-  const cardDefinitions = useMemo((): Record<KpiCardId, CardDefinition> => ({
-    totalSales: {
-      title: t('cards.totalSales'),
-      value: isBasicLoading ? null : Currency(totalAmount),
-      icon: <DollarIcon />,
-      percentage: compareType ? amountChangePercentage : null,
-    },
-    fiveStarReviews: {
-      title: t('cards.fiveStars'),
-      value: isBasicLoading ? null : fiveStarReviews,
-      icon: <StarIcon />,
-      percentage: compareType ? reviewsChangePercentage : null,
-    },
-    totalTips: {
-      title: t('cards.totalTips'),
-      value: isBasicLoading ? null : Currency(tipStats.totalTips, false),
-      icon: <TipIcon />,
-      percentage: compareType ? tipsChangePercentage : null,
-    },
-    avgTipPercentage: {
-      title: t('cards.avgTipPercentage'),
-      value: isBasicLoading ? null : `${tipStats.avgTipPercentage}%`,
-      icon: <PercentIcon />,
-      percentage: compareType ? tipAvgChangePercentage : null,
-    },
-    totalTransactions: {
-      title: t('cards.totalTransactions'),
-      value: isBasicLoading ? null : totalTransactions,
-      icon: <TransactionsIcon />,
-      percentage: compareType ? transactionsChangePercentage : null,
-    },
-    avgTicket: {
-      title: t('cards.avgTicket'),
-      value: isBasicLoading ? null : Currency(avgTicket),
-      icon: <TicketIcon />,
-      percentage: compareType ? avgTicketChangePercentage : null,
-    },
-  }), [
-    t,
-    isBasicLoading,
-    totalAmount,
-    compareType,
-    amountChangePercentage,
-    fiveStarReviews,
-    reviewsChangePercentage,
-    tipStats,
-    tipsChangePercentage,
-    tipAvgChangePercentage,
-    totalTransactions,
-    transactionsChangePercentage,
-    avgTicket,
-    avgTicketChangePercentage,
-  ])
+  const cards = useMemo(() => {
+    return metricDefinitions.map(metric => {
+      const rawValue = resolvePath(dashboardData, metric.valueKey)
+      const changeValue = resolvePath(dashboardData, metric.changeKey)
 
-  // Default cards if no kpiCards prop
-  const activeCards: KpiCardId[] = kpiCards || ['totalSales', 'fiveStarReviews', 'totalTips', 'avgTipPercentage']
+      let formattedValue: string | number | null = null
+      if (!isBasicLoading && rawValue !== undefined && rawValue !== null) {
+        switch (metric.format) {
+          case 'currency':
+            formattedValue = Currency(Number(rawValue))
+            break
+          case 'percentage':
+            formattedValue = `${rawValue}%`
+            break
+          case 'number':
+            formattedValue = typeof rawValue === 'number'
+              ? (Number.isInteger(rawValue) ? rawValue : Number(rawValue.toFixed(1)))
+              : rawValue
+            break
+        }
+      }
 
-  // Dynamic grid columns based on card count
-  const gridCols = activeCards.length <= 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4'
+      return {
+        id: metric.id,
+        title: t(metric.nameKey),
+        value: formattedValue,
+        icon: ICON_MAP[metric.iconName] || <DollarSign className="h-5 w-5 text-muted-foreground" />,
+        percentage: compareType ? (changeValue ?? null) : null,
+      }
+    })
+  }, [metricDefinitions, dashboardData, isBasicLoading, compareType, t])
+
+  // Dynamic grid: 3 cols for ≤3 cards, 4 cols for 4, 6 cols for 5-6
+  const gridCols = cards.length <= 3
+    ? 'lg:grid-cols-3'
+    : cards.length <= 4
+      ? 'lg:grid-cols-4'
+      : 'lg:grid-cols-3 xl:grid-cols-6'
 
   return (
     <div className={`grid grid-cols-2 ${gridCols} gap-4`}>
-      {activeCards.map(cardId => {
-        const card = cardDefinitions[cardId]
-        if (!card) return null
-        return (
-          <MetricCard
-            key={cardId}
-            title={card.title}
-            value={card.value}
-            isLoading={isBasicLoading}
-            icon={card.icon}
-            percentage={card.percentage}
-            comparisonLabel={comparisonLabel}
-            isPercentageLoading={compareType ? isCompareLoading : false}
-          />
-        )
-      })}
+      {cards.map(card => (
+        <MetricCard
+          key={card.id}
+          title={card.title}
+          value={card.value}
+          isLoading={isBasicLoading}
+          icon={card.icon}
+          percentage={card.percentage}
+          comparisonLabel={comparisonLabel}
+          isPercentageLoading={compareType ? isCompareLoading : false}
+        />
+      ))}
     </div>
   )
 }

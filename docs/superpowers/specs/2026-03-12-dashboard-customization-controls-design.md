@@ -12,6 +12,7 @@ The dashboard engine renders a tailored layout per business category, but users 
 | Control placement | Gear icon in sticky header | Always accessible, never in the way (Square/Toast pattern) |
 | Chart alignment | Fixed height per section type | Consistent visual rhythm in split/weighted rows |
 | Controls included | KPI selection, layout density, section reorder, reset defaults | User chose 4 of 5 options; excluded show/hide sections |
+| Reorder UX | Hybrid: inline edit mode for sections (Shopify/Grafana pattern) | Dragging actual sections > dragging a list of names in a drawer |
 
 ## Architecture
 
@@ -59,13 +60,13 @@ function useDashboardPreferences(
 
 ### Integration Points
 
-**1. DashboardHeader** — Add gear icon button (Settings icon from lucide-react) next to the Export dropdown. The button opens a Sheet.
+**1. DashboardHeader** — Add gear icon button (Settings icon from lucide-react) next to the Export dropdown. Opens a Sheet for KPI/density settings. Also has an "Edit layout" button inside the Sheet that closes the Sheet and activates edit mode.
 
-**2. DashboardRenderer** — Receives `visibleKpis`, `orderedRows`, and `density` instead of raw `resolvedDashboard`. Applies density-aware CSS classes.
+**2. DashboardRenderer** — Receives `visibleKpis`, `orderedRows`, `density`, and `isEditMode` instead of raw `resolvedDashboard`. Applies density-aware CSS classes. When `isEditMode=true`, wraps each row in a draggable container with dashed borders + section labels.
 
 **3. DashboardMetrics** — Already accepts `metricDefinitions[]`, so it receives the filtered/reordered array from the hook. No changes needed.
 
-**4. Home.tsx** — Adds `useDashboardPreferences` call, threads preferences through to DashboardRenderer and DashboardHeader.
+**4. Home.tsx** — Adds `useDashboardPreferences` call, manages `isEditMode` state, threads preferences through to DashboardRenderer and DashboardHeader.
 
 ## UI Components
 
@@ -78,7 +79,7 @@ function useDashboardPreferences(
 
 ### Sheet Panel: `DashboardControlsSheet`
 
-Right-side Sheet (`w-[400px] sm:w-[450px]`, matching existing SalesSummary Sheet pattern). Four sections stacked vertically with clear visual separation. Sheet open/close state is managed inside `DashboardHeader` to avoid prop bloat.
+Right-side Sheet (`w-[400px] sm:w-[450px]`, matching existing SalesSummary Sheet pattern). Three sections stacked vertically. Sheet open/close state is managed inside `DashboardHeader` to avoid prop bloat.
 
 **Section 1: KPI Cards**
 
@@ -90,7 +91,7 @@ Shows the full list of KPIs available for the current category (from `resolvedDa
 - Metric name (from i18n)
 - Metric icon
 
-Uses `@dnd-kit/sortable` for drag-and-drop reorder. Validation: min 2 checked, max 6. If user tries to uncheck below 2, the checkbox is disabled with a tooltip.
+Uses `@dnd-kit/sortable` for drag-and-drop reorder within the Sheet. Validation: min 2 checked, max 6. If user tries to uncheck below 2, the checkbox is disabled with a tooltip.
 
 Applied vs. Pending pattern: Changes are applied immediately (no Apply button). Each toggle/reorder writes to localStorage via the hook. This is simpler than SalesSummary's pending pattern because the dashboard re-renders cheaply.
 
@@ -106,26 +107,45 @@ Visual preview: small inline illustration showing the grid density difference (4
 
 Applied immediately on selection.
 
-**Section 3: Section Order**
+**Section 3: Edit Layout + Reset**
 
 Title: "Orden de secciones" / "Section order"
 
-Drag-and-drop list of all chart rows. Each item shows:
-- Drag handle (GripVertical)
-- Section title (derived from first chart's titleKey)
-- Section layout indicator (icon showing full/split/weighted)
+An "Edit layout" button that:
+1. Closes the Sheet
+2. Activates inline edit mode on the dashboard (sets `isEditMode=true`)
 
-Uses `@dnd-kit/sortable` with `DndContext` + `SortableContext` + `KeyboardSensor` + `sortableKeyboardCoordinates` for keyboard accessibility (follow pattern in `Step4Preview.tsx` and `draggable-multi-select.tsx`). Items are identified by `row.id`.
-
-Applied immediately on drop.
-
-**Section 4: Reset**
-
-A single `Button` with `variant="destructive"` at the bottom:
+Below it, a `Button` with `variant="destructive"`:
 - Label: "Restaurar defaults" / "Reset to defaults"
 - Clears localStorage for this venue
 - Resets all controls to engine defaults
 - Shows a brief toast confirmation
+
+### Inline Edit Mode (Section Reorder)
+
+When `isEditMode=true`, the dashboard enters a visual editing state (Shopify/Grafana/Datadog pattern):
+
+**Header changes:**
+- Date filters, export, and gear icon are hidden
+- An indigo gradient badge "EDITANDO LAYOUT" appears
+- Two buttons: "Cancelar" (discards changes, exits edit mode) and "Guardar" (persists row order, exits edit mode)
+
+**Dashboard body changes:**
+- KPI cards are dimmed (opacity 0.5, not interactive)
+- Each chart row gets:
+  - A dashed indigo border (`border-2 border-dashed border-indigo-500/35`)
+  - A section label at top-left ("SECCION 1", "SECCION 2"...) with drag handle icon
+  - `cursor-grab` on hover
+- The actively dragged section gets:
+  - Solid indigo border + shadow + slight scale
+  - A drop zone indicator (indigo line) between rows
+
+**Implementation:**
+- Uses `@dnd-kit/sortable` with `DndContext` + `SortableContext` + `KeyboardSensor` + `sortableKeyboardCoordinates` for keyboard accessibility (follow pattern in `Step4Preview.tsx`)
+- Items are identified by `row.id`
+- On "Guardar": calls `updateRowOrder()` with the new order, exits edit mode
+- On "Cancelar": reverts to stored order, exits edit mode
+- Edit mode state (`isEditMode`) lives in `Home.tsx`, passed down to `DashboardHeader` and `DashboardRenderer`
 
 ### Fixed Chart Heights
 
@@ -170,7 +190,15 @@ Add to `en/home.json` and `es/home.json`:
     },
     "order": {
       "title": "Section order",
-      "desc": "Drag to reorder dashboard sections"
+      "desc": "Reorder dashboard chart sections",
+      "editLayout": "Edit dashboard layout",
+      "editLayoutDesc": "Closes this panel and activates edit mode"
+    },
+    "editMode": {
+      "badge": "EDITING LAYOUT",
+      "cancel": "Cancel",
+      "save": "Save",
+      "section": "SECTION {{n}}"
     },
     "reset": {
       "title": "Reset to defaults",
@@ -200,7 +228,15 @@ Spanish translations in `es/home.json`:
     },
     "order": {
       "title": "Orden de secciones",
-      "desc": "Arrastra para reordenar las secciones"
+      "desc": "Reordena las graficas del dashboard",
+      "editLayout": "Editar layout del dashboard",
+      "editLayoutDesc": "Cierra este panel y activa el modo de edicion"
+    },
+    "editMode": {
+      "badge": "EDITANDO LAYOUT",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "section": "SECCION {{n}}"
     },
     "reset": {
       "title": "Restaurar valores por defecto",
@@ -230,7 +266,15 @@ French translations in `fr/home.json` (English fallback):
     },
     "order": {
       "title": "Section order",
-      "desc": "Drag to reorder dashboard sections"
+      "desc": "Reorder dashboard chart sections",
+      "editLayout": "Edit dashboard layout",
+      "editLayoutDesc": "Closes this panel and activates edit mode"
+    },
+    "editMode": {
+      "badge": "EDITING LAYOUT",
+      "cancel": "Cancel",
+      "save": "Save",
+      "section": "SECTION {{n}}"
     },
     "reset": {
       "title": "Reset to defaults",
@@ -246,15 +290,16 @@ French translations in `fr/home.json` (English fallback):
 | File | Purpose |
 |------|---------|
 | `src/hooks/use-dashboard-preferences.ts` | Preferences hook (localStorage read/write, validation) |
-| `src/components/home/DashboardControlsSheet.tsx` | Sheet panel with 4 control sections |
+| `src/components/home/DashboardControlsSheet.tsx` | Sheet panel with KPI selection, density, edit-layout button, reset |
+| `src/components/home/DashboardEditMode.tsx` | Inline edit mode wrapper: dnd-kit context, draggable row wrappers, section labels |
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/components/home/sections/DashboardHeader.tsx` | Add gear icon, manage Sheet state internally, render `DashboardControlsSheet` |
-| `src/components/home/DashboardRenderer.tsx` | Accept preferences, apply density classes + fixed heights |
-| `src/pages/Home.tsx` | Wire up `useDashboardPreferences`, pass to header and renderer |
+| `src/components/home/sections/DashboardHeader.tsx` | Add gear icon + Sheet. In edit mode: hide filters, show "EDITANDO LAYOUT" badge + Cancel/Guardar |
+| `src/components/home/DashboardRenderer.tsx` | Accept preferences + isEditMode, apply density classes + fixed heights, delegate to DashboardEditMode when editing |
+| `src/pages/Home.tsx` | Wire up `useDashboardPreferences`, manage `isEditMode` state, pass to header and renderer |
 | `src/locales/en/home.json` | Add `controls.*` keys |
 | `src/locales/es/home.json` | Add `controls.*` keys |
 | `src/locales/fr/home.json` | Add `controls.*` keys (English fallback) |

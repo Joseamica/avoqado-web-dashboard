@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
 import { Loader2, Plus, Users } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { TimePicker } from '@/components/ui/time-picker'
 import {
   Select,
   SelectContent,
@@ -71,6 +72,7 @@ export function CreateClassSessionDialog({ open, onOpenChange, defaultDate, defa
   const [createClassOpen, setCreateClassOpen] = useState(false)
 
   const {
+    control,
     register,
     handleSubmit,
     watch,
@@ -306,7 +308,21 @@ export function CreateClassSessionDialog({ open, onOpenChange, defaultDate, defa
           <div className={productDuration ? '' : 'grid grid-cols-2 gap-3'}>
             <div className="space-y-1.5">
               <Label htmlFor="startTime">{t('form.fields.startTime')}</Label>
-              <Input id="startTime" type="time" {...register('startTime')} className={errors.startTime ? 'border-destructive' : ''} />
+              <Controller
+                control={control}
+                name="startTime"
+                render={({ field }) => (
+                  <TimePicker
+                    id="startTime"
+                    value={field.value || undefined}
+                    onChange={time => field.onChange(time)}
+                    placeholder="--:--"
+                    label=""
+                    allowManualInput
+                    error={!!errors.startTime}
+                  />
+                )}
+              />
               {errors.startTime && <p className="text-xs text-destructive">{errors.startTime.message}</p>}
               {productDuration && startTime && (
                 <p className="text-[11px] text-muted-foreground">
@@ -321,7 +337,21 @@ export function CreateClassSessionDialog({ open, onOpenChange, defaultDate, defa
             {!productDuration && (
               <div className="space-y-1.5">
                 <Label htmlFor="endTime">{t('form.fields.endTime')}</Label>
-                <Input id="endTime" type="time" {...register('endTime')} className={errors.endTime ? 'border-destructive' : ''} />
+                <Controller
+                  control={control}
+                  name="endTime"
+                  render={({ field }) => (
+                    <TimePicker
+                      id="endTime"
+                      value={field.value || undefined}
+                      onChange={time => field.onChange(time)}
+                      placeholder="--:--"
+                      label=""
+                      allowManualInput
+                      error={!!errors.endTime}
+                    />
+                  )}
+                />
                 {errors.endTime && <p className="text-xs text-destructive">{errors.endTime.message}</p>}
               </div>
             )}

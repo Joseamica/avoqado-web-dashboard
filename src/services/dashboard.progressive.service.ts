@@ -5,6 +5,17 @@ export interface BasicMetricsData {
   payments: any[]
   reviews: any[]
   paymentMethodsData: any[]
+  orderStats?: {
+    totalOrders: number
+    avgItemsPerOrder: number
+    uniqueCustomers: number
+    totalDiscounts: number
+    avgCovers: number
+  }
+  laborStats?: {
+    totalLaborHours: number
+    activeShifts: number
+  }
 }
 
 export interface ChartData {
@@ -41,7 +52,11 @@ export class DashboardProgressiveService {
 
   // Get specific chart data
   async getChartData(
-    chartType: 'best-selling-products' | 'tips-over-time' | 'sales-by-payment-method' | 'peak-hours' | 'weekly-trends',
+    chartType:
+      | 'best-selling-products' | 'tips-over-time' | 'sales-by-payment-method' | 'peak-hours' | 'weekly-trends'
+      | 'revenue-trends' | 'aov-trends' | 'order-frequency' | 'customer-satisfaction' | 'kitchen-performance'
+      | 'sales-by-weekday' | 'category-mix' | 'channel-mix' | 'sales-heatmap' | 'discount-analysis'
+      | 'reservation-overview' | 'staff-ranking',
     dateRange: DateRange
   ): Promise<ChartData> {
     const response = await api.get(`/api/v1/dashboard/venues/${this.venueId}/charts/${chartType}`, {
@@ -55,7 +70,8 @@ export class DashboardProgressiveService {
 
   // Get extended metrics
   async getExtendedMetrics(
-    metricType: 'table-performance' | 'product-profitability' | 'staff-performance' | 'prep-times',
+    metricType: 'table-performance' | 'product-profitability' | 'staff-performance' | 'prep-times'
+      | 'staff-efficiency' | 'table-efficiency' | 'product-analytics',
     dateRange: DateRange
   ): Promise<ExtendedMetricsData> {
     const response = await api.get(`/api/v1/dashboard/venues/${this.venueId}/metrics/${metricType}`, {
