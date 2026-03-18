@@ -128,7 +128,7 @@ export function BulkUploadDialog({ open, onOpenChange, preselectedCategoryId }: 
       setUploadResult(result)
       queryClient.invalidateQueries({ queryKey: ['item-categories', venueId] })
       queryClient.invalidateQueries({ queryKey: ['org-item-categories', venueId] })
-      queryClient.invalidateQueries({ queryKey: ['stock', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['stock'] })
 
       if (result.success && result.errors.length === 0) {
         toast({
