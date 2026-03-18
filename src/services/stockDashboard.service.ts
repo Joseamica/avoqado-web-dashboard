@@ -78,6 +78,7 @@ export interface StockMovement {
   userName: string | null
   itemCount?: number
   registeredFromVenueName?: string | null
+  serialNumbers?: string[]
 }
 
 export interface StockMovementsResponse {

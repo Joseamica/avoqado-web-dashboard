@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Package, Box, CheckCircle2, Plus, Upload, Settings2, Search, Download, FileSpreadsheet, FileText } from 'lucide-react'
 import { StockVsSalesChart, LowStockAlerts, CategoryManagement, BulkUploadDialog } from './components'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -70,6 +71,7 @@ export function StockControl() {
   // Dialog state
   const [showCategoryManagement, setShowCategoryManagement] = useState(false)
   const [showBulkUpload, setShowBulkUpload] = useState(false)
+  const [bulkDetailMovement, setBulkDetailMovement] = useState<StockMovement | null>(null)
 
   // Movements filters
   const [movementSearch, setMovementSearch] = useState('')
@@ -421,7 +423,11 @@ ${dataRows}
                 filteredMovements.map(movement => {
                   const typeConfig = MOVEMENT_TYPE_CONFIG[movement.type] || FALLBACK_TYPE_CONFIG
                   return (
-                    <tr key={movement.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
+                    <tr
+                      key={movement.id}
+                      className={`border-b border-border/30 hover:bg-muted/30 transition-colors ${movement.type === 'BULK_UPLOAD' ? 'cursor-pointer' : ''}`}
+                      onClick={movement.type === 'BULK_UPLOAD' ? () => setBulkDetailMovement(movement) : undefined}
+                    >
                       <td className="py-3 px-2">
                         {movement.type === 'BULK_UPLOAD' ? (
                           <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
@@ -475,6 +481,49 @@ ${dataRows}
         open={showBulkUpload}
         onOpenChange={setShowBulkUpload}
       />
+
+      {/* Bulk upload detail dialog */}
+      <Dialog open={!!bulkDetailMovement} onOpenChange={() => setBulkDetailMovement(null)}>
+        <DialogContent className="max-w-md max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-500/20">
+                Carga masiva
+              </Badge>
+              {bulkDetailMovement?.itemCount} items
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
+              <span>Categoría</span>
+              <span className="text-foreground">{bulkDetailMovement?.categoryName}</span>
+              <span>Fecha</span>
+              <span className="text-foreground">{bulkDetailMovement && formatDate(bulkDetailMovement.timestamp)}</span>
+              <span>Tienda</span>
+              <span className="text-foreground">{bulkDetailMovement?.venueName || '-'}</span>
+              <span>Usuario</span>
+              <span className="text-foreground">{bulkDetailMovement?.userName || '-'}</span>
+              {bulkDetailMovement?.registeredFromVenueName && (
+                <>
+                  <span>Registrado desde</span>
+                  <span className="text-foreground">{bulkDetailMovement.registeredFromVenueName}</span>
+                </>
+              )}
+            </div>
+            <div className="border-t border-border pt-3">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Números de serie</p>
+              <div className="max-h-[40vh] overflow-y-auto space-y-1">
+                {bulkDetailMovement?.serialNumbers?.map((sn, i) => (
+                  <div key={sn} className="flex items-center gap-2 py-1 px-2 rounded hover:bg-muted/50">
+                    <span className="text-xs text-muted-foreground w-6 text-right">{i + 1}</span>
+                    <code className="text-xs bg-muted/50 px-2 py-0.5 rounded font-mono">{sn}</code>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
