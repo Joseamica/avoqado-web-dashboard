@@ -146,7 +146,7 @@ export function StockControl() {
 
   // ─── Export ───
   const buildExportRows = useCallback(() => {
-    const headers = ['SIM ID', 'Categoría', 'Tipo', 'Fecha', 'Tienda', 'Usuario']
+    const headers = ['SIM ID', 'Categoría', 'Tipo', 'Fecha', 'Tienda', 'Usuario', 'Registrado desde']
     const rows = filteredMovements.map(m => [
       m.serialNumber,
       m.categoryName,
@@ -154,6 +154,7 @@ export function StockControl() {
       formatDate(m.timestamp),
       m.venueName || '-',
       m.userName || '-',
+      m.registeredFromVenueName || '-',
     ])
     return { headers, rows }
   }, [filteredMovements, formatDate])
@@ -410,6 +411,9 @@ ${dataRows}
                 <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   {t('playtelecom:stock.user', { defaultValue: 'Usuario' })}
                 </th>
+                <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Registrado desde
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -442,12 +446,15 @@ ${dataRows}
                       <td className="py-3 px-2 text-sm">
                         {movement.userName || <span className="text-muted-foreground">-</span>}
                       </td>
+                      <td className="py-3 px-2 text-sm">
+                        {movement.registeredFromVenueName || <span className="text-muted-foreground">-</span>}
+                      </td>
                     </tr>
                   )
                 })
               ) : (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="py-8 text-center text-muted-foreground">
                     {movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all'
                       ? t('playtelecom:stock.noResults', { defaultValue: 'No se encontraron movimientos con esos filtros' })
                       : t('playtelecom:stock.noMovements', { defaultValue: 'No hay movimientos recientes' })}

@@ -77,6 +77,7 @@ export interface StockMovement {
   venueName: string | null
   userName: string | null
   itemCount?: number
+  registeredFromVenueName?: string | null
 }
 
 export interface StockMovementsResponse {
