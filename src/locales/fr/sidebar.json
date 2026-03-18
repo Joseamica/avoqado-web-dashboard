@@ -20,11 +20,23 @@
     "discounts": "Réductions",
     "coupons": "Codes Promo"
   },
+  "teamMenu": {
+    "title": "Équipe",
+    "members": "Membres"
+  },
+  "settingsMenu": {
+    "title": "Paramètres"
+  },
   "creditPacks": "Forfaits de Crédits",
   "salesMenu": {
     "title": "Ventes",
     "orders": "Commandes",
-    "transactions": "Transactions"
+    "transactions": "Transactions",
+    "paymentLinks": "Liens de Paiement",
+    "virtualTerminal": "Terminal Virtuel",
+    "subscriptions": "Abonnements",
+    "disputes": "Litiges",
+    "back": "Ventes"
   },
   "growth": "Croissance",
   "paymentProviders": "Fournisseurs de paiement",
@@ -95,7 +107,10 @@
     "overview": "Aperçu",
     "calendar": "Calendrier",
     "waitlist": "Liste d'attente",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "settingsGroup": "Paramètres",
+    "general": "Général",
+    "communications": "Communications"
   },
   "playtelecom": {
     "title": "PlayTelecom",

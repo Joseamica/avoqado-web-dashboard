@@ -1,0 +1,8 @@
+{
+  "title": "Virtual Terminal",
+  "comingSoon": "Coming soon",
+  "emptyState": {
+    "title": "Charge customers remotely",
+    "description": "Accept card payments without a physical terminal. Enter card details manually to process payments for phone orders, invoices, or in-person transactions."
+  }
+}

@@ -52,6 +52,8 @@ import { ecommerceMerchantAPI } from '@/services/ecommerceMerchant.service'
 import paymentLinkService, { type PaymentLink } from '@/services/paymentLink.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
 
+import { StatusFilterTabs, type StatusTab } from '@/components/StatusFilterTabs'
+import { SummaryCards, type SummaryCardItem } from '@/components/SummaryCards'
 import CreatePaymentLinkDialog from './CreatePaymentLinkDialog'
 
 const CHECKOUT_BASE_URL = import.meta.env.VITE_CHECKOUT_URL || 'https://pay.avoqado.io'
@@ -65,6 +67,7 @@ export default function PaymentLinks() {
   const { formatDate } = useVenueDateTime()
 
   // ─── State ───────────────────────────────────────────────
+  const [activeStatusTab, setActiveStatusTab] = useState('all')
   const [statusFilter, setStatusFilter] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearch = useDebounce(searchTerm, 300)
@@ -100,12 +103,44 @@ export default function PaymentLinks() {
 
   const links = useMemo(() => {
     let result = allLinks
+    // Status tab filter
+    if (activeStatusTab !== 'all') {
+      result = result.filter(l => l.status === activeStatusTab.toUpperCase())
+    }
     // Client-side multi-status filter (API supports single status)
     if (statusFilter.length > 1) {
       result = result.filter(l => statusFilter.includes(l.status))
     }
     return result
-  }, [allLinks, statusFilter])
+  }, [allLinks, activeStatusTab, statusFilter])
+
+  // Status tab counts
+  const plStatusTabCounts = useMemo(() => ({
+    all: allLinks.length,
+    active: allLinks.filter(l => l.status === 'ACTIVE').length,
+    paused: allLinks.filter(l => l.status === 'PAUSED').length,
+    expired: allLinks.filter(l => l.status === 'EXPIRED').length,
+  }), [allLinks])
+
+  const plStatusTabs = useMemo<StatusTab[]>(() => [
+    { value: 'all', label: t('statusTabs.all'), count: plStatusTabCounts.all },
+    { value: 'active', label: t('statusTabs.active'), count: plStatusTabCounts.active },
+    { value: 'paused', label: t('statusTabs.paused'), count: plStatusTabCounts.paused },
+    { value: 'expired', label: t('statusTabs.expired'), count: plStatusTabCounts.expired },
+  ], [t, plStatusTabCounts])
+
+  // Summary cards
+  const plSummaryCards = useMemo<SummaryCardItem[]>(() => {
+    const count = links.length
+    const totalCollected = links.reduce((sum, l) => sum + (l.totalCollected || 0), 0)
+    const totalPayments = links.reduce((sum, l) => sum + (l.paymentCount || 0), 0)
+    const usageRate = count > 0 ? (links.filter(l => l.paymentCount > 0).length / count) * 100 : 0
+    return [
+      { label: t('summaryCards.links'), value: count, format: 'number' as const },
+      { label: t('summaryCards.collected'), value: totalCollected, format: 'currency' as const },
+      { label: t('summaryCards.usageRate'), value: usageRate, format: 'percent' as const },
+    ]
+  }, [links, t])
 
   const archiveMutation = useMutation({
     mutationFn: (linkId: string) => paymentLinkService.archivePaymentLink(venueId, linkId),
@@ -384,6 +419,17 @@ export default function PaymentLinks() {
           </Button>
         </PermissionGate>
       </div>
+
+      {/* Status Filter Tabs */}
+      <StatusFilterTabs
+        tabs={plStatusTabs}
+        activeTab={activeStatusTab}
+        onTabChange={setActiveStatusTab}
+        className="mb-4"
+      />
+
+      {/* Summary Cards */}
+      <SummaryCards cards={plSummaryCards} isLoading={isLoading} className="mb-4" />
 
       {isEcommerceExplicitlyMissing && (
         <Alert className="mb-4 border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100">

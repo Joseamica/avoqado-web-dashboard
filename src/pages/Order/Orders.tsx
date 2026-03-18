@@ -3,16 +3,12 @@
 import api from '@/api'
 import { AddToAIButton } from '@/components/AddToAIButton'
 import DataTable from '@/components/data-table'
-import {
-  AmountFilterContent,
-  CheckboxFilterContent,
-  ColumnCustomizer,
-  DateFilterContent,
-  FilterPill,
-  type AmountFilter,
-  type DateFilter,
-} from '@/components/filters'
+import { DateRangePicker } from '@/components/date-range-picker'
+import { AmountFilterContent, CheckboxFilterContent, ColumnCustomizer, FilterPill, type AmountFilter } from '@/components/filters'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
+import { SelectionSummaryBar } from '@/components/selection-summary-bar'
+import { StatusFilterTabs, type StatusTab } from '@/components/StatusFilterTabs'
+import { SummaryCards, type SummaryCardItem } from '@/components/SummaryCards'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,13 +35,12 @@ import * as orderService from '@/services/order.service'
 import { teamService, type TeamMember } from '@/services/team.service'
 import { Order, OrderStatus, OrderType as OrderTypeEnum, StaffRole } from '@/types'
 import { Currency } from '@/utils/currency'
-import { useVenueDateTime, formatDateInTimeZone } from '@/utils/datetime'
-import { DateTime } from 'luxon'
+import { useVenueDateTime } from '@/utils/datetime'
 import { exportToCSV, exportToExcel, formatCurrencyForExport, generateFilename } from '@/utils/export'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowDown, ArrowUp, ArrowUpDown, Clock, Download, Pencil, Search, Trash2, X } from 'lucide-react'
-import { SelectionSummaryBar } from '@/components/selection-summary-bar'
+import { DateTime } from 'luxon'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -81,6 +76,9 @@ export default function Orders() {
     pageSize: 20,
   })
 
+  // Status tab filter
+  const [activeStatusTab, setActiveStatusTab] = useState('all')
+
   // Filter states (arrays for multi-select Stripe-style filters)
   const [statusFilter, setStatusFilter] = useState<string[]>([])
   const [typeFilter, setTypeFilter] = useState<string[]>([])
@@ -88,7 +86,14 @@ export default function Orders() {
   const [waiterFilter, setWaiterFilter] = useState<string[]>([])
   const [totalFilter, setTotalFilter] = useState<AmountFilter | null>(null)
   const [tipFilter, setTipFilter] = useState<AmountFilter | null>(null)
-  const [dateFilter, setDateFilter] = useState<DateFilter | null>(null)
+  // Date range state — defaults to 1st of current month through today
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(() => {
+    const now = DateTime.now().setZone(venueTimezone)
+    return {
+      from: now.startOf('month').toJSDate(),
+      to: now.endOf('day').toJSDate(),
+    }
+  })
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -111,7 +116,7 @@ export default function Orders() {
   // Reset pagination when filters change
   useEffect(() => {
     setPagination(prev => ({ ...prev, pageIndex: 0 }))
-  }, [statusFilter, typeFilter, tableFilter, waiterFilter, totalFilter, tipFilter, dateFilter, debouncedSearchTerm])
+  }, [statusFilter, typeFilter, tableFilter, waiterFilter, totalFilter, tipFilter, dateRange, debouncedSearchTerm])
 
   const [sortField, setSortField] = useState<string | null>(null)
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
@@ -263,7 +268,7 @@ export default function Orders() {
     waiterFilter.length > 0,
     totalFilter !== null,
     tipFilter !== null,
-    dateFilter !== null,
+    dateRange !== null,
     searchTerm !== '',
   ].filter(Boolean).length
 
@@ -275,7 +280,8 @@ export default function Orders() {
     setWaiterFilter([])
     setTotalFilter(null)
     setTipFilter(null)
-    setDateFilter(null)
+    const now = DateTime.now().setZone(venueTimezone)
+    setDateRange({ from: now.startOf('month').toJSDate(), to: now.endOf('day').toJSDate() })
     setSearchTerm('')
   }, [])
 
@@ -308,31 +314,6 @@ export default function Orders() {
   }
 
   // Helper to get display label for date filters
-  const getDateFilterLabel = (filter: DateFilter | null) => {
-    if (!filter) return null
-    switch (filter.operator) {
-      case 'last': {
-        const unitLabels: Record<string, string> = {
-          hours: 'horas',
-          days: 'días',
-          weeks: 'semanas',
-          months: 'meses',
-        }
-        return `Últimos ${filter.value} ${unitLabels[filter.unit || 'days']}`
-      }
-      case 'before':
-        return `Antes de ${filter.value}`
-      case 'after':
-        return `Después de ${filter.value}`
-      case 'between':
-        return `${filter.value} - ${filter.value2}`
-      case 'on':
-        return `En ${filter.value}`
-      default:
-        return null
-    }
-  }
-
   useSocketEvents(venueId, socketData => {
     console.log('Received dashboard update via socket:', socketData)
     // La lógica de refetch sigue siendo válida
@@ -680,7 +661,7 @@ export default function Orders() {
             {
               id: 'actions',
               header: () => (
-                <span className="text-sm font-medium bg-gradient-to-r from-amber-400 to-pink-500 bg-clip-text text-transparent">
+                <span className="text-sm font-medium bg-linear-to-r from-amber-400 to-pink-500 bg-clip-text text-transparent">
                   Superadmin
                 </span>
               ),
@@ -730,6 +711,19 @@ export default function Orders() {
   // Filter and sort data before displaying
   const sortedData = useMemo(() => {
     let orders = data?.data || []
+
+    // Status tab filter
+    if (activeStatusTab !== 'all') {
+      const tabStatusMap: Record<string, OrderStatus[]> = {
+        active: [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY],
+        completed: [OrderStatus.COMPLETED],
+        cancelled: [OrderStatus.CANCELLED],
+      }
+      const allowedStatuses = tabStatusMap[activeStatusTab] || []
+      if (allowedStatuses.length > 0) {
+        orders = orders.filter((o: Order) => allowedStatuses.includes(o.status))
+      }
+    }
 
     // Client-side multi-select filtering (Stripe-style)
     if (statusFilter.length > 0) {
@@ -789,55 +783,11 @@ export default function Orders() {
         }
       })
     }
-    // Date filter
-    if (dateFilter) {
-      const now = new Date()
+    // Date range filter
+    if (dateRange) {
       orders = orders.filter((o: Order) => {
         const orderDate = new Date(o.createdAt)
-        switch (dateFilter.operator) {
-          case 'last': {
-            const value = typeof dateFilter.value === 'number' ? dateFilter.value : parseInt(dateFilter.value as string) || 0
-            const cutoffDate = new Date()
-            switch (dateFilter.unit) {
-              case 'hours':
-                cutoffDate.setHours(now.getHours() - value)
-                break
-              case 'days':
-                cutoffDate.setDate(now.getDate() - value)
-                break
-              case 'weeks':
-                cutoffDate.setDate(now.getDate() - value * 7)
-                break
-              case 'months':
-                cutoffDate.setMonth(now.getMonth() - value)
-                break
-            }
-            return orderDate >= cutoffDate
-          }
-          case 'before': {
-            const targetDate = new Date(dateFilter.value as string)
-            return orderDate < targetDate
-          }
-          case 'after': {
-            const targetDate = new Date(dateFilter.value as string)
-            return orderDate > targetDate
-          }
-          case 'between': {
-            const startDate = new Date(dateFilter.value as string)
-            const endDate = new Date(dateFilter.value2 as string)
-            // Use venue timezone end of day via Luxon
-            const endDateVenue = DateTime.fromJSDate(endDate).setZone(venueTimezone).endOf('day')
-            return orderDate >= startDate && orderDate <= endDateVenue.toJSDate()
-          }
-          case 'on': {
-            // Compare dates in venue timezone (YYYY-MM-DD)
-            const orderDateStr = formatDateInTimeZone(orderDate, venueTimezone, 'iso')
-            const targetDateStr = formatDateInTimeZone(new Date(dateFilter.value as string), venueTimezone, 'iso')
-            return orderDateStr === targetDateStr
-          }
-          default:
-            return true
-        }
+        return orderDate >= dateRange.from && orderDate <= dateRange.to
       })
     }
     if (debouncedSearchTerm) {
@@ -891,6 +841,7 @@ export default function Orders() {
     })
   }, [
     data?.data,
+    activeStatusTab,
     sortField,
     sortOrder,
     statusFilter,
@@ -899,9 +850,43 @@ export default function Orders() {
     waiterFilter,
     totalFilter,
     tipFilter,
-    dateFilter,
+    dateRange,
     debouncedSearchTerm,
   ])
+
+  // Status tab counts (computed from unfiltered-by-tab data)
+  const statusTabCounts = useMemo(() => {
+    const allOrders = data?.data || []
+    const active = [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY]
+    return {
+      all: allOrders.length,
+      active: allOrders.filter((o: Order) => active.includes(o.status)).length,
+      completed: allOrders.filter((o: Order) => o.status === OrderStatus.COMPLETED).length,
+      cancelled: allOrders.filter((o: Order) => o.status === OrderStatus.CANCELLED).length,
+    }
+  }, [data?.data])
+
+  const orderStatusTabs = useMemo<StatusTab[]>(
+    () => [
+      { value: 'all', label: t('statusTabs.all'), count: statusTabCounts.all },
+      { value: 'active', label: t('statusTabs.active'), count: statusTabCounts.active },
+      { value: 'completed', label: t('statusTabs.completed'), count: statusTabCounts.completed },
+      { value: 'cancelled', label: t('statusTabs.cancelled'), count: statusTabCounts.cancelled },
+    ],
+    [t, statusTabCounts],
+  )
+
+  // Summary cards (computed from filtered data)
+  const orderSummaryCards = useMemo<SummaryCardItem[]>(() => {
+    const count = sortedData.length
+    const total = sortedData.reduce((sum: number, o: Order) => sum + (o.total || 0), 0)
+    const avgTicket = count > 0 ? total / count : 0
+    return [
+      { label: t('summaryCards.orders'), value: count, format: 'number' as const },
+      { label: t('summaryCards.total'), value: total, format: 'currency' as const },
+      { label: t('summaryCards.avgTicket'), value: avgTicket, format: 'currency' as const },
+    ]
+  }, [sortedData, t])
 
   // Export functionality
   const handleExport = useCallback(
@@ -930,8 +915,8 @@ export default function Orders() {
           const displayType = isFastSale
             ? t('types.FAST', { defaultValue: 'Venta sin productos' })
             : order.type
-            ? t(`types.${order.type}` as any)
-            : '-'
+              ? t(`types.${order.type}` as any)
+              : '-'
 
           return {
             [t('columns.date')]: formatDate(order.createdAt),
@@ -981,6 +966,12 @@ export default function Orders() {
           })}
         />
       </div>
+
+      {/* Status Filter Tabs */}
+      <StatusFilterTabs tabs={orderStatusTabs} activeTab={activeStatusTab} onTabChange={setActiveStatusTab} className="mb-4" />
+
+      {/* Summary Cards */}
+      <SummaryCards cards={orderSummaryCards} isLoading={isLoading} className="mb-4" />
 
       {/* Pay-Later Alert Banner - Uses backend data for accurate counts */}
       {payLaterSummary && payLaterSummary.total_count > 0 && (
@@ -1070,19 +1061,19 @@ export default function Orders() {
             {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
           </div>
 
-          {/* Date Filter Pill - matches column order */}
-          <FilterPill
-            label={t('columns.date')}
-            activeValue={getDateFilterLabel(dateFilter)}
-            isActive={dateFilter !== null}
-            onClear={() => setDateFilter(null)}
-          >
-            <DateFilterContent
-              title={`Filtrar por: ${t('columns.date').toLowerCase()}`}
-              currentFilter={dateFilter}
-              onApply={setDateFilter}
-            />
-          </FilterPill>
+          {/* Date Range Picker */}
+          <DateRangePicker
+            initialDateFrom={dateRange.from}
+            initialDateTo={dateRange.to}
+            showCompare={false}
+            align="start"
+            onUpdate={({ range }) => {
+              setDateRange({
+                from: range.from,
+                to: range.to ?? range.from,
+              })
+            }}
+          />
 
           {/* Type Filter Pill */}
           <FilterPill
@@ -1283,7 +1274,10 @@ export default function Orders() {
           { label: t('columns.tip'), getValue: row => Number(row.tipAmount) || 0 },
           { label: t('columns.total'), getValue: row => Number(row.total) || 0 },
         ]}
-        onClear={() => { setSelectedOrders([]); setClearSelectionTrigger(v => v + 1) }}
+        onClear={() => {
+          setSelectedOrders([])
+          setClearSelectionTrigger(v => v + 1)
+        }}
       />
 
       {/* Delete confirmation dialog (SUPERADMIN only) */}

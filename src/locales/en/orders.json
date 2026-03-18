@@ -28,6 +28,17 @@
     "COMPLETED": "Completed",
     "CANCELLED": "Cancelled"
   },
+  "statusTabs": {
+    "all": "All",
+    "active": "Active",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
+  },
+  "summaryCards": {
+    "orders": "Orders",
+    "total": "Total",
+    "avgTicket": "Avg Ticket"
+  },
   "export": {
     "button": "Export",
     "asCSV": "Export as CSV",

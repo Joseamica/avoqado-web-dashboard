@@ -29,6 +29,17 @@
     "COMPLETED": "Completada",
     "CANCELLED": "Cancelada"
   },
+  "statusTabs": {
+    "all": "Todos",
+    "active": "Activos",
+    "completed": "Completados",
+    "cancelled": "Cancelados"
+  },
+  "summaryCards": {
+    "orders": "Pedidos",
+    "total": "Total",
+    "avgTicket": "Ticket Promedio"
+  },
   "export": {
     "button": "Exportar",
     "asCSV": "Exportar como CSV",

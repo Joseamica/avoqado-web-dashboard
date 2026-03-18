@@ -136,6 +136,12 @@ import creditPacksEs from '@/locales/es/creditPacks.json'
 import creditPacksFr from '@/locales/fr/creditPacks.json'
 import paymentLinksEn from '@/locales/en/paymentLinks.json'
 import paymentLinksEs from '@/locales/es/paymentLinks.json'
+import disputesEn from '@/locales/en/disputes.json'
+import disputesEs from '@/locales/es/disputes.json'
+import subscriptionsEn from '@/locales/en/subscriptions.json'
+import subscriptionsEs from '@/locales/es/subscriptions.json'
+import virtualTerminalEn from '@/locales/en/virtualTerminal.json'
+import virtualTerminalEs from '@/locales/es/virtualTerminal.json'
 // Lightweight language detector (avoids external dependency)
 const simpleDetector = {
   type: 'languageDetector' as const,
@@ -613,6 +619,30 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'paymentLinks', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', disputesEn],
+    ['es', disputesEs],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'disputes', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', subscriptionsEn],
+    ['es', subscriptionsEs],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'subscriptions', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', virtualTerminalEn],
+    ['es', virtualTerminalEs],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'virtualTerminal', bundle as Record<string, unknown>, true, true)
 })
 
 export default i18n

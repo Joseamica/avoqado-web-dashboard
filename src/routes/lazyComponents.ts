@@ -170,6 +170,11 @@ export const PaymentLinks = lazyWithRetry(() => import('@/pages/PaymentLinks/Pay
 export const PaymentLinkSettings = lazyWithRetry(() => import('@/pages/PaymentLinks/PaymentLinkSettings'))
 export const PaymentLinkBranding = lazyWithRetry(() => import('@/pages/PaymentLinks/PaymentLinkBranding'))
 
+// New Sales sub-pages (Coming Soon)
+export const Disputes = lazyWithRetry(() => import('@/pages/Disputes/Disputes'))
+export const Subscriptions = lazyWithRetry(() => import('@/pages/Subscriptions/Subscriptions'))
+export const VirtualTerminal = lazyWithRetry(() => import('@/pages/VirtualTerminal/VirtualTerminal'))
+
 // Loyalty
 export const LoyaltySettings = lazyWithRetry(() => import('@/pages/Loyalty/LoyaltySettings'))
 

@@ -1,0 +1,8 @@
+{
+  "title": "Subscriptions",
+  "comingSoon": "Coming soon",
+  "emptyState": {
+    "title": "Create your first plan",
+    "description": "Set up recurring billing for memberships, monthly services, or subscription boxes. Customers will be charged automatically on a schedule you define."
+  }
+}

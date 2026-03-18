@@ -29,7 +29,6 @@
   Store,
   Tag,
   TrendingUp,
-  Ungroup,
   UserCog,
   Users,
   UtensilsCrossed,
@@ -38,6 +37,9 @@
   Zap,
   Search,
   LucideIcon,
+  AlertCircle,
+  RefreshCw,
+  Monitor,
 } from 'lucide-react'
 import * as React from 'react'
 import { useLocation } from 'react-router-dom'
@@ -236,9 +238,6 @@ export function AppSidebar({
   const location = useLocation()
 
   const navMain = React.useMemo(() => {
-    // ========== Unified Sidebar ==========
-    // WL venues show: WL module items (Supervisor, Gerentes…) + Avoqado core items (with badge)
-    // Regular venues show: Avoqado core items only
     const isWhiteLabelVenue = isWhiteLabelEnabled
 
     // ── White-Label Module Items (non-AVOQADO_* features like Supervisor, Gerentes) ──
@@ -273,102 +272,65 @@ export function AppSidebar({
       }
     }
 
-    // ── Avoqado Core Items ──
+    // ── Helper: check white-label feature + role access ──
+    const canWL = (featureCode: string) => {
+      if (!isWhiteLabelVenue) return true
+      return isFeatureEnabled(featureCode) && canFeature(featureCode)
+    }
 
-    // Define all possible items with their required permissions and features
-    const allItems = [
-      // ── Main (no group label) ──
-      { title: t('sidebar:routes.home'), isActive: true, url: 'home', icon: Home, permission: 'home:read', locked: false, group: 'main', keywords: ['inicio', 'dashboard', 'resumen', 'panel'] },
+    // ===================================================================
+    // Sub-Sidebar Sections
+    // Each section defines items shown when user clicks a trigger in the
+    // main sidebar. Items with `items` array render as collapsible
+    // dropdowns within the sub-sidebar.
+    // ===================================================================
 
-      // ── Operaciones ──
-      {
-        title: term('menu'),
-        isActive: location.pathname.includes('/menumaker'),
-        url: 'menumaker/overview',
-        icon: BookOpen,
-        permission: 'menu:read',
-        locked: false,
-        group: 'operations',
-        keywords: ['carta', 'menu', 'platillos'],
-        items: [
-          { title: t('menu:menumaker.nav.overview'), url: 'menumaker/overview', permission: 'menu:read' },
-          { title: t('menu:menumaker.nav.menus'), url: 'menumaker/menus', permission: 'menu:read' },
-          { title: t('menu:menumaker.nav.categories'), url: 'menumaker/categories', permission: 'menu:read', keywords: ['secciones', 'grupos'] },
-          { title: t('menu:menumaker.nav.products'), url: 'menumaker/products', permission: 'menu:read', keywords: ['platillos', 'articulos', 'items'] },
-          { title: t('menu:menumaker.nav.services'), url: 'menumaker/services', permission: 'menu:read' },
-          { title: t('menu:menumaker.nav.modifierGroups'), url: 'menumaker/modifier-groups', permission: 'menu:read' },
-          { title: t('sidebar:creditPacks'), url: 'menumaker/credit-packs', permission: 'creditPacks:read', keywords: ['creditos', 'paquetes', 'bundles', 'prepagados'] },
-        ],
-      },
-      {
-        title: t('sidebar:routes.inventory'),
-        isActive: location.pathname.startsWith('/inventory'),
-        url: 'inventory/raw-materials',
-        icon: Package,
-        permission: 'inventory:read',
-        locked: !hasKYCAccess,
-        requiredFeature: 'INVENTORY_TRACKING',
-        group: 'operations',
-        keywords: ['almacen', 'bodega', 'stock'],
-        items: [
-          { title: 'Resumen de existencias', url: 'inventory/stock-overview', permission: 'inventory:read', keywords: ['stock', 'materia prima', 'almacen'] },
-          { title: 'Historial', url: 'inventory/history', permission: 'inventory:read', keywords: ['movimientos', 'registro'] },
-          { title: 'Pedidos', url: 'inventory/purchase-orders', permission: 'inventory:read', keywords: ['ordenes de compra', 'abastecimiento'] },
-          { title: 'Proveedores', url: 'inventory/suppliers', permission: 'inventory:read', keywords: ['suppliers', 'compras', 'abastecimiento'] },
-          { title: 'Ingredientes', url: 'inventory/ingredients', permission: 'inventory:read', keywords: ['materia prima', 'insumos', 'materiales'] },
-          { title: t('sidebar:routes.recipes', { defaultValue: 'Recetas' }), url: 'inventory/recipes', permission: 'inventory:read', keywords: ['preparaciones', 'formulas', 'costos'] },
-          { title: 'Modificadores', url: 'inventory/modifier-analytics', permission: 'inventory:read' },
-          { title: 'Recuentos de existencias', url: 'inventory/counts', permission: 'inventory:read', comingSoon: true },
-          { title: 'Reabastecimientos pendientes', url: 'inventory/restocks', permission: 'inventory:read', comingSoon: true },
-        ],
-      },
-      // NOTE: Sales (Ventas) collapsible section inserted below via splice
-      {
-        title: t('sidebar:routes.shifts'),
-        isActive: true,
-        url: 'shifts',
-        icon: Ungroup,
-        permission: 'shifts:read',
-        locked: !hasKYCAccess,
-        requiresShiftsEnabled: true,
-        group: 'operations',
-        keywords: ['horarios', 'turnos', 'reloj checador', 'cortes de caja', 'caja', 'cierre', 'arqueo'],
-      },
-      {
-        title: t('sidebar:routes.tpv'),
-        isActive: true,
-        url: 'tpv',
-        icon: Smartphone,
-        permission: 'tpv:read',
-        locked: !hasKYCAccess,
-        group: 'operations',
-        keywords: ['terminal', 'punto de venta', 'pos', 'dispositivo'],
-      },
-      {
-        title: t('sidebar:routes.reservations'),
-        isActive: true,
-        url: 'reservations',
-        icon: CalendarDays,
-        permission: 'reservations:read',
-        locked: false,
-        group: 'operations',
-        keywords: ['reservas', 'mesas', 'booking'],
-        items: [
-          { title: t('sidebar:reservationsMenu.overview'), url: 'reservations', permission: 'reservations:read' },
-          { title: t('sidebar:reservationsMenu.calendar'), url: 'reservations/calendar', permission: 'reservations:read' },
-          { title: t('sidebar:reservationsMenu.waitlist'), url: 'reservations/waitlist', permission: 'reservations:read', keywords: ['lista de espera', 'fila'] },
-          { title: t('sidebar:reservationsMenu.settings'), url: 'reservations/settings', permission: 'reservations:read' },
-        ],
-      },
+    // ── Menu / Carta ──
+    const menuSubItems = [
+      { title: t('menu:menumaker.nav.overview'), url: 'menumaker/overview', permission: 'menu:read' },
+      { title: t('menu:menumaker.nav.menus'), url: 'menumaker/menus', permission: 'menu:read' },
+      { title: t('menu:menumaker.nav.categories'), url: 'menumaker/categories', permission: 'menu:read', keywords: ['secciones', 'grupos'] },
+      { title: t('menu:menumaker.nav.products'), url: 'menumaker/products', permission: 'menu:read', keywords: ['platillos', 'articulos', 'items'] },
+      { title: t('menu:menumaker.nav.services'), url: 'menumaker/services', permission: 'menu:read' },
+      { title: t('menu:menumaker.nav.modifierGroups'), url: 'menumaker/modifier-groups', permission: 'menu:read' },
+      { title: t('sidebar:creditPacks'), url: 'menumaker/credit-packs', permission: 'creditPacks:read', keywords: ['creditos', 'paquetes', 'bundles', 'prepagados'] },
+    ].filter(item => !item.permission || can(item.permission)) as any[]
 
+    // ── Inventario ──
+    const inventorySubItems = checkFeatureAccess('INVENTORY_TRACKING') ? [
+      { title: 'Resumen de existencias', url: 'inventory/stock-overview', permission: 'inventory:read', keywords: ['stock', 'materia prima', 'almacen'] },
+      { title: 'Historial', url: 'inventory/history', permission: 'inventory:read', keywords: ['movimientos', 'registro'] },
+      { title: 'Pedidos', url: 'inventory/purchase-orders', permission: 'inventory:read', keywords: ['ordenes de compra', 'abastecimiento'] },
+      { title: 'Proveedores', url: 'inventory/suppliers', permission: 'inventory:read', keywords: ['suppliers', 'compras', 'abastecimiento'] },
+      { title: 'Ingredientes', url: 'inventory/ingredients', permission: 'inventory:read', keywords: ['materia prima', 'insumos', 'materiales'] },
+      { title: t('sidebar:routes.recipes', { defaultValue: 'Recetas' }), url: 'inventory/recipes', permission: 'inventory:read', keywords: ['preparaciones', 'formulas', 'costos'] },
+      { title: 'Modificadores', url: 'inventory/modifier-analytics', permission: 'inventory:read' },
+      { title: 'Recuentos de existencias', url: 'inventory/counts', permission: 'inventory:read', comingSoon: true },
+      { title: 'Reabastecimientos pendientes', url: 'inventory/restocks', permission: 'inventory:read', comingSoon: true },
+    ].filter(item => !item.permission || can(item.permission)) as any[] : []
+
+    // ── Ventas ──
+    const salesSubItems = [
       {
-        title: t('sidebar:routes.paymentLinks'),
-        isActive: true,
-        url: 'payment-links',
+        title: t('sidebar:salesMenu.transactions', { defaultValue: 'Transacciones' }),
+        url: 'payments',
+        permission: 'payments:read',
+        locked: !hasKYCAccess,
+        keywords: ['cobros', 'pagos', 'dinero'],
+      },
+      {
+        title: t('sidebar:salesMenu.orders', { defaultValue: 'Pedidos' }),
+        url: 'orders',
+        permission: 'orders:read',
+        locked: !hasKYCAccess,
+        keywords: ['ordenes', 'comandas', 'tickets'],
+      },
+      {
+        title: t('sidebar:salesMenu.paymentLinks', { defaultValue: 'Ligas de Pago' }),
+        url: '#payment-links',
         icon: Link2,
         permission: 'payment-link:read',
         locked: !hasKYCAccess,
-        group: 'operations',
         keywords: ['ligas de pago', 'cobrar', 'link', 'whatsapp', 'qr', 'liga'],
         items: [
           { title: t('sidebar:paymentLinksMenu.links'), url: 'payment-links', permission: 'payment-link:read' },
@@ -376,274 +338,269 @@ export function AppSidebar({
           { title: t('sidebar:paymentLinksMenu.branding'), url: 'payment-links/branding', permission: 'payment-link:read' },
         ],
       },
-
-      // ── Personas ──
       {
-        title: t('sidebar:routes.teams'),
-        isActive: true,
-        url: 'team',
-        icon: Users,
-        permission: 'teams:read',
-        locked: false,
-        group: 'people',
-        keywords: ['usuarios', 'empleados', 'meseros', 'personal', 'staff', 'recursos humanos'],
-      },
-      {
-        title: t('sidebar:routes.commissions'),
-        isActive: true,
-        url: 'commissions',
-        icon: DollarSign,
-        permission: 'commissions:read',
-        locked: !hasKYCAccess,
-        group: 'people',
-        keywords: ['propinas', 'bonos', 'metas', 'goals'],
-      },
-      { title: t('sidebar:routes.reviews'), isActive: true, url: 'reviews', icon: Star, permission: 'reviews:read', locked: false, group: 'people', keywords: ['comentarios', 'opiniones', 'calificaciones', 'feedback', 'ratings'] },
-    ]
-
-    // Map of standard sidebar URLs to their white-label feature codes
-    // EVERY Avoqado core item must be here so white-label venues only show explicitly-enabled features
-    const urlToWhiteLabelFeature: Record<string, string> = {
-      home: 'AVOQADO_DASHBOARD',
-      'menumaker/overview': 'AVOQADO_MENU',
-      'inventory/raw-materials': 'AVOQADO_INVENTORY',
-      team: 'AVOQADO_TEAM',
-      reviews: 'AVOQADO_REVIEWS',
-      tpv: 'AVOQADO_TPVS',
-      commissions: 'AVOQADO_COMMISSIONS',
-      'available-balance': 'AVOQADO_BALANCE',
-      shifts: 'AVOQADO_SHIFTS',
-      reservations: 'AVOQADO_RESERVATIONS',
-      'payment-links': 'AVOQADO_PAYMENT_LINKS',
-    }
-
-    // Filter items based on permissions AND active features
-    const filteredItems = allItems.filter(item => {
-      // Check permission
-      if (!can(item.permission)) return false
-
-      // For white-label venues in "Full" mode, check BOTH:
-      // 1. Feature is enabled in white-label config
-      // 2. User's role has access to the feature
-      if (isWhiteLabelVenue) {
-        const whiteLabelFeatureCode = urlToWhiteLabelFeature[item.url]
-        if (whiteLabelFeatureCode) {
-          // Check if feature is enabled
-          if (!isFeatureEnabled(whiteLabelFeatureCode)) {
-            return false
-          }
-          // Check if user's role can access this feature
-          if (!canFeature(whiteLabelFeatureCode)) {
-            return false
-          }
-        }
-      }
-
-      // Check required feature (if specified)
-      if ('requiredFeature' in item && item.requiredFeature) {
-        return checkFeatureAccess(item.requiredFeature)
-      }
-
-      // Check if shifts are enabled (for shifts menu item)
-      if ('requiresShiftsEnabled' in item && item.requiresShiftsEnabled) {
-        return activeVenue?.settings?.enableShifts === true
-      }
-
-      return true
-    })
-
-    // Sales submenu (Ventas) - Orders and Transactions grouped together
-    // Following Square's "Orders & payments" pattern for better UX
-    const salesSubItems = [
-      { title: term('orderPlural'), url: 'orders', permission: 'orders:read', whiteLabelFeature: 'AVOQADO_ORDERS', keywords: ['ordenes', 'comandas', 'tickets'] },
-      {
-        title: t('sidebar:salesMenu.transactions', { defaultValue: 'Transacciones' }),
-        url: 'payments',
+        title: t('sidebar:salesMenu.virtualTerminal', { defaultValue: 'Terminal Virtual' }),
+        url: 'virtual-terminal',
+        icon: Monitor,
         permission: 'payments:read',
-        whiteLabelFeature: 'AVOQADO_PAYMENTS',
-        keywords: ['cobros', 'pagos', 'dinero'],
+        locked: !hasKYCAccess,
+        comingSoon: true,
+        keywords: ['cobrar', 'tarjeta', 'manual', 'terminal'],
       },
-    ].filter(item => {
-      // Check permission
-      if (item.permission && !can(item.permission)) return false
-      // For white-label venues, check if feature is enabled
-      if (isWhiteLabelVenue && item.whiteLabelFeature && !isFeatureEnabled(item.whiteLabelFeature)) return false
-      return true
-    })
-
-    // Only show Sales menu if user has at least one subitem
-    if (salesSubItems.length > 0 && (!isWhiteLabelVenue || isFeatureEnabled('AVOQADO_ORDERS') || isFeatureEnabled('AVOQADO_PAYMENTS'))) {
-      // Find index after Inventory to insert Sales menu
-      const inventoryIndex = filteredItems.findIndex(item => item.url === 'inventory/raw-materials')
-      const insertIndex = inventoryIndex !== -1 ? inventoryIndex + 1 : filteredItems.length
-      filteredItems.splice(insertIndex, 0, {
-        title: t('sidebar:salesMenu.title', { defaultValue: 'Ventas' }),
-        url: '#sales',
-        icon: ShoppingCart,
-        locked: !hasKYCAccess,
-        items: salesSubItems,
-        permission: null as any,
-        group: 'operations',
-        keywords: ['pedidos', 'cobros', 'pagos'],
-      } as any)
-    }
-
-    // Customers submenu - filter subitems based on permissions AND features
-    const customersSubItems = [
-      { title: t('sidebar:customersMenu.all'), url: 'customers', permission: 'customers:read', keywords: ['consumidores', 'comensales'] },
-      { title: t('sidebar:customersMenu.groups'), url: 'customers/groups', permission: 'customer-groups:read', keywords: ['segmentos'] },
-      { title: t('sidebar:customersMenu.loyalty'), url: 'loyalty', permission: 'loyalty:read', requiredFeature: 'LOYALTY_PROGRAM', keywords: ['lealtad', 'puntos', 'fidelidad'] },
-    ].filter(item => {
-      // Check permission
-      if (item.permission && !can(item.permission)) return false
-      // Check required feature
-      if ('requiredFeature' in item && item.requiredFeature) {
-        return checkFeatureAccess(item.requiredFeature)
-      }
-      return true
-    })
-
-    // Only show Customers menu if user has at least one subitem AND (not white-label OR customers feature enabled)
-    if (customersSubItems.length > 0 && (!isWhiteLabelVenue || isFeatureEnabled('AVOQADO_CUSTOMERS'))) {
-      // Find index after Teams to insert Customers menu (before Commissions)
-      const teamsIndex = filteredItems.findIndex(item => item.url === 'team')
-      const insertIndex = teamsIndex !== -1 ? teamsIndex + 1 : filteredItems.length
-      filteredItems.splice(insertIndex, 0, {
-        title: t('sidebar:customersMenu.title'),
-        url: '#customers',
-        icon: Users,
-        locked: false,
-        items: customersSubItems,
-        permission: null as any,
-        group: 'people',
-        keywords: ['consumidores', 'comensales'],
-      } as any)
-    }
-
-    // Promotions submenu - filter subitems based on permissions
-    const promotionsSubItems = [
-      { title: t('sidebar:promotionsMenu.discounts'), url: 'promotions/discounts', permission: 'discounts:read', keywords: ['ofertas', 'promociones'] },
-      { title: t('sidebar:promotionsMenu.coupons'), url: 'promotions/coupons', permission: 'coupons:read', keywords: ['codigos', 'vouchers'] },
-    ].filter(item => !item.permission || can(item.permission))
-
-    // Only show Promotions menu if user has at least one subitem AND (not white-label OR promotions feature enabled)
-    if (promotionsSubItems.length > 0 && (!isWhiteLabelVenue || isFeatureEnabled('AVOQADO_PROMOTIONS'))) {
-      // Find index after Reviews to insert Promotions menu
-      const reviewsIndex = filteredItems.findIndex(item => item.url === 'reviews')
-      const insertIndex = reviewsIndex !== -1 ? reviewsIndex + 1 : filteredItems.length
-      filteredItems.splice(insertIndex, 0, {
-        title: t('sidebar:promotionsMenu.title'),
-        url: '#promotions',
-        icon: Tag,
-        locked: false,
-        items: promotionsSubItems,
-        permission: null as any,
-        group: 'people',
-        keywords: ['ofertas', 'descuentos', 'codigos'],
-      } as any)
-    }
-
-    // Available Balance — first item in Reportes group
-    if (can('settlements:read') && (!isWhiteLabelVenue || isFeatureEnabled('AVOQADO_BALANCE'))) {
-      filteredItems.push({
-        title: t('sidebar:availableBalance'),
-        isActive: true,
-        url: 'available-balance',
-        icon: Wallet,
-        permission: 'settlements:read',
-        locked: !hasKYCAccess,
-        group: 'reports',
-        keywords: ['balance', 'liquidaciones', 'depositos', 'transferencias'],
-      } as any)
-    }
-
-    // Reports — flat items (no collapsible parent) under "Reportes" group
-    const reportItems = [
       {
-        title: t('sidebar:reportsMenu.payLaterAging', { defaultValue: 'Cuentas por Cobrar' }),
-        url: 'reports/pay-later-aging',
-        icon: HandCoins,
-        permission: 'tpv-reports:pay-later-aging',
-        group: 'reports',
-        keywords: ['pay later', 'fiado', 'deudas'],
+        title: t('sidebar:salesMenu.subscriptions', { defaultValue: 'Suscripciones' }),
+        url: 'subscriptions',
+        icon: RefreshCw,
+        permission: 'payments:read',
+        locked: !hasKYCAccess,
+        comingSoon: true,
+        keywords: ['membresia', 'recurrente', 'plan', 'mensual'],
       },
-      { title: t('sidebar:reportsMenu.salesSummary'), url: 'reports/sales-summary', icon: BarChart3, permission: 'reports:read', group: 'reports', keywords: ['reporte', 'ventas diarias', 'ganancias', 'ingresos'] },
-      { title: t('sidebar:reportsMenu.salesByItem'), url: 'reports/sales-by-item', icon: Receipt, permission: 'reports:read', group: 'reports', keywords: ['reporte de productos', 'items vendidos'] },
-      { title: t('sidebar:reportsMenu.salesByCategory'), url: 'reports/sales-by-category', icon: Receipt, permission: 'reports:read', group: 'reports', comingSoon: true },
-      { title: t('sidebar:reportsMenu.paymentMethods'), url: 'reports/payment-methods', icon: CreditCard, permission: 'reports:read', group: 'reports', comingSoon: true },
-      { title: t('sidebar:reportsMenu.taxes'), url: 'reports/taxes', icon: FileSpreadsheet, permission: 'reports:read', group: 'reports', comingSoon: true },
-      { title: t('sidebar:reportsMenu.voids'), url: 'reports/voids', icon: Receipt, permission: 'reports:read', group: 'reports', comingSoon: true },
-      { title: t('sidebar:reportsMenu.modifiers'), url: 'reports/modifiers', icon: Receipt, permission: 'reports:read', group: 'reports', comingSoon: true },
-    ].filter(item => !item.permission || can(item.permission))
-
-    // Only add reports if user has permissions AND (not white-label OR reports feature enabled)
-    if (reportItems.length > 0 && (!isWhiteLabelVenue || isFeatureEnabled('AVOQADO_REPORTS'))) {
-      for (const report of reportItems) {
-        filteredItems.push({
-          ...report,
-          isActive: true,
-          locked: !hasKYCAccess,
-        } as any)
+      {
+        title: t('sidebar:salesMenu.disputes', { defaultValue: 'Disputas' }),
+        url: 'disputes',
+        icon: AlertCircle,
+        permission: 'payments:read',
+        locked: !hasKYCAccess,
+        comingSoon: true,
+        keywords: ['contracargos', 'reclamos', 'fraude'],
+      },
+    ].filter(item => {
+      if (item.permission && !can(item.permission)) return false
+      if (isWhiteLabelVenue) {
+        if (item.url === 'payments' && !canWL('AVOQADO_PAYMENTS')) return false
+        if (item.url === 'orders' && !canWL('AVOQADO_ORDERS')) return false
+        if (item.url === '#payment-links' && !canWL('AVOQADO_PAYMENT_LINKS')) return false
       }
-    }
+      return true
+    }) as any[]
 
-    // Settings — flat items under "Configuración" group (no collapsible parent)
-    const settingsItems = [
+    // ── Reservaciones ──
+    const reservationsSubItems = [
+      { title: t('sidebar:reservationsMenu.overview'), url: 'reservations', permission: 'reservations:read' },
+      { title: t('sidebar:reservationsMenu.calendar'), url: 'reservations/calendar', permission: 'reservations:read' },
+      { title: t('sidebar:reservationsMenu.waitlist'), url: 'reservations/waitlist', permission: 'reservations:read', keywords: ['lista de espera', 'fila'] },
+      {
+        title: t('sidebar:reservationsMenu.settingsGroup', { defaultValue: 'Ajustes' }),
+        url: '#reservations-settings',
+        items: [
+          { title: t('sidebar:reservationsMenu.general', { defaultValue: 'General' }), url: 'reservations/settings', permission: 'reservations:read' },
+          { title: t('sidebar:reservationsMenu.communications', { defaultValue: 'Comunicaciones' }), url: 'reservations/communications', permission: 'reservations:read', comingSoon: true },
+        ],
+      },
+    ].filter(item => !item.permission || can(item.permission)) as any[]
+
+    // ── Equipo ──
+    const teamSubItems = [
+      { title: t('sidebar:teamMenu.members', { defaultValue: 'Miembros' }), url: 'team', permission: 'teams:read', keywords: ['empleados', 'meseros', 'personal', 'staff', 'recursos humanos'] },
+      ...(activeVenue?.settings?.enableShifts ? [
+        { title: t('sidebar:routes.shifts'), url: 'shifts', permission: 'shifts:read', locked: !hasKYCAccess, keywords: ['horarios', 'turnos', 'reloj checador', 'cortes de caja', 'caja', 'cierre', 'arqueo'] },
+      ] : []),
+      { title: t('sidebar:routes.commissions'), url: 'commissions', permission: 'commissions:read', locked: !hasKYCAccess, keywords: ['propinas', 'bonos', 'metas', 'goals'] },
+    ].filter(item => {
+      if (item.permission && !can(item.permission)) return false
+      if (isWhiteLabelVenue) {
+        if (item.url === 'team' && !canWL('AVOQADO_TEAM')) return false
+        if (item.url === 'shifts' && !canWL('AVOQADO_SHIFTS')) return false
+        if (item.url === 'commissions' && !canWL('AVOQADO_COMMISSIONS')) return false
+      }
+      return true
+    }) as any[]
+
+    // ── Clientes ──
+    const customersSubItems = (() => {
+      const items: any[] = [
+        { title: t('sidebar:customersMenu.all'), url: 'customers', permission: 'customers:read', keywords: ['consumidores', 'comensales'] },
+        { title: t('sidebar:customersMenu.groups'), url: 'customers/groups', permission: 'customer-groups:read', keywords: ['segmentos'] },
+      ]
+
+      if (checkFeatureAccess('LOYALTY_PROGRAM') && canWL('AVOQADO_LOYALTY')) {
+        items.push({ title: t('sidebar:customersMenu.loyalty'), url: 'loyalty', permission: 'loyalty:read', keywords: ['lealtad', 'puntos', 'fidelidad'] })
+      }
+
+      if (canWL('AVOQADO_REVIEWS')) {
+        items.push({ title: t('sidebar:routes.reviews'), url: 'reviews', permission: 'reviews:read', keywords: ['comentarios', 'opiniones', 'calificaciones', 'feedback', 'ratings'] })
+      }
+
+      // Promotions dropdown
+      const promoItems = [
+        { title: t('sidebar:promotionsMenu.discounts'), url: 'promotions/discounts', permission: 'discounts:read', keywords: ['ofertas', 'promociones'] },
+        { title: t('sidebar:promotionsMenu.coupons'), url: 'promotions/coupons', permission: 'coupons:read', keywords: ['codigos', 'vouchers'] },
+      ].filter(sub => !sub.permission || can(sub.permission))
+
+      if (promoItems.length > 0 && canWL('AVOQADO_PROMOTIONS')) {
+        items.push({
+          title: t('sidebar:promotionsMenu.title'),
+          url: '#promotions',
+          items: promoItems,
+        })
+      }
+
+      return items.filter(item => {
+        if ('permission' in item && item.permission && !can(item.permission)) return false
+        if (isWhiteLabelVenue && item.url === 'customers' && !canWL('AVOQADO_CUSTOMERS')) return false
+        return true
+      })
+    })() as any[]
+
+    // ── Reportes ──
+    const reportsSubItems = [
+      { title: t('sidebar:availableBalance'), url: 'available-balance', icon: Wallet, permission: 'settlements:read', locked: !hasKYCAccess, keywords: ['balance', 'liquidaciones', 'depositos', 'transferencias'] },
+      { title: t('sidebar:reportsMenu.payLaterAging', { defaultValue: 'Cuentas por Cobrar' }), url: 'reports/pay-later-aging', icon: HandCoins, permission: 'tpv-reports:pay-later-aging', keywords: ['pay later', 'fiado', 'deudas'] },
+      { title: t('sidebar:reportsMenu.salesSummary'), url: 'reports/sales-summary', icon: BarChart3, permission: 'reports:read', keywords: ['reporte', 'ventas diarias', 'ganancias', 'ingresos'] },
+      { title: t('sidebar:reportsMenu.salesByItem'), url: 'reports/sales-by-item', icon: Receipt, permission: 'reports:read', keywords: ['reporte de productos', 'items vendidos'] },
+      { title: t('sidebar:reportsMenu.salesByCategory'), url: 'reports/sales-by-category', icon: Receipt, permission: 'reports:read', comingSoon: true },
+      { title: t('sidebar:reportsMenu.paymentMethods'), url: 'reports/payment-methods', icon: CreditCard, permission: 'reports:read', comingSoon: true },
+      { title: t('sidebar:reportsMenu.taxes'), url: 'reports/taxes', icon: FileSpreadsheet, permission: 'reports:read', comingSoon: true },
+      { title: t('sidebar:reportsMenu.voids'), url: 'reports/voids', icon: Receipt, permission: 'reports:read', comingSoon: true },
+      { title: t('sidebar:reportsMenu.modifiers'), url: 'reports/modifiers', icon: Receipt, permission: 'reports:read', comingSoon: true },
+    ].filter(item => {
+      if (item.permission && !can(item.permission)) return false
+      if (isWhiteLabelVenue) {
+        if (item.url === 'available-balance' && !canWL('AVOQADO_BALANCE')) return false
+        if (item.url.startsWith('reports/') && !canWL('AVOQADO_REPORTS')) return false
+      }
+      return true
+    }) as any[]
+
+    // ── Configuracion ──
+    const settingsSubItems = [
       { title: t('sidebar:routes.editvenue'), url: 'edit', icon: Store, permission: 'venues:read', keywords: ['ajustes', 'settings', 'negocio'] },
-      // Role permissions only for ADMIN+
       ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
-        ? [{ title: t('sidebar:rolePermissions'), url: 'settings/role-permissions', icon: Shield, permission: null }]
+        ? [{ title: t('sidebar:rolePermissions'), url: 'settings/role-permissions', icon: Shield }]
         : []),
-      // Billing only for ADMIN+
       ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
         ? [{ title: t('sidebar:routes.billing'), url: 'settings/billing', icon: CreditCard, permission: 'billing:read', keywords: ['facturacion', 'plan', 'suscripcion', 'cobro'] }]
         : []),
-      // Notifications preferences
-      { title: t('sidebar:routes.notifications'), url: 'notifications/preferences', icon: Settings2, permission: 'settings:read', keywords: ['alertas', 'avisos', 'preferencias'] },
-    ].filter(item => !item.permission || can(item.permission))
-
-    // Only add settings if user has at least one item AND (not white-label OR settings feature enabled)
-    if (settingsItems.length > 0 && (!isWhiteLabelVenue || isFeatureEnabled('AVOQADO_SETTINGS'))) {
-      for (const setting of settingsItems) {
-        filteredItems.push({
-          ...setting,
-          isActive: true,
-          locked: false,
-          group: 'settings',
-        } as any)
-      }
-    }
-
-    // Superadmin Venue Tools dropdown - only for SUPERADMIN
-    // These are venue-specific superadmin actions (not global /superadmin routes)
-    if (effectiveRole === 'SUPERADMIN') {
-      const superadminVenueItems = [
-        { title: t('sidebar:paymentConfig'), url: 'payment-config', superadminOnly: true },
-        { title: t('sidebar:ecommerceChannels'), url: 'ecommerce-merchants', superadminOnly: true },
-        { title: t('sidebar:merchantAccounts'), url: 'merchant-accounts', superadminOnly: true },
-      ]
-
-      filteredItems.push({
+      { title: t('sidebar:routes.notifications', { defaultValue: 'Notificaciones' }), url: 'notifications/preferences', icon: Settings2, permission: 'settings:read', keywords: ['alertas', 'avisos', 'preferencias'] },
+      ...(effectiveRole === 'SUPERADMIN' ? [{
         title: t('sidebar:superadminTools'),
         url: '#superadmin-venue',
         icon: Shield,
-        locked: false,
-        items: superadminVenueItems,
         superadminOnly: true,
-        permission: null as any,
-        group: 'settings',
-      } as any)
+        items: [
+          { title: t('sidebar:paymentConfig'), url: 'payment-config', superadminOnly: true },
+          { title: t('sidebar:ecommerceChannels'), url: 'ecommerce-merchants', superadminOnly: true },
+          { title: t('sidebar:merchantAccounts'), url: 'merchant-accounts', superadminOnly: true },
+        ],
+      }] : []),
+    ].filter(item => {
+      if ('permission' in item && item.permission && !can(item.permission as string)) return false
+      if (isWhiteLabelVenue && !canWL('AVOQADO_SETTINGS')) return false
+      return true
+    }) as any[]
+
+    // ===================================================================
+    // Build Main Sidebar Items (triggers + direct links)
+    // ===================================================================
+    const mainItems: any[] = []
+
+    // Home
+    if (can('home:read') && canWL('AVOQADO_DASHBOARD')) {
+      mainItems.push({
+        title: t('sidebar:routes.home'), url: 'home', icon: Home,
+        keywords: ['inicio', 'dashboard', 'resumen', 'panel'],
+      })
+    }
+
+    // Menu / Carta
+    if (menuSubItems.length > 0 && canWL('AVOQADO_MENU')) {
+      mainItems.push({
+        title: term('menu'), url: '#menu', icon: BookOpen, subSidebar: 'menu',
+        keywords: ['carta', 'menu', 'platillos'],
+      })
+    }
+
+    // Inventario
+    if (inventorySubItems.length > 0 && canWL('AVOQADO_INVENTORY')) {
+      mainItems.push({
+        title: t('sidebar:routes.inventory'), url: '#inventory', icon: Package, subSidebar: 'inventory',
+        locked: !hasKYCAccess,
+        keywords: ['almacen', 'bodega', 'stock'],
+      })
+    }
+
+    // Ventas
+    if (salesSubItems.length > 0) {
+      mainItems.push({
+        title: t('sidebar:salesMenu.title', { defaultValue: 'Ventas' }), url: '#sales', icon: ShoppingCart, subSidebar: 'sales',
+        locked: !hasKYCAccess,
+        keywords: ['pedidos', 'cobros', 'pagos', 'ventas', 'transacciones'],
+      })
+    }
+
+    // Reservaciones
+    if (reservationsSubItems.length > 0 && canWL('AVOQADO_RESERVATIONS')) {
+      mainItems.push({
+        title: t('sidebar:routes.reservations'), url: '#reservations', icon: CalendarDays, subSidebar: 'reservations',
+        keywords: ['reservas', 'mesas', 'booking'],
+      })
+    }
+
+    // TPV (direct link, no sub-sidebar)
+    if (can('tpv:read') && canWL('AVOQADO_TPVS')) {
+      mainItems.push({
+        title: t('sidebar:routes.tpv'), url: 'tpv', icon: Smartphone,
+        locked: !hasKYCAccess,
+        keywords: ['terminal', 'punto de venta', 'pos', 'dispositivo'],
+      })
+    }
+
+    // Equipo
+    if (teamSubItems.length > 0) {
+      mainItems.push({
+        title: t('sidebar:teamMenu.title', { defaultValue: 'Equipo' }), url: '#team', icon: Users, subSidebar: 'team',
+        keywords: ['usuarios', 'empleados', 'personal', 'staff'],
+      })
+    }
+
+    // Clientes
+    if (customersSubItems.length > 0) {
+      mainItems.push({
+        title: t('sidebar:customersMenu.title'), url: '#customers', icon: Handshake, subSidebar: 'customers',
+        keywords: ['consumidores', 'comensales', 'clientes'],
+      })
+    }
+
+    // Reportes
+    if (reportsSubItems.length > 0) {
+      mainItems.push({
+        title: t('sidebar:reportsMenu.title', { defaultValue: 'Reportes' }), url: '#reports', icon: BarChart3, subSidebar: 'reports',
+        keywords: ['reportes', 'analytics', 'estadisticas'],
+      })
+    }
+
+    // Configuracion
+    if (settingsSubItems.length > 0) {
+      mainItems.push({
+        title: t('sidebar:settingsMenu.title', { defaultValue: 'Configuración' }), url: '#settings', icon: Settings, subSidebar: 'settings',
+        keywords: ['ajustes', 'configuracion'],
+      })
     }
 
     // Mark Avoqado core items with badge when WL module items are present
     if (isWhiteLabelVenue && whiteLabelModuleItems.length > 0) {
-      filteredItems.forEach(item => {
+      mainItems.forEach(item => {
         ;(item as any).isAvoqadoCore = true
       })
     }
 
+    // Build sub-sidebar sections map
+    const allSubSidebarSections: Record<string, any[]> = {}
+    if (menuSubItems.length > 0) allSubSidebarSections.menu = menuSubItems
+    if (inventorySubItems.length > 0) allSubSidebarSections.inventory = inventorySubItems
+    if (salesSubItems.length > 0) allSubSidebarSections.sales = salesSubItems
+    if (reservationsSubItems.length > 0) allSubSidebarSections.reservations = reservationsSubItems
+    if (teamSubItems.length > 0) allSubSidebarSections.team = teamSubItems
+    if (customersSubItems.length > 0) allSubSidebarSections.customers = customersSubItems
+    if (reportsSubItems.length > 0) allSubSidebarSections.reports = reportsSubItems
+    if (settingsSubItems.length > 0) allSubSidebarSections.settings = settingsSubItems
+
     // Combine: WL module items first, then Avoqado core items
-    return [...whiteLabelModuleItems, ...filteredItems]
+    return {
+      items: [...whiteLabelModuleItems, ...mainItems],
+      subSidebarSections: allSubSidebarSections,
+    }
   }, [
     t,
     term,
@@ -660,9 +617,15 @@ export function AppSidebar({
   ])
 
   // Expose sidebar data to parent for command palette
+  // Include sub-sidebar items in navItems for search/command palette discoverability
+  const allNavItems = React.useMemo(() => {
+    const subItems = Object.values(navMain.subSidebarSections).flat()
+    return [...navMain.items, ...subItems]
+  }, [navMain])
+
   React.useEffect(() => {
-    onSidebarReady?.({ navItems: navMain, hiddenSidebarItems, isSuperadmin })
-  }, [navMain, hiddenSidebarItems, isSuperadmin, onSidebarReady])
+    onSidebarReady?.({ navItems: allNavItems, hiddenSidebarItems, isSuperadmin })
+  }, [allNavItems, hiddenSidebarItems, isSuperadmin, onSidebarReady])
 
   const superAdminRoutes = React.useMemo(
     () => [
@@ -725,11 +688,12 @@ export function AppSidebar({
       </div>
       <SidebarContent>
         <NavMain
-          items={navMain}
+          items={navMain.items}
           superadminItems={user.role === 'SUPERADMIN' ? superAdminRoutes : []}
           hiddenSidebarItems={hiddenSidebarItems}
           isSuperadmin={isSuperadmin}
           onToggleVisibility={isSuperadmin ? handleToggleVisibility : undefined}
+          subSidebarSections={navMain.subSidebarSections}
         />
         {/* <NavProjects projects={data.projects} /> */}
       </SidebarContent>

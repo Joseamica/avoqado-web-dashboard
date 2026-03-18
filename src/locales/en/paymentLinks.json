@@ -30,6 +30,17 @@
     "archived": "Archived",
     "label": "Status"
   },
+  "statusTabs": {
+    "all": "All",
+    "active": "Active",
+    "paused": "Paused",
+    "expired": "Expired"
+  },
+  "summaryCards": {
+    "links": "Links",
+    "collected": "Collected",
+    "usageRate": "Usage Rate"
+  },
   "form": {
     "createTitle": "Create payment link",
     "editTitle": "Edit payment link",
