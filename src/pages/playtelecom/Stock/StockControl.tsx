@@ -31,12 +31,14 @@ import {
 } from '@/services/stockDashboard.service'
 
 // ─── Movement type config (Spanish labels + styling) ───
-const MOVEMENT_TYPE_CONFIG: Record<StockMovement['type'], { label: string; className: string }> = {
+const MOVEMENT_TYPE_CONFIG: Record<string, { label: string; className: string }> = {
   REGISTERED: { label: 'Registro SIM', className: 'bg-green-500/10 text-green-600 border-green-500/20' },
   SOLD: { label: 'Vendido', className: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
   RETURNED: { label: 'Devuelto', className: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' },
   DAMAGED: { label: 'Dañado', className: 'bg-red-500/10 text-red-600 border-red-500/20' },
+  BULK_UPLOAD: { label: 'Carga masiva', className: 'bg-purple-500/10 text-purple-600 border-purple-500/20' },
 }
+const FALLBACK_TYPE_CONFIG = { label: 'Desconocido', className: 'bg-muted text-muted-foreground' }
 
 // ─── Export helpers ───
 function escapeCSV(val: string): string {
@@ -140,7 +142,7 @@ export function StockControl() {
     })
   }, [venueTimezone])
 
-  const getTypeLabel = (type: StockMovement['type']) => MOVEMENT_TYPE_CONFIG[type]?.label || type
+  const getTypeLabel = (type: string) => MOVEMENT_TYPE_CONFIG[type]?.label || type
 
   // ─── Export ───
   const buildExportRows = useCallback(() => {
@@ -362,6 +364,7 @@ ${dataRows}
               <SelectItem value="SOLD">Vendido</SelectItem>
               <SelectItem value="RETURNED">Devuelto</SelectItem>
               <SelectItem value="DAMAGED">Dañado</SelectItem>
+              <SelectItem value="BULK_UPLOAD">Carga masiva</SelectItem>
             </SelectContent>
           </Select>
           {uniqueCategories.length > 1 && (
@@ -412,11 +415,17 @@ ${dataRows}
             <tbody>
               {filteredMovements.length > 0 ? (
                 filteredMovements.map(movement => {
-                  const typeConfig = MOVEMENT_TYPE_CONFIG[movement.type]
+                  const typeConfig = MOVEMENT_TYPE_CONFIG[movement.type] || FALLBACK_TYPE_CONFIG
                   return (
                     <tr key={movement.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
                       <td className="py-3 px-2">
-                        <code className="text-xs bg-muted/50 px-2 py-1 rounded font-mono">{movement.serialNumber}</code>
+                        {movement.type === 'BULK_UPLOAD' ? (
+                          <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
+                            {movement.itemCount ?? movement.serialNumber} items
+                          </span>
+                        ) : (
+                          <code className="text-xs bg-muted/50 px-2 py-1 rounded font-mono">{movement.serialNumber}</code>
+                        )}
                       </td>
                       <td className="py-3 px-2 text-sm">{movement.categoryName}</td>
                       <td className="py-3 px-2">

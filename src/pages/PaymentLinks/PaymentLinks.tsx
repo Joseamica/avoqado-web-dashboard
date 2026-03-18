@@ -132,7 +132,7 @@ export default function PaymentLinks() {
   // Summary cards
   const plSummaryCards = useMemo<SummaryCardItem[]>(() => {
     const count = links.length
-    const totalCollected = links.reduce((sum, l) => sum + (l.totalCollected || 0), 0)
+    const totalCollected = links.reduce((sum, l) => sum + (Number(l.totalCollected) || 0), 0)
     const totalPayments = links.reduce((sum, l) => sum + (l.paymentCount || 0), 0)
     const usageRate = count > 0 ? (links.filter(l => l.paymentCount > 0).length / count) * 100 : 0
     return [

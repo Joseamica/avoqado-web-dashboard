@@ -72,10 +72,11 @@ export interface StockMovement {
   id: string
   serialNumber: string
   categoryName: string
-  type: 'REGISTERED' | 'SOLD' | 'RETURNED' | 'DAMAGED'
+  type: 'REGISTERED' | 'SOLD' | 'RETURNED' | 'DAMAGED' | 'BULK_UPLOAD'
   timestamp: string
   venueName: string | null
   userName: string | null
+  itemCount?: number
 }
 
 export interface StockMovementsResponse {
