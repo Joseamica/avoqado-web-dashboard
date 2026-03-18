@@ -103,6 +103,9 @@ import {
   VenueDocuments,
   VenueEditLayout,
   VenueIntegrations,
+  Disputes,
+  Subscriptions,
+  VirtualTerminal,
 } from './lazyComponents'
 
 /**
@@ -359,6 +362,27 @@ export function createVenueRoutes(): RouteObject[] {
         { path: 'settings', element: <PaymentLinkSettings /> },
         { path: 'branding', element: <PaymentLinkBranding /> },
       ],
+    },
+
+    // Disputes (Coming Soon)
+    {
+      path: 'disputes',
+      element: <PermissionProtectedRoute permission="payments:read" />,
+      children: [{ index: true, element: <Disputes /> }],
+    },
+
+    // Subscriptions (Coming Soon)
+    {
+      path: 'subscriptions',
+      element: <PermissionProtectedRoute permission="payments:read" />,
+      children: [{ index: true, element: <Subscriptions /> }],
+    },
+
+    // Virtual Terminal (Coming Soon)
+    {
+      path: 'virtual-terminal',
+      element: <PermissionProtectedRoute permission="payments:read" />,
+      children: [{ index: true, element: <VirtualTerminal /> }],
     },
 
     // Loyalty Settings (requires loyalty:read permission)

@@ -34,3 +34,6 @@ test-results/
 playwright-report/
 playwright/.cache/
 .superpowers/
+
+# Design reference screenshots (not committed, used for implementation)
+docs/square-research/

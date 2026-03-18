@@ -1,0 +1,8 @@
+{
+  "title": "Terminal Virtual",
+  "comingSoon": "Muy pronto",
+  "emptyState": {
+    "title": "Cobra a clientes de forma remota",
+    "description": "Acepta pagos con tarjeta sin terminal física. Ingresa los datos de la tarjeta manualmente para procesar pagos por teléfono, facturas o transacciones presenciales."
+  }
+}

@@ -20,11 +20,23 @@
     "discounts": "Descuentos",
     "coupons": "Códigos de Cupón"
   },
+  "teamMenu": {
+    "title": "Equipo",
+    "members": "Miembros"
+  },
+  "settingsMenu": {
+    "title": "Configuración"
+  },
   "creditPacks": "Paquetes de Créditos",
   "salesMenu": {
     "title": "Ventas",
-    "orders": "Órdenes",
-    "transactions": "Transacciones"
+    "orders": "Pedidos",
+    "transactions": "Transacciones",
+    "paymentLinks": "Ligas de Pago",
+    "virtualTerminal": "Terminal Virtual",
+    "subscriptions": "Suscripciones",
+    "disputes": "Disputas",
+    "back": "Ventas"
   },
   "growth": "Crecimiento",
   "paymentProviders": "Proveedores de pago",
@@ -119,7 +131,10 @@
     "overview": "Resumen",
     "calendar": "Calendario",
     "waitlist": "Lista de espera",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "settingsGroup": "Ajustes",
+    "general": "General",
+    "communications": "Comunicaciones"
   },
   "requiresKycVerification": "Requiere verificación KYC"
 }

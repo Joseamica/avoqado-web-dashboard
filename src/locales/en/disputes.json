@@ -1,0 +1,8 @@
+{
+  "title": "Disputes",
+  "comingSoon": "Coming soon",
+  "emptyState": {
+    "title": "No disputes",
+    "description": "When a customer disputes a charge, it will appear here. You'll be able to review evidence, respond to the dispute, and track the resolution."
+  }
+}

@@ -119,8 +119,6 @@
 		"fromOrder": "From order #{{orderNumber}}",
 		"byStaff": "By {{staffName}}"
 	},
-	"common": {
-		"points": "points",
-		"point": "point"
-	}
+	"pointsLabel": "points",
+	"pointLabel": "point"
 }

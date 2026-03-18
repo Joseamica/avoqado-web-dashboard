@@ -1,0 +1,8 @@
+{
+  "title": "Disputas",
+  "comingSoon": "Muy pronto",
+  "emptyState": {
+    "title": "Sin disputas",
+    "description": "Cuando un cliente dispute un cargo, aparecerá aquí. Podrás revisar evidencia, responder a la disputa y dar seguimiento a la resolución."
+  }
+}

@@ -7,11 +7,10 @@ import {
   AmountFilterContent,
   CheckboxFilterContent,
   ColumnCustomizer,
-  DateFilterContent,
   FilterPill,
   type AmountFilter,
-  type DateFilter,
 } from '@/components/filters'
+import { DateRangePicker } from '@/components/date-range-picker'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import {
   AlertDialog,
@@ -32,6 +31,8 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 import { SelectionSummaryBar } from '@/components/selection-summary-bar'
+import { StatusFilterTabs, type StatusTab } from '@/components/StatusFilterTabs'
+import { SummaryCards, type SummaryCardItem } from '@/components/SummaryCards'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useSocketEvents } from '@/hooks/use-socket-events'
@@ -42,6 +43,7 @@ import { commissionService } from '@/services/commission.service'
 import { PaymentMethod, PaymentRecordType, PaymentStatus, Payment as PaymentType, StaffRole } from '@/types'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
+import { DateTime } from 'luxon'
 import { exportToCSV, exportToExcel, formatCurrencyForExport, generateFilename } from '@/utils/export'
 import getIcon from '@/utils/getIcon'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -56,7 +58,8 @@ export default function Payments() {
   const { t: tCommon } = useTranslation('common')
   const { toast } = useToast()
   const { venueId } = useCurrentVenue()
-  const { user, checkFeatureAccess } = useAuth()
+  const { user, checkFeatureAccess, activeVenue } = useAuth()
+  const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
   const isSuperAdmin = user?.role === StaffRole.SUPERADMIN
   const hasChatbot = checkFeatureAccess('CHATBOT')
   const { formatDate } = useVenueDateTime()
@@ -77,12 +80,22 @@ export default function Payments() {
     status: PaymentStatus
   }>({ amount: 0, tipAmount: 0, method: PaymentMethod.CASH, status: PaymentStatus.PAID })
 
+  // Status tab filter
+  const [activeStatusTab, setActiveStatusTab] = useState('all')
+
   // Filter states (arrays for multi-select Stripe-style filters)
   const [merchantAccountFilter, setMerchantAccountFilter] = useState<string[]>([])
   const [methodFilter, setMethodFilter] = useState<string[]>([])
   const [sourceFilter, setSourceFilter] = useState<string[]>([])
   const [waiterFilter, setWaiterFilter] = useState<string[]>([])
-  const [dateFilter, setDateFilter] = useState<DateFilter | null>(null)
+  // Date range state — defaults to 1st of current month through today
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(() => {
+    const now = DateTime.now().setZone(venueTimezone)
+    return {
+      from: now.startOf('month').toJSDate(),
+      to: now.endOf('day').toJSDate(),
+    }
+  })
   const [subtotalFilter, setSubtotalFilter] = useState<AmountFilter | null>(null)
   const [tipFilter, setTipFilter] = useState<AmountFilter | null>(null)
   const [totalFilter, setTotalFilter] = useState<AmountFilter | null>(null)
@@ -112,41 +125,20 @@ export default function Payments() {
     methodFilter,
     sourceFilter,
     waiterFilter,
-    dateFilter,
+    dateRange,
     subtotalFilter,
     tipFilter,
     totalFilter,
     debouncedSearchTerm,
   ])
 
-  // Convert DateFilter to startDate/endDate ISO strings for the API
+  // Convert dateRange to startDate/endDate ISO strings for the API
   const dateParams = useMemo(() => {
-    if (!dateFilter) return {}
-    const now = new Date()
-    if (dateFilter.operator === 'last' && typeof dateFilter.value === 'number' && dateFilter.unit) {
-      const ms = { hours: 3600000, days: 86400000, weeks: 604800000, months: 2592000000 }
-      return { startDate: new Date(now.getTime() - dateFilter.value * ms[dateFilter.unit]).toISOString() }
+    return {
+      startDate: dateRange.from.toISOString(),
+      endDate: dateRange.to.toISOString(),
     }
-    if (dateFilter.operator === 'after' && dateFilter.value) {
-      return { startDate: new Date(dateFilter.value as string).toISOString() }
-    }
-    if (dateFilter.operator === 'before' && dateFilter.value) {
-      return { endDate: new Date((dateFilter.value as string) + 'T23:59:59').toISOString() }
-    }
-    if (dateFilter.operator === 'between' && dateFilter.value && dateFilter.value2) {
-      return {
-        startDate: new Date(dateFilter.value as string).toISOString(),
-        endDate: new Date(dateFilter.value2 + 'T23:59:59').toISOString(),
-      }
-    }
-    if (dateFilter.operator === 'on' && dateFilter.value) {
-      return {
-        startDate: new Date(dateFilter.value as string).toISOString(),
-        endDate: new Date((dateFilter.value as string) + 'T23:59:59').toISOString(),
-      }
-    }
-    return {}
-  }, [dateFilter])
+  }, [dateRange])
 
   // Fetch payments - client-side filtering for multi-select support
   const { data, isLoading, error, refetch } = useQuery({
@@ -359,6 +351,19 @@ export default function Payments() {
   const filteredPayments = useMemo(() => {
     let payments = data?.data || []
 
+    // Status tab filter
+    if (activeStatusTab !== 'all') {
+      const statusMap: Record<string, string[]> = {
+        completed: [PaymentStatus.PAID],
+        pending: [PaymentStatus.PENDING, PaymentStatus.PARTIAL],
+        refunded: [PaymentStatus.REFUNDED],
+      }
+      const allowedStatuses = statusMap[activeStatusTab] || []
+      if (allowedStatuses.length > 0) {
+        payments = payments.filter((p: PaymentType) => allowedStatuses.includes(p.status))
+      }
+    }
+
     // Merchant account filter
     if (merchantAccountFilter.length > 0) {
       payments = payments.filter((p: PaymentType) => p.merchantAccount && merchantAccountFilter.includes(p.merchantAccount.id))
@@ -443,6 +448,7 @@ export default function Payments() {
     return payments
   }, [
     data?.data,
+    activeStatusTab,
     merchantAccountFilter,
     methodFilter,
     sourceFilter,
@@ -452,6 +458,40 @@ export default function Payments() {
     totalFilter,
     debouncedSearchTerm,
   ])
+
+  // Status tab counts (computed from unfiltered-by-tab data)
+  const statusTabCounts = useMemo(() => {
+    const allPayments = data?.data || []
+    return {
+      all: allPayments.length,
+      completed: allPayments.filter((p: PaymentType) => p.status === PaymentStatus.PAID).length,
+      pending: allPayments.filter((p: PaymentType) => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.PARTIAL).length,
+      refunded: allPayments.filter((p: PaymentType) => p.status === PaymentStatus.REFUNDED).length,
+    }
+  }, [data?.data])
+
+  const statusTabs = useMemo<StatusTab[]>(() => [
+    { value: 'all', label: t('statusTabs.all'), count: statusTabCounts.all },
+    { value: 'completed', label: t('statusTabs.completed'), count: statusTabCounts.completed },
+    { value: 'pending', label: t('statusTabs.pending'), count: statusTabCounts.pending },
+    { value: 'refunded', label: t('statusTabs.refunded'), count: statusTabCounts.refunded },
+  ], [t, statusTabCounts])
+
+  // Summary cards (computed from filtered data)
+  const summaryCards = useMemo<SummaryCardItem[]>(() => {
+    const count = filteredPayments.length
+    const totalCollected = filteredPayments.reduce((sum: number, p: PaymentType) => {
+      return sum + Math.abs(Number(p.amount) || 0) + (Number(p.tipAmount) || 0)
+    }, 0)
+    const netSales = filteredPayments.reduce((sum: number, p: PaymentType) => {
+      return sum + Math.abs(Number(p.amount) || 0)
+    }, 0)
+    return [
+      { label: t('summaryCards.transactions'), value: count, format: 'number' as const },
+      { label: t('summaryCards.totalCollected'), value: totalCollected, format: 'currency' as const },
+      { label: t('summaryCards.netSales'), value: netSales, format: 'currency' as const },
+    ]
+  }, [filteredPayments, t])
 
   // Get unique payment IDs from filtered payments to fetch their commissions
   const paymentIds = useMemo(() => {
@@ -1039,6 +1079,17 @@ export default function Payments() {
         </p>
       </div>
 
+      {/* Status Filter Tabs */}
+      <StatusFilterTabs
+        tabs={statusTabs}
+        activeTab={activeStatusTab}
+        onTabChange={setActiveStatusTab}
+        className="mb-4"
+      />
+
+      {/* Summary Cards */}
+      <SummaryCards cards={summaryCards} isLoading={isLoading} className="mb-4" />
+
       {/* Stripe-style Filter Bar */}
       <div className="mb-4">
         {/* Single row: Filters left, Actions right (wrap when needed) */}
@@ -1097,22 +1148,19 @@ export default function Payments() {
             {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
           </div>
 
-          {/* Date Filter Pill */}
-          <FilterPill
-            label={t('columns.date')}
-            activeValue={
-              dateFilter
-                ? dateFilter.operator === 'last'
-                  ? `${dateFilter.value} ${dateFilter.unit}`
-                  : dateFilter.operator === 'between'
-                    ? `${dateFilter.value} — ${dateFilter.value2}`
-                    : `${dateFilter.operator} ${dateFilter.value}`
-                : undefined
-            }
-            onClear={() => setDateFilter(null)}
-          >
-            <DateFilterContent value={dateFilter} onApply={setDateFilter} />
-          </FilterPill>
+          {/* Date Range Picker */}
+          <DateRangePicker
+            initialDateFrom={dateRange.from}
+            initialDateTo={dateRange.to}
+            showCompare={false}
+            align="start"
+            onUpdate={({ range }) => {
+              setDateRange({
+                from: range.from,
+                to: range.to ?? range.from,
+              })
+            }}
+          />
 
           {/* Merchant Account Filter Pill */}
           <FilterPill

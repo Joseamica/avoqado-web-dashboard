@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/Sidebar/collapsible'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import {
@@ -12,7 +12,7 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { ChevronRight, Eye, EyeOff, Lock, type LucideIcon } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Eye, EyeOff, Lock, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -40,6 +40,7 @@ export type NavItem = {
   group?: string
   comingSoon?: boolean
   keywords?: string[]
+  subSidebar?: string
 }
 
 type SuperadminNavItem = {
@@ -61,12 +62,14 @@ export function NavMain({
   hiddenSidebarItems = [],
   isSuperadmin = false,
   onToggleVisibility,
+  subSidebarSections = {},
 }: {
   items: NavItem[]
   superadminItems?: SuperadminNavItem[]
   hiddenSidebarItems?: string[]
   isSuperadmin?: boolean
   onToggleVisibility?: (url: string) => void
+  subSidebarSections?: Record<string, NavItem[]>
 }) {
   const navigate = useNavigate()
   const location = useLocation()
@@ -74,6 +77,10 @@ export function NavMain({
   const { state: sidebarState, isMobile } = useSidebar()
   const isCollapsed = sidebarState === 'collapsed' && !isMobile
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({})
+  const [activeSubSidebar, setActiveSubSidebar] = useState<string | null>(null)
+  // Keep last sub-sidebar key so content stays visible during exit slide animation
+  const lastSubSidebarRef = useRef<string | null>(null)
+  if (activeSubSidebar) lastSubSidebarRef.current = activeSubSidebar
 
   const isSuperadminPath = (url: string) => url.startsWith('/superadmin')
   const superadminButtonClass =
@@ -109,7 +116,7 @@ export function NavMain({
 
   // Auto-open collapsible sections when navigating to a nested route
   useEffect(() => {
-    const allItems = [...items, ...(superadminItems ?? [])]
+    const allItems = [...items, ...(superadminItems ?? []), ...Object.values(subSidebarSections).flat()]
     for (const item of allItems) {
       if (item.items?.some(s => isSubItemActive(s.url))) {
         setOpenSections(prev => {
@@ -120,6 +127,28 @@ export function NavMain({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname])
+
+  // Auto-activate sub-sidebar when navigating to a route that belongs to it.
+  // subSidebarSections is included so the effect re-runs when feature flags load
+  // asynchronously (e.g. LOYALTY_PROGRAM), preventing the sidebar from being stuck
+  // on the main panel after a hard refresh.
+  useEffect(() => {
+    if (isCollapsed) {
+      setActiveSubSidebar(null)
+      return
+    }
+    for (const [sectionKey, sectionItems] of Object.entries(subSidebarSections)) {
+      const isInSection = sectionItems.some(item => {
+        if (isItemActive(item.url)) return true
+        return item.items?.some(sub => isSubItemActive(sub.url))
+      })
+      if (isInSection) {
+        setActiveSubSidebar(sectionKey)
+        return
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, isCollapsed, subSidebarSections])
 
   // Tiny Avoqado badge for core platform items in white-label venues
   const AvoqadoBadge = () => <img src={avoqadoIsotipo} alt="Avoqado" className="w-2.5 shrink-0 object-contain opacity-50" />
@@ -220,6 +249,103 @@ export function NavMain({
 
             // Non-superadmin: skip hidden items entirely
             if (!isSuperadmin && itemHidden) return null
+
+            // Sub-sidebar trigger item (e.g. "Ventas")
+            if (item.subSidebar && !isCollapsed) {
+              const sectionItems = subSidebarSections[item.subSidebar] ?? []
+              const hasActiveChild = sectionItems.some(si => {
+                if (isItemActive(si.url)) return true
+                return si.items?.some(sub => isSubItemActive(sub.url))
+              })
+              return (
+                <SidebarMenuItem key={item.url} className={cn('group/sidebar-item', itemHidden && isSuperadmin && 'opacity-40')}>
+                  <SidebarMenuButton
+                    tooltip={item.title}
+                    isActive={hasActiveChild}
+                    onClick={() => setActiveSubSidebar(item.subSidebar!)}
+                  >
+                    {item.isAvoqadoCore && <AvoqadoBadge />}
+                    {item.icon && <item.icon />}
+                    <span>{item.title}</span>
+                    {item.locked && (
+                      <Lock className="ml-auto h-3 w-3 text-muted-foreground opacity-70" aria-label={t('requiresKycVerification')} />
+                    )}
+                    {!item.locked && <VisibilityToggle url={item.url} className="ml-auto" />}
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )
+            }
+
+            // Sub-sidebar trigger item in collapsed mode — use DropdownMenu with all sub-items flat
+            if (item.subSidebar && isCollapsed) {
+              const sectionItems = subSidebarSections[item.subSidebar] ?? []
+              const hasActiveChild = sectionItems.some(si => {
+                if (isItemActive(si.url)) return true
+                return si.items?.some(sub => isSubItemActive(sub.url))
+              })
+              // Flatten all items (including nested sub-items) for the dropdown
+              const flatItems: NavSubItem[] = []
+              for (const si of sectionItems) {
+                if (si.items && si.items.length > 0) {
+                  for (const sub of si.items) {
+                    flatItems.push(sub)
+                  }
+                } else {
+                  flatItems.push({ title: si.title, url: si.url, permission: si.permission, comingSoon: si.comingSoon })
+                }
+              }
+              return (
+                <SidebarMenuItem key={item.url} className={cn(itemHidden && isSuperadmin && 'opacity-40')}>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <SidebarMenuButton
+                        tooltip={item.title}
+                        isActive={hasActiveChild}
+                        className="relative"
+                      >
+                        {item.icon && <item.icon />}
+                        <span
+                          className={cn(
+                            'absolute bottom-1 right-1 h-1.5 w-1.5 rounded-full transition-colors',
+                            hasActiveChild ? 'bg-foreground' : 'bg-muted-foreground/40',
+                          )}
+                        />
+                      </SidebarMenuButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent side="right" align="start" sideOffset={4}>
+                      {flatItems.map(subItem => {
+                        if (subItem.comingSoon) {
+                          return (
+                            <DropdownMenuItem key={subItem.url} disabled className="flex items-center gap-2 opacity-60">
+                              <span>{subItem.title}</span>
+                              <span className="ml-auto shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
+                                Pronto
+                              </span>
+                            </DropdownMenuItem>
+                          )
+                        }
+                        return (
+                          <DropdownMenuItem key={subItem.url} asChild className={isSubItemActive(subItem.url) ? 'bg-accent' : ''}>
+                            <NavLink
+                              to={subItem.url}
+                              onClick={e => {
+                                if (!subItem.url.startsWith('/') && !subItem.url.startsWith('#')) {
+                                  e.preventDefault()
+                                  navigate(subItem.url)
+                                }
+                              }}
+                            >
+                              {subItem.title}
+                            </NavLink>
+                          </DropdownMenuItem>
+                        )
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </SidebarMenuItem>
+              )
+            }
 
             if (item.items) {
               // Filter sub-items for non-superadmin
@@ -428,121 +554,175 @@ export function NavMain({
             )
   }
 
-  return (
-    <>
-      {Object.entries(groupedItems).map(([group, groupItems]) => (
-        <SidebarGroup key={group}>
-          {GROUP_LABELS[group] && <SidebarGroupLabel>{GROUP_LABELS[group]}</SidebarGroupLabel>}
-          <SidebarMenu>
-            {groupItems.map(item => renderItem(item))}
-          </SidebarMenu>
-        </SidebarGroup>
-      ))}
 
-      {superadminItems && superadminItems.length > 0 && (
-        <SidebarGroup>
-          <SidebarGroupLabel>{t('superadmin')}</SidebarGroupLabel>
-          <SidebarMenu>
-            {superadminItems.map(item => {
-              if (item.items) {
-                // When collapsed, use DropdownMenu
-                if (isCollapsed) {
-                  const hasActiveChild = item.items?.some(s => isSubItemActive(s.url))
+  // ===================================================================
+  // Sliding panel render
+  // Two panels side-by-side: main sidebar and sub-sidebar.
+  // CSS translateX slides between them with a smooth transition.
+  // ===================================================================
+  const isSubSidebarActive = !!activeSubSidebar && !isCollapsed
+  const displayedKey = activeSubSidebar ?? lastSubSidebarRef.current
+  const displayedSectionItems = displayedKey ? (subSidebarSections[displayedKey] ?? []) : []
+  const displayedParentItem = displayedKey ? items.find(i => i.subSidebar === displayedKey) : null
+
+  return (
+    <div className={cn(!isCollapsed && 'overflow-hidden')}>
+      <div
+        className={cn(
+          !isCollapsed && 'flex transition-transform duration-200 ease-in-out',
+          isSubSidebarActive && '-translate-x-full',
+        )}
+        onTransitionEnd={e => {
+          if (e.target === e.currentTarget && !activeSubSidebar) {
+            lastSubSidebarRef.current = null
+          }
+        }}
+      >
+        {/* Panel 1: Main sidebar */}
+        <div className={cn(!isCollapsed && 'min-w-full')}>
+          {Object.entries(groupedItems).map(([group, groupItems]) => (
+            <SidebarGroup key={group}>
+              {GROUP_LABELS[group] && <SidebarGroupLabel>{GROUP_LABELS[group]}</SidebarGroupLabel>}
+              <SidebarMenu>
+                {groupItems.map(item => renderItem(item))}
+              </SidebarMenu>
+            </SidebarGroup>
+          ))}
+
+          {superadminItems && superadminItems.length > 0 && (
+            <SidebarGroup>
+              <SidebarGroupLabel>{t('superadmin')}</SidebarGroupLabel>
+              <SidebarMenu>
+                {superadminItems.map(item => {
+                  if (item.items) {
+                    // When collapsed, use DropdownMenu
+                    if (isCollapsed) {
+                      const hasActiveChild = item.items?.some(s => isSubItemActive(s.url))
+                      return (
+                        <SidebarMenuItem key={item.url}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <SidebarMenuButton
+                                tooltip={item.title}
+                                isActive={isItemActive(item.url) && !hasActiveChild}
+                                className={cn('relative', superadminButtonClass)}
+                              >
+                                {item.icon && <item.icon className={superadminIconClass} />}
+                                <span
+                                  className={cn(
+                                    'absolute bottom-1 right-1 h-1.5 w-1.5 rounded-full transition-colors',
+                                    hasActiveChild ? 'bg-amber-400' : 'bg-amber-400/40',
+                                  )}
+                                />
+                              </SidebarMenuButton>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent side="right" align="start" sideOffset={4}>
+                              {item.items.map(subItem => (
+                                <DropdownMenuItem key={subItem.url} asChild className={isSubItemActive(subItem.url) ? 'bg-accent' : ''}>
+                                  <NavLink to={subItem.url} className={superadminGradientTextClass}>
+                                    {subItem.title}
+                                  </NavLink>
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </SidebarMenuItem>
+                      )
+                    }
+
+                    // When expanded, use Collapsible
+                    const hasActiveChild = item.items?.some(s => isSubItemActive(s.url)) ?? false
+                    return (
+                      <Collapsible
+                        key={item.url}
+                        asChild
+                        open={openSections[item.url] ?? (item.isActive || hasActiveChild)}
+                        onOpenChange={isOpen => setOpenSections(prev => ({ ...prev, [item.url]: isOpen }))}
+                        className="group/collapsible"
+                      >
+                        <SidebarMenuItem>
+                          <CollapsibleTrigger asChild>
+                            <SidebarMenuButton
+                              tooltip={item.title}
+                              isActive={isItemActive(item.url) && !hasActiveChild}
+                              className={superadminButtonClass}
+                            >
+                              {item.icon && <item.icon className={superadminIconClass} />}
+                              <span className={superadminGradientTextClass}>{item.title}</span>
+                              <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                            </SidebarMenuButton>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <SidebarMenuSub>
+                              {item.items.map(subItem => (
+                                <SidebarMenuSubItem key={subItem.url}>
+                                  <SidebarMenuSubButton asChild isActive={isSubItemActive(subItem.url)} className={superadminSubButtonClass}>
+                                    <NavLink to={subItem.url}>
+                                      <span className={superadminGradientTextClass}>{subItem.title}</span>
+                                    </NavLink>
+                                  </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                              ))}
+                            </SidebarMenuSub>
+                          </CollapsibleContent>
+                        </SidebarMenuItem>
+                      </Collapsible>
+                    )
+                  }
+
                   return (
                     <SidebarMenuItem key={item.url}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <SidebarMenuButton
-                            tooltip={item.title}
-                            isActive={isItemActive(item.url) && !hasActiveChild}
-                            className={cn('relative', superadminButtonClass)}
-                          >
-                            {item.icon && <item.icon className={superadminIconClass} />}
-                            <span
-                              className={cn(
-                                'absolute bottom-1 right-1 h-1.5 w-1.5 rounded-full transition-colors',
-                                hasActiveChild ? 'bg-amber-400' : 'bg-amber-400/40',
-                              )}
-                            />
-                          </SidebarMenuButton>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent side="right" align="start" sideOffset={4}>
-                          {item.items.map(subItem => (
-                            <DropdownMenuItem key={subItem.url} asChild className={isSubItemActive(subItem.url) ? 'bg-accent' : ''}>
-                              <NavLink to={subItem.url} className={superadminGradientTextClass}>
-                                {subItem.title}
-                              </NavLink>
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </SidebarMenuItem>
-                  )
-                }
-
-                // When expanded, use Collapsible
-                const hasActiveChild = item.items?.some(s => isSubItemActive(s.url)) ?? false
-                return (
-                  <Collapsible
-                    key={item.url}
-                    asChild
-                    open={openSections[item.url] ?? (item.isActive || hasActiveChild)}
-                    onOpenChange={isOpen => setOpenSections(prev => ({ ...prev, [item.url]: isOpen }))}
-                    className="group/collapsible"
-                  >
-                    <SidebarMenuItem>
-                      <CollapsibleTrigger asChild>
-                        <SidebarMenuButton
-                          tooltip={item.title}
-                          isActive={isItemActive(item.url) && !hasActiveChild}
-                          className={superadminButtonClass}
+                      <SidebarMenuButton asChild tooltip={item.title} isActive={isItemActive(item.url)} className={superadminButtonClass}>
+                        <NavLink
+                          to={item.url}
+                          className="flex items-center"
+                          onClick={e => {
+                            if (item.url.startsWith('/superadmin')) {
+                              e.preventDefault()
+                              navigate(item.url)
+                            }
+                          }}
                         >
                           {item.icon && <item.icon className={superadminIconClass} />}
                           <span className={superadminGradientTextClass}>{item.title}</span>
-                          <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <SidebarMenuSub>
-                          {item.items.map(subItem => (
-                            <SidebarMenuSubItem key={subItem.url}>
-                              <SidebarMenuSubButton asChild isActive={isSubItemActive(subItem.url)} className={superadminSubButtonClass}>
-                                <NavLink to={subItem.url}>
-                                  <span className={superadminGradientTextClass}>{subItem.title}</span>
-                                </NavLink>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          ))}
-                        </SidebarMenuSub>
-                      </CollapsibleContent>
+                        </NavLink>
+                      </SidebarMenuButton>
                     </SidebarMenuItem>
-                  </Collapsible>
-                )
-              }
+                  )
+                })}
+              </SidebarMenu>
+            </SidebarGroup>
+          )}
+        </div>
 
-              return (
-                <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton asChild tooltip={item.title} isActive={isItemActive(item.url)} className={superadminButtonClass}>
-                    <NavLink
-                      to={item.url}
-                      className="flex items-center"
-                      onClick={e => {
-                        if (item.url.startsWith('/superadmin')) {
-                          e.preventDefault()
-                          navigate(item.url)
-                        }
-                      }}
+        {/* Panel 2: Sub-sidebar (only rendered in expanded mode) */}
+        {!isCollapsed && (
+          <div className="min-w-full">
+            {displayedKey && displayedSectionItems.length > 0 && (
+              <SidebarGroup>
+                <SidebarMenu>
+                  {/* Back button */}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={() => setActiveSubSidebar(null)}
+                      className="gap-2 text-muted-foreground hover:text-foreground"
                     >
-                      {item.icon && <item.icon className={superadminIconClass} />}
-                      <span className={superadminGradientTextClass}>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )
-            })}
-          </SidebarMenu>
-        </SidebarGroup>
-      )}
-    </>
+                      <ArrowLeft className="h-4 w-4" />
+                      <span className="font-medium text-foreground">{displayedParentItem?.title ?? ''}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  {/* Separator */}
+                  <div className="mx-3 my-1 border-t border-sidebar-border" />
+
+                  {/* Sub-sidebar items */}
+                  {displayedSectionItems.map(item => renderItem(item))}
+                </SidebarMenu>
+              </SidebarGroup>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
   )
 }

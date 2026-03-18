@@ -69,6 +69,18 @@
     "completed": "Completed",
     "refunded": "Refunded"
   },
+  "statusTabs": {
+    "all": "All",
+    "completed": "Completed",
+    "pending": "Pending",
+    "failed": "Failed",
+    "refunded": "Refunded"
+  },
+  "summaryCards": {
+    "transactions": "Transactions",
+    "totalCollected": "Total Collected",
+    "netSales": "Net Sales"
+  },
   "sources": {
     "POS": "POS",
     "TPV": "Terminal",

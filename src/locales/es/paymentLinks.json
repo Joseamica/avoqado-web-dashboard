@@ -30,6 +30,17 @@
     "archived": "Archivada",
     "label": "Estado"
   },
+  "statusTabs": {
+    "all": "Todas",
+    "active": "Activas",
+    "paused": "Pausadas",
+    "expired": "Expiradas"
+  },
+  "summaryCards": {
+    "links": "Ligas",
+    "collected": "Cobrado",
+    "usageRate": "Tasa de Uso"
+  },
   "form": {
     "createTitle": "Crear liga de pago",
     "editTitle": "Editar liga de pago",

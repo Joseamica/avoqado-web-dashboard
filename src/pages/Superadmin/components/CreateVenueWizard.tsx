@@ -29,11 +29,12 @@ import {
   type SettlementDayType,
 } from '@/services/settlementConfiguration.service'
 import {
+  ArrowLeft,
+  ArrowRight,
   Building2,
   Calculator,
   Check,
   CheckCircle2,
-  ChevronRight,
   Copy,
   CreditCard,
   Info,
@@ -42,16 +43,33 @@ import {
   Phone,
   Sparkles,
   Store,
+  Utensils,
+  ShoppingBag,
+  Scissors,
+  Hotel,
+  PartyPopper,
+  HelpCircle,
   Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-// ── Business type categories (superadmin = hardcoded Spanish) ──
+// ══════════════════════════════════════════════════════════════════════
+// Business type categories (superadmin = hardcoded Spanish)
+// ══════════════════════════════════════════════════════════════════════
 
 interface BusinessTypeOption {
   value: string
   label: string
   category: string
+}
+
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  FOOD_SERVICE: <Utensils className="w-5 h-5" />,
+  RETAIL: <ShoppingBag className="w-5 h-5" />,
+  SERVICES: <Scissors className="w-5 h-5" />,
+  HOSPITALITY: <Hotel className="w-5 h-5" />,
+  ENTERTAINMENT: <PartyPopper className="w-5 h-5" />,
+  OTHER: <HelpCircle className="w-5 h-5" />,
 }
 
 const BUSINESS_CATEGORIES: { key: string; label: string; types: BusinessTypeOption[] }[] = [
@@ -122,7 +140,9 @@ const BUSINESS_CATEGORIES: { key: string; label: string; types: BusinessTypeOpti
   },
 ]
 
-// ── Shared types ──
+// ══════════════════════════════════════════════════════════════════════
+// Shared types
+// ══════════════════════════════════════════════════════════════════════
 
 interface RateData {
   debitRate: number
@@ -251,26 +271,45 @@ const SETTLEMENT_CARD_TYPES: { key: keyof Pick<SettlementData, 'debitDays' | 'cr
   { key: 'otherDays', label: 'Otro', color: 'text-muted-foreground', bgColor: 'bg-muted/50' },
 ]
 
-// ── Props ──
+// ══════════════════════════════════════════════════════════════════════
+// Wizard steps config
+// ══════════════════════════════════════════════════════════════════════
+
+const STEPS = [
+  { id: 'org', label: 'Organización', icon: Building2 },
+  { id: 'business', label: 'Negocio', icon: Store },
+  { id: 'location', label: 'Ubicación', icon: MapPin },
+  { id: 'payments', label: 'Cobros', icon: CreditCard },
+  { id: 'review', label: 'Resumen', icon: CheckCircle2 },
+] as const
+
+type StepId = (typeof STEPS)[number]['id']
+
+// ══════════════════════════════════════════════════════════════════════
+// Props
+// ══════════════════════════════════════════════════════════════════════
 
 interface CreateVenueWizardProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-// ── Main Component ──
+// ══════════════════════════════════════════════════════════════════════
+// Main Component
+// ══════════════════════════════════════════════════════════════════════
 
 const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChange }) => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
+  const [currentStep, setCurrentStep] = useState(0)
   const [form, setForm] = useState<VenueFormData>(INITIAL_FORM)
   const [merchant, setMerchant] = useState<MerchantData>(INITIAL_MERCHANT)
-  const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
   const [autofetchLoading, setAutofetchLoading] = useState(false)
   const [copyLoading, setCopyLoading] = useState(false)
   const [copiedFromVenueName, setCopiedFromVenueName] = useState('')
   const [orgSearch, setOrgSearch] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
   // ── Queries ──
 
@@ -395,8 +434,9 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
   const handleClose = useCallback(() => {
     setForm(INITIAL_FORM)
     setMerchant(INITIAL_MERCHANT)
-    setExpandedCategory(null)
+    setCurrentStep(0)
     setOrgSearch('')
+    setSelectedCategory(null)
     setCopiedFromVenueName('')
     onOpenChange(false)
   }, [onOpenChange])
@@ -543,16 +583,13 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
               venuePricingAutoCalculated: false,
             }))
           }
-          // Also try to copy settlement
           try {
             const { getSettlementConfigurations } = await import('@/services/settlementConfiguration.service')
             const settlements = await getSettlementConfigurations({ merchantAccountId: config.primaryAccountId })
             if (settlements.length > 0) {
               const base = settlements[0]
               const byType: Partial<Record<string, number>> = {}
-              settlements.forEach(s => {
-                byType[s.cardType] = s.settlementDays
-              })
+              settlements.forEach(s => { byType[s.cardType] = s.settlementDays })
               setMerchant(prev => ({
                 ...prev,
                 settlement: {
@@ -568,14 +605,12 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
                 },
               }))
             }
-          } catch {
-            // Settlement copy is optional
-          }
+          } catch { /* settlement copy optional */ }
         }
-        toast({ title: 'Configuración copiada', description: 'Costos, tarifas y plazos se pre-llenaron del venue seleccionado.' })
+        toast({ title: 'Configuración copiada', description: 'Costos, tarifas y plazos pre-llenados.' })
       } catch {
         setCopiedFromVenueName('')
-        toast({ title: 'Error', description: 'No se pudo obtener la configuración del venue.', variant: 'destructive' })
+        toast({ title: 'Error', description: 'No se pudo obtener la configuración.', variant: 'destructive' })
       } finally {
         setCopyLoading(false)
       }
@@ -601,24 +636,24 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
     }))
   }, [])
 
-  // ── Validation ──
+  // ── Step validation ──
 
-  const canSave = useMemo(() => {
-    if (!form.organizationId || !form.name.trim() || !form.type || !form.address.trim()) return false
-    if (merchant.enabled && merchant.mode === 'new') {
-      return merchant.autofetchDone && merchant.providerCosts.debitRate > 0 && merchant.venuePricing.debitRate > 0
+  const stepValid = useMemo(() => {
+    switch (currentStep) {
+      case 0: return !!form.organizationId
+      case 1: return !!form.type && !!form.name.trim()
+      case 2: return !!form.address.trim()
+      case 3: {
+        if (!merchant.enabled) return true
+        if (merchant.mode === 'new') return merchant.autofetchDone && merchant.providerCosts.debitRate > 0 && merchant.venuePricing.debitRate > 0
+        if (merchant.mode === 'copy') return merchant.copyFromVenueId !== '' && merchant.providerCosts.debitRate > 0
+        return false
+      }
+      case 4: return true
+      default: return false
     }
-    if (merchant.enabled && merchant.mode === 'copy') {
-      return merchant.copyFromVenueId !== '' && merchant.providerCosts.debitRate > 0
-    }
-    return true
-  }, [form, merchant])
+  }, [currentStep, form, merchant])
 
-  const handleSave = useCallback(() => {
-    createMutation.mutate({ form, merchant })
-  }, [form, merchant, createMutation])
-
-  // ── Margin helper for venue pricing ──
   const getMargin = useCallback(
     (field: keyof Pick<RateData, 'debitRate' | 'creditRate' | 'amexRate' | 'internationalRate'>) => {
       return (merchant.venuePricing[field] || 0) - (merchant.providerCosts[field] || 0)
@@ -632,1015 +667,194 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
     return 'text-red-600'
   }
 
+  const handleNext = useCallback(() => {
+    if (currentStep < STEPS.length - 1) setCurrentStep(prev => prev + 1)
+  }, [currentStep])
+
+  const handleBack = useCallback(() => {
+    if (currentStep > 0) setCurrentStep(prev => prev - 1)
+  }, [currentStep])
+
+  const handleSave = useCallback(() => {
+    createMutation.mutate({ form, merchant })
+  }, [form, merchant, createMutation])
+
   // ── Render ──
+
+  const stepTitle = STEPS[currentStep].label
+  const isLastStep = currentStep === STEPS.length - 1
 
   return (
     <FullScreenModal
       open={open}
       onClose={handleClose}
       title="Crear Venue"
-      subtitle={selectedOrg?.name}
+      subtitle={`Paso ${currentStep + 1} de ${STEPS.length} — ${stepTitle}`}
       contentClassName="bg-muted/30"
-      actions={
-        <Button
-          onClick={handleSave}
-          disabled={!canSave || createMutation.isPending}
-          className="cursor-pointer gap-1.5"
-        >
-          {createMutation.isPending ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Creando...
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-4 h-4" />
-              Crear Venue
-            </>
-          )}
-        </Button>
-      }
     >
-      <div className="mx-auto max-w-6xl p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          {/* ═══ Left: Form (2 cols) ═══ */}
-          <div className="lg:col-span-2 space-y-8">
-
-            {/* ── Section: Organización ── */}
-            <section className="space-y-3">
-              <h2 className="text-lg font-semibold">Organización</h2>
-              <p className="text-sm text-muted-foreground">Selecciona a qué organización pertenecerá el venue.</p>
-
-              {organizations.length > 6 && (
-                <Input
-                  placeholder="Buscar organización..."
-                  value={orgSearch}
-                  onChange={(e) => setOrgSearch(e.target.value)}
-                  className="h-10 cursor-text"
-                />
-              )}
-
-              <div className="space-y-1.5 max-h-[280px] overflow-y-auto">
-                {filteredOrgs.map(org => (
-                  <button
-                    key={org.id}
-                    onClick={() => updateField('organizationId', org.id)}
-                    className={cn(
-                      'w-full flex items-center gap-3 rounded-xl border p-3.5 text-left transition-all cursor-pointer',
-                      form.organizationId === org.id
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border/50 hover:border-foreground/30',
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        'flex items-center justify-center w-9 h-9 rounded-lg shrink-0',
-                        form.organizationId === org.id ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground',
-                      )}
-                    >
-                      <Building2 className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-sm truncate">{org.name}</p>
-                      <p className="text-xs text-muted-foreground">{org.venueCount} venues</p>
-                    </div>
-                    {form.organizationId === org.id && (
-                      <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0">
-                        <Check className="w-3 h-3 text-primary-foreground" />
+      <div className="flex flex-col h-full">
+        {/* ═══ Step Indicator ═══ */}
+        <div className="border-b border-border/50 bg-card/50 backdrop-blur-sm">
+          <div className="mx-auto max-w-3xl px-6 py-4">
+            <div className="flex items-center justify-between">
+              {STEPS.map((step, i) => {
+                const Icon = step.icon
+                const isActive = i === currentStep
+                const isDone = i < currentStep
+                return (
+                  <React.Fragment key={step.id}>
+                    {i > 0 && (
+                      <div className="flex-1 mx-2">
+                        <div className={cn(
+                          'h-0.5 rounded-full transition-colors duration-500',
+                          isDone ? 'bg-primary' : 'bg-border',
+                        )} />
                       </div>
                     )}
-                  </button>
-                ))}
-                {filteredOrgs.length === 0 && (
-                  <p className="text-center py-4 text-sm text-muted-foreground">No se encontraron organizaciones</p>
-                )}
-              </div>
-            </section>
-
-            <hr className="border-border" />
-
-            {/* ── Section: Detalles ── */}
-            <section className="space-y-3">
-              <h2 className="text-lg font-semibold">Detalles del venue</h2>
-
-              <div className="space-y-2">
-                <Label htmlFor="venue-name">Nombre del venue <span className="text-destructive">*</span></Label>
-                <Input
-                  id="venue-name"
-                  placeholder="Ej: Restaurante La Parroquia"
-                  value={form.name}
-                  onChange={(e) => updateField('name', e.target.value)}
-                  className="h-12 text-base"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="venue-phone">Teléfono</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="venue-phone"
-                    placeholder="Ej: +52 55 1234 5678"
-                    value={form.phone}
-                    onChange={(e) => updateField('phone', e.target.value)}
-                    className="h-12 text-base pl-10"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Tipo de negocio <span className="text-destructive">*</span></Label>
-
-                {form.type && (
-                  <div className="flex items-center gap-2">
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
-                      <Store className="w-3.5 h-3.5" />
-                      {selectedBusinessLabel}
-                      <button
-                        onClick={() => updateField('type', '')}
-                        className="ml-1 hover:text-primary/70 cursor-pointer"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                <div className="rounded-xl border border-input bg-card overflow-hidden divide-y divide-border/50">
-                  {BUSINESS_CATEGORIES.map(cat => {
-                    const isExpanded = expandedCategory === cat.key
-                    const hasSelected = cat.types.some(t => t.value === form.type)
-                    return (
-                      <div key={cat.key}>
-                        <button
-                          onClick={() => setExpandedCategory(isExpanded ? null : cat.key)}
-                          className={cn(
-                            'w-full flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors cursor-pointer hover:bg-muted/30',
-                            hasSelected && 'text-primary',
-                          )}
-                        >
-                          <span>{cat.label}</span>
-                          <ChevronRight
-                            className={cn(
-                              'w-4 h-4 text-muted-foreground transition-transform duration-200',
-                              isExpanded && 'rotate-90',
-                            )}
-                          />
-                        </button>
-                        {isExpanded && (
-                          <div className="px-2 pb-2 grid grid-cols-2 gap-1">
-                            {cat.types.map(type => (
-                              <button
-                                key={type.value}
-                                onClick={() => updateField('type', type.value)}
-                                className={cn(
-                                  'text-left px-3 py-2 rounded-lg text-sm transition-all cursor-pointer',
-                                  form.type === type.value
-                                    ? 'bg-primary text-primary-foreground font-medium'
-                                    : 'hover:bg-muted/50 text-foreground/80',
-                                )}
-                              >
-                                {type.label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            </section>
-
-            <hr className="border-border" />
-
-            {/* ── Section: Dirección ── */}
-            <section className="space-y-3">
-              <h2 className="text-lg font-semibold">Dirección</h2>
-              <p className="text-sm text-muted-foreground">Busca la dirección para autocompletar la ubicación.</p>
-
-              <div className="space-y-2">
-                <Label>Dirección <span className="text-destructive">*</span></Label>
-                <AddressAutocomplete
-                  value={form.address}
-                  onAddressSelect={handleAddressSelect}
-                  placeholder="Busca una dirección..."
-                  countries={['mx', 'us', 'es', 'co', 'ar', 'cl', 'pe']}
-                  className="h-12"
-                />
-              </div>
-
-              {form.address && (form.city || form.state) && (
-                <div className="rounded-xl border border-input bg-card p-3.5 space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Datos detectados</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {form.city && (
-                      <div>
-                        <p className="text-xs text-muted-foreground">Ciudad</p>
-                        <p className="text-sm font-medium">{form.city}</p>
-                      </div>
-                    )}
-                    {form.state && (
-                      <div>
-                        <p className="text-xs text-muted-foreground">Estado</p>
-                        <p className="text-sm font-medium">{form.state}</p>
-                      </div>
-                    )}
-                    {form.country && (
-                      <div>
-                        <p className="text-xs text-muted-foreground">País</p>
-                        <p className="text-sm font-medium">{form.country}</p>
-                      </div>
-                    )}
-                    {form.zipCode && (
-                      <div>
-                        <p className="text-xs text-muted-foreground">C.P.</p>
-                        <p className="text-sm font-medium">{form.zipCode}</p>
-                      </div>
-                    )}
-                  </div>
-                  {form.timezone && (
-                    <p className="text-xs text-muted-foreground">Zona horaria: {form.timezone}</p>
-                  )}
-                </div>
-              )}
-            </section>
-
-            <hr className="border-border" />
-
-            {/* ── Section: Cuenta de cobro ── */}
-            <section className="space-y-4">
-              <h2 className="text-lg font-semibold">Cuenta de cobro</h2>
-
-              {/* Toggle */}
-              <div className="flex items-center justify-between py-2">
-                <div>
-                  <span className="text-sm font-medium">Configurar cuenta de pagos</span>
-                  <p className="text-xs text-muted-foreground">
-                    {merchant.enabled ? 'Se creará con cuenta de cobro' : 'Puedes configurarlo después'}
-                  </p>
-                </div>
-                <Switch
-                  checked={merchant.enabled}
-                  onCheckedChange={(val) => setMerchant(prev => ({ ...prev, enabled: val, mode: val ? 'new' : null }))}
-                  className="cursor-pointer"
-                />
-              </div>
-
-              {merchant.enabled && (
-                <>
-                  {/* Mode selector — inline like payment links amount type selector */}
-                  <div className="flex rounded-lg border border-input bg-muted/50 p-1">
                     <button
-                      type="button"
-                      onClick={() => setMerchant(prev => ({ ...prev, mode: 'new' }))}
+                      onClick={() => i < currentStep && setCurrentStep(i)}
+                      disabled={i > currentStep}
                       className={cn(
-                        'flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors cursor-pointer',
-                        merchant.mode === 'new' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                        'flex flex-col items-center gap-1.5 group transition-all',
+                        i <= currentStep ? 'cursor-pointer' : 'cursor-default opacity-40',
                       )}
                     >
-                      Nueva cuenta
+                      <div className={cn(
+                        'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300',
+                        isActive && 'bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-110',
+                        isDone && 'bg-primary/15 text-primary',
+                        !isActive && !isDone && 'bg-muted text-muted-foreground',
+                      )}>
+                        {isDone ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
+                      </div>
+                      <span className={cn(
+                        'text-[11px] font-medium transition-colors hidden sm:block',
+                        isActive ? 'text-foreground' : 'text-muted-foreground',
+                      )}>
+                        {step.label}
+                      </span>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setMerchant(prev => ({ ...prev, mode: 'copy' }))}
-                      className={cn(
-                        'flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors cursor-pointer',
-                        merchant.mode === 'copy' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
-                      )}
-                    >
-                      Copiar de otro venue
-                    </button>
-                  </div>
-
-                  {/* ── Copy from venue ── */}
-                  {merchant.mode === 'copy' && (
-                    <div className="space-y-4">
-                      <div className="rounded-xl border border-input bg-card p-4 space-y-3">
-                        <Label className="text-sm font-medium">Copiar configuración de:</Label>
-                        <Select
-                          value={merchant.copyFromVenueId}
-                          onValueChange={(venueId) => {
-                            const venue = allVenues.find(v => v.id === venueId)
-                            setMerchant(prev => ({ ...prev, copyFromVenueId: venueId }))
-                            handleCopyFromVenue(venueId, venue?.name || '')
-                          }}
-                        >
-                          <SelectTrigger className="h-12 text-base cursor-pointer">
-                            <SelectValue placeholder="Selecciona un venue..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {allVenues.map(v => (
-                              <SelectItem key={v.id} value={v.id} className="cursor-pointer">
-                                {v.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Loading state */}
-                      {copyLoading && (
-                        <div className="flex items-center justify-center gap-2 p-6 rounded-xl border border-input bg-card">
-                          <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                          <span className="text-sm text-muted-foreground">Obteniendo configuración de {copiedFromVenueName}...</span>
-                        </div>
-                      )}
-
-                      {/* ── Copied data breakdown ── */}
-                      {!copyLoading && merchant.copyFromVenueId && copiedFromVenueName && (
-                        <>
-                          {/* Source banner */}
-                          <div className="flex items-start gap-3 p-3 rounded-xl border border-blue-500/30 bg-blue-500/5">
-                            <Copy className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                            <div>
-                              <p className="text-sm font-medium text-blue-600">Copiado de: {copiedFromVenueName}</p>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                Puedes modificar cualquier valor antes de crear el venue.
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Costos del procesador (copied) */}
-                          <div className="space-y-3">
-                            <h3 className="text-sm font-semibold">Costos del procesador</h3>
-                            <div className="rounded-xl border border-input bg-card p-4 space-y-2">
-                              {RATE_FIELDS.map(field => (
-                                <div key={field.key} className={cn('flex items-center gap-3 p-2.5 rounded-lg', field.bgColor)}>
-                                  <span className={cn('text-sm font-medium w-24', field.color)}>{field.label}</span>
-                                  <div className="relative flex-1 max-w-[120px]">
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
-                                      max="100"
-                                      value={merchant.providerCosts[field.key] || ''}
-                                      onChange={e => handleRateChange('providerCosts', field.key, e.target.value)}
-                                      className="h-9 text-sm pr-6 cursor-text"
-                                    />
-                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
-                                  </div>
-                                </div>
-                              ))}
-                              <div className="grid grid-cols-2 gap-3 pt-2">
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Cuota fija / txn</Label>
-                                  <div className="relative">
-                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
-                                      value={merchant.providerCosts.fixedCost || ''}
-                                      onChange={e => handleRateChange('providerCosts', 'fixedCost', e.target.value)}
-                                      className="h-9 pl-6 text-sm cursor-text"
-                                    />
-                                  </div>
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Cuota mensual</Label>
-                                  <div className="relative">
-                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
-                                      value={merchant.providerCosts.monthlyFee || ''}
-                                      onChange={e => handleRateChange('providerCosts', 'monthlyFee', e.target.value)}
-                                      className="h-9 pl-6 text-sm cursor-text"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <hr className="border-border/50" />
-
-                          {/* Plazos de liquidación (copied) */}
-                          <div className="space-y-3">
-                            <h3 className="text-sm font-semibold">Plazos de liquidación</h3>
-                            <div className="rounded-xl border border-input bg-card p-4 space-y-3">
-                              <div className="flex rounded-lg border border-input bg-muted/50 p-1">
-                                {(['BUSINESS_DAYS', 'CALENDAR_DAYS'] as const).map(dt => (
-                                  <button
-                                    key={dt}
-                                    type="button"
-                                    onClick={() => handleSettlementChange('dayType', dt)}
-                                    className={cn(
-                                      'flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer',
-                                      merchant.settlement.dayType === dt
-                                        ? 'bg-card text-foreground shadow-sm'
-                                        : 'text-muted-foreground hover:text-foreground',
-                                    )}
-                                  >
-                                    {dt === 'BUSINESS_DAYS' ? 'Días hábiles' : 'Días calendario'}
-                                  </button>
-                                ))}
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <Label className="text-xs shrink-0">Hora de corte</Label>
-                                <Input
-                                  type="time"
-                                  value={merchant.settlement.cutoffTime}
-                                  onChange={e => handleSettlementChange('cutoffTime', e.target.value)}
-                                  className="h-9 text-sm w-32"
-                                />
-                                <span className="text-xs text-muted-foreground">
-                                  {merchant.settlement.cutoffTimezone.replace('America/', '')}
-                                </span>
-                              </div>
-                              {SETTLEMENT_CARD_TYPES.map(card => (
-                                <div key={card.key} className={cn('flex items-center gap-3 p-2.5 rounded-lg', card.bgColor)}>
-                                  <span className={cn('text-sm font-medium w-24', card.color)}>{card.label}</span>
-                                  <Input
-                                    type="number"
-                                    min={1}
-                                    max={30}
-                                    value={merchant.settlement[card.key]}
-                                    onChange={e => {
-                                      const v = parseInt(e.target.value)
-                                      if (!isNaN(v) && v >= 0 && v <= 30) handleSettlementChange(card.key, v)
-                                    }}
-                                    className="h-9 w-16 text-center font-bold cursor-text"
-                                  />
-                                  <span className="text-xs text-muted-foreground">
-                                    {merchant.settlement.dayType === 'BUSINESS_DAYS' ? 'háb.' : 'cal.'}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          <hr className="border-border/50" />
-
-                          {/* Tarifas al venue (copied) */}
-                          <div className="space-y-3">
-                            <h3 className="text-sm font-semibold">Tarifas al venue</h3>
-                            <div className="rounded-xl border border-input bg-card p-4 space-y-2">
-                              <div className="grid grid-cols-4 gap-2 text-xs font-medium text-muted-foreground px-2.5 pb-1">
-                                <span>Tipo</span>
-                                <span>Costo</span>
-                                <span>Tu tarifa</span>
-                                <span>Margen</span>
-                              </div>
-                              {RATE_FIELDS.map(field => {
-                                const cost = merchant.providerCosts[field.key] || 0
-                                const margin = getMargin(field.key)
-                                return (
-                                  <div key={field.key} className={cn('grid grid-cols-4 gap-2 items-center p-2.5 rounded-lg', field.bgColor)}>
-                                    <span className={cn('text-sm font-medium', field.color)}>{field.label}</span>
-                                    <span className="text-xs text-muted-foreground">{cost.toFixed(2)}%</span>
-                                    <div className="relative">
-                                      <Input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        max="100"
-                                        value={merchant.venuePricing[field.key] || ''}
-                                        onChange={e => handleRateChange('venuePricing', field.key, e.target.value)}
-                                        className="h-9 text-sm pr-5 cursor-text"
-                                      />
-                                      <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">%</span>
-                                    </div>
-                                    <span className={cn('text-xs font-medium', getMarginColor(margin))}>
-                                      {margin >= 0 ? '+' : ''}{margin.toFixed(2)}%
-                                    </span>
-                                  </div>
-                                )
-                              })}
-                              <div className="grid grid-cols-2 gap-3 pt-2">
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Cuota fija / txn</Label>
-                                  <div className="relative">
-                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
-                                      value={merchant.venuePricing.fixedCost || ''}
-                                      onChange={e => handleRateChange('venuePricing', 'fixedCost', e.target.value)}
-                                      className="h-9 pl-6 text-sm cursor-text"
-                                    />
-                                  </div>
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Cuota mensual</Label>
-                                  <div className="relative">
-                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
-                                      value={merchant.venuePricing.monthlyFee || ''}
-                                      onChange={e => handleRateChange('venuePricing', 'monthlyFee', e.target.value)}
-                                      className="h-9 pl-6 text-sm cursor-text"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Transition to Auto-Fetch */}
-                          <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
-                            <div className="flex items-start gap-3">
-                              <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                              <div>
-                                <p className="text-sm font-medium">Falta el número de serie de la terminal</p>
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                  Los costos y tarifas están listos. Ahora necesitas ejecutar Auto-Fetch con el número de serie de la nueva terminal para completar la configuración.
-                                </p>
-                              </div>
-                            </div>
-                            <Button
-                              size="sm"
-                              className="w-full cursor-pointer gap-1.5"
-                              onClick={() => setMerchant(prev => ({ ...prev, mode: 'new' }))}
-                            >
-                              <Zap className="w-4 h-4" />
-                              Continuar con Auto-Fetch
-                            </Button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-
-                  {/* ── New account: Auto-Fetch ── */}
-                  {merchant.mode === 'new' && (
-                    <>
-                      {/* Provider badge */}
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20 w-fit">
-                        <Zap className="w-4 h-4 text-primary" />
-                        <span className="text-sm font-medium text-primary">Blumon</span>
-                      </div>
-
-                      {/* Terminal fields */}
-                      <div className="rounded-xl border border-input bg-card p-4 space-y-4">
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Número de serie <span className="text-destructive">*</span></Label>
-                          <Input
-                            placeholder="Ej: 0821142850"
-                            value={merchant.serialNumber}
-                            onChange={(e) => setMerchant(prev => ({ ...prev, serialNumber: e.target.value }))}
-                            className="h-12 text-base font-mono"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-2">
-                            <Label className="text-sm">Marca</Label>
-                            <Select value={merchant.brand} onValueChange={(v) => setMerchant(prev => ({ ...prev, brand: v }))}>
-                              <SelectTrigger className="h-12 text-base cursor-pointer">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="PAX" className="cursor-pointer">PAX</SelectItem>
-                                <SelectItem value="INGENICO" className="cursor-pointer">Ingenico</SelectItem>
-                                <SelectItem value="VERIFONE" className="cursor-pointer">Verifone</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm">Modelo</Label>
-                            <Select value={merchant.model} onValueChange={(v) => setMerchant(prev => ({ ...prev, model: v }))}>
-                              <SelectTrigger className="h-12 text-base cursor-pointer">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="A910S" className="cursor-pointer">A910S</SelectItem>
-                                <SelectItem value="A920" className="cursor-pointer">A920</SelectItem>
-                                <SelectItem value="A77" className="cursor-pointer">A77</SelectItem>
-                                <SelectItem value="D210" className="cursor-pointer">D210</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-2">
-                            <Label className="text-sm">Nombre de cuenta</Label>
-                            <Input
-                              placeholder={form.name || 'Terminal principal'}
-                              value={merchant.displayName}
-                              onChange={(e) => setMerchant(prev => ({ ...prev, displayName: e.target.value }))}
-                              className="h-12 text-base"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm">Ambiente</Label>
-                            <Select
-                              value={merchant.environment}
-                              onValueChange={(v: 'SANDBOX' | 'PRODUCTION') => setMerchant(prev => ({ ...prev, environment: v }))}
-                            >
-                              <SelectTrigger className="h-12 text-base cursor-pointer">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="SANDBOX" className="cursor-pointer">Sandbox</SelectItem>
-                                <SelectItem value="PRODUCTION" className="cursor-pointer">Producción</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-
-                        {/* Autofetch result */}
-                        {merchant.autofetchDone && merchant.autofetchResult && (
-                          <div className="flex items-center gap-2 p-3 rounded-lg border border-green-500/30 bg-green-500/5">
-                            <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-                            <div className="text-sm">
-                              <span className="font-medium text-green-600">Auto-Fetch completado</span>
-                              <span className="text-muted-foreground ml-2">POS: {merchant.autofetchResult.posId}</span>
-                            </div>
-                          </div>
-                        )}
-
-                        <Button
-                          onClick={handleAutofetch}
-                          disabled={merchant.serialNumber.trim().length < 4 || autofetchLoading}
-                          className="w-full h-12 cursor-pointer gap-2 text-base"
-                        >
-                          {autofetchLoading ? (
-                            <>
-                              <Loader2 className="w-5 h-5 animate-spin" />
-                              Obteniendo credenciales...
-                            </>
-                          ) : merchant.autofetchDone ? (
-                            <>
-                              <CheckCircle2 className="w-5 h-5" />
-                              Re-ejecutar Auto-Fetch
-                            </>
-                          ) : (
-                            <>
-                              <Zap className="w-5 h-5" />
-                              Ejecutar Auto-Fetch
-                            </>
-                          )}
-                        </Button>
-                      </div>
-
-                      {/* ── Costs, Settlement, Pricing — visible after autofetch ── */}
-                      {merchant.autofetchDone && (
-                        <>
-                          {/* Costos del procesador */}
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <h3 className="text-sm font-semibold">Costos del procesador</h3>
-                              <CopyFromVenueSelect
-                                venues={allVenues}
-                                onCopy={async (venueId) => {
-                                  try {
-                                    const config = await paymentProviderAPI.getVenuePaymentConfig(venueId)
-                                    if (config?.primaryAccountId) {
-                                      const costs = await paymentProviderAPI.getProviderCostStructures({
-                                        merchantAccountId: config.primaryAccountId,
-                                        active: true,
-                                      })
-                                      if (costs.length > 0) {
-                                        const c = costs[0]
-                                        setMerchant(prev => ({
-                                          ...prev,
-                                          providerCosts: {
-                                            debitRate: Math.round(Number(c.debitRate) * 100 * 10000) / 10000,
-                                            creditRate: Math.round(Number(c.creditRate) * 100 * 10000) / 10000,
-                                            amexRate: Math.round(Number(c.amexRate) * 100 * 10000) / 10000,
-                                            internationalRate: Math.round(Number(c.internationalRate) * 100 * 10000) / 10000,
-                                            fixedCost: Number(c.fixedCostPerTransaction || 0),
-                                            monthlyFee: Number(c.monthlyFee || 0),
-                                          },
-                                          providerCostsAutoCalculated: false,
-                                        }))
-                                        toast({ title: 'Costos copiados' })
-                                      }
-                                    }
-                                  } catch {
-                                    toast({ title: 'Error', description: 'No se pudo copiar.', variant: 'destructive' })
-                                  }
-                                }}
-                                label="Copiar de otro venue"
-                              />
-                            </div>
-
-                            {merchant.providerCostsAutoCalculated && merchant.mccResult?.found && (
-                              <div className="flex items-start gap-2 p-3 rounded-lg border border-green-500/30 bg-green-500/5">
-                                <Calculator className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
-                                <p className="text-xs text-green-600">
-                                  Calculado automáticamente (MCC: {merchant.mccResult.mcc}, confianza: {Math.round((merchant.mccResult.confidence ?? 0) * 100)}%)
-                                </p>
-                              </div>
-                            )}
-
-                            <div className="rounded-xl border border-input bg-card p-4 space-y-2">
-                              {RATE_FIELDS.map(field => (
-                                <div key={field.key} className={cn('flex items-center gap-3 p-2.5 rounded-lg', field.bgColor)}>
-                                  <span className={cn('text-sm font-medium w-24', field.color)}>{field.label}</span>
-                                  <div className="relative flex-1 max-w-[120px]">
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
-                                      max="100"
-                                      value={merchant.providerCosts[field.key] || ''}
-                                      onChange={e => handleRateChange('providerCosts', field.key, e.target.value)}
-                                      className="h-9 text-sm pr-6 cursor-text"
-                                    />
-                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
-                                  </div>
-                                </div>
-                              ))}
-                              <div className="grid grid-cols-2 gap-3 pt-2">
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Cuota fija / txn</Label>
-                                  <div className="relative">
-                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
-                                      value={merchant.providerCosts.fixedCost || ''}
-                                      onChange={e => handleRateChange('providerCosts', 'fixedCost', e.target.value)}
-                                      className="h-9 pl-6 text-sm cursor-text"
-                                    />
-                                  </div>
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Cuota mensual</Label>
-                                  <div className="relative">
-                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
-                                      value={merchant.providerCosts.monthlyFee || ''}
-                                      onChange={e => handleRateChange('providerCosts', 'monthlyFee', e.target.value)}
-                                      className="h-9 pl-6 text-sm cursor-text"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <hr className="border-border/50" />
-
-                          {/* Plazos de liquidación */}
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <h3 className="text-sm font-semibold">Plazos de liquidación</h3>
-                              <CopyFromVenueSelect
-                                venues={allVenues}
-                                onCopy={async (venueId) => {
-                                  try {
-                                    const config = await paymentProviderAPI.getVenuePaymentConfig(venueId)
-                                    if (config?.primaryAccountId) {
-                                      const { getSettlementConfigurations } = await import('@/services/settlementConfiguration.service')
-                                      const settlements = await getSettlementConfigurations({ merchantAccountId: config.primaryAccountId })
-                                      if (settlements.length > 0) {
-                                        const base = settlements[0]
-                                        const byType: Partial<Record<string, number>> = {}
-                                        settlements.forEach(s => { byType[s.cardType] = s.settlementDays })
-                                        setMerchant(prev => ({
-                                          ...prev,
-                                          settlement: {
-                                            ...prev.settlement,
-                                            dayType: base.settlementDayType,
-                                            cutoffTime: base.cutoffTime,
-                                            cutoffTimezone: base.cutoffTimezone,
-                                            debitDays: byType.DEBIT ?? prev.settlement.debitDays,
-                                            creditDays: byType.CREDIT ?? prev.settlement.creditDays,
-                                            amexDays: byType.AMEX ?? prev.settlement.amexDays,
-                                            internationalDays: byType.INTERNATIONAL ?? prev.settlement.internationalDays,
-                                            otherDays: byType.OTHER ?? prev.settlement.otherDays,
-                                          },
-                                        }))
-                                        toast({ title: 'Plazos copiados' })
-                                      }
-                                    }
-                                  } catch {
-                                    toast({ title: 'Error', description: 'No se pudo copiar.', variant: 'destructive' })
-                                  }
-                                }}
-                                label="Copiar de otro venue"
-                              />
-                            </div>
-
-                            <div className="rounded-xl border border-input bg-card p-4 space-y-3">
-                              {/* Day type toggle */}
-                              <div className="flex rounded-lg border border-input bg-muted/50 p-1">
-                                {(['BUSINESS_DAYS', 'CALENDAR_DAYS'] as const).map(dt => (
-                                  <button
-                                    key={dt}
-                                    type="button"
-                                    onClick={() => handleSettlementChange('dayType', dt)}
-                                    className={cn(
-                                      'flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer',
-                                      merchant.settlement.dayType === dt
-                                        ? 'bg-card text-foreground shadow-sm'
-                                        : 'text-muted-foreground hover:text-foreground',
-                                    )}
-                                  >
-                                    {dt === 'BUSINESS_DAYS' ? 'Días hábiles' : 'Días calendario'}
-                                  </button>
-                                ))}
-                              </div>
-
-                              {/* Cutoff time */}
-                              <div className="flex items-center gap-3">
-                                <Label className="text-xs shrink-0">Hora de corte</Label>
-                                <Input
-                                  type="time"
-                                  value={merchant.settlement.cutoffTime}
-                                  onChange={e => handleSettlementChange('cutoffTime', e.target.value)}
-                                  className="h-9 text-sm w-32"
-                                />
-                                <span className="text-xs text-muted-foreground">
-                                  {merchant.settlement.cutoffTimezone.replace('America/', '')}
-                                </span>
-                              </div>
-
-                              {/* Days per card type */}
-                              {SETTLEMENT_CARD_TYPES.map(card => (
-                                <div key={card.key} className={cn('flex items-center gap-3 p-2.5 rounded-lg', card.bgColor)}>
-                                  <span className={cn('text-sm font-medium w-24', card.color)}>{card.label}</span>
-                                  <Input
-                                    type="number"
-                                    min={1}
-                                    max={30}
-                                    value={merchant.settlement[card.key]}
-                                    onChange={e => {
-                                      const v = parseInt(e.target.value)
-                                      if (!isNaN(v) && v >= 0 && v <= 30) handleSettlementChange(card.key, v)
-                                    }}
-                                    className="h-9 w-16 text-center font-bold cursor-text"
-                                  />
-                                  <span className="text-xs text-muted-foreground">
-                                    {merchant.settlement.dayType === 'BUSINESS_DAYS' ? 'háb.' : 'cal.'}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          <hr className="border-border/50" />
-
-                          {/* Tarifas al venue */}
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <h3 className="text-sm font-semibold">Tarifas al venue</h3>
-                              <CopyFromVenueSelect
-                                venues={allVenues}
-                                onCopy={async (venueId) => {
-                                  try {
-                                    const pricing = await paymentProviderAPI.getVenuePricingStructures({
-                                      venueId,
-                                      accountType: 'PRIMARY',
-                                      active: true,
-                                    })
-                                    if (pricing.length > 0) {
-                                      const p = pricing[0]
-                                      setMerchant(prev => ({
-                                        ...prev,
-                                        venuePricing: {
-                                          debitRate: Math.round(Number(p.debitRate) * 100 * 10000) / 10000,
-                                          creditRate: Math.round(Number(p.creditRate) * 100 * 10000) / 10000,
-                                          amexRate: Math.round(Number(p.amexRate) * 100 * 10000) / 10000,
-                                          internationalRate: Math.round(Number(p.internationalRate) * 100 * 10000) / 10000,
-                                          fixedCost: Number(p.fixedFeePerTransaction || 0),
-                                          monthlyFee: Number(p.monthlyServiceFee || 0),
-                                        },
-                                        venuePricingAutoCalculated: false,
-                                      }))
-                                      toast({ title: 'Tarifas copiadas' })
-                                    }
-                                  } catch {
-                                    toast({ title: 'Error', description: 'No se pudo copiar.', variant: 'destructive' })
-                                  }
-                                }}
-                                label="Copiar de otro venue"
-                              />
-                            </div>
-
-                            {merchant.venuePricingAutoCalculated && (
-                              <div className="flex items-start gap-2 p-3 rounded-lg border border-green-500/30 bg-green-500/5">
-                                <Calculator className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
-                                <p className="text-xs text-green-600">
-                                  Calculado automáticamente: costo + 20% margen
-                                </p>
-                              </div>
-                            )}
-
-                            <div className="rounded-xl border border-input bg-card p-4 space-y-2">
-                              {/* Header */}
-                              <div className="grid grid-cols-4 gap-2 text-xs font-medium text-muted-foreground px-2.5 pb-1">
-                                <span>Tipo</span>
-                                <span>Costo</span>
-                                <span>Tu tarifa</span>
-                                <span>Margen</span>
-                              </div>
-
-                              {RATE_FIELDS.map(field => {
-                                const cost = merchant.providerCosts[field.key] || 0
-                                const margin = getMargin(field.key)
-                                return (
-                                  <div key={field.key} className={cn('grid grid-cols-4 gap-2 items-center p-2.5 rounded-lg', field.bgColor)}>
-                                    <span className={cn('text-sm font-medium', field.color)}>{field.label}</span>
-                                    <span className="text-xs text-muted-foreground">{cost.toFixed(2)}%</span>
-                                    <div className="relative">
-                                      <Input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        max="100"
-                                        value={merchant.venuePricing[field.key] || ''}
-                                        onChange={e => handleRateChange('venuePricing', field.key, e.target.value)}
-                                        className="h-9 text-sm pr-5 cursor-text"
-                                      />
-                                      <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">%</span>
-                                    </div>
-                                    <span className={cn('text-xs font-medium', getMarginColor(margin))}>
-                                      {margin >= 0 ? '+' : ''}{margin.toFixed(2)}%
-                                    </span>
-                                  </div>
-                                )
-                              })}
-
-                              <div className="grid grid-cols-2 gap-3 pt-2">
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Cuota fija / txn</Label>
-                                  <div className="relative">
-                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
-                                      value={merchant.venuePricing.fixedCost || ''}
-                                      onChange={e => handleRateChange('venuePricing', 'fixedCost', e.target.value)}
-                                      className="h-9 pl-6 text-sm cursor-text"
-                                    />
-                                  </div>
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Cuota mensual</Label>
-                                  <div className="relative">
-                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
-                                      value={merchant.venuePricing.monthlyFee || ''}
-                                      onChange={e => handleRateChange('venuePricing', 'monthlyFee', e.target.value)}
-                                      className="h-9 pl-6 text-sm cursor-text"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Profit example */}
-                            <div className="rounded-xl border border-border/50 bg-muted/20 p-3">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="text-xs font-medium">Ejemplo: transacción de $1,000</span>
-                              </div>
-                              <div className="grid grid-cols-3 gap-2 text-center">
-                                <div className="p-2 rounded-lg bg-card">
-                                  <p className="text-[10px] text-muted-foreground">Cobro</p>
-                                  <p className="text-sm font-bold">${((merchant.venuePricing.creditRate || 0) * 10).toFixed(2)}</p>
-                                </div>
-                                <div className="p-2 rounded-lg bg-card">
-                                  <p className="text-[10px] text-muted-foreground">Costo</p>
-                                  <p className="text-sm font-bold">${((merchant.providerCosts.creditRate || 0) * 10).toFixed(2)}</p>
-                                </div>
-                                <div className="p-2 rounded-lg bg-green-50 dark:bg-green-950/20">
-                                  <p className="text-[10px] text-muted-foreground">Ganancia</p>
-                                  <p className="text-sm font-bold text-green-600">
-                                    ${(((merchant.venuePricing.creditRate || 0) - (merchant.providerCosts.creditRate || 0)) * 10).toFixed(2)}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </>
-                  )}
-                </>
-              )}
-            </section>
+                  </React.Fragment>
+                )
+              })}
+            </div>
           </div>
+        </div>
 
-          {/* ═══ Right: Live Preview (3 cols) ═══ */}
-          <div className="lg:col-span-3">
-            <div className="sticky top-24">
-              <VenuePreviewCard
+        {/* ═══ Step Content ═══ */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-2xl px-6 py-8">
+            {currentStep === 0 && (
+              <StepOrganization
+                organizations={filteredOrgs}
+                selectedId={form.organizationId}
+                onSelect={(id) => updateField('organizationId', id)}
+                search={orgSearch}
+                onSearchChange={setOrgSearch}
+                showSearch={organizations.length > 6}
+              />
+            )}
+
+            {currentStep === 1 && (
+              <StepBusiness
+                form={form}
+                updateField={updateField}
+                selectedCategory={selectedCategory}
+                onCategoryChange={setSelectedCategory}
+                selectedBusinessLabel={selectedBusinessLabel}
+              />
+            )}
+
+            {currentStep === 2 && (
+              <StepLocation
+                form={form}
+                onAddressSelect={handleAddressSelect}
+              />
+            )}
+
+            {currentStep === 3 && (
+              <StepPayments
+                form={form}
+                merchant={merchant}
+                setMerchant={setMerchant}
+                allVenues={allVenues}
+                handleAutofetch={handleAutofetch}
+                autofetchLoading={autofetchLoading}
+                handleCopyFromVenue={handleCopyFromVenue}
+                copyLoading={copyLoading}
+                copiedFromVenueName={copiedFromVenueName}
+                handleRateChange={handleRateChange}
+                handleSettlementChange={handleSettlementChange}
+                getMargin={getMargin}
+                getMarginColor={getMarginColor}
+              />
+            )}
+
+            {currentStep === 4 && (
+              <StepReview
                 form={form}
                 merchant={merchant}
                 selectedOrg={selectedOrg}
                 selectedBusinessLabel={selectedBusinessLabel}
                 copiedFromVenueName={copiedFromVenueName}
               />
+            )}
+          </div>
+        </div>
+
+        {/* ═══ Bottom Navigation ═══ */}
+        <div className="border-t border-border/50 bg-card/80 backdrop-blur-sm">
+          <div className="mx-auto max-w-2xl px-6 py-4 flex items-center justify-between">
+            <Button
+              variant="ghost"
+              onClick={handleBack}
+              disabled={currentStep === 0}
+              className="gap-2 cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Anterior
+            </Button>
+
+            <div className="flex items-center gap-1.5">
+              {STEPS.map((_, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    'rounded-full transition-all duration-300',
+                    i === currentStep ? 'w-6 h-1.5 bg-primary' : i < currentStep ? 'w-1.5 h-1.5 bg-primary/50' : 'w-1.5 h-1.5 bg-border',
+                  )}
+                />
+              ))}
             </div>
+
+            {isLastStep ? (
+              <Button
+                onClick={handleSave}
+                disabled={createMutation.isPending}
+                className="gap-2 cursor-pointer"
+              >
+                {createMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Creando...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Crear Venue
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button
+                onClick={handleNext}
+                disabled={!stepValid}
+                className="gap-2 cursor-pointer"
+              >
+                Siguiente
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -1648,244 +862,912 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
   )
 }
 
-// ============================================================================
-// Live Preview Card
-// ============================================================================
+// ══════════════════════════════════════════════════════════════════════
+// Step 1: Organization
+// ══════════════════════════════════════════════════════════════════════
 
-interface VenuePreviewCardProps {
-  form: VenueFormData
-  merchant: MerchantData
-  selectedOrg?: OrganizationSimple
-  selectedBusinessLabel?: string
-  copiedFromVenueName?: string
-}
-
-const VenuePreviewCard: React.FC<VenuePreviewCardProps> = ({
-  form,
-  merchant,
-  selectedOrg,
-  selectedBusinessLabel,
-  copiedFromVenueName,
-}) => {
-  const hasBasicInfo = form.name.trim() || form.address.trim() || selectedOrg
-  const completionSteps = [
-    { label: 'Organización', done: !!form.organizationId },
-    { label: 'Nombre', done: !!form.name.trim() },
-    { label: 'Tipo de negocio', done: !!form.type },
-    { label: 'Dirección', done: !!form.address.trim() },
-    { label: 'Cuenta de cobro', done: !merchant.enabled || (merchant.autofetchDone && merchant.providerCosts.debitRate > 0) },
-  ]
-  const completedCount = completionSteps.filter(s => s.done).length
-
+function StepOrganization({
+  organizations,
+  selectedId,
+  onSelect,
+  search,
+  onSearchChange,
+  showSearch,
+}: {
+  organizations: OrganizationSimple[]
+  selectedId: string
+  onSelect: (id: string) => void
+  search: string
+  onSearchChange: (s: string) => void
+  showSearch: boolean
+}) {
   return (
-    <div className="flex flex-col items-center">
-      {/* Progress */}
-      <div className="flex items-center gap-2 mb-5">
-        <div className="flex gap-1">
-          {completionSteps.map((step, i) => (
-            <div
-              key={i}
-              className={cn(
-                'h-1.5 rounded-full transition-all duration-300',
-                step.done ? 'w-8 bg-primary' : 'w-4 bg-muted',
-              )}
-            />
-          ))}
-        </div>
-        <span className="text-xs text-muted-foreground">
-          {completedCount}/{completionSteps.length}
-        </span>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">Selecciona la organización</h2>
+        <p className="text-muted-foreground mt-1">¿A qué organización pertenecerá este venue?</p>
       </div>
 
-      {/* Preview card */}
-      <div className="w-full max-w-[380px] rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
-        {/* Header gradient */}
-        <div className="h-24 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent flex items-end p-5">
-          <div className="w-12 h-12 rounded-xl bg-card border border-border shadow-sm flex items-center justify-center">
-            <Store className="w-6 h-6 text-foreground" />
-          </div>
+      {showSearch && (
+        <Input
+          placeholder="Buscar organización..."
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="h-11 cursor-text"
+        />
+      )}
+
+      <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+        {organizations.map(org => (
+          <button
+            key={org.id}
+            onClick={() => onSelect(org.id)}
+            className={cn(
+              'w-full flex items-center gap-4 rounded-xl border p-4 text-left transition-all cursor-pointer',
+              selectedId === org.id
+                ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
+                : 'border-border/50 hover:border-foreground/20 hover:bg-muted/30',
+            )}
+          >
+            <div className={cn(
+              'flex items-center justify-center w-11 h-11 rounded-xl shrink-0',
+              selectedId === org.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
+            )}>
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-sm">{org.name}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {org.venueCount} venue{org.venueCount !== 1 ? 's' : ''}
+              </p>
+            </div>
+            {selectedId === org.id && (
+              <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
+                <Check className="w-3.5 h-3.5 text-primary-foreground" />
+              </div>
+            )}
+          </button>
+        ))}
+        {organizations.length === 0 && (
+          <p className="text-center py-8 text-sm text-muted-foreground">No se encontraron organizaciones</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Step 2: Business Type + Name
+// ══════════════════════════════════════════════════════════════════════
+
+function StepBusiness({
+  form,
+  updateField,
+  selectedCategory,
+  onCategoryChange,
+  selectedBusinessLabel,
+}: {
+  form: VenueFormData
+  updateField: <K extends keyof VenueFormData>(field: K, value: VenueFormData[K]) => void
+  selectedCategory: string | null
+  onCategoryChange: (cat: string | null) => void
+  selectedBusinessLabel?: string
+}) {
+  // Auto-select category when type is already set
+  const effectiveCategory = selectedCategory ?? BUSINESS_CATEGORIES.find(c => c.types.some(t => t.value === form.type))?.key ?? null
+  const activeCategory = BUSINESS_CATEGORIES.find(c => c.key === effectiveCategory)
+
+  return (
+    <div className="space-y-8">
+      {/* Name + Phone */}
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Detalles del venue</h2>
+          <p className="text-muted-foreground mt-1">Nombre, teléfono y tipo de negocio.</p>
         </div>
 
-        {/* Content */}
-        <div className="p-5 space-y-4">
-          {/* Name */}
-          <div>
-            <h3 className="text-xl font-bold leading-snug">
-              {form.name || <span className="text-muted-foreground/40">Nombre del venue</span>}
-            </h3>
-            {selectedOrg && (
-              <p className="text-sm text-muted-foreground mt-0.5">{selectedOrg.name}</p>
-            )}
+        <div className="space-y-2">
+          <Label htmlFor="venue-name" className="text-sm font-medium">
+            Nombre del venue <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="venue-name"
+            placeholder="Ej: Restaurante La Parroquia"
+            value={form.name}
+            onChange={(e) => updateField('name', e.target.value)}
+            className="h-12 text-base"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="venue-phone" className="text-sm font-medium">Teléfono</Label>
+          <div className="relative">
+            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              id="venue-phone"
+              placeholder="Ej: +52 55 1234 5678"
+              value={form.phone}
+              onChange={(e) => updateField('phone', e.target.value)}
+              className="h-12 text-base pl-10"
+            />
           </div>
+        </div>
+      </div>
 
-          {/* Details */}
-          <div className="space-y-2.5">
-            {selectedBusinessLabel && (
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <Store className="w-3.5 h-3.5 text-primary" />
-                </div>
-                <span className="text-sm">{selectedBusinessLabel}</span>
-              </div>
-            )}
-
-            {form.address && (
-              <div className="flex items-start gap-2">
-                <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                  <MapPin className="w-3.5 h-3.5 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-sm">{form.address}</p>
-                  {(form.city || form.state) && (
-                    <p className="text-xs text-muted-foreground">
-                      {[form.city, form.state, form.country].filter(Boolean).join(', ')}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {form.phone && (
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
-                  <Phone className="w-3.5 h-3.5 text-green-500" />
-                </div>
-                <span className="text-sm">{form.phone}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Merchant account status */}
-          {merchant.enabled && (
-            <>
-              <hr className="border-border" />
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Cuenta de cobro</span>
-                </div>
-                {merchant.mode === 'copy' && merchant.copyFromVenueId && copiedFromVenueName ? (
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-1.5 text-xs text-blue-600">
-                      <Copy className="w-3.5 h-3.5" />
-                      Copiado de: {copiedFromVenueName}
-                    </div>
-                    {merchant.providerCosts.debitRate > 0 && (
-                      <div className="flex items-center gap-1.5 text-xs text-green-600">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Costos: {merchant.providerCosts.debitRate.toFixed(2)}% débito
-                      </div>
-                    )}
-                    {merchant.venuePricing.debitRate > 0 && (
-                      <div className="flex items-center gap-1.5 text-xs text-green-600">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Tarifas: {merchant.venuePricing.debitRate.toFixed(2)}% débito
-                      </div>
-                    )}
-                    <div className="flex items-center gap-1.5 text-xs text-amber-600">
-                      <Info className="w-3.5 h-3.5" />
-                      Falta Auto-Fetch de terminal
-                    </div>
-                  </div>
-                ) : merchant.mode === 'new' && merchant.autofetchDone ? (
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-1.5 text-xs text-green-600">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      Blumon · {merchant.autofetchResult?.posId}
-                    </div>
-                    {merchant.providerCosts.debitRate > 0 && (
-                      <div className="flex items-center gap-1.5 text-xs text-green-600">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Costos configurados
-                      </div>
-                    )}
-                    {merchant.venuePricing.debitRate > 0 && (
-                      <div className="flex items-center gap-1.5 text-xs text-green-600">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Tarifas configuradas
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">Pendiente de configuración</p>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* Empty state */}
-          {!hasBasicInfo && (
-            <div className="py-6 text-center">
-              <p className="text-sm text-muted-foreground">Completa el formulario para ver la vista previa</p>
+      {/* Business Type */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-medium">
+            Tipo de negocio <span className="text-destructive">*</span>
+          </Label>
+          {form.type && selectedBusinessLabel && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+              <Store className="w-3 h-3" />
+              {selectedBusinessLabel}
+              <button
+                onClick={() => { updateField('type', ''); onCategoryChange(null) }}
+                className="ml-0.5 hover:text-primary/70 cursor-pointer"
+              >
+                ×
+              </button>
             </div>
           )}
         </div>
 
-        {/* Completion checklist */}
-        <div className="border-t border-border px-5 py-4 space-y-2">
-          {completionSteps.map((step, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <div
+        {/* Category selector — horizontal tabs */}
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+          {BUSINESS_CATEGORIES.map(cat => {
+            const isActive = effectiveCategory === cat.key
+            const icon = CATEGORY_ICONS[cat.key]
+            return (
+              <button
+                key={cat.key}
+                onClick={() => onCategoryChange(isActive ? null : cat.key)}
                 className={cn(
-                  'w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all',
-                  step.done ? 'bg-primary' : 'border border-muted-foreground/30',
+                  'flex flex-col items-center gap-2 p-3 rounded-xl border transition-all cursor-pointer',
+                  isActive
+                    ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
+                    : 'border-border/50 hover:border-foreground/20 hover:bg-muted/30',
                 )}
               >
-                {step.done && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
-              </div>
-              <span className={cn('text-xs', step.done ? 'text-foreground' : 'text-muted-foreground')}>
-                {step.label}
-              </span>
+                <div className={cn(
+                  'w-9 h-9 rounded-lg flex items-center justify-center',
+                  isActive ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground',
+                )}>
+                  {icon}
+                </div>
+                <span className={cn(
+                  'text-[11px] font-medium leading-tight text-center',
+                  isActive ? 'text-foreground' : 'text-muted-foreground',
+                )}>
+                  {cat.label}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Type grid — shown when category is selected */}
+        {activeCategory && (
+          <div className="rounded-xl border border-input bg-card p-2">
+            <div className="grid grid-cols-2 gap-1.5">
+              {activeCategory.types.map(type => (
+                <button
+                  key={type.value}
+                  onClick={() => updateField('type', type.value)}
+                  className={cn(
+                    'text-left px-4 py-3 rounded-lg text-sm font-medium transition-all cursor-pointer',
+                    form.type === type.value
+                      ? 'bg-primary text-primary-foreground'
+                      : 'hover:bg-muted/50 text-foreground/80',
+                  )}
+                >
+                  {type.label}
+                </button>
+              ))}
             </div>
-          ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Step 3: Location
+// ══════════════════════════════════════════════════════════════════════
+
+function StepLocation({
+  form,
+  onAddressSelect,
+}: {
+  form: VenueFormData
+  onAddressSelect: (place: {
+    address: string; city: string; state: string; country: string
+    zipCode: string; latitude: number; longitude: number; timezone?: string
+  }) => void
+}) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">Ubicación</h2>
+        <p className="text-muted-foreground mt-1">Busca la dirección para autocompletar la ubicación y zona horaria.</p>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">
+          Dirección <span className="text-destructive">*</span>
+        </Label>
+        <AddressAutocomplete
+          value={form.address}
+          onAddressSelect={onAddressSelect}
+          placeholder="Busca una dirección..."
+          countries={['mx', 'us', 'es', 'co', 'ar', 'cl', 'pe']}
+          className="h-12"
+        />
+      </div>
+
+      {form.address && (form.city || form.state) && (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 space-y-4">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold text-primary">Ubicación detectada</span>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {form.city && (
+              <div>
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Ciudad</p>
+                <p className="text-sm font-semibold mt-0.5">{form.city}</p>
+              </div>
+            )}
+            {form.state && (
+              <div>
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Estado</p>
+                <p className="text-sm font-semibold mt-0.5">{form.state}</p>
+              </div>
+            )}
+            {form.country && (
+              <div>
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">País</p>
+                <p className="text-sm font-semibold mt-0.5">{form.country}</p>
+              </div>
+            )}
+            {form.zipCode && (
+              <div>
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">C.P.</p>
+                <p className="text-sm font-semibold mt-0.5">{form.zipCode}</p>
+              </div>
+            )}
+          </div>
+          {form.timezone && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1 border-t border-primary/10">
+              <span className="font-medium">Zona horaria:</span> {form.timezone}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Step 4: Payments
+// ══════════════════════════════════════════════════════════════════════
+
+function StepPayments({
+  form,
+  merchant,
+  setMerchant,
+  allVenues,
+  handleAutofetch,
+  autofetchLoading,
+  handleCopyFromVenue,
+  copyLoading,
+  copiedFromVenueName,
+  handleRateChange,
+  handleSettlementChange,
+  getMargin,
+  getMarginColor,
+}: {
+  form: VenueFormData
+  merchant: MerchantData
+  setMerchant: React.Dispatch<React.SetStateAction<MerchantData>>
+  allVenues: Array<{ id: string; name: string }>
+  handleAutofetch: () => Promise<void>
+  autofetchLoading: boolean
+  handleCopyFromVenue: (venueId: string, name: string) => Promise<void>
+  copyLoading: boolean
+  copiedFromVenueName: string
+  handleRateChange: (target: 'providerCosts' | 'venuePricing', field: keyof RateData, value: string) => void
+  handleSettlementChange: <K extends keyof SettlementData>(field: K, value: SettlementData[K]) => void
+  getMargin: (field: keyof Pick<RateData, 'debitRate' | 'creditRate' | 'amexRate' | 'internationalRate'>) => number
+  getMarginColor: (margin: number) => string
+}) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">Cuenta de cobro</h2>
+        <p className="text-muted-foreground mt-1">Configura la terminal y tarifas de pago. Puedes hacerlo después.</p>
+      </div>
+
+      {/* Toggle */}
+      <div className="flex items-center justify-between p-4 rounded-xl border border-input bg-card">
+        <div>
+          <span className="text-sm font-semibold">Configurar cuenta de pagos</span>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {merchant.enabled ? 'Se creará con cuenta de cobro' : 'Puedes configurarlo después'}
+          </p>
+        </div>
+        <Switch
+          checked={merchant.enabled}
+          onCheckedChange={(val) => setMerchant(prev => ({ ...prev, enabled: val, mode: val ? 'new' : null }))}
+          className="cursor-pointer"
+        />
+      </div>
+
+      {merchant.enabled && (
+        <div className="space-y-6">
+          {/* Mode selector */}
+          <div className="flex rounded-lg border border-input bg-muted/50 p-1">
+            <button
+              type="button"
+              onClick={() => setMerchant(prev => ({ ...prev, mode: 'new' }))}
+              className={cn(
+                'flex-1 rounded-md px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer',
+                merchant.mode === 'new' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              Nueva cuenta
+            </button>
+            <button
+              type="button"
+              onClick={() => setMerchant(prev => ({ ...prev, mode: 'copy' }))}
+              className={cn(
+                'flex-1 rounded-md px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer',
+                merchant.mode === 'copy' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              Copiar de otro venue
+            </button>
+          </div>
+
+          {/* Copy mode */}
+          {merchant.mode === 'copy' && (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-input bg-card p-4 space-y-3">
+                <Label className="text-sm font-medium">Copiar configuración de:</Label>
+                <Select
+                  value={merchant.copyFromVenueId}
+                  onValueChange={(venueId) => {
+                    const venue = allVenues.find(v => v.id === venueId)
+                    setMerchant(prev => ({ ...prev, copyFromVenueId: venueId }))
+                    handleCopyFromVenue(venueId, venue?.name || '')
+                  }}
+                >
+                  <SelectTrigger className="h-12 text-base cursor-pointer">
+                    <SelectValue placeholder="Selecciona un venue..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allVenues.map(v => (
+                      <SelectItem key={v.id} value={v.id} className="cursor-pointer">
+                        {v.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {copyLoading && (
+                <div className="flex items-center justify-center gap-2 p-8 rounded-xl border border-input bg-card">
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">Obteniendo configuración de {copiedFromVenueName}...</span>
+                </div>
+              )}
+
+              {!copyLoading && merchant.copyFromVenueId && copiedFromVenueName && (
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3 p-3 rounded-xl border border-blue-500/30 bg-blue-500/5">
+                    <Copy className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-600">Copiado de: {copiedFromVenueName}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Puedes modificar cualquier valor.</p>
+                    </div>
+                  </div>
+
+                  <RatesSection
+                    title="Costos del procesador"
+                    rates={merchant.providerCosts}
+                    onRateChange={(field, value) => handleRateChange('providerCosts', field, value)}
+                  />
+                  <SettlementSection
+                    settlement={merchant.settlement}
+                    onChange={handleSettlementChange}
+                  />
+                  <VenuePricingSection
+                    providerCosts={merchant.providerCosts}
+                    venuePricing={merchant.venuePricing}
+                    autoCalculated={merchant.venuePricingAutoCalculated}
+                    onRateChange={(field, value) => handleRateChange('venuePricing', field, value)}
+                    getMargin={getMargin}
+                    getMarginColor={getMarginColor}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* New account mode */}
+          {merchant.mode === 'new' && (
+            <div className="space-y-6">
+              {/* Provider badge */}
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20 w-fit">
+                <Zap className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium text-primary">Blumon</span>
+              </div>
+
+              {/* Terminal fields */}
+              <div className="rounded-xl border border-input bg-card p-5 space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Número de serie <span className="text-destructive">*</span></Label>
+                  <Input
+                    placeholder="Ej: 0821142850"
+                    value={merchant.serialNumber}
+                    onChange={(e) => setMerchant(prev => ({ ...prev, serialNumber: e.target.value }))}
+                    className="h-12 text-base font-mono"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-sm">Marca</Label>
+                    <Select value={merchant.brand} onValueChange={(v) => setMerchant(prev => ({ ...prev, brand: v }))}>
+                      <SelectTrigger className="h-12 cursor-pointer"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PAX" className="cursor-pointer">PAX</SelectItem>
+                        <SelectItem value="INGENICO" className="cursor-pointer">Ingenico</SelectItem>
+                        <SelectItem value="VERIFONE" className="cursor-pointer">Verifone</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm">Modelo</Label>
+                    <Select value={merchant.model} onValueChange={(v) => setMerchant(prev => ({ ...prev, model: v }))}>
+                      <SelectTrigger className="h-12 cursor-pointer"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="A910S" className="cursor-pointer">A910S</SelectItem>
+                        <SelectItem value="A920" className="cursor-pointer">A920</SelectItem>
+                        <SelectItem value="A77" className="cursor-pointer">A77</SelectItem>
+                        <SelectItem value="D210" className="cursor-pointer">D210</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-sm">Nombre de cuenta</Label>
+                    <Input
+                      placeholder={form.name || 'Terminal principal'}
+                      value={merchant.displayName}
+                      onChange={(e) => setMerchant(prev => ({ ...prev, displayName: e.target.value }))}
+                      className="h-12"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm">Ambiente</Label>
+                    <Select
+                      value={merchant.environment}
+                      onValueChange={(v: 'SANDBOX' | 'PRODUCTION') => setMerchant(prev => ({ ...prev, environment: v }))}
+                    >
+                      <SelectTrigger className="h-12 cursor-pointer"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="SANDBOX" className="cursor-pointer">Sandbox</SelectItem>
+                        <SelectItem value="PRODUCTION" className="cursor-pointer">Producción</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {merchant.autofetchDone && merchant.autofetchResult && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg border border-green-500/30 bg-green-500/5">
+                    <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                    <span className="text-sm font-medium text-green-600">Auto-Fetch completado</span>
+                    <span className="text-xs text-muted-foreground ml-1">POS: {merchant.autofetchResult.posId}</span>
+                  </div>
+                )}
+
+                <Button
+                  onClick={handleAutofetch}
+                  disabled={merchant.serialNumber.trim().length < 4 || autofetchLoading}
+                  className="w-full h-12 cursor-pointer gap-2 text-base"
+                >
+                  {autofetchLoading ? (
+                    <><Loader2 className="w-5 h-5 animate-spin" />Obteniendo credenciales...</>
+                  ) : merchant.autofetchDone ? (
+                    <><CheckCircle2 className="w-5 h-5" />Re-ejecutar Auto-Fetch</>
+                  ) : (
+                    <><Zap className="w-5 h-5" />Ejecutar Auto-Fetch</>
+                  )}
+                </Button>
+              </div>
+
+              {/* Costs, Settlement, Pricing — after autofetch */}
+              {merchant.autofetchDone && (
+                <div className="space-y-6">
+                  {merchant.providerCostsAutoCalculated && merchant.mccResult?.found && (
+                    <div className="flex items-start gap-2 p-3 rounded-lg border border-green-500/30 bg-green-500/5">
+                      <Calculator className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
+                      <p className="text-xs text-green-600">
+                        Calculado automáticamente (MCC: {merchant.mccResult.mcc}, confianza: {Math.round((merchant.mccResult.confidence ?? 0) * 100)}%)
+                      </p>
+                    </div>
+                  )}
+
+                  <RatesSection
+                    title="Costos del procesador"
+                    rates={merchant.providerCosts}
+                    onRateChange={(field, value) => handleRateChange('providerCosts', field, value)}
+                  />
+                  <SettlementSection
+                    settlement={merchant.settlement}
+                    onChange={handleSettlementChange}
+                  />
+                  <VenuePricingSection
+                    providerCosts={merchant.providerCosts}
+                    venuePricing={merchant.venuePricing}
+                    autoCalculated={merchant.venuePricingAutoCalculated}
+                    onRateChange={(field, value) => handleRateChange('venuePricing', field, value)}
+                    getMargin={getMargin}
+                    getMarginColor={getMarginColor}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Shared: Rates Section ──
+
+function RatesSection({
+  title,
+  rates,
+  onRateChange,
+}: {
+  title: string
+  rates: RateData
+  onRateChange: (field: keyof RateData, value: string) => void
+}) {
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold">{title}</h3>
+      <div className="rounded-xl border border-input bg-card p-4 space-y-2">
+        {RATE_FIELDS.map(field => (
+          <div key={field.key} className={cn('flex items-center gap-3 p-2.5 rounded-lg', field.bgColor)}>
+            <span className={cn('text-sm font-medium w-24', field.color)}>{field.label}</span>
+            <div className="relative flex-1 max-w-[120px]">
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                value={rates[field.key] || ''}
+                onChange={e => onRateChange(field.key, e.target.value)}
+                className="h-9 text-sm pr-6 cursor-text"
+              />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+            </div>
+          </div>
+        ))}
+        <div className="grid grid-cols-2 gap-3 pt-2">
+          <div className="space-y-1">
+            <Label className="text-xs">Cuota fija / txn</Label>
+            <div className="relative">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+              <Input type="number" step="0.01" min="0" value={rates.fixedCost || ''} onChange={e => onRateChange('fixedCost', e.target.value)} className="h-9 pl-6 text-sm cursor-text" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Cuota mensual</Label>
+            <div className="relative">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+              <Input type="number" step="0.01" min="0" value={rates.monthlyFee || ''} onChange={e => onRateChange('monthlyFee', e.target.value)} className="h-9 pl-6 text-sm cursor-text" />
+            </div>
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-// ============================================================================
-// Shared: Copy from venue select
-// ============================================================================
+// ── Shared: Settlement Section ──
 
-interface CopyFromVenueSelectProps {
-  venues: Array<{ id: string; name: string }>
-  onCopy: (venueId: string) => void
-  label: string
+function SettlementSection({
+  settlement,
+  onChange,
+}: {
+  settlement: SettlementData
+  onChange: <K extends keyof SettlementData>(field: K, value: SettlementData[K]) => void
+}) {
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold">Plazos de liquidación</h3>
+      <div className="rounded-xl border border-input bg-card p-4 space-y-3">
+        <div className="flex rounded-lg border border-input bg-muted/50 p-1">
+          {(['BUSINESS_DAYS', 'CALENDAR_DAYS'] as const).map(dt => (
+            <button
+              key={dt}
+              type="button"
+              onClick={() => onChange('dayType', dt)}
+              className={cn(
+                'flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer',
+                settlement.dayType === dt ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {dt === 'BUSINESS_DAYS' ? 'Días hábiles' : 'Días calendario'}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-3">
+          <Label className="text-xs shrink-0">Hora de corte</Label>
+          <Input type="time" value={settlement.cutoffTime} onChange={e => onChange('cutoffTime', e.target.value)} className="h-9 text-sm w-32" />
+          <span className="text-xs text-muted-foreground">{settlement.cutoffTimezone.replace('America/', '')}</span>
+        </div>
+        {SETTLEMENT_CARD_TYPES.map(card => (
+          <div key={card.key} className={cn('flex items-center gap-3 p-2.5 rounded-lg', card.bgColor)}>
+            <span className={cn('text-sm font-medium w-24', card.color)}>{card.label}</span>
+            <Input
+              type="number" min={1} max={30} value={settlement[card.key]}
+              onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 0 && v <= 30) onChange(card.key, v) }}
+              className="h-9 w-16 text-center font-bold cursor-text"
+            />
+            <span className="text-xs text-muted-foreground">{settlement.dayType === 'BUSINESS_DAYS' ? 'háb.' : 'cal.'}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
-const CopyFromVenueSelect: React.FC<CopyFromVenueSelectProps> = ({ venues, onCopy, label }) => {
-  const [open, setOpen] = useState(false)
+// ── Shared: Venue Pricing Section ──
 
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 cursor-pointer transition-colors"
-      >
-        <Copy className="w-3 h-3" />
-        {label}
-      </button>
-    )
-  }
-
+function VenuePricingSection({
+  providerCosts,
+  venuePricing,
+  autoCalculated,
+  onRateChange,
+  getMargin,
+  getMarginColor,
+}: {
+  providerCosts: RateData
+  venuePricing: RateData
+  autoCalculated: boolean
+  onRateChange: (field: keyof RateData, value: string) => void
+  getMargin: (field: keyof Pick<RateData, 'debitRate' | 'creditRate' | 'amexRate' | 'internationalRate'>) => number
+  getMarginColor: (margin: number) => string
+}) {
   return (
-    <div className="flex items-center gap-2 p-1.5 rounded-lg border border-blue-500/30 bg-blue-500/5">
-      <Select onValueChange={(v) => { onCopy(v); setOpen(false) }}>
-        <SelectTrigger className="h-7 text-xs cursor-pointer flex-1">
-          <SelectValue placeholder="Selecciona venue..." />
-        </SelectTrigger>
-        <SelectContent>
-          {venues.map(v => (
-            <SelectItem key={v.id} value={v.id} className="cursor-pointer text-xs">
-              {v.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground cursor-pointer text-sm px-1">
-        ×
-      </button>
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold">Tarifas al venue</h3>
+
+      {autoCalculated && (
+        <div className="flex items-start gap-2 p-3 rounded-lg border border-green-500/30 bg-green-500/5">
+          <Calculator className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
+          <p className="text-xs text-green-600">Calculado automáticamente: costo + 20% margen</p>
+        </div>
+      )}
+
+      <div className="rounded-xl border border-input bg-card p-4 space-y-2">
+        <div className="grid grid-cols-4 gap-2 text-xs font-medium text-muted-foreground px-2.5 pb-1">
+          <span>Tipo</span><span>Costo</span><span>Tu tarifa</span><span>Margen</span>
+        </div>
+        {RATE_FIELDS.map(field => {
+          const cost = providerCosts[field.key] || 0
+          const margin = getMargin(field.key)
+          return (
+            <div key={field.key} className={cn('grid grid-cols-4 gap-2 items-center p-2.5 rounded-lg', field.bgColor)}>
+              <span className={cn('text-sm font-medium', field.color)}>{field.label}</span>
+              <span className="text-xs text-muted-foreground">{cost.toFixed(2)}%</span>
+              <div className="relative">
+                <Input type="number" step="0.01" min="0" max="100" value={venuePricing[field.key] || ''} onChange={e => onRateChange(field.key, e.target.value)} className="h-9 text-sm pr-5 cursor-text" />
+                <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">%</span>
+              </div>
+              <span className={cn('text-xs font-medium', getMarginColor(margin))}>
+                {margin >= 0 ? '+' : ''}{margin.toFixed(2)}%
+              </span>
+            </div>
+          )
+        })}
+        <div className="grid grid-cols-2 gap-3 pt-2">
+          <div className="space-y-1">
+            <Label className="text-xs">Cuota fija / txn</Label>
+            <div className="relative">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+              <Input type="number" step="0.01" min="0" value={venuePricing.fixedCost || ''} onChange={e => onRateChange('fixedCost', e.target.value)} className="h-9 pl-6 text-sm cursor-text" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Cuota mensual</Label>
+            <div className="relative">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+              <Input type="number" step="0.01" min="0" value={venuePricing.monthlyFee || ''} onChange={e => onRateChange('monthlyFee', e.target.value)} className="h-9 pl-6 text-sm cursor-text" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Profit example */}
+      <div className="rounded-xl border border-border/50 bg-muted/20 p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-xs font-medium">Ejemplo: transacción de $1,000</span>
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="p-2 rounded-lg bg-card">
+            <p className="text-[10px] text-muted-foreground">Cobro</p>
+            <p className="text-sm font-bold">${((venuePricing.creditRate || 0) * 10).toFixed(2)}</p>
+          </div>
+          <div className="p-2 rounded-lg bg-card">
+            <p className="text-[10px] text-muted-foreground">Costo</p>
+            <p className="text-sm font-bold">${((providerCosts.creditRate || 0) * 10).toFixed(2)}</p>
+          </div>
+          <div className="p-2 rounded-lg bg-green-50 dark:bg-green-950/20">
+            <p className="text-[10px] text-muted-foreground">Ganancia</p>
+            <p className="text-sm font-bold text-green-600">
+              ${(((venuePricing.creditRate || 0) - (providerCosts.creditRate || 0)) * 10).toFixed(2)}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Step 5: Review
+// ══════════════════════════════════════════════════════════════════════
+
+function StepReview({
+  form,
+  merchant,
+  selectedOrg,
+  selectedBusinessLabel,
+  copiedFromVenueName,
+}: {
+  form: VenueFormData
+  merchant: MerchantData
+  selectedOrg?: OrganizationSimple
+  selectedBusinessLabel?: string
+  copiedFromVenueName?: string
+}) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">Todo listo</h2>
+        <p className="text-muted-foreground mt-1">Revisa los datos antes de crear el venue.</p>
+      </div>
+
+      {/* Preview card */}
+      <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+        {/* Header gradient */}
+        <div className="h-20 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent flex items-end px-6 pb-4">
+          <div className="w-12 h-12 rounded-xl bg-card border border-border shadow-sm flex items-center justify-center -mb-6">
+            <Store className="w-6 h-6 text-foreground" />
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="px-6 pt-8 pb-6 space-y-5">
+          <div>
+            <h3 className="text-xl font-bold">{form.name}</h3>
+            {selectedOrg && <p className="text-sm text-muted-foreground">{selectedOrg.name}</p>}
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
+            {/* Business Type */}
+            {selectedBusinessLabel && (
+              <ReviewRow icon={<Store className="w-4 h-4" />} iconBg="bg-primary/10 text-primary" label="Tipo" value={selectedBusinessLabel} />
+            )}
+
+            {/* Address */}
+            {form.address && (
+              <ReviewRow
+                icon={<MapPin className="w-4 h-4" />}
+                iconBg="bg-blue-500/10 text-blue-500"
+                label="Dirección"
+                value={
+                  <div>
+                    <p className="text-sm">{form.address}</p>
+                    {(form.city || form.state) && (
+                      <p className="text-xs text-muted-foreground">{[form.city, form.state, form.country].filter(Boolean).join(', ')}</p>
+                    )}
+                  </div>
+                }
+              />
+            )}
+
+            {/* Phone */}
+            {form.phone && (
+              <ReviewRow icon={<Phone className="w-4 h-4" />} iconBg="bg-green-500/10 text-green-500" label="Teléfono" value={form.phone} />
+            )}
+
+            {/* Timezone */}
+            {form.timezone && (
+              <ReviewRow icon={<Info className="w-4 h-4" />} iconBg="bg-amber-500/10 text-amber-500" label="Zona horaria" value={form.timezone} />
+            )}
+          </div>
+
+          {/* Payment section */}
+          {merchant.enabled && (
+            <>
+              <hr className="border-border" />
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-semibold">Cuenta de cobro</span>
+                </div>
+
+                {merchant.mode === 'copy' && merchant.copyFromVenueId && copiedFromVenueName ? (
+                  <div className="space-y-1.5 pl-6">
+                    <ReviewCheck text={`Copiado de: ${copiedFromVenueName}`} color="text-blue-600" />
+                    {merchant.providerCosts.debitRate > 0 && (
+                      <ReviewCheck text={`Costos: ${merchant.providerCosts.debitRate.toFixed(2)}% débito`} />
+                    )}
+                    {merchant.venuePricing.debitRate > 0 && (
+                      <ReviewCheck text={`Tarifas: ${merchant.venuePricing.debitRate.toFixed(2)}% débito`} />
+                    )}
+                    <ReviewCheck text="Falta Auto-Fetch de terminal" color="text-amber-600" icon={<Info className="w-3.5 h-3.5" />} />
+                  </div>
+                ) : merchant.mode === 'new' && merchant.autofetchDone ? (
+                  <div className="space-y-1.5 pl-6">
+                    <ReviewCheck text={`Blumon · ${merchant.autofetchResult?.posId}`} />
+                    {merchant.providerCosts.debitRate > 0 && <ReviewCheck text="Costos configurados" />}
+                    {merchant.venuePricing.debitRate > 0 && <ReviewCheck text="Tarifas configuradas" />}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground pl-6">Pendiente de configuración</p>
+                )}
+              </div>
+            </>
+          )}
+
+          {!merchant.enabled && (
+            <>
+              <hr className="border-border" />
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <CreditCard className="w-4 h-4" />
+                <span className="text-sm">Sin cuenta de cobro (se puede configurar después)</span>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Review helpers ──
+
+function ReviewRow({ icon, iconBg, label, value }: { icon: React.ReactNode; iconBg: string; label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', iconBg)}>{icon}</div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{label}</p>
+        <div className="mt-0.5">{typeof value === 'string' ? <p className="text-sm font-medium">{value}</p> : value}</div>
+      </div>
+    </div>
+  )
+}
+
+function ReviewCheck({ text, color = 'text-green-600', icon }: { text: string; color?: string; icon?: React.ReactNode }) {
+  return (
+    <div className={cn('flex items-center gap-1.5 text-xs', color)}>
+      {icon || <CheckCircle2 className="w-3.5 h-3.5" />}
+      {text}
     </div>
   )
 }

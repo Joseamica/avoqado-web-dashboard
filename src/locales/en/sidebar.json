@@ -21,11 +21,23 @@
     "discounts": "Discounts",
     "coupons": "Coupon Codes"
   },
+  "teamMenu": {
+    "title": "Team",
+    "members": "Members"
+  },
+  "settingsMenu": {
+    "title": "Settings"
+  },
   "creditPacks": "Credit Packs",
   "salesMenu": {
     "title": "Sales",
     "orders": "Orders",
-    "transactions": "Transactions"
+    "transactions": "Transactions",
+    "paymentLinks": "Payment Links",
+    "virtualTerminal": "Virtual Terminal",
+    "subscriptions": "Subscriptions",
+    "disputes": "Disputes",
+    "back": "Sales"
   },
   "growth": "Growth",
   "paymentProviders": "Payment Providers",
@@ -121,7 +133,10 @@
     "overview": "Overview",
     "calendar": "Calendar",
     "waitlist": "Waitlist",
-    "settings": "Settings"
+    "settings": "Settings",
+    "settingsGroup": "Settings",
+    "general": "General",
+    "communications": "Communications"
   },
   "requiresKycVerification": "Requires KYC verification"
 }
