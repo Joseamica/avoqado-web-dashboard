@@ -153,13 +153,12 @@ export function StockControl() {
 
   // ─── Export ───
   const buildExportRows = useCallback(() => {
-    const headers = ['SIM ID', 'Categoría', 'Tipo', 'Fecha', 'Tienda', 'Usuario', 'Registrado desde']
+    const headers = ['SIM ID', 'Categoría', 'Tipo', 'Fecha', 'Usuario', 'Registrado desde']
     const rows = filteredMovements.map(m => [
       m.serialNumber,
       m.categoryName,
       getTypeLabel(m.type),
       formatDate(m.timestamp),
-      m.venueName || '-',
       m.userName || '-',
       m.registeredFromVenueName || '-',
     ])
@@ -415,9 +414,6 @@ ${dataRows}
                   {t('playtelecom:stock.timestamp', { defaultValue: 'Fecha' })}
                 </th>
                 <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t('playtelecom:stock.store', { defaultValue: 'Tienda' })}
-                </th>
-                <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   {t('playtelecom:stock.user', { defaultValue: 'Usuario' })}
                 </th>
                 <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Registrado desde</th>
@@ -449,7 +445,6 @@ ${dataRows}
                         </Badge>
                       </td>
                       <td className="py-3 px-2 text-sm text-muted-foreground whitespace-nowrap">{formatDate(movement.timestamp)}</td>
-                      <td className="py-3 px-2 text-sm">{movement.venueName || <span className="text-muted-foreground">-</span>}</td>
                       <td className="py-3 px-2 text-sm">{movement.userName || <span className="text-muted-foreground">-</span>}</td>
                       <td className="py-3 px-2 text-sm">
                         {movement.registeredFromVenueName || <span className="text-muted-foreground">-</span>}
@@ -459,7 +454,7 @@ ${dataRows}
                 })
               ) : (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                  <td colSpan={6} className="py-8 text-center text-muted-foreground">
                     {movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all'
                       ? t('playtelecom:stock.noResults', { defaultValue: 'No se encontraron movimientos con esos filtros' })
                       : t('playtelecom:stock.noMovements', { defaultValue: 'No hay movimientos recientes' })}
@@ -492,8 +487,6 @@ ${dataRows}
               <span className="text-foreground">{bulkDetailMovement?.categoryName}</span>
               <span>Fecha</span>
               <span className="text-foreground">{bulkDetailMovement && formatDate(bulkDetailMovement.timestamp)}</span>
-              <span>Tienda</span>
-              <span className="text-foreground">{bulkDetailMovement?.venueName || '-'}</span>
               <span>Usuario</span>
               <span className="text-foreground">{bulkDetailMovement?.userName || '-'}</span>
               {bulkDetailMovement?.registeredFromVenueName && (

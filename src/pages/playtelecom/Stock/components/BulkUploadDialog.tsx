@@ -77,7 +77,7 @@ export function BulkUploadDialog({ open, onOpenChange, preselectedCategoryId }: 
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null)
-  const [isOrgLevel, setIsOrgLevel] = useState(false)
+  const [isOrgLevel, setIsOrgLevel] = useState(true)
   const canOrgManage = can('inventory:org-manage')
 
   // Fetch categories
@@ -295,24 +295,13 @@ export function BulkUploadDialog({ open, onOpenChange, preselectedCategoryId }: 
             )}
           </div>
 
-          {/* Org-Level Toggle */}
-          {canOrgManage && (
-            <div className="flex items-center justify-between rounded-lg bg-muted/30 p-3 border border-border/50">
-              <div className="space-y-0.5">
-                <Label className="text-sm">Registrar a nivel organización</Label>
-                <p className="text-xs text-muted-foreground">
-                  Los items estarán disponibles en todas las tiendas
-                </p>
-              </div>
-              <Switch
-                checked={isOrgLevel}
-                onCheckedChange={(checked) => {
-                  setIsOrgLevel(checked)
-                  setSelectedCategoryId('')
-                }}
-              />
-            </div>
-          )}
+          {/* Org-Level Info Banner — always org-level, no toggle needed */}
+          <div className="flex items-center gap-2 rounded-lg bg-primary/5 p-3 border border-primary/20">
+            <Badge variant="outline" className="text-[9px] border-primary/30 text-primary shrink-0">ORG</Badge>
+            <p className="text-xs text-muted-foreground">
+              Los items se registran a nivel organización y estarán disponibles en todas las tiendas
+            </p>
+          </div>
 
           {/* Upload Mode Tabs */}
           <Tabs value={uploadMode} onValueChange={(v) => setUploadMode(v as 'csv' | 'manual')}>
