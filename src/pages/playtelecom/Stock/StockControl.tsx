@@ -9,27 +9,23 @@
  * - Bulk CSV upload
  */
 
-import { useState, useMemo, useCallback } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
-import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Package, Box, CheckCircle2, Plus, Upload, Settings2, Search, Download, FileSpreadsheet, FileText } from 'lucide-react'
-import { StockVsSalesChart, LowStockAlerts, CategoryManagement, BulkUploadDialog } from './components'
-import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { GlassCard } from '@/components/ui/glass-card'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/context/AuthContext'
-import {
-  getStockMetrics,
-  getCategoryStock,
-  getStockMovements,
-  type StockMovement,
-} from '@/services/stockDashboard.service'
+import { useAccess } from '@/hooks/use-access'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { getCategoryStock, getStockMetrics, getStockMovements, type StockMovement } from '@/services/stockDashboard.service'
+import { useQuery } from '@tanstack/react-query'
+import { Box, CheckCircle2, Download, FileSpreadsheet, FileText, Package, Plus, Search, Settings2, Upload } from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { BulkUploadDialog, CategoryManagement, LowStockAlerts, StockVsSalesChart } from './components'
 
 // ─── Movement type config (Spanish labels + styling) ───
 const MOVEMENT_TYPE_CONFIG: Record<string, { label: string; className: string }> = {
@@ -66,7 +62,9 @@ export function StockControl() {
   const { t } = useTranslation(['playtelecom', 'common'])
   const { venueId } = useCurrentVenue()
   const { activeVenue } = useAuth()
+  const { can } = useAccess()
   const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
+  const canUploadStock = can('serialized-inventory:create')
 
   // Dialog state
   const [showCategoryManagement, setShowCategoryManagement] = useState(false)
@@ -102,22 +100,26 @@ export function StockControl() {
   const movements = movementsData?.movements || []
 
   // Totals
-  const totals = useMemo(() => ({
-    available: metricsData?.availablePieces || 0,
-    sold: metricsData?.soldToday || 0,
-    total: metricsData?.totalPieces || 0,
-  }), [metricsData])
+  const totals = useMemo(
+    () => ({
+      available: metricsData?.availablePieces || 0,
+      sold: metricsData?.soldToday || 0,
+      total: metricsData?.totalPieces || 0,
+    }),
+    [metricsData],
+  )
 
   // ─── Filtered movements ───
   const filteredMovements = useMemo(() => {
     let result = movements
     if (movementSearch.trim()) {
       const q = movementSearch.toLowerCase()
-      result = result.filter(m =>
-        m.serialNumber.toLowerCase().includes(q) ||
-        m.categoryName.toLowerCase().includes(q) ||
-        (m.userName && m.userName.toLowerCase().includes(q)) ||
-        (m.venueName && m.venueName.toLowerCase().includes(q))
+      result = result.filter(
+        m =>
+          m.serialNumber.toLowerCase().includes(q) ||
+          m.categoryName.toLowerCase().includes(q) ||
+          (m.userName && m.userName.toLowerCase().includes(q)) ||
+          (m.venueName && m.venueName.toLowerCase().includes(q)),
       )
     }
     if (movementTypeFilter !== 'all') {
@@ -136,13 +138,16 @@ export function StockControl() {
   }, [movements])
 
   // ─── Format helpers ───
-  const formatDate = useCallback((ts: string) => {
-    return new Date(ts).toLocaleString('es-MX', {
-      dateStyle: 'short',
-      timeStyle: 'short',
-      timeZone: venueTimezone,
-    })
-  }, [venueTimezone])
+  const formatDate = useCallback(
+    (ts: string) => {
+      return new Date(ts).toLocaleString('es-MX', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+        timeZone: venueTimezone,
+      })
+    },
+    [venueTimezone],
+  )
 
   const getTypeLabel = (type: string) => MOVEMENT_TYPE_CONFIG[type]?.label || type
 
@@ -172,10 +177,12 @@ export function StockControl() {
     const { headers, rows } = buildExportRows()
     const escXml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     const headerCells = headers.map(h => `<Cell><Data ss:Type="String">${escXml(h)}</Data></Cell>`).join('')
-    const dataRows = rows.map(r => {
-      const cells = r.map(c => `<Cell><Data ss:Type="String">${escXml(c)}</Data></Cell>`).join('')
-      return `<Row>${cells}</Row>`
-    }).join('')
+    const dataRows = rows
+      .map(r => {
+        const cells = r.map(c => `<Cell><Data ss:Type="String">${escXml(c)}</Data></Cell>`).join('')
+        return `<Row>${cells}</Row>`
+      })
+      .join('')
     const xml = `<?xml version="1.0"?>
 <?mso-application progid="Excel.Sheet"?>
 <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
@@ -215,9 +222,7 @@ ${dataRows}
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl font-semibold">
-            {t('playtelecom:stock.title', { defaultValue: 'Control de Inventario' })}
-          </h2>
+          <h2 className="text-xl font-semibold">{t('playtelecom:stock.title', { defaultValue: 'Control de Inventario' })}</h2>
           <p className="text-sm text-muted-foreground">
             {t('playtelecom:stock.subtitle', { defaultValue: 'Gestiona categorías y números de serie' })}
           </p>
@@ -227,10 +232,12 @@ ${dataRows}
             <Settings2 className="w-4 h-4 mr-2" />
             {t('playtelecom:stock.manageCategories', { defaultValue: 'Configurar Categorías' })}
           </Button>
-          <Button onClick={() => setShowBulkUpload(true)}>
-            <Upload className="w-4 h-4 mr-2" />
-            {t('playtelecom:stock.uploadItems', { defaultValue: 'Cargar Items' })}
-          </Button>
+          {canUploadStock && (
+            <Button onClick={() => setShowBulkUpload(true)}>
+              <Upload className="w-4 h-4 mr-2" />
+              {t('playtelecom:stock.uploadItems', { defaultValue: 'Cargar Items' })}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -255,11 +262,11 @@ ${dataRows}
                 <div className="h-px bg-border/50" />
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">{t('playtelecom:stock.coverage', { defaultValue: 'Cobertura' })}</span>
-                  <span className={`font-bold ${
-                    (category.coverage || 0) < 7
-                      ? 'text-red-600 dark:text-red-400'
-                      : 'text-green-600 dark:text-green-400'
-                  }`}>
+                  <span
+                    className={`font-bold ${
+                      (category.coverage || 0) < 7 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
+                    }`}
+                  >
                     {category.coverage !== null ? `${category.coverage} días` : '-'}
                   </span>
                 </div>
@@ -323,9 +330,7 @@ ${dataRows}
       <GlassCard className="p-6">
         {/* Header + Export */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-          <h3 className="text-lg font-semibold">
-            {t('playtelecom:stock.recentMovements', { defaultValue: 'Movimientos Recientes' })}
-          </h3>
+          <h3 className="text-lg font-semibold">{t('playtelecom:stock.recentMovements', { defaultValue: 'Movimientos Recientes' })}</h3>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
@@ -378,7 +383,9 @@ ${dataRows}
               <SelectContent>
                 <SelectItem value="all">{t('playtelecom:stock.allCategories', { defaultValue: 'Todas las categorías' })}</SelectItem>
                 {uniqueCategories.map(cat => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -413,9 +420,7 @@ ${dataRows}
                 <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   {t('playtelecom:stock.user', { defaultValue: 'Usuario' })}
                 </th>
-                <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Registrado desde
-                </th>
+                <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Registrado desde</th>
               </tr>
             </thead>
             <tbody>
@@ -443,15 +448,9 @@ ${dataRows}
                           {typeConfig.label}
                         </Badge>
                       </td>
-                      <td className="py-3 px-2 text-sm text-muted-foreground whitespace-nowrap">
-                        {formatDate(movement.timestamp)}
-                      </td>
-                      <td className="py-3 px-2 text-sm">
-                        {movement.venueName || <span className="text-muted-foreground">-</span>}
-                      </td>
-                      <td className="py-3 px-2 text-sm">
-                        {movement.userName || <span className="text-muted-foreground">-</span>}
-                      </td>
+                      <td className="py-3 px-2 text-sm text-muted-foreground whitespace-nowrap">{formatDate(movement.timestamp)}</td>
+                      <td className="py-3 px-2 text-sm">{movement.venueName || <span className="text-muted-foreground">-</span>}</td>
+                      <td className="py-3 px-2 text-sm">{movement.userName || <span className="text-muted-foreground">-</span>}</td>
                       <td className="py-3 px-2 text-sm">
                         {movement.registeredFromVenueName || <span className="text-muted-foreground">-</span>}
                       </td>
@@ -473,14 +472,8 @@ ${dataRows}
       </GlassCard>
 
       {/* Dialogs */}
-      <CategoryManagement
-        open={showCategoryManagement}
-        onOpenChange={setShowCategoryManagement}
-      />
-      <BulkUploadDialog
-        open={showBulkUpload}
-        onOpenChange={setShowBulkUpload}
-      />
+      <CategoryManagement open={showCategoryManagement} onOpenChange={setShowCategoryManagement} />
+      <BulkUploadDialog open={showBulkUpload} onOpenChange={setShowBulkUpload} />
 
       {/* Bulk upload detail dialog */}
       <Dialog open={!!bulkDetailMovement} onOpenChange={() => setBulkDetailMovement(null)}>
