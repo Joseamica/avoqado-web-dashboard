@@ -33,7 +33,7 @@ import { StaffRole } from '@/types'
 import { getRoleBadgeColor } from '@/utils/role-permissions'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Building2, RotateCcw, Save, Store, UserCheck, UserPlus, UserX, X } from 'lucide-react'
+import { AlertTriangle, Building2, RotateCcw, Save, Store, UserCheck, UserPlus, UserX, X } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -77,6 +77,7 @@ const ACTION_MESSAGE_BUILDERS: Record<string, (data: Record<string, unknown> | n
 interface UserRow extends UserListItem {
   activeVenueCount: number
   activeVenueIds: string[]
+  belongsToCurrentVenue: boolean
 }
 
 export function UsersManagement() {
@@ -247,8 +248,9 @@ export function UsersManagement() {
     () =>
       teamMembers.map(member => {
         const currentVenue = member.venues.find(v => v.id === venueId)
+        const belongsToCurrentVenue = !!currentVenue
         const currentVenueRole = currentVenue?.role || member.venues[0]?.role || 'VIEWER'
-        const isActive = currentVenue?.active ?? true
+        const isActive = belongsToCurrentVenue ? (currentVenue?.active ?? true) : false
         return {
           id: member.id,
           name: `${member.firstName} ${member.lastName}`.trim(),
@@ -260,6 +262,7 @@ export function UsersManagement() {
           selectedStores: member.venues.filter(v => v.active).map(v => v.id),
           permissions: [],
           auditLog: member.id === selectedUserId ? auditLogEntries : [],
+          belongsToCurrentVenue,
         }
       }),
     [teamMembers, venueId, selectedUserId, auditLogEntries],
@@ -270,8 +273,9 @@ export function UsersManagement() {
     () =>
       teamMembers.map(member => {
         const currentVenue = member.venues.find(v => v.id === venueId)
+        const belongsToCurrentVenue = !!currentVenue
         const currentVenueRole = currentVenue?.role || member.venues[0]?.role || 'VIEWER'
-        const isActive = currentVenue?.active ?? true
+        const isActive = belongsToCurrentVenue ? (currentVenue?.active ?? true) : false
         const activeVenues = member.venues.filter(v => v.active)
         return {
           id: member.id,
@@ -282,6 +286,7 @@ export function UsersManagement() {
           avatarUrl: member.photoUrl || undefined,
           activeVenueCount: activeVenues.length,
           activeVenueIds: activeVenues.map(v => v.id),
+          belongsToCurrentVenue,
         }
       }),
     [teamMembers, venueId],
@@ -341,10 +346,16 @@ export function UsersManagement() {
 
   const currentUserRole = staffInfo?.role as StaffRole | undefined
 
+  const selectedUserBelongsToVenue = useMemo(() => {
+    if (!selectedUser) return false
+    return selectedUser.belongsToCurrentVenue ?? true
+  }, [selectedUser])
+
   const canEditSelectedUser = useMemo(() => {
     if (!currentUserRole || !selectedUser) return false
+    if (!selectedUserBelongsToVenue) return false
     return canModifyRole(currentUserRole, selectedUser.role as StaffRole)
-  }, [currentUserRole, selectedUser])
+  }, [currentUserRole, selectedUser, selectedUserBelongsToVenue])
 
   const assignableRoles = useMemo(() => {
     if (!currentUserRole) return []
@@ -465,6 +476,14 @@ export function UsersManagement() {
         accessorKey: 'status',
         header: t('playtelecom:users.columns.status', { defaultValue: 'Estado' }),
         cell: ({ row }) => {
+          if (!row.original.belongsToCurrentVenue) {
+            return (
+              <Badge variant="outline" className="text-[11px] h-5 px-2 text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700">
+                <AlertTriangle className="w-3 h-3 mr-1" />
+                {t('playtelecom:users.status.notAssigned', { defaultValue: 'No asignado' })}
+              </Badge>
+            )
+          }
           const isActive = row.original.status === 'active'
           return (
             <Badge variant={isActive ? 'default' : 'secondary'} className="text-[11px] h-5 px-2">

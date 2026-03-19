@@ -33,6 +33,7 @@ export interface UserDetail {
   selectedStores: string[]
   permissions: string[]
   auditLog: AuditLogEntry[]
+  belongsToCurrentVenue?: boolean
 }
 
 /** Ref handle exposed to parent for controlling save/reset from modal header */
@@ -264,8 +265,20 @@ export const UserDetailPanel = forwardRef<UserDetailPanelRef, UserDetailPanelPro
         )}
       </GlassCard>
 
-      {/* No-edit banner */}
-      {!canEdit && (
+      {/* Not assigned to venue banner */}
+      {user.belongsToCurrentVenue === false && (
+        <GlassCard className="p-3 flex items-center gap-3 border-amber-500/30 bg-amber-500/5">
+          <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+          <p className="text-xs text-amber-700 dark:text-amber-300">
+            {t('playtelecom:users.notAssignedToVenue', {
+              defaultValue: 'Este usuario no está asignado a esta tienda. Agrégalo desde la sección de Tiendas para poder editarlo.',
+            })}
+          </p>
+        </GlassCard>
+      )}
+
+      {/* No-edit banner (role hierarchy) */}
+      {!canEdit && user.belongsToCurrentVenue !== false && (
         <GlassCard className="p-3 flex items-center gap-3 border-yellow-500/30 bg-yellow-500/5">
           <ShieldAlert className="w-4 h-4 text-yellow-600 dark:text-yellow-400 shrink-0" />
           <p className="text-xs text-yellow-700 dark:text-yellow-300">
