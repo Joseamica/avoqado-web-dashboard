@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { paymentProviderAPI, type MerchantAccount, type MerchantAccountCredentials } from '@/services/paymentProvider.service'
 import { useQuery } from '@tanstack/react-query'
-import { AlertCircle, ChevronRight, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { AlertCircle, ChevronRight, CreditCard, Eye, EyeOff, Loader2, Smartphone } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 
 interface ManualAccountDialogProps {
@@ -34,11 +34,16 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
     customerId: '',
     terminalId: '',
     providerConfig: '',
-    // Blumon-specific fields (only used when provider is Blumon)
+    // Blumon-specific fields
     blumonSerialNumber: '',
     blumonEnvironment: 'SANDBOX' as 'SANDBOX' | 'PRODUCTION',
     blumonBrand: 'PAX',
     blumonModel: 'A910S',
+    // AngelPay-specific fields
+    angelPayEmail: '',
+    angelPayPassword: '',
+    angelPayAffiliation: '',
+    angelPayCommerceToken: '',
   })
 
   // Fetch providers for dropdown
@@ -48,9 +53,11 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
     enabled: open,
   })
 
-  // Check if selected provider is Blumon
+  // Detect provider type
   const selectedProvider = providers.find(p => p.id === formData.providerId)
   const isBlumon = selectedProvider?.code?.toLowerCase().includes('blumon')
+  const isAngelPay = selectedProvider?.code?.toUpperCase() === 'ANGELPAY'
+  const isGenericProvider = !isBlumon && !isAngelPay
 
   useEffect(() => {
     if (account) {
@@ -66,11 +73,14 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
         customerId: '',
         terminalId: '',
         providerConfig: account.providerConfig ? JSON.stringify(account.providerConfig, null, 2) : '',
-        // Load Blumon fields from account if available
         blumonSerialNumber: account.blumonSerialNumber || '',
         blumonEnvironment: (account.blumonEnvironment as 'SANDBOX' | 'PRODUCTION') || 'SANDBOX',
         blumonBrand: (account.providerConfig as any)?.brand || 'PAX',
         blumonModel: (account.providerConfig as any)?.model || 'A910S',
+        angelPayEmail: '',
+        angelPayPassword: '',
+        angelPayAffiliation: account.externalMerchantId || '',
+        angelPayCommerceToken: '',
       })
     } else {
       setFormData({
@@ -89,28 +99,29 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
         blumonEnvironment: 'SANDBOX',
         blumonBrand: 'PAX',
         blumonModel: 'A910S',
+        angelPayEmail: '',
+        angelPayPassword: '',
+        angelPayAffiliation: '',
+        angelPayCommerceToken: '',
       })
     }
   }, [account, open])
 
   const handleSubmit = async () => {
     if (!formData.providerId || !formData.externalMerchantId) return
-    // For Blumon, we need serial number; for others, we need credentials
+
+    // Provider-specific validation
     if (!account) {
       if (isBlumon && !formData.blumonSerialNumber) return
-      if (!isBlumon && (!formData.merchantId || !formData.apiKey)) return
+      if (isAngelPay && (!formData.angelPayEmail || !formData.angelPayAffiliation || !formData.angelPayCommerceToken)) return
+      if (isGenericProvider && (!formData.merchantId || !formData.apiKey)) return
     }
 
     setLoading(true)
     try {
-      const credentials: MerchantAccountCredentials = {
-        merchantId: formData.merchantId,
-        apiKey: formData.apiKey,
-        customerId: formData.customerId || undefined,
-        terminalId: formData.terminalId || undefined,
-      }
-
+      let credentials: MerchantAccountCredentials | undefined
       let providerConfig: any = undefined
+
       if (formData.providerConfig) {
         try {
           providerConfig = JSON.parse(formData.providerConfig)
@@ -121,8 +132,34 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
         }
       }
 
-      // For Blumon, add terminal info to providerConfig
-      if (isBlumon) {
+      if (isAngelPay) {
+        // AngelPay credentials map to the generic credential fields
+        credentials = {
+          merchantId: formData.angelPayAffiliation,
+          apiKey: formData.angelPayCommerceToken,
+          customerId: formData.angelPayEmail,
+          terminalId: formData.angelPayPassword,
+        }
+        providerConfig = {
+          ...providerConfig,
+          processor: 'ANGELPAY',
+          credentialMapping: {
+            merchantId: 'affiliation',
+            apiKey: 'commerceToken',
+            customerId: 'email',
+            terminalId: 'password',
+          },
+        }
+      } else if (isBlumon) {
+        credentials =
+          formData.merchantId || formData.apiKey
+            ? {
+                merchantId: formData.merchantId,
+                apiKey: formData.apiKey,
+                customerId: formData.customerId || undefined,
+                terminalId: formData.terminalId || undefined,
+              }
+            : undefined
         providerConfig = {
           ...providerConfig,
           brand: formData.blumonBrand,
@@ -131,6 +168,13 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
           serialNumber: formData.blumonSerialNumber,
           manuallyCreated: true,
           status: 'PENDING_AFFILIATION',
+        }
+      } else {
+        credentials = {
+          merchantId: formData.merchantId,
+          apiKey: formData.apiKey,
+          customerId: formData.customerId || undefined,
+          terminalId: formData.terminalId || undefined,
         }
       }
 
@@ -141,7 +185,7 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
         displayName: formData.displayName || undefined,
         active: formData.active,
         displayOrder: formData.displayOrder,
-        credentials: formData.merchantId || formData.apiKey ? credentials : undefined,
+        credentials,
         providerConfig,
       }
 
@@ -159,6 +203,15 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
     } finally {
       setLoading(false)
     }
+  }
+
+  // Validation for submit button
+  const isSubmitDisabled = () => {
+    if (loading || !formData.providerId || !formData.externalMerchantId) return true
+    if (account) return false // Editing — credentials already exist
+    if (isBlumon) return !formData.blumonSerialNumber
+    if (isAngelPay) return !formData.angelPayEmail || !formData.angelPayAffiliation || !formData.angelPayCommerceToken
+    return !formData.merchantId || !formData.apiKey
   }
 
   return (
@@ -196,11 +249,13 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
               </Select>
             </div>
 
-            {/* Blumon-specific fields */}
+            {/* ═══════════════════════════════════════════════════ */}
+            {/* BLUMON-SPECIFIC FIELDS                             */}
+            {/* ═══════════════════════════════════════════════════ */}
             {isBlumon && (
               <div className="border border-amber-500/30 rounded-lg p-4 space-y-4 bg-amber-500/5">
                 <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
-                  <AlertCircle className="h-4 w-4" />
+                  <CreditCard className="h-4 w-4" />
                   <span className="text-sm font-medium">Configuración Blumon</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -220,9 +275,7 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
                         setFormData({
                           ...formData,
                           blumonSerialNumber: serial,
-                          // Auto-fill externalMerchantId based on serial
                           externalMerchantId: serial ? `blumon_${serial}` : formData.externalMerchantId,
-                          // Auto-fill displayName
                           displayName: serial ? `Blumon ${formData.blumonBrand} ${formData.blumonModel} - ${serial}` : formData.displayName,
                         })
                       }}
@@ -292,6 +345,104 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
               </div>
             )}
 
+            {/* ═══════════════════════════════════════════════════ */}
+            {/* ANGELPAY-SPECIFIC FIELDS                           */}
+            {/* ═══════════════════════════════════════════════════ */}
+            {isAngelPay && (
+              <div className="border border-orange-500/30 rounded-lg p-4 space-y-4 bg-orange-500/5">
+                <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
+                  <Smartphone className="h-4 w-4" />
+                  <span className="text-sm font-medium">Configuración AngelPay</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Estos datos se obtienen del{' '}
+                  <span className="font-medium text-orange-600 dark:text-orange-400">Portal de Comercio AngelPay</span> → Información de
+                  Cuenta. Una cuenta por comercio — se comparte entre todas las terminales Nexgo del mismo venue.
+                </p>
+
+                <div className="grid gap-3">
+                  <div className="grid gap-2">
+                    <Label>
+                      No. Afiliación <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      value={formData.angelPayAffiliation}
+                      onChange={e => {
+                        const affiliation = e.target.value
+                        setFormData({
+                          ...formData,
+                          angelPayAffiliation: affiliation,
+                          externalMerchantId: affiliation || formData.externalMerchantId,
+                          displayName: affiliation ? `AngelPay - ${affiliation}` : formData.displayName,
+                        })
+                      }}
+                      placeholder="Ej: 9814275"
+                      className="bg-background border-input font-mono text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground">Portal AngelPay → Información de Cuenta → "Afiliación"</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="grid gap-2">
+                      <Label>
+                        Email del comercio <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        type={showCredentials ? 'text' : 'email'}
+                        value={formData.angelPayEmail}
+                        onChange={e => setFormData({ ...formData, angelPayEmail: e.target.value })}
+                        placeholder="comercio@ejemplo.com"
+                        className="bg-background border-input text-sm"
+                      />
+                      <p className="text-xs text-muted-foreground">Portal → "Correo electrónico"</p>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label>
+                        PIN <span className="text-muted-foreground text-xs">(6 dígitos)</span>
+                      </Label>
+                      <Input
+                        type={showCredentials ? 'text' : 'password'}
+                        value={formData.angelPayPassword}
+                        onChange={e => setFormData({ ...formData, angelPayPassword: e.target.value })}
+                        placeholder="••••••"
+                        maxLength={6}
+                        className="bg-background border-input font-mono text-sm"
+                      />
+                      <p className="text-xs text-muted-foreground">Contraseña/PIN de la app AngelPay</p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label>
+                      Commerce Token <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      type={showCredentials ? 'text' : 'password'}
+                      value={formData.angelPayCommerceToken}
+                      onChange={e => setFormData({ ...formData, angelPayCommerceToken: e.target.value })}
+                      placeholder="Token del portal AngelPay"
+                      className="bg-background border-input font-mono text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground">Lo proporciona AngelPay al dar de alta el comercio</p>
+                  </div>
+
+                  <div className="flex items-center justify-end">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setShowCredentials(!showCredentials)}
+                    >
+                      {showCredentials ? <EyeOff className="h-3 w-3 mr-1" /> : <Eye className="h-3 w-3 mr-1" />}
+                      {showCredentials ? 'Ocultar' : 'Mostrar'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* External Merchant ID */}
             <div className="grid gap-2">
               <Label>
@@ -300,15 +451,22 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
               <Input
                 value={formData.externalMerchantId}
                 onChange={e => setFormData({ ...formData, externalMerchantId: e.target.value })}
-                placeholder={isBlumon ? 'Se auto-genera con el serial' : 'ID único del comercio en el procesador'}
+                placeholder={
+                  isBlumon
+                    ? 'Se auto-genera con el serial'
+                    : isAngelPay
+                      ? 'Se auto-genera con la afiliación'
+                      : 'ID único del comercio en el procesador'
+                }
                 className="bg-background border-input font-mono text-sm"
-                disabled={isBlumon && !!formData.blumonSerialNumber}
+                disabled={(isBlumon && !!formData.blumonSerialNumber) || (isAngelPay && !!formData.angelPayAffiliation)}
               />
               {isBlumon && (
                 <p className="text-xs text-muted-foreground">
                   Se genera automáticamente como <code className="bg-muted px-1 rounded">blumon_SERIAL</code>
                 </p>
               )}
+              {isAngelPay && <p className="text-xs text-muted-foreground">Se usa el número de afiliación como ID externo</p>}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -335,86 +493,91 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
               </div>
             </div>
 
-            {/* Credentials Section */}
-            <div className="border border-border rounded-lg p-4 space-y-4 bg-muted/30">
-              <div className="flex items-center justify-between">
-                <Label className="text-base font-semibold">
-                  Credenciales {isBlumon && <span className="text-muted-foreground font-normal">(Opcionales para Blumon)</span>}
-                </Label>
-                <Button type="button" variant="ghost" size="sm" onClick={() => setShowCredentials(!showCredentials)}>
-                  {showCredentials ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
+            {/* ═══════════════════════════════════════════════════ */}
+            {/* GENERIC CREDENTIALS (Blumon optional / Other required) */}
+            {/* Hidden for AngelPay — uses its own section above      */}
+            {/* ═══════════════════════════════════════════════════ */}
+            {!isAngelPay && (
+              <div className="border border-border rounded-lg p-4 space-y-4 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold">
+                    Credenciales {isBlumon && <span className="text-muted-foreground font-normal">(Opcionales para Blumon)</span>}
+                  </Label>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setShowCredentials(!showCredentials)}>
+                    {showCredentials ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+
+                {isBlumon && !account && (
+                  <div className="flex items-start space-x-2 text-sm bg-amber-50 dark:bg-amber-950/50 p-3 rounded-md border border-amber-200 dark:border-amber-800">
+                    <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <div className="text-amber-700 dark:text-amber-300">
+                      <p className="font-medium">Para Blumon, las credenciales son opcionales</p>
+                      <p className="text-xs mt-1">
+                        Cuando llegue la afiliación, usa "Blumon Auto-Fetch" para obtener las credenciales OAuth automáticamente.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {isGenericProvider && !account && (
+                  <div className="flex items-start space-x-2 text-sm bg-blue-50 dark:bg-blue-950/50 p-3 rounded-md border border-blue-200 dark:border-blue-800">
+                    <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" />
+                    <p className="text-blue-700 dark:text-blue-300">Las credenciales se encriptarán automáticamente (AES-256-CBC)</p>
+                  </div>
+                )}
+
+                <div className="grid gap-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="grid gap-2">
+                      <Label>Merchant ID {!account && isGenericProvider && <span className="text-destructive">*</span>}</Label>
+                      <Input
+                        type={showCredentials ? 'text' : 'password'}
+                        value={formData.merchantId}
+                        onChange={e => setFormData({ ...formData, merchantId: e.target.value })}
+                        placeholder={isBlumon ? 'Opcional - se obtiene con Auto-Fetch' : '••••••••'}
+                        className="bg-background border-input font-mono text-sm"
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label>API Key {!account && isGenericProvider && <span className="text-destructive">*</span>}</Label>
+                      <Input
+                        type={showCredentials ? 'text' : 'password'}
+                        value={formData.apiKey}
+                        onChange={e => setFormData({ ...formData, apiKey: e.target.value })}
+                        placeholder={isBlumon ? 'Opcional - se obtiene con Auto-Fetch' : '••••••••'}
+                        className="bg-background border-input font-mono text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="grid gap-2">
+                      <Label>Customer ID (opcional)</Label>
+                      <Input
+                        type={showCredentials ? 'text' : 'password'}
+                        value={formData.customerId}
+                        onChange={e => setFormData({ ...formData, customerId: e.target.value })}
+                        placeholder="••••••••"
+                        className="bg-background border-input font-mono text-sm"
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label>Terminal ID (opcional)</Label>
+                      <Input
+                        type={showCredentials ? 'text' : 'password'}
+                        value={formData.terminalId}
+                        onChange={e => setFormData({ ...formData, terminalId: e.target.value })}
+                        placeholder="••••••••"
+                        className="bg-background border-input font-mono text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
-
-              {isBlumon && !account && (
-                <div className="flex items-start space-x-2 text-sm bg-amber-50 dark:bg-amber-950/50 p-3 rounded-md border border-amber-200 dark:border-amber-800">
-                  <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
-                  <div className="text-amber-700 dark:text-amber-300">
-                    <p className="font-medium">Para Blumon, las credenciales son opcionales</p>
-                    <p className="text-xs mt-1">
-                      Cuando llegue la afiliación, usa "Blumon Auto-Fetch" para obtener las credenciales OAuth automáticamente.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {!isBlumon && !account && (
-                <div className="flex items-start space-x-2 text-sm bg-blue-50 dark:bg-blue-950/50 p-3 rounded-md border border-blue-200 dark:border-blue-800">
-                  <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" />
-                  <p className="text-blue-700 dark:text-blue-300">Las credenciales se encriptarán automáticamente (AES-256-CBC)</p>
-                </div>
-              )}
-
-              <div className="grid gap-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="grid gap-2">
-                    <Label>Merchant ID {!account && !isBlumon && <span className="text-destructive">*</span>}</Label>
-                    <Input
-                      type={showCredentials ? 'text' : 'password'}
-                      value={formData.merchantId}
-                      onChange={e => setFormData({ ...formData, merchantId: e.target.value })}
-                      placeholder={isBlumon ? 'Opcional - se obtiene con Auto-Fetch' : '••••••••'}
-                      className="bg-background border-input font-mono text-sm"
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label>API Key {!account && !isBlumon && <span className="text-destructive">*</span>}</Label>
-                    <Input
-                      type={showCredentials ? 'text' : 'password'}
-                      value={formData.apiKey}
-                      onChange={e => setFormData({ ...formData, apiKey: e.target.value })}
-                      placeholder={isBlumon ? 'Opcional - se obtiene con Auto-Fetch' : '••••••••'}
-                      className="bg-background border-input font-mono text-sm"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="grid gap-2">
-                    <Label>Customer ID (opcional)</Label>
-                    <Input
-                      type={showCredentials ? 'text' : 'password'}
-                      value={formData.customerId}
-                      onChange={e => setFormData({ ...formData, customerId: e.target.value })}
-                      placeholder="••••••••"
-                      className="bg-background border-input font-mono text-sm"
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label>Terminal ID (opcional)</Label>
-                    <Input
-                      type={showCredentials ? 'text' : 'password'}
-                      value={formData.terminalId}
-                      onChange={e => setFormData({ ...formData, terminalId: e.target.value })}
-                      placeholder="••••••••"
-                      className="bg-background border-input font-mono text-sm"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+            )}
 
             {/* Provider Config (JSON) */}
             <Collapsible>
@@ -467,19 +630,7 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
               Cancelar
             </Button>
-            <Button
-              type="button"
-              onClick={handleSubmit}
-              disabled={
-                loading ||
-                !formData.providerId ||
-                !formData.externalMerchantId ||
-                // For Blumon: require serial number
-                // For others: require credentials
-                (!account && isBlumon && !formData.blumonSerialNumber) ||
-                (!account && !isBlumon && (!formData.merchantId || !formData.apiKey))
-              }
-            >
+            <Button type="button" onClick={handleSubmit} disabled={isSubmitDisabled()}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {account ? 'Guardar Cambios' : 'Crear Cuenta'}
             </Button>
