@@ -35,6 +35,7 @@ import {
   OrganizationTerminals,
   OrganizationActivityLog,
   OrganizationVenues,
+  PartnerKeys,
   PaymentAnalytics,
   PaymentProviders,
   PlayTelecomCommandCenter,
@@ -358,6 +359,10 @@ const router = createBrowserRouter(
                     {
                       path: 'testing',
                       element: <TestingPayments />,
+                    },
+                    {
+                      path: 'partner-keys',
+                      element: <PartnerKeys />,
                     },
                     {
                       path: 'webhooks',

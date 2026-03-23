@@ -84,6 +84,7 @@ export function getSuperadminNavigation(tSidebar: TFunction): SuperadminNavSecti
         { name: 'Usuarios', href: '/superadmin/staff', icon: Users, keywords: ['users', 'usuarios', 'staff', 'personal'] },
         { name: tSidebar('system'), href: '/superadmin/system', icon: Shield, keywords: ['system', 'sistema'] },
         { name: tSidebar('webhooks'), href: '/superadmin/webhooks', icon: Webhook, keywords: ['webhooks', 'integraciones'] },
+        { name: 'Partner API Keys', href: '/superadmin/partner-keys', icon: KeyRound, keywords: ['partner', 'api', 'keys', 'playtelecom', 'socios'] },
         { name: 'Push Notifications', href: '/superadmin/push-notifications', icon: Bell, keywords: ['push', 'notifications'] },
         { name: 'Marketing', href: '/superadmin/marketing', icon: Mail, keywords: ['marketing', 'campañas'] },
         { name: 'Entrenamientos', href: '/superadmin/trainings', icon: GraduationCap, keywords: ['training', 'entrenamientos', 'lms', 'capacitacion'] },
