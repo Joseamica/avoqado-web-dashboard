@@ -5,6 +5,7 @@
 
 import { useEffect } from 'react'
 import api from '@/api'
+import axios from 'axios'
 import { useQuery } from '@tanstack/react-query'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { useToast } from '@/hooks/use-toast'
@@ -42,7 +43,8 @@ export default function ReceiptViewer() {
     queryFn: async () => {
       if (isPublicView && accessKey) {
         // Public route: GET /api/v1/public/receipt/{accessKey}
-        const response = await api.get(`/api/v1/public/receipt/${accessKey}`)
+        // Use axios directly (no withCredentials) — public endpoint uses origin: '*'
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/public/receipt/${accessKey}`)
         // Backend returns { success: true, data: { receipt data } }
         // We need to extract the actual receipt data
         if (response.data?.success && response.data?.data) {
