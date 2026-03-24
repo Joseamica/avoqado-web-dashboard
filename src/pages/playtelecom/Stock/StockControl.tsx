@@ -91,7 +91,7 @@ export function StockControl() {
 
   const { data: movementsData, isLoading: isLoadingMovements } = useQuery({
     queryKey: ['stock', 'movements', venueId],
-    queryFn: () => getStockMovements(venueId!, { limit: 100 }),
+    queryFn: () => getStockMovements(venueId!, { limit: 500 }),
     enabled: !!venueId,
   })
 
@@ -154,14 +154,33 @@ export function StockControl() {
   // ─── Export ───
   const buildExportRows = useCallback(() => {
     const headers = ['SIM ID', 'Categoría', 'Tipo', 'Fecha', 'Usuario', 'Registrado desde']
-    const rows = filteredMovements.map(m => [
-      m.serialNumber,
-      m.categoryName,
-      getTypeLabel(m.type),
-      formatDate(m.timestamp),
-      m.userName || '-',
-      m.registeredFromVenueName || '-',
-    ])
+    const rows: string[][] = []
+    for (const m of filteredMovements) {
+      if (m.type === 'BULK_UPLOAD' && m.serialNumbers && m.serialNumbers.length > 0) {
+        // First row has all the data
+        rows.push([
+          m.serialNumbers[0],
+          m.categoryName,
+          getTypeLabel(m.type),
+          formatDate(m.timestamp),
+          m.userName || '-',
+          m.registeredFromVenueName || '-',
+        ])
+        // Remaining rows only have the SIM ID, rest empty
+        for (let i = 1; i < m.serialNumbers.length; i++) {
+          rows.push([m.serialNumbers[i], '', '', '', '', ''])
+        }
+      } else {
+        rows.push([
+          m.serialNumber,
+          m.categoryName,
+          getTypeLabel(m.type),
+          formatDate(m.timestamp),
+          m.userName || '-',
+          m.registeredFromVenueName || '-',
+        ])
+      }
+    }
     return { headers, rows }
   }, [filteredMovements, formatDate])
 
