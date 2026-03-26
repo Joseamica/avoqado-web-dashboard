@@ -321,6 +321,7 @@ export function RemoteCommandPanel({
         TpvCommandType.SYNC_DATA,
         TpvCommandType.REFRESH_MENU,
         TpvCommandType.EXPORT_LOGS,
+        ...(isSuperadmin ? [TpvCommandType.FACTORY_RESET] : []),
       ],
     },
   ]
