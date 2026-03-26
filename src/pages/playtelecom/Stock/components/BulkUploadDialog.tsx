@@ -77,7 +77,7 @@ export function BulkUploadDialog({ open, onOpenChange, preselectedCategoryId }: 
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null)
-  const [isOrgLevel, setIsOrgLevel] = useState(true)
+  const [isOrgLevel, setIsOrgLevel] = useState(false)
   const canOrgManage = can('inventory:org-manage')
 
   // Fetch categories
@@ -295,13 +295,21 @@ export function BulkUploadDialog({ open, onOpenChange, preselectedCategoryId }: 
             )}
           </div>
 
-          {/* Org-Level Info Banner — always org-level, no toggle needed */}
-          <div className="flex items-center gap-2 rounded-lg bg-primary/5 p-3 border border-primary/20">
-            <Badge variant="outline" className="text-[9px] border-primary/30 text-primary shrink-0">ORG</Badge>
-            <p className="text-xs text-muted-foreground">
-              Los items se registran a nivel organización y estarán disponibles en todas las tiendas
-            </p>
-          </div>
+          {/* Org-Level Toggle — visible only for users with inventory:org-manage permission */}
+          {canOrgManage && (
+            <div className="rounded-lg bg-primary/5 p-3 border border-primary/20 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-[9px] border-primary/30 text-primary shrink-0">ORG</Badge>
+                  <span className="text-sm font-medium">Registrar a nivel organización</span>
+                </div>
+                <Switch checked={isOrgLevel} onCheckedChange={setIsOrgLevel} />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Los items estarán disponibles en todas las tiendas de la organización
+              </p>
+            </div>
+          )}
 
           {/* Upload Mode Tabs */}
           <Tabs value={uploadMode} onValueChange={(v) => setUploadMode(v as 'csv' | 'manual')}>

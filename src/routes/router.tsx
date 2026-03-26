@@ -7,6 +7,7 @@ import { createBrowserRouter } from 'react-router-dom'
 import {
   AcceptAdminInvitation,
   AdminDashboard,
+  Aggregators,
   AnalyticsLayout,
   AnalyticsOverview,
   CostStructures,
@@ -335,6 +336,10 @@ const router = createBrowserRouter(
                     {
                       path: 'merchant-accounts',
                       element: <MerchantAccounts />,
+                    },
+                    {
+                      path: 'aggregators',
+                      element: <Aggregators />,
                     },
                     {
                       path: 'terminals',

@@ -31,6 +31,7 @@ import {
   Activity,
   GraduationCap,
   ScrollText,
+  Layers,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -66,6 +67,7 @@ export function getSuperadminNavigation(tSidebar: TFunction): SuperadminNavSecti
         { name: 'Profit Analytics', href: '/superadmin/profit-analytics', icon: Calculator, keywords: ['profit', 'ganancia'] },
         { name: tSidebar('paymentProviders'), href: '/superadmin/payment-providers', icon: CreditCard, keywords: ['payment', 'providers', 'pagos'] },
         { name: tSidebar('merchantAccounts'), href: '/superadmin/merchant-accounts', icon: Wallet, keywords: ['merchant', 'cuentas'] },
+        { name: 'Agregadores', href: '/superadmin/aggregators', icon: Layers, keywords: ['aggregator', 'agregador', 'moneygiver', 'comision', 'commission'] },
         { name: tSidebar('costStructures'), href: '/superadmin/cost-structures', icon: Receipt, keywords: ['cost', 'costos'] },
         { name: tSidebar('settlementTerms'), href: '/superadmin/settlement-terms', icon: Clock, keywords: ['settlement', 'liquidacion'] },
         { name: tSidebar('venuePricing'), href: '/superadmin/venue-pricing', icon: Tags, keywords: ['pricing', 'precios'] },

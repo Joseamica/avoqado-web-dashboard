@@ -542,6 +542,19 @@ const VenuePaymentConfig: React.FC = () => {
     },
   })
 
+  const updatePricingMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => paymentProviderAPI.updateVenuePricingStructure(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['venue-pricing-structures', venue?.id] })
+      queryClient.invalidateQueries({ queryKey: ['payment-readiness', venue?.id] })
+      toast({ title: t('common:success'), description: t('venuePaymentConfig.updateSuccess') })
+      setPricingDialogOpen(false)
+    },
+    onError: () => {
+      toast({ title: t('common:error'), description: t('venuePaymentConfig.updateError'), variant: 'destructive' })
+    },
+  })
+
   // === HANDLERS ===
 
   const handleSaveConfig = async (data: any) => {
@@ -571,7 +584,11 @@ const VenuePaymentConfig: React.FC = () => {
   }
 
   const handleSavePricing = async (data: any) => {
-    await createPricingMutation.mutateAsync(data)
+    if (selectedPricing) {
+      await updatePricingMutation.mutateAsync({ id: selectedPricing.id, data })
+    } else {
+      await createPricingMutation.mutateAsync(data)
+    }
   }
 
   // === LOADING STATE ===

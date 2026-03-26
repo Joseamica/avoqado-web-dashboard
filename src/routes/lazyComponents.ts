@@ -88,6 +88,7 @@ export { default as ProfitAnalyticsDashboard } from '@/pages/Superadmin/ProfitAn
 export { default as TestingPayments } from '@/pages/Superadmin/Testing/TestingPayments'
 export { default as PaymentProviders } from '@/pages/Superadmin/PaymentProviders'
 export { default as MerchantAccounts } from '@/pages/Superadmin/MerchantAccounts'
+export { default as Aggregators } from '@/pages/Superadmin/Aggregators'
 export { default as Terminals } from '@/pages/Superadmin/Terminals'
 export { default as PaymentAnalytics } from '@/pages/Superadmin/PaymentAnalytics'
 export { default as CostStructures } from '@/pages/Superadmin/CostStructures'

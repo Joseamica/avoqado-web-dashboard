@@ -267,7 +267,7 @@ export const CostStructureDialog: React.FC<CostStructureDialogProps> = ({
               <Calculator className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <DialogTitle>Estructura de Costos</DialogTitle>
+              <DialogTitle>Estructura de Costos (lo que te cobra el procesador)</DialogTitle>
               <DialogDescription>
                 {account.displayName || account.alias || account.externalMerchantId}
               </DialogDescription>
