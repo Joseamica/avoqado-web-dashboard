@@ -2,10 +2,12 @@ import { useTranslation } from 'react-i18next'
 import { Download, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { getPreviousPeriod } from '@/utils/datetime'
+import { cn } from '@/lib/utils'
 
 interface DashboardHeaderProps {
   activeFilter: string
@@ -24,6 +26,14 @@ interface DashboardHeaderProps {
   exportToJSON: () => void
   exportToCSV: () => void
 }
+
+const filterPillClass = (active: boolean) =>
+  cn(
+    'h-7 px-3 text-xs font-medium rounded-full transition-colors cursor-pointer',
+    active
+      ? 'bg-foreground text-background'
+      : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+  )
 
 export const DashboardHeader = ({
   activeFilter,
@@ -46,51 +56,38 @@ export const DashboardHeader = ({
   const localeCode = getIntlLocale(i18n.language)
 
   return (
-    <div className="sticky top-0 z-10 bg-background border-b border-border shadow-sm p-4">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3">
+      <div className="flex items-center justify-between gap-3">
+        {/* Title */}
         <PageTitleWithInfo
           title={t('title')}
-          className="text-2xl font-bold text-foreground"
+          className="text-lg font-semibold text-foreground shrink-0"
           tooltip={t('info.overview', {
             defaultValue: 'Resumen general del rendimiento del venue.',
           })}
         />
-        <div className="flex items-center gap-3 overflow-x-auto pb-1 md:pb-0">
-          {/* Quick filter buttons */}
-          <div className="flex space-x-2">
-            <Button
-              size="sm"
-              variant={activeFilter === 'today' ? 'default' : 'outline'}
-              onClick={handleToday}
-              className="whitespace-nowrap"
-            >
+
+        {/* Controls */}
+        <div className="flex items-center gap-2 overflow-x-auto">
+          {/* Quick filter pills */}
+          <div className="flex items-center gap-1 rounded-full bg-muted/60 p-0.5">
+            <button className={filterPillClass(activeFilter === 'today')} onClick={handleToday}>
               {t('filters.today')}
-            </Button>
-            <Button
-              size="sm"
-              variant={activeFilter === '7days' ? 'default' : 'outline'}
-              onClick={handleLast7Days}
-              className="whitespace-nowrap"
-            >
+            </button>
+            <button className={filterPillClass(activeFilter === '7days')} onClick={handleLast7Days}>
               {t('filters.last7')}
-            </Button>
-            <Button
-              size="sm"
-              variant={activeFilter === '30days' ? 'default' : 'outline'}
-              onClick={handleLast30Days}
-              className="whitespace-nowrap"
-            >
+            </button>
+            <button className={filterPillClass(activeFilter === '30days')} onClick={handleLast30Days}>
               {t('filters.last30')}
-            </Button>
+            </button>
           </div>
 
+          {/* Date range picker */}
           <DateRangePicker
             showCompare={false}
             onUpdate={({ range }) => {
               setSelectedRange(range)
-
               const prevRange = getPreviousPeriod(range)
-
               setCompareRange(prevRange)
               setCompareType('custom')
               setComparisonLabel(t('comparison.previousPeriod'))
@@ -102,34 +99,32 @@ export const DashboardHeader = ({
             locale={localeCode}
           />
 
-          <div className="relative">
-            <DropdownMenu modal={false}>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={isBasicLoading || exportLoading || isBasicError}
-                  className="flex items-center gap-2"
-                >
-                  {exportLoading ? (
-                    <>
+          {/* Export — icon-only with tooltip */}
+          <DropdownMenu modal={false}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    disabled={isBasicLoading || exportLoading || isBasicError}
+                    className="h-8 w-8 shrink-0 cursor-pointer"
+                  >
+                    {exportLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>{t('export.exporting')}</span>
-                    </>
-                  ) : (
-                    <>
+                    ) : (
                       <Download className="h-4 w-4" />
-                      <span>{t('export.export')}</span>
-                    </>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48" sideOffset={5}>
-                <DropdownMenuItem onClick={exportToJSON}>{t('export.json')}</DropdownMenuItem>
-                <DropdownMenuItem onClick={exportToCSV}>{t('export.csv')}</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent>{t('export.export')}</TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent align="end" className="w-40" sideOffset={5}>
+              <DropdownMenuItem onClick={exportToJSON}>{t('export.json')}</DropdownMenuItem>
+              <DropdownMenuItem onClick={exportToCSV}>{t('export.csv')}</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>

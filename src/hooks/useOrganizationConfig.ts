@@ -19,6 +19,8 @@ import {
   createOrgCategory,
   updateOrgCategory,
   deleteOrgCategory,
+  getOrgTeam,
+  getOrgZones,
   type CreateOrgGoalInput,
   type UpdateOrgGoalInput,
   type CreateItemCategoryDto,
@@ -195,5 +197,29 @@ export function useDeleteOrgConfigCategory() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['org-config', orgId, 'categories'] })
     },
+  })
+}
+
+// ===== ORG TEAM =====
+
+export function useOrgTeam(options?: { enabled?: boolean }) {
+  const { orgId } = useCurrentOrganization()
+
+  return useQuery({
+    queryKey: ['org-config', orgId, 'team'],
+    queryFn: () => getOrgTeam(orgId!),
+    enabled: options?.enabled !== false && !!orgId,
+    staleTime: 30000,
+  })
+}
+
+export function useOrgZones(options?: { enabled?: boolean }) {
+  const { orgId } = useCurrentOrganization()
+
+  return useQuery({
+    queryKey: ['org-config', orgId, 'zones'],
+    queryFn: () => getOrgZones(orgId!),
+    enabled: options?.enabled !== false && !!orgId,
+    staleTime: 60000,
   })
 }

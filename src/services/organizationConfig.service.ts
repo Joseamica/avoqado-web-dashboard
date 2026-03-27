@@ -157,3 +157,65 @@ export const deleteOrgCategory = async (orgId: string, categoryId: string): Prom
   const response = await api.delete(`/api/v1/dashboard/organizations/${orgId}/org-categories/${categoryId}`)
   return response.data.data
 }
+
+// ===== ORG TEAM MANAGEMENT =====
+
+export interface OrgTeamMember {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  phone?: string
+  photoUrl?: string
+  createdAt: string
+  venues: Array<{
+    staffVenueId: string
+    id: string
+    venueName: string
+    role: string
+    active: boolean
+    pin?: string
+  }>
+}
+
+export const getOrgTeam = async (orgId: string): Promise<{ team: OrgTeamMember[]; meta: { total: number } }> => {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/team`)
+  const data = response.data.data
+  // Backend returns array directly — normalize to { team, meta }
+  if (Array.isArray(data)) {
+    return { team: data, meta: { total: data.length } }
+  }
+  return data
+}
+
+export const updateOrgTeamMemberRole = async (orgId: string, staffId: string, role: string): Promise<void> => {
+  await api.patch(`/api/v1/dashboard/organizations/${orgId}/team/${staffId}/role`, { role })
+}
+
+export const updateOrgTeamMemberStatus = async (orgId: string, staffId: string, active: boolean): Promise<void> => {
+  await api.patch(`/api/v1/dashboard/organizations/${orgId}/team/${staffId}/status`, { active })
+}
+
+export const syncOrgTeamMemberVenues = async (orgId: string, staffId: string, venueIds: string[]): Promise<{ added: number; removed: number }> => {
+  const response = await api.patch(`/api/v1/dashboard/organizations/${orgId}/team/${staffId}/venues`, { venueIds })
+  return response.data.data
+}
+
+export const updateOrgTeamMemberPin = async (orgId: string, staffId: string, pin: string): Promise<void> => {
+  await api.patch(`/api/v1/dashboard/organizations/${orgId}/team/${staffId}/pin`, { pin })
+}
+
+export const resetOrgTeamMemberPassword = async (orgId: string, staffId: string): Promise<{ temporaryPassword: string }> => {
+  const response = await api.post(`/api/v1/dashboard/organizations/${orgId}/team/${staffId}/reset-password`)
+  return response.data.data
+}
+
+export const getOrgTeamMemberActivity = async (orgId: string, staffId: string): Promise<any[]> => {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/team/${staffId}/activity`)
+  return response.data.data
+}
+
+export const getOrgZones = async (orgId: string): Promise<any[]> => {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/zones`)
+  return response.data.data
+}

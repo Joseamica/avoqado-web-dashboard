@@ -235,6 +235,7 @@ export const PlayTelecomOrgGoals = lazyWithRetry(() => import('@/pages/playtelec
 export const PlayTelecomOrgCategories = lazyWithRetry(() => import('@/pages/playtelecom/Organization/OrgCategoriesPage'))
 export const PlayTelecomOrgMessages = lazyWithRetry(() => import('@/pages/playtelecom/Organization/OrgMessagesPage'))
 export const PlayTelecomStaffAssignment = lazyWithRetry(() => import('@/pages/playtelecom/Organization/StaffAssignmentPage'))
+export const PlayTelecomOrgUsers = lazyWithRetry(() => import('@/pages/playtelecom/Organization/OrgUsersPage'))
 
 // White-Label Builder (Superadmin)
 // Note: WhiteLabelDashboardLayout, WhiteLabelIndex, WhiteLabelFeatureRouter removed

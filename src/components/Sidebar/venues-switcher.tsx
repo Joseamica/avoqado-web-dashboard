@@ -16,13 +16,14 @@ import { notifyVenueChange } from '@/services/chatService'
 
 import { Venue, StaffRole, SessionVenue } from '@/types'
 import { VenueStatus } from '@/types/superadmin'
-import { Building2, ChevronsUpDown, Plus, AlertTriangle, Ban, XCircle, Check } from 'lucide-react'
+import { Building2, ChevronRight, ChevronsUpDown, Plus, AlertTriangle, Ban, XCircle, Check } from 'lucide-react'
 import { useState, useMemo, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AddVenueDialog } from './add-venue-dialog'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useTranslation } from 'react-i18next'
+import { cn } from '@/lib/utils'
 
 // Type for grouped venues by organization
 interface VenueGroup {
@@ -167,6 +168,20 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
     setDialogOpen(false)
   }
 
+  // Auto-scroll to active venue when popover opens (centers it in the list)
+  useEffect(() => {
+    if (popoverOpen && !searchValue) {
+      const timer = setTimeout(() => {
+        const activeEl = document.querySelector('[data-active-venue="true"]')
+        if (activeEl) {
+          activeEl.scrollIntoView({ block: 'center', behavior: 'instant' })
+        }
+      }, 80)
+      return () => clearTimeout(timer)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [popoverOpen])
+
   return (
     <>
       <SidebarMenu>
@@ -210,66 +225,82 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                     {t('venuesSwitcher.noResults')}
                   </CommandEmpty>
 
-                  {venueGroups.map((group) => {
+                  {venueGroups.map((group, groupIndex) => {
                     const showOrgHeader = isSuperadmin || group.venues.length > 1
+                    const isClickableOrg = group.orgId !== 'unknown' && group.orgId !== 'default'
 
                     return (
-                      <CommandGroup
-                        key={group.orgId}
-                        heading={showOrgHeader ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (group.orgId !== 'unknown' && group.orgId !== 'default') {
-                                setPopoverOpen(false)
-                                navigate(`/organizations/${group.orgId}`)
-                              }
-                            }}
-                            className="flex items-center gap-2 w-full cursor-pointer hover:text-foreground transition-colors"
-                          >
-                            <Building2 className="size-3.5 shrink-0" />
-                            <span className="truncate">{group.orgName || t('organization:myOrganization')}</span>
-                          </button>
-                        ) : undefined}
-                      >
-                        {group.venues.map((venue) => {
-                          const isActive = venue.slug === currentVenue?.slug
-                          const hasAccess = user?.role === StaffRole.OWNER || user?.role === StaffRole.SUPERADMIN || checkVenueAccess(venue.slug)
-                          const suspensionInfo = getSuspensionInfo(venue)
-                          const SuspensionIcon = suspensionInfo.icon
-
-                          return (
-                            <CommandItem
-                              key={venue.id}
-                              value={`${venue.name}-${venue.id}`}
-                              keywords={[venue.city || '', venue.slug, group.orgName || '']}
-                              onSelect={() => handleVenueChange(venue)}
-                              disabled={!hasAccess || isLoading}
-                              className="gap-2.5 py-2 cursor-pointer"
-                            >
-                              <Avatar className="size-7 rounded-lg shrink-0">
-                                <AvatarImage src={venue?.logo} alt={`${venue?.name} Logo`} />
-                                <AvatarFallback className="text-[10px] rounded-lg">
-                                  {venue?.name?.charAt(0).toLocaleUpperCase() || 'V'}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1 min-w-0">
-                                <span className="truncate block text-sm">{venue.name}</span>
-                                {venue.city && !suspensionInfo.isSuspended && (
-                                  <span className="text-xs text-muted-foreground truncate block">{venue.city}</span>
-                                )}
-                                {suspensionInfo.isSuspended && (
-                                  <div className={`flex items-center gap-1 ${suspensionInfo.textColor}`}>
-                                    {SuspensionIcon && <SuspensionIcon className="size-3" />}
-                                    <span className="text-xs">{suspensionInfo.label}</span>
-                                  </div>
-                                )}
+                      <div key={group.orgId}>
+                        {groupIndex > 0 && <CommandSeparator className="my-1" />}
+                        <CommandGroup
+                          heading={showOrgHeader ? (
+                            isClickableOrg ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPopoverOpen(false)
+                                  navigate(`/organizations/${group.orgId}`)
+                                }}
+                                className="flex items-center gap-2 w-full cursor-pointer group/org hover:text-foreground transition-colors duration-150"
+                              >
+                                <Building2 className="size-3.5 shrink-0" />
+                                <span className="truncate">{group.orgName || t('organization:myOrganization')}</span>
+                                <span className="ml-auto shrink-0 flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[11px] font-medium text-primary opacity-60 group-hover/org:opacity-100 transition-opacity duration-150">
+                                  {t('venuesSwitcher.goToOrg', { defaultValue: 'Ir a org' })}
+                                  <ChevronRight className="size-3 group-hover/org:translate-x-0.5 transition-transform duration-150" />
+                                </span>
+                              </button>
+                            ) : (
+                              <div className="flex items-center gap-2 w-full">
+                                <Building2 className="size-3.5 shrink-0" />
+                                <span className="truncate">{group.orgName || t('organization:myOrganization')}</span>
                               </div>
-                              {isActive && <Check className="size-4 text-primary shrink-0" />}
-                            </CommandItem>
-                          )
-                        })}
-                      </CommandGroup>
+                            )
+                          ) : undefined}
+                        >
+                          {group.venues.map((venue) => {
+                            const isActive = venue.slug === currentVenue?.slug
+                            const hasAccess = user?.role === StaffRole.OWNER || user?.role === StaffRole.SUPERADMIN || checkVenueAccess(venue.slug)
+                            const suspensionInfo = getSuspensionInfo(venue)
+                            const SuspensionIcon = suspensionInfo.icon
+
+                            return (
+                              <CommandItem
+                                key={venue.id}
+                                value={`${venue.name}-${venue.id}`}
+                                keywords={[venue.city || '', venue.slug, group.orgName || '']}
+                                onSelect={() => handleVenueChange(venue)}
+                                disabled={!hasAccess || isLoading}
+                                data-active-venue={isActive || undefined}
+                                className={cn(
+                                  'gap-2.5 py-2.5 cursor-pointer transition-colors',
+                                  isActive && 'bg-primary/8 dark:bg-primary/12',
+                                )}
+                              >
+                                <Avatar className="size-7 rounded-lg shrink-0">
+                                  <AvatarImage src={venue?.logo} alt={`${venue?.name} Logo`} />
+                                  <AvatarFallback className="text-[10px] rounded-lg">
+                                    {venue?.name?.charAt(0).toLocaleUpperCase() || 'V'}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <span className={cn('truncate block text-sm', isActive && 'font-medium')}>{venue.name}</span>
+                                  {venue.city && !suspensionInfo.isSuspended && (
+                                    <span className="text-xs text-muted-foreground truncate block">{venue.city}</span>
+                                  )}
+                                  {suspensionInfo.isSuspended && (
+                                    <div className={`flex items-center gap-1 ${suspensionInfo.textColor}`}>
+                                      {SuspensionIcon && <SuspensionIcon className="size-3" />}
+                                      <span className="text-xs">{suspensionInfo.label}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                {isActive && <Check className="size-4 text-primary shrink-0" />}
+                              </CommandItem>
+                            )
+                          })}
+                        </CommandGroup>
+                      </div>
                     )
                   })}
 

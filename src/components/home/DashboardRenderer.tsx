@@ -218,9 +218,9 @@ const PaymentMethodsPieSection = ({
                         <div className="flex w-full items-center justify-between gap-3">
                           <div className="flex items-center gap-2">
                             <span className="h-2.5 w-2.5 shrink-0 rounded-[2px]" style={{ backgroundColor: color }} />
-                            <span className="text-zinc-500 dark:text-zinc-400">{t(`payments.methods.${methodKey}`)}</span>
+                            <span className="text-muted-foreground">{t(`payments.methods.${methodKey}`)}</span>
                           </div>
-                          <span className="font-mono font-medium tabular-nums text-zinc-950 dark:text-zinc-50">
+                          <span className="font-mono font-medium tabular-nums text-foreground">
                             {Currency(Number(value), false)}
                           </span>
                         </div>

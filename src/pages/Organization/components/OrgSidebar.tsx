@@ -1,25 +1,5 @@
-import React, { useMemo } from 'react'
-import { useParams, NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Building2, Settings, Users, Store, BarChart3, ChevronsUpDown, ChevronRight, Smartphone, ScrollText, MessageSquare, Target } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
-import { useCurrentOrganization } from '@/hooks/use-current-organization'
-import { useAuth } from '@/context/AuthContext'
-import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { NavUser } from '@/components/Sidebar/nav-user'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarRail,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarGroupContent,
-  useSidebar,
-} from '@/components/ui/sidebar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,9 +8,42 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { NavUser } from '@/components/Sidebar/nav-user'
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+  useSidebar,
+} from '@/components/ui/sidebar'
+import { useAuth } from '@/context/AuthContext'
+import { useCurrentOrganization } from '@/hooks/use-current-organization'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { cn } from '@/lib/utils'
 import { StaffRole, Venue } from '@/types'
+import {
+  BarChart3,
+  Building2,
+  ChevronRight,
+  ChevronsUpDown,
+  LayoutDashboard,
+  MessageSquare,
+  ScrollText,
+  Settings,
+  Smartphone,
+  Store,
+  Target,
+  Users,
+} from 'lucide-react'
+import React, { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+import { NavLink, useNavigate, useParams } from 'react-router-dom'
 
 // Type for grouped venues by organization
 interface OrgGroup {
@@ -115,9 +128,7 @@ const OrgSidebar: React.FC<OrgSidebarProps> = props => {
 
   // Check if current org has white-label features enabled (any venue with WHITE_LABEL_DASHBOARD module)
   const isWhiteLabelOrg = useMemo(() => {
-    return allVenues.some(
-      v => v.organizationId === orgId && v.modules?.some(m => m.module?.code === 'WHITE_LABEL_DASHBOARD' && m.enabled),
-    )
+    return allVenues.some(v => v.organizationId === orgId && v.modules?.some(m => m.module?.code === 'WHITE_LABEL_DASHBOARD' && m.enabled))
   }, [allVenues, orgId])
 
   const navigationItems = useMemo(
@@ -148,11 +159,36 @@ const OrgSidebar: React.FC<OrgSidebarProps> = props => {
             {
               title: t('organization:sidebar.orgConfig', { defaultValue: 'Configuración Org.' }),
               items: [
-                { name: t('organization:sidebar.orgTpvConfig', { defaultValue: 'Configuración TPV' }), href: `/organizations/${orgId}/org-config`, icon: Smartphone },
-                { name: t('organization:sidebar.orgGoals', { defaultValue: 'Metas' }), href: `/organizations/${orgId}/org-goals`, icon: Target },
-                { name: t('organization:sidebar.orgCategories', { defaultValue: 'Categorías' }), href: `/organizations/${orgId}/org-categories`, icon: Store },
-                { name: t('organization:sidebar.orgMessages', { defaultValue: 'Mensajes' }), href: `/organizations/${orgId}/org-messages`, icon: MessageSquare },
-                { name: t('organization:sidebar.staffAssignment', { defaultValue: 'Asignación de Personal' }), href: `/organizations/${orgId}/staff-assignment`, icon: Users },
+                {
+                  name: t('organization:sidebar.orgUsers', { defaultValue: 'Usuarios' }),
+                  href: `/organizations/${orgId}/users`,
+                  icon: Users,
+                },
+                {
+                  name: t('organization:sidebar.orgTpvConfig', { defaultValue: 'Configuración TPV' }),
+                  href: `/organizations/${orgId}/org-config`,
+                  icon: Smartphone,
+                },
+                {
+                  name: t('organization:sidebar.orgGoals', { defaultValue: 'Metas' }),
+                  href: `/organizations/${orgId}/org-goals`,
+                  icon: Target,
+                },
+                {
+                  name: t('organization:sidebar.orgCategories', { defaultValue: 'Categorías' }),
+                  href: `/organizations/${orgId}/org-categories`,
+                  icon: Store,
+                },
+                {
+                  name: t('organization:sidebar.orgMessages', { defaultValue: 'Mensajes' }),
+                  href: `/organizations/${orgId}/org-messages`,
+                  icon: MessageSquare,
+                },
+                {
+                  name: t('organization:sidebar.staffAssignment', { defaultValue: 'Asignación de Personal' }),
+                  href: `/organizations/${orgId}/staff-assignment`,
+                  icon: Users,
+                },
               ],
             },
           ]
@@ -193,7 +229,7 @@ const OrgSidebar: React.FC<OrgSidebarProps> = props => {
                   size="lg"
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer"
                 >
-                  <div className="flex justify-center items-center bg-gradient-to-r from-amber-400 to-pink-500 rounded-lg aspect-square size-8">
+                  <div className="flex justify-center items-center bg-linear-to-r from-amber-400 to-pink-500 rounded-lg aspect-square size-8">
                     <Building2 className="size-4 text-primary-foreground" />
                   </div>
                   <div className="grid flex-1 text-sm leading-tight text-left">
@@ -221,7 +257,7 @@ const OrgSidebar: React.FC<OrgSidebarProps> = props => {
                       onClick={() => handleOrgClick(group.orgId)}
                       className={cn('gap-2 p-2 cursor-pointer', group.isCurrentOrg && 'bg-accent')}
                     >
-                      <div className="flex justify-center items-center bg-gradient-to-r from-amber-400 to-pink-500 rounded-lg size-6">
+                      <div className="flex justify-center items-center bg-linear-to-r from-amber-400 to-pink-500 rounded-lg size-6">
                         <Building2 className="size-4 text-primary-foreground" />
                       </div>
                       <span className="flex-1 font-medium truncate">{group.orgName}</span>
