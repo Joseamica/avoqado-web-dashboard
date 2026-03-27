@@ -41,9 +41,10 @@ import { StaffRole } from '@/types'
 import { getRoleBadgeColor } from '@/utils/role-permissions'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Ban, Calendar, Eye, EyeOff, KeyRound, Mail, Phone, RotateCcw, Save, Store, UserCheck, UserX, X } from 'lucide-react'
-import { useCallback, useMemo, useState } from 'react'
+import { Ban, Calendar, Eye, EyeOff, KeyRound, Mail, Phone, RotateCcw, Save, Store, UserCheck, UserPlus, UserX, X } from 'lucide-react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import OrgInviteForm, { type OrgInviteFormRef } from './components/OrgInviteForm'
 import { AuditLogTerminal, type AuditLogEntry } from '../Users/components/AuditLogTerminal'
 import { RoleSelectionCards } from '../Users/components/RoleSelectionCards'
 
@@ -92,7 +93,11 @@ function PinCell({ pin }: { pin?: string | null }) {
       <span
         role="button"
         className="inline-flex items-center justify-center h-6 w-6 rounded-md hover:bg-muted cursor-pointer"
-        onClick={e => { e.stopPropagation(); e.preventDefault(); setVisible(v => !v) }}
+        onClick={e => {
+          e.stopPropagation()
+          e.preventDefault()
+          setVisible(v => !v)
+        }}
       >
         {visible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
       </span>
@@ -103,11 +108,11 @@ function PinCell({ pin }: { pin?: string | null }) {
 // ---------- Component ----------
 
 export default function OrgUsersPage() {
-  const { t } = useTranslation(['playtelecom', 'common'])
+  const { t } = useTranslation(['playtelecom', 'common', 'team'])
   const { orgId, venues: orgVenues } = useCurrentOrganization()
   const queryClient = useQueryClient()
   const { toast } = useToast()
-  const { staffInfo } = useAuth()
+  const { staffInfo, user } = useAuth()
   const { getDisplayName, getColor } = useRoleConfig()
 
   // State
@@ -115,6 +120,12 @@ export default function OrgUsersPage() {
   const [roleFilter, setRoleFilter] = useState<string[]>([])
   const [statusFilter, setStatusFilter] = useState<string[]>([])
   const [storesFilter, setStoresFilter] = useState<string[]>([])
+
+  // Invite dialog
+  const [showInviteDialog, setShowInviteDialog] = useState(false)
+  const [isInviteSubmitting, setIsInviteSubmitting] = useState(false)
+  const [isInviteFormValid, setIsInviteFormValid] = useState(false)
+  const inviteFormRef = useRef<OrgInviteFormRef>(null)
 
   // Detail panel local state
   const [editRole, setEditRole] = useState<string>('')
@@ -328,7 +339,8 @@ export default function OrgUsersPage() {
 
   // ---------- Role Hierarchy ----------
 
-  const currentUserRole = staffInfo?.role as StaffRole | undefined
+  // staffInfo.role is venue-scoped — null in org context. Fallback to user.role (global highest role).
+  const currentUserRole = (staffInfo?.role || user?.role) as StaffRole | undefined
 
   const canEditSelectedUser = useMemo(() => {
     if (!currentUserRole || !selectedMember) return false
@@ -428,6 +440,12 @@ export default function OrgUsersPage() {
     }
   }, [selectedUserId, resetPasswordMutation])
 
+  const handleInviteSuccess = useCallback(() => {
+    setShowInviteDialog(false)
+    queryClient.invalidateQueries({ queryKey: ['org-config', orgId, 'team'] })
+    toast({ title: t('team:invite.success', { defaultValue: 'Invitacion enviada' }) })
+  }, [orgId, queryClient, toast, t])
+
   const handleSearch = useCallback((search: string, rows: OrgUserRow[]) => {
     if (!search) return rows
     const q = search.toLowerCase()
@@ -480,7 +498,9 @@ export default function OrgUsersPage() {
               <div className="flex items-center gap-1.5">
                 <p className="font-medium text-sm truncate">{row.original.name}</p>
                 {row.original.email.includes('@internal.avoqado.io') && (
-                  <Badge variant="outline" className="text-[9px] h-4 px-1 shrink-0 border-amber-500/40 text-amber-500">Solo TPV</Badge>
+                  <Badge variant="outline" className="text-[9px] h-4 px-1 shrink-0 border-amber-500/40 text-amber-500">
+                    Solo TPV
+                  </Badge>
                 )}
               </div>
               <p className="text-xs text-muted-foreground truncate">{row.original.email}</p>
@@ -571,12 +591,18 @@ export default function OrgUsersPage() {
   return (
     <>
       <div className="space-y-4">
-        <PageTitleWithInfo
-          title={t('playtelecom:users.orgTitle', { defaultValue: 'Gestion de Personal' })}
-          tooltip={t('playtelecom:users.orgTooltip', {
-            defaultValue: 'Administra los roles, tiendas asignadas y PIN de todo el personal de tu organizacion.',
-          })}
-        />
+        <div className="flex items-center justify-between">
+          <PageTitleWithInfo
+            title={t('playtelecom:users.orgTitle', { defaultValue: 'Gestion de Personal' })}
+            tooltip={t('playtelecom:users.orgTooltip', {
+              defaultValue: 'Administra los roles, tiendas asignadas y PIN de todo el personal de tu organizacion.',
+            })}
+          />
+          <Button onClick={() => setShowInviteDialog(true)} className="gap-2 cursor-pointer">
+            <UserPlus className="h-4 w-4" />
+            {t('playtelecom:users.invite', { defaultValue: 'Invitar' })}
+          </Button>
+        </div>
 
         {/* Filter bar */}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
@@ -880,6 +906,43 @@ export default function OrgUsersPage() {
           </div>
         )}
       </FullScreenModal>
+
+      {/* Invite Dialog */}
+      {orgVenues.length > 0 && (
+        <FullScreenModal
+          open={showInviteDialog}
+          onClose={() => {
+            if (!isInviteSubmitting) setShowInviteDialog(false)
+          }}
+          title={t('team:header.inviteDialog.title', { defaultValue: 'Invitar Nuevo Miembro' })}
+          contentClassName="bg-muted/30"
+          actions={
+            <Button
+              onClick={() => inviteFormRef.current?.submit()}
+              disabled={isInviteSubmitting || !isInviteFormValid}
+              className="cursor-pointer"
+            >
+              {isInviteSubmitting ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
+                  {t('team:invite.sending', { defaultValue: 'Enviando...' })}
+                </>
+              ) : (
+                t('team:invite.sendButton', { defaultValue: 'Enviar Invitacion' })
+              )}
+            </Button>
+          }
+        >
+          <OrgInviteForm
+            ref={inviteFormRef}
+            orgId={orgId!}
+            venues={allVenueOptions}
+            onSuccess={handleInviteSuccess}
+            onSubmitting={setIsInviteSubmitting}
+            onValidChange={setIsInviteFormValid}
+          />
+        </FullScreenModal>
+      )}
 
       {/* Temp Password Dialog */}
       <Dialog
