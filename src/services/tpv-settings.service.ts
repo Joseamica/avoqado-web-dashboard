@@ -39,6 +39,7 @@ export interface TpvSettings {
   enableCashPayments?: boolean
   enableCardPayments?: boolean
   enableBarcodeScanner?: boolean
+  enableSerializedInventory?: boolean
   // Venue-level attendance toggle
   attendanceTracking?: boolean
 }
@@ -95,6 +96,7 @@ export interface VenueTpvSettings {
   expectedCheckInTime: string
   latenessThresholdMinutes: number
   geofenceRadiusMeters: number
+  enableSerializedInventory: boolean
 }
 
 const DEFAULT_VENUE_TPV_SETTINGS: VenueTpvSettings = {
@@ -107,6 +109,7 @@ const DEFAULT_VENUE_TPV_SETTINGS: VenueTpvSettings = {
   expectedCheckInTime: '09:00',
   latenessThresholdMinutes: 30,
   geofenceRadiusMeters: 500,
+  enableSerializedInventory: false,
 }
 
 /**

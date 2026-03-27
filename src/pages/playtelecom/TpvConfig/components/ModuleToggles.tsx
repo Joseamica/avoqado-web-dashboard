@@ -6,7 +6,7 @@
 import { useTranslation } from 'react-i18next'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Switch } from '@/components/ui/switch'
-import { Clock, Banknote, CreditCard, ScanBarcode, Store, Camera } from 'lucide-react'
+import { Clock, Banknote, CreditCard, Package, ScanBarcode, Store, Camera } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface ModuleToggleState {
@@ -16,6 +16,7 @@ export interface ModuleToggleState {
   enableCashPayments: boolean
   enableCardPayments: boolean
   enableBarcodeScanner: boolean
+  enableSerializedInventory: boolean
 }
 
 interface ModuleTogglesProps {
@@ -59,6 +60,15 @@ const MODULES = [
     descKey: 'tpvConfig.modules.scannerDesc',
     descDefault: 'Uso de camara para leer ICCID',
     colorClass: 'from-amber-500/20 to-amber-500/5 text-amber-600 dark:text-amber-400',
+  },
+  {
+    key: 'enableSerializedInventory' as const,
+    icon: Package,
+    labelKey: 'tpvConfig.modules.serializedInventory',
+    labelDefault: 'Inventario Serializado',
+    descKey: 'tpvConfig.modules.serializedInventoryDesc',
+    descDefault: 'Registro y venta de SIMs por ICCID',
+    colorClass: 'from-cyan-500/20 to-cyan-500/5 text-cyan-600 dark:text-cyan-400',
   },
 ]
 

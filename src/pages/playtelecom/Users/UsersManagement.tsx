@@ -592,17 +592,19 @@ export function UsersManagement() {
 
         {/* Push toggle + invite button right */}
         <div className="ml-auto flex items-center gap-3">
-          {canViewAllOrgStaff && (
+          {canViewAllOrgStaff && staffInfo?.role === 'SUPERADMIN' && (
             <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground">
               <Building2 className="w-3.5 h-3.5" />
               <span>{t('playtelecom:users.allStores', { defaultValue: 'Todas las tiendas' })}</span>
               <Switch checked={teamScope === 'org'} onCheckedChange={checked => setTeamScope(checked ? 'org' : 'venue')} />
             </label>
           )}
-          <Button onClick={() => setShowInviteDialog(true)} className="h-10 gap-1.5 rounded-xl cursor-pointer px-4">
-            <UserPlus className="w-4 h-4" />
-            {t('playtelecom:users.invite', { defaultValue: 'Invitar' })}
-          </Button>
+          {staffInfo?.role === 'SUPERADMIN' && (
+            <Button onClick={() => setShowInviteDialog(true)} className="h-10 gap-1.5 rounded-xl cursor-pointer px-4">
+              <UserPlus className="w-4 h-4" />
+              {t('playtelecom:users.invite', { defaultValue: 'Invitar' })}
+            </Button>
+          )}
         </div>
       </div>
 
