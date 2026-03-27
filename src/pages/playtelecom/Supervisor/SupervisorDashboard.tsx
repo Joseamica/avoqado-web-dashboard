@@ -79,7 +79,7 @@ type TabValue = (typeof VALID_TABS)[number]
 
 export function SupervisorDashboard() {
   const { t, i18n } = useTranslation(['playtelecom', 'common'])
-  const { activeVenue } = useAuth()
+  const { activeVenue, staffInfo } = useAuth()
   const { toast } = useToast()
   const localeCode = getIntlLocale(i18n.language)
 
@@ -181,8 +181,18 @@ export function SupervisorDashboard() {
     refetchInterval: 30000,
   })
 
-  // Extract venues array from response
-  const venuesData = venuesResponse?.venues
+  // Extract venues array from response, filtered by state for non-OWNER roles
+  const venuesData = useMemo(() => {
+    const allVenues = venuesResponse?.venues
+    if (!allVenues) return undefined
+    const role = staffInfo?.role
+    // OWNER and SUPERADMIN see all venues
+    if (role === 'OWNER' || role === 'SUPERADMIN' || role === 'ADMIN') return allVenues
+    // MANAGER (supervisor) only sees venues with same state
+    const venueState = activeVenue?.state
+    if (!venueState) return allVenues
+    return allVenues.filter((v: any) => v.state === venueState)
+  }, [venuesResponse?.venues, staffInfo?.role, activeVenue?.state])
 
   const formatCurrency = useMemo(
     () => (value: number) =>

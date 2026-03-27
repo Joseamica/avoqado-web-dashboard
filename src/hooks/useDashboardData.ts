@@ -18,19 +18,17 @@ export const useDashboardData = () => {
   // Get venue timezone for date calculations
   const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
 
-  const [compareType, setCompareType] = useState<ComparisonPeriod>('')
-  const [comparisonLabel, setComparisonLabel] = useState(t('comparison.previousPeriod'))
-  const [activeFilter, setActiveFilter] = useState('7days')
+  const [compareType, setCompareType] = useState<ComparisonPeriod>('day')
+  const [comparisonLabel, setComparisonLabel] = useState(t('comparison.yesterday'))
+  const [activeFilter, setActiveFilter] = useState('today')
 
-  // Define ranges using venue timezone
+  // Define ranges using venue timezone — default to Today
   const [selectedRange, setSelectedRange] = useState(() => {
-    const range = getLast7Days(venueTimezone)
-    return range
+    return getToday(venueTimezone)
   })
 
   const [compareRange, setCompareRange] = useState(() => {
-    const range = getLast7Days(venueTimezone)
-    return getPreviousPeriod(range)
+    return getYesterday(venueTimezone)
   })
 
   // Initialize progressive loading service
