@@ -89,6 +89,7 @@ export { default as TestingPayments } from '@/pages/Superadmin/Testing/TestingPa
 export { default as PaymentProviders } from '@/pages/Superadmin/PaymentProviders'
 export { default as MerchantAccounts } from '@/pages/Superadmin/MerchantAccounts'
 export { default as Aggregators } from '@/pages/Superadmin/Aggregators'
+export { default as SettlementReport } from '@/pages/Reports/SettlementReport'
 export { default as Terminals } from '@/pages/Superadmin/Terminals'
 export { default as PaymentAnalytics } from '@/pages/Superadmin/PaymentAnalytics'
 export { default as CostStructures } from '@/pages/Superadmin/CostStructures'
@@ -227,6 +228,13 @@ export const PlayTelecomUsers = lazyWithRetry(() => import('@/pages/playtelecom/
 export const PlayTelecomTpvConfig = lazyWithRetry(() => import('@/pages/playtelecom/TpvConfig/TpvConfiguration'))
 export const PlayTelecomSupervisor = lazyWithRetry(() => import('@/pages/playtelecom/Supervisor/SupervisorDashboard'))
 export const PlayTelecomReporte = lazyWithRetry(() => import('@/pages/playtelecom/Reporte/ReportePage'))
+
+// Organization pages (WL OWNER-only)
+export const PlayTelecomOrgConfig = lazyWithRetry(() => import('@/pages/playtelecom/Organization/OrgConfigPage'))
+export const PlayTelecomOrgGoals = lazyWithRetry(() => import('@/pages/playtelecom/Organization/OrgGoalsPage'))
+export const PlayTelecomOrgCategories = lazyWithRetry(() => import('@/pages/playtelecom/Organization/OrgCategoriesPage'))
+export const PlayTelecomOrgMessages = lazyWithRetry(() => import('@/pages/playtelecom/Organization/OrgMessagesPage'))
+export const PlayTelecomStaffAssignment = lazyWithRetry(() => import('@/pages/playtelecom/Organization/StaffAssignmentPage'))
 
 // White-Label Builder (Superadmin)
 // Note: WhiteLabelDashboardLayout, WhiteLabelIndex, WhiteLabelFeatureRouter removed

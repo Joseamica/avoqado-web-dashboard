@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Building2, Percent, Users, Pencil, Trash2, Layers, Loader2, ToggleLeft } from 'lucide-react'
+import { Plus, Building2, Percent, Users, Pencil, Trash2, Layers, Loader2, ToggleLeft, Link2, Copy, X } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -8,7 +8,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 import { useToast } from '@/hooks/use-toast'
+import { getAllVenues } from '@/services/superadmin.service'
 import {
   aggregatorAPI,
   type Aggregator,
@@ -64,40 +66,27 @@ function AggregatorDialog({
   onSave: (data: AggregatorFormData) => void
   isSaving: boolean
 }) {
-  const [form, setForm] = useState<AggregatorFormData>(() =>
-    aggregator
-      ? {
-          name: aggregator.name,
-          ivaRate: aggregator.ivaRate != null ? String(parseFloat(aggregator.ivaRate) * 100) : '16',
-          baseFees: {
-            DEBIT: aggregator.baseFees.DEBIT != null ? String(aggregator.baseFees.DEBIT * 100) : '',
-            CREDIT: aggregator.baseFees.CREDIT != null ? String(aggregator.baseFees.CREDIT * 100) : '',
-            AMEX: aggregator.baseFees.AMEX != null ? String(aggregator.baseFees.AMEX * 100) : '',
-            INTERNATIONAL:
-              aggregator.baseFees.INTERNATIONAL != null ? String(aggregator.baseFees.INTERNATIONAL * 100) : '',
-          },
-        }
-      : DEFAULT_AGG_FORM,
-  )
+  const [form, setForm] = useState<AggregatorFormData>(DEFAULT_AGG_FORM)
 
-  const handleOpen = (v: boolean) => {
-    if (v && aggregator) {
-      setForm({
-        name: aggregator.name,
-        ivaRate: aggregator.ivaRate != null ? String(parseFloat(aggregator.ivaRate) * 100) : '16',
-        baseFees: {
-          DEBIT: aggregator.baseFees.DEBIT != null ? String(aggregator.baseFees.DEBIT * 100) : '',
-          CREDIT: aggregator.baseFees.CREDIT != null ? String(aggregator.baseFees.CREDIT * 100) : '',
-          AMEX: aggregator.baseFees.AMEX != null ? String(aggregator.baseFees.AMEX * 100) : '',
-          INTERNATIONAL:
-            aggregator.baseFees.INTERNATIONAL != null ? String(aggregator.baseFees.INTERNATIONAL * 100) : '',
-        },
-      })
-    } else if (v) {
-      setForm(DEFAULT_AGG_FORM)
+  useEffect(() => {
+    if (open) {
+      setForm(
+        aggregator
+          ? {
+              name: aggregator.name,
+              ivaRate: aggregator.ivaRate != null ? String(parseFloat(aggregator.ivaRate) * 100) : '16',
+              baseFees: {
+                DEBIT: aggregator.baseFees.DEBIT != null ? String(aggregator.baseFees.DEBIT * 100) : '',
+                CREDIT: aggregator.baseFees.CREDIT != null ? String(aggregator.baseFees.CREDIT * 100) : '',
+                AMEX: aggregator.baseFees.AMEX != null ? String(aggregator.baseFees.AMEX * 100) : '',
+                INTERNATIONAL:
+                  aggregator.baseFees.INTERNATIONAL != null ? String(aggregator.baseFees.INTERNATIONAL * 100) : '',
+              },
+            }
+          : DEFAULT_AGG_FORM,
+      )
     }
-    onOpenChange(v)
-  }
+  }, [open, aggregator])
 
   const setFee = (key: keyof AggregatorFormData['baseFees'], val: string) => {
     setForm(f => ({ ...f, baseFees: { ...f.baseFees, [key]: val } }))
@@ -106,7 +95,7 @@ function AggregatorDialog({
   const isValid = form.name.trim().length > 0
 
   return (
-    <Dialog open={open} onOpenChange={handleOpen}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{aggregator ? 'Editar Agregador' : 'Nuevo Agregador'}</DialogTitle>
@@ -151,7 +140,7 @@ function AggregatorDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpen(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
           <Button onClick={() => onSave(form)} disabled={!isValid || isSaving}>
@@ -183,22 +172,21 @@ function CommissionDialog({
   onSave: (data: CommissionFormData) => void
   isSaving: boolean
 }) {
-  const [form, setForm] = useState<CommissionFormData>(() =>
-    commission
-      ? {
-          venueId: commission.venueId,
-          aggregatorId: commission.aggregatorId,
-          rate: String(parseFloat(commission.rate) * 100),
-          referredBy: commission.referredBy,
-        }
-      : {
-          ...DEFAULT_COMM_FORM,
-          aggregatorId: selectedAggregatorId || '',
-        },
-  )
+  const [form, setForm] = useState<CommissionFormData>({ ...DEFAULT_COMM_FORM })
 
-  const handleOpen = (v: boolean) => {
-    if (v) {
+  const { data: venues = [] } = useQuery({
+    queryKey: ['superadmin-venues-list'],
+    queryFn: () => getAllVenues(),
+    enabled: open,
+  })
+
+  const venueOptions = venues.map(v => ({
+    value: v.id,
+    label: `${v.name} (${v.slug})`,
+  }))
+
+  useEffect(() => {
+    if (open) {
       setForm(
         commission
           ? {
@@ -210,25 +198,28 @@ function CommissionDialog({
           : { ...DEFAULT_COMM_FORM, aggregatorId: selectedAggregatorId || '' },
       )
     }
-    onOpenChange(v)
-  }
+  }, [open, commission])
 
-  const isValid = form.venueId.trim().length > 0 && form.aggregatorId.length > 0 && form.rate.trim().length > 0
+  const isValid = form.venueId.length > 0 && form.aggregatorId.length > 0 && form.rate.trim().length > 0
 
   return (
-    <Dialog open={open} onOpenChange={handleOpen}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{commission ? 'Editar Comisión' : 'Nueva Comisión por Venue'}</DialogTitle>
+          <DialogTitle>{commission ? 'Editar Comision' : 'Nueva Comision por Venue'}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label>Venue ID *</Label>
-            <Input
-              placeholder="ID del venue"
+            <Label>Venue *</Label>
+            <SearchableSelect
+              options={venueOptions}
               value={form.venueId}
-              onChange={e => setForm(f => ({ ...f, venueId: e.target.value }))}
+              onValueChange={v => setForm(f => ({ ...f, venueId: v }))}
+              placeholder="Buscar venue..."
+              searchPlaceholder="Buscar por nombre o slug..."
+              emptyMessage="No se encontraron venues"
               disabled={!!commission}
+              searchThreshold={0}
             />
           </div>
           <div className="space-y-2">
@@ -278,7 +269,7 @@ function CommissionDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpen(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
           <Button onClick={() => onSave(form)} disabled={!isValid || isSaving}>
@@ -375,6 +366,30 @@ export default function Aggregators() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['aggregators'] })
       toast({ title: 'Estado actualizado' })
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error?.response?.data?.error || 'Error', variant: 'destructive' })
+    },
+  })
+
+  // ─── Token Mutations ─────────────────────────────────────
+
+  const generateTokenMutation = useMutation({
+    mutationFn: (id: string) => aggregatorAPI.generateToken(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['aggregators'] })
+      toast({ title: 'Link de reporte generado' })
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error?.response?.data?.error || 'Error', variant: 'destructive' })
+    },
+  })
+
+  const revokeTokenMutation = useMutation({
+    mutationFn: (id: string) => aggregatorAPI.revokeToken(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['aggregators'] })
+      toast({ title: 'Link revocado' })
     },
     onError: (error: any) => {
       toast({ title: 'Error', description: error?.response?.data?.error || 'Error', variant: 'destructive' })
@@ -560,6 +575,55 @@ export default function Aggregators() {
                     <span className="font-mono font-medium">
                       {agg.ivaRate != null ? (parseFloat(agg.ivaRate) * 100).toFixed(0) : 16}%
                     </span>
+                  </div>
+
+                  {/* Report link */}
+                  <div className="mb-3">
+                    {agg.reportToken ? (
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex-1 truncate rounded bg-muted/50 px-2 py-1 text-[10px] font-mono text-muted-foreground">
+                          {window.location.origin}/reports/settlement/{agg.reportToken.slice(0, 8)}...
+                        </div>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6 shrink-0"
+                          title="Copiar link"
+                          onClick={e => {
+                            e.stopPropagation()
+                            navigator.clipboard.writeText(`${window.location.origin}/reports/settlement/${agg.reportToken}`)
+                            toast({ title: 'Link copiado' })
+                          }}
+                        >
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6 shrink-0 text-destructive hover:text-destructive"
+                          title="Revocar link"
+                          onClick={e => {
+                            e.stopPropagation()
+                            revokeTokenMutation.mutate(agg.id)
+                          }}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 text-[10px] gap-1"
+                        onClick={e => {
+                          e.stopPropagation()
+                          generateTokenMutation.mutate(agg.id)
+                        }}
+                      >
+                        <Link2 className="w-3 h-3" />
+                        Generar Link Reporte
+                      </Button>
+                    )}
                   </div>
 
                   {/* Counts + actions */}

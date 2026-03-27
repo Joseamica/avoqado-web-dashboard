@@ -51,11 +51,17 @@ import {
   PlayTelecomUsers,
   PlayTelecomSupervisor,
   PlayTelecomReporte,
+  PlayTelecomOrgConfig,
+  PlayTelecomOrgGoals,
+  PlayTelecomOrgCategories,
+  PlayTelecomOrgMessages,
+  PlayTelecomStaffAssignment,
   Privacy,
   ProfitAnalyticsDashboard,
   PublicBookingPage,
   BookingManagePage,
   ReceiptViewer,
+  SettlementReport,
   ResetPassword,
   RevenueDashboard,
   SerializedSalesDemo,
@@ -519,6 +525,12 @@ const router = createBrowserRouter(
                     { path: 'terminals', element: <OrganizationTerminals /> },
                     { path: 'activity-log', element: <OrganizationActivityLog /> },
                     { path: 'analytics', element: <ComingSoon feature="Organization Analytics" /> },
+                    // Organization-level WL config pages (reuse PlayTelecom org components)
+                    { path: 'org-config', element: <PlayTelecomOrgConfig /> },
+                    { path: 'org-goals', element: <PlayTelecomOrgGoals /> },
+                    { path: 'org-categories', element: <PlayTelecomOrgCategories /> },
+                    { path: 'org-messages', element: <PlayTelecomOrgMessages /> },
+                    { path: 'staff-assignment', element: <PlayTelecomStaffAssignment /> },
                   ],
                 },
               ],
@@ -766,6 +778,12 @@ const router = createBrowserRouter(
         {
           path: '/receipts/public/:accessKey',
           element: <ReceiptViewer />,
+          errorElement: <ErrorPage />,
+        },
+        // Ruta semi-pública para reportes de settlement (acceso por token)
+        {
+          path: '/reports/settlement/:token',
+          element: <SettlementReport />,
           errorElement: <ErrorPage />,
         },
         // Rutas públicas para reservaciones online

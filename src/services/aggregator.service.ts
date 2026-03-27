@@ -8,6 +8,7 @@ export interface Aggregator {
   venueId: string | null
   baseFees: Record<string, number>
   ivaRate: string // Decimal comes as string from API
+  reportToken: string | null
   active: boolean
   createdAt: string
   updatedAt: string
@@ -128,5 +129,15 @@ export const aggregatorAPI = {
 
   deleteCommission: async (id: string): Promise<void> => {
     await api.delete(`${BASE}/venue-commissions/${id}`)
+  },
+
+  // Report Token
+  generateToken: async (aggregatorId: string): Promise<string> => {
+    const { data } = await api.post(`${BASE}/aggregators/${aggregatorId}/generate-token`)
+    return data.data.token
+  },
+
+  revokeToken: async (aggregatorId: string): Promise<void> => {
+    await api.delete(`${BASE}/aggregators/${aggregatorId}/revoke-token`)
   },
 }
