@@ -30,16 +30,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Monitor, Lock, Unlock, Wrench, WrenchIcon, Loader2, RotateCcw, Trash2, FileText, MoreVertical } from 'lucide-react'
+import { AlertTriangle, Monitor, Lock, Unlock, Wrench, WrenchIcon, Loader2, RotateCcw, Trash2, FileText, MoreVertical } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/context/AuthContext'
 import { useSocket } from '@/context/SocketContext'
 import { useToast } from '@/hooks/use-toast'
-import { getTpvs, lockTerminal, unlockTerminal, enterMaintenanceMode, exitMaintenanceMode, restartTerminal, clearCache, exportLogs } from '@/services/tpv.service'
+import { getTpvs, lockTerminal, unlockTerminal, enterMaintenanceMode, exitMaintenanceMode, restartTerminal, clearCache, exportLogs, factoryReset } from '@/services/tpv.service'
+import { useAccess } from '@/hooks/use-access'
 import { TerminalStatus, type Terminal } from '@/types'
 
 type ConfirmAction = {
-  type: 'lock' | 'unlock' | 'maintenance_on' | 'maintenance_off' | 'restart' | 'clear_cache' | 'export_logs'
+  type: 'lock' | 'unlock' | 'maintenance_on' | 'maintenance_off' | 'restart' | 'clear_cache' | 'export_logs' | 'factory_reset'
   terminal: Terminal
 }
 
@@ -76,6 +77,8 @@ function isInMaintenance(terminal: Terminal): boolean {
 export function TerminalManagement() {
   const { t } = useTranslation(['playtelecom', 'common'])
   const { activeVenue } = useAuth()
+  const { role } = useAccess()
+  const isOwnerPlus = role === 'OWNER' || role === 'SUPERADMIN'
   const venueId = activeVenue?.id
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -281,7 +284,21 @@ export function TerminalManagement() {
     },
   })
 
-  const isPending = lockMutation.isPending || unlockMutation.isPending || maintenanceOnMutation.isPending || maintenanceOffMutation.isPending || restartMutation.isPending || clearCacheMutation.isPending || exportLogsMutation.isPending
+  const factoryResetMutation = useMutation({
+    mutationFn: (terminalId: string) => factoryReset(terminalId),
+    onSuccess: (_, terminalId) => {
+      setPendingTerminals(prev => new Set(prev).add(terminalId))
+      toast({
+        title: t('playtelecom:tpvConfig.terminals.factoryResetSuccess', { defaultValue: 'Comando enviado: borrar almacenamiento y cache' }),
+      })
+    },
+    onError: (error: any) => {
+      const msg = error?.response?.data?.message || t('playtelecom:tpvConfig.terminals.factoryResetError', { defaultValue: 'Error al borrar almacenamiento' })
+      toast({ title: msg, variant: 'destructive' })
+    },
+  })
+
+  const isPending = lockMutation.isPending || unlockMutation.isPending || maintenanceOnMutation.isPending || maintenanceOffMutation.isPending || restartMutation.isPending || clearCacheMutation.isPending || exportLogsMutation.isPending || factoryResetMutation.isPending
 
   const handleConfirm = useCallback(() => {
     if (!confirmAction) return
@@ -308,9 +325,12 @@ export function TerminalManagement() {
       case 'export_logs':
         exportLogsMutation.mutate(terminal.id)
         break
+      case 'factory_reset':
+        factoryResetMutation.mutate(terminal.id)
+        break
     }
     setConfirmAction(null)
-  }, [confirmAction, lockMutation, unlockMutation, maintenanceOnMutation, maintenanceOffMutation, restartMutation, clearCacheMutation, exportLogsMutation])
+  }, [confirmAction, lockMutation, unlockMutation, maintenanceOnMutation, maintenanceOffMutation, restartMutation, clearCacheMutation, exportLogsMutation, factoryResetMutation])
 
   const confirmTitle = useMemo(() => {
     if (!confirmAction) return ''
@@ -323,6 +343,7 @@ export function TerminalManagement() {
       case 'restart': return t('playtelecom:tpvConfig.terminals.confirmRestart', { name, defaultValue: `Reiniciar "${name}"?` })
       case 'clear_cache': return t('playtelecom:tpvConfig.terminals.confirmClearCache', { name, defaultValue: `Limpiar cache de "${name}"?` })
       case 'export_logs': return t('playtelecom:tpvConfig.terminals.confirmExportLogs', { name, defaultValue: `Exportar datos de "${name}"?` })
+      case 'factory_reset': return t('playtelecom:tpvConfig.terminals.confirmFactoryReset', { name, defaultValue: `Borrar almacenamiento y cache de "${name}"?` })
     }
   }, [confirmAction, t])
 
@@ -336,6 +357,7 @@ export function TerminalManagement() {
       case 'restart': return t('playtelecom:tpvConfig.terminals.confirmRestartDesc', { defaultValue: 'La terminal se reiniciara. Esto puede tomar unos segundos.' })
       case 'clear_cache': return t('playtelecom:tpvConfig.terminals.confirmClearCacheDesc', { defaultValue: 'Se limpiara toda la cache de la terminal. Los datos se volveran a sincronizar automaticamente.' })
       case 'export_logs': return t('playtelecom:tpvConfig.terminals.confirmExportLogsDesc', { defaultValue: 'Se exportaran los logs y datos de la terminal para diagnostico.' })
+      case 'factory_reset': return t('playtelecom:tpvConfig.terminals.confirmFactoryResetDesc', { defaultValue: 'Se borraran TODOS los datos de la app (sesion, cache, SDK). El dispositivo no se afecta.' })
     }
   }, [confirmAction, t])
 
@@ -514,6 +536,18 @@ export function TerminalManagement() {
                         <FileText className="w-4 h-4 mr-2" />
                         {t('playtelecom:tpvConfig.terminals.exportLogs', { defaultValue: 'Exportar Datos' })}
                       </DropdownMenuItem>
+                      {isOwnerPlus && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => setConfirmAction({ type: 'factory_reset', terminal })}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <AlertTriangle className="w-4 h-4 mr-2" />
+                            {t('playtelecom:tpvConfig.terminals.factoryReset', { defaultValue: 'Borrar Almacenamiento y Cache' })}
+                          </DropdownMenuItem>
+                        </>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>

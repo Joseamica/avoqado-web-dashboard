@@ -64,6 +64,7 @@ const DEFAULT_MODULES: ModuleToggleState = {
   enableCashPayments: true,
   enableCardPayments: true,
   enableBarcodeScanner: true,
+  enableSerializedInventory: false,
 }
 
 const VALID_TABS = ['general', 'organizacional', 'metas', 'tpv', 'categorias', 'mensajes'] as const
@@ -78,6 +79,7 @@ function settingsToState(settings: VenueTpvSettings): ModuleToggleState {
     enableCashPayments: settings.enableCashPayments,
     enableCardPayments: settings.enableCardPayments,
     enableBarcodeScanner: settings.enableBarcodeScanner,
+    enableSerializedInventory: settings.enableSerializedInventory,
   }
 }
 

@@ -102,6 +102,7 @@ interface RemoteCommandPanelProps {
   isInMaintenance?: boolean
   isActivated?: boolean // true if terminal has activatedAt set
   isSuperadmin?: boolean // true if current user is SUPERADMIN
+  isOwnerPlus?: boolean // true if current user is OWNER or SUPERADMIN
   venueId: string
   currentVersion?: string // Current TPV version (e.g., "1.3.1") for downgrade detection
   currentVersionCode?: number // Current TPV versionCode (e.g., 45) for downgrade detection
@@ -121,6 +122,7 @@ export function RemoteCommandPanel({
   isInMaintenance = false,
   isActivated = true,
   isSuperadmin = false,
+  isOwnerPlus = false,
   venueId,
   currentVersion,
   currentVersionCode,
@@ -321,7 +323,7 @@ export function RemoteCommandPanel({
         TpvCommandType.SYNC_DATA,
         TpvCommandType.REFRESH_MENU,
         TpvCommandType.EXPORT_LOGS,
-        ...(isSuperadmin ? [TpvCommandType.FACTORY_RESET] : []),
+        ...(isOwnerPlus || isSuperadmin ? [TpvCommandType.FACTORY_RESET] : []),
       ],
     },
   ]

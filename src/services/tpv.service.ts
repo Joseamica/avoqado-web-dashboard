@@ -187,3 +187,10 @@ export const clearCache = async (terminalId: string, targets?: ('menu' | 'orders
 export const exportLogs = async (terminalId: string) => {
   return sendTpvCommand(terminalId, TpvCommandType.EXPORT_LOGS, undefined, TpvCommandPriority.LOW)
 }
+
+/**
+ * Factory reset terminal (clear all storage and cache)
+ */
+export const factoryReset = async (terminalId: string) => {
+  return sendTpvCommand(terminalId, TpvCommandType.FACTORY_RESET, undefined, TpvCommandPriority.CRITICAL)
+}

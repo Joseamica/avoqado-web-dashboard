@@ -1513,6 +1513,7 @@ export default function TpvId() {
                   isInMaintenance={isInMaintenance}
                   isActivated={!!tpv?.activatedAt}
                   isSuperadmin={isSuperAdmin}
+                  isOwnerPlus={user?.role === StaffRole.OWNER || isSuperAdmin}
                   venueId={venueId!}
                   currentVersion={tpv?.version}
                   currentVersionCode={tpv?.systemInfo?.versionCode as number | undefined}
