@@ -28,7 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { useAuth } from '@/context/AuthContext'
+import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { broadcastOrgMessage } from '@/services/tpv-messages.service'
 
 type MessageType = 'ANNOUNCEMENT' | 'SURVEY' | 'ACTION'
@@ -41,8 +41,7 @@ const TYPE_OPTIONS: { value: MessageType; label: string; description: string; ic
 ]
 
 export function OrgMessagesSection() {
-  const { activeVenue } = useAuth()
-  const orgId = activeVenue?.organizationId
+  const { orgId } = useCurrentOrganization()
   const { toast } = useToast()
   const queryClient = useQueryClient()
 

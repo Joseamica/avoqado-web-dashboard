@@ -13,8 +13,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Building2, Loader2, RotateCcw, Save, Clock, Banknote, CreditCard, ScanBarcode, Store, Camera } from 'lucide-react'
-import { useOrgAttendanceConfig, useUpsertOrgAttendanceConfig, useDeleteOrgAttendanceConfig } from '@/hooks/useStoresAnalysis'
+import { useOrgAttendanceConfig, useUpsertOrgAttendanceConfig, useDeleteOrgAttendanceConfig } from '@/hooks/useOrganizationConfig'
 import { useAccess } from '@/hooks/use-access'
+import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import {
@@ -69,7 +70,8 @@ type ModuleKey = typeof MODULE_TOGGLES[number]['key']
 export default function OrgTpvConfigSection() {
   const { t } = useTranslation(['playtelecom', 'common'])
   const { can, role } = useAccess()
-  const isOwnerPlus = role === 'OWNER' || role === 'SUPERADMIN'
+  const { isOwner } = useCurrentOrganization()
+  const isOwnerPlus = role === 'OWNER' || role === 'SUPERADMIN' || isOwner
   const { toast } = useToast()
 
   const { data: config, isLoading } = useOrgAttendanceConfig({ enabled: isOwnerPlus })

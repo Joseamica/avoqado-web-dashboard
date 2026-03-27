@@ -136,5 +136,13 @@
     "general": "General",
     "communications": "Comunicaciones"
   },
-  "requiresKycVerification": "Requiere verificación KYC"
+  "requiresKycVerification": "Requiere verificación KYC",
+  "organizationMenu": {
+    "title": "Organización",
+    "config": "Configuración TPV",
+    "goals": "Metas Organizacionales",
+    "categories": "Categorías",
+    "messages": "Mensajes",
+    "staffAssignment": "Asignación de Personal"
+  }
 }

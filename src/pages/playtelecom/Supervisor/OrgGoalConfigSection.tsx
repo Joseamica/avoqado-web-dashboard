@@ -11,8 +11,9 @@ import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Plus, Pencil, Trash2, Building2, Loader2 } from 'lucide-react'
-import { useOrgGoals, useCreateOrgGoal, useUpdateOrgGoal, useDeleteOrgGoal } from '@/hooks/useStoresAnalysis'
+import { useOrgConfigGoals, useCreateOrgConfigGoal, useUpdateOrgConfigGoal, useDeleteOrgConfigGoal } from '@/hooks/useOrganizationConfig'
 import { useAccess } from '@/hooks/use-access'
+import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useToast } from '@/hooks/use-toast'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -21,7 +22,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import type { OrgGoal } from '@/services/storesAnalysis.service'
+import type { OrgGoal } from '@/services/organizationConfig.service'
 
 const orgGoalSchema = z.object({
   goal: z.number().min(1, 'La meta debe ser mayor a 0'),
@@ -34,15 +35,20 @@ type OrgGoalFormData = z.infer<typeof orgGoalSchema>
 export default function OrgGoalConfigSection() {
   const { t } = useTranslation(['playtelecom', 'common'])
   const { can } = useAccess()
+  const { isOwner } = useCurrentOrganization()
   const { toast } = useToast()
+
+  // In org context (/organizations/:orgId), useAccess depends on venueId which is null.
+  // OWNER is already verified by OwnerProtectedRoute, so we allow if isOwner.
+  const hasPermission = can('goals:org-manage') || isOwner
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingGoal, setEditingGoal] = useState<OrgGoal | null>(null)
 
-  const { data: orgGoals, isLoading } = useOrgGoals({ enabled: can('goals:org-manage') })
-  const createMutation = useCreateOrgGoal()
-  const updateMutation = useUpdateOrgGoal()
-  const deleteMutation = useDeleteOrgGoal()
+  const { data: orgGoals, isLoading } = useOrgConfigGoals({ enabled: hasPermission })
+  const createMutation = useCreateOrgConfigGoal()
+  const updateMutation = useUpdateOrgConfigGoal()
+  const deleteMutation = useDeleteOrgConfigGoal()
 
   const form = useForm<OrgGoalFormData>({
     resolver: zodResolver(orgGoalSchema),
@@ -103,7 +109,7 @@ export default function OrgGoalConfigSection() {
 
   const activeGoals = useMemo(() => (orgGoals ?? []).filter(g => g.active), [orgGoals])
 
-  if (!can('goals:org-manage')) return null
+  if (!hasPermission) return null
 
   const formatGoalValue = (goal: OrgGoal) => {
     if (goal.goalType === 'QUANTITY') return `${goal.goal} ventas`

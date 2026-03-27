@@ -37,4 +37,6 @@ playwright/.cache/
 
 # Design reference screenshots (not committed, used for implementation)
 docs/square-research/
-.serena/project.yml
+# Claude Code / MCP tools internal data
+.claude-flow/
+.serena/

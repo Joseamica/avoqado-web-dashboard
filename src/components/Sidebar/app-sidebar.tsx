@@ -128,7 +128,7 @@ const FEATURE_DEFAULT_ICON: Record<string, string> = {
   MANAGERS_DASHBOARD: 'UserCog',
   SALES_REPORT: 'Receipt',
   SUPERVISOR_DASHBOARD: 'Eye',
-  TPV_CONFIGURATION: 'Settings',
+  TPV_CONFIGURATION: 'Smartphone',
   CLOSING_REPORT: 'FileSpreadsheet',
   USERS_MANAGEMENT: 'Users',
   APPRAISALS: 'Gem',

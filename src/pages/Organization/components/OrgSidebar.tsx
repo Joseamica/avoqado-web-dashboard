@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { useParams, NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Building2, Settings, Users, Store, BarChart3, ChevronsUpDown, ChevronRight, Smartphone, ScrollText } from 'lucide-react'
+import { LayoutDashboard, Building2, Settings, Users, Store, BarChart3, ChevronsUpDown, ChevronRight, Smartphone, ScrollText, MessageSquare, Target } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useAuth } from '@/context/AuthContext'
@@ -113,6 +113,13 @@ const OrgSidebar: React.FC<OrgSidebarProps> = props => {
   // Check if user has multiple organizations
   const _hasMultipleOrgs = orgGroups.length > 1
 
+  // Check if current org has white-label features enabled (any venue with WHITE_LABEL_DASHBOARD module)
+  const isWhiteLabelOrg = useMemo(() => {
+    return allVenues.some(
+      v => v.organizationId === orgId && v.modules?.some(m => m.module?.code === 'WHITE_LABEL_DASHBOARD' && m.enabled),
+    )
+  }, [allVenues, orgId])
+
   const navigationItems = useMemo(
     () => [
       {
@@ -135,8 +142,23 @@ const OrgSidebar: React.FC<OrgSidebarProps> = props => {
         title: t('sidebar.configuration'),
         items: [{ name: t('sidebar.settings'), href: `/organizations/${orgId}/settings`, icon: Settings }],
       },
+      // White-label org config section (only shown for orgs with WL module)
+      ...(isWhiteLabelOrg
+        ? [
+            {
+              title: t('organization:sidebar.orgConfig', { defaultValue: 'Configuración Org.' }),
+              items: [
+                { name: t('organization:sidebar.orgTpvConfig', { defaultValue: 'Configuración TPV' }), href: `/organizations/${orgId}/org-config`, icon: Smartphone },
+                { name: t('organization:sidebar.orgGoals', { defaultValue: 'Metas' }), href: `/organizations/${orgId}/org-goals`, icon: Target },
+                { name: t('organization:sidebar.orgCategories', { defaultValue: 'Categorías' }), href: `/organizations/${orgId}/org-categories`, icon: Store },
+                { name: t('organization:sidebar.orgMessages', { defaultValue: 'Mensajes' }), href: `/organizations/${orgId}/org-messages`, icon: MessageSquare },
+                { name: t('organization:sidebar.staffAssignment', { defaultValue: 'Asignación de Personal' }), href: `/organizations/${orgId}/staff-assignment`, icon: Users },
+              ],
+            },
+          ]
+        : []),
     ],
-    [t, orgId],
+    [t, orgId, isWhiteLabelOrg],
   )
 
   const handleVenueClick = (slug: string) => {

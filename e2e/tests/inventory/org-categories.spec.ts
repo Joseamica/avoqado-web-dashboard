@@ -131,7 +131,7 @@ test.describe('Org-Level Categories', () => {
     // Capture the POST request
     let capturedBody: Record<string, unknown> | null = null
     await page.route(
-      (url) => url.pathname.includes('/api/') && url.pathname.includes('/org-item-categories'),
+      (url) => url.pathname.includes('/api/') && (url.pathname.includes('/org-item-categories') || url.pathname.includes('/org-categories')),
       async (route) => {
       if (route.request().method() === 'POST') {
         capturedBody = route.request().postDataJSON()

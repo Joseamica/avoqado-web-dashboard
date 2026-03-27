@@ -34,15 +34,15 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useAccess } from '@/hooks/use-access'
-import { useAuth } from '@/context/AuthContext'
+import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useToast } from '@/hooks/use-toast'
 import {
   getOrgCategories,
   createOrgCategory,
   updateOrgCategory,
   deleteOrgCategory,
-} from '@/services/orgItemCategory.service'
-import type { ItemCategory, CreateItemCategoryDto, UpdateItemCategoryDto } from '@/services/itemCategory.service'
+} from '@/services/organizationConfig.service'
+import type { ItemCategory, CreateItemCategoryDto, UpdateItemCategoryDto } from '@/services/organizationConfig.service'
 import { cn } from '@/lib/utils'
 
 // Color presets for categories
@@ -77,8 +77,8 @@ const defaultFormData: CategoryFormData = {
 
 export default function OrgCategoryConfigSection() {
   const { can } = useAccess()
-  const { activeVenue } = useAuth()
-  const venueId = activeVenue?.id
+  const { orgId, isOwner } = useCurrentOrganization()
+  const hasPermission = can('inventory:org-manage') || isOwner
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
@@ -89,20 +89,18 @@ export default function OrgCategoryConfigSection() {
   const [formData, setFormData] = useState<CategoryFormData>(defaultFormData)
 
   const { data: orgCategories, isLoading } = useQuery({
-    queryKey: ['org-item-categories', venueId],
-    queryFn: () => getOrgCategories(venueId!),
-    enabled: !!venueId && can('inventory:org-manage'),
+    queryKey: ['org-config', orgId, 'categories'],
+    queryFn: () => getOrgCategories(orgId!),
+    enabled: !!orgId && hasPermission,
     staleTime: 60000,
   })
 
   const invalidateAll = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['org-item-categories', venueId] })
-    queryClient.invalidateQueries({ queryKey: ['venue', venueId, 'item-categories'] })
-    queryClient.invalidateQueries({ queryKey: ['item-categories', venueId] })
-  }, [queryClient, venueId])
+    queryClient.invalidateQueries({ queryKey: ['org-config', orgId, 'categories'] })
+  }, [queryClient, orgId])
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateItemCategoryDto) => createOrgCategory(venueId!, data),
+    mutationFn: (data: CreateItemCategoryDto) => createOrgCategory(orgId!, data),
     onSuccess: () => {
       invalidateAll()
       toast({ title: 'Categoría de organización creada correctamente' })
@@ -115,7 +113,7 @@ export default function OrgCategoryConfigSection() {
 
   const updateMutation = useMutation({
     mutationFn: ({ categoryId, data }: { categoryId: string; data: UpdateItemCategoryDto }) =>
-      updateOrgCategory(venueId!, categoryId, data),
+      updateOrgCategory(orgId!, categoryId, data),
     onSuccess: () => {
       invalidateAll()
       toast({ title: 'Categoría actualizada correctamente' })
@@ -127,7 +125,7 @@ export default function OrgCategoryConfigSection() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (categoryId: string) => deleteOrgCategory(venueId!, categoryId),
+    mutationFn: (categoryId: string) => deleteOrgCategory(orgId!, categoryId),
     onSuccess: (result) => {
       invalidateAll()
       toast({ title: result.message })
@@ -201,7 +199,7 @@ export default function OrgCategoryConfigSection() {
 
   const activeCategories = useMemo(() => (orgCategories ?? []).filter(c => c.active), [orgCategories])
 
-  if (!can('inventory:org-manage')) return null
+  if (!hasPermission) return null
 
   return (
     <>

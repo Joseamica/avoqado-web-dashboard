@@ -35,7 +35,7 @@ export async function setupInventoryMocks(
 
   // Org-level categories CRUD
   await page.route(
-    (url) => isApiPath(url, '/org-item-categories'),
+    (url) => isApiPath(url, '/org-item-categories') || isApiPath(url, '/org-categories'),
     async (route) => {
       const method = route.request().method()
 

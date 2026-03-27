@@ -1,0 +1,5 @@
+export { default as OrgConfigPage } from './OrgConfigPage'
+export { default as OrgGoalsPage } from './OrgGoalsPage'
+export { default as OrgCategoriesPage } from './OrgCategoriesPage'
+export { default as OrgMessagesPage } from './OrgMessagesPage'
+export { default as StaffAssignmentPage } from './StaffAssignmentPage'

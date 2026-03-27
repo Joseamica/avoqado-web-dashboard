@@ -3,7 +3,7 @@
  *
  * Pill tabs:
  * - General: Summary dashboard (modules, categories, goals, messages quick view)
- * - Metas: OrgGoalConfigSection + VenueGoals table
+ * - Metas: VenueGoals table
  * - TPV: Module toggles + Terminal management + Phone preview
  * - Categorias: CategoryEditor
  * - Mensajes: MessagesSection
@@ -46,14 +46,12 @@ import { useAuth } from '@/context/AuthContext'
 import { useAccess } from '@/hooks/use-access'
 import { tpvSettingsService, type VenueTpvSettings } from '@/services/tpv-settings.service'
 import { getItemCategories } from '@/services/stockDashboard.service'
+import OrgCategoryConfigSection from './components/OrgCategoryConfigSection'
 import { getTpvMessages } from '@/services/tpv-messages.service'
 import { useToast } from '@/hooks/use-toast'
 import { useStoresStorePerformance } from '@/hooks/useStoresAnalysis'
-import { ModuleToggles, CategoryEditor, PhonePreview, TerminalManagement, MessagesSection, OrgMessagesSection, type ModuleToggleState } from './components'
+import { ModuleToggles, CategoryEditor, PhonePreview, TerminalManagement, MessagesSection, type ModuleToggleState } from './components'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
-import OrgGoalConfigSection from '@/pages/playtelecom/Supervisor/OrgGoalConfigSection'
-import OrgCategoryConfigSection from './components/OrgCategoryConfigSection'
-import OrgTpvConfigSection from './components/OrgTpvConfigSection'
 import CreateStoreGoalDialog from '@/pages/playtelecom/Supervisor/CreateStoreGoalDialog'
 
 // Default module state (matches backend defaults)
@@ -67,7 +65,7 @@ const DEFAULT_MODULES: ModuleToggleState = {
   enableSerializedInventory: false,
 }
 
-const VALID_TABS = ['general', 'organizacional', 'metas', 'tpv', 'categorias', 'mensajes'] as const
+const VALID_TABS = ['general', 'metas', 'tpv', 'categorias', 'mensajes', 'organizacional'] as const
 type TabValue = (typeof VALID_TABS)[number]
 
 /** Map API response to component state */
@@ -86,7 +84,7 @@ function settingsToState(settings: VenueTpvSettings): ModuleToggleState {
 export function TpvConfiguration() {
   const { t } = useTranslation(['playtelecom', 'common', 'tpv'])
   const { activeVenue } = useAuth()
-  const { can, role } = useAccess()
+  const { can } = useAccess()
   const venueId = activeVenue?.id
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -94,8 +92,6 @@ export function TpvConfiguration() {
   const navigate = useNavigate()
 
   const canManageGoals = can('goals:org-manage')
-  const isOwnerPlus = role === 'OWNER' || role === 'SUPERADMIN'
-
   // --- Venue goals state ---
   const [goalDialogOpen, setGoalDialogOpen] = useState(false)
   const [selectedStoreForGoal, setSelectedStoreForGoal] = useState<string | null>(null)
@@ -433,22 +429,19 @@ export function TpvConfiguration() {
                 <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
               )}
             </button>
-            {isOwnerPlus && (
-              <>
-                <div className="w-px h-5 bg-border mx-1" />
-                <button
-                  role="tab"
-                  onClick={() => handleTabChange('organizacional')}
-                  className={`relative pb-3 text-sm font-medium transition-colors ${
-                    activeTab === 'organizacional' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {t('playtelecom:tpvConfig.tabs.organizacional', { defaultValue: 'Organizacional' })}
-                  {activeTab === 'organizacional' && (
-                    <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-                  )}
-                </button>
-              </>
+            {can('inventory:org-manage') && (
+              <button
+                role="tab"
+                onClick={() => handleTabChange('organizacional')}
+                className={`relative pb-3 text-sm font-medium transition-colors ${
+                  activeTab === 'organizacional' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Organizacional
+                {activeTab === 'organizacional' && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
+                )}
+              </button>
             )}
           </nav>
         </div>
@@ -656,16 +649,6 @@ export function TpvConfiguration() {
             </GlassCard>
           </div>
         </TabsContent>
-
-        {/* Organizacional Tab — OWNER+ only */}
-        {isOwnerPlus && (
-          <TabsContent value="organizacional" className="space-y-6">
-            <OrgTpvConfigSection />
-            <OrgGoalConfigSection />
-            <OrgCategoryConfigSection />
-            <OrgMessagesSection />
-          </TabsContent>
-        )}
 
         {/* Metas Tab */}
         <TabsContent value="metas" className="space-y-6">
@@ -879,6 +862,13 @@ export function TpvConfiguration() {
         <TabsContent value="mensajes" className="space-y-6">
           <MessagesSection />
         </TabsContent>
+
+        {/* Organizacional Tab — OWNER+ only */}
+        {can('inventory:org-manage') && (
+          <TabsContent value="organizacional" className="space-y-6">
+            <OrgCategoryConfigSection />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )
