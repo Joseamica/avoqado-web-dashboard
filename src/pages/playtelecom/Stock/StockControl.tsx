@@ -157,18 +157,16 @@ export function StockControl() {
     const rows: string[][] = []
     for (const m of filteredMovements) {
       if (m.type === 'BULK_UPLOAD' && m.serialNumbers && m.serialNumbers.length > 0) {
-        // First row has all the data
-        rows.push([
-          m.serialNumbers[0],
-          m.categoryName,
-          getTypeLabel(m.type),
-          formatDate(m.timestamp),
-          m.userName || '-',
-          m.registeredFromVenueName || '-',
-        ])
-        // Remaining rows only have the SIM ID, rest empty
-        for (let i = 1; i < m.serialNumbers.length; i++) {
-          rows.push([m.serialNumbers[i], '', '', '', '', ''])
+        // Each serial number gets the full metadata row
+        for (const sn of m.serialNumbers) {
+          rows.push([
+            sn,
+            m.categoryName,
+            getTypeLabel(m.type),
+            formatDate(m.timestamp),
+            m.userName || '-',
+            m.registeredFromVenueName || '-',
+          ])
         }
       } else {
         rows.push([
