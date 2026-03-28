@@ -41,6 +41,7 @@ Always verify features work correctly across roles:
 - **Never kill or restart dev servers manually** — Vite and nodemon auto-reload on file save
 - **Never use `pkill`, `kill`, or restart commands** on dev servers
 - Include `Co-Authored-By` when AI assists with commits
+- **ONLY allowed Co-Authored-By**: `Claude Opus 4.6 (1M context) <noreply@anthropic.com>` — NEVER use `claude-flow`, `ruv@ruv.net`, or any other Co-Authored-By identity
 
 ## Temporary Files
 
