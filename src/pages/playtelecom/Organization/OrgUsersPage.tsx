@@ -799,15 +799,47 @@ export default function OrgUsersPage() {
             </GlassCard>
 
             {/* Role Selection */}
-            <RoleSelectionCards
-              selectedRole={editRole}
-              onSelectRole={role => {
-                setEditRole(role)
-                setHasChanges(true)
-              }}
-              disabled={!canEditSelectedUser}
-              allowedRoles={assignableRoles}
-            />
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <UserCheck className="w-4 h-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold">{t('playtelecom:users.detail.role', { defaultValue: 'Rol del Usuario' })}</h3>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {([StaffRole.ADMIN, StaffRole.MANAGER, StaffRole.CASHIER, StaffRole.WAITER, StaffRole.KITCHEN, StaffRole.HOST, StaffRole.VIEWER] as StaffRole[]).map(role => {
+                  const isSelected = editRole === role
+                  return (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => {
+                        if (!canEditSelectedUser) return
+                        setEditRole(role)
+                        setHasChanges(true)
+                      }}
+                      disabled={!canEditSelectedUser}
+                      className={cn(
+                        'relative flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all text-center cursor-pointer',
+                        isSelected
+                          ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                          : 'border-border/50 bg-card hover:border-border hover:bg-muted/30',
+                        !canEditSelectedUser && 'opacity-50 cursor-not-allowed',
+                      )}
+                    >
+                      {isSelected && (
+                        <div className="absolute top-1.5 right-1.5">
+                          <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                            <svg className="w-2.5 h-2.5 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                          </div>
+                        </div>
+                      )}
+                      <span className={cn('text-xs font-medium', isSelected ? 'text-primary' : 'text-muted-foreground')}>
+                        {getDisplayName(role)}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
 
             {/* Venue Assignment */}
             <div className="space-y-3">
