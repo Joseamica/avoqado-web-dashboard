@@ -44,9 +44,8 @@ import { type ColumnDef } from '@tanstack/react-table'
 import { Ban, Calendar, Eye, EyeOff, KeyRound, Mail, Phone, RotateCcw, Save, Store, UserCheck, UserPlus, UserX, X } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import OrgInviteForm, { type OrgInviteFormRef } from './components/OrgInviteForm'
 import { AuditLogTerminal, type AuditLogEntry } from '../Users/components/AuditLogTerminal'
-import { RoleSelectionCards } from '../Users/components/RoleSelectionCards'
+import OrgInviteForm, { type OrgInviteFormRef } from './components/OrgInviteForm'
 
 // ---------- Types ----------
 
@@ -805,7 +804,17 @@ export default function OrgUsersPage() {
                 <h3 className="text-sm font-semibold">{t('playtelecom:users.detail.role', { defaultValue: 'Rol del Usuario' })}</h3>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {([StaffRole.ADMIN, StaffRole.MANAGER, StaffRole.CASHIER, StaffRole.WAITER, StaffRole.KITCHEN, StaffRole.HOST, StaffRole.VIEWER] as StaffRole[]).map(role => {
+                {(
+                  [
+                    StaffRole.ADMIN,
+                    StaffRole.MANAGER,
+                    StaffRole.CASHIER,
+                    StaffRole.WAITER,
+                    StaffRole.KITCHEN,
+                    StaffRole.HOST,
+                    StaffRole.VIEWER,
+                  ] as StaffRole[]
+                ).map(role => {
                   const isSelected = editRole === role
                   return (
                     <button
@@ -828,7 +837,15 @@ export default function OrgUsersPage() {
                       {isSelected && (
                         <div className="absolute top-1.5 right-1.5">
                           <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center">
-                            <svg className="w-2.5 h-2.5 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                            <svg
+                              className="w-2.5 h-2.5 text-primary-foreground"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={3}
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
                           </div>
                         </div>
                       )}
