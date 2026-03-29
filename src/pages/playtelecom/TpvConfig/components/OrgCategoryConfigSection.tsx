@@ -251,7 +251,7 @@ export default function OrgCategoryConfigSection() {
                       </Badge>
                       {category.suggestedPrice != null && (
                         <Badge variant="secondary" className="text-[10px]">
-                          ${category.suggestedPrice.toFixed(2)}
+                          ${Number(category.suggestedPrice).toFixed(2)}
                         </Badge>
                       )}
                     </div>
