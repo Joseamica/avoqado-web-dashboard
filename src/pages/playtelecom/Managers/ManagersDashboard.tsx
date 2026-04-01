@@ -68,7 +68,7 @@ export function ManagersDashboard() {
 
   // Photo modal
   const [photoEntry, setPhotoEntry] = useState<AttendanceEntry | null>(null)
-  const [photoType, setPhotoType] = useState<'clockIn' | 'clockOut'>('clockIn')
+  const [photoType, setPhotoType] = useState<'clockIn' | 'clockOut' | 'deposit'>('clockIn')
 
   // Location dialog
   const [locationEntry, setLocationEntry] = useState<AttendanceEntry | null>(null)
@@ -187,8 +187,9 @@ export function ManagersDashboard() {
           ? new Date(te.clockOutTime).toLocaleTimeString('es-MX', timeOpts).toUpperCase()
           : null,
         clockInPhotoUrl: (te.checkInPhotoUrl as string) ?? entry.checkInPhotoUrl,
-        clockOutPhotoUrl: (te.depositPhotoUrl as string) ?? (te.checkOutPhotoUrl as string) ?? entry.checkOutPhotoUrl,
-        checkOutPhotoUrl: (te.depositPhotoUrl as string) ?? (te.checkOutPhotoUrl as string) ?? entry.checkOutPhotoUrl,
+        clockOutPhotoUrl: (te.checkOutPhotoUrl as string) ?? entry.checkOutPhotoUrl,
+        checkOutPhotoUrl: (te.checkOutPhotoUrl as string) ?? entry.checkOutPhotoUrl,
+        depositPhotoUrl: (te.depositPhotoUrl as string) ?? null,
         clockInLat: (te.clockInLocation ?? entry.checkInLocation)?.lat ?? null,
         clockInLon: (te.clockInLocation ?? entry.checkInLocation)?.lng ?? null,
         clockOutLat: (te.clockOutLocation ?? entry.checkOutLocation)?.lat ?? null,

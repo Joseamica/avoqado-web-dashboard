@@ -2,17 +2,14 @@
  * PhotoEvidenceModal - Full-size photo with GPS overlay
  */
 
-import {
-  Dialog,
-  DialogContent,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { MapPin, Clock, User } from 'lucide-react'
 import type { AttendanceEntry } from './AttendanceLog'
 
 interface PhotoEvidenceModalProps {
   entry: AttendanceEntry | null
-  type: 'clockIn' | 'clockOut'
+  type: 'clockIn' | 'clockOut' | 'deposit'
   open: boolean
   onClose: () => void
 }
@@ -20,34 +17,30 @@ interface PhotoEvidenceModalProps {
 export function PhotoEvidenceModal({ entry, type, open, onClose }: PhotoEvidenceModalProps) {
   if (!entry) return null
 
-  const photoUrl = type === 'clockIn' ? entry.clockInPhotoUrl : entry.clockOutPhotoUrl
+  const photoUrl = type === 'clockIn' ? entry.clockInPhotoUrl : type === 'deposit' ? entry.depositPhotoUrl : entry.clockOutPhotoUrl
   const lat = type === 'clockIn' ? entry.clockInLat : entry.clockOutLat
   const lon = type === 'clockIn' ? entry.clockInLon : entry.clockOutLon
   const time = type === 'clockIn' ? entry.clockIn : entry.clockOut
-  const label = type === 'clockIn' ? 'Entrada' : 'Salida'
+  const label = type === 'clockIn' ? 'Entrada' : type === 'deposit' ? 'Voucher de Deposito' : 'Salida'
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={o => !o && onClose()}>
       <DialogContent className="max-w-md p-0 overflow-hidden">
         {/* Header */}
         <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-card">
           <User className="w-4 h-4 text-primary" />
-          <h3 className="font-semibold text-sm">{entry.promoterName} — {label}</h3>
+          <h3 className="font-semibold text-sm">
+            {entry.promoterName} — {label}
+          </h3>
         </div>
 
         {/* Photo */}
         <div className="p-4 flex justify-center bg-background relative">
           <div className="relative rounded-xl overflow-hidden border-2 border-border shadow-lg">
             {photoUrl ? (
-              <img
-                src={photoUrl}
-                alt="Evidencia"
-                className="max-h-[400px] w-auto object-cover"
-              />
+              <img src={photoUrl} alt="Evidencia" className="max-h-[400px] w-auto object-cover" />
             ) : (
-              <div className="w-[300px] h-[300px] bg-muted flex items-center justify-center text-muted-foreground">
-                Sin foto
-              </div>
+              <div className="w-[300px] h-[300px] bg-muted flex items-center justify-center text-muted-foreground">Sin foto</div>
             )}
 
             {/* GPS Overlay */}

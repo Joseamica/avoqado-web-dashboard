@@ -297,6 +297,7 @@ export interface StaffAttendanceEntry {
   checkOutTime?: string | null
   checkOutLocation?: { lat: number; lng: number } | null
   checkOutPhotoUrl?: string | null
+  depositPhotoUrl?: string | null
   break: boolean
   breakMinutes: number
   sales: number

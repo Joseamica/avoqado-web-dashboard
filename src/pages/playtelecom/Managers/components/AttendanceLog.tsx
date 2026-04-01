@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Check, X, Image, ImageOff, MapPin, MapPinOff, RotateCcw, ClipboardList, AlertTriangle } from 'lucide-react'
+import { Check, X, Image, ImageOff, MapPin, MapPinOff, RotateCcw, ClipboardList, AlertTriangle, Receipt } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FilterPill, CheckboxFilterContent } from '@/components/filters'
 
@@ -34,6 +34,7 @@ export interface AttendanceEntry {
   isLate?: boolean
   gpsWarning?: boolean
   checkOutPhotoUrl?: string | null
+  depositPhotoUrl?: string | null
 }
 
 interface AttendanceLogProps {
@@ -41,7 +42,7 @@ interface AttendanceLogProps {
   onApprove: (entry: AttendanceEntry) => void
   onReject: (id: string) => void
   onResetValidation: (id: string) => void
-  onViewPhoto: (entry: AttendanceEntry, type: 'clockIn' | 'clockOut') => void
+  onViewPhoto: (entry: AttendanceEntry, type: 'clockIn' | 'clockOut' | 'deposit') => void
   onViewLocation: (entry: AttendanceEntry, type: 'clockIn' | 'clockOut') => void
 }
 
@@ -51,21 +52,30 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
   const [photoFilter, setPhotoFilter] = useState<string[]>([])
   const [incidentFilter, setIncidentFilter] = useState<string[]>([])
 
-  const statusOptions = useMemo(() => [
-    { value: 'PENDING', label: t('managers.attendance.statusPending', { defaultValue: 'Pendiente' }) },
-    { value: 'APPROVED', label: t('managers.attendance.statusApproved', { defaultValue: 'Aprobado' }) },
-    { value: 'REJECTED', label: t('managers.attendance.statusRejected', { defaultValue: 'Rechazado' }) },
-  ], [t])
+  const statusOptions = useMemo(
+    () => [
+      { value: 'PENDING', label: t('managers.attendance.statusPending', { defaultValue: 'Pendiente' }) },
+      { value: 'APPROVED', label: t('managers.attendance.statusApproved', { defaultValue: 'Aprobado' }) },
+      { value: 'REJECTED', label: t('managers.attendance.statusRejected', { defaultValue: 'Rechazado' }) },
+    ],
+    [t],
+  )
 
-  const photoOptions = useMemo(() => [
-    { value: 'with-photo', label: t('managers.attendance.filterWithPhoto', { defaultValue: 'Con Foto' }) },
-    { value: 'no-photo', label: t('managers.attendance.filterNoPhoto', { defaultValue: 'Sin Foto' }) },
-  ], [t])
+  const photoOptions = useMemo(
+    () => [
+      { value: 'with-photo', label: t('managers.attendance.filterWithPhoto', { defaultValue: 'Con Foto' }) },
+      { value: 'no-photo', label: t('managers.attendance.filterNoPhoto', { defaultValue: 'Sin Foto' }) },
+    ],
+    [t],
+  )
 
-  const incidentOptions = useMemo(() => [
-    { value: 'with-incidents', label: t('managers.attendance.filterIncidents', { defaultValue: 'Con Incidencias' }) },
-    { value: 'no-incidents', label: t('managers.attendance.noIncidents', { defaultValue: 'Sin Incidencias' }) },
-  ], [t])
+  const incidentOptions = useMemo(
+    () => [
+      { value: 'with-incidents', label: t('managers.attendance.filterIncidents', { defaultValue: 'Con Incidencias' }) },
+      { value: 'no-incidents', label: t('managers.attendance.noIncidents', { defaultValue: 'Sin Incidencias' }) },
+    ],
+    [t],
+  )
 
   const hasActiveFilters = statusFilter.length > 0 || photoFilter.length > 0 || incidentFilter.length > 0
 
@@ -107,9 +117,7 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
     return `${selectedValues.length} ${t('managers.attendance.selected', { defaultValue: 'seleccionados' })}`
   }
 
-  const incidentCount = useMemo(() =>
-    entries.filter(e => e.incidents.some(i => i.severity !== 'ok')).length,
-  [entries])
+  const incidentCount = useMemo(() => entries.filter(e => e.incidents.some(i => i.severity !== 'ok')).length, [entries])
 
   return (
     <GlassCard className="overflow-hidden">
@@ -121,7 +129,10 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
           {incidentCount > 0 && (
             <div className="text-xs text-red-400 font-semibold flex items-center gap-2">
               <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              {incidentCount} {t('managers.attendance.incidentDetected', { defaultValue: incidentCount === 1 ? 'incidencia detectada' : 'incidencias detectadas' })}
+              {incidentCount}{' '}
+              {t('managers.attendance.incidentDetected', {
+                defaultValue: incidentCount === 1 ? 'incidencia detectada' : 'incidencias detectadas',
+              })}
             </div>
           )}
         </div>
@@ -194,12 +205,15 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
           <p className="text-sm font-medium">
             {!hasActiveFilters
               ? t('managers.attendance.noEntries', { defaultValue: 'Sin asistencia registrada para este periodo' })
-              : t('managers.attendance.noFilterResults', { defaultValue: 'Sin resultados para este filtro' })
-            }
+              : t('managers.attendance.noFilterResults', { defaultValue: 'Sin resultados para este filtro' })}
           </p>
           {hasActiveFilters && (
             <button
-              onClick={() => { setStatusFilter([]); setPhotoFilter([]); setIncidentFilter([]) }}
+              onClick={() => {
+                setStatusFilter([])
+                setPhotoFilter([])
+                setIncidentFilter([])
+              }}
               className="text-xs text-primary mt-2 hover:underline"
             >
               {t('managers.attendance.clearFilters', { defaultValue: 'Borrar filtros' })}
@@ -207,78 +221,164 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
           )}
         </div>
       ) : (
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-muted/30 text-xs uppercase font-bold text-muted-foreground">
-            <tr>
-              <th className="px-6 py-3">
-                {t('managers.attendance.dateStore', { defaultValue: 'Fecha / Tienda' })}
-              </th>
-              <th className="px-6 py-3">
-                {t('managers.attendance.promoter', { defaultValue: 'Promotor' })}
-              </th>
-              <th className="px-6 py-3 min-w-[200px]">
-                {t('managers.attendance.clockIn', { defaultValue: 'Entrada (Val.)' })}
-              </th>
-              <th className="px-6 py-3 min-w-[200px]">
-                {t('managers.attendance.clockOut', { defaultValue: 'Salida (Val.)' })}
-              </th>
-              <th className="px-6 py-3 text-center">
-                {t('managers.attendance.sales', { defaultValue: 'Ventas' })}
-              </th>
-              <th className="px-6 py-3">
-                {t('managers.attendance.incidents', { defaultValue: 'Incidencias' })}
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border/30">
-            {filteredEntries.map(entry => (
-              <tr
-                key={entry.id}
-                className={cn(
-                  'hover:bg-muted/20 transition',
-                  entry.incidents.some(i => i.severity === 'critical') && 'bg-red-500/5'
-                )}
-              >
-                <td className="px-6 py-4">
-                  <div className="font-semibold">{entry.date}</div>
-                  <div className="text-xs text-primary">{entry.storeName}</div>
-                </td>
-                <td className="px-6 py-4 text-muted-foreground">{entry.promoterName}</td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-muted/30 text-xs uppercase font-bold text-muted-foreground">
+              <tr>
+                <th className="px-6 py-3">{t('managers.attendance.dateStore', { defaultValue: 'Fecha / Tienda' })}</th>
+                <th className="px-6 py-3">{t('managers.attendance.promoter', { defaultValue: 'Promotor' })}</th>
+                <th className="px-6 py-3 min-w-[200px]">{t('managers.attendance.clockIn', { defaultValue: 'Entrada (Val.)' })}</th>
+                <th className="px-6 py-3 min-w-[200px]">{t('managers.attendance.clockOut', { defaultValue: 'Salida (Val.)' })}</th>
+                <th className="px-6 py-3 text-center">{t('managers.attendance.sales', { defaultValue: 'Ventas' })}</th>
+                <th className="px-6 py-3">{t('managers.attendance.incidents', { defaultValue: 'Incidencias' })}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/30">
+              {filteredEntries.map(entry => (
+                <tr
+                  key={entry.id}
+                  className={cn('hover:bg-muted/20 transition', entry.incidents.some(i => i.severity === 'critical') && 'bg-red-500/5')}
+                >
+                  <td className="px-6 py-4">
+                    <div className="font-semibold">{entry.date}</div>
+                    <div className="text-xs text-primary">{entry.storeName}</div>
+                  </td>
+                  <td className="px-6 py-4 text-muted-foreground">{entry.promoterName}</td>
 
-                {/* Clock In */}
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
+                  {/* Clock In */}
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex flex-col">
+                        <span className={cn('font-mono font-semibold', entry.isLate ? 'text-red-400' : 'text-green-400')}>
+                          {entry.clockIn || '--:--'}
+                        </span>
+                        {entry.clockIn && (
+                          <div className="flex gap-2 mt-1">
+                            {entry.clockInPhotoUrl ? (
+                              <button
+                                onClick={() => onViewPhoto(entry, 'clockIn')}
+                                className="text-muted-foreground hover:text-primary transition-colors"
+                              >
+                                <Image className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <span className="text-red-500">
+                                <ImageOff className="w-4 h-4" />
+                              </span>
+                            )}
+                            {entry.clockInLat != null && entry.clockInLon != null ? (
+                              <button
+                                onClick={() => onViewLocation(entry, 'clockIn')}
+                                className={cn(
+                                  'transition-colors',
+                                  entry.gpsWarning ? 'text-red-500 animate-pulse' : 'text-muted-foreground hover:text-primary',
+                                )}
+                              >
+                                <MapPin className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <span className="text-red-500">
+                                <MapPinOff className="w-4 h-4" />
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {entry.validationStatus === 'PENDING' && entry.clockIn && entry.clockOut && entry.timeEntryId && (
+                        <div className="flex gap-1 bg-muted/50 rounded p-1 border border-border/50">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-green-500 hover:text-green-600 hover:bg-green-500/10"
+                            onClick={() => onApprove(entry)}
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                            onClick={() => onReject(entry.timeEntryId!)}
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      )}
+                      {entry.validationStatus === 'APPROVED' && (
+                        <div className="flex items-center gap-1">
+                          <Badge variant="default" className="text-[10px] bg-green-500/20 text-green-400 border-green-500/30">
+                            <Check className="w-3 h-3 mr-0.5" />
+                          </Badge>
+                          {entry.timeEntryId && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5 text-muted-foreground hover:text-foreground"
+                              onClick={() => onResetValidation(entry.timeEntryId!)}
+                              title={t('managers.attendance.undo', { defaultValue: 'Deshacer' })}
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                      {entry.validationStatus === 'REJECTED' && (
+                        <div className="flex items-center gap-1">
+                          <Badge variant="destructive" className="text-[10px]">
+                            <X className="w-3 h-3 mr-0.5" />
+                          </Badge>
+                          {entry.timeEntryId && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5 text-muted-foreground hover:text-foreground"
+                              onClick={() => onResetValidation(entry.timeEntryId!)}
+                              title={t('managers.attendance.undo', { defaultValue: 'Deshacer' })}
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* Clock Out */}
+                  <td className="px-6 py-4">
                     <div className="flex flex-col">
-                      <span className={cn(
-                        'font-mono font-semibold',
-                        entry.isLate ? 'text-red-400' : 'text-green-400'
-                      )}>
-                        {entry.clockIn || '--:--'}
+                      <span className={cn('font-mono', entry.clockOut ? 'text-muted-foreground' : 'text-muted-foreground/50')}>
+                        {entry.clockOut || '--:--'}
                       </span>
-                      {entry.clockIn && (
+                      {entry.clockOut && (
                         <div className="flex gap-2 mt-1">
-                          {entry.clockInPhotoUrl ? (
+                          {/* Selfie de salida */}
+                          {entry.clockOutPhotoUrl ? (
                             <button
-                              onClick={() => onViewPhoto(entry, 'clockIn')}
+                              onClick={() => onViewPhoto(entry, 'clockOut')}
                               className="text-muted-foreground hover:text-primary transition-colors"
+                              title="Selfie de salida"
                             >
                               <Image className="w-4 h-4" />
                             </button>
                           ) : (
-                            <span className="text-red-500">
+                            <span className="text-red-500" title="Sin selfie de salida">
                               <ImageOff className="w-4 h-4" />
                             </span>
                           )}
-                          {entry.clockInLat != null && entry.clockInLon != null ? (
+                          {/* Voucher de depósito */}
+                          {entry.depositPhotoUrl ? (
                             <button
-                              onClick={() => onViewLocation(entry, 'clockIn')}
-                              className={cn(
-                                'transition-colors',
-                                entry.gpsWarning
-                                  ? 'text-red-500 animate-pulse'
-                                  : 'text-muted-foreground hover:text-primary'
-                              )}
+                              onClick={() => onViewPhoto(entry, 'deposit')}
+                              className="text-muted-foreground hover:text-green-500 transition-colors"
+                              title="Voucher de depósito"
+                            >
+                              <Receipt className="w-4 h-4" />
+                            </button>
+                          ) : null}
+                          {entry.clockOutLat != null && entry.clockOutLon != null ? (
+                            <button
+                              onClick={() => onViewLocation(entry, 'clockOut')}
+                              className="text-muted-foreground hover:text-primary transition-colors"
                             >
                               <MapPin className="w-4 h-4" />
                             </button>
@@ -290,136 +390,41 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
                         </div>
                       )}
                     </div>
-                    {entry.validationStatus === 'PENDING' && entry.clockIn && entry.clockOut && entry.timeEntryId && (
-                      <div className="flex gap-1 bg-muted/50 rounded p-1 border border-border/50">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-green-500 hover:text-green-600 hover:bg-green-500/10"
-                          onClick={() => onApprove(entry)}
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
-                          onClick={() => onReject(entry.timeEntryId!)}
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    )}
-                    {entry.validationStatus === 'APPROVED' && (
-                      <div className="flex items-center gap-1">
-                        <Badge variant="default" className="text-[10px] bg-green-500/20 text-green-400 border-green-500/30">
-                          <Check className="w-3 h-3 mr-0.5" />
-                        </Badge>
-                        {entry.timeEntryId && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5 text-muted-foreground hover:text-foreground"
-                            onClick={() => onResetValidation(entry.timeEntryId!)}
-                            title={t('managers.attendance.undo', { defaultValue: 'Deshacer' })}
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                    {entry.validationStatus === 'REJECTED' && (
-                      <div className="flex items-center gap-1">
-                        <Badge variant="destructive" className="text-[10px]">
-                          <X className="w-3 h-3 mr-0.5" />
-                        </Badge>
-                        {entry.timeEntryId && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5 text-muted-foreground hover:text-foreground"
-                            onClick={() => onResetValidation(entry.timeEntryId!)}
-                            title={t('managers.attendance.undo', { defaultValue: 'Deshacer' })}
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </td>
+                  </td>
 
-                {/* Clock Out */}
-                <td className="px-6 py-4">
-                  <div className="flex flex-col">
-                    <span className={cn(
-                      'font-mono',
-                      entry.clockOut ? 'text-muted-foreground' : 'text-muted-foreground/50'
-                    )}>
-                      {entry.clockOut || '--:--'}
-                    </span>
-                    {entry.clockOut && (
-                      <div className="flex gap-2 mt-1">
-                        {entry.clockOutPhotoUrl ? (
-                          <button
-                            onClick={() => onViewPhoto(entry, 'clockOut')}
-                            className="text-muted-foreground hover:text-primary transition-colors"
-                          >
-                            <Image className="w-4 h-4" />
-                          </button>
-                        ) : (
-                          <span className="text-red-500">
-                            <ImageOff className="w-4 h-4" />
-                          </span>
-                        )}
-                        {entry.clockOutLat != null && entry.clockOutLon != null ? (
-                          <button
-                            onClick={() => onViewLocation(entry, 'clockOut')}
-                            className="text-muted-foreground hover:text-primary transition-colors"
-                          >
-                            <MapPin className="w-4 h-4" />
-                          </button>
-                        ) : (
-                          <span className="text-red-500">
-                            <MapPinOff className="w-4 h-4" />
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </td>
+                  <td className="px-6 py-4 text-center font-semibold">{entry.sales}</td>
 
-                <td className="px-6 py-4 text-center font-semibold">{entry.sales}</td>
-
-                <td className="px-6 py-4">
-                  <div className="flex flex-wrap gap-1">
-                    {entry.incidents.length === 0 || entry.incidents.every(i => i.severity === 'ok') ? (
-                      <Badge className="text-[10px] bg-green-500/10 text-green-400 border-green-500/20">
-                        {t('managers.attendance.noIncidents', { defaultValue: 'Sin Incidencias' })}
-                      </Badge>
-                    ) : (
-                      entry.incidents.filter(i => i.severity !== 'ok').map((inc, idx) => (
-                        <Badge
-                          key={idx}
-                          className={cn(
-                            'text-[10px] flex items-center gap-1',
-                            inc.severity === 'critical'
-                              ? 'bg-red-500/10 text-red-400 border-red-500/20'
-                              : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                          )}
-                        >
-                          <AlertTriangle className="w-3 h-3" />
-                          {inc.label}
+                  <td className="px-6 py-4">
+                    <div className="flex flex-wrap gap-1">
+                      {entry.incidents.length === 0 || entry.incidents.every(i => i.severity === 'ok') ? (
+                        <Badge className="text-[10px] bg-green-500/10 text-green-400 border-green-500/20">
+                          {t('managers.attendance.noIncidents', { defaultValue: 'Sin Incidencias' })}
                         </Badge>
-                      ))
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                      ) : (
+                        entry.incidents
+                          .filter(i => i.severity !== 'ok')
+                          .map((inc, idx) => (
+                            <Badge
+                              key={idx}
+                              className={cn(
+                                'text-[10px] flex items-center gap-1',
+                                inc.severity === 'critical'
+                                  ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                                  : 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+                              )}
+                            >
+                              <AlertTriangle className="w-3 h-3" />
+                              {inc.label}
+                            </Badge>
+                          ))
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </GlassCard>
   )
