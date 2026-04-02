@@ -219,6 +219,7 @@ export function SupervisorDashboard() {
             clockInLocation: { lat: number; lng: number } | null
             clockOutLocation: { lat: number; lng: number } | null
             cashSales: number
+            isLate?: boolean
           }>
         | undefined
 
@@ -230,6 +231,7 @@ export function SupervisorDashboard() {
           clockIn: te.clockInTime ? new Date(te.clockInTime).toLocaleTimeString('es-MX', timeOpts).toUpperCase() : '--:--',
           clockOut: te.clockOutTime ? new Date(te.clockOutTime).toLocaleTimeString('es-MX', timeOpts).toUpperCase() : '--:--',
           sales: entry.sales || 0,
+          isLate: te.isLate ?? false,
           hasClockInPhoto: !!te.checkInPhotoUrl,
           clockInPhotoUrl: te.checkInPhotoUrl as string | null,
           hasClockInGps: te.clockInLocation != null,
@@ -251,6 +253,7 @@ export function SupervisorDashboard() {
           clockIn: entry.checkInTime ? new Date(entry.checkInTime).toLocaleTimeString('es-MX', timeOpts).toUpperCase() : '--:--',
           clockOut: entry.checkOutTime ? new Date(entry.checkOutTime).toLocaleTimeString('es-MX', timeOpts).toUpperCase() : '--:--',
           sales: entry.sales || 0,
+          isLate: (entry as any).isLate ?? false,
           hasClockInPhoto: !!entry.checkInPhotoUrl,
           clockInPhotoUrl: entry.checkInPhotoUrl ?? null,
           hasClockInGps: !!entry.checkInLocation,
@@ -907,12 +910,13 @@ export function SupervisorDashboard() {
                     <th className="px-6 py-3 min-w-[140px]">{t('playtelecom:supervisor.entry', { defaultValue: 'Entrada' })}</th>
                     <th className="px-6 py-3 min-w-[140px]">{t('playtelecom:supervisor.exit', { defaultValue: 'Salida' })}</th>
                     <th className="px-6 py-3 text-right">{t('playtelecom:supervisor.sale', { defaultValue: 'Venta' })}</th>
+                    <th className="px-6 py-3 text-right">{t('playtelecom:supervisor.status', { defaultValue: 'Estado' })}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/30">
                   {storeDetailRows.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
+                      <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                         <Store className="w-8 h-8 mx-auto mb-2 opacity-40" />
                         <p className="text-sm">
                           {t('playtelecom:supervisor.noStoreActivity', { defaultValue: 'Sin actividad registrada para este periodo' })}
@@ -926,7 +930,7 @@ export function SupervisorDashboard() {
                         <td className="px-6 py-4 text-muted-foreground">{row.promoter}</td>
                         <td className="px-6 py-4">
                           <div className="flex flex-col gap-1.5">
-                            <span className="text-green-400 font-mono font-semibold">{row.clockIn}</span>
+                            <span className={`font-mono font-semibold ${row.isLate ? 'text-red-400' : 'text-green-400'}`}>{row.clockIn}</span>
                             {row.clockIn !== '--:--' && (
                               <div className="flex gap-1.5">
                                 {row.hasClockInPhoto ? (
@@ -1029,6 +1033,13 @@ export function SupervisorDashboard() {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-right font-semibold font-mono">{formatCurrency(row.sales)}</td>
+                        <td className="px-6 py-4 text-right">
+                          {row.isLate && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border border-red-500/20 bg-red-500/10 text-red-400">
+                              Retardo
+                            </span>
+                          )}
+                        </td>
                       </tr>
                     ))
                   )}

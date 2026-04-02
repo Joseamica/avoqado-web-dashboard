@@ -160,10 +160,10 @@ export function ManagersDashboard() {
 
     const buildRow = (
       entry: (typeof attendanceData.staff)[number],
-      te: { id?: string; clockInTime: string | null; clockOutTime: string | null; checkInPhotoUrl?: string | null; checkOutPhotoUrl?: string | null; depositPhotoUrl?: string | null; clockInLocation?: { lat: number; lng: number } | null; clockOutLocation?: { lat: number; lng: number } | null; validationStatus?: string; cashSales?: number },
+      te: { id?: string; clockInTime: string | null; clockOutTime: string | null; checkInPhotoUrl?: string | null; checkOutPhotoUrl?: string | null; depositPhotoUrl?: string | null; clockInLocation?: { lat: number; lng: number } | null; clockOutLocation?: { lat: number; lng: number } | null; validationStatus?: string; cashSales?: number; isLate?: boolean },
     ): AttendanceEntry => {
       const clockInDate = new Date(te.clockInTime!)
-      const isLate = clockInDate.getHours() >= 10 || (clockInDate.getHours() === 9 && clockInDate.getMinutes() > 30)
+      const isLate = te.isLate ?? false
       const hasGps = !!(te.clockInLocation ?? entry.checkInLocation)
       const hasPhoto = !!(te.checkInPhotoUrl ?? entry.checkInPhotoUrl)
       // Check if this promoter has a GPS_VIOLATION anomaly from the backend
@@ -218,6 +218,7 @@ export function ManagersDashboard() {
           clockOutLocation?: { lat: number; lng: number } | null
           validationStatus?: string
           cashSales?: number
+          isLate?: boolean
         }> | undefined
 
         if (allEntries && allEntries.length > 0) {
@@ -234,6 +235,7 @@ export function ManagersDashboard() {
           clockInLocation: entry.checkInLocation,
           clockOutLocation: entry.checkOutLocation,
           validationStatus: entry.validationStatus,
+          isLate: (entry as any).isLate,
         })]
       })
   }, [attendanceData, venueTimezone, gpsViolationNames])
