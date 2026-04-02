@@ -167,7 +167,7 @@ export function SupervisorDashboard() {
   })
   const { data: _stockSummary } = useStoresStockSummary()
   const { data: venuesResponse, isLoading: venuesLoading } = useStoresVenues()
-  const { data: activityFeed } = useStoresActivityFeed(20, {
+  const { data: activityFeed } = useStoresActivityFeed(200, {
     refetchInterval: 30000,
     startDate: startDateISO,
     endDate: endDateISO,
@@ -287,9 +287,7 @@ export function SupervisorDashboard() {
       .map(e => {
         const metadata = (e.metadata ?? {}) as Record<string, unknown>
         const tags = Array.isArray(e.metadata?.tags)
-          ? (e.metadata.tags as unknown[])
-              .filter((tag): tag is string => typeof tag === 'string')
-              .map(tag => tag.trim().toLowerCase())
+          ? (e.metadata.tags as unknown[]).filter((tag): tag is string => typeof tag === 'string').map(tag => tag.trim().toLowerCase())
           : []
         const sellerName = e.staffName?.trim() || '--'
         const sellerUserFromMetadata = [
@@ -314,7 +312,11 @@ export function SupervisorDashboard() {
           }
 
           const normalizedPhotoUrl = photoUrl.toLowerCase()
-          if (normalizedPhotoUrl.includes('vinculacion') || normalizedPhotoUrl.includes('vinculación') || normalizedPhotoUrl.includes('linking')) {
+          if (
+            normalizedPhotoUrl.includes('vinculacion') ||
+            normalizedPhotoUrl.includes('vinculación') ||
+            normalizedPhotoUrl.includes('linking')
+          ) {
             return 'linking'
           }
           if (normalizedPhotoUrl.includes('portabilidad') || normalizedPhotoUrl.includes('portability')) {
@@ -596,9 +598,7 @@ export function SupervisorDashboard() {
                 }`}
               >
                 {t(`playtelecom:supervisor.tabs.${tab}`)}
-                {activeTab === tab && (
-                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-                )}
+                {activeTab === tab && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
               </button>
             ))}
           </nav>
@@ -1143,7 +1143,7 @@ export function SupervisorDashboard() {
                                     'absolute h-10 w-16 overflow-hidden rounded border border-border shadow-sm transition-all duration-200 ease-out cursor-pointer hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
                                     photoIndex === 0
                                       ? 'z-10 -translate-x-1 translate-y-1 group-hover/evidence:-translate-x-3 group-hover/evidence:translate-y-0'
-                                      : 'z-20 translate-x-1 -translate-y-1 group-hover/evidence:translate-x-3 group-hover/evidence:-translate-y-2'
+                                      : 'z-20 translate-x-1 -translate-y-1 group-hover/evidence:translate-x-3 group-hover/evidence:-translate-y-2',
                                   )}
                                 >
                                   <img src={photo} alt="Evidencia" className="h-full w-full object-cover" />
@@ -1151,7 +1151,7 @@ export function SupervisorDashboard() {
                                     <span
                                       className={cn(
                                         'absolute left-0 top-0 z-30 max-w-[95%] rounded-br bg-black/80 px-1 py-0.5 text-[8px] font-semibold leading-none text-white pointer-events-none truncate transition-opacity',
-                                        photoIndex === 0 ? 'opacity-0 group-hover/evidence:opacity-100' : 'opacity-100'
+                                        photoIndex === 0 ? 'opacity-0 group-hover/evidence:opacity-100' : 'opacity-100',
                                       )}
                                     >
                                       {getEvidenceTypeLabel(tx.photoEvidenceTypes[photoIndex])}
@@ -1271,9 +1271,7 @@ export function SupervisorDashboard() {
                         <td className="px-6 py-3">
                           <div className="leading-tight">
                             <div className="text-foreground">{tx.sellerName}</div>
-                            {tx.sellerUser && (
-                              <div className="text-[10px] font-mono text-muted-foreground">{tx.sellerUser}</div>
-                            )}
+                            {tx.sellerUser && <div className="text-[10px] font-mono text-muted-foreground">{tx.sellerUser}</div>}
                           </div>
                         </td>
                         <td className="px-6 py-3 text-right font-bold font-mono">
