@@ -153,30 +153,17 @@ export function StockControl() {
 
   // ─── Export ───
   const buildExportRows = useCallback(() => {
-    const headers = ['SIM ID', 'Categoría', 'Tipo', 'Fecha', 'Usuario', 'Registrado desde']
+    const headers = ['SIM ID', 'Categoría', 'Tipo', 'Fecha', 'Usuario', 'Registrado desde', 'Vendido por', 'Vendido en']
     const rows: string[][] = []
     for (const m of filteredMovements) {
+      const soldBy = m.soldByName || '-'
+      const soldAt = m.soldAtVenueName || '-'
       if (m.type === 'BULK_UPLOAD' && m.serialNumbers && m.serialNumbers.length > 0) {
-        // Each serial number gets the full metadata row
         for (const sn of m.serialNumbers) {
-          rows.push([
-            sn,
-            m.categoryName,
-            getTypeLabel(m.type),
-            formatDate(m.timestamp),
-            m.userName || '-',
-            m.registeredFromVenueName || '-',
-          ])
+          rows.push([sn, m.categoryName, getTypeLabel(m.type), formatDate(m.timestamp), m.userName || '-', m.registeredFromVenueName || '-', soldBy, soldAt])
         }
       } else {
-        rows.push([
-          m.serialNumber,
-          m.categoryName,
-          getTypeLabel(m.type),
-          formatDate(m.timestamp),
-          m.userName || '-',
-          m.registeredFromVenueName || '-',
-        ])
+        rows.push([m.serialNumber, m.categoryName, getTypeLabel(m.type), formatDate(m.timestamp), m.userName || '-', m.registeredFromVenueName || '-', soldBy, soldAt])
       }
     }
     return { headers, rows }
@@ -415,8 +402,8 @@ ${dataRows}
           </p>
         )}
 
-        {/* Table */}
-        <div className="overflow-x-auto">
+        {/* Table — desktop */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border/50">
@@ -434,6 +421,8 @@ ${dataRows}
                   {t('playtelecom:stock.user', { defaultValue: 'Usuario' })}
                 </th>
                 <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Registrado desde</th>
+                <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Vendido por</th>
+                <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Vendido en</th>
               </tr>
             </thead>
             <tbody>
@@ -466,12 +455,14 @@ ${dataRows}
                       <td className="py-3 px-2 text-sm">
                         {movement.registeredFromVenueName || <span className="text-muted-foreground">-</span>}
                       </td>
+                      <td className="py-3 px-2 text-sm">{movement.soldByName || <span className="text-muted-foreground">-</span>}</td>
+                      <td className="py-3 px-2 text-sm">{movement.soldAtVenueName || <span className="text-muted-foreground">-</span>}</td>
                     </tr>
                   )
                 })
               ) : (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="py-8 text-center text-muted-foreground">
                     {movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all'
                       ? t('playtelecom:stock.noResults', { defaultValue: 'No se encontraron movimientos con esos filtros' })
                       : t('playtelecom:stock.noMovements', { defaultValue: 'No hay movimientos recientes' })}
@@ -480,6 +471,67 @@ ${dataRows}
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile card list */}
+        <div className="md:hidden space-y-2">
+          {filteredMovements.length > 0 ? (
+            filteredMovements.map(movement => {
+              const typeConfig = MOVEMENT_TYPE_CONFIG[movement.type] || FALLBACK_TYPE_CONFIG
+              return (
+                <div
+                  key={movement.id}
+                  className={`rounded-lg border border-border/50 p-3 space-y-2 ${movement.type === 'BULK_UPLOAD' ? 'cursor-pointer active:bg-muted/50' : ''}`}
+                  onClick={movement.type === 'BULK_UPLOAD' ? () => setBulkDetailMovement(movement) : undefined}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    {movement.type === 'BULK_UPLOAD' ? (
+                      <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
+                        {movement.itemCount ?? movement.serialNumber} items
+                      </span>
+                    ) : (
+                      <code className="text-xs bg-muted/50 px-2 py-1 rounded font-mono truncate">{movement.serialNumber}</code>
+                    )}
+                    <Badge variant="outline" className={`text-xs shrink-0 ${typeConfig.className}`}>
+                      {typeConfig.label}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                    <span className="text-muted-foreground">Categoría</span>
+                    <span className="truncate">{movement.categoryName}</span>
+                    <span className="text-muted-foreground">Fecha</span>
+                    <span>{formatDate(movement.timestamp)}</span>
+                    <span className="text-muted-foreground">Usuario</span>
+                    <span>{movement.userName || '-'}</span>
+                    {movement.registeredFromVenueName && (
+                      <>
+                        <span className="text-muted-foreground">Registrado desde</span>
+                        <span className="truncate">{movement.registeredFromVenueName}</span>
+                      </>
+                    )}
+                    {movement.soldByName && (
+                      <>
+                        <span className="text-muted-foreground">Vendido por</span>
+                        <span className="truncate">{movement.soldByName}</span>
+                      </>
+                    )}
+                    {movement.soldAtVenueName && (
+                      <>
+                        <span className="text-muted-foreground">Vendido en</span>
+                        <span className="truncate">{movement.soldAtVenueName}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )
+            })
+          ) : (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              {movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all'
+                ? t('playtelecom:stock.noResults', { defaultValue: 'No se encontraron movimientos con esos filtros' })
+                : t('playtelecom:stock.noMovements', { defaultValue: 'No hay movimientos recientes' })}
+            </p>
+          )}
         </div>
       </GlassCard>
 

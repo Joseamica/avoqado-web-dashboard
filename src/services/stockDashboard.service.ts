@@ -79,6 +79,8 @@ export interface StockMovement {
   itemCount?: number
   registeredFromVenueName?: string | null
   serialNumbers?: string[]
+  soldByName?: string | null
+  soldAtVenueName?: string | null
 }
 
 export interface StockMovementsResponse {
@@ -127,10 +129,7 @@ export const getCategoryStock = async (venueId: string): Promise<CategoryStockRe
 /**
  * Get stock vs sales trend for chart
  */
-export const getStockChart = async (
-  venueId: string,
-  params?: { days?: number }
-): Promise<StockChartResponse> => {
+export const getStockChart = async (venueId: string, params?: { days?: number }): Promise<StockChartResponse> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stock/chart`, { params })
   return response.data.data
 }
@@ -148,7 +147,7 @@ export const getStockAlerts = async (venueId: string): Promise<StockAlertsRespon
  */
 export const configureStockAlert = async (
   venueId: string,
-  data: { categoryId: string; minimumStock: number; alertEnabled: boolean }
+  data: { categoryId: string; minimumStock: number; alertEnabled: boolean },
 ): Promise<ConfigureAlertResult> => {
   const response = await api.post(`/api/v1/dashboard/venues/${venueId}/stock/alerts/configure`, data)
   return response.data.data
@@ -157,10 +156,7 @@ export const configureStockAlert = async (
 /**
  * Process bulk upload CSV
  */
-export const processBulkUpload = async (
-  venueId: string,
-  data: { categoryId: string; csvContent: string }
-): Promise<BulkUploadResult> => {
+export const processBulkUpload = async (venueId: string, data: { categoryId: string; csvContent: string }): Promise<BulkUploadResult> => {
   const response = await api.post(`/api/v1/dashboard/venues/${venueId}/stock/bulk-upload`, data)
   return response.data.data
 }
@@ -191,10 +187,7 @@ export const bulkUploadItems = async (
 /**
  * Get recent stock movements
  */
-export const getStockMovements = async (
-  venueId: string,
-  params?: { limit?: number }
-): Promise<StockMovementsResponse> => {
+export const getStockMovements = async (venueId: string, params?: { limit?: number }): Promise<StockMovementsResponse> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stock/movements`, { params })
   return response.data.data
 }
@@ -213,8 +206,6 @@ export const getItemCategories = async (
     params.append('includeStats', 'true')
   }
 
-  const response = await api.get(
-    `/api/v1/dashboard/venues/${venueId}/stock/item-categories${params.toString() ? `?${params}` : ''}`,
-  )
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stock/item-categories${params.toString() ? `?${params}` : ''}`)
   return response.data.data
 }
