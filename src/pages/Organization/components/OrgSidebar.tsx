@@ -184,11 +184,6 @@ const OrgSidebar: React.FC<OrgSidebarProps> = props => {
                   href: `/organizations/${orgId}/org-messages`,
                   icon: MessageSquare,
                 },
-                {
-                  name: t('organization:sidebar.staffAssignment', { defaultValue: 'Asignación de Personal' }),
-                  href: `/organizations/${orgId}/staff-assignment`,
-                  icon: Users,
-                },
               ],
             },
           ]

@@ -195,7 +195,8 @@ export default function OrgUsersPage() {
       queryClient.invalidateQueries({ queryKey: ['org-config', orgId, 'team'] })
     },
     onError: (error: any) => {
-      const msg = error?.response?.data?.message || t('playtelecom:users.venuesUpdateError', { defaultValue: 'Error al actualizar tiendas' })
+      const msg =
+        error?.response?.data?.message || t('playtelecom:users.venuesUpdateError', { defaultValue: 'Error al actualizar tiendas' })
       toast({ title: msg, variant: 'destructive' })
     },
   })

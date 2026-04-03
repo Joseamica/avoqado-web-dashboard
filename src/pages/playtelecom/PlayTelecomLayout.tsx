@@ -57,7 +57,7 @@ export default function PlayTelecomLayout() {
     <div className="flex flex-col h-full">
       {/* Header with breadcrumbs */}
       <div className="flex-shrink-0 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="px-6 py-4">
+        <div className="px-4 sm:px-6 py-3 sm:py-4">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
@@ -82,7 +82,7 @@ export default function PlayTelecomLayout() {
             </BreadcrumbList>
           </Breadcrumb>
 
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">
+          <h1 className="mt-1 sm:mt-2 text-lg sm:text-2xl font-semibold tracking-tight">
             {currentSection ? sectionTitle : t('playtelecom:commandCenter.title', { defaultValue: 'Centro de Comando' })}
           </h1>
         </div>
@@ -90,7 +90,7 @@ export default function PlayTelecomLayout() {
 
       {/* Main content area */}
       <div className="flex-1 overflow-hidden">
-        <div className="h-full overflow-auto p-6">
+        <div className="h-full overflow-auto p-3 sm:p-6">
           <Outlet />
         </div>
       </div>

@@ -461,7 +461,7 @@ export function ManagersDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-36 rounded-xl" />)}
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-72 rounded-xl" />)}
         </div>
         <Skeleton className="h-80 rounded-xl" />
@@ -472,11 +472,11 @@ export function ManagersDashboard() {
   return (
     <div className="space-y-6">
       {/* Header + Filters */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <h2 className="text-xl font-bold tracking-tight">
           {t('playtelecom:managers.title', { defaultValue: 'Dashboard Gerencial' })}
         </h2>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2 sm:gap-3">
           <DateRangePicker
             showCompare={false}
             onUpdate={({ range }) => {
@@ -499,7 +499,7 @@ export function ManagersDashboard() {
                 {t('playtelecom:managers.filters.status', { defaultValue: 'Estado' })}
               </span>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="border-0 bg-transparent h-5 text-xs font-semibold w-[100px] p-0">
+                <SelectTrigger className="border-0 bg-transparent h-5 text-xs font-semibold w-full sm:w-[100px] p-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -520,7 +520,7 @@ export function ManagersDashboard() {
                 {t('playtelecom:managers.filters.store', { defaultValue: 'Tienda' })}
               </span>
               <Select value={storeFilter} onValueChange={setStoreFilter}>
-                <SelectTrigger className="border-0 bg-transparent h-5 text-xs font-semibold w-[130px] p-0">
+                <SelectTrigger className="border-0 bg-transparent h-5 text-xs font-semibold w-full sm:w-[130px] p-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

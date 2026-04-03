@@ -221,7 +221,8 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
           )}
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        {/* Desktop table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-muted/30 text-xs uppercase font-bold text-muted-foreground">
               <tr>
@@ -424,6 +425,71 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile card list */}
+        <div className="md:hidden divide-y divide-border/30">
+          {filteredEntries.map(entry => (
+            <div
+              key={entry.id}
+              className={cn('p-3 space-y-2', entry.incidents.some(i => i.severity === 'critical') && 'bg-red-500/5')}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="font-semibold text-sm">{entry.storeName}</p>
+                  <p className="text-xs text-muted-foreground">{entry.promoterName}</p>
+                  <p className="text-[10px] text-muted-foreground">{entry.date}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-sm">${entry.sales}</p>
+                  {entry.validationStatus === 'APPROVED' && (
+                    <Badge variant="default" className="text-[10px] bg-green-500/20 text-green-400 border-green-500/30"><Check className="w-3 h-3" /></Badge>
+                  )}
+                  {entry.validationStatus === 'REJECTED' && (
+                    <Badge variant="destructive" className="text-[10px]"><X className="w-3 h-3" /></Badge>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-4 text-xs">
+                <div>
+                  <span className="text-muted-foreground">Entrada: </span>
+                  <span className={cn('font-mono font-semibold', entry.isLate ? 'text-red-400' : 'text-green-400')}>{entry.clockIn || '--:--'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Salida: </span>
+                  <span className="font-mono">{entry.clockOut || '--:--'}</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {entry.clockInPhotoUrl && (
+                  <button onClick={() => onViewPhoto(entry, 'clockIn')} className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 cursor-pointer">
+                    <Image className="w-3 h-3" /> Foto
+                  </button>
+                )}
+                {entry.clockInLat != null && (
+                  <button onClick={() => onViewLocation(entry, 'clockIn')} className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 cursor-pointer">
+                    <MapPin className="w-3 h-3" /> GPS
+                  </button>
+                )}
+                {entry.depositPhotoUrl && (
+                  <button onClick={() => onViewPhoto(entry, 'deposit')} className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 cursor-pointer">
+                    <Receipt className="w-3 h-3" /> Depósito
+                  </button>
+                )}
+                {entry.incidents.filter(i => i.severity !== 'ok').map((inc, idx) => (
+                  <Badge key={idx} className={cn('text-[10px]', inc.severity === 'critical' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20')}>
+                    <AlertTriangle className="w-3 h-3 mr-0.5" />{inc.label}
+                  </Badge>
+                ))}
+                {entry.validationStatus === 'PENDING' && entry.clockIn && entry.clockOut && entry.timeEntryId && (
+                  <div className="flex gap-1 ml-auto">
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-green-500" onClick={() => onApprove(entry)}><Check className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => onReject(entry.timeEntryId!)}><X className="w-4 h-4" /></Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </GlassCard>

@@ -527,11 +527,11 @@ export function SupervisorDashboard() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 rounded-xl" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Skeleton className="lg:col-span-2 h-48 rounded-xl" />
           <Skeleton className="h-48 rounded-xl" />
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => (
             <Skeleton key={i} className="h-72 rounded-xl" />
           ))}
@@ -545,12 +545,12 @@ export function SupervisorDashboard() {
   return (
     <div className="space-y-6">
       {/* Header + Filters */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <PageTitleWithInfo
           title={t('playtelecom:supervisor.title', { defaultValue: 'Tablero Operativo' })}
           className="text-xl font-bold tracking-tight"
         />
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <DateRangePicker
             showCompare={false}
             onUpdate={({ range }) => {
@@ -571,7 +571,7 @@ export function SupervisorDashboard() {
                 {t('playtelecom:supervisor.store', { defaultValue: 'Tienda' })}
               </span>
               <Select value={storeFilter} onValueChange={setStoreFilter}>
-                <SelectTrigger className="border-0 bg-transparent h-5 text-xs font-semibold w-[140px] p-0">
+                <SelectTrigger className="border-0 bg-transparent h-5 text-xs font-semibold w-full sm:w-[140px] p-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -591,7 +591,7 @@ export function SupervisorDashboard() {
       {/* Underline Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <div className="border-b border-border">
-          <nav className="flex items-center gap-6">
+          <nav className="flex items-center gap-3 sm:gap-6 overflow-x-auto">
             {VALID_TABS.map(tab => (
               <button
                 key={tab}
@@ -610,9 +610,9 @@ export function SupervisorDashboard() {
         {/* Tab: Operativo */}
         <TabsContent value="operativo" className="space-y-6 mt-4">
           {/* Operational Coverage + Cash */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Coverage */}
-            <GlassCard className="lg:col-span-2 p-6 flex items-center justify-around relative overflow-hidden">
+            <GlassCard className="md:col-span-2 p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-around relative overflow-hidden gap-4">
               <div>
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">
                   {t('playtelecom:supervisor.operationalCoverage', { defaultValue: 'Cobertura Operativa' })}
@@ -717,7 +717,7 @@ export function SupervisorDashboard() {
           </div>
 
           {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Pie - Sales by Store */}
             <GlassCard className="p-5 flex flex-col items-center justify-center min-h-[280px]">
               <h4 className="text-xs font-bold text-muted-foreground uppercase mb-4 self-start">
@@ -895,13 +895,14 @@ export function SupervisorDashboard() {
 
           {/* Store Detail Table */}
           <GlassCard className="overflow-hidden">
-            <div className="bg-card/80 px-6 py-3 border-b border-border/50">
+            <div className="bg-card/80 px-4 sm:px-6 py-3 border-b border-border/50">
               <h3 className="font-semibold text-sm uppercase flex items-center gap-2">
                 <Store className="w-4 h-4 text-primary" />
                 {t('playtelecom:supervisor.storeDetail', { defaultValue: 'Detalle por Tienda' })}
               </h3>
             </div>
-            <div className="overflow-x-auto">
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="bg-muted/30 text-xs uppercase font-bold text-muted-foreground">
                   <tr>
@@ -1046,12 +1047,65 @@ export function SupervisorDashboard() {
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile card list */}
+            <div className="md:hidden divide-y divide-border/30">
+              {storeDetailRows.length === 0 ? (
+                <div className="px-4 py-12 text-center text-muted-foreground">
+                  <Store className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">{t('playtelecom:supervisor.noStoreActivity', { defaultValue: 'Sin actividad registrada para este periodo' })}</p>
+                </div>
+              ) : (
+                storeDetailRows.map((row, i) => (
+                  <div key={i} className="p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-sm">{row.store}</p>
+                        <p className="text-xs text-muted-foreground">{row.promoter}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-mono font-semibold text-sm">{formatCurrency(row.sales)}</p>
+                        {row.isLate && (
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border border-red-500/20 bg-red-500/10 text-red-400">Retardo</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs">
+                      <div>
+                        <span className="text-muted-foreground">Entrada: </span>
+                        <span className={`font-mono font-semibold ${row.isLate ? 'text-red-400' : 'text-green-400'}`}>{row.clockIn}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Salida: </span>
+                        <span className="font-mono">{row.clockOut}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {row.hasClockInPhoto && (
+                        <button onClick={() => setPhotoDialog({ url: row.clockInPhotoUrl!, promoter: row.promoter, store: row.store, time: row.clockIn, label: 'Entrada', lat: row.clockInLat, lon: row.clockInLon })}
+                          className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 cursor-pointer">
+                          <Image className="w-3 h-3" /> Foto
+                        </button>
+                      )}
+                      {!row.hasClockInPhoto && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400"><ImageOff className="w-3 h-3" /> Sin Foto</span>}
+                      {row.hasClockInGps && (
+                        <button onClick={() => setLocationDialog({ promoter: row.promoter, store: row.store, time: row.clockIn, label: 'Entrada', lat: row.clockInLat, lon: row.clockInLon })}
+                          className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 cursor-pointer">
+                          <MapPin className="w-3 h-3" /> GPS
+                        </button>
+                      )}
+                      {!row.hasClockInGps && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400"><MapPinOff className="w-3 h-3" /> Sin GPS</span>}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </GlassCard>
 
           {/* Real-time Transactions */}
           <GlassCard className="overflow-hidden">
-            <div className="px-6 py-4 border-b border-border/50 flex justify-between items-center bg-card/80">
-              <h3 className="font-semibold flex items-center gap-2">
+            <div className="px-4 sm:px-6 py-4 border-b border-border/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-card/80">
+              <h3 className="font-semibold flex items-center gap-2 text-sm sm:text-base">
                 <Receipt className="w-4 h-4 text-green-400" />
                 {t('playtelecom:supervisor.transactions', { defaultValue: 'Transacciones en tiempo real' })}
               </h3>

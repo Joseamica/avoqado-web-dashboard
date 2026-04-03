@@ -80,7 +80,7 @@ export function PromoterCharts({ promoterId, promoterName: _promoterName, venueI
   const maxSales = salesData.length > 0 ? Math.max(...salesData.map((d: any) => d.sales)) : 1
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
       {/* Tendencia de Ventas */}
       <div className="bg-card rounded-xl border p-6">
         <div className="flex items-center gap-2 mb-4">

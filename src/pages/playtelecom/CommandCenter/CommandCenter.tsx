@@ -596,7 +596,7 @@ export default function CommandCenter() {
           </Select>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[420px]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8 lg:h-[420px]">
           {/* Ingresos vs Meta (Area Chart) */}
           <div className="flex flex-col h-full">
             <div className="flex justify-between items-end mb-4">
@@ -691,7 +691,7 @@ export default function CommandCenter() {
           </div>
 
           {/* Volumen vs Meta (Bar + Line) */}
-          <div className="flex flex-col h-full border-l border-border/50 pl-8">
+          <div className="flex flex-col h-full lg:border-l lg:border-border/50 lg:pl-8">
             <div className="flex justify-between items-end mb-4">
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Volumen vs Meta (#)</p>
               <div className="flex gap-3 text-[10px] font-bold">

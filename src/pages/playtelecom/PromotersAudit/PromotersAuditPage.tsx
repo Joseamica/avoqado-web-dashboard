@@ -599,7 +599,7 @@ export default function PromotersAuditPage() {
                         if (!searchTerm) setIsSearchOpen(false)
                       }
                     }}
-                    className="h-8 w-[200px] pl-8 pr-8 text-sm rounded-full border border-input bg-background focus:ring-2 focus:ring-ring"
+                    className="h-8 w-full sm:w-[200px] pl-8 pr-8 text-sm rounded-full border border-input bg-background focus:ring-2 focus:ring-ring"
                     autoFocus
                   />
                   {searchTerm && (

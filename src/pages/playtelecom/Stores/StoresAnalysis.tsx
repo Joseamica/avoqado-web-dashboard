@@ -225,10 +225,10 @@ export function StoresAnalysis() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 rounded-xl" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-52 rounded-xl" />)}
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <Skeleton className="lg:col-span-2 h-80 rounded-xl" />
           <Skeleton className="h-80 rounded-xl" />
         </div>
@@ -251,7 +251,7 @@ export function StoresAnalysis() {
           </div>
           <div>
             <Select value={selectedStore} onValueChange={setSelectedStore}>
-              <SelectTrigger className="w-[280px] font-semibold">
+              <SelectTrigger className="w-full sm:w-[280px] font-semibold">
                 <SelectValue placeholder={venuesLoading ? 'Cargando tiendas...' : 'Selecciona una tienda'} />
               </SelectTrigger>
               <SelectContent>
@@ -281,7 +281,7 @@ export function StoresAnalysis() {
       </div>
 
       {/* Row 1: Health Score + Progress + Calendar */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Health Score Gauge */}
         <GlassCard className="p-6 flex items-center justify-center">
           <GaugeChart
@@ -341,7 +341,7 @@ export function StoresAnalysis() {
       </div>
 
       {/* Row 2: Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Sales Evolution (Area Chart) */}
         <GlassCard className="lg:col-span-2 p-6">
           <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-4">
