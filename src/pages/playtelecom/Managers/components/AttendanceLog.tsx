@@ -221,7 +221,7 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
           )}
         </div>
       ) : (
-        {/* Desktop table */}
+        <>
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-muted/30 text-xs uppercase font-bold text-muted-foreground">
@@ -491,6 +491,7 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
             </div>
           ))}
         </div>
+        </>
       )}
     </GlassCard>
   )
