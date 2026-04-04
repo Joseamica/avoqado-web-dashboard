@@ -190,7 +190,7 @@ const Sidebar = React.forwardRef<
         {openMobile && (
           <div
             data-sidebar="mobile-overlay"
-            className="fixed inset-0 z-50 bg-black/50 animate-in fade-in-0"
+            className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm animate-in fade-in-0"
             onClick={() => setOpenMobile(false)}
           />
         )}
