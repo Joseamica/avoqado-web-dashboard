@@ -235,13 +235,13 @@ function DashboardContent() {
         }
       >
         <header
-          className={`flex h-16 shrink-0 items-center justify-between transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 px-4 text-foreground`}
+          className={`flex h-14 md:h-16 shrink-0 items-center justify-between transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 px-3 md:px-4 text-foreground`}
         >
-          <div className="flex items-center gap-2">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="h-4 mr-2" />
+          <div className="flex items-center gap-2 min-w-0">
+            <SidebarTrigger className="-ml-1 shrink-0" />
+            <Separator orientation="vertical" className="h-4 mr-2 hidden sm:block" />
             {/* Breadcrumb: Shows venue name + path segments */}
-            <Breadcrumb>
+            <Breadcrumb className="hidden sm:block">
               <BreadcrumbList>
                 {pathSegments.map((segment, index) => {
                   const isLast = index === pathSegments.length - 1
@@ -266,13 +266,13 @@ function DashboardContent() {
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {/* Superadmin Navigation Button - only show for SUPERADMIN users */}
             {user?.role === StaffRole.SUPERADMIN && (
-              <Button variant="outline" size="sm" onClick={() => navigate('/superadmin')} className="flex items-center space-x-2">
+              <Button variant="outline" size="sm" onClick={() => navigate('/superadmin')} className="flex items-center space-x-1 sm:space-x-2">
                 <Shield className="w-4 h-4" />
-                <span>{t('header.superadmin', { ns: 'superadmin' })}</span>
-                <ArrowLeft className="w-3 h-3" />
+                <span className="hidden sm:inline">{t('header.superadmin', { ns: 'superadmin' })}</span>
+                <ArrowLeft className="w-3 h-3 hidden sm:block" />
               </Button>
             )}
             <LanguageSwitcher />

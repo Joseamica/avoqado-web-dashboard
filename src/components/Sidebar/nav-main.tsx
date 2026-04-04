@@ -74,7 +74,7 @@ export function NavMain({
   const navigate = useNavigate()
   const location = useLocation()
   const { t } = useTranslation('sidebar')
-  const { state: sidebarState, isMobile } = useSidebar()
+  const { state: sidebarState, isMobile, setOpenMobile } = useSidebar()
   const isCollapsed = sidebarState === 'collapsed' && !isMobile
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({})
   const [activeSubSidebar, setActiveSubSidebar] = useState<string | null>(null)
@@ -157,6 +157,14 @@ export function NavMain({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, isCollapsed, subSidebarSections])
+
+  // Auto-close mobile sheet when navigating to a new route
+  useEffect(() => {
+    if (isMobile) {
+      setOpenMobile(false)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname])
 
   // Tiny Avoqado badge for core platform items in white-label venues
   const AvoqadoBadge = () => <img src={avoqadoIsotipo} alt="Avoqado" className="w-2.5 shrink-0 object-contain opacity-50" />

@@ -253,7 +253,7 @@ const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.C
         data-sidebar="trigger"
         variant="ghost"
         size="icon"
-        className={cn('h-7 w-7', className)}
+        className={cn('h-8 w-8 md:h-7 md:w-7', className)}
         onClick={event => {
           onClick?.(event)
           toggleSidebar()
@@ -502,8 +502,8 @@ const sidebarMenuButtonVariants = cva(
           'bg-background shadow-[0_0_0_1px_var(--color-sidebar-border)] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_var(--color-sidebar-accent)]',
       },
       size: {
-        default: 'h-8',
-        sm: 'h-7 text-[13px] leading-[18px]',
+        default: 'h-10 md:h-8',
+        sm: 'h-8 md:h-7 text-[13px] leading-[18px]',
         lg: 'h-12 group-data-[collapsible=icon]:p-0!',
       },
     },
@@ -666,7 +666,7 @@ const SidebarMenuSubButton = React.forwardRef<
       data-size={size}
       data-active={isActive}
       className={cn(
-        'flex h-7 w-full min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-[14px] leading-5 text-sidebar-foreground outline-hidden ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span]:truncate [&>span]:min-w-0 [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground',
+        'flex h-9 md:h-7 w-full min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-[14px] leading-5 text-sidebar-foreground outline-hidden ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span]:truncate [&>span]:min-w-0 [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground',
         'data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent',
         size === 'sm' && 'text-[13px] leading-[18px]',
         size === 'md' && 'text-[13px] leading-5',

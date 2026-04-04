@@ -68,10 +68,10 @@ const WLOrganizationLayout: React.FC = () => {
           } as React.CSSProperties
         }
       >
-        <header className="flex h-16 shrink-0 items-center justify-between transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 px-4 text-foreground">
-          <div className="flex items-center gap-2">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="h-4 mr-2" />
+        <header className="flex h-14 md:h-16 shrink-0 items-center justify-between transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 px-3 md:px-4 text-foreground">
+          <div className="flex items-center gap-2 min-w-0">
+            <SidebarTrigger className="-ml-1 shrink-0" />
+            <Separator orientation="vertical" className="h-4 mr-2 hidden sm:block" />
 
             {/* Breadcrumb */}
             <Breadcrumb>
