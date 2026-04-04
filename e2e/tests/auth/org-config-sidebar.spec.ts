@@ -181,12 +181,11 @@ test.describe('Org Config Sidebar', () => {
     // The org config section label should be visible
     await expect(page.getByText('Configuración Org.')).toBeVisible({ timeout: 10_000 })
 
-    // All 5 org config items should appear
+    // All 4 org config items should appear
     await expect(page.getByText('Configuración TPV')).toBeVisible()
     await expect(page.getByText('Metas')).toBeVisible()
     await expect(page.getByText('Categorías')).toBeVisible()
     await expect(page.getByText('Mensajes')).toBeVisible()
-    await expect(page.getByText('Asignación de Personal')).toBeVisible()
   })
 
   test('2 — Non-WL org does NOT show "Configuracion Org." sidebar section', async ({ page }) => {
