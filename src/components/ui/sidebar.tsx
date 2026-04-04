@@ -98,7 +98,15 @@ const SidebarProvider = React.forwardRef<
 
   // Helper to toggle the sidebar.
   const toggleSidebar = React.useCallback(() => {
-    return isMobile ? setOpenMobile(open => !open) : setOpen(open => !open)
+    if (isMobile) {
+      // For mobile, always explicitly set to true (open).
+      // The Sheet's onOpenChange handles closing via overlay/swipe.
+      // Using toggle (!open) causes race conditions where the pointer-up
+      // from the trigger click lands on the newly-mounted overlay, immediately closing it.
+      setOpenMobile(true)
+    } else {
+      setOpen(open => !open)
+    }
   }, [isMobile, setOpen, setOpenMobile])
 
   // Adds a keyboard shortcut to toggle the sidebar.
@@ -177,21 +185,34 @@ const Sidebar = React.forwardRef<
 
   if (isMobile) {
     return (
-      <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
-        <SheetContent
+      <>
+        {/* Overlay */}
+        {openMobile && (
+          <div
+            data-sidebar="mobile-overlay"
+            className="fixed inset-0 z-50 bg-black/50 animate-in fade-in-0"
+            onClick={() => setOpenMobile(false)}
+          />
+        )}
+        {/* Sidebar drawer */}
+        <div
+          ref={ref}
           data-sidebar="sidebar"
           data-mobile="true"
-          className="w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
-          style={
-            {
-              '--sidebar-width': SIDEBAR_WIDTH_MOBILE,
-            } as React.CSSProperties
-          }
-          side={side}
+          className={cn(
+            'fixed inset-y-0 z-50 flex h-full flex-col bg-sidebar text-sidebar-foreground transition-transform duration-300 ease-in-out',
+            side === 'left' ? 'left-0' : 'right-0',
+            openMobile
+              ? 'translate-x-0'
+              : side === 'left'
+                ? '-translate-x-full'
+                : 'translate-x-full',
+          )}
+          style={{ width: SIDEBAR_WIDTH_MOBILE } as React.CSSProperties}
         >
-          <div className="flex h-full w-full flex-col">{children}</div>
-        </SheetContent>
-      </Sheet>
+          {children}
+        </div>
+      </>
     )
   }
 
