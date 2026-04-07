@@ -8,7 +8,6 @@ import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -202,11 +201,7 @@ const Sidebar = React.forwardRef<
           className={cn(
             'fixed inset-y-0 z-50 flex h-full flex-col bg-sidebar text-sidebar-foreground transition-transform duration-300 ease-in-out',
             side === 'left' ? 'left-0' : 'right-0',
-            openMobile
-              ? 'translate-x-0'
-              : side === 'left'
-                ? '-translate-x-full'
-                : 'translate-x-full',
+            openMobile ? 'translate-x-0' : side === 'left' ? '-translate-x-full' : 'translate-x-full',
           )}
           style={{ width: SIDEBAR_WIDTH_MOBILE } as React.CSSProperties}
         >

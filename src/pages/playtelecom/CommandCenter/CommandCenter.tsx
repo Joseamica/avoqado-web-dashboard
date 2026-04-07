@@ -71,11 +71,52 @@ export default function CommandCenter() {
   const [activityDateFilter, setActivityDateFilter] = useState<DateFilter | null>(null)
   const chartVenueId = selectedView === 'global' ? undefined : selectedView
 
+  // Convert activityDateFilter to backend startDate/endDate (ISO strings)
+  const activityDateRange = useMemo(() => {
+    if (!activityDateFilter) return { startDate: undefined, endDate: undefined }
+    const now = new Date()
+    switch (activityDateFilter.operator) {
+      case 'last': {
+        const value = typeof activityDateFilter.value === 'number' ? activityDateFilter.value : parseInt(activityDateFilter.value as string) || 0
+        const start = new Date()
+        switch (activityDateFilter.unit) {
+          case 'hours': start.setHours(now.getHours() - value); break
+          case 'days': start.setDate(now.getDate() - value); break
+          case 'weeks': start.setDate(now.getDate() - value * 7); break
+          case 'months': start.setMonth(now.getMonth() - value); break
+        }
+        return { startDate: start.toISOString(), endDate: now.toISOString() }
+      }
+      case 'before':
+        return { startDate: undefined, endDate: new Date(activityDateFilter.value as string).toISOString() }
+      case 'after':
+        return { startDate: new Date(activityDateFilter.value as string).toISOString(), endDate: undefined }
+      case 'between': {
+        const end = new Date(activityDateFilter.value2 as string)
+        end.setHours(23, 59, 59, 999)
+        return { startDate: new Date(activityDateFilter.value as string).toISOString(), endDate: end.toISOString() }
+      }
+      case 'on': {
+        const start = new Date(activityDateFilter.value as string)
+        start.setHours(0, 0, 0, 0)
+        const end = new Date(activityDateFilter.value as string)
+        end.setHours(23, 59, 59, 999)
+        return { startDate: start.toISOString(), endDate: end.toISOString() }
+      }
+      default:
+        return { startDate: undefined, endDate: undefined }
+    }
+  }, [activityDateFilter])
+
   // Fetch organization-wide data via venue-level endpoints (white-label access)
   const { data: overview, isLoading: overviewLoading, refetch: refetchOverview } = useStoresOverview({ refetchInterval: 60000 })
   const { data: venuesResponse, isLoading: venuesLoading, refetch: refetchVenues } = useStoresVenues({ refetchInterval: 60000 })
   const { data: onlineStaff, isLoading: _onlineStaffLoading, refetch: refetchOnlineStaff } = useStoresOnlineStaff({ refetchInterval: 60000 })
-  const { data: activityFeed, isLoading: activityFeedLoading, refetch: refetchActivityFeed } = useStoresActivityFeed(30, { refetchInterval: 60000 })
+  const { data: activityFeed, isLoading: activityFeedLoading, refetch: refetchActivityFeed } = useStoresActivityFeed(500, {
+    refetchInterval: 60000,
+    startDate: activityDateRange.startDate,
+    endDate: activityDateRange.endDate,
+  })
   const { data: stockSummary, isLoading: stockLoading, refetch: refetchStockSummary } = useStoresStockSummary({ refetchInterval: 120000 })
   const { data: anomaliesData, isLoading: anomaliesLoading, refetch: refetchAnomalies } = useStoresAnomalies({ refetchInterval: 120000 })
   const { data: revenueChartData, isLoading: _revenueChartLoading, refetch: refetchRevenueChart } = useStoresRevenueVsTarget({
