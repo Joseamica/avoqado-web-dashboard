@@ -286,7 +286,6 @@ export function SupervisorDashboard() {
     if (!activityFeed?.events) return []
     return activityFeed.events
       .filter(e => e.type === 'sale')
-      .slice(0, 10)
       .map(e => {
         const metadata = (e.metadata ?? {}) as Record<string, unknown>
         const tags = Array.isArray(e.metadata?.tags)
