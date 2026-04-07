@@ -72,8 +72,16 @@ export default function CommandCenter() {
   const chartVenueId = selectedView === 'global' ? undefined : selectedView
 
   // Convert activityDateFilter to backend startDate/endDate (ISO strings)
+  // IMPORTANT: Date strings (YYYY-MM-DD) must be parsed as LOCAL midnight, not UTC,
+  // so the user's "yesterday" matches their local timezone
   const activityDateRange = useMemo(() => {
     if (!activityDateFilter) return { startDate: undefined, endDate: undefined }
+
+    const parseLocalDate = (dateStr: string, endOfDay = false): Date => {
+      const [y, m, d] = dateStr.split('-').map(Number)
+      return endOfDay ? new Date(y, m - 1, d, 23, 59, 59, 999) : new Date(y, m - 1, d, 0, 0, 0, 0)
+    }
+
     const now = new Date()
     switch (activityDateFilter.operator) {
       case 'last': {
@@ -88,21 +96,19 @@ export default function CommandCenter() {
         return { startDate: start.toISOString(), endDate: now.toISOString() }
       }
       case 'before':
-        return { startDate: undefined, endDate: new Date(activityDateFilter.value as string).toISOString() }
+        return { startDate: undefined, endDate: parseLocalDate(activityDateFilter.value as string).toISOString() }
       case 'after':
-        return { startDate: new Date(activityDateFilter.value as string).toISOString(), endDate: undefined }
-      case 'between': {
-        const end = new Date(activityDateFilter.value2 as string)
-        end.setHours(23, 59, 59, 999)
-        return { startDate: new Date(activityDateFilter.value as string).toISOString(), endDate: end.toISOString() }
-      }
-      case 'on': {
-        const start = new Date(activityDateFilter.value as string)
-        start.setHours(0, 0, 0, 0)
-        const end = new Date(activityDateFilter.value as string)
-        end.setHours(23, 59, 59, 999)
-        return { startDate: start.toISOString(), endDate: end.toISOString() }
-      }
+        return { startDate: parseLocalDate(activityDateFilter.value as string, true).toISOString(), endDate: undefined }
+      case 'between':
+        return {
+          startDate: parseLocalDate(activityDateFilter.value as string).toISOString(),
+          endDate: parseLocalDate(activityDateFilter.value2 as string, true).toISOString(),
+        }
+      case 'on':
+        return {
+          startDate: parseLocalDate(activityDateFilter.value as string).toISOString(),
+          endDate: parseLocalDate(activityDateFilter.value as string, true).toISOString(),
+        }
       default:
         return { startDate: undefined, endDate: undefined }
     }
