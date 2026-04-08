@@ -138,6 +138,10 @@ export const ModifierAnalytics = lazyWithRetry(() => import('@/pages/Inventory/M
 export const SuppliersPage = lazyWithRetry(() => import('@/pages/Inventory/Suppliers/SuppliersPage'))
 export const PurchaseOrdersPage = lazyWithRetry(() => import('@/pages/Inventory/PurchaseOrders/PurchaseOrdersPage'))
 export const PurchaseOrderDetailPage = lazyWithRetry(() => import('@/pages/Inventory/PurchaseOrders/PurchaseOrderDetailPage'))
+export const StockCountsPage = lazyWithRetry(() => import('@/pages/Inventory/StockCounts/StockCountsPage'))
+export const StockCountDetailPage = lazyWithRetry(() => import('@/pages/Inventory/StockCounts/StockCountDetailPage'))
+export const InventoryTransfersPage = lazyWithRetry(() => import('@/pages/Inventory/Transfers/TransfersPage'))
+export const InventoryTransferDetailPage = lazyWithRetry(() => import('@/pages/Inventory/Transfers/TransferDetailPage'))
 
 // Settings
 export const RolePermissions = lazyWithRetry(() => import('@/pages/Settings/RolePermissions'))

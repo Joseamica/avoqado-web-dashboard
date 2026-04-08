@@ -96,6 +96,10 @@ import {
   SuppliersPage,
   PurchaseOrdersPage,
   PurchaseOrderDetailPage,
+  StockCountsPage,
+  StockCountDetailPage,
+  InventoryTransfersPage,
+  InventoryTransferDetailPage,
   TeamId,
   Teams,
   Tpv,
@@ -488,7 +492,13 @@ export function createVenueRoutes(): RouteObject[] {
                     { path: 'stock-overview', element: <InventorySummary /> },
                     { path: 'raw-materials', element: <RawMaterials /> },
                     { path: 'history', element: <InventoryHistory /> },
-                    { path: 'counts', element: <div>Counts</div> }, // Placeholder
+                    // Stock counts — READ-ONLY audit view. Counts are created in the mobile POS apps.
+                    { path: 'stock-counts', element: <StockCountsPage /> },
+                    { path: 'stock-counts/:countId', element: <StockCountDetailPage /> },
+                    { path: 'counts', element: <Navigate to="../stock-counts" replace /> },
+                    // Inventory transfers — READ-ONLY audit view. Transfers are created in the mobile POS apps.
+                    { path: 'transfers', element: <InventoryTransfersPage /> },
+                    { path: 'transfers/:transferId', element: <InventoryTransferDetailPage /> },
                     { path: 'purchase-orders', element: <PurchaseOrdersPage /> },
                     { path: 'purchase-orders/:poId', element: <PurchaseOrderDetailPage /> },
                     { path: 'vendors', element: <div>Vendors</div> }, // Placeholder

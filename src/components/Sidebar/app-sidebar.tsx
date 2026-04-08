@@ -305,7 +305,8 @@ export function AppSidebar({
       { title: 'Ingredientes', url: 'inventory/ingredients', permission: 'inventory:read', keywords: ['materia prima', 'insumos', 'materiales'] },
       { title: t('sidebar:routes.recipes', { defaultValue: 'Recetas' }), url: 'inventory/recipes', permission: 'inventory:read', keywords: ['preparaciones', 'formulas', 'costos'] },
       { title: 'Modificadores', url: 'inventory/modifier-analytics', permission: 'inventory:read' },
-      { title: 'Recuentos de existencias', url: 'inventory/counts', permission: 'inventory:read', comingSoon: true },
+      { title: 'Conteos de inventario', url: 'inventory/stock-counts', permission: 'inventory:read', keywords: ['recuentos', 'conteo fisico', 'auditoria'] },
+      { title: 'Transferencias', url: 'inventory/transfers', permission: 'inventory:read', keywords: ['traslados', 'movimientos entre ubicaciones'] },
       { title: 'Reabastecimientos pendientes', url: 'inventory/restocks', permission: 'inventory:read', comingSoon: true },
     ].filter(item => !item.permission || can(item.permission)) as any[] : []
 

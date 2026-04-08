@@ -396,8 +396,8 @@ export default function Orders() {
       customerName: order.customerName || '',
       tableId: order.tableId || '',
       servedById: order.servedById || '',
-      tipAmount: order.tipAmount || 0,
-      total: order.total || 0,
+      tipAmount: Number(order.tipAmount) || 0,
+      total: Number(order.total) || 0,
       createdAt: order.createdAt ? new Date(order.createdAt).toISOString().slice(0, 16) : '',
       orderNumber: order.orderNumber || '',
       type: order.type || OrderTypeEnum.DINE_IN,
@@ -750,7 +750,7 @@ export default function Orders() {
     // Total amount filter
     if (totalFilter) {
       orders = orders.filter((o: Order) => {
-        const total = o.total || 0
+        const total = Number(o.total) || 0
         switch (totalFilter.operator) {
           case 'gt':
             return total > (totalFilter.value || 0)
@@ -879,7 +879,7 @@ export default function Orders() {
   // Summary cards (computed from filtered data)
   const orderSummaryCards = useMemo<SummaryCardItem[]>(() => {
     const count = sortedData.length
-    const total = sortedData.reduce((sum: number, o: Order) => sum + (o.total || 0), 0)
+    const total = sortedData.reduce((sum: number, o: Order) => sum + (Number(o.total) || 0), 0)
     const avgTicket = count > 0 ? total / count : 0
     return [
       { label: t('summaryCards.orders'), value: count, format: 'number' as const },
