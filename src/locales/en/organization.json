@@ -15,7 +15,14 @@
     "terminals": "Terminals",
     "activityLog": "Activity Log",
     "quickAccess": "Quick Access",
-    "viewAll": "View all ({{count}})"
+    "viewAll": "View all ({{count}})",
+    "orgConfig": "Org Configuration",
+    "orgUsers": "Users",
+    "orgTpvConfig": "TPV Configuration",
+    "orgGoals": "Goals",
+    "orgCategories": "Categories",
+    "orgMessages": "Messages",
+    "orgStockControl": "Stock Control"
   },
   "header": {
     "backToVenue": "Back to Venue"

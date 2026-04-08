@@ -15,7 +15,14 @@
     "terminals": "Terminales",
     "activityLog": "Registro de Actividad",
     "quickAccess": "Acceso Rápido",
-    "viewAll": "Ver todo ({{count}})"
+    "viewAll": "Ver todo ({{count}})",
+    "orgConfig": "Configuración Org.",
+    "orgUsers": "Usuarios",
+    "orgTpvConfig": "Configuración TPV",
+    "orgGoals": "Metas",
+    "orgCategories": "Categorías",
+    "orgMessages": "Mensajes",
+    "orgStockControl": "Control de Stock"
   },
   "header": {
     "backToVenue": "Volver a Sucursal"

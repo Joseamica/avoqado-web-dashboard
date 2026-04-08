@@ -209,3 +209,135 @@ export const getItemCategories = async (
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stock/item-categories${params.toString() ? `?${params}` : ''}`)
   return response.data.data
 }
+
+// ===========================================
+// ORG-LEVEL STOCK CONTROL TYPES
+// ===========================================
+
+export type OrgStockItemStatus = 'AVAILABLE' | 'SOLD' | 'DAMAGED' | 'RETURNED'
+
+export interface OrgStockOverviewItem {
+  id: string
+  serialNumber: string
+  status: OrgStockItemStatus
+  categoryId: string
+  categoryName: string
+  createdAt: string
+  soldAt: string | null
+  registeredFromVenueId: string | null
+  registeredFromVenueName: string | null
+  sellingVenueId: string | null
+  sellingVenueName: string | null
+  currentVenueId: string | null
+  currentVenueName: string | null
+  createdById: string | null
+  createdByName: string | null
+}
+
+export interface OrgStockBulkGroup {
+  id: string
+  firstCreatedAt: string
+  lastCreatedAt: string
+  categoryId: string
+  categoryName: string
+  registeredFromVenueId: string | null
+  registeredFromVenueName: string | null
+  createdById: string | null
+  createdByName: string | null
+  itemCount: number
+  serialNumberFirst: string
+  serialNumberLast: string
+  serialNumbers: string[]
+  availableCount: number
+  soldCount: number
+  damagedCount: number
+  returnedCount: number
+}
+
+export interface OrgStockSucursalAggregate {
+  venueId: string
+  venueName: string
+  totalSims: number
+  available: number
+  sold: number
+  damaged: number
+  returned: number
+  rotacionPct: number
+  salesLast7Days: number[]
+  lastActivity: string | null
+}
+
+export interface OrgStockCategoriaAggregate {
+  categoryId: string
+  categoryName: string
+  totalSims: number
+  available: number
+  sold: number
+  rotacionPct: number
+  pctOfTotal: number
+  sucursalesConStock: number
+  estimatedCoverageDays: number | null
+}
+
+export interface OrgStockSummary {
+  totalSims: number
+  available: number
+  sold: number
+  damaged: number
+  returned: number
+  rotacionPct: number
+  totalCargas: number
+  sucursalesInvolucradas: number
+  categoriasActivas: number
+  dateRange: { from: string; to: string }
+  generatedAt: string
+  lastActivity: {
+    timestamp: string
+    venueName: string
+    action: 'UPLOAD' | 'SALE'
+  } | null
+}
+
+export interface OrgStockOverview {
+  summary: OrgStockSummary
+  items: OrgStockOverviewItem[]
+  bulkGroups: OrgStockBulkGroup[]
+  aggregatesBySucursal: OrgStockSucursalAggregate[]
+  aggregatesByCategoria: OrgStockCategoriaAggregate[]
+}
+
+export interface OrgStockOverviewParams {
+  dateFrom?: string
+  dateTo?: string
+}
+
+// ===========================================
+// ORG-LEVEL API FUNCTIONS
+// ===========================================
+
+export const getOrgStockOverview = async (orgId: string, params?: OrgStockOverviewParams): Promise<OrgStockOverview> => {
+  const query = new URLSearchParams()
+  if (params?.dateFrom) query.set('dateFrom', params.dateFrom)
+  if (params?.dateTo) query.set('dateTo', params.dateTo)
+  const qs = query.toString()
+
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/stock-control/overview${qs ? `?${qs}` : ''}`)
+  return response.data.data
+}
+
+export const downloadOrgStockExport = async (orgId: string, params?: OrgStockOverviewParams): Promise<{ blob: Blob; filename: string }> => {
+  const query = new URLSearchParams()
+  if (params?.dateFrom) query.set('dateFrom', params.dateFrom)
+  if (params?.dateTo) query.set('dateTo', params.dateTo)
+  const qs = query.toString()
+
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/stock-control/export.xlsx${qs ? `?${qs}` : ''}`, {
+    responseType: 'blob',
+  })
+
+  const disposition = (response.headers['content-disposition'] as string) || ''
+  const match = /filename="([^"]+)"/.exec(disposition)
+  const filename = match ? match[1] : `control-stock-${new Date().toISOString().split('T')[0]}.xlsx`
+
+  return { blob: response.data, filename }
+}
