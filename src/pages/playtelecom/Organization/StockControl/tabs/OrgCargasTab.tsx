@@ -1,11 +1,14 @@
-import { useMemo, useState } from 'react'
-import { Search } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import type { OrgStockOverview, OrgStockBulkGroup } from '@/services/stockDashboard.service'
 import { CategoryChip } from '../components/CategoryChip'
+
+const PAGE_SIZE = 20
 
 interface OrgCargasTabProps {
   data: OrgStockOverview
@@ -53,6 +56,14 @@ export function OrgCargasTab({ data }: OrgCargasTabProps) {
   }, [data.bulkGroups, sucursalFilter, categoriaFilter, search])
 
   const isFiltered = search || sucursalFilter !== 'all' || categoriaFilter !== 'all'
+
+  // Pagination
+  const [page, setPage] = useState(0)
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
+  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+
+  // Reset page when filters change
+  useEffect(() => setPage(0), [search, sucursalFilter, categoriaFilter])
 
   return (
     <GlassCard className="p-6">
@@ -122,8 +133,8 @@ export function OrgCargasTab({ data }: OrgCargasTabProps) {
             </tr>
           </thead>
           <tbody>
-            {filtered.length > 0 ? (
-              filtered.map(g => <CargaRow key={g.id} group={g} />)
+            {paged.length > 0 ? (
+              paged.map(g => <CargaRow key={g.id} group={g} />)
             ) : (
               <tr>
                 <td colSpan={8} className="py-8 text-center text-muted-foreground">
@@ -134,6 +145,28 @@ export function OrgCargasTab({ data }: OrgCargasTabProps) {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/30">
+          <p className="text-xs text-muted-foreground">
+            Mostrando {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} de {filtered.length}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              Anterior
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              {page + 1} / {totalPages}
+            </span>
+            <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+              Siguiente
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Mobile card list */}
       <div className="md:hidden space-y-2">

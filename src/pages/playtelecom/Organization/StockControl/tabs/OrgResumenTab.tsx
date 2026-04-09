@@ -48,25 +48,29 @@ export function OrgResumenTab({ data }: OrgResumenTabProps) {
           <h3 className="text-lg font-semibold mb-4">Distribución por Categoría</h3>
           {donutData.length > 0 ? (
             <>
-              <div className="h-64">
+              <div className="h-64" aria-label={`Distribución: ${donutData.map(d => `${d.name} ${d.value}`).join(', ')}`}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie data={donutData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90} paddingAngle={2}>
-                      {donutData.map((entry, idx) => (
-                        <Cell key={idx} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        background: 'hsl(var(--background))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: 8,
-                      }}
-                    />
-                  </PieChart>
+                    {donutData.map((entry, idx) => (
+                      <Cell key={idx} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null
+                      return (
+                        <div className="bg-background/95 backdrop-blur-sm border border-border rounded-lg p-3 shadow-lg">
+                          <p className="font-semibold text-sm text-foreground">{payload[0].name}</p>
+                          <p className="text-sm text-muted-foreground">{Number(payload[0].value).toLocaleString('es-MX')} SIMs</p>
+                        </div>
+                      )
+                    }}
+                  />
+                </PieChart>
                 </ResponsiveContainer>
               </div>
-              <div className="flex flex-wrap gap-2 mt-2">
+              <div className="flex flex-wrap gap-2 mt-3">
                 {aggregatesByCategoria.map(c => (
                   <CategoryChip key={c.categoryId} name={c.categoryName} />
                 ))}
@@ -80,17 +84,21 @@ export function OrgResumenTab({ data }: OrgResumenTabProps) {
         <GlassCard className="p-6">
           <h3 className="text-lg font-semibold mb-4">Top 5 Sucursales por Volumen</h3>
           {topVenues.length > 0 ? (
-            <div className="h-64">
+            <div className="h-64" role="img" aria-label={`Top sucursales: ${topVenues.map(v => `${v.name} ${v.total}`).join(', ')}`}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={topVenues} layout="vertical" margin={{ left: 0, right: 12, top: 8, bottom: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
                   <XAxis type="number" fontSize={11} />
                   <YAxis dataKey="name" type="category" width={130} fontSize={11} />
                   <Tooltip
-                    contentStyle={{
-                      background: 'hsl(var(--background))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: 8,
+                    content={({ active, payload, label }) => {
+                      if (!active || !payload?.length) return null
+                      return (
+                        <div className="bg-background/95 backdrop-blur-sm border border-border rounded-lg p-3 shadow-lg">
+                          <p className="font-semibold text-sm text-foreground">{label}</p>
+                          <p className="text-sm text-muted-foreground">{Number(payload[0].value).toLocaleString('es-MX')} SIMs</p>
+                        </div>
+                      )
                     }}
                   />
                   <Bar dataKey="total" fill="#3b82f6" radius={[0, 4, 4, 0]} />

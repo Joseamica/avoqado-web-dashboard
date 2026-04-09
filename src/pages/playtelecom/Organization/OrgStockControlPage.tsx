@@ -193,7 +193,7 @@ export default function OrgStockControlPage() {
       {/* Underline Tabs — matches SupervisorDashboard pattern */}
       <Tabs value={activeTab} onValueChange={v => setActiveTab(v as TabValue)}>
         <div className="border-b border-border">
-          <nav className="flex items-center gap-3 sm:gap-6 overflow-x-auto">
+          <nav className="flex items-center gap-3 sm:gap-6 overflow-x-auto" aria-label="Secciones de control de stock">
             {TABS.map(tab => (
               <button
                 key={tab.value}

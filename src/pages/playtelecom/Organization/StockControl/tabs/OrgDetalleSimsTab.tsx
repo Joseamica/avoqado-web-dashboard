@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Search } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Loader2, Search } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -50,6 +50,41 @@ export function OrgDetalleSimsTab({ data }: OrgDetalleSimsTabProps) {
   }, [data.items, statusFilter, categoriaFilter, sucursalFilter, search])
 
   const isFiltered = search || statusFilter !== 'all' || categoriaFilter !== 'all' || sucursalFilter !== 'all'
+
+  // Infinite scroll: show BATCH_SIZE items initially, load more as user scrolls
+  const BATCH_SIZE = 50
+  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+
+  // Reset visible count when filters change
+  useEffect(() => {
+    setVisibleCount(BATCH_SIZE)
+  }, [filtered.length])
+
+  const visibleItems = filtered.slice(0, visibleCount)
+  const hasMore = visibleCount < filtered.length
+
+  // IntersectionObserver to load more when sentinel comes into view
+  const loadMore = useCallback(() => {
+    setVisibleCount(prev => Math.min(prev + BATCH_SIZE, filtered.length))
+  }, [filtered.length])
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && hasMore) {
+          loadMore()
+        }
+      },
+      { rootMargin: '200px' },
+    )
+
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [hasMore, loadMore])
 
   return (
     <GlassCard className="p-6">
@@ -135,8 +170,8 @@ export function OrgDetalleSimsTab({ data }: OrgDetalleSimsTabProps) {
             </tr>
           </thead>
           <tbody>
-            {filtered.length > 0 ? (
-              filtered.map(item => <SimRow key={item.id} item={item} />)
+            {visibleItems.length > 0 ? (
+              visibleItems.map(item => <SimRow key={item.id} item={item} />)
             ) : (
               <tr>
                 <td colSpan={7} className="py-8 text-center text-muted-foreground">
@@ -146,6 +181,20 @@ export function OrgDetalleSimsTab({ data }: OrgDetalleSimsTabProps) {
             )}
           </tbody>
         </table>
+
+        {/* Infinite scroll sentinel + loading indicator */}
+        <div ref={sentinelRef} className="h-1" />
+        {hasMore && (
+          <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Cargando más...
+          </div>
+        )}
+        {!hasMore && filtered.length > BATCH_SIZE && (
+          <p className="text-center text-xs text-muted-foreground py-3">
+            Mostrando {filtered.length.toLocaleString('es-MX')} de {filtered.length.toLocaleString('es-MX')} SIMs
+          </p>
+        )}
       </div>
 
       {/* Mobile card list */}

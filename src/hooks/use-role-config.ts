@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from './use-current-venue'
+import { useAuth } from '@/context/AuthContext'
 import roleConfigService, {
   getRoleDisplayNameFromConfig,
   getRoleColorFromConfig,
@@ -37,7 +38,13 @@ export const roleConfigQueryKey = (venueId: string | null) => ['role-config', ve
  */
 export function useRoleConfig() {
   const { venueId } = useCurrentVenue()
+  const { user } = useAuth()
   const queryClient = useQueryClient()
+
+  // Fallback: when venueId is null (org pages without venue slug in URL),
+  // use the first venue the user has access to. This ensures role display
+  // names load correctly on /organizations/:orgId/* pages.
+  const effectiveVenueId = venueId || user?.venues?.[0]?.id || null
 
   // Fetch role configs
   const {
@@ -45,9 +52,9 @@ export function useRoleConfig() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: roleConfigQueryKey(venueId),
-    queryFn: () => roleConfigService.getRoleConfigs(venueId!),
-    enabled: !!venueId,
+    queryKey: roleConfigQueryKey(effectiveVenueId),
+    queryFn: () => roleConfigService.getRoleConfigs(effectiveVenueId!),
+    enabled: !!effectiveVenueId,
     staleTime: 5 * 60 * 1000, // 5 minutes - configs don't change often
     gcTime: 30 * 60 * 1000, // 30 minutes cache
   })
@@ -57,17 +64,17 @@ export function useRoleConfig() {
   // Update configs mutation
   const updateMutation = useMutation({
     mutationFn: (updates: RoleConfigInput[]) =>
-      roleConfigService.updateRoleConfigs(venueId!, updates),
+      roleConfigService.updateRoleConfigs(effectiveVenueId!, updates),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: roleConfigQueryKey(venueId) })
+      queryClient.invalidateQueries({ queryKey: roleConfigQueryKey(effectiveVenueId) })
     },
   })
 
   // Reset configs mutation
   const resetMutation = useMutation({
-    mutationFn: () => roleConfigService.resetRoleConfigs(venueId!),
+    mutationFn: () => roleConfigService.resetRoleConfigs(effectiveVenueId!),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: roleConfigQueryKey(venueId) })
+      queryClient.invalidateQueries({ queryKey: roleConfigQueryKey(effectiveVenueId) })
     },
   })
 

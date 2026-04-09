@@ -40,6 +40,12 @@ const OrganizationLayout: React.FC = () => {
       analytics: t('breadcrumb.analytics'),
       terminals: t('breadcrumb.terminals'),
       'activity-log': t('breadcrumb.activityLog'),
+      'stock-control': 'Control de Stock',
+      'org-config': 'Configuración TPV',
+      'org-goals': 'Metas',
+      'org-categories': 'Categorías',
+      'org-messages': 'Mensajes',
+      users: 'Usuarios',
     }
     return routeMap[segment.toLowerCase()] || segment
   }
