@@ -250,7 +250,7 @@ export const COMMAND_DEFINITIONS: Record<TpvCommandType, CommandDefinition> = {
     type: TpvCommandType.REMOTE_ACTIVATE,
     category: 'device_state',
     icon: 'Zap',
-    requiresOnline: true, // Terminal must have sent at least one heartbeat
+    requiresOnline: false, // Queued for delivery when terminal reconnects via heartbeat
     requiresConfirmation: true,
     isDangerous: false,
     defaultPriority: TpvCommandPriority.HIGH,
@@ -282,7 +282,7 @@ export const COMMAND_DEFINITIONS: Record<TpvCommandType, CommandDefinition> = {
     type: TpvCommandType.CLEAR_CACHE,
     category: 'app_lifecycle',
     icon: 'Trash2',
-    requiresOnline: true,
+    requiresOnline: false, // Queued for delivery when terminal reconnects via heartbeat
     requiresConfirmation: true,
     isDangerous: false,
     defaultPriority: TpvCommandPriority.NORMAL,
@@ -334,7 +334,7 @@ export const COMMAND_DEFINITIONS: Record<TpvCommandType, CommandDefinition> = {
     type: TpvCommandType.FACTORY_RESET,
     category: 'data_management',
     icon: 'AlertTriangle',
-    requiresOnline: true,
+    requiresOnline: false, // Queued for delivery when terminal reconnects via heartbeat
     requiresConfirmation: true,
     isDangerous: true,
     defaultPriority: TpvCommandPriority.CRITICAL,
