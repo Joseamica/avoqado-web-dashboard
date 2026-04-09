@@ -70,6 +70,11 @@ import {
   Wifi,
   WifiOff,
   Wrench,
+  Zap,
+  Download,
+  RefreshCcw,
+  Menu,
+  Settings,
 } from 'lucide-react'
 import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -324,13 +329,14 @@ const OrganizationTerminals: React.FC = () => {
   }
 
   const handleCommand = (terminal: OrgTerminal, command: OrgTerminalCommand) => {
-    const needsConfirmation: OrgTerminalCommand[] = ['LOCK', 'RESTART', 'CLEAR_CACHE']
+    const dangerousCommands: OrgTerminalCommand[] = ['LOCK', 'FACTORY_RESET']
+    const needsConfirmation: OrgTerminalCommand[] = ['LOCK', 'RESTART', 'CLEAR_CACHE', 'FACTORY_RESET', 'REMOTE_ACTIVATE', 'FORCE_UPDATE', 'SYNC_DATA']
     if (needsConfirmation.includes(command)) {
       confirmAction(
-        t(`terminals.confirm.${command}.title`),
-        t(`terminals.confirm.${command}.description`, { name: terminal.name }),
+        t(`terminals.confirm.${command}.title`, { defaultValue: `${command}` }),
+        t(`terminals.confirm.${command}.description`, { defaultValue: `¿Enviar ${command} a ${terminal.name}?`, name: terminal.name }),
         () => commandMutation.mutate({ terminalId: terminal.id, command }),
-        command === 'LOCK' ? 'destructive' : 'default',
+        dangerousCommands.includes(command) ? 'destructive' : 'default',
       )
     } else {
       commandMutation.mutate({ terminalId: terminal.id, command })
@@ -648,17 +654,43 @@ const OrganizationTerminals: React.FC = () => {
                               </DropdownMenuItem>
                             )}
 
+                            <DropdownMenuItem onClick={() => handleCommand(terminal, 'REMOTE_ACTIVATE')}>
+                              <Zap className="h-4 w-4 mr-2" />
+                              {t('terminals.actions.remoteActivate', { defaultValue: 'Re-activar' })}
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleCommand(terminal, 'RESTART')}>
                               <RefreshCw className="h-4 w-4 mr-2" />
                               {t('terminals.actions.restart')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleCommand(terminal, 'SYNC_DATA')}>
+                              <RefreshCcw className="h-4 w-4 mr-2" />
+                              {t('terminals.actions.syncData', { defaultValue: 'Sincronizar datos' })}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleCommand(terminal, 'CLEAR_CACHE')}>
                               <HardDrive className="h-4 w-4 mr-2" />
                               {t('terminals.actions.clearCache')}
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleCommand(terminal, 'REFRESH_MENU')}>
+                              <Menu className="h-4 w-4 mr-2" />
+                              {t('terminals.actions.refreshMenu', { defaultValue: 'Refrescar catálogo' })}
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleCommand(terminal, 'EXPORT_LOGS')}>
                               <FileText className="h-4 w-4 mr-2" />
                               {t('terminals.actions.exportLogs')}
+                            </DropdownMenuItem>
+
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleCommand(terminal, 'FORCE_UPDATE')}>
+                              <Download className="h-4 w-4 mr-2" />
+                              {t('terminals.actions.forceUpdate', { defaultValue: 'Forzar actualización' })}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleCommand(terminal, 'REQUEST_UPDATE')}>
+                              <Download className="h-4 w-4 mr-2" />
+                              {t('terminals.actions.requestUpdate', { defaultValue: 'Solicitar actualización' })}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleCommand(terminal, 'UPDATE_CONFIG')}>
+                              <Settings className="h-4 w-4 mr-2" />
+                              {t('terminals.actions.updateConfig', { defaultValue: 'Actualizar config' })}
                             </DropdownMenuItem>
 
                             <DropdownMenuSeparator />
@@ -668,6 +700,13 @@ const OrganizationTerminals: React.FC = () => {
                             </DropdownMenuItem>
 
                             <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleCommand(terminal, 'FACTORY_RESET')}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <AlertTriangle className="h-4 w-4 mr-2" />
+                              {t('terminals.actions.factoryReset', { defaultValue: 'Factory Reset' })}
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => handleDelete(terminal)}
                               className="text-destructive focus:text-destructive"

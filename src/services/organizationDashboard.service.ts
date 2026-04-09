@@ -464,6 +464,14 @@ export type OrgTerminalCommand =
   | 'RESTART'
   | 'CLEAR_CACHE'
   | 'EXPORT_LOGS'
+  | 'REMOTE_ACTIVATE'
+  | 'FACTORY_RESET'
+  | 'SYNC_DATA'
+  | 'REFRESH_MENU'
+  | 'FORCE_UPDATE'
+  | 'REQUEST_UPDATE'
+  | 'UPDATE_CONFIG'
+  | 'UPDATE_MERCHANT'
 
 export async function getOrgTerminalById(orgId: string, terminalId: string): Promise<OrgTerminal> {
   const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}`)
