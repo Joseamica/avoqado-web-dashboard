@@ -214,6 +214,7 @@ export function SupervisorDashboard() {
             clockInTime: string | null
             clockOutTime: string | null
             checkInPhotoUrl: string | null
+            facadePhotoUrl: string | null
             checkOutPhotoUrl: string | null
             depositPhotoUrl: string | null
             clockInLocation: { lat: number; lng: number } | null
@@ -234,11 +235,15 @@ export function SupervisorDashboard() {
           isLate: te.isLate ?? false,
           hasClockInPhoto: !!te.checkInPhotoUrl,
           clockInPhotoUrl: te.checkInPhotoUrl as string | null,
+          hasFacadePhoto: !!te.facadePhotoUrl,
+          facadePhotoUrl: te.facadePhotoUrl as string | null,
           hasClockInGps: te.clockInLocation != null,
           clockInLat: te.clockInLocation?.lat ?? null,
           clockInLon: te.clockInLocation?.lng ?? null,
-          hasClockOutPhoto: !!(te.depositPhotoUrl || te.checkOutPhotoUrl),
-          clockOutPhotoUrl: (te.depositPhotoUrl || te.checkOutPhotoUrl) as string | null,
+          hasClockOutPhoto: !!te.checkOutPhotoUrl,
+          clockOutPhotoUrl: te.checkOutPhotoUrl as string | null,
+          hasDepositPhoto: !!te.depositPhotoUrl,
+          depositPhotoUrl: te.depositPhotoUrl as string | null,
           hasClockOutGps: te.clockOutLocation != null,
           clockOutLat: te.clockOutLocation?.lat ?? null,
           clockOutLon: te.clockOutLocation?.lng ?? null,
@@ -256,11 +261,15 @@ export function SupervisorDashboard() {
           isLate: (entry as any).isLate ?? false,
           hasClockInPhoto: !!entry.checkInPhotoUrl,
           clockInPhotoUrl: entry.checkInPhotoUrl ?? null,
+          hasFacadePhoto: !!(entry as any).facadePhotoUrl,
+          facadePhotoUrl: (entry as any).facadePhotoUrl ?? null,
           hasClockInGps: !!entry.checkInLocation,
           clockInLat: entry.checkInLocation?.lat ?? null,
           clockInLon: entry.checkInLocation?.lng ?? null,
           hasClockOutPhoto: !!entry.checkOutPhotoUrl,
           clockOutPhotoUrl: entry.checkOutPhotoUrl ?? null,
+          hasDepositPhoto: !!(entry as any).depositPhotoUrl,
+          depositPhotoUrl: (entry as any).depositPhotoUrl ?? null,
           hasClockOutGps: !!entry.checkOutLocation,
           clockOutLat: entry.checkOutLocation?.lat ?? null,
           clockOutLon: entry.checkOutLocation?.lng ?? null,
@@ -1079,21 +1088,59 @@ export function SupervisorDashboard() {
                         <span className="font-mono">{row.clockOut}</span>
                       </div>
                     </div>
+                    {/* ENTRADA badges */}
                     <div className="flex flex-wrap gap-1.5">
-                      {row.hasClockInPhoto && (
-                        <button onClick={() => setPhotoDialog({ url: row.clockInPhotoUrl!, promoter: row.promoter, store: row.store, time: row.clockIn, label: 'Entrada', lat: row.clockInLat, lon: row.clockInLon })}
+                      {row.hasClockInPhoto ? (
+                        <button onClick={() => setPhotoDialog({ url: row.clockInPhotoUrl!, promoter: row.promoter, store: row.store, time: row.clockIn, label: 'Foto Entrada', lat: row.clockInLat, lon: row.clockInLon })}
                           className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 cursor-pointer">
                           <Image className="w-3 h-3" /> Foto
                         </button>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400"><ImageOff className="w-3 h-3" /> Sin Foto</span>
                       )}
-                      {!row.hasClockInPhoto && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400"><ImageOff className="w-3 h-3" /> Sin Foto</span>}
-                      {row.hasClockInGps && (
+                      {row.hasFacadePhoto ? (
+                        <button onClick={() => setPhotoDialog({ url: row.facadePhotoUrl!, promoter: row.promoter, store: row.store, time: row.clockIn, label: 'Foto Mueble', lat: row.clockInLat, lon: row.clockInLon })}
+                          className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 cursor-pointer">
+                          <Store className="w-3 h-3" /> Mueble
+                        </button>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400"><Store className="w-3 h-3" /> Sin Mueble</span>
+                      )}
+                      {row.hasClockInGps ? (
                         <button onClick={() => setLocationDialog({ promoter: row.promoter, store: row.store, time: row.clockIn, label: 'Entrada', lat: row.clockInLat, lon: row.clockInLon })}
                           className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 cursor-pointer">
                           <MapPin className="w-3 h-3" /> GPS
                         </button>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400"><MapPinOff className="w-3 h-3" /> Sin GPS</span>
                       )}
-                      {!row.hasClockInGps && <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400"><MapPinOff className="w-3 h-3" /> Sin GPS</span>}
+                    </div>
+                    {/* SALIDA badges */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {row.hasClockOutPhoto ? (
+                        <button onClick={() => setPhotoDialog({ url: row.clockOutPhotoUrl!, promoter: row.promoter, store: row.store, time: row.clockOut, label: 'Foto Salida', lat: row.clockOutLat, lon: row.clockOutLon })}
+                          className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-blue-500/20 bg-blue-500/10 text-blue-400 cursor-pointer">
+                          <Image className="w-3 h-3" /> Salida
+                        </button>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400"><ImageOff className="w-3 h-3" /> Sin Foto Salida</span>
+                      )}
+                      {row.hasDepositPhoto ? (
+                        <button onClick={() => setPhotoDialog({ url: row.depositPhotoUrl!, promoter: row.promoter, store: row.store, time: row.clockOut, label: 'Voucher Deposito', lat: row.clockOutLat, lon: row.clockOutLon })}
+                          className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 cursor-pointer">
+                          <Receipt className="w-3 h-3" /> Voucher
+                        </button>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400"><Receipt className="w-3 h-3" /> Sin Voucher</span>
+                      )}
+                      {row.hasClockOutGps ? (
+                        <button onClick={() => setLocationDialog({ promoter: row.promoter, store: row.store, time: row.clockOut, label: 'Salida', lat: row.clockOutLat, lon: row.clockOutLon })}
+                          className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-blue-500/20 bg-blue-500/10 text-blue-400 cursor-pointer">
+                          <MapPin className="w-3 h-3" /> GPS
+                        </button>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400"><MapPinOff className="w-3 h-3" /> Sin GPS</span>
+                      )}
                     </div>
                   </div>
                 ))

@@ -9,7 +9,7 @@ import type { AttendanceEntry } from './AttendanceLog'
 
 interface PhotoEvidenceModalProps {
   entry: AttendanceEntry | null
-  type: 'clockIn' | 'clockOut' | 'deposit'
+  type: 'clockIn' | 'clockOut' | 'deposit' | 'facade'
   open: boolean
   onClose: () => void
 }
@@ -17,11 +17,11 @@ interface PhotoEvidenceModalProps {
 export function PhotoEvidenceModal({ entry, type, open, onClose }: PhotoEvidenceModalProps) {
   if (!entry) return null
 
-  const photoUrl = type === 'clockIn' ? entry.clockInPhotoUrl : type === 'deposit' ? entry.depositPhotoUrl : entry.clockOutPhotoUrl
-  const lat = type === 'clockIn' ? entry.clockInLat : entry.clockOutLat
-  const lon = type === 'clockIn' ? entry.clockInLon : entry.clockOutLon
-  const time = type === 'clockIn' ? entry.clockIn : entry.clockOut
-  const label = type === 'clockIn' ? 'Entrada' : type === 'deposit' ? 'Voucher de Deposito' : 'Salida'
+  const photoUrl = type === 'clockIn' ? entry.clockInPhotoUrl : type === 'facade' ? entry.facadePhotoUrl : type === 'deposit' ? entry.depositPhotoUrl : entry.clockOutPhotoUrl
+  const lat = type === 'clockIn' || type === 'facade' ? entry.clockInLat : entry.clockOutLat
+  const lon = type === 'clockIn' || type === 'facade' ? entry.clockInLon : entry.clockOutLon
+  const time = type === 'clockIn' || type === 'facade' ? entry.clockIn : entry.clockOut
+  const label = type === 'clockIn' ? 'Foto Entrada' : type === 'facade' ? 'Foto Mueble' : type === 'deposit' ? 'Voucher de Deposito' : 'Foto Salida'
 
   return (
     <Dialog open={open} onOpenChange={o => !o && onClose()}>

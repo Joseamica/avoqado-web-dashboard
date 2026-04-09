@@ -294,6 +294,7 @@ export interface StaffAttendanceEntry {
   checkInTime?: string | null
   checkInLocation?: { lat: number; lng: number } | null
   checkInPhotoUrl?: string | null
+  facadePhotoUrl?: string | null
   checkOutTime?: string | null
   checkOutLocation?: { lat: number; lng: number } | null
   checkOutPhotoUrl?: string | null

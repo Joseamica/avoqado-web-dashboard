@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Check, X, Image, ImageOff, MapPin, MapPinOff, RotateCcw, ClipboardList, AlertTriangle, Receipt } from 'lucide-react'
+import { Check, X, Image, ImageOff, MapPin, MapPinOff, RotateCcw, ClipboardList, AlertTriangle, Receipt, Store, StoreIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FilterPill, CheckboxFilterContent } from '@/components/filters'
 
@@ -21,6 +21,7 @@ export interface AttendanceEntry {
   clockIn: string | null
   clockOut: string | null
   clockInPhotoUrl: string | null
+  facadePhotoUrl: string | null
   clockOutPhotoUrl: string | null
   clockInLat: number | null
   clockInLon: number | null
@@ -42,7 +43,7 @@ interface AttendanceLogProps {
   onApprove: (entry: AttendanceEntry) => void
   onReject: (id: string) => void
   onResetValidation: (id: string) => void
-  onViewPhoto: (entry: AttendanceEntry, type: 'clockIn' | 'clockOut' | 'deposit') => void
+  onViewPhoto: (entry: AttendanceEntry, type: 'clockIn' | 'clockOut' | 'deposit' | 'facade') => void
   onViewLocation: (entry: AttendanceEntry, type: 'clockIn' | 'clockOut') => void
 }
 
@@ -259,12 +260,26 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
                               <button
                                 onClick={() => onViewPhoto(entry, 'clockIn')}
                                 className="text-muted-foreground hover:text-primary transition-colors"
+                                title="Foto de check-in"
                               >
                                 <Image className="w-4 h-4" />
                               </button>
                             ) : (
-                              <span className="text-red-500">
+                              <span className="text-red-500" title="Sin foto de check-in">
                                 <ImageOff className="w-4 h-4" />
+                              </span>
+                            )}
+                            {entry.facadePhotoUrl ? (
+                              <button
+                                onClick={() => onViewPhoto(entry, 'facade')}
+                                className="text-muted-foreground hover:text-green-500 transition-colors"
+                                title="Foto de mueble"
+                              >
+                                <Store className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <span className="text-red-500" title="Sin foto de mueble">
+                                <StoreIcon className="w-4 h-4" />
                               </span>
                             )}
                             {entry.clockInLat != null && entry.clockInLon != null ? (
@@ -375,7 +390,11 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
                             >
                               <Receipt className="w-4 h-4" />
                             </button>
-                          ) : null}
+                          ) : (
+                            <span className="text-red-500" title="Sin voucher de depósito">
+                              <Receipt className="w-4 h-4" />
+                            </span>
+                          )}
                           {entry.clockOutLat != null && entry.clockOutLon != null ? (
                             <button
                               onClick={() => onViewLocation(entry, 'clockOut')}

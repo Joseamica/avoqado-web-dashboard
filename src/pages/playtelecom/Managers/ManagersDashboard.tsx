@@ -68,7 +68,7 @@ export function ManagersDashboard() {
 
   // Photo modal
   const [photoEntry, setPhotoEntry] = useState<AttendanceEntry | null>(null)
-  const [photoType, setPhotoType] = useState<'clockIn' | 'clockOut' | 'deposit'>('clockIn')
+  const [photoType, setPhotoType] = useState<'clockIn' | 'clockOut' | 'deposit' | 'facade'>('clockIn')
 
   // Location dialog
   const [locationEntry, setLocationEntry] = useState<AttendanceEntry | null>(null)
@@ -160,7 +160,7 @@ export function ManagersDashboard() {
 
     const buildRow = (
       entry: (typeof attendanceData.staff)[number],
-      te: { id?: string; clockInTime: string | null; clockOutTime: string | null; checkInPhotoUrl?: string | null; checkOutPhotoUrl?: string | null; depositPhotoUrl?: string | null; clockInLocation?: { lat: number; lng: number } | null; clockOutLocation?: { lat: number; lng: number } | null; validationStatus?: string; cashSales?: number; isLate?: boolean },
+      te: { id?: string; clockInTime: string | null; clockOutTime: string | null; checkInPhotoUrl?: string | null; facadePhotoUrl?: string | null; checkOutPhotoUrl?: string | null; depositPhotoUrl?: string | null; clockInLocation?: { lat: number; lng: number } | null; clockOutLocation?: { lat: number; lng: number } | null; validationStatus?: string; cashSales?: number; isLate?: boolean },
     ): AttendanceEntry => {
       const clockInDate = new Date(te.clockInTime!)
       const isLate = te.isLate ?? false
@@ -187,9 +187,10 @@ export function ManagersDashboard() {
           ? new Date(te.clockOutTime).toLocaleTimeString('es-MX', timeOpts).toUpperCase()
           : null,
         clockInPhotoUrl: (te.checkInPhotoUrl as string) ?? entry.checkInPhotoUrl,
+        facadePhotoUrl: (te.facadePhotoUrl as string) ?? (entry as any).facadePhotoUrl ?? null,
         clockOutPhotoUrl: (te.checkOutPhotoUrl as string) ?? entry.checkOutPhotoUrl,
         checkOutPhotoUrl: (te.checkOutPhotoUrl as string) ?? entry.checkOutPhotoUrl,
-        depositPhotoUrl: (te.depositPhotoUrl as string) ?? null,
+        depositPhotoUrl: (te.depositPhotoUrl as string) ?? (entry as any).depositPhotoUrl ?? null,
         clockInLat: (te.clockInLocation ?? entry.checkInLocation)?.lat ?? null,
         clockInLon: (te.clockInLocation ?? entry.checkInLocation)?.lng ?? null,
         clockOutLat: (te.clockOutLocation ?? entry.checkOutLocation)?.lat ?? null,
@@ -212,6 +213,7 @@ export function ManagersDashboard() {
           clockInTime: string | null
           clockOutTime: string | null
           checkInPhotoUrl?: string | null
+          facadePhotoUrl?: string | null
           checkOutPhotoUrl?: string | null
           depositPhotoUrl?: string | null
           clockInLocation?: { lat: number; lng: number } | null
