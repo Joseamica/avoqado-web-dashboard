@@ -251,7 +251,7 @@ export const notificationCategories: NotificationCategory[] = [
     types: [
       {
         type: NotificationType.DAILY_SALES_SUMMARY,
-        defaultEnabled: true,
+        defaultEnabled: false,
         defaultChannels: [NotificationChannel.EMAIL],
         defaultPriority: NotificationPriority.NORMAL,
         canDisable: true,
