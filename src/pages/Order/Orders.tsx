@@ -146,11 +146,32 @@ export default function Orders() {
     type: OrderTypeEnum.DINE_IN,
   })
 
+  // Multi-select filters, date range and search are sent to backend so pagination
+  // respects them. Amount filters (total/tip) remain client-side — backend does not
+  // support them yet.
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['orders', venueId, pagination.pageIndex, pagination.pageSize],
+    queryKey: [
+      'orders',
+      venueId,
+      pagination.pageIndex,
+      pagination.pageSize,
+      statusFilter,
+      typeFilter,
+      tableFilter,
+      waiterFilter,
+      dateRange,
+      debouncedSearchTerm,
+    ],
     queryFn: async () => {
-      // Fetch all orders, filter client-side for multi-select support
-      const response = await orderService.getOrders(venueId, pagination)
+      const response = await orderService.getOrders(venueId, pagination, {
+        statuses: statusFilter.length > 0 ? statusFilter : undefined,
+        types: typeFilter.length > 0 ? typeFilter : undefined,
+        tableIds: tableFilter.length > 0 ? tableFilter : undefined,
+        staffIds: waiterFilter.length > 0 ? waiterFilter : undefined,
+        search: debouncedSearchTerm || undefined,
+        startDate: dateRange.from.toISOString(),
+        endDate: dateRange.to.toISOString(),
+      })
       return response
     },
     refetchOnWindowFocus: true,
@@ -725,28 +746,11 @@ export default function Orders() {
       }
     }
 
-    // Client-side multi-select filtering (Stripe-style)
-    if (statusFilter.length > 0) {
-      orders = orders.filter((o: Order) => statusFilter.includes(o.status))
-    }
-    if (typeFilter.length > 0) {
-      orders = orders.filter((o: Order) => {
-        const isFastSale = o.orderNumber?.startsWith('FAST-')
-        if (isFastSale) {
-          return typeFilter.includes('FAST')
-        }
-        return o.type ? typeFilter.includes(o.type) : false
-      })
-    }
-    if (tableFilter.length > 0) {
-      orders = orders.filter((o: Order) => o.table?.id && tableFilter.includes(o.table.id))
-    }
-    if (waiterFilter.length > 0) {
-      orders = orders.filter((o: Order) => {
-        const waiter = o.servedBy || o.createdBy
-        return waiter?.id && waiterFilter.includes(waiter.id)
-      })
-    }
+    // NOTE: status/type/table/waiter/search multi-select filters are applied server-side
+    // via query params so pagination respects them. Client-side filtering here would only
+    // filter within the current paginated page — which misses records on other pages.
+    // Amount filters (total/tip) remain client-side because the backend does not yet
+    // support them.
     // Total amount filter
     if (totalFilter) {
       orders = orders.filter((o: Order) => {
@@ -790,16 +794,8 @@ export default function Orders() {
         return orderDate >= dateRange.from && orderDate <= dateRange.to
       })
     }
-    if (debouncedSearchTerm) {
-      const searchLower = debouncedSearchTerm.toLowerCase()
-      orders = orders.filter((o: Order) => {
-        const orderNumber = o.orderNumber?.toLowerCase() || ''
-        const waiter = o.servedBy || o.createdBy
-        const waiterName = waiter ? `${waiter.firstName} ${waiter.lastName}`.toLowerCase() : ''
-        const tableName = o.table?.number?.toLowerCase() || ''
-        return orderNumber.includes(searchLower) || waiterName.includes(searchLower) || tableName.includes(searchLower)
-      })
-    }
+    // Search is applied server-side via query param (matches order number / customer name).
+    // Client-side search would only match orders on the current page, missing the rest.
 
     if (!sortField) return orders
 

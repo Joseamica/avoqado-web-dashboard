@@ -144,9 +144,28 @@ export default function Tpvs() {
     }
   }
 
+  // Multi-select filters and search are sent to backend so pagination respects them.
+  // Previously filtered client-side on paginated data — missed matches on other pages.
   const { data, isLoading } = useQuery({
-    queryKey: ['tpvs', venueId, pagination.pageIndex, pagination.pageSize],
-    queryFn: () => getTpvs(venueId, pagination),
+    queryKey: [
+      'tpvs',
+      venueId,
+      pagination.pageIndex,
+      pagination.pageSize,
+      connectionFilter,
+      activationFilter,
+      statusFilter,
+      versionFilter,
+      debouncedSearchTerm,
+    ],
+    queryFn: () =>
+      getTpvs(venueId, pagination, {
+        statuses: statusFilter.length > 0 ? statusFilter : undefined,
+        versions: versionFilter.length > 0 ? versionFilter : undefined,
+        connections: connectionFilter.length > 0 ? (connectionFilter as Array<'online' | 'offline'>) : undefined,
+        activations: activationFilter.length > 0 ? (activationFilter as Array<'activated' | 'notActivated'>) : undefined,
+        search: debouncedSearchTerm || undefined,
+      }),
   })
 
   // Calculate metrics from data
@@ -219,48 +238,9 @@ export default function Tpvs() {
     setPagination(prev => ({ ...prev, pageIndex: 0 }))
   }, [connectionFilter, activationFilter, statusFilter, versionFilter, debouncedSearchTerm])
 
-  // Client-side filtered data
-  const filteredData = useMemo(() => {
-    let result = data?.data || []
-
-    if (connectionFilter.length > 0) {
-      result = result.filter((t: any) => {
-        const online = isTerminalOnline(t.status, t.lastHeartbeat)
-        if (connectionFilter.includes('online') && online) return true
-        if (connectionFilter.includes('offline') && !online) return true
-        return false
-      })
-    }
-
-    if (activationFilter.length > 0) {
-      result = result.filter((t: any) => {
-        if (activationFilter.includes('activated') && t.activatedAt) return true
-        if (activationFilter.includes('notActivated') && !t.activatedAt) return true
-        return false
-      })
-    }
-
-    if (statusFilter.length > 0) {
-      result = result.filter((t: any) => statusFilter.includes(t.status))
-    }
-
-    if (versionFilter.length > 0) {
-      result = result.filter((t: any) => versionFilter.includes(t.version || ''))
-    }
-
-    if (debouncedSearchTerm) {
-      const lower = debouncedSearchTerm.toLowerCase()
-      result = result.filter(
-        (t: any) =>
-          t.id.includes(lower) ||
-          t.name.toLowerCase().includes(lower) ||
-          t.serialNumber?.toLowerCase().includes(lower) ||
-          t.version?.toLowerCase().includes(lower),
-      )
-    }
-
-    return result
-  }, [data?.data, connectionFilter, activationFilter, statusFilter, versionFilter, debouncedSearchTerm])
+  // All filters are applied server-side via query params (see useQuery above).
+  // Client-side filtering over paginated data would only match terminals on the current page.
+  const filteredData = useMemo(() => data?.data || [], [data?.data])
 
   // Connection filter options
   const connectionOptions = useMemo(
@@ -577,7 +557,8 @@ export default function Tpvs() {
           <div className="flex flex-col">
             <span className="text-sm font-medium">{Currency(total)}</span>
             <span className="text-xs text-muted-foreground">
-              {count} {count === 1
+              {count}{' '}
+              {count === 1
                 ? t('tpv.table.transaction', { defaultValue: 'transacción' })
                 : t('tpv.table.transactions', { defaultValue: 'transacciones' })}
             </span>

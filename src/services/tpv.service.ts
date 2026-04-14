@@ -5,11 +5,26 @@ import { SendCommandRequest, TpvCommand, TpvCommandPayload, TpvCommandPriority, 
 // TPV List & Details
 // ============================================
 
-export const getTpvs = async (venueId: string, pagination: { pageIndex: number; pageSize: number }) => {
+export interface TpvFilters {
+  statuses?: string[]
+  types?: string[]
+  versions?: string[]
+  connections?: Array<'online' | 'offline'>
+  activations?: Array<'activated' | 'notActivated'>
+  search?: string
+}
+
+export const getTpvs = async (venueId: string, pagination: { pageIndex: number; pageSize: number }, filters?: TpvFilters) => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/tpvs`, {
     params: {
       page: pagination.pageIndex + 1,
       pageSize: pagination.pageSize,
+      ...(filters?.statuses && filters.statuses.length > 0 && { statuses: filters.statuses.join(',') }),
+      ...(filters?.types && filters.types.length > 0 && { types: filters.types.join(',') }),
+      ...(filters?.versions && filters.versions.length > 0 && { versions: filters.versions.join(',') }),
+      ...(filters?.connections && filters.connections.length > 0 && { connections: filters.connections.join(',') }),
+      ...(filters?.activations && filters.activations.length > 0 && { activations: filters.activations.join(',') }),
+      ...(filters?.search && { search: filters.search }),
     },
   })
   return response.data

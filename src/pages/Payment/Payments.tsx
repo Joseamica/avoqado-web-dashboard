@@ -134,15 +134,33 @@ export default function Payments() {
     }
   }, [dateRange])
 
-  // Fetch payments - client-side filtering for multi-select support
+  // Fetch payments — multi-select filters, search and date range are sent to backend.
+  // Amount filters (subtotal/tip/total) and status tab remain client-side because the
+  // backend does not support them yet.
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['payments', venueId, pagination.pageIndex, pagination.pageSize, dateParams],
+    queryKey: [
+      'payments',
+      venueId,
+      pagination.pageIndex,
+      pagination.pageSize,
+      dateParams,
+      merchantAccountFilter,
+      methodFilter,
+      sourceFilter,
+      waiterFilter,
+      debouncedSearchTerm,
+    ],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payments`, {
         params: {
           page: pagination.pageIndex + 1,
           pageSize: pagination.pageSize,
           ...dateParams,
+          ...(merchantAccountFilter.length > 0 && { merchantAccountIds: merchantAccountFilter.join(',') }),
+          ...(methodFilter.length > 0 && { methods: methodFilter.join(',') }),
+          ...(sourceFilter.length > 0 && { sources: sourceFilter.join(',') }),
+          ...(waiterFilter.length > 0 && { staffIds: waiterFilter.join(',') }),
+          ...(debouncedSearchTerm && { search: debouncedSearchTerm }),
         },
       })
       return response.data
@@ -358,32 +376,11 @@ export default function Payments() {
       }
     }
 
-    // Merchant account filter
-    if (merchantAccountFilter.length > 0) {
-      payments = payments.filter((p: PaymentType) => p.merchantAccount && merchantAccountFilter.includes(p.merchantAccount.id))
-    }
-    // Method filter
-    if (methodFilter.length > 0) {
-      payments = payments.filter((p: PaymentType) => p.method && methodFilter.includes(p.method))
-    }
-    // Source filter
-    if (sourceFilter.length > 0) {
-      payments = payments.filter((p: PaymentType) => p.source && sourceFilter.includes(p.source))
-    }
-    // Waiter filter
-    if (waiterFilter.length > 0) {
-      payments = payments.filter((p: PaymentType) => p.processedBy && waiterFilter.includes(p.processedBy.id))
-    }
-    // Search filter
-    if (debouncedSearchTerm) {
-      const searchLower = debouncedSearchTerm.toLowerCase()
-      payments = payments.filter((p: PaymentType) => {
-        const waiterName = p.processedBy ? `${p.processedBy.firstName} ${p.processedBy.lastName}`.toLowerCase() : ''
-        const merchantName = p.merchantAccount?.displayName?.toLowerCase() || ''
-        const last4 = p.last4?.toLowerCase() || ''
-        return waiterName.includes(searchLower) || merchantName.includes(searchLower) || last4.includes(searchLower)
-      })
-    }
+    // NOTE: merchant/method/source/waiter/search filters are applied server-side (query params).
+    // We no longer filter them client-side, otherwise we'd only be filtering within the
+    // current paginated page, which misses records on other pages.
+    // Amount filters (subtotal/tip/total) remain client-side because the backend does not
+    // yet support them.
     // Subtotal amount filter
     if (subtotalFilter) {
       payments = payments.filter((p: PaymentType) => {

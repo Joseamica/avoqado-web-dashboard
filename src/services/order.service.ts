@@ -2,27 +2,28 @@ import api from '@/api'
 import { Order } from '@/types'
 
 export interface OrderFilters {
-  status?: string
-  type?: string
-  tableId?: string
-  staffId?: string
+  // Multi-select filter arrays (sent as comma-separated strings to backend)
+  statuses?: string[]
+  types?: string[]
+  tableIds?: string[]
+  staffIds?: string[]
   search?: string
+  startDate?: string
+  endDate?: string
 }
 
-export const getOrders = async (
-  venueId: string,
-  pagination: { pageIndex: number; pageSize: number },
-  filters?: OrderFilters
-) => {
+export const getOrders = async (venueId: string, pagination: { pageIndex: number; pageSize: number }, filters?: OrderFilters) => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/orders`, {
     params: {
       page: pagination.pageIndex + 1,
       pageSize: pagination.pageSize,
-      ...(filters?.status && filters.status !== 'all' && { status: filters.status }),
-      ...(filters?.type && filters.type !== 'all' && { type: filters.type }),
-      ...(filters?.tableId && filters.tableId !== 'all' && { tableId: filters.tableId }),
-      ...(filters?.staffId && filters.staffId !== 'all' && { staffId: filters.staffId }),
+      ...(filters?.statuses && filters.statuses.length > 0 && { statuses: filters.statuses.join(',') }),
+      ...(filters?.types && filters.types.length > 0 && { types: filters.types.join(',') }),
+      ...(filters?.tableIds && filters.tableIds.length > 0 && { tableIds: filters.tableIds.join(',') }),
+      ...(filters?.staffIds && filters.staffIds.length > 0 && { staffIds: filters.staffIds.join(',') }),
       ...(filters?.search && { search: filters.search }),
+      ...(filters?.startDate && { startDate: filters.startDate }),
+      ...(filters?.endDate && { endDate: filters.endDate }),
     },
   })
   return response.data

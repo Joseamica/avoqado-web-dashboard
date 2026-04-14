@@ -103,7 +103,9 @@ export default function Reservations() {
       params.dateFrom = today
       params.dateTo = today
     }
-    if (channelFilter.length > 0) params.channel = channelFilter[0]
+    // Pass the full channel array — previously only channelFilter[0] was sent, so selecting
+    // multiple channels silently dropped all but the first.
+    if (channelFilter.length > 0) params.channels = channelFilter
     if (debouncedSearchTerm) params.search = debouncedSearchTerm
 
     return params
