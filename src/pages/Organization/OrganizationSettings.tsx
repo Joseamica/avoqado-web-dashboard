@@ -120,9 +120,7 @@ const OrganizationSettings: React.FC = () => {
             >
               <Building2 className="h-4 w-4" />
               {t('settings.tabGeneral', { defaultValue: 'General' })}
-              {activeOrgTab === 'general' && (
-                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-              )}
+              {activeOrgTab === 'general' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
             </button>
             <button
               onClick={() => setActiveOrgTab('tpv')}
@@ -132,9 +130,7 @@ const OrganizationSettings: React.FC = () => {
             >
               <Monitor className="h-4 w-4" />
               {t('settings.tabTpv', { defaultValue: 'TPV' })}
-              {activeOrgTab === 'tpv' && (
-                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-              )}
+              {activeOrgTab === 'tpv' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
             </button>
             <button
               onClick={() => setActiveOrgTab('commissions')}
@@ -144,9 +140,7 @@ const OrganizationSettings: React.FC = () => {
             >
               <TrendingUp className="h-4 w-4" />
               {t('settings.tabCommissions', { defaultValue: 'Comisiones' })}
-              {activeOrgTab === 'commissions' && (
-                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-              )}
+              {activeOrgTab === 'commissions' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
             </button>
           </nav>
         </div>
@@ -335,6 +329,12 @@ const DEFAULT_TPV_SETTINGS: TpvSettings = {
   showMessages: true,
   showTrainings: true,
   showCryptoOption: false,
+  // Cellular Failover — OFF by default (org-level editor shouldn't push this;
+  // the UI for these fields is per-terminal only, canary rollout)
+  cellularFailoverMode: 'OFF',
+  cellularFailoverBadReadingsThreshold: 3,
+  cellularFailoverCooldownSeconds: 60,
+  cellularFailoverMinCellHoldSeconds: 120,
 }
 
 function OrgTpvConfigSection({ orgId }: { orgId: string }) {
