@@ -26,6 +26,7 @@ import {
   Target,
   Mail,
   GraduationCap,
+  Signal,
 } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -104,6 +105,25 @@ export function TpvSettingsFields({
     if (isDisabled) return
     const tipValue = value === 'none' ? null : parseInt(value, 10)
     onUpdate({ defaultTipPercentage: tipValue })
+  }
+
+  // Cellular Failover handlers (guarded by validation before emitting onUpdate)
+  const handleCellularFailoverModeChange = (value: string) => {
+    if (isDisabled) return
+    onUpdate({ cellularFailoverMode: value as TpvSettings['cellularFailoverMode'] })
+  }
+
+  const handleCellularFailoverNumberChange = (
+    field: 'cellularFailoverBadReadingsThreshold' | 'cellularFailoverCooldownSeconds' | 'cellularFailoverMinCellHoldSeconds',
+    raw: string,
+  ) => {
+    if (isDisabled) return
+    const parsed = parseInt(raw, 10)
+    if (isNaN(parsed)) return
+    // threshold must be >=1, cooldown and hold must be >=0
+    const min = field === 'cellularFailoverBadReadingsThreshold' ? 1 : 0
+    if (parsed < min) return
+    onUpdate({ [field]: parsed })
   }
 
   const handleAddTipOption = () => {
@@ -547,6 +567,109 @@ export function TpvSettingsFields({
           </CollapsibleContent>
         </GlassCard>
       </Collapsible>
+
+      {/* Cellular Failover (Experimental) — per-terminal only for canary rollout */}
+      {mode === 'terminal' && (
+        <Collapsible>
+          <GlassCard className="p-0 overflow-hidden">
+            <CollapsibleTrigger asChild>
+              <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/30 transition-colors rounded-2xl">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-linear-to-br from-amber-500/20 to-amber-500/5">
+                    <Signal className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium text-sm">{t('tpvSettings.cellularFailoverSection')}</h3>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-amber-500/10 text-amber-600 border-amber-500/20">
+                        {t('tpvSettings.experimental', { defaultValue: 'Experimental' })}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{t('tpvSettings.cellularFailoverSectionDesc')}</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground transition-transform data-[state=open]:rotate-90" />
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="px-4 pb-4 space-y-4 pt-2">
+                {/* Mode select */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="cellular-failover-mode" className="text-sm font-medium">
+                    {t('tpvSettings.cellularFailoverMode')}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">{t('tpvSettings.cellularFailoverModeDesc')}</p>
+                  <Select value={settings.cellularFailoverMode} onValueChange={handleCellularFailoverModeChange} disabled={isDisabled}>
+                    <SelectTrigger id="cellular-failover-mode" className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="OFF">{t('tpvSettings.cellularFailoverModeOff')}</SelectItem>
+                      <SelectItem value="MANUAL_TOGGLE">{t('tpvSettings.cellularFailoverModeManual')}</SelectItem>
+                      <SelectItem value="AUTO_SHADOW">{t('tpvSettings.cellularFailoverModeShadow')}</SelectItem>
+                      <SelectItem value="AUTO_ENFORCED">{t('tpvSettings.cellularFailoverModeEnforced')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Bad readings threshold */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="cellular-failover-threshold" className="text-sm font-medium">
+                    {t('tpvSettings.cellularFailoverThreshold')}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">{t('tpvSettings.cellularFailoverThresholdDesc')}</p>
+                  <Input
+                    id="cellular-failover-threshold"
+                    type="number"
+                    min={1}
+                    step={1}
+                    className="h-9 w-32"
+                    value={settings.cellularFailoverBadReadingsThreshold}
+                    onChange={e => handleCellularFailoverNumberChange('cellularFailoverBadReadingsThreshold', e.target.value)}
+                    disabled={isDisabled}
+                  />
+                </div>
+
+                {/* Cooldown seconds */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="cellular-failover-cooldown" className="text-sm font-medium">
+                    {t('tpvSettings.cellularFailoverCooldown')}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">{t('tpvSettings.cellularFailoverCooldownDesc')}</p>
+                  <Input
+                    id="cellular-failover-cooldown"
+                    type="number"
+                    min={0}
+                    step={1}
+                    className="h-9 w-32"
+                    value={settings.cellularFailoverCooldownSeconds}
+                    onChange={e => handleCellularFailoverNumberChange('cellularFailoverCooldownSeconds', e.target.value)}
+                    disabled={isDisabled}
+                  />
+                </div>
+
+                {/* Min cell hold seconds */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="cellular-failover-hold" className="text-sm font-medium">
+                    {t('tpvSettings.cellularFailoverHold')}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">{t('tpvSettings.cellularFailoverHoldDesc')}</p>
+                  <Input
+                    id="cellular-failover-hold"
+                    type="number"
+                    min={0}
+                    step={1}
+                    className="h-9 w-32"
+                    value={settings.cellularFailoverMinCellHoldSeconds}
+                    onChange={e => handleCellularFailoverNumberChange('cellularFailoverMinCellHoldSeconds', e.target.value)}
+                    disabled={isDisabled}
+                  />
+                </div>
+              </div>
+            </CollapsibleContent>
+          </GlassCard>
+        </Collapsible>
+      )}
     </div>
   )
 }

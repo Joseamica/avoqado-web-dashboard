@@ -4,34 +4,34 @@ import api from '@/api'
  * TPV Settings - Configuration for terminal payment flow screens
  */
 export interface TpvSettings {
-  showReviewScreen: boolean      // Show reviews screen after payment
-  showTipScreen: boolean         // Show tip selection screen before payment
-  showReceiptScreen: boolean     // Show receipt options (email/print/skip)
-  defaultTipPercentage: number | null  // Pre-selected tip percentage (0-100)
-  tipSuggestions: number[]       // Available tip percentages (default: [10, 15, 20])
-  requirePinLogin: boolean       // Require PIN for staff login on terminal
+  showReviewScreen: boolean // Show reviews screen after payment
+  showTipScreen: boolean // Show tip selection screen before payment
+  showReceiptScreen: boolean // Show receipt options (email/print/skip)
+  defaultTipPercentage: number | null // Pre-selected tip percentage (0-100)
+  tipSuggestions: number[] // Available tip percentages (default: [10, 15, 20])
+  requirePinLogin: boolean // Require PIN for staff login on terminal
   // Step 4: Sale Verification (for retail/telecomunicaciones venues)
-  showVerificationScreen: boolean  // Show verification screen after payment success
-  requireVerificationPhoto: boolean  // Require at least one photo in verification
-  requireVerificationBarcode: boolean  // Require at least one barcode scan in verification
+  showVerificationScreen: boolean // Show verification screen after payment success
+  requireVerificationPhoto: boolean // Require at least one photo in verification
+  requireVerificationBarcode: boolean // Require at least one barcode scan in verification
   // Attendance verification (clock-in/out with photo + GPS)
-  requireClockInPhoto: boolean   // Require selfie + GPS at clock-in
-  requireClockOutPhoto: boolean  // Require selfie + GPS at clock-out
+  requireClockInPhoto: boolean // Require selfie + GPS at clock-in
+  requireClockOutPhoto: boolean // Require selfie + GPS at clock-out
   requireClockInToLogin: boolean // Require active clock-in to log into TPV
   // Kiosk Mode
-  kioskModeEnabled: boolean      // Allow terminal to enter self-service kiosk mode
-  kioskDefaultMerchantId: string | null  // Pre-selected merchant for kiosk payments (skip merchant selection)
+  kioskModeEnabled: boolean // Allow terminal to enter self-service kiosk mode
+  kioskDefaultMerchantId: string | null // Pre-selected merchant for kiosk payments (skip merchant selection)
   // Home screen button visibility
-  showQuickPayment: boolean      // Show "Pago rápido" button on home screen
-  showOrderManagement: boolean   // Show "Órdenes" button on home screen
-  showReports: boolean           // Show "Reportes" button on home screen
-  showPayments: boolean          // Show "Pagos" button on home screen
-  showSupport: boolean           // Show "Soporte" button on home screen
-  showGoals: boolean             // Show sales goals pager on home screen
-  showMessages: boolean          // Show "Mensajes" button on home screen
-  showTrainings: boolean         // Show "Entrenamientos" button on home screen
+  showQuickPayment: boolean // Show "Pago rápido" button on home screen
+  showOrderManagement: boolean // Show "Órdenes" button on home screen
+  showReports: boolean // Show "Reportes" button on home screen
+  showPayments: boolean // Show "Pagos" button on home screen
+  showSupport: boolean // Show "Soporte" button on home screen
+  showGoals: boolean // Show sales goals pager on home screen
+  showMessages: boolean // Show "Mensajes" button on home screen
+  showTrainings: boolean // Show "Entrenamientos" button on home screen
   // Crypto payment option (B4Bit integration)
-  showCryptoOption: boolean      // Show crypto payment button in merchant selection
+  showCryptoOption: boolean // Show crypto payment button in merchant selection
   // Evidence rules (PlayTelecom — boolean toggles)
   requireDepositPhoto?: boolean
   requireFacadePhoto?: boolean
@@ -42,7 +42,15 @@ export interface TpvSettings {
   enableSerializedInventory?: boolean
   // Venue-level attendance toggle
   attendanceTracking?: boolean
+  // Cellular Failover (experimental — shown only in per-terminal mode for canary rollout)
+  cellularFailoverMode: 'OFF' | 'MANUAL_TOGGLE' | 'AUTO_SHADOW' | 'AUTO_ENFORCED'
+  cellularFailoverBadReadingsThreshold: number // >=1
+  cellularFailoverCooldownSeconds: number // >=0
+  cellularFailoverMinCellHoldSeconds: number // >=0
 }
+
+/** Cellular failover mode literal used in forms + selects */
+export type CellularFailoverMode = TpvSettings['cellularFailoverMode']
 
 /**
  * Default TPV settings - used as fallback when backend doesn't return all fields
@@ -75,6 +83,11 @@ const DEFAULT_TPV_SETTINGS: TpvSettings = {
   showTrainings: true,
   // Crypto payment disabled by default
   showCryptoOption: false,
+  // Cellular Failover — OFF by default (canary rollout per terminal)
+  cellularFailoverMode: 'OFF',
+  cellularFailoverBadReadingsThreshold: 3,
+  cellularFailoverCooldownSeconds: 60,
+  cellularFailoverMinCellHoldSeconds: 120,
 }
 
 /**
