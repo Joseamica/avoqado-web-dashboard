@@ -62,7 +62,7 @@ export default function Orders() {
   const { t: tCommon } = useTranslation('common')
   const { toast } = useToast()
   const { venueId } = useCurrentVenue()
-  const { formatTime, formatDate, venueTimezoneShort } = useVenueDateTime()
+  const { formatTime: _formatTime, formatDate, venueTimezoneShort: _venueTimezoneShort } = useVenueDateTime()
   const location = useLocation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -302,9 +302,9 @@ export default function Orders() {
     setTotalFilter(null)
     setTipFilter(null)
     const now = DateTime.now().setZone(venueTimezone)
-    setDateRange({ from: now.startOf('month').toJSDate(), to: now.endOf('day').toJSDate() })
+    setDateRange({ from: now.minus({ days: 30 }).startOf('day').toJSDate(), to: now.endOf('day').toJSDate() })
     setSearchTerm('')
-  }, [])
+  }, [venueTimezone])
 
   // Helper to get display label for active filters
   const getFilterDisplayLabel = (values: string[], options: { value: string; label: string }[]) => {
@@ -449,30 +449,37 @@ export default function Orders() {
     }
   }
 
-  // Handle sorting
-  const handleSort = (field: string) => {
-    if (sortField === field) {
-      setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'))
-    } else {
-      setSortField(field)
-      setSortOrder('desc')
-    }
-  }
+  // Handle sorting — wrapped in useCallback for stable identity (consumed by renderSortableHeader memo)
+  const handleSort = useCallback(
+    (field: string) => {
+      if (sortField === field) {
+        setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'))
+      } else {
+        setSortField(field)
+        setSortOrder('desc')
+      }
+    },
+    [sortField],
+  )
 
-  // Render sortable header
-  const renderSortableHeader = (label: string | JSX.Element, field: string) => {
-    const isSorted = sortField === field
-    return (
-      <div className="flex items-center gap-2 cursor-pointer select-none hover:text-foreground" onClick={() => handleSort(field)}>
-        {label}
-        <span className="flex items-center">
-          {isSorted && sortOrder === 'asc' && <ArrowUp className="h-4 w-4" />}
-          {isSorted && sortOrder === 'desc' && <ArrowDown className="h-4 w-4" />}
-          {!isSorted && <ArrowUpDown className="h-4 w-4 opacity-50" />}
-        </span>
-      </div>
-    )
-  }
+  // Render sortable header — wrapped in useCallback so it doesn't change on every render
+  // (otherwise the columns useMemo would recompute on every render).
+  const renderSortableHeader = useCallback(
+    (label: string | JSX.Element, field: string) => {
+      const isSorted = sortField === field
+      return (
+        <div className="flex items-center gap-2 cursor-pointer select-none hover:text-foreground" onClick={() => handleSort(field)}>
+          {label}
+          <span className="flex items-center">
+            {isSorted && sortOrder === 'asc' && <ArrowUp className="h-4 w-4" />}
+            {isSorted && sortOrder === 'desc' && <ArrowDown className="h-4 w-4" />}
+            {!isSorted && <ArrowUpDown className="h-4 w-4 opacity-50" />}
+          </span>
+        </div>
+      )
+    },
+    [sortField, sortOrder, handleSort],
+  )
 
   const columns = useMemo<ColumnDef<Order, unknown>[]>(
     () => [
@@ -688,7 +695,7 @@ export default function Orders() {
               ),
               cell: ({ row }: { row: { original: Order } }) => (
                 <div className="flex items-center justify-end">
-                  <div className="flex items-center gap-1 p-1 rounded-lg bg-gradient-to-r from-amber-400 to-pink-500">
+                  <div className="flex items-center gap-1 p-1 rounded-lg bg-linear-to-r from-amber-400 to-pink-500">
                     <Button
                       size="icon"
                       className="h-7 w-7 bg-background hover:bg-muted text-foreground border-0"
@@ -711,7 +718,9 @@ export default function Orders() {
           ]
         : []),
     ],
-    [t, formatTime, formatDate, venueTimezoneShort, sortField, sortOrder, isSuperAdmin, hasChatbot],
+    // formatDate/formatTime/venueTimezoneShort/sortField/sortOrder are captured transitively
+    // through renderSortableHeader, so they are not direct deps of this useMemo.
+    [t, tCommon, isSuperAdmin, hasChatbot, renderSortableHeader],
   )
 
   // Filter columns based on visibility settings
@@ -787,13 +796,7 @@ export default function Orders() {
         }
       })
     }
-    // Date range filter
-    if (dateRange) {
-      orders = orders.filter((o: Order) => {
-        const orderDate = new Date(o.createdAt)
-        return orderDate >= dateRange.from && orderDate <= dateRange.to
-      })
-    }
+    // Date range is applied server-side; no client-side filter needed.
     // Search is applied server-side via query param (matches order number / customer name).
     // Client-side search would only match orders on the current page, missing the rest.
 
@@ -835,20 +838,10 @@ export default function Orders() {
       if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1
       return 0
     })
-  }, [
-    data?.data,
-    activeStatusTab,
-    sortField,
-    sortOrder,
-    statusFilter,
-    typeFilter,
-    tableFilter,
-    waiterFilter,
-    totalFilter,
-    tipFilter,
-    dateRange,
-    debouncedSearchTerm,
-  ])
+    // NOTE: filter states (status/type/table/waiter/search/dateRange) are applied server-side,
+    // so they don't belong here. Only amount filters (total/tip) and sort/tab still affect
+    // this memo's output.
+  }, [data?.data, activeStatusTab, sortField, sortOrder, totalFilter, tipFilter])
 
   // Status tab counts (computed from unfiltered-by-tab data)
   const statusTabCounts = useMemo(() => {
@@ -1303,7 +1296,7 @@ export default function Orders() {
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Badge className="bg-gradient-to-r from-amber-400 to-pink-500 text-primary-foreground border-0">
+              <Badge className="bg-linear-to-r from-amber-400 to-pink-500 text-primary-foreground border-0">
                 {tCommon('superadmin.edit.editMode')}
               </Badge>
               {tCommon('superadmin.edit.title')}
@@ -1472,7 +1465,7 @@ export default function Orders() {
             <Button
               onClick={confirmEdit}
               disabled={updateOrderMutation.isPending}
-              className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground border-0"
+              className="bg-linear-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground border-0"
             >
               {updateOrderMutation.isPending ? tCommon('saving') : tCommon('save')}
             </Button>

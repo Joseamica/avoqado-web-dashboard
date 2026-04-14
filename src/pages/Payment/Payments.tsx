@@ -437,18 +437,10 @@ export default function Payments() {
     }
 
     return payments
-  }, [
-    data?.data,
-    activeStatusTab,
-    merchantAccountFilter,
-    methodFilter,
-    sourceFilter,
-    waiterFilter,
-    subtotalFilter,
-    tipFilter,
-    totalFilter,
-    debouncedSearchTerm,
-  ])
+    // NOTE: multi-select filters and search are applied server-side, so they no longer
+    // belong in the dep array. Only amount filters (subtotal/tip/total) and status tab
+    // still affect this memo's output.
+  }, [data?.data, activeStatusTab, subtotalFilter, tipFilter, totalFilter])
 
   // Status tab counts (computed from unfiltered-by-tab data)
   const statusTabCounts = useMemo(() => {
@@ -1427,7 +1419,7 @@ export default function Payments() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Badge className="bg-gradient-to-r from-amber-400 to-pink-500 text-primary-foreground border-0">
+              <Badge className="bg-linear-to-r from-amber-400 to-pink-500 text-primary-foreground border-0">
                 {tCommon('superadmin.edit.editMode')}
               </Badge>
               {tCommon('superadmin.edit.title')}

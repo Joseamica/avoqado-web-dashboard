@@ -2,18 +2,19 @@
 
 ## How This Configuration Works
 
-| Layer | Path | Loaded | Purpose |
-|-------|------|--------|---------|
-| This file | `CLAUDE.md` | Always | Router + essentials |
-| Rules | `.claude/rules/*.md` | Auto, every session | Mandatory coding rules |
-| Guides | `docs/guides/*.md` | On demand | Deep-dive references |
-| Docs | `docs/` | On demand | Full human documentation |
+| Layer     | Path                 | Loaded              | Purpose                  |
+| --------- | -------------------- | ------------------- | ------------------------ |
+| This file | `CLAUDE.md`          | Always              | Router + essentials      |
+| Rules     | `.claude/rules/*.md` | Auto, every session | Mandatory coding rules   |
+| Guides    | `docs/guides/*.md`   | On demand           | Deep-dive references     |
+| Docs      | `docs/`              | On demand           | Full human documentation |
 
 **Rules auto-load** — you don't need to read them manually. Guides are read on demand when working in the relevant area.
 
 When rules conflict: `.claude/rules/` wins > this file > `docs/guides/` > `docs/`
 
-**Maintaining this file:** Short rules (1-3 lines) go directly here. Detailed content (code examples, tables, >10 lines) goes in `docs/` or `.claude/rules/`. Keep this file under ~200 lines — it loads every session.
+**Maintaining this file:** Short rules (1-3 lines) go directly here. Detailed content (code examples, tables, >10 lines) goes in `docs/` or
+`.claude/rules/`. Keep this file under ~200 lines — it loads every session.
 
 ---
 
@@ -65,9 +66,14 @@ src/
 9. **Route guards**: 6 types — pick the right one (Permission, KYC, Feature, Module, Admin, Super). → `critical-warnings.md`
 10. **Control Plane vs App Plane**: Platform-wide → `/superadmin/`. Venue-specific → inline panel. → `critical-warnings.md`
 11. **API client**: Don't duplicate retry/auth/offline logic already in `src/api.ts`. → `critical-warnings.md`
-12. **UI patterns (READ FIRST)**: Before building ANY UI, read `ui-patterns.md`. Underline tabs (Stripe pattern), Stripe FilterPill filters, expandable search, hash tabs, gradient, FullScreenModal. → `ui-patterns.md`
-13. **Address inputs**: Always use `<AddressAutocomplete>` (`src/components/address-autocomplete.tsx`) for address fields. Never plain `<Input>`. Auto-fills city, state, country, zipCode, lat/lng via Google Places.
+12. **UI patterns (READ FIRST)**: Before building ANY UI, read `ui-patterns.md`. Underline tabs (Stripe pattern), Stripe FilterPill filters,
+    expandable search, hash tabs, gradient, FullScreenModal. → `ui-patterns.md`
+13. **Address inputs**: Always use `<AddressAutocomplete>` (`src/components/address-autocomplete.tsx`) for address fields. Never plain
+    `<Input>`. Auto-fills city, state, country, zipCode, lat/lng via Google Places.
 14. **Design system**: GlassCard, StatusPulse, MetricCard, Bento grid. → `docs/guides/DESIGN_SYSTEM_GUIDE.md`
+15. **No gradients**: NEVER use `bg-gradient-to-*` (deprecated in Tailwind v4). Prefer flat surfaces using semantic tokens. If a gradient is
+    genuinely required, use the v4 canonical `bg-linear-to-*` syntax. Avoid creating new gradient surfaces — they tend to read as AI slop
+    and are inconsistent with the design system.
 
 ## API Integration
 
@@ -89,7 +95,8 @@ const { data } = useQuery({
 - Each venue has role-based permissions + feature flags
 - Control Plane (`/superadmin/`) manages ALL venues globally
 - Application Plane (`/venues/:slug/`) is the per-venue experience
-- **Feature Registry**: New pages that could be used in white-label dashboards MUST be added to `src/config/feature-registry.ts`. Not needed for internal/system pages (Auth, Onboarding, Superadmin, Settings). See: `docs/features/WHITE_LABEL_DASHBOARD.md`
+- **Feature Registry**: New pages that could be used in white-label dashboards MUST be added to `src/config/feature-registry.ts`. Not needed
+  for internal/system pages (Auth, Onboarding, Superadmin, Settings). See: `docs/features/WHITE_LABEL_DASHBOARD.md`
 
 ### Auth & Routing Invariants
 
@@ -97,7 +104,8 @@ const { data } = useQuery({
 - **KYC redirects must be venue-scoped**: use `/:mode/:slug/kyc-required` under venue routes (`/venues/:slug/*` and `/wl/venues/:slug/*`).
 - **SUPERADMIN is global**: can access all modules/features/orgs/venues.
 - **OWNER is org-scoped**: OWNER access applies only inside organizations where the user is OWNER (not global by highest role).
-- **Route guards must use effective venue role**: prefer `staffInfo.role` / `useAccess().role` over raw `user.role` for venue-level authorization.
+- **Route guards must use effective venue role**: prefer `staffInfo.role` / `useAccess().role` over raw `user.role` for venue-level
+  authorization.
 
 ### Recent Auth Hardening (2026-02)
 
@@ -115,44 +123,52 @@ See: `docs/architecture/permissions.md`
 
 ## Documentation Router
 
-**Architecture**: [overview](docs/architecture/overview.md) | [routing](docs/architecture/routing.md) | [permissions](docs/architecture/permissions.md)
+**Architecture**: [overview](docs/architecture/overview.md) | [routing](docs/architecture/routing.md) |
+[permissions](docs/architecture/permissions.md)
 
-**Features**: [i18n](docs/features/i18n.md) | [theme](docs/features/theme.md) | [inventory](docs/features/inventory.md) | [white-label](docs/features/WHITE_LABEL_DASHBOARD.md)
+**Features**: [i18n](docs/features/i18n.md) | [theme](docs/features/theme.md) | [inventory](docs/features/inventory.md) |
+[white-label](docs/features/WHITE_LABEL_DASHBOARD.md)
 
-**Guides**: [UI patterns](docs/guides/ui-patterns.md) | [performance](docs/guides/performance.md) | [design system](docs/guides/DESIGN_SYSTEM_GUIDE.md) | [timezone](docs/guides/TIMEZONE_GUIDE.md) | [real-time/Socket.IO](docs/guides/REALTIME_GUIDE.md)
+**Guides**: [UI patterns](docs/guides/ui-patterns.md) | [performance](docs/guides/performance.md) |
+[design system](docs/guides/DESIGN_SYSTEM_GUIDE.md) | [timezone](docs/guides/TIMEZONE_GUIDE.md) |
+[real-time/Socket.IO](docs/guides/REALTIME_GUIDE.md)
 
 **Troubleshooting**: [render loops](docs/troubleshooting/render-loops.md)
 
-**Cross-repo**: [avoqado-server/docs/README.md](../avoqado-server/docs/README.md) — central hub for architecture, DB, payments, inventory backend
+**Cross-repo**: [avoqado-server/docs/README.md](../avoqado-server/docs/README.md) — central hub for architecture, DB, payments, inventory
+backend
 
 ## Environment & Deployment
 
 Three environments deployed via GitHub Actions + Cloudflare Pages:
 
-| Env | URL | API |
-|-----|-----|-----|
-| Demo | `demo.dashboard.avoqado.io` | `demo.api.avoqado.io` |
-| Staging | `staging.dashboard.avoqado.io` | Render staging |
-| Production | `dashboardv2.avoqado.io` | `api.avoqado.io` |
+| Env        | URL                            | API                   |
+| ---------- | ------------------------------ | --------------------- |
+| Demo       | `demo.dashboard.avoqado.io`    | `demo.api.avoqado.io` |
+| Staging    | `staging.dashboard.avoqado.io` | Render staging        |
+| Production | `dashboardv2.avoqado.io`       | `api.avoqado.io`      |
 
-Auto-deploy: push to `develop` (demo + staging), push to `main` (production).
-Manual: `gh workflow run ci-cd.yml --field environment=demo`
+Auto-deploy: push to `develop` (demo + staging), push to `main` (production). Manual: `gh workflow run ci-cd.yml --field environment=demo`
 
 Environment variables are in **GitHub Environments** (NOT Cloudflare Pages UI). Vite injects at build time.
 
 ## Cross-Repo Compatibility (TPV Android)
 
-| Repo | Deploy Time |
-|------|-------------|
-| Backend (avoqado-server) | Minutes |
-| Dashboard (this repo) | Minutes |
-| **TPV (avoqado-tpv)** | **3-5 days** (PAX signing) |
+| Repo                     | Deploy Time                |
+| ------------------------ | -------------------------- |
+| Backend (avoqado-server) | Minutes                    |
+| Dashboard (this repo)    | Minutes                    |
+| **TPV (avoqado-tpv)**    | **3-5 days** (PAX signing) |
 
 If a dashboard change affects TPV configuration: verify backend supports it, don't assume TPV has latest version.
 
 ## UX Design Principle
 
-**Design for the least technical user.** Assume the person using this system has never used a software platform before — they could be elderly, non-tech-savvy, or simply unfamiliar with SaaS dashboards. Every screen, component, and interaction must be immediately understandable without a manual. Prefer fewer tabs, fewer options visible at once, and clear visual hierarchy. Labels must be self-explanatory. When in doubt, simplify — fewer choices beat more flexibility. Beautiful, clean, and obvious always wins over feature-dense and clever.
+**Design for the least technical user.** Assume the person using this system has never used a software platform before — they could be
+elderly, non-tech-savvy, or simply unfamiliar with SaaS dashboards. Every screen, component, and interaction must be immediately
+understandable without a manual. Prefer fewer tabs, fewer options visible at once, and clear visual hierarchy. Labels must be
+self-explanatory. When in doubt, simplify — fewer choices beat more flexibility. Beautiful, clean, and obvious always wins over
+feature-dense and clever.
 
 ## Pre-Deploy Checklist
 
