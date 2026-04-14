@@ -3,13 +3,7 @@
 import api from '@/api'
 import { AddToAIButton } from '@/components/AddToAIButton'
 import DataTable from '@/components/data-table'
-import {
-  AmountFilterContent,
-  CheckboxFilterContent,
-  ColumnCustomizer,
-  FilterPill,
-  type AmountFilter,
-} from '@/components/filters'
+import { AmountFilterContent, CheckboxFilterContent, ColumnCustomizer, FilterPill, type AmountFilter } from '@/components/filters'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import {
@@ -88,11 +82,11 @@ export default function Payments() {
   const [methodFilter, setMethodFilter] = useState<string[]>([])
   const [sourceFilter, setSourceFilter] = useState<string[]>([])
   const [waiterFilter, setWaiterFilter] = useState<string[]>([])
-  // Date range state — defaults to 1st of current month through today
+  // Date range state — defaults to last 30 days (Stripe-style)
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(() => {
     const now = DateTime.now().setZone(venueTimezone)
     return {
-      from: now.startOf('month').toJSDate(),
+      from: now.minus({ days: 30 }).startOf('day').toJSDate(),
       to: now.endOf('day').toJSDate(),
     }
   })
@@ -470,12 +464,15 @@ export default function Payments() {
     }
   }, [data?.data])
 
-  const statusTabs = useMemo<StatusTab[]>(() => [
-    { value: 'all', label: t('statusTabs.all'), count: statusTabCounts.all },
-    { value: 'completed', label: t('statusTabs.completed'), count: statusTabCounts.completed },
-    { value: 'pending', label: t('statusTabs.pending'), count: statusTabCounts.pending },
-    { value: 'refunded', label: t('statusTabs.refunded'), count: statusTabCounts.refunded },
-  ], [t, statusTabCounts])
+  const statusTabs = useMemo<StatusTab[]>(
+    () => [
+      { value: 'all', label: t('statusTabs.all'), count: statusTabCounts.all },
+      { value: 'completed', label: t('statusTabs.completed'), count: statusTabCounts.completed },
+      { value: 'pending', label: t('statusTabs.pending'), count: statusTabCounts.pending },
+      { value: 'refunded', label: t('statusTabs.refunded'), count: statusTabCounts.refunded },
+    ],
+    [t, statusTabCounts],
+  )
 
   // Summary cards (computed from filtered data)
   const summaryCards = useMemo<SummaryCardItem[]>(() => {
@@ -1080,12 +1077,7 @@ export default function Payments() {
       </div>
 
       {/* Status Filter Tabs */}
-      <StatusFilterTabs
-        tabs={statusTabs}
-        activeTab={activeStatusTab}
-        onTabChange={setActiveStatusTab}
-        className="mb-4"
-      />
+      <StatusFilterTabs tabs={statusTabs} activeTab={activeStatusTab} onTabChange={setActiveStatusTab} className="mb-4" />
 
       {/* Summary Cards */}
       <SummaryCards cards={summaryCards} isLoading={isLoading} className="mb-4" />

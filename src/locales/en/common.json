@@ -141,7 +141,8 @@
     "thisMonth": "This month",
     "lastMonth": "Last month",
     "thisYear": "This year",
-    "lastYear": "Last year"
+    "lastYear": "Last year",
+    "allTime": "All time"
   },
   "trialBanner": {
     "urgentTitle": "⚠️ Only {{days}} day remaining in your free trial!",

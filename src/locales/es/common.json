@@ -141,7 +141,8 @@
     "thisMonth": "Este mes",
     "lastMonth": "Mes pasado",
     "thisYear": "Este año",
-    "lastYear": "Año pasado"
+    "lastYear": "Año pasado",
+    "allTime": "Todo el tiempo"
   },
   "trialBanner": {
     "urgentTitle": "⚠️ ¡Solo queda {{days}} día en tu periodo de prueba!",

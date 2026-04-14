@@ -26,7 +26,9 @@ export function DataTablePagination<TData>({ table }: DataTablePaginationProps<T
       </div>
       <div className="flex items-center space-x-6 lg:space-x-8">
         <div className="flex items-center space-x-2">
-          <p className="text-sm font-medium">{t(['pagination.rowsPerPage', 'tpv.pagination.rowsPerPage'], { defaultValue: 'Rows per page' })}</p>
+          <p className="text-sm font-medium">
+            {t(['pagination.rowsPerPage', 'tpv.pagination.rowsPerPage'], { defaultValue: 'Rows per page' })}
+          </p>
           <Select
             value={`${table.getState().pagination.pageSize}`}
             onValueChange={value => {
@@ -37,7 +39,7 @@ export function DataTablePagination<TData>({ table }: DataTablePaginationProps<T
               <SelectValue placeholder={table.getState().pagination.pageSize} />
             </SelectTrigger>
             <SelectContent side="top">
-              {[10, 20, 30, 40, 50].map(pageSize => (
+              {[10, 20, 30, 50, 100, 200].map(pageSize => (
                 <SelectItem key={pageSize} value={`${pageSize}`}>
                   {pageSize}
                 </SelectItem>
@@ -63,7 +65,9 @@ export function DataTablePagination<TData>({ table }: DataTablePaginationProps<T
             <ChevronsLeft />
           </Button>
           <Button variant="outline" className="w-8 h-8 p-0" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-            <span className="sr-only">{t(['pagination.previousPage', 'tpv.pagination.previousPage'], { defaultValue: 'Go to previous page' })}</span>
+            <span className="sr-only">
+              {t(['pagination.previousPage', 'tpv.pagination.previousPage'], { defaultValue: 'Go to previous page' })}
+            </span>
             <ChevronLeft />
           </Button>
           <Button variant="outline" className="w-8 h-8 p-0" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>

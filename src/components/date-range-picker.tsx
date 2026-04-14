@@ -76,6 +76,7 @@ const PRESETS: Preset[] = [
   { name: 'lastMonth', label: 'lastMonth' },
   { name: 'thisYear', label: 'thisYear' },
   { name: 'lastYear', label: 'lastYear' },
+  { name: 'allTime', label: 'allTime' },
 ]
 
 /** The DateRangePicker component allows a user to select a range of dates */
@@ -108,9 +109,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
     initialCompareFrom
       ? {
           from: getDateAdjustedForTimezone(initialCompareFrom),
-          to: initialCompareTo
-            ? getDateAdjustedForTimezone(initialCompareTo)
-            : getDateAdjustedForTimezone(initialCompareFrom),
+          to: initialCompareTo ? getDateAdjustedForTimezone(initialCompareTo) : getDateAdjustedForTimezone(initialCompareFrom),
         }
       : undefined,
   )
@@ -225,6 +224,14 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
           to: lastYearEnd.toJSDate(),
         }
       }
+      case 'allTime': {
+        // "All time" — use a far-past date as start so every record is included
+        const allTimeStart = DateTime.fromObject({ year: 2000, month: 1, day: 1 }, { zone: timezone }).startOf('day')
+        return {
+          from: allTimeStart.toJSDate(),
+          to: now.endOf('day').toJSDate(),
+        }
+      }
       default: {
         // Fallback to today
         const range = getToday(timezone)
@@ -308,8 +315,8 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
                 ? getDateAdjustedForTimezone(initialCompareTo)
                 : initialCompareTo
               : typeof initialCompareFrom === 'string'
-              ? getDateAdjustedForTimezone(initialCompareFrom)
-              : initialCompareFrom,
+                ? getDateAdjustedForTimezone(initialCompareFrom)
+                : initialCompareFrom,
           }
         : undefined,
     )

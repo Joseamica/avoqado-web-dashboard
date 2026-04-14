@@ -78,18 +78,55 @@ export function CheckboxFilterContent({
         </div>
       )}
 
-      <div className="max-h-[240px] overflow-y-auto p-2">
+      <div className="max-h-[280px] overflow-y-auto p-2">
         {filteredOptions.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">{emptyLabel}</p>
         ) : (
           <div className="space-y-1">
+            {/* Seleccionar todos master toggle — matches Shopify/Carbon pattern */}
+            {filteredOptions.length > 1 && (
+              <>
+                <label
+                  className={cn(
+                    'flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-sm transition-colors font-medium',
+                    'hover:bg-muted/50',
+                  )}
+                >
+                  <Checkbox
+                    checked={
+                      filteredOptions.every(opt => localSelected.includes(opt.value))
+                        ? true
+                        : filteredOptions.some(opt => localSelected.includes(opt.value))
+                          ? 'indeterminate'
+                          : false
+                    }
+                    onCheckedChange={checked => {
+                      if (checked) {
+                        // Select all visible (respects search filter)
+                        const visibleValues = filteredOptions.map(opt => opt.value)
+                        setLocalSelected(prev => Array.from(new Set([...prev, ...visibleValues])))
+                      } else {
+                        // Clear only visible options
+                        const visibleValues = new Set(filteredOptions.map(opt => opt.value))
+                        setLocalSelected(prev => prev.filter(v => !visibleValues.has(v)))
+                      }
+                    }}
+                    className="h-4 w-4"
+                  />
+                  <span className="flex-1">{searchTerm ? 'Seleccionar visibles' : 'Seleccionar todos'}</span>
+                  <span className="text-xs text-muted-foreground">({filteredOptions.length})</span>
+                </label>
+                <div className="my-1 h-px bg-border" />
+              </>
+            )}
+
             {filteredOptions.map(option => (
               <label
                 key={option.value}
                 className={cn(
                   'flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-sm transition-colors',
                   'hover:bg-muted/50',
-                  localSelected.includes(option.value) && 'bg-muted/30'
+                  localSelected.includes(option.value) && 'bg-muted/30',
                 )}
               >
                 <Checkbox

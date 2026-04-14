@@ -86,11 +86,11 @@ export default function Orders() {
   const [waiterFilter, setWaiterFilter] = useState<string[]>([])
   const [totalFilter, setTotalFilter] = useState<AmountFilter | null>(null)
   const [tipFilter, setTipFilter] = useState<AmountFilter | null>(null)
-  // Date range state — defaults to 1st of current month through today
+  // Date range state — defaults to last 30 days (Stripe-style)
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(() => {
     const now = DateTime.now().setZone(venueTimezone)
     return {
-      from: now.startOf('month').toJSDate(),
+      from: now.minus({ days: 30 }).startOf('day').toJSDate(),
       to: now.endOf('day').toJSDate(),
     }
   })
