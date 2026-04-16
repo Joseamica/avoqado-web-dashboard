@@ -1,13 +1,15 @@
 /**
- * AssignToSupervisorDialog — ADMIN-only modal that assigns SIMs already in
- * `ADMIN_HELD` to a Supervisor (plan §2.1).
+ * AssignSimsDialog — modal that assigns SIMs already in `ADMIN_HELD` to
+ * either a Supervisor (normal chain of custody, plan §2.1) or directly to
+ * a Promoter (bypass — restricted to OWNER/SUPERADMIN).
  *
- * UX redesign: the only required decision is WHICH Supervisor. Category is
- * demoted to an OPTIONAL narrow-down filter inside the "Buscar" tab — each
- * SIM retains its original category from registration, and the backend no
- * longer validates CATEGORY_MISMATCH (see custody.service.ts §1.9 revision).
+ * The "directo a Promotor" path exists for exceptions/emergencies where a
+ * Supervisor is not available (vacation, off-shift). It still writes a
+ * `SerializedItemCustodyEvent` with `fromState=ADMIN_HELD` so the timeline
+ * makes the bypass explicit.
  */
 import { useMemo, useState } from 'react'
+import { AlertTriangle } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -16,12 +18,20 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { toast } from '@/hooks/use-toast'
-import { assignSimsToSupervisor, type BulkResponse } from '@/services/simCustody.service'
+import {
+  assignSimsToPromoterDirect,
+  assignSimsToSupervisor,
+  type BulkResponse,
+} from '@/services/simCustody.service'
 import { useOrgStaffByRole } from '@/hooks/use-org-staff-by-role'
 import { getItemCategories } from '@/services/stockDashboard.service'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
+import { useAccess } from '@/hooks/use-access'
+import { useAuth } from '@/context/AuthContext'
 import { useOrgStockControl } from '../hooks/useOrgStockControl'
 import { SimMultiSelect } from './SimMultiSelect'
+
+type AssignTarget = 'supervisor' | 'promoter-direct'
 
 interface Props {
   open: boolean
@@ -33,8 +43,19 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
   const { venues } = useCurrentOrganization()
   const firstVenueId = venues[0]?.id
   const queryClient = useQueryClient()
+  const { can } = useAccess()
+  const { user, staffInfo } = useAuth()
+  // `useAccess` query is gated on venueId and this dialog opens from
+  // /organizations/:orgId routes where venueId is null → can() silently
+  // returns false. Fall back to the global role (same pattern as the parent
+  // OrgStockControlPage.tsx) so OWNER/SUPERADMIN see the bypass toggle.
+  const currentUserRole = staffInfo?.role ?? user?.role
+  const isSuperOrOwner = currentUserRole === 'SUPERADMIN' || currentUserRole === 'OWNER'
+  const canAssignDirect = can('sim-custody:assign-to-promoter-direct') || isSuperOrOwner
 
+  const [target, setTarget] = useState<AssignTarget>('supervisor')
   const [supervisorStaffId, setSupervisorStaffId] = useState('')
+  const [promoterStaffId, setPromoterStaffId] = useState('')
   // Category is ONLY a filter inside the Buscar tab — not a required field.
   // Empty string = "Todas".
   const [searchCategoryFilter, setSearchCategoryFilter] = useState('')
@@ -60,6 +81,7 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
   const availableItems = useMemo(() => stockData?.items ?? [], [stockData?.items])
 
   const supervisors = useOrgStaffByRole(orgId, 'MANAGER')
+  const promoters = useOrgStaffByRole(orgId, 'WAITER')
 
   // Categories used as the optional Buscar filter only.
   const { data: categoriesData } = useQuery({
@@ -82,7 +104,8 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
 
   const mutation = useMutation<BulkResponse, Error, void>({
     mutationFn: async () => {
-      if (!supervisorStaffId) throw new Error('Selecciona un Supervisor')
+      if (target === 'supervisor' && !supervisorStaffId) throw new Error('Selecciona un Supervisor')
+      if (target === 'promoter-direct' && !promoterStaffId) throw new Error('Selecciona un Promotor')
 
       let rows: { serialNumber: string }[] = []
       if (mode === 'search') {
@@ -106,6 +129,12 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
       }
       if (rows.length === 0) throw new Error('Agrega al menos un ICCID')
 
+      if (target === 'promoter-direct') {
+        return assignSimsToPromoterDirect(orgId, {
+          promoterStaffId,
+          serialNumbers: rows.map(r => r.serialNumber),
+        })
+      }
       return assignSimsToSupervisor(orgId, {
         supervisorStaffId,
         rows,
@@ -119,7 +148,9 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
   })
 
   const reset = () => {
+    setTarget('supervisor')
     setSupervisorStaffId('')
+    setPromoterStaffId('')
     setSearchCategoryFilter('')
     setManualSerials('')
     setCsvFile(null)
@@ -139,32 +170,94 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Asignar SIMs a Supervisor</DialogTitle>
+          <DialogTitle>Asignar SIMs</DialogTitle>
           <DialogDescription>
-            Los SIMs deben estar previamente registrados en el sistema (Cargar Items). Aquí los asignas a un Supervisor para que a su vez
-            los distribuya a Promotores.
+            Los SIMs deben estar previamente registrados en el sistema (Cargar Items).
+            {target === 'supervisor'
+              ? ' Se asignarán a un Supervisor para que a su vez los distribuya a Promotores.'
+              : ' Se asignarán directamente al Promotor, saltando la cadena normal. Usa esta opción solo cuando no haya Supervisor disponible.'}
           </DialogDescription>
         </DialogHeader>
 
         {!result ? (
           <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Supervisor</label>
-              <SearchableSelect
-                value={supervisorStaffId}
-                onValueChange={setSupervisorStaffId}
-                options={(supervisors.data ?? []).map(s => ({
-                  value: s.id,
-                  label: s.fullName,
-                }))}
-                placeholder={supervisors.isLoading ? 'Cargando…' : 'Selecciona un Supervisor'}
-                searchPlaceholder="Buscar por nombre…"
-                emptyMessage="Sin resultados"
-                disabled={supervisors.isLoading}
-                searchThreshold={0}
-                className="w-full"
-              />
-            </div>
+            {/* Target toggle: Supervisor (default chain) vs Promotor directo (bypass OWNER+) */}
+            {canAssignDirect && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Asignar a</label>
+                <div className="inline-flex rounded-full border border-input bg-muted/60 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setTarget('supervisor')}
+                    className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                      target === 'supervisor'
+                        ? 'bg-foreground text-background'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Supervisor
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTarget('promoter-direct')}
+                    className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                      target === 'promoter-direct'
+                        ? 'bg-foreground text-background'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Promotor (directo)
+                  </button>
+                </div>
+                {target === 'promoter-direct' && (
+                  <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:bg-amber-950/50 dark:text-amber-200">
+                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <div>
+                      <strong>Bypass de cadena de custodia.</strong> El SIM se asignará directamente al Promotor sin pasar por un
+                      Supervisor. Queda registrado en el historial con marca de excepción.
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {target === 'supervisor' ? (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Supervisor</label>
+                <SearchableSelect
+                  value={supervisorStaffId}
+                  onValueChange={setSupervisorStaffId}
+                  options={(supervisors.data ?? []).map(s => ({
+                    value: s.id,
+                    label: s.fullName,
+                  }))}
+                  placeholder={supervisors.isLoading ? 'Cargando…' : 'Selecciona un Supervisor'}
+                  searchPlaceholder="Buscar por nombre…"
+                  emptyMessage="Sin resultados"
+                  disabled={supervisors.isLoading}
+                  searchThreshold={0}
+                  className="w-full"
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Promotor</label>
+                <SearchableSelect
+                  value={promoterStaffId}
+                  onValueChange={setPromoterStaffId}
+                  options={(promoters.data ?? []).map(s => ({
+                    value: s.id,
+                    label: s.fullName,
+                  }))}
+                  placeholder={promoters.isLoading ? 'Cargando…' : 'Selecciona un Promotor'}
+                  searchPlaceholder="Buscar por nombre…"
+                  emptyMessage="Sin resultados"
+                  disabled={promoters.isLoading}
+                  searchThreshold={0}
+                  className="w-full"
+                />
+              </div>
+            )}
 
             <Tabs value={mode} onValueChange={v => setMode(v as 'search' | 'manual' | 'csv')}>
               <TabsList className="rounded-full bg-muted/60 p-1">

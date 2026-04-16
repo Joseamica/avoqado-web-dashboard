@@ -188,11 +188,14 @@ export function InventoryLabelModal({ open, onClose, venueId }: InventoryLabelMo
 
       if (matchedProduct) {
         existingIds.add(matchedProduct.id)
+        // quantityOrdered comes from a Prisma Decimal — serialized as string
+        // over JSON. Coerce to integer ≥ 1 to satisfy the backend schema.
+        const qty = Math.max(1, Math.floor(Number(poItem.quantityOrdered) || 1))
         newItems.push({
           productId: matchedProduct.id,
           name: matchedProduct.name,
           sku: matchedProduct.sku,
-          quantity: poItem.quantityOrdered || 1,
+          quantity: qty,
         })
       }
     }

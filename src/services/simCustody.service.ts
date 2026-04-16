@@ -116,6 +116,18 @@ export async function assignSimsToPromoter(orgId: string, body: AssignToPromoter
   return data
 }
 
+/**
+ * OWNER/SUPERADMIN bypass: asigna directo Admin → Promotor sin pasar por
+ * Supervisor. Solo se expone en UI cuando el actor tiene el permiso
+ * `sim-custody:assign-to-promoter-direct`.
+ */
+export async function assignSimsToPromoterDirect(orgId: string, body: AssignToPromoterInput): Promise<BulkResponse> {
+  const { data } = await api.post(`${base(orgId)}/assign-to-promoter-direct`, body, {
+    headers: { 'Idempotency-Key': uuidv4() },
+  })
+  return data
+}
+
 export async function collectFromPromoter(orgId: string, body: CollectInput): Promise<{ custodyState: SimCustodyState }> {
   const { data } = await api.post(`${base(orgId)}/collect-from-promoter`, body)
   return data
