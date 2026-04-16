@@ -232,6 +232,16 @@ export interface OrgStockOverviewItem {
   currentVenueName: string | null
   createdById: string | null
   createdByName: string | null
+  // Chain-of-custody (plan §2.2). Optional for backward-compat with older
+  // backend responses (TPV rule: backend supports old clients; here we treat
+  // absent fields as ADMIN_HELD + no assignments).
+  custodyState?: 'ADMIN_HELD' | 'SUPERVISOR_HELD' | 'PROMOTER_PENDING' | 'PROMOTER_HELD' | 'PROMOTER_REJECTED' | 'SOLD'
+  assignedSupervisorId?: string | null
+  assignedSupervisorName?: string | null
+  assignedPromoterId?: string | null
+  assignedPromoterName?: string | null
+  promoterAcceptedAt?: string | null
+  promoterRejectedAt?: string | null
 }
 
 export interface OrgStockBulkGroup {
