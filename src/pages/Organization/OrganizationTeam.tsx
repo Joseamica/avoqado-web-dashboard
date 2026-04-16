@@ -86,8 +86,19 @@ const OrganizationTeam: React.FC = () => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  // Context venue for venue-scoped API calls (any venue the user has access to)
-  const contextVenueId = activeVenue?.id || allVenues[0]?.id
+  // Context venue for venue-scoped API calls — MUST belong to the organization
+  // in the URL, otherwise invitations end up assigned to another org (production
+  // bug: user at /organizations/A/team ended up inviting staff to org B because
+  // their activeVenue belonged to B).
+  const contextVenueId = useMemo(() => {
+    const orgVenues = allVenues.filter(v => v.organizationId === orgId)
+    // Prefer activeVenue if it belongs to THIS org; otherwise take the first
+    // venue in this org the user has access to.
+    if (activeVenue && orgVenues.some(v => v.id === activeVenue.id)) {
+      return activeVenue.id
+    }
+    return orgVenues[0]?.id
+  }, [allVenues, activeVenue, orgId])
 
   // Stripe-style filter state
   const [venueFilter, setVenueFilter] = useState<string[]>([])
