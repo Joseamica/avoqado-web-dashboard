@@ -92,6 +92,10 @@
   "stock": {
     "title": "Stock Control",
     "subtitle": "Manage serialized inventory",
+    "tabs": {
+      "inventario": "Inventory",
+      "custodia": "SIM Custody"
+    },
     "totalItems": "Total Items",
     "available": "Available",
     "assigned": "Assigned",

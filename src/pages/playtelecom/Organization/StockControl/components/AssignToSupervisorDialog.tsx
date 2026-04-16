@@ -2,15 +2,16 @@
  * AssignToSupervisorDialog — ADMIN-only modal that assigns SIMs already in
  * `ADMIN_HELD` to a Supervisor (plan §2.1).
  *
- * Separated from `BulkUploadDialog` to keep both flows clean:
- *   - Cargar Items  → BulkUploadDialog (registration, existing code)
- *   - Asignar SIMs  → this file (custody, net-new)
+ * UX redesign: the only required decision is WHICH Supervisor. Category is
+ * demoted to an OPTIONAL narrow-down filter inside the "Buscar" tab — each
+ * SIM retains its original category from registration, and the backend no
+ * longer validates CATEGORY_MISMATCH (see custody.service.ts §1.9 revision).
  */
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +20,8 @@ import { assignSimsToSupervisor, type BulkResponse } from '@/services/simCustody
 import { useOrgStaffByRole } from '@/hooks/use-org-staff-by-role'
 import { getItemCategories } from '@/services/stockDashboard.service'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
+import { useOrgStockControl } from '../hooks/useOrgStockControl'
+import { SimMultiSelect } from './SimMultiSelect'
 
 interface Props {
   open: boolean
@@ -32,51 +35,79 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
   const queryClient = useQueryClient()
 
   const [supervisorStaffId, setSupervisorStaffId] = useState('')
-  const [categoryId, setCategoryId] = useState('')
-  const [mode, setMode] = useState<'manual' | 'csv'>('manual')
+  // Category is ONLY a filter inside the Buscar tab — not a required field.
+  // Empty string = "Todas".
+  const [searchCategoryFilter, setSearchCategoryFilter] = useState('')
+  const [mode, setMode] = useState<'search' | 'manual' | 'csv'>('search')
   const [manualSerials, setManualSerials] = useState('')
   const [csvFile, setCsvFile] = useState<File | null>(null)
+  const [searchSerials, setSearchSerials] = useState<string[]>([])
   const [result, setResult] = useState<BulkResponse | null>(null)
   const [onlyErrors, setOnlyErrors] = useState(false)
 
+  // Load org SIMs for the search combobox. Freeze the date window ONCE per
+  // dialog mount — `new Date()` on every render causes the query key to shift
+  // each ms and triggers an infinite refetch loop against /stock-control/overview.
+  // We also gate on `open` so the query only runs while the dialog is visible.
+  const stockParams = useMemo(() => {
+    const end = new Date()
+    const start = new Date(end)
+    start.setDate(start.getDate() - 30)
+    return { dateFrom: start.toISOString(), dateTo: end.toISOString() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional single-compute per mount
+  }, [])
+  const { data: stockData } = useOrgStockControl(open ? orgId : undefined, stockParams)
+  const availableItems = useMemo(() => stockData?.items ?? [], [stockData?.items])
+
   const supervisors = useOrgStaffByRole(orgId, 'MANAGER')
 
+  // Categories used as the optional Buscar filter only.
   const { data: categoriesData } = useQuery({
     queryKey: ['item-categories', firstVenueId],
     queryFn: () => getItemCategories(firstVenueId!, { includeStats: false }),
     enabled: Boolean(firstVenueId) && open,
   })
   const categories = useMemo(() => categoriesData?.categories ?? [], [categoriesData])
+  // Derive categories present in ADMIN_HELD stock so the filter only surfaces
+  // options that actually have SIMs available — avoids a dropdown full of
+  // never-used categories.
+  const categoriesInStock = useMemo(() => {
+    const ids = new Set<string>()
+    for (const item of availableItems) {
+      const state = item.custodyState ?? 'ADMIN_HELD'
+      if (state === 'ADMIN_HELD') ids.add(item.categoryId)
+    }
+    return categories.filter(c => ids.has(c.id))
+  }, [availableItems, categories])
 
   const mutation = useMutation<BulkResponse, Error, void>({
     mutationFn: async () => {
       if (!supervisorStaffId) throw new Error('Selecciona un Supervisor')
-      if (!categoryId) throw new Error('Selecciona una categoría')
 
-      let rows: { serialNumber: string; categoryId?: string | null }[] = []
-      if (mode === 'manual') {
+      let rows: { serialNumber: string }[] = []
+      if (mode === 'search') {
+        rows = searchSerials.map(serialNumber => ({ serialNumber }))
+      } else if (mode === 'manual') {
         rows = manualSerials
           .split(/[\n,;\t]+/)
           .map(s => s.trim())
           .filter(Boolean)
-          .map(serialNumber => ({ serialNumber, categoryId }))
+          .map(serialNumber => ({ serialNumber }))
       } else if (csvFile) {
         const text = await csvFile.text()
         rows = text
           .split(/\r?\n/)
           .map(line => line.trim())
           .filter(Boolean)
-          .map(line => {
-            const [serialNumber, catName] = line.split(',').map(s => s.trim())
-            const matchedCategory = catName ? categories.find(c => c.name.toLowerCase() === catName.toLowerCase()) : null
-            return { serialNumber, categoryId: matchedCategory?.id ?? categoryId }
-          })
+          // CSV format simplified: one ICCID per line. Trailing columns are
+          // ignored (category is inferred from each SIM's existing record).
+          .map(line => ({ serialNumber: line.split(',')[0].trim() }))
+          .filter(r => r.serialNumber.length > 0)
       }
       if (rows.length === 0) throw new Error('Agrega al menos un ICCID')
 
       return assignSimsToSupervisor(orgId, {
         supervisorStaffId,
-        fallbackCategoryId: categoryId,
         rows,
       })
     },
@@ -89,9 +120,10 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
 
   const reset = () => {
     setSupervisorStaffId('')
-    setCategoryId('')
+    setSearchCategoryFilter('')
     setManualSerials('')
     setCsvFile(null)
+    setSearchSerials([])
     setResult(null)
     setOnlyErrors(false)
   }
@@ -109,49 +141,36 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
         <DialogHeader>
           <DialogTitle>Asignar SIMs a Supervisor</DialogTitle>
           <DialogDescription>
-            Los SIMs deben estar previamente registrados en el sistema (Cargar Items). Aquí los asignas a un Supervisor para que a su vez los
-            distribuya a Promotores.
+            Los SIMs deben estar previamente registrados en el sistema (Cargar Items). Aquí los asignas a un Supervisor para que a su vez
+            los distribuya a Promotores.
           </DialogDescription>
         </DialogHeader>
 
         {!result ? (
           <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Supervisor</label>
-                <Select value={supervisorStaffId} onValueChange={setSupervisorStaffId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={supervisors.isLoading ? 'Cargando…' : 'Selecciona un Supervisor'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {supervisors.data?.map(s => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.fullName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Categoría</label>
-                <Select value={categoryId} onValueChange={setCategoryId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona una categoría" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map(c => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Supervisor</label>
+              <SearchableSelect
+                value={supervisorStaffId}
+                onValueChange={setSupervisorStaffId}
+                options={(supervisors.data ?? []).map(s => ({
+                  value: s.id,
+                  label: s.fullName,
+                }))}
+                placeholder={supervisors.isLoading ? 'Cargando…' : 'Selecciona un Supervisor'}
+                searchPlaceholder="Buscar por nombre…"
+                emptyMessage="Sin resultados"
+                disabled={supervisors.isLoading}
+                searchThreshold={0}
+                className="w-full"
+              />
             </div>
 
-            <Tabs value={mode} onValueChange={v => setMode(v as 'manual' | 'csv')}>
+            <Tabs value={mode} onValueChange={v => setMode(v as 'search' | 'manual' | 'csv')}>
               <TabsList className="rounded-full bg-muted/60 p-1">
+                <TabsTrigger value="search" className="rounded-full">
+                  Buscar
+                </TabsTrigger>
                 <TabsTrigger value="manual" className="rounded-full">
                   Manual
                 </TabsTrigger>
@@ -159,6 +178,36 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
                   Archivo CSV
                 </TabsTrigger>
               </TabsList>
+
+              <TabsContent value="search" className="mt-3 space-y-3">
+                {/* Optional narrow-down filter — "Todas" shows every ADMIN_HELD SIM */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground shrink-0">Filtrar por categoría:</span>
+                  <SearchableSelect
+                    value={searchCategoryFilter}
+                    onValueChange={setSearchCategoryFilter}
+                    options={[
+                      { value: '', label: 'Todas' },
+                      ...categoriesInStock.map(c => ({ value: c.id, label: c.name })),
+                    ]}
+                    placeholder="Todas"
+                    searchPlaceholder="Buscar categoría…"
+                    emptyMessage="Sin categorías"
+                    searchThreshold={5}
+                    className="flex-1"
+                  />
+                </div>
+                <SimMultiSelect
+                  items={availableItems}
+                  categoryId={searchCategoryFilter || undefined}
+                  value={searchSerials}
+                  onChange={setSearchSerials}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Solo se muestran SIMs en almacén (estado <code>ADMIN_HELD</code>). Cada SIM conserva su categoría original.
+                </p>
+              </TabsContent>
+
               <TabsContent value="manual" className="mt-3">
                 <Textarea
                   placeholder="8952140063000001111&#10;8952140063000002222&#10;8952140063000003333"
@@ -168,9 +217,11 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
                   className="font-mono text-sm"
                 />
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Un ICCID por línea, coma o tab. Compatible con escáner de códigos de barras.
+                  Un ICCID por línea, coma o tab. Compatible con escáner de códigos de barras. La categoría se toma del registro de cada
+                  SIM.
                 </p>
               </TabsContent>
+
               <TabsContent value="csv" className="mt-3">
                 <input
                   type="file"
@@ -179,8 +230,7 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
                   className="block w-full rounded-md border border-input bg-background p-2 text-sm"
                 />
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Formato aceptado: <code>serialNumber</code> o <code>serialNumber,categoryName</code>. Si la categoría no coincide con la
-                  del SIM, la fila fallará con <code>CATEGORY_MISMATCH</code>.
+                  Un ICCID por línea. Columnas adicionales se ignoran (la categoría viene del registro del SIM).
                 </p>
               </TabsContent>
             </Tabs>

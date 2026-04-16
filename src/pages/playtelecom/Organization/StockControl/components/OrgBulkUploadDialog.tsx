@@ -11,7 +11,7 @@
  * Plan §1.1 — this is the REGISTRATION step (creates ICCIDs). Assignment to
  * Supervisor is a separate action with its own dialog.
  */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Dialog,
@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
@@ -70,6 +70,16 @@ export function OrgBulkUploadDialog({ open, onOpenChange }: Props) {
     () => categories.filter(c => (c as { source?: string }).source === 'organization'),
     [categories],
   )
+
+  // If the selected category is not in the current org-level list (happens
+  // when the user switches origin venue and the old id no longer resolves),
+  // clear it so the form doesn't submit with a stale value the backend would
+  // reject with "Invalid org-level category".
+  useEffect(() => {
+    if (categoryId && !orgCategories.some(c => c.id === categoryId)) {
+      setCategoryId('')
+    }
+  }, [categoryId, orgCategories])
 
   const mutation = useMutation<UploadResult, Error, void>({
     mutationFn: async () => {
@@ -127,18 +137,15 @@ export function OrgBulkUploadDialog({ open, onOpenChange }: Props) {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Sucursal de origen</label>
-                <Select value={effectiveVenueId} onValueChange={setOriginVenueId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona una sucursal" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {venues.map(v => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={effectiveVenueId}
+                  onValueChange={setOriginVenueId}
+                  options={venues.map(v => ({ value: v.id, label: v.name }))}
+                  placeholder="Selecciona una sucursal"
+                  searchPlaceholder="Buscar sucursal…"
+                  searchThreshold={0}
+                  className="w-full"
+                />
                 <p className="text-xs text-muted-foreground">
                   Solo para auditoría (<code>registeredFromVenueId</code>). Los items se crean a nivel organización.
                 </p>
@@ -146,18 +153,24 @@ export function OrgBulkUploadDialog({ open, onOpenChange }: Props) {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">Categoría</label>
-                <Select value={categoryId} onValueChange={setCategoryId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona una categoría" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(orgCategories.length > 0 ? orgCategories : categories).map(c => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={categoryId}
+                  onValueChange={setCategoryId}
+                  options={orgCategories.map(c => ({ value: c.id, label: c.name }))}
+                  placeholder={
+                    orgCategories.length === 0 ? 'No hay categorías org-level configuradas' : 'Selecciona una categoría'
+                  }
+                  searchPlaceholder="Buscar categoría…"
+                  emptyMessage="Sin categorías org-level"
+                  disabled={orgCategories.length === 0}
+                  searchThreshold={0}
+                  className="w-full"
+                />
+                {orgCategories.length === 0 && (
+                  <p className="text-xs text-amber-600">
+                    El backend requiere categorías a nivel organización. Crea una en "Configurar Categorías" → "Org-level".
+                  </p>
+                )}
               </div>
             </div>
 

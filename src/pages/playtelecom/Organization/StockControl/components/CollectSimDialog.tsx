@@ -8,7 +8,7 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 import { toast } from '@/hooks/use-toast'
 import type { SimCustodyCollectionReason } from '@/services/simCustody.service'
 
@@ -68,18 +68,14 @@ export function CollectSimDialog({ open, onOpenChange, serialNumber, from, onCon
 
         <div className="space-y-3">
           <label className="text-sm font-medium">Motivo de recolección</label>
-          <Select value={reason} onValueChange={v => setReason(v as SimCustodyCollectionReason)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecciona un motivo" />
-            </SelectTrigger>
-            <SelectContent>
-              {REASON_OPTIONS.map(opt => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SearchableSelect
+            value={reason}
+            onValueChange={v => setReason(v as SimCustodyCollectionReason)}
+            options={REASON_OPTIONS.map(opt => ({ value: opt.value, label: opt.label }))}
+            placeholder="Selecciona un motivo"
+            searchPlaceholder="Buscar motivo…"
+            className="w-full"
+          />
         </div>
 
         <DialogFooter>

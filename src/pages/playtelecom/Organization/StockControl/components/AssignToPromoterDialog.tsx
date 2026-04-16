@@ -9,7 +9,7 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 import { toast } from '@/hooks/use-toast'
 import { useOrgStaffByRole } from '@/hooks/use-org-staff-by-role'
 import { assignSimsToPromoter, type BulkResponse } from '@/services/simCustody.service'
@@ -62,21 +62,20 @@ export function AssignToPromoterDialog({ open, onOpenChange, orgId, serialNumber
 
         <div className="space-y-3">
           <label className="text-sm font-medium">Promotor</label>
-          <Select value={promoterStaffId} onValueChange={setPromoterStaffId}>
-            <SelectTrigger>
-              <SelectValue placeholder={promoters.isLoading ? 'Cargando promotores…' : 'Selecciona un Promotor'} />
-            </SelectTrigger>
-            <SelectContent>
-              {promoters.data?.map(p => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.fullName} <span className="text-muted-foreground">· {p.email}</span>
-                </SelectItem>
-              )) ?? null}
-              {promoters.data?.length === 0 && (
-                <div className="px-3 py-2 text-sm text-muted-foreground">No hay Promotores en esta organización.</div>
-              )}
-            </SelectContent>
-          </Select>
+          <SearchableSelect
+            value={promoterStaffId}
+            onValueChange={setPromoterStaffId}
+            options={(promoters.data ?? []).map(p => ({
+              value: p.id,
+              label: `${p.fullName} · ${p.email}`,
+            }))}
+            placeholder={promoters.isLoading ? 'Cargando promotores…' : 'Selecciona un Promotor'}
+            searchPlaceholder="Buscar por nombre o email…"
+            emptyMessage="No hay Promotores en esta organización"
+            disabled={promoters.isLoading}
+            searchThreshold={0}
+            className="w-full"
+          />
         </div>
 
         <DialogFooter>
