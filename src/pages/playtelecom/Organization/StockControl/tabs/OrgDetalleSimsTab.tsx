@@ -356,8 +356,10 @@ function SimRow({
   const canCollectFromSupervisor =
     canCollectSupervisor &&
     custody === 'SUPERVISOR_HELD' // plan §1.4 — only valid when nobody downstream
-  // Plan §1.4 — only the owning supervisor may assign to a promoter. OWNER/SUPERADMIN
-  // with `sim-custody:assign-to-promoter` can also push down the chain on behalf.
+  // Asana requirement §"FLUJO DE ASIGNACIÓN DE SIMS DE SUPERVISOR A PROMOTOR":
+  // "El Supervisor ingresa a Dashboard y busca el ID SIM... se asigna a un
+  // usuario promotor". The Supervisor owner is the actor; OWNER/SUPERADMIN
+  // does NOT bypass — that would break the audit trail 4Play explicitly needs.
   const canShowAssignToPromoter =
     canAssignToPromoter &&
     custody === 'SUPERVISOR_HELD' &&

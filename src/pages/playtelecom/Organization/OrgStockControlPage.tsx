@@ -9,7 +9,7 @@
  * Resumen Ejecutivo · Cargas · Detalle SIMs · Por Sucursal · Por Categoría
  */
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Box, CheckCircle2, Layers, Package, Store, Upload } from 'lucide-react'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
@@ -44,6 +44,13 @@ type TabValue = (typeof TABS)[number]['value']
 function thirtyDaysAgo(): Date {
   const d = new Date()
   d.setDate(d.getDate() - 30)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+function todayEndOfDay(): Date {
+  const d = new Date()
+  d.setHours(23, 59, 59, 999)
   return d
 }
 
@@ -65,8 +72,29 @@ export default function OrgStockControlPage() {
     can('sim-custody:assign-to-supervisor') || can('inventory:org-manage') || isSuperOrOwner
   const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date }>(() => ({
     from: thirtyDaysAgo(),
-    to: new Date(),
+    to: todayEndOfDay(),
   }))
+
+  // IMPORTANT: guard against infinite re-renders. DateRangePicker re-emits
+  // onUpdate whenever its `initialDate*` props change identity, and the `to`
+  // side arrives as `new Date()` (current instant) each time. Comparing by
+  // ms always differs. Compare by DAY so only real user-selected range
+  // changes update state.
+  const handleDateRangeUpdate = useCallback(
+    ({ range }: { range: { from: Date; to?: Date } }) => {
+      const nextFrom = range.from
+      const nextTo = range.to ?? range.from
+      const sameDay = (a: Date, b: Date) =>
+        a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+      setSelectedRange(prev => {
+        if (sameDay(prev.from, nextFrom) && sameDay(prev.to, nextTo)) {
+          return prev
+        }
+        return { from: nextFrom, to: nextTo }
+      })
+    },
+    [],
+  )
 
   const queryParams = useMemo(
     () => ({
@@ -119,7 +147,7 @@ export default function OrgStockControlPage() {
             showCompare={false}
             initialDateFrom={selectedRange.from}
             initialDateTo={selectedRange.to}
-            onUpdate={({ range }) => setSelectedRange({ from: range.from, to: range.to ?? range.from })}
+            onUpdate={handleDateRangeUpdate}
           />
         </div>
         <GlassCard className="p-12 text-center">
@@ -149,7 +177,7 @@ export default function OrgStockControlPage() {
             showCompare={false}
             initialDateFrom={selectedRange.from}
             initialDateTo={selectedRange.to}
-            onUpdate={({ range }) => setSelectedRange({ from: range.from, to: range.to ?? range.from })}
+            onUpdate={handleDateRangeUpdate}
           />
           <ExportButton orgId={orgId!} params={queryParams} />
           {/* If the user already reached /stock-control they're implicitly on a
