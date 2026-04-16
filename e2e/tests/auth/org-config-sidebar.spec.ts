@@ -36,6 +36,16 @@ function createWLVenue() {
 }
 
 async function setupOrgMocks(page: Page, options: { whiteLabelEnabled: boolean }) {
+  // Force Spanish locale so sidebar labels match what the assertions expect.
+  // i18n detector reads localStorage.lang before navigator.language.
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem('lang', 'es')
+    } catch {
+      /* ignore */
+    }
+  })
+
   const venue = options.whiteLabelEnabled
     ? createWLVenue()
     : createMockVenue({

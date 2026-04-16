@@ -15,6 +15,13 @@ interface UseCurrentOrganizationReturn {
   basePath: string
   /** List of venues in this organization (for venue selector) */
   venues: OrganizationVenue[]
+  /**
+   * True when at least one venue in the org has the SERIALIZED_INVENTORY
+   * module enabled. Used as a visibility gate for PlayTelecom-specific UI
+   * (SIM custody assignments, "Mis SIMs" timeline, etc.) so restaurants
+   * never see telecom-only surfaces. Plan §2.0.
+   */
+  hasSerializedInventory: boolean
   isLoading: boolean
   isOwner: boolean
   error: Error | null
@@ -151,12 +158,24 @@ export const useCurrentOrganization = (): UseCurrentOrganizationReturn => {
       ? `/organizations/${orgId}`
       : '/organizations'
 
+  // Derive hasSerializedInventory from the auth context venues. `allVenues`
+  // is populated from /auth/status and already includes `modules[]`, so we
+  // avoid extra network calls. Scope: only venues inside this organization.
+  const hasSerializedInventory = useMemo(() => {
+    if (!orgId || !allVenues.length) return false
+    return allVenues.some(v =>
+      v.organizationId === orgId &&
+      (v.modules ?? []).some(m => m.module.code === 'SERIALIZED_INVENTORY' && m.enabled),
+    )
+  }, [allVenues, orgId])
+
   return {
     organization: organization || null,
     orgId,
     orgSlug,
     basePath,
     venues: venues || [],
+    hasSerializedInventory,
     isLoading: shouldFetch && (isLoadingOrg || isLoadingVenues),
     isOwner,
     error: orgError as Error | null,

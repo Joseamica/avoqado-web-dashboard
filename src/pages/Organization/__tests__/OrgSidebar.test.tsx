@@ -127,6 +127,7 @@ describe('OrgSidebar', () => {
       orgSlug: ORG_ID,
       basePath: `/organizations/${ORG_ID}`,
       venues: [],
+      hasSerializedInventory: false,
       isLoading: false,
       isOwner: true,
       error: null,
