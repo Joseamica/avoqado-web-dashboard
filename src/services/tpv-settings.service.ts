@@ -106,9 +106,11 @@ export interface VenueTpvSettings {
   requireDepositPhoto: boolean
   requireFacadePhoto: boolean
   // Attendance — lateness detection (stored in VenueSettings)
-  expectedCheckInTime: string
-  latenessThresholdMinutes: number
-  geofenceRadiusMeters: number
+  // NULL = inherit from OrganizationAttendanceConfig (or system default).
+  // Non-null = venue-level override.
+  expectedCheckInTime: string | null
+  latenessThresholdMinutes: number | null
+  geofenceRadiusMeters: number | null
   enableSerializedInventory: boolean
 }
 
@@ -119,9 +121,10 @@ const DEFAULT_VENUE_TPV_SETTINGS: VenueTpvSettings = {
   enableBarcodeScanner: true,
   requireDepositPhoto: false,
   requireFacadePhoto: false,
-  expectedCheckInTime: '09:00',
-  latenessThresholdMinutes: 30,
-  geofenceRadiusMeters: 500,
+  // null = inherit from org (no venue-level override)
+  expectedCheckInTime: null,
+  latenessThresholdMinutes: null,
+  geofenceRadiusMeters: null,
   enableSerializedInventory: false,
 }
 
