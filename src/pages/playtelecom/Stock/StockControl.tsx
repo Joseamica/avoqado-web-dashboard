@@ -23,9 +23,14 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { getCategoryStock, getStockMetrics, getStockMovements, type StockMovement } from '@/services/stockDashboard.service'
 import { useQuery } from '@tanstack/react-query'
 import { Box, CheckCircle2, Download, FileSpreadsheet, FileText, Package, Plus, Search, Settings2, Upload } from 'lucide-react'
-import { useCallback, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { BulkUploadDialog, CategoryManagement, LowStockAlerts, StockVsSalesChart } from './components'
+
+const VenueSimCustodyPanel = lazy(() =>
+  import('./components/VenueSimCustodyPanel').then(m => ({ default: m.VenueSimCustodyPanel })),
+)
 
 // ─── Movement type config (Spanish labels + styling) ───
 const MOVEMENT_TYPE_CONFIG: Record<string, { label: string; className: string }> = {
@@ -65,6 +70,14 @@ export function StockControl() {
   const { can } = useAccess()
   const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
   const canUploadStock = can('serialized-inventory:create')
+
+  // Custody tab: visible to any role that can assign SIMs to a Promoter. The
+  // tab itself filters to "my SIMs" so Supervisors see their own inventory
+  // first. OWNER/SUPERADMIN also see the tab but with empty state unless they
+  // happen to own SIMs (rare — they're typically upstream).
+  const canSeeCustody = can('sim-custody:assign-to-promoter') || can('sim-custody:collect-from-promoter')
+  const orgIdFromVenue = activeVenue?.organizationId ?? null
+  const [activeTab, setActiveTab] = useState<'inventario' | 'custodia'>('inventario')
 
   // Dialog state
   const [showCategoryManagement, setShowCategoryManagement] = useState(false)
@@ -243,6 +256,37 @@ ${dataRows}
           )}
         </div>
       </div>
+
+      {/* Tabs: Inventario (todo lo existente) + Custodia (panel del Supervisor) */}
+      <Tabs value={activeTab} onValueChange={v => setActiveTab(v as 'inventario' | 'custodia')}>
+        {canSeeCustody && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveTab('inventario')}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                activeTab === 'inventario'
+                  ? 'bg-foreground text-background'
+                  : 'bg-muted/60 text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              {t('playtelecom:stock.tabs.inventario', { defaultValue: 'Inventario' })}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('custodia')}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                activeTab === 'custodia'
+                  ? 'bg-foreground text-background'
+                  : 'bg-muted/60 text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              {t('playtelecom:stock.tabs.custodia', { defaultValue: 'Custodia de SIMs' })}
+            </button>
+          </div>
+        )}
+
+        <TabsContent value="inventario" className="mt-4 space-y-6">
 
       {/* Category Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -534,6 +578,21 @@ ${dataRows}
           )}
         </div>
       </GlassCard>
+        </TabsContent>
+
+        {/* Custodia de SIMs — panel del Supervisor (o filtrado a su inventario) */}
+        <TabsContent value="custodia" className="mt-4">
+          {orgIdFromVenue ? (
+            <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
+              <VenueSimCustodyPanel orgId={orgIdFromVenue} />
+            </Suspense>
+          ) : (
+            <div className="text-sm text-muted-foreground py-8 text-center">
+              No se pudo determinar la organización del venue activo.
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Dialogs */}
       <CategoryManagement open={showCategoryManagement} onOpenChange={setShowCategoryManagement} />
