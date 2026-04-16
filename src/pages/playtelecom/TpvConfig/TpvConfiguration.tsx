@@ -183,30 +183,46 @@ export function TpvConfiguration() {
   })
 
   const [modules, setModules] = useState<ModuleToggleState>(DEFAULT_MODULES)
-  const [expectedCheckInTime, setExpectedCheckInTime] = useState('09:00')
-  const [latenessThresholdStr, setLatenessThresholdStr] = useState('30')
-  const [geofenceRadiusStr, setGeofenceRadiusStr] = useState('500')
+  // Empty string = inherit from org (no venue-level override). A real time/number
+  // value means the user wants a venue-specific override. We avoid hardcoded
+  // defaults here because the form used to silently write '09:00'/'30'/'500'
+  // back to the DB every time anyone saved, turning NULL inheritance into
+  // explicit overrides (prod bug — 3 BAE venues on 2026-04-10..13).
+  const [expectedCheckInTime, setExpectedCheckInTime] = useState('')
+  const [latenessThresholdStr, setLatenessThresholdStr] = useState('')
+  const [geofenceRadiusStr, setGeofenceRadiusStr] = useState('')
   const [hasChanges, setHasChanges] = useState(false)
 
   useEffect(() => {
     if (tpvSettings && !hasChanges) {
       setModules(settingsToState(tpvSettings))
-      setExpectedCheckInTime(tpvSettings.expectedCheckInTime ?? '09:00')
-      setLatenessThresholdStr(String(tpvSettings.latenessThresholdMinutes ?? 30))
-      setGeofenceRadiusStr(String(tpvSettings.geofenceRadiusMeters ?? 500))
+      // Preserve null — empty string in the form means "inherit".
+      setExpectedCheckInTime(tpvSettings.expectedCheckInTime ?? '')
+      setLatenessThresholdStr(
+        tpvSettings.latenessThresholdMinutes != null ? String(tpvSettings.latenessThresholdMinutes) : '',
+      )
+      setGeofenceRadiusStr(
+        tpvSettings.geofenceRadiusMeters != null ? String(tpvSettings.geofenceRadiusMeters) : '',
+      )
     }
   }, [tpvSettings, hasChanges])
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!venueId) throw new Error('No venue ID')
+      // Empty input = inherit from org (send null, not a default). Saving
+      // hardcoded defaults when the user didn't touch the field is what
+      // created the 09:00 overrides on BAE venues in the past.
+      const expectedCheckInTimeVal: string | null = expectedCheckInTime.trim() === '' ? null : expectedCheckInTime
       const parsedLateness = parseInt(latenessThresholdStr, 10)
-      const latenessThresholdMinutes = isNaN(parsedLateness) ? 30 : Math.min(120, Math.max(0, parsedLateness))
+      const latenessThresholdMinutes: number | null =
+        latenessThresholdStr.trim() === '' || isNaN(parsedLateness) ? null : Math.min(120, Math.max(0, parsedLateness))
       const parsedRadius = parseInt(geofenceRadiusStr, 10)
-      const geofenceRadiusMeters = isNaN(parsedRadius) ? 500 : Math.min(5000, Math.max(50, parsedRadius))
+      const geofenceRadiusMeters: number | null =
+        geofenceRadiusStr.trim() === '' || isNaN(parsedRadius) ? null : Math.min(5000, Math.max(50, parsedRadius))
       await tpvSettingsService.updateVenueSettings(venueId, {
         ...modules,
-        expectedCheckInTime,
+        expectedCheckInTime: expectedCheckInTimeVal,
         latenessThresholdMinutes,
         geofenceRadiusMeters,
       })
@@ -788,6 +804,9 @@ export function TpvConfiguration() {
                         <div>
                           <Label className="text-sm font-medium">{t('tpv:tpvSettings.expectedCheckInTime')}</Label>
                           <p className="text-xs text-muted-foreground mt-0.5">{t('tpv:tpvSettings.expectedCheckInTimeDesc')}</p>
+                          {expectedCheckInTime === '' && (
+                            <p className="text-[11px] text-amber-500/80 mt-1">Heredado de organización. Deja vacío para mantener herencia.</p>
+                          )}
                         </div>
                         <Input
                           type="time"
@@ -803,6 +822,9 @@ export function TpvConfiguration() {
                         <div>
                           <Label className="text-sm font-medium">{t('tpv:tpvSettings.latenessThreshold')}</Label>
                           <p className="text-xs text-muted-foreground mt-0.5">{t('tpv:tpvSettings.latenessThresholdDesc')}</p>
+                          {latenessThresholdStr === '' && (
+                            <p className="text-[11px] text-amber-500/80 mt-1">Heredado de organización.</p>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           <Input
@@ -814,6 +836,7 @@ export function TpvConfiguration() {
                               setLatenessThresholdStr(e.target.value)
                               setHasChanges(true)
                             }}
+                            placeholder="org"
                             className="w-[80px]"
                           />
                           <span className="text-sm text-muted-foreground">{t('tpv:tpvSettings.latenessMinutes')}</span>
@@ -823,6 +846,9 @@ export function TpvConfiguration() {
                         <div>
                           <Label className="text-sm font-medium">{t('tpv:tpvSettings.geofenceRadius')}</Label>
                           <p className="text-xs text-muted-foreground mt-0.5">{t('tpv:tpvSettings.geofenceRadiusDesc')}</p>
+                          {geofenceRadiusStr === '' && (
+                            <p className="text-[11px] text-amber-500/80 mt-1">Heredado de organización.</p>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           <Input
@@ -835,6 +861,7 @@ export function TpvConfiguration() {
                               setGeofenceRadiusStr(e.target.value)
                               setHasChanges(true)
                             }}
+                            placeholder="org"
                             className="w-[100px]"
                           />
                           <span className="text-sm text-muted-foreground">{t('tpv:tpvSettings.geofenceMeters')}</span>
