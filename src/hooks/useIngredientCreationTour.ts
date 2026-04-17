@@ -2,6 +2,7 @@ import { driver, type Driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useAtomicTourListener, notifyAtomicTourCompleted } from '@/hooks/useAtomicTourListener'
 
 /**
  * Interactive onboarding tour for ingredient (raw material) creation.
@@ -217,6 +218,10 @@ export function useIngredientCreationTour() {
               defaultValue:
                 'Ahora que tienes un ingrediente, puedes ir a <b>Productos</b> y crear una bebida con receta que lo use. Cada venta descontará automáticamente la cantidad que definas en la receta.',
             }),
+            onNextClick: () => {
+              notifyAtomicTourCompleted('ingredient')
+              d.destroy()
+            },
           },
         },
       ],
@@ -241,6 +246,8 @@ export function useIngredientCreationTour() {
       driverRef.current?.destroy()
     }
   }, [])
+
+  useAtomicTourListener('ingredient', start)
 
   return { start, stop }
 }

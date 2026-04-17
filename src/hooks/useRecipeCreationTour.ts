@@ -2,6 +2,7 @@ import { driver, type Driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useAtomicTourListener, notifyAtomicTourCompleted } from '@/hooks/useAtomicTourListener'
 
 /**
  * Interactive onboarding tour for RECIPE-based product creation.
@@ -360,6 +361,10 @@ export function useRecipeCreationTour() {
               defaultValue:
                 'Ya sabes crear productos basados en recetas. Cada venta descontará los ingredientes automáticamente y te avisaremos cuando alguno baje del mínimo.',
             }),
+            onNextClick: () => {
+              notifyAtomicTourCompleted('recipe')
+              d.destroy()
+            },
           },
         },
       ],
@@ -384,6 +389,8 @@ export function useRecipeCreationTour() {
       driverRef.current?.destroy()
     }
   }, [])
+
+  useAtomicTourListener('recipe', start)
 
   return { start, stop }
 }

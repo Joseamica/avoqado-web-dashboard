@@ -48,6 +48,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { NavMain } from '@/components/Sidebar/nav-main'
 import { NavUser } from '@/components/Sidebar/nav-user'
 import { VenuesSwitcher } from '@/components/Sidebar/venues-switcher'
+import { ChatBubble } from '@/components/Chatbot'
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail, useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/context/AuthContext'
 import { SessionVenue, User, Venue } from '@/types'
@@ -699,6 +700,11 @@ export function AppSidebar({
         {/* <NavProjects projects={data.projects} /> */}
       </SidebarContent>
       <SidebarFooter className="p-0 border-t border-sidebar-border">
+        {/* Chatbot trigger — shows only when the venue has the CHATBOT feature
+            enabled. Replaces the old fixed bottom-right FAB that used to live
+            in dashboard.tsx. The chat panel itself still opens from the
+            bottom-right corner of the viewport. */}
+        {activeVenue && checkFeatureAccess('CHATBOT') && <ChatBubble variant="sidebar" />}
         <NavUser user={navUser} />
       </SidebarFooter>
       <SidebarRail />

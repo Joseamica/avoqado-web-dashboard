@@ -424,6 +424,16 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
         paymentId={paymentId}
         maxRefundable={remainingRefundable}
         methodLabel={methodLabel}
+        venueName={venue?.name}
+        orderItems={orderItems.map((item: any) => ({
+          id: item.id,
+          productId: item.productId,
+          productName: item.productName || item.product?.name || null,
+          quantity: item.quantity,
+          unitPrice: Number(item.unitPrice) || 0,
+          total: Number(item.total) || 0,
+          trackInventory: !!item.product?.trackInventory,
+        }))}
         open={refundOpen}
         onOpenChange={setRefundOpen}
         onRefunded={() => setRefundOpen(false)}

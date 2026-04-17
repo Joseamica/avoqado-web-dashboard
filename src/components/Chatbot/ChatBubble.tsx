@@ -33,6 +33,7 @@ import {
 import { useChatReferences } from '@/hooks/use-chat-references'
 import { useAuth } from '@/context/AuthContext'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
@@ -1849,7 +1850,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   )
 }
 
-export function ChatBubble() {
+export function ChatBubble({ variant = 'fab' }: { variant?: 'fab' | 'sidebar' } = {}) {
   const [isOpen, setIsOpen] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
@@ -1899,53 +1900,80 @@ export function ChatBubble() {
     }, 200)
   }, [])
 
+  // The chat panel must be rendered via a Portal to document.body so that it
+  // escapes any ancestor that creates a containing block for `position: fixed`
+  // (the Sidebar uses `transform` for its slide animation, which would trap
+  // the panel and cause e.g. sticky DataTable headers with lower z-index to
+  // paint on top of it — exactly the visual bug we saw when moving the
+  // trigger into the sidebar).
+  const panel = isMounted ? (
+    <div
+      className={cn(
+        'fixed bottom-4 right-4 z-[9999] transition-opacity duration-200',
+        isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none',
+      )}
+      style={{
+        filter: 'drop-shadow(0 25px 50px rgba(0,0,0,0.18)) drop-shadow(0 6px 16px rgba(0,0,0,0.1))',
+      }}
+    >
+      {/* Card — negative margin so circle overlaps bottom-right */}
+      <div style={{ marginBottom: -28 }}>
+        <ChatInterface key={`chat-${venueId}`} onClose={handleClose} />
+      </div>
+
+      {/* Close circle — overlaps into the card's bottom-right corner */}
+      <div className="flex justify-end">
+        <button
+          onClick={toggleChat}
+          className="h-14 w-14 rounded-full bg-popover flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          aria-label={t('chat.a11y.close')}
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+    </div>
+  ) : null
+
   return (
     <>
-      {/* Speech-bubble: card + tail + circle as one unified shape */}
-      {isMounted && (
-        <div
-          className={cn(
-            'fixed bottom-4 right-4 z-[9999] transition-opacity duration-200',
-            isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none',
-          )}
-          style={{
-            filter:
-              'drop-shadow(0 25px 50px rgba(0,0,0,0.18)) drop-shadow(0 6px 16px rgba(0,0,0,0.1))',
-          }}
-        >
-          {/* Card — negative margin so circle overlaps bottom-right */}
-          <div style={{ marginBottom: -28 }}>
-            <ChatInterface key={`chat-${venueId}`} onClose={handleClose} />
-          </div>
+      {panel && typeof document !== 'undefined' ? createPortal(panel, document.body) : null}
 
-          {/* Close circle — overlaps into the card's bottom-right corner */}
-          <div className="flex justify-end">
-            <button
-              onClick={toggleChat}
-              className="h-14 w-14 rounded-full bg-popover flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              aria-label={t('chat.a11y.close')}
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* FAB — visible only when chat is closed */}
+      {/* Trigger — visible only when chat is closed. Two variants:
+          - 'fab' (default): the big round floating action button
+          - 'sidebar': a compact row sized to fit inside the sidebar footer */}
       {!isOpen && (
-        <Button
-          onClick={toggleChat}
-          size="icon"
-          className="h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-200 relative"
-          aria-label={t('chat.a11y.open')}
-        >
-          <Sparkles className="h-6 w-6" />
-          {referenceCount > 0 && (
-            <span className="absolute -top-1 -right-1 h-5 min-w-[20px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs font-medium px-1">
-              {referenceCount}
+        variant === 'sidebar' ? (
+          <button
+            type="button"
+            onClick={toggleChat}
+            aria-label={t('chat.a11y.open')}
+            className="group relative flex w-full items-center gap-3 px-4 py-3 border-b border-sidebar-border text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors cursor-pointer"
+          >
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Sparkles className="h-4 w-4" />
             </span>
-          )}
-        </Button>
+            <span className="flex-1 text-left font-medium">{t('chat.a11y.open', { defaultValue: 'Chatbot' })}</span>
+            {referenceCount > 0 && (
+              <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-medium text-destructive-foreground">
+                {referenceCount}
+              </span>
+            )}
+          </button>
+        ) : (
+          <Button
+            onClick={toggleChat}
+            size="icon"
+            className="h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-200 relative"
+            aria-label={t('chat.a11y.open')}
+          >
+            <Sparkles className="h-6 w-6" />
+            {referenceCount > 0 && (
+              <span className="absolute -top-1 -right-1 h-5 min-w-[20px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs font-medium px-1">
+                {referenceCount}
+              </span>
+            )}
+          </Button>
+        )
       )}
     </>
   )

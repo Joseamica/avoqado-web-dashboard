@@ -197,19 +197,20 @@ export function CustomerFormSheet({
   }, [open, customer])
 
   const saveMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<Customer> => {
       const payload: Record<string, unknown> = {}
       if (firstName.trim()) payload.firstName = firstName.trim()
       if (lastName.trim()) payload.lastName = lastName.trim()
       if (email.trim()) payload.email = email.trim()
       if (phone.trim()) payload.phone = phone.trim()
 
+      // Server responses are { message, customer } — unwrap to the Customer.
       if (isEdit && customer) {
         const res = await api.put(`/api/v1/dashboard/venues/${venueId}/customers/${customer.id}`, payload)
-        return res.data as Customer
+        return (res.data?.customer ?? res.data) as Customer
       }
       const res = await api.post(`/api/v1/dashboard/venues/${venueId}/customers`, payload)
-      return res.data as Customer
+      return (res.data?.customer ?? res.data) as Customer
     },
     onSuccess: saved => {
       queryClient.invalidateQueries({ queryKey: ['customers', venueId] })

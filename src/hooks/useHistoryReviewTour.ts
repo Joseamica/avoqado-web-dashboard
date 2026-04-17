@@ -2,6 +2,7 @@ import { driver, type Driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useAtomicTourListener, notifyAtomicTourCompleted } from '@/hooks/useAtomicTourListener'
 
 /**
  * Interactive onboarding tour for the Inventory History page.
@@ -106,6 +107,10 @@ export function useHistoryReviewTour() {
               defaultValue:
                 '• <b>Al cierre del día</b>: filtro por fecha = hoy. Revisa movimientos sospechosos.<br/>• <b>Al cierre del mes</b>: filtro por fecha + tipo = Pérdida/Daño/Robo. Calcula mermas.<br/>• <b>Discrepancia en conteo</b>: filtro por SKU. Rastrea cada entrada y salida de ese producto.<br/>• <b>Auditoría de equipo</b>: filtro por tipo = Ajuste manual. Revisa quién hizo qué.',
             }),
+            onNextClick: () => {
+              notifyAtomicTourCompleted('history')
+              d.destroy()
+            },
           },
         },
       ],
@@ -130,6 +135,8 @@ export function useHistoryReviewTour() {
       driverRef.current?.destroy()
     }
   }, [])
+
+  useAtomicTourListener('history', start)
 
   return { start, stop }
 }

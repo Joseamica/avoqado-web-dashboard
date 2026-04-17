@@ -2,6 +2,7 @@ import { driver, type Driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useAtomicTourListener, notifyAtomicTourCompleted } from '@/hooks/useAtomicTourListener'
 
 /**
  * Interactive onboarding tour for product creation flow.
@@ -308,6 +309,10 @@ export function useProductCreationTour() {
               defaultValue:
                 'Ya sabes crear productos. Puedes volver a ver este tour cuando quieras desde el ícono <b>?</b> arriba.',
             }),
+            onNextClick: () => {
+              notifyAtomicTourCompleted('product')
+              d.destroy()
+            },
           },
         },
       ],
@@ -333,6 +338,8 @@ export function useProductCreationTour() {
       driverRef.current?.destroy()
     }
   }, [])
+
+  useAtomicTourListener('product', start)
 
   return { start, stop }
 }
