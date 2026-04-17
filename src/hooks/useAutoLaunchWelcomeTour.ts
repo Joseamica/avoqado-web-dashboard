@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useAuth } from '@/context/AuthContext'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useInventoryWelcomeTour } from '@/hooks/useInventoryWelcomeTour'
 import { useOnboardingKey } from '@/hooks/useOnboardingState'
 import { StaffRole } from '@/types'
@@ -29,6 +30,7 @@ import { StaffRole } from '@/types'
  */
 export function useAutoLaunchWelcomeTour() {
   const { user, staffInfo } = useAuth()
+  const { venue, isWhiteLabelMode } = useCurrentVenue()
   const { start: startWelcomeTour } = useInventoryWelcomeTour()
 
   const {
@@ -53,6 +55,17 @@ export function useAutoLaunchWelcomeTour() {
     const eligible = role === StaffRole.OWNER || role === StaffRole.ADMIN
     if (!eligible) return
 
+    // Don't auto-launch the onboarding if the venue hasn't cleared KYC —
+    // half the tour's steps navigate to `/inventory/*` which is blocked.
+    // SUPERADMIN bypasses the KYC guard in routes, so they see it.
+    const kycAllowed =
+      venue?.kycStatus === 'VERIFIED' || role === StaffRole.SUPERADMIN
+    if (!kycAllowed) return
+
+    // White-label venues ship with their own branding and onboarding flow —
+    // don't surface Avoqado's inventory tour there.
+    if (isWhiteLabelMode) return
+
     if (autoLaunched || bannerDismissed) return
     if (!user?.id) return
 
@@ -72,6 +85,8 @@ export function useAutoLaunchWelcomeTour() {
     bannerLoaded,
     staffInfo?.role,
     user?.id,
+    venue?.kycStatus,
+    isWhiteLabelMode,
     startWelcomeTour,
     setAutoLaunched,
   ])

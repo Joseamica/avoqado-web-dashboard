@@ -4,7 +4,11 @@ import { useCallback, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { requestAtomicTour, type AtomicTourName } from '@/hooks/useAtomicTourListener'
+import {
+  requestAtomicTour,
+  useAtomicTourCompletionListener,
+  type AtomicTourName,
+} from '@/hooks/useAtomicTourListener'
 
 /**
  * Master welcome tour for the complete inventory system.
@@ -191,9 +195,29 @@ export function useInventoryWelcomeTourOrchestrator() {
   const { t } = useTranslation('inventory')
   const navigate = useNavigate()
   const location = useLocation()
-  const { fullBasePath } = useCurrentVenue()
+  const { fullBasePath, venue, isWhiteLabelMode } = useCurrentVenue()
+
+  // The inventory onboarding experience is gated behind KYC verification —
+  // most steps navigate to `/inventory/*` routes which are blocked by
+  // `KYCProtectedRoute`. Running the tour for a pending/rejected venue
+  // would trap the admin in a redirect loop to `/kyc-required`. SUPERADMIN
+  // bypasses route guards so we let them through for testing.
+  //
+  // White-label venues don't see Avoqado-branded onboarding — they ship
+  // with their own branding and flow.
+  const isTourAllowed =
+    !isWhiteLabelMode &&
+    (venue?.kycStatus === 'VERIFIED' || venue?.role === 'SUPERADMIN' || !venue)
   const driverRef = useRef<Driver | null>(null)
   const suppressDestroyCleanupRef = useRef(false)
+  /**
+   * Set when the user clicks "Hacerlo" inside the welcome tour, so we can
+   * resume the welcome tour at the NEXT step once the section's atomic tour
+   * finishes. We keep the atomic name so completions from unrelated tours
+   * (e.g. the user just replays a tour via the "?" button) do NOT resurrect
+   * the welcome tour out of context.
+   */
+  const pendingResumeRef = useRef<{ step: number; atomicName: AtomicTourName } | null>(null)
 
   const runStep = useCallback(
     (n: number) => {
@@ -218,53 +242,28 @@ export function useInventoryWelcomeTourOrchestrator() {
         overlayOpacity: 0.7,
         stagePadding: 6,
         stageRadius: 8,
+        popoverClass: 'avoqado-tour-popover avoqado-welcome-tour-popover',
         nextBtnText: isLast
           ? t('tour.done', { defaultValue: '¡Listo!' })
           : hasAtomic
-            ? t('tour.nextSection', { defaultValue: 'Siguiente sección →' })
+            ? t('tour.nextSection', { defaultValue: 'Siguiente →' })
             : t('tour.next', { defaultValue: 'Siguiente →' }),
-        prevBtnText: t('tour.prev', { defaultValue: '← Anterior' }),
+        prevBtnText: t('tour.prev', { defaultValue: 'Anterior' }),
         doneBtnText: t('tour.done', { defaultValue: '¡Listo!' }),
         progressText: `${n + 1} / ${STEPS.length}`,
         onPopoverRender: (popover) => {
           if (!hasAtomic) return
-          // Inject a "Hacerlo paso a paso" button before the Next button so
-          // the admin can dive into the section's atomic tour right now.
+          // Inject a primary "Hacerlo" CTA before the Next button. We use
+          // document-level delegation (registered below via the
+          // `captureHacerloClicks` effect — see after driver creation) so
+          // nothing inside driver.js can swallow the click.
           const btn = document.createElement('button')
           btn.type = 'button'
           btn.textContent = t('tour.doItStepByStep', {
-            defaultValue: 'Hacerlo paso a paso',
+            defaultValue: 'Hacerlo',
           })
-          btn.className = 'driver-popover-btn'
-          btn.style.cssText = [
-            'background: hsl(var(--primary))',
-            'color: hsl(var(--primary-foreground))',
-            'border: 0',
-            'border-radius: 4px',
-            'padding: 4px 12px',
-            'margin-right: 6px',
-            'font-size: 13px',
-            'cursor: pointer',
-            'text-shadow: none',
-          ].join(';')
-          btn.addEventListener('click', e => {
-            e.preventDefault()
-            e.stopPropagation()
-            // Close the welcome tour and signal the section's atomic tour
-            // hook (already mounted on this page) to start.
-            writeState(null)
-            suppressDestroyCleanupRef.current = true
-            d.destroy()
-            suppressDestroyCleanupRef.current = false
-            if (step.atomicEvent) {
-              // Launch the section's atomic tour. It will emit a completion
-              // event when the user reaches the final step, and the
-              // checklist picks that up to mark the matching step done.
-              // (No marking here — that way Hacerlo + close-early does NOT
-              // falsely mark the step.)
-              requestAtomicTour(step.atomicEvent)
-            }
-          })
+          btn.className = 'avoqado-tour-primary-cta'
+          btn.setAttribute('data-avoqado-hacerlo', step.atomicEvent ?? '')
           const nextBtn = popover.nextButton
           if (nextBtn?.parentElement) {
             nextBtn.parentElement.insertBefore(btn, nextBtn)
@@ -334,9 +333,54 @@ export function useInventoryWelcomeTourOrchestrator() {
     [t, navigate, fullBasePath],
   )
 
+  // Single persistent document-level listener for the injected "Hacerlo"
+  // button. It reads current state from sessionStorage + refs, so it works
+  // for every welcome tour step regardless of when each driver was built.
+  // Capture phase guarantees driver.js can't swallow the click.
+  useEffect(() => {
+    const handler = (event: MouseEvent) => {
+      const target = (event.target as HTMLElement | null)?.closest?.(
+        '[data-avoqado-hacerlo]',
+      ) as HTMLElement | null
+      if (!target) return
+      const atomicEvent = target.getAttribute('data-avoqado-hacerlo') as
+        | AtomicTourName
+        | ''
+        | null
+      if (!atomicEvent) return
+
+      event.preventDefault()
+      event.stopPropagation()
+
+      // The current welcome tour step comes from sessionStorage — not from
+      // a stale closure — so a resume queue is always in sync with whatever
+      // step is actually on screen.
+      const state = readState()
+      const currentStep = state?.step ?? 0
+      pendingResumeRef.current = { step: currentStep + 1, atomicName: atomicEvent }
+
+      writeState(null)
+      suppressDestroyCleanupRef.current = true
+      driverRef.current?.destroy()
+      suppressDestroyCleanupRef.current = false
+
+      // Defer one frame so driver.js has time to pull down its overlay
+      // before the atomic tour draws its own.
+      requestAnimationFrame(() => requestAtomicTour(atomicEvent))
+    }
+    document.addEventListener('click', handler, true)
+    return () => document.removeEventListener('click', handler, true)
+  }, [])
+
   // Handler: start event
   useEffect(() => {
     const onStart = () => {
+      if (!isTourAllowed) {
+        // Don't trap the admin in a KYC-redirect loop. Clear any stale
+        // state that may have leaked from a prior verified session.
+        writeState(null)
+        return
+      }
       const state = readState()
       runStep(state?.step ?? 0)
     }
@@ -352,18 +396,45 @@ export function useInventoryWelcomeTourOrchestrator() {
       window.removeEventListener(TOUR_START_EVENT, onStart)
       window.removeEventListener(TOUR_START_EVENT + ':stop', onStop)
     }
-  }, [runStep])
+  }, [runStep, isTourAllowed])
 
   // Resume on route change
   useEffect(() => {
     const state = readState()
     if (!state) return
+    if (!isTourAllowed) {
+      // Venue lost KYC (or switched to a non-verified one) — abandon the
+      // paused welcome tour so the admin is not sent to a blocked route.
+      writeState(null)
+      return
+    }
     // Delay so the new page's elements exist before we draw the overlay.
     const timer = setTimeout(() => runStep(state.step), 400)
     return () => clearTimeout(timer)
     // We want this to re-fire on every pathname change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname])
+  }, [location.pathname, isTourAllowed])
+
+  // When an atomic tour completes AND we were resuming from the welcome
+  // tour's "Hacerlo" button, pick the welcome tour back up at the next step.
+  // Guard against cross-contamination: only resume if the completed tour
+  // matches the one we dispatched. Standalone replays (via per-page "?"
+  // button) will have `pendingResumeRef.current === null` and no resume.
+  useAtomicTourCompletionListener(
+    useCallback(
+      (completedName: AtomicTourName) => {
+        const pending = pendingResumeRef.current
+        if (!pending || pending.atomicName !== completedName) return
+        pendingResumeRef.current = null
+        // Give the atomic tour's overlay a beat to tear down before we
+        // draw the welcome tour on top.
+        const nextStep = pending.step
+        writeState({ step: nextStep })
+        setTimeout(() => runStep(nextStep), 300)
+      },
+      [runStep],
+    ),
+  )
 
   // Unmount cleanup
   useEffect(() => {

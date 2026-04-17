@@ -61,6 +61,7 @@ export function useProductCreationTour() {
 
   const buildDriver = useCallback((): Driver => {
     const d: Driver = driver({
+      popoverClass: 'avoqado-tour-popover',
       showProgress: true,
       allowClose: true,
       animate: true,

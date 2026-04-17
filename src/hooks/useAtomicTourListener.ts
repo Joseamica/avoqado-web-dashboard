@@ -24,6 +24,19 @@ const STORAGE_KEY = 'avoqado-tour-autostart'
 const EVENT_NAME = 'avoqado-tour-autostart-check'
 const COMPLETED_EVENT = 'avoqado-tour-completed'
 
+/**
+ * Module-level registry of atomic tour `start()` functions, keyed by name.
+ * Each atomic tour hook registers itself on mount (and unregisters on
+ * unmount) via `useAtomicTourListener`, so other surfaces (like the welcome
+ * tour's "Hacerlo" button) can call `start()` directly when the target page
+ * is already rendered — no event indirection, no timing issues.
+ *
+ * Falls back to the sessionStorage flag when the target hook isn't mounted
+ * (e.g. the checklist navigates from Resumen → Categorías and the hook
+ * mounts a moment later).
+ */
+const registry = new Map<AtomicTourName, () => void>()
+
 export type AtomicTourName =
   | 'category'
   | 'ingredient'
@@ -40,6 +53,17 @@ export type AtomicTourName =
  * pick the flag up and fire.
  */
 export function requestAtomicTour(name: AtomicTourName): void {
+  // Fast path: if the target atomic tour is already mounted on the current
+  // page, call it directly. Avoids sessionStorage + event round-trip and
+  // the StrictMode double-mount corner cases.
+  const directStart = registry.get(name)
+  if (directStart) {
+    directStart()
+    return
+  }
+
+  // Otherwise, fall through to the flag-and-navigate path so the next
+  // mount of the atomic tour hook picks it up.
   try {
     sessionStorage.setItem(STORAGE_KEY, name)
   } catch {
@@ -110,6 +134,19 @@ export function useAtomicTourListener(
   useEffect(() => {
     startRef.current = start
   }, [start])
+
+  // Register this hook's start in the module-level registry so callers
+  // (welcome tour's "Hacerlo" button) can invoke it directly.
+  useEffect(() => {
+    const direct = () => startRef.current()
+    registry.set(name, direct)
+    return () => {
+      // Only delete if we still own the slot — another mount for the same
+      // name (e.g. two pages mount hooks in sequence during navigation)
+      // could have overwritten it.
+      if (registry.get(name) === direct) registry.delete(name)
+    }
+  }, [name])
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null
