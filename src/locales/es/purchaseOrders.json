@@ -48,6 +48,7 @@
   "statuses": {
     "DRAFT": "Borrador",
     "PENDING_APPROVAL": "Pendiente Aprobación",
+    "REJECTED": "Rechazada",
     "APPROVED": "Aprobada",
     "SENT": "Enviada",
     "CONFIRMED": "Confirmada",
@@ -287,5 +288,53 @@
   "common": {
     "cancel": "Cancelar",
     "close": "Cerrar"
+  },
+  "tour": {
+    "next": "Siguiente →",
+    "prev": "← Anterior",
+    "done": "¡Listo!",
+    "progress": "Paso {{current}} de {{total}}",
+    "discoveryBanner": {
+      "cta": "Ver tour guiado"
+    }
+  },
+  "tourPurchaseOrder": {
+    "launchButton": "¿Cómo crear una orden?",
+    "discoveryBanner": {
+      "title": "🎓 ¿Cómo pedir mercancía a un proveedor?",
+      "description": "Las órdenes de compra alimentan tu inventario y el costo real de cada receta. Te guiamos paso a paso."
+    },
+    "welcome": {
+      "title": "📦 Crear una orden de compra",
+      "description": "Las órdenes de compra son cómo <b>le pides mercancía a tus proveedores</b>. Cuando la recibes, el sistema crea <b>lotes (batches)</b> con costo y caducidad — es lo que permite que recetas como un shake sepan cuánto cuestan realmente.<br/><br/>Sin órdenes de compra, tu <b>costo de receta</b> queda en ceros."
+    },
+    "step1": {
+      "title": "Botón \"Crear orden\"",
+      "description": "Desde aquí abres el asistente. Al darle <b>Siguiente</b> lo abrimos por ti."
+    },
+    "step2": {
+      "title": "Elige el proveedor",
+      "description": "Cada orden necesita un proveedor. Si no lo tienes registrado, escríbelo y presiona <b>Crear</b> — se guarda al vuelo sin salir del asistente.<br/><br/>Ejemplo: <b>Sarais</b>, <b>Lácteos del Valle</b>, <b>Proveedor CDMX</b>."
+    },
+    "step3": {
+      "title": "Agrega los artículos",
+      "description": "Cada renglón es un <b>ingrediente</b> (raw material) que le estás pidiendo al proveedor. Debe existir previamente en tu catálogo de Ingredientes — si no, créalo primero.<br/><br/>Pon la <b>cantidad</b> y el <b>precio unitario</b>. El subtotal se calcula solo."
+    },
+    "step4": {
+      "title": "Botón \"Agregar artículo\"",
+      "description": "Si necesitas varios ingredientes en la misma orden, úsalo tantas veces como haga falta. Es normal tener 5-15 renglones en una orden semanal."
+    },
+    "step5": {
+      "title": "Subtotal, IVA y total",
+      "description": "El <b>IVA</b> es opcional — activa <i>\"Añadir impuesto\"</i> si tu proveedor te lo factura. Puede ser porcentual (16%) o fijo. El <b>total</b> es lo que realmente vas a pagar."
+    },
+    "step6": {
+      "title": "Guardar o enviar",
+      "description": "<b>Guardar como borrador</b>: la orden queda lista pero aún no se aprueba.<br/><b>Crear orden</b>: la envía al flujo de aprobación (si aplica) o queda lista para enviar al proveedor.<br/><br/>⚠️ El <b>inventario se actualiza al recibirla</b>, no al crearla."
+    },
+    "complete": {
+      "title": "🎉 ¡Ya sabes pedir mercancía!",
+      "description": "Recuerda el ciclo: <b>Crear orden</b> → enviar al proveedor → <b>Recibir</b> (botón en el detalle de la orden) → se crean los lotes con costo → tus recetas ya conocen el costo real.<br/><br/>Cada orden recibida queda en <b>Historial</b> para auditoría."
+    }
   }
 }

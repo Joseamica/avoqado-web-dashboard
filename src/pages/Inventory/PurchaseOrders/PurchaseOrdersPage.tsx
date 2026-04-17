@@ -41,10 +41,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Plus, Search, MoreVertical, Pencil, Trash2, Eye, X, Copy, FileText, FileSpreadsheet } from 'lucide-react'
+import { Plus, Search, MoreVertical, Pencil, Trash2, Eye, X, Copy, FileText, FileSpreadsheet, HelpCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import type { ColumnDef } from '@tanstack/react-table'
 import { PurchaseOrderWizard } from './components/PurchaseOrderWizard'
+import { usePurchaseOrderTour } from '@/hooks/usePurchaseOrderTour'
+import { TourDiscoveryBanner } from '@/components/onboarding/TourDiscoveryBanner'
 
 export default function PurchaseOrdersPage() {
   const { t } = useTranslation(['purchaseOrders', 'common'])
@@ -54,6 +56,7 @@ export default function PurchaseOrdersPage() {
   const { staffInfo } = useAuth()
   const { toast } = useToast()
   const isSuperAdmin = staffInfo?.role === StaffRole.SUPERADMIN
+  const { start: startPurchaseOrderTour } = usePurchaseOrderTour()
 
   // Filters state
   const [orderNumberFilter, setOrderNumberFilter] = useState('')
@@ -300,6 +303,7 @@ export default function PurchaseOrdersPage() {
   const statusOptions = useMemo(() => [
     { value: PurchaseOrderStatus.DRAFT, label: t('statuses.DRAFT') },
     { value: PurchaseOrderStatus.PENDING_APPROVAL, label: t('statuses.PENDING_APPROVAL') },
+    { value: PurchaseOrderStatus.REJECTED, label: t('statuses.REJECTED') },
     { value: PurchaseOrderStatus.APPROVED, label: t('statuses.APPROVED') },
     { value: PurchaseOrderStatus.SENT, label: t('statuses.SENT') },
     { value: PurchaseOrderStatus.CONFIRMED, label: t('statuses.CONFIRMED') },
@@ -632,16 +636,38 @@ export default function PurchaseOrdersPage() {
 
   return (
     <div className="p-6 space-y-3">
+      {/* Discovery banner for first-time admins — dismissable */}
+      <TourDiscoveryBanner
+        storageKey="inventory-purchase-orders"
+        title={t('tourPurchaseOrder.discoveryBanner.title', {
+          defaultValue: '🎓 ¿Cómo pedir mercancía a un proveedor?',
+        })}
+        description={t('tourPurchaseOrder.discoveryBanner.description', {
+          defaultValue:
+            'Las órdenes de compra alimentan tu inventario y el costo real de cada receta. Te guiamos paso a paso.',
+        })}
+        ctaLabel={t('tour.discoveryBanner.cta', { defaultValue: 'Ver tour guiado' })}
+        onStart={startPurchaseOrderTour}
+      />
+
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">{t('title')}</h1>
           <p className="text-muted-foreground">{t('subtitle')}</p>
         </div>
-        <Button onClick={handleCreateClick}>
-          <Plus className="mr-2 h-4 w-4" />
-          {t('create')}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={startPurchaseOrderTour} className="gap-1.5">
+            <HelpCircle className="h-4 w-4" />
+            <span className="hidden sm:inline">
+              {t('tourPurchaseOrder.launchButton', { defaultValue: '¿Cómo crear una orden?' })}
+            </span>
+          </Button>
+          <Button onClick={handleCreateClick} data-tour="po-new-btn">
+            <Plus className="mr-2 h-4 w-4" />
+            {t('create')}
+          </Button>
+        </div>
       </div>
 
       {/* Filters - All in one row */}

@@ -1202,5 +1202,52 @@
       "title": "🎉 Done!",
       "description": "Now that you have an ingredient, you can go to <b>Products</b> and create a recipe-based drink that uses it. Each sale will automatically deduct the quantity defined in the recipe."
     }
+  },
+  "tourWelcome": {
+    "launchButton": "Full inventory tour (3 min)",
+    "discoveryBanner": {
+      "title": "🎓 New to Avoqado? Take the complete walkthrough",
+      "description": "A 3-minute tour of the whole inventory system: categories, ingredients, products, orders, stock, and history."
+    },
+    "welcome": {
+      "title": "🎓 Welcome to the inventory system",
+      "description": "This <b>3-minute</b> tour teaches you the full system. By the end you'll know:<br/><br/>• What lives in each section<br/>• When to use each one<br/>• Where to start on day one<br/><br/><i>Every section then has its own deep-dive tour via the <b>\"?\"</b> button at the top right.</i>"
+    },
+    "methods": {
+      "title": "🔀 The 2 ways to track inventory",
+      "description": "Every product can be tracked in <b>two ways</b>:<br/><br/>📦 <b>By unit (QUANTITY)</b>: you count whole pieces.<br/><i>Example: you sell hoodies or mugs — if you sell 1, stock drops by 1.</i><br/><br/>🥣 <b>By recipe (RECIPE)</b>: the product is made from ingredients.<br/><i>Example: a protein shake uses 120 ml milk + 30 g protein. On sale, ingredients are deducted, not the shake.</i><br/><br/>⚠️ <b>Choose wisely</b>: switching methods later is painful."
+    },
+    "categories": {
+      "title": "📂 Step 1 — Categories",
+      "description": "Every product needs a <b>category</b>. This is the first step if you're starting from scratch.<br/><br/>Examples: <b>Beverages</b>, <b>Food</b>, <b>Desserts</b>, <b>Merch</b>, <b>Shakes</b>.<br/><br/>We recommend creating <b>3-5 categories</b> before any products."
+    },
+    "ingredients": {
+      "title": "🥣 Step 2 — Ingredients (optional)",
+      "description": "<b>Ingredients</b> (raw materials) are the inputs that feed your recipes.<br/><br/><i>Examples: milk, coffee beans, protein, ice, 12 oz cup, straw.</i><br/><br/>⚠️ <b>Only needed if you use the RECIPE method.</b> If all products are per-unit (hoodies, mugs), you can skip this step."
+    },
+    "products": {
+      "title": "📦 Step 3 — Products",
+      "description": "<b>Products</b> are what you actually sell. Here you pick the method:<br/><br/>• <b>QUANTITY</b>: \"Black Hoodie M\" — initial stock 20 pcs.<br/>• <b>RECIPE</b>: \"Chocolate Shake\" — recipe of 120ml milk + 30g protein.<br/><br/>Each product belongs to a <b>category</b> (Step 1) and optionally has a <b>SKU</b> and <b>barcode (GTIN)</b>."
+    },
+    "purchaseOrders": {
+      "title": "🛒 Step 4 — Purchase orders",
+      "description": "<b>Purchase orders</b> are how you request goods from suppliers. On receipt, the system creates <b>batches</b> with cost and expiry.<br/><br/>💡 <b>Key</b>: Without purchase orders, your <b>recipe</b>-based products don't know their cost — margins are wrong.<br/><br/>For per-unit (QUANTITY) products, purchase orders are <b>optional</b> but recommended for cost tracking."
+    },
+    "stockSummary": {
+      "title": "📊 Step 5 — Stock summary",
+      "description": "Your daily control panel. Shows:<br/><br/>• <b>Current stock</b> of every product/ingredient<br/>• <b>Low-stock alerts</b><br/>• <b>Manual adjustments</b> (damage, theft, inventory count)<br/><br/>This is where you do day-to-day operations: <i>\"shipment arrived, fix this\"</i>, <i>\"2 boxes broke\"</i>, <i>\"we did a physical count\"</i>."
+    },
+    "history": {
+      "title": "📋 Step 6 — History",
+      "description": "Every movement is logged forever: sales, adjustments, received orders. This is your <b>audit trail</b>.<br/><br/>Useful when inventory \"doesn't match\" and you need to investigate: <i>who, when, what, and why</i>.<br/><br/>⚠️ <b>History is never deleted</b>. If something was logged wrong, correct it with a <b>new adjustment</b>, not by deleting."
+    },
+    "flow": {
+      "title": "🔄 The full flow",
+      "description": "This is how it all connects:<br/><br/>1️⃣ Create <b>Categories</b><br/>⬇️<br/>2️⃣ (If using recipes) create <b>Ingredients</b><br/>⬇️<br/>3️⃣ Create <b>Products</b> (pick QUANTITY or RECIPE)<br/>⬇️<br/>4️⃣ Place <b>Purchase orders</b> and receive them → <b>batches</b> with cost are created<br/>⬇️<br/>5️⃣ Sell on <b>POS</b> → stock drops automatically (unit or recipe)<br/>⬇️<br/>6️⃣ Manually adjust damage/loss in <b>Stock summary</b><br/>⬇️<br/>7️⃣ Everything lands in <b>History</b>"
+    },
+    "complete": {
+      "title": "🎉 You know the system!",
+      "description": "To get started, follow this order:<br/><br/>✅ <b>Categories</b> → create 3-5<br/>✅ <b>Ingredients</b> (only if you use recipes)<br/>✅ <b>Products</b> → 5-10 to start<br/>✅ <b>Purchase order</b> → receive initial stock<br/>✅ <b>Test sale</b> → verify stock drops correctly<br/><br/>Every section has the <b>\"?\"</b> button with a deep-dive tour. If you get lost, come back here and replay this walkthrough.<br/><br/>Good luck!"
+    }
   }
 }

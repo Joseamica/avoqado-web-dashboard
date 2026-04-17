@@ -7,6 +7,7 @@ import api from '@/api'
 export enum PurchaseOrderStatus {
   DRAFT = 'DRAFT',
   PENDING_APPROVAL = 'PENDING_APPROVAL',
+  REJECTED = 'REJECTED',
   APPROVED = 'APPROVED',
   SENT = 'SENT',
   CONFIRMED = 'CONFIRMED',
@@ -418,6 +419,8 @@ export function getStatusBadgeColor(status: PurchaseOrderStatus): {
       return { variant: 'secondary', className: 'bg-muted text-muted-foreground' }
     case PurchaseOrderStatus.PENDING_APPROVAL:
       return { variant: 'soft', className: 'bg-yellow-100 text-yellow-800' }
+    case PurchaseOrderStatus.REJECTED:
+      return { variant: 'destructive', className: 'bg-red-100 text-red-800' }
     case PurchaseOrderStatus.APPROVED:
       return { variant: 'default', className: 'bg-blue-100 text-blue-800' }
     case PurchaseOrderStatus.SENT:

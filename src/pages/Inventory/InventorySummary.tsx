@@ -20,6 +20,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { AlertTriangle, ChevronDown, Download, HelpCircle, MoreHorizontal, Printer, Search, Star, Upload, X } from 'lucide-react'
 import { useStockAdjustmentTour } from '@/hooks/useStockAdjustmentTour'
+import { useInventoryWelcomeTour } from '@/hooks/useInventoryWelcomeTour'
 import { TourDiscoveryBanner } from '@/components/onboarding/TourDiscoveryBanner'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -53,6 +54,7 @@ export default function InventorySummary() {
 
   // Interactive onboarding tour
   const { start: startStockAdjustmentTour } = useStockAdjustmentTour()
+  const { start: startWelcomeTour } = useInventoryWelcomeTour()
 
   // Search state - expandable pattern
   const [searchTerm, setSearchTerm] = useState('')
@@ -440,10 +442,25 @@ export default function InventorySummary() {
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
       <div className="px-4 sm:px-6">
-        {/* Discovery banner for first-time admins — dismissable */}
+        {/* Welcome tour banner — master walkthrough for first-time admins */}
+        <TourDiscoveryBanner
+          storageKey="inventory-welcome"
+          className="mt-4"
+          title={tInventory('tourWelcome.discoveryBanner.title', {
+            defaultValue: '🎓 ¿Nuevo en Avoqado? Haz el recorrido completo',
+          })}
+          description={tInventory('tourWelcome.discoveryBanner.description', {
+            defaultValue:
+              'Un paseo de 3 minutos por todo el sistema de inventario: categorías, ingredientes, productos, órdenes, existencias e historial.',
+          })}
+          ctaLabel={tInventory('tour.discoveryBanner.cta', { defaultValue: 'Ver tour guiado' })}
+          onStart={startWelcomeTour}
+        />
+
+        {/* Contextual stock-adjustment banner — for daily ops */}
         <TourDiscoveryBanner
           storageKey="inventory-stock-overview"
-          className="mt-4"
+          className="mt-2"
           title={tInventory('tourStockAdjustment.discoveryBanner.title', {
             defaultValue: '🎓 ¿Cómo ajustar existencias cuando llega mercancía o hay una merma?',
           })}
@@ -459,6 +476,19 @@ export default function InventorySummary() {
         <div className="flex items-center justify-between pt-6 pb-5">
           <h1 className="text-2xl font-bold text-foreground">Resumen de Existencias</h1>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={startWelcomeTour}
+              className="gap-1.5"
+            >
+              <HelpCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">
+                {tInventory('tourWelcome.launchButton', {
+                  defaultValue: 'Tour completo del inventario (3 min)',
+                })}
+              </span>
+            </Button>
             <Button
               variant="outline"
               size="sm"
