@@ -1090,5 +1090,117 @@
     "noModifiersTracked": "Sin Modificadores con Seguimiento de Inventario",
     "noModifiersDescription": "Configura el seguimiento de inventario para modificadores para ver análisis de uso e impacto en costos.",
     "configureModifiers": "Configurar Modificadores"
+  },
+  "tour": {
+    "launchButton": "¿Cómo agregar un ingrediente?",
+    "next": "Siguiente →",
+    "prev": "← Anterior",
+    "done": "¡Listo!",
+    "progress": "Paso {{current}} de {{total}}",
+    "discoveryBanner": {
+      "title": "🎓 ¿Primera vez agregando ingredientes?",
+      "description": "Te mostramos paso a paso cómo agregar tu primer ingrediente (leche, café, etc.).",
+      "cta": "Ver tour guiado"
+    }
+  },
+  "tourHistory": {
+    "launchButton": "¿Cómo leer el historial?",
+    "discoveryBanner": {
+      "title": "🎓 ¿Cómo investigar qué pasó con tu inventario?",
+      "description": "El Historial es tu auditoría. Te enseñamos a usar filtros para encontrar cualquier movimiento."
+    },
+    "welcome": {
+      "title": "📜 Historial de movimientos",
+      "description": "Aquí queda <b>registrado cada cambio</b> de tu inventario: ventas, compras, ajustes, mermas, robos, devoluciones.<br/><br/>Es tu <b>auditoría</b>: no se puede editar ni borrar. Si algo no cuadra, aquí encuentras la respuesta."
+    },
+    "step1": {
+      "title": "La tabla",
+      "description": "Cada fila es un movimiento. Las columnas más importantes:<br/><br/>• <b>Fecha</b> · cuándo ocurrió<br/>• <b>Nombre</b> · qué artículo o ingrediente<br/>• <b>Proveedor</b> · si hubo uno involucrado<br/>• <b>Coste total</b> · impacto económico del movimiento<br/>• <b>Ajuste</b> · cuántas unidades se sumaron o restaron<br/><br/>Haz clic en cualquier fila para ver el detalle completo."
+    },
+    "step2": {
+      "title": "Filtros para investigar",
+      "description": "Cuando algo no cuadra, filtra para encontrarlo:<br/><br/>• <b>Fecha</b> · \"¿Qué pasó el martes pasado?\"<br/>• <b>SKU</b> · \"¿Qué le pasó a este producto?\"<br/>• <b>Proveedor</b> · \"¿Qué entró de Lácteos del Valle?\"<br/>• <b>Coste total</b> · movimientos grandes<br/>• <b>Tipo</b> · filtra por clase de movimiento"
+    },
+    "step3": {
+      "title": "Filtro por Tipo — el más útil",
+      "description": "Filtra por <b>tipo de movimiento</b> para detectar patrones:<br/><br/>• Ver solo <b>ventas</b> → confirma que el TPV descontó correcto<br/>• Ver solo <b>ajustes manuales</b> → audita decisiones del equipo<br/>• Ver solo <b>mermas / robos / daños</b> → calcula pérdidas del mes<br/>• Ver solo <b>compras recibidas</b> → contabiliza entradas"
+    },
+    "complete": {
+      "title": "🔍 Usos típicos del historial",
+      "description": "• <b>Al cierre del día</b>: filtro por fecha = hoy. Revisa movimientos sospechosos.<br/>• <b>Al cierre del mes</b>: filtro por fecha + tipo = Pérdida/Daño/Robo. Calcula mermas.<br/>• <b>Discrepancia en conteo</b>: filtro por SKU. Rastrea cada entrada y salida de ese producto.<br/>• <b>Auditoría de equipo</b>: filtro por tipo = Ajuste manual. Revisa quién hizo qué."
+    }
+  },
+  "tourStockAdjustment": {
+    "launchButton": "¿Cómo ajustar existencias?",
+    "discoveryBanner": {
+      "title": "🎓 ¿Cómo ajustar existencias cuando llega mercancía o hay una merma?",
+      "description": "Te guiamos paso a paso — es la operación que más vas a hacer en el día a día."
+    },
+    "welcome": {
+      "title": "📦 Ajustar existencias",
+      "description": "Te enseñamos el flujo del día a día: <b>recibir mercancía</b>, registrar una <b>merma</b>, corregir un <b>robo</b>, o dejar constancia de un <b>conteo físico</b>.<br/><br/>Todo cambio queda registrado en <b>Historial</b> para auditoría."
+    },
+    "step1": {
+      "title": "Haz clic en el número de existencias",
+      "description": "Cada fila de la tabla muestra el stock actual en la columna <b>Existencias físicas</b>. Al dar clic sobre ese número se abre un panel para ajustarlo."
+    },
+    "step2": {
+      "title": "Elige el tipo de movimiento",
+      "description": "Hay 6 tipos. La regla es simple — elige el que describa qué pasó realmente:<br/><br/>• <b>Existencias recibidas</b>: llegó mercancía del proveedor (suma)<br/>• <b>Recuento de inventario</b>: corrige con el conteo físico (ajusta al total)<br/>• <b>Daño</b>: producto roto/inutilizable (resta)<br/>• <b>Robo</b>: faltante por robo/extravío (resta)<br/>• <b>Pérdida</b>: caducidad o desperdicio (resta)<br/>• <b>Devolución</b>: mercancía devuelta al proveedor (resta)"
+    },
+    "step3": {
+      "title": "Ingresa la cantidad",
+      "description": "Para <b>Existencias recibidas</b> o <b>Devolución</b>: la cantidad se suma o resta.<br/>Para <b>Recuento de inventario</b>: escribes el nuevo total después del conteo físico — el sistema calcula la diferencia.<br/><br/>El <b>Nuevo total</b> se calcula automáticamente debajo."
+    },
+    "step4": {
+      "title": "Guarda el ajuste",
+      "description": "Al guardar, el stock se actualiza y queda un <b>registro permanente</b> en <b>Historial</b> con quién hizo el cambio, cuándo y por qué. Este historial es auditable y no se puede borrar."
+    },
+    "complete": {
+      "title": "🎉 ¡Así se ajusta!",
+      "description": "La regla de oro: <b>siempre elige el tipo correcto</b>. Un ajuste mal clasificado hace imposible entender después si fue robo, merma o error. Si tienes dudas usa <b>Recuento de inventario</b>."
+    }
+  },
+  "tourIngredient": {
+    "welcome": {
+      "title": "🥛 Agregar un ingrediente",
+      "description": "Los ingredientes son los insumos que usas en tus recetas: <b>leche</b>, <b>café</b>, <b>matcha</b>, <b>azúcar</b>, <b>popotes</b>. No se venden solos — se consumen al preparar productos. <br/><br/>Cada ingrediente debe crearse antes de usarse en una receta."
+    },
+    "step1": {
+      "title": "Botón \"Agregar Ingrediente\"",
+      "description": "Haz clic aquí para abrir el formulario. Vas a llenar unos pocos datos básicos."
+    },
+    "step2": {
+      "title": "Nombre del ingrediente",
+      "description": "Usa el nombre con el que lo conoces en la cocina. Ejemplo: <b>Leche de Almendras</b>, <b>Café Espresso</b>, <b>Matcha en Polvo</b>."
+    },
+    "step3": {
+      "title": "Código interno (SKU)",
+      "description": "Un código único para identificarlo en reportes. Puedes dejar el que se genera automáticamente o usar uno tuyo (ej. <b>RM-LECHE-ALM</b>)."
+    },
+    "step4": {
+      "title": "Unidad de medida",
+      "description": "La unidad en la que mides este ingrediente. Ejemplos: <b>kg</b> para matcha, <b>litros</b> para leche, <b>piezas</b> para popotes. <br/><br/>⚠️ Elige bien — no se puede cambiar fácilmente después."
+    },
+    "step5": {
+      "title": "Categoría",
+      "description": "Agrupa tus ingredientes para reportes: <b>Lácteos</b>, <b>Proteínas</b>, <b>Bebidas</b>, <b>Especias</b>, etc."
+    },
+    "step6": {
+      "title": "Existencias actuales",
+      "description": "Cuenta cuánto tienes AHORA en la unidad elegida. Ejemplo: si tienes 5 cartones de 1 litro de leche, escribe <b>5</b>. <br/><br/>También define el <b>mínimo</b> (cuándo te avisamos) y el <b>punto de reorden</b> (cuándo hacer pedido)."
+    },
+    "step7": {
+      "title": "Costo por unidad",
+      "description": "Cuánto pagas por cada unidad al proveedor. Ejemplo: <b>$45</b> por litro de leche. Usaremos este dato para calcular el costo de cada producto y tu <b>Food Cost %</b>."
+    },
+    "step8": {
+      "title": "Guarda el ingrediente",
+      "description": "Al guardar, el ingrediente queda disponible para usarse en recetas. Puedes repetir este proceso por cada insumo que manejes."
+    },
+    "complete": {
+      "title": "🎉 ¡Listo!",
+      "description": "Ahora que tienes un ingrediente, puedes ir a <b>Productos</b> y crear una bebida con receta que lo use. Cada venta descontará automáticamente la cantidad que definas en la receta."
+    }
   }
 }

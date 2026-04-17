@@ -12,7 +12,9 @@ import { useQuery } from '@tanstack/react-query'
 import { ColumnDef } from '@tanstack/react-table'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ArrowDown, ArrowUp, Search, X, Info } from 'lucide-react'
+import { ArrowDown, ArrowUp, Search, X, Info, HelpCircle } from 'lucide-react'
+import { useHistoryReviewTour } from '@/hooks/useHistoryReviewTour'
+import { TourDiscoveryBanner } from '@/components/onboarding/TourDiscoveryBanner'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FilterPill } from '@/components/filters/FilterPill'
@@ -121,6 +123,7 @@ export default function InventoryHistory() {
   const { t } = useTranslation('inventory')
   const { venueId, venue } = useCurrentVenue()
   const { formatUnitWithQuantity: _formatUnitWithQuantity } = useUnitTranslation()
+  const { start: startHistoryTour } = useHistoryReviewTour()
 
   // Detail dialog state
   const [selectedMovement, setSelectedMovement] = useState<GlobalInventoryMovement | null>(null)
@@ -495,19 +498,41 @@ export default function InventoryHistory() {
 
   return (
     <div className="p-6 space-y-4">
+      {/* Discovery banner for first-time admins — dismissable */}
+      <TourDiscoveryBanner
+        storageKey="inventory-history"
+        title={t('tourHistory.discoveryBanner.title', {
+          defaultValue: '🎓 ¿Cómo investigar qué pasó con tu inventario?',
+        })}
+        description={t('tourHistory.discoveryBanner.description', {
+          defaultValue:
+            'El Historial es tu auditoría. Te enseñamos a usar filtros para encontrar cualquier movimiento.',
+        })}
+        ctaLabel={t('tour.discoveryBanner.cta', { defaultValue: 'Ver tour guiado' })}
+        onStart={startHistoryTour}
+      />
+
       {/* Header */}
-      <div className="flex items-center gap-2">
-        <h1 className="text-2xl font-bold">{t('history.title', { defaultValue: 'Historial' })}</h1>
-        <Badge
-          variant="secondary"
-          className="bg-blue-100 text-blue-700 hover:bg-blue-100 p-0 h-5 w-5 flex items-center justify-center rounded-full"
-        >
-          <span className="text-xs">★</span>
-        </Badge>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold">{t('history.title', { defaultValue: 'Historial' })}</h1>
+          <Badge
+            variant="secondary"
+            className="bg-blue-100 text-blue-700 hover:bg-blue-100 p-0 h-5 w-5 flex items-center justify-center rounded-full"
+          >
+            <span className="text-xs">★</span>
+          </Badge>
+        </div>
+        <Button variant="outline" size="sm" onClick={startHistoryTour} className="gap-1.5">
+          <HelpCircle className="h-4 w-4" />
+          <span className="hidden sm:inline">
+            {t('tourHistory.launchButton', { defaultValue: '¿Cómo leer el historial?' })}
+          </span>
+        </Button>
       </div>
 
       {/* Filters Row */}
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-3" data-tour="history-filters">
           {/* Expandable Search Icon */}
           <div className="relative flex items-center">
             {isSearchOpen ? (
@@ -615,6 +640,7 @@ export default function InventoryHistory() {
           </FilterPill>
 
           {/* 5. Type (Adjustment column - last) */}
+          <div data-tour="history-filter-type">
           <FilterPill
             label={t('history.type', { defaultValue: 'Tipo' })}
             activeValue={getFilterDisplayLabel(typeFilter, typeOptions)}
@@ -628,6 +654,7 @@ export default function InventoryHistory() {
               onApply={setTypeFilter}
             />
           </FilterPill>
+          </div>
 
           {/* Clear Filters Button */}
           {activeFiltersCount > 0 && (
@@ -644,7 +671,7 @@ export default function InventoryHistory() {
         </div>
 
       {/* Table */}
-      <div className="rounded-none border-border">
+      <div className="rounded-none border-border" data-tour="history-table">
         {isLoading ? (
           <div className="space-y-4 py-4">
             <Skeleton className="h-10 w-full" />

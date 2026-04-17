@@ -175,7 +175,39 @@ export function useRecipeCreationTour() {
           },
         },
 
-        // 6) Category
+        // 6) SKU
+        {
+          element: '[data-tour="product-wizard-sku"]',
+          popover: {
+            title: t('tourRecipe.stepSku.title', {
+              defaultValue: 'SKU (código interno)',
+            }),
+            description: t('tourRecipe.stepSku.description', {
+              defaultValue:
+                'Código único para este producto (ej. <b>LATTE-CHICO</b>). <br/><br/>💡 Déjalo vacío y se <b>genera automáticamente</b>. Úsalo solo si tienes tu propio sistema de nomenclatura.',
+            }),
+            side: 'top',
+            align: 'start',
+          },
+        },
+
+        // 7) GTIN
+        {
+          element: '[data-tour="product-wizard-gtin"]',
+          popover: {
+            title: t('tourRecipe.stepGtin.title', {
+              defaultValue: 'GTIN / Código de barras',
+            }),
+            description: t('tourRecipe.stepGtin.description', {
+              defaultValue:
+                'Código de barras universal. Para productos preparados (bebidas, comida) <b>casi siempre se deja vacío</b> — no vienen con código impreso.',
+            }),
+            side: 'top',
+            align: 'start',
+          },
+        },
+
+        // 8) Category
         {
           element: '[data-tour="product-wizard-category"]',
           popover: {

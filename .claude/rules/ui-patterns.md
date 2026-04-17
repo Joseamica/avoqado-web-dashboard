@@ -127,3 +127,28 @@ Naming: `kebab-case`, scoped by feature: `product-new-btn`, `product-wizard-cate
 
 **Existing tours:** `src/hooks/useProductCreationTour.ts`, `src/hooks/useRecipeCreationTour.ts`.
 **Full pattern + checklist:** `docs/guides/onboarding-tours.md`.
+
+### Radix Popover/Dialog targeted by a tour — prevent auto-close
+
+When a tour step targets content inside a `Popover` or `Dialog`, the driver.js overlay click would normally auto-close the Radix primitive. Fix with a body class:
+
+```tsx
+// In the Popover/Dialog component
+<PopoverContent
+  onInteractOutside={e => {
+    if (document.body.classList.contains('tour-active')) e.preventDefault()
+  }}
+  onEscapeKeyDown={e => {
+    if (document.body.classList.contains('tour-active')) e.preventDefault()
+  }}
+>
+
+// In the tour hook
+const start = useCallback(() => {
+  document.body.classList.add('tour-active')
+  driverRef.current = buildDriver()  // driver's onDestroyed removes the class
+  driverRef.current.drive()
+}, [buildDriver])
+```
+
+**Reference**: `src/pages/Inventory/InventorySummary.tsx` + `src/hooks/useStockAdjustmentTour.ts`.

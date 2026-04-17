@@ -184,7 +184,39 @@ export function useProductCreationTour() {
           },
         },
 
-        // 6) Category
+        // 6) SKU
+        {
+          element: '[data-tour="product-wizard-sku"]',
+          popover: {
+            title: t('tour.stepSku.title', {
+              defaultValue: 'SKU (código interno)',
+            }),
+            description: t('tour.stepSku.description', {
+              defaultValue:
+                'Código único para identificar el producto en reportes. <br/><br/>💡 Puedes dejarlo en blanco y se <b>genera automáticamente</b>. Úsalo solo si ya tienes una nomenclatura propia (ej. <b>HOODIE-BLANCA-M</b>).',
+            }),
+            side: 'top',
+            align: 'start',
+          },
+        },
+
+        // 7) GTIN
+        {
+          element: '[data-tour="product-wizard-gtin"]',
+          popover: {
+            title: t('tour.stepGtin.title', {
+              defaultValue: 'GTIN / Código de barras',
+            }),
+            description: t('tour.stepGtin.description', {
+              defaultValue:
+                'Es el código de barras universal (UPC/EAN) que viene impreso en el producto. <br/><br/>💡 Útil si vas a <b>escanear</b> productos en la venta o el conteo. Opcional — si no vendes con escáner, déjalo vacío.',
+            }),
+            side: 'top',
+            align: 'start',
+          },
+        },
+
+        // 8) Category
         {
           element: '[data-tour="product-wizard-category"]',
           popover: {

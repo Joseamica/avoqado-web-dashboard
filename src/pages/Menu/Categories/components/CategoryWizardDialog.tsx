@@ -201,8 +201,8 @@ export function CategoryWizardDialog({ open, onOpenChange, onSuccess }: Category
           >
             {/* Step 1: Basic Info */}
             {currentStep === 1 && (
-              <div className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
-                <Card className="border-border/60">
+              <div className="grid gap-6 lg:grid-cols-[1.35fr_1fr]" data-tour="category-wizard-step1">
+                <Card className="border-border/60" data-tour="category-wizard-name">
                   <CardContent className="space-y-4 pt-6">
                     <FormField
                       control={form.control}
@@ -432,6 +432,7 @@ export function CategoryWizardDialog({ open, onOpenChange, onSuccess }: Category
 
           <Button
             type="button"
+            data-tour={currentStep === 3 ? 'category-wizard-finish' : 'category-wizard-next'}
             onClick={currentStep === 3 ? onSubmit : handleNext}
             disabled={createCategoryMutation.isPending || (currentStep === 2 && !!isTimeRangeInvalid)}
           >

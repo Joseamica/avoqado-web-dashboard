@@ -834,6 +834,14 @@
       "title": "Define el precio de venta",
       "description": "Escribe el precio en pesos. Lo podrás cambiar después si hace falta."
     },
+    "stepSku": {
+      "title": "SKU (código interno)",
+      "description": "Código único para identificar el producto en reportes. <br/><br/>💡 Puedes dejarlo en blanco y se <b>genera automáticamente</b>. Úsalo solo si ya tienes una nomenclatura propia (ej. <b>HOODIE-BLANCA-M</b>)."
+    },
+    "stepGtin": {
+      "title": "GTIN / Código de barras",
+      "description": "Es el código de barras universal (UPC/EAN) que viene impreso en el producto. <br/><br/>💡 Útil si vas a <b>escanear</b> productos en la venta o el conteo. Opcional — si no vendes con escáner, déjalo vacío."
+    },
     "step5": {
       "title": "Asigna una categoría",
       "description": "Selecciona dónde aparecerá en el menú (ej. <b>Merch</b>, <b>Bebidas</b>, <b>Comida</b>). Si no existe la categoría, créala primero en la sección de <b>Categorías</b>."
@@ -862,6 +870,36 @@
     "productRecipe": {
       "title": "Producto con receta",
       "subtitle": "Shakes, lattes, bebidas frescas"
+    },
+    "discoveryBanner": {
+      "title": "🎓 ¿Primera vez configurando tu menú?",
+      "description": "Tenemos tours interactivos paso a paso para crear productos simples y con receta.",
+      "titleCategories": "🎓 ¿Apenas empiezas con tu menú?",
+      "descriptionCategories": "Las categorías son el primer paso. Te guiamos en 1 minuto con un tour interactivo.",
+      "cta": "Ver tour guiado"
+    }
+  },
+  "tourCategory": {
+    "launchButton": "¿Cómo crear una categoría?",
+    "welcome": {
+      "title": "📂 Crear una categoría",
+      "description": "Las categorías sirven para agrupar tus productos en el menú: <b>Merch</b>, <b>Bebidas</b>, <b>Comida</b>, <b>Postres</b>, etc.<br/><br/>⚠️ <b>Importante</b>: todo producto necesita una categoría. Si es tu primer día, crea estas antes que nada."
+    },
+    "step1": {
+      "title": "Botón \"Nueva categoría\"",
+      "description": "Haz clic aquí para abrir el asistente. Vas a llenar un nombre y listo."
+    },
+    "step2": {
+      "title": "Ponle nombre a la categoría",
+      "description": "Usa un nombre claro que la admin o cajera vaya a reconocer. Ejemplos: <b>Merch</b>, <b>Bebidas frías</b>, <b>Comida</b>, <b>Shakes</b>, <b>Postres</b>."
+    },
+    "step3": {
+      "title": "Avanza al siguiente paso",
+      "description": "En los siguientes pasos puedes configurar <b>horarios de disponibilidad</b> (ej. categoría \"Desayuno\" solo antes de las 12 pm) o dejar todo por defecto si siempre está activa."
+    },
+    "complete": {
+      "title": "🎉 ¡Así se hace!",
+      "description": "Al guardar, la categoría queda disponible para asignarse a productos. Te recomendamos crear <b>3-5 categorías</b> primero para tener tu menú organizado.<br/><br/>Siguiente: crea tus <b>Ingredientes</b> o tus <b>Productos</b>."
     }
   },
   "tourRecipe": {
@@ -884,6 +922,14 @@
     "step4": {
       "title": "Precio de venta",
       "description": "Precio al público. Más adelante verás cuál es tu <b>Food Cost %</b> (qué porcentaje del precio son ingredientes)."
+    },
+    "stepSku": {
+      "title": "SKU (código interno)",
+      "description": "Código único para este producto (ej. <b>LATTE-CHICO</b>). <br/><br/>💡 Déjalo vacío y se <b>genera automáticamente</b>. Úsalo solo si tienes tu propio sistema de nomenclatura."
+    },
+    "stepGtin": {
+      "title": "GTIN / Código de barras",
+      "description": "Código de barras universal. Para productos preparados (bebidas, comida) <b>casi siempre se deja vacío</b> — no vienen con código impreso."
     },
     "step5": {
       "title": "Categoría",

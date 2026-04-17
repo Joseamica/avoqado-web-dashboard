@@ -871,6 +871,14 @@
       "title": "Set the selling price",
       "description": "Enter the price. You can change it later if needed."
     },
+    "stepSku": {
+      "title": "SKU (internal code)",
+      "description": "Unique code to identify the product in reports. <br/><br/>💡 You can leave it blank and we'll <b>auto-generate</b> one. Only fill it in if you have your own naming convention (e.g. <b>HOODIE-WHITE-M</b>)."
+    },
+    "stepGtin": {
+      "title": "GTIN / Barcode",
+      "description": "The universal barcode (UPC/EAN) printed on the product. <br/><br/>💡 Useful if you'll <b>scan</b> products at sale or during counts. Optional — if you don't use a scanner, leave it empty."
+    },
     "step5": {
       "title": "Assign a category",
       "description": "Select where it appears in the menu (e.g. <b>Merch</b>, <b>Drinks</b>, <b>Food</b>). If the category doesn't exist, create it first in <b>Categories</b>."
@@ -899,6 +907,36 @@
     "productRecipe": {
       "title": "Recipe-based product",
       "subtitle": "Shakes, lattes, fresh drinks"
+    },
+    "discoveryBanner": {
+      "title": "🎓 First time setting up your menu?",
+      "description": "We have step-by-step interactive tours for simple and recipe-based products.",
+      "titleCategories": "🎓 Just getting started with your menu?",
+      "descriptionCategories": "Categories are the first step. A 1-minute interactive tour walks you through it.",
+      "cta": "Take the tour"
+    }
+  },
+  "tourCategory": {
+    "launchButton": "How to create a category?",
+    "welcome": {
+      "title": "📂 Create a category",
+      "description": "Categories group your products in the menu: <b>Merch</b>, <b>Drinks</b>, <b>Food</b>, <b>Desserts</b>, etc.<br/><br/>⚠️ <b>Important</b>: every product must belong to a category. If it's your first day, create these first."
+    },
+    "step1": {
+      "title": "\"New category\" button",
+      "description": "Click here to open the wizard. Just fill in a name and you're done."
+    },
+    "step2": {
+      "title": "Name the category",
+      "description": "Use a clear name that admins or cashiers will recognize. Examples: <b>Merch</b>, <b>Cold drinks</b>, <b>Food</b>, <b>Shakes</b>, <b>Desserts</b>."
+    },
+    "step3": {
+      "title": "Move to the next step",
+      "description": "In the next steps you can set <b>availability schedules</b> (e.g. a \"Breakfast\" category only before 12 pm) or leave defaults if it's always active."
+    },
+    "complete": {
+      "title": "🎉 Nice!",
+      "description": "Once saved, the category is ready to be assigned to products. We recommend creating <b>3-5 categories</b> first for a tidy menu.<br/><br/>Next: create your <b>Ingredients</b> or <b>Products</b>."
     }
   },
   "tourRecipe": {
@@ -921,6 +959,14 @@
     "step4": {
       "title": "Selling price",
       "description": "Price for the customer. Later you'll see your <b>Food Cost %</b> (what % of the price is ingredients)."
+    },
+    "stepSku": {
+      "title": "SKU (internal code)",
+      "description": "Unique code for this product (e.g. <b>LATTE-SMALL</b>). <br/><br/>💡 Leave blank to <b>auto-generate</b>. Only use your own if you have a naming convention."
+    },
+    "stepGtin": {
+      "title": "GTIN / Barcode",
+      "description": "Universal barcode. For prepared items (drinks, food) <b>usually left empty</b> — they don't come with printed codes."
     },
     "step5": {
       "title": "Category",

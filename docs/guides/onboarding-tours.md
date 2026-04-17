@@ -136,6 +136,54 @@ function exists(selector: string): boolean {
 }
 ```
 
+## Tours that target Radix Popover / Dialog content
+
+Radix `Popover` and `Dialog` auto-close on outside-click and the driver.js
+overlay counts as "outside". When a tour step targets an element **inside** one
+of these components, you must prevent the auto-close or the user will see the
+tour text but the real UI will vanish.
+
+### The pattern — two small pieces
+
+**1. In the tour hook**, flag `<body>` while the tour is active:
+
+```ts
+const start = useCallback(() => {
+  document.body.classList.add('tour-active')
+  driverRef.current = buildDriver()
+  driverRef.current.drive()
+}, [buildDriver])
+
+// And inside driver config:
+driver({
+  onDestroyed: () => {
+    document.body.classList.remove('tour-active')
+    // (optional) clean up any Radix state — e.g. close the popover gracefully
+  },
+  // ...
+})
+```
+
+**2. On the Radix Popover/Dialog**, suppress closing while the flag is set:
+
+```tsx
+<PopoverContent
+  onInteractOutside={e => {
+    if (document.body.classList.contains('tour-active')) e.preventDefault()
+  }}
+  onEscapeKeyDown={e => {
+    if (document.body.classList.contains('tour-active')) e.preventDefault()
+  }}
+>
+```
+
+Same pattern works for `<DialogContent>` (just replace the component).
+
+**Why `body` class instead of context?** Simpler — no provider refactor needed,
+works across any component regardless of where it lives in the tree.
+
+**Reference implementation**: `src/pages/Inventory/InventorySummary.tsx` (StockEditPopover) + `src/hooks/useStockAdjustmentTour.ts`.
+
 ## Flow-aware automation (the important part)
 
 Plain tours are static pointers. Our tours ARE the UI:

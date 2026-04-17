@@ -75,7 +75,7 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
     const start = new Date(end)
     start.setDate(start.getDate() - 30)
     return { dateFrom: start.toISOString(), dateTo: end.toISOString() }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional single-compute per mount
+     
   }, [])
   const { data: stockData } = useOrgStockControl(open ? orgId : undefined, stockParams)
   const availableItems = useMemo(() => stockData?.items ?? [], [stockData?.items])

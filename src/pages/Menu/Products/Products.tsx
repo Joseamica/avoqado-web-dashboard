@@ -68,6 +68,7 @@ import { ConvertToServiceDialog } from '@/pages/Menu/Services/ConvertToServiceDi
 import { useMenuMakerHeader } from '../MenuMakerLayout'
 import { useProductCreationTour } from '@/hooks/useProductCreationTour'
 import { useRecipeCreationTour } from '@/hooks/useRecipeCreationTour'
+import { TourDiscoveryBanner } from '@/components/onboarding/TourDiscoveryBanner'
 
 export default function Products() {
   const { t } = useTranslation('menu')
@@ -810,6 +811,21 @@ export default function Products() {
 
   return (
     <div className="p-4">
+
+      {/* Discovery banner for first-time admins — dismissable */}
+      <TourDiscoveryBanner
+        storageKey="menu-products"
+        className="mb-4"
+        title={t('tour.discoveryBanner.title', {
+          defaultValue: '🎓 ¿Primera vez configurando tu menú?',
+        })}
+        description={t('tour.discoveryBanner.description', {
+          defaultValue:
+            'Tenemos tours interactivos paso a paso para crear productos simples y con receta.',
+        })}
+        ctaLabel={t('tour.discoveryBanner.cta', { defaultValue: 'Ver tours' })}
+        onStart={startProductTour}
+      />
 
       {/* ✅ Low stock alert banner - Pricing page style */}
       {lowStockProducts.length > 0 && activeFiltersCount === 0 && (

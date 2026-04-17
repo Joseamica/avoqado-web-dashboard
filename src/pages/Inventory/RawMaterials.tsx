@@ -18,7 +18,10 @@ import {
   MoreHorizontal,
   Search,
   X,
+  HelpCircle,
 } from 'lucide-react'
+import { useIngredientCreationTour } from '@/hooks/useIngredientCreationTour'
+import { TourDiscoveryBanner } from '@/components/onboarding/TourDiscoveryBanner'
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -66,6 +69,9 @@ export default function RawMaterials() {
   const queryClient = useQueryClient()
   const { formatUnit, formatUnitWithQuantity } = useUnitTranslation()
   const [searchParams, setSearchParams] = useSearchParams()
+
+  // Interactive onboarding tour
+  const { start: startIngredientTour } = useIngredientCreationTour()
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
@@ -876,6 +882,21 @@ export default function RawMaterials() {
 
   return (
     <div className="p-4 bg-background text-foreground">
+      {/* Discovery banner for first-time admins — dismissable */}
+      <TourDiscoveryBanner
+        storageKey="inventory-ingredients"
+        className="mb-4"
+        title={t('tour.discoveryBanner.title', {
+          defaultValue: '🎓 ¿Primera vez agregando ingredientes?',
+        })}
+        description={t('tour.discoveryBanner.description', {
+          defaultValue:
+            'Te mostramos paso a paso cómo agregar tu primer ingrediente (leche, café, etc.).',
+        })}
+        ctaLabel={t('tour.discoveryBanner.cta', { defaultValue: 'Ver tour guiado' })}
+        onStart={startIngredientTour}
+      />
+
       {/* Header */}
       <div className="flex flex-col gap-3 mb-3">
         <div className="flex flex-row items-center justify-between">
@@ -889,12 +910,28 @@ export default function RawMaterials() {
             />
             <p className="text-sm text-muted-foreground">{t('rawMaterials.subtitle')}</p>
           </div>
-          <PermissionGate permission="inventory:create">
-            <Button onClick={() => setCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              {t('rawMaterials.add')}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={startIngredientTour}
+              className="gap-1.5"
+            >
+              <HelpCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">
+                {t('tour.launchButton', { defaultValue: '¿Cómo agregar un ingrediente?' })}
+              </span>
             </Button>
-          </PermissionGate>
+            <PermissionGate permission="inventory:create">
+              <Button
+                data-tour="ingredient-add-btn"
+                onClick={() => setCreateDialogOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                {t('rawMaterials.add')}
+              </Button>
+            </PermissionGate>
+          </div>
         </div>
 
         {/* Onboarding Banner */}

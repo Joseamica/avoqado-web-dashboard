@@ -18,7 +18,9 @@ import { supplierService, type Supplier } from '@/services/supplier.service'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { AlertTriangle, ChevronDown, Download, MoreHorizontal, Printer, Search, Star, Upload, X } from 'lucide-react'
+import { AlertTriangle, ChevronDown, Download, HelpCircle, MoreHorizontal, Printer, Search, Star, Upload, X } from 'lucide-react'
+import { useStockAdjustmentTour } from '@/hooks/useStockAdjustmentTour'
+import { TourDiscoveryBanner } from '@/components/onboarding/TourDiscoveryBanner'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -43,10 +45,14 @@ interface InventoryProduct {
 
 export default function InventorySummary() {
   const { t: _t } = useTranslation() // Prefixed with _ to mark as intentionally unused (will be used for i18n later)
+  const { t: tInventory } = useTranslation('inventory')
   const navigate = useNavigate()
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+
+  // Interactive onboarding tour
+  const { start: startStockAdjustmentTour } = useStockAdjustmentTour()
 
   // Search state - expandable pattern
   const [searchTerm, setSearchTerm] = useState('')
@@ -434,10 +440,38 @@ export default function InventorySummary() {
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
       <div className="px-4 sm:px-6">
+        {/* Discovery banner for first-time admins — dismissable */}
+        <TourDiscoveryBanner
+          storageKey="inventory-stock-overview"
+          className="mt-4"
+          title={tInventory('tourStockAdjustment.discoveryBanner.title', {
+            defaultValue: '🎓 ¿Cómo ajustar existencias cuando llega mercancía o hay una merma?',
+          })}
+          description={tInventory('tourStockAdjustment.discoveryBanner.description', {
+            defaultValue:
+              'Te guiamos paso a paso — es la operación que más vas a hacer en el día a día.',
+          })}
+          ctaLabel={tInventory('tour.discoveryBanner.cta', { defaultValue: 'Ver tour guiado' })}
+          onStart={startStockAdjustmentTour}
+        />
+
         {/* Title + Actions */}
         <div className="flex items-center justify-between pt-6 pb-5">
           <h1 className="text-2xl font-bold text-foreground">Resumen de Existencias</h1>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={startStockAdjustmentTour}
+              className="gap-1.5"
+            >
+              <HelpCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">
+                {tInventory('tourStockAdjustment.launchButton', {
+                  defaultValue: '¿Cómo ajustar existencias?',
+                })}
+              </span>
+            </Button>
             <Button variant="outline" size="sm">
               <Upload className="mr-2 h-4 w-4" /> Importar
             </Button>
@@ -739,14 +773,29 @@ function StockEditPopover({
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-8 w-20 justify-between">
+        <Button data-tour="stock-edit-trigger" variant="outline" size="sm" className="h-8 w-20 justify-between">
           {currentStock}
           <ChevronDown className="h-3 w-3 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-4">
+      <PopoverContent
+        className="w-80 p-4"
+        data-tour="stock-edit-popover"
+        onInteractOutside={e => {
+          // Keep popover open while an onboarding tour is active.
+          // driver.js overlay clicks would otherwise close the Radix popover.
+          if (document.body.classList.contains('tour-active')) {
+            e.preventDefault()
+          }
+        }}
+        onEscapeKeyDown={e => {
+          if (document.body.classList.contains('tour-active')) {
+            e.preventDefault()
+          }
+        }}
+      >
         <div className="space-y-4">
-          <div className="space-y-2">
+          <div className="space-y-2" data-tour="stock-edit-action">
             <Label>Acción de existencias</Label>
             <Select value={action} onValueChange={(v: any) => setAction(v)}>
               <SelectTrigger>
@@ -768,7 +817,7 @@ function StockEditPopover({
             <span className="font-medium">{currentStock}</span>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2" data-tour="stock-edit-quantity">
             <Label>
               {action === 'COUNT'
                 ? 'Nuevo total'
@@ -844,7 +893,7 @@ function StockEditPopover({
             <Button variant="ghost" size="sm" onClick={() => handleOpenChange(false)}>
               Cancelar
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={!canSave}>
+            <Button data-tour="stock-edit-save" size="sm" onClick={handleSave} disabled={!canSave}>
               Guardar
             </Button>
           </div>

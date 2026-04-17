@@ -1090,5 +1090,117 @@
     "noModifiersTracked": "No Modifiers with Inventory Tracking",
     "noModifiersDescription": "Configure inventory tracking for modifiers to see usage analytics and cost impact.",
     "configureModifiers": "Configure Modifiers"
+  },
+  "tour": {
+    "launchButton": "How to add an ingredient?",
+    "next": "Next →",
+    "prev": "← Back",
+    "done": "Done!",
+    "progress": "Step {{current}} of {{total}}",
+    "discoveryBanner": {
+      "title": "🎓 First time adding ingredients?",
+      "description": "We walk you step by step through adding your first ingredient (milk, coffee, etc.).",
+      "cta": "Take the tour"
+    }
+  },
+  "tourHistory": {
+    "launchButton": "How to read the history?",
+    "discoveryBanner": {
+      "title": "🎓 How to investigate what happened to your inventory?",
+      "description": "History is your audit trail. We show you how to use filters to find any movement."
+    },
+    "welcome": {
+      "title": "📜 Movement history",
+      "description": "Every <b>change</b> to your inventory is recorded here: sales, purchases, adjustments, waste, theft, returns.<br/><br/>It's your <b>audit trail</b>: can't be edited or deleted. If anything doesn't add up, the answer is here."
+    },
+    "step1": {
+      "title": "The table",
+      "description": "Each row is a movement. Key columns:<br/><br/>• <b>Date</b> · when it happened<br/>• <b>Name</b> · which item or ingredient<br/>• <b>Supplier</b> · if involved<br/>• <b>Total cost</b> · economic impact<br/>• <b>Adjustment</b> · how many units added or subtracted<br/><br/>Click any row for full detail."
+    },
+    "step2": {
+      "title": "Filters to investigate",
+      "description": "When something doesn't add up, filter:<br/><br/>• <b>Date</b> · \"What happened last Tuesday?\"<br/>• <b>SKU</b> · \"What happened to this product?\"<br/>• <b>Supplier</b> · \"What came from Acme Dairy?\"<br/>• <b>Total cost</b> · large movements<br/>• <b>Type</b> · filter by movement class"
+    },
+    "step3": {
+      "title": "Type filter — the most powerful",
+      "description": "Filter by <b>movement type</b> to spot patterns:<br/><br/>• Only <b>sales</b> → confirm POS deducted correctly<br/>• Only <b>manual adjustments</b> → audit team decisions<br/>• Only <b>waste / theft / damage</b> → compute monthly losses<br/>• Only <b>received purchases</b> → tally inbound"
+    },
+    "complete": {
+      "title": "🔍 Typical uses",
+      "description": "• <b>End of day</b>: filter by date = today. Review suspicious moves.<br/>• <b>End of month</b>: date + type = Loss/Damage/Theft. Compute waste.<br/>• <b>Count discrepancy</b>: filter by SKU. Trace every in/out of that item.<br/>• <b>Team audit</b>: filter by type = Manual adjustment. Review who did what."
+    }
+  },
+  "tourStockAdjustment": {
+    "launchButton": "How to adjust stock?",
+    "discoveryBanner": {
+      "title": "🎓 How to adjust stock when mercancía arrives or there's a shortage?",
+      "description": "A step-by-step walkthrough — it's the most common day-to-day operation."
+    },
+    "welcome": {
+      "title": "📦 Adjusting stock",
+      "description": "Learn the day-to-day flow: <b>receive mercancía</b>, register a <b>shortage</b>, correct a <b>theft</b>, or record a <b>physical count</b>.<br/><br/>Every change is logged in <b>History</b> for audit."
+    },
+    "step1": {
+      "title": "Click the stock number",
+      "description": "Each row shows current stock under <b>Physical stock</b>. Clicking that number opens a panel to adjust it."
+    },
+    "step2": {
+      "title": "Pick the movement type",
+      "description": "6 types. The rule is simple — pick the one that describes what actually happened:<br/><br/>• <b>Stock received</b>: arrived from supplier (adds)<br/>• <b>Inventory count</b>: correct with physical count (sets total)<br/>• <b>Damage</b>: broken/unusable product (subtracts)<br/>• <b>Theft</b>: missing due to theft/loss (subtracts)<br/>• <b>Loss</b>: expiration or waste (subtracts)<br/>• <b>Return</b>: returned to supplier (subtracts)"
+    },
+    "step3": {
+      "title": "Enter the amount",
+      "description": "For <b>Stock received</b> or <b>Return</b>: the amount adds or subtracts.<br/>For <b>Inventory count</b>: enter the new total after the physical count — the system calculates the delta.<br/><br/>The <b>New total</b> shows automatically below."
+    },
+    "step4": {
+      "title": "Save the adjustment",
+      "description": "When you save, stock updates and a <b>permanent record</b> appears in <b>History</b> with who, when and why. Audit trail is immutable."
+    },
+    "complete": {
+      "title": "🎉 That's it!",
+      "description": "Golden rule: <b>always pick the right type</b>. A mis-classified adjustment makes it impossible later to tell if it was theft, waste or error. When in doubt use <b>Inventory count</b>."
+    }
+  },
+  "tourIngredient": {
+    "welcome": {
+      "title": "🥛 Add an ingredient",
+      "description": "Ingredients are the inputs used in your recipes: <b>milk</b>, <b>coffee</b>, <b>matcha</b>, <b>sugar</b>, <b>straws</b>. They aren't sold on their own — they're consumed when preparing products. <br/><br/>Each ingredient must be created before it can be used in a recipe."
+    },
+    "step1": {
+      "title": "\"Add Ingredient\" button",
+      "description": "Click here to open the form. You'll fill out a few basic fields."
+    },
+    "step2": {
+      "title": "Ingredient name",
+      "description": "Use the name you'd call it in the kitchen. Example: <b>Almond Milk</b>, <b>Espresso Coffee</b>, <b>Matcha Powder</b>."
+    },
+    "step3": {
+      "title": "Internal code (SKU)",
+      "description": "A unique code to identify it in reports. You can keep the one auto-generated or set your own (e.g. <b>RM-MILK-ALM</b>)."
+    },
+    "step4": {
+      "title": "Unit of measure",
+      "description": "The unit you measure this ingredient in. Examples: <b>kg</b> for matcha, <b>liters</b> for milk, <b>pieces</b> for straws. <br/><br/>⚠️ Pick carefully — it can't easily be changed later."
+    },
+    "step5": {
+      "title": "Category",
+      "description": "Group your ingredients for reports: <b>Dairy</b>, <b>Protein</b>, <b>Beverages</b>, <b>Spices</b>, etc."
+    },
+    "step6": {
+      "title": "Current stock",
+      "description": "Count how much you have RIGHT NOW in the chosen unit. Example: if you have 5 one-liter cartons of milk, enter <b>5</b>. <br/><br/>Also set the <b>minimum</b> (when to alert) and <b>reorder point</b> (when to reorder)."
+    },
+    "step7": {
+      "title": "Cost per unit",
+      "description": "What you pay per unit to the supplier. Example: <b>$45</b> per liter of milk. We use this to compute each product's cost and your <b>Food Cost %</b>."
+    },
+    "step8": {
+      "title": "Save the ingredient",
+      "description": "Once saved, the ingredient is available for recipes. Repeat for each input you handle."
+    },
+    "complete": {
+      "title": "🎉 Done!",
+      "description": "Now that you have an ingredient, you can go to <b>Products</b> and create a recipe-based drink that uses it. Each sale will automatically deduct the quantity defined in the recipe."
+    }
   }
 }
