@@ -259,6 +259,18 @@ export async function getOrganizationTeam(orgId: string): Promise<OrganizationTe
 }
 
 /**
+ * Lookup: staff with role WAITER or CASHIER in any venue of the org.
+ *
+ * Used by the SIM custody "Assign to Promoter" dropdown. Accessible to any
+ * staff member of the org (including MANAGER, the "Supervisor" role in
+ * PlayTelecom terminology) — unlike `getOrganizationTeam` which is OWNER-only.
+ */
+export async function getOrganizationPromoters(orgId: string): Promise<OrganizationTeamMember[]> {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/promoters`)
+  return response.data?.data ?? []
+}
+
+/**
  * Get lightweight organization stats (for header/nav)
  */
 export async function getOrganizationStats(orgId: string): Promise<OrganizationStats> {
