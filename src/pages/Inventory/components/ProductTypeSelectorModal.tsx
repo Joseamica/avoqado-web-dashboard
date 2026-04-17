@@ -133,10 +133,17 @@ export function ProductTypeSelectorModal({ open, onOpenChange, onSelect }: Produ
                 const isSelected = selectedType === type.code
                 const recommended = isRecommended(type.code)
 
+                const tourKey =
+                  type.code === 'REGULAR'
+                    ? 'product-type-regular'
+                    : type.code === 'FOOD_AND_BEV'
+                      ? 'product-type-food'
+                      : undefined
                 return (
                   <button
                     key={type.code}
                     type="button"
+                    data-tour={tourKey}
                     onClick={() => setSelectedType(type.code)}
                     className={cn(
                       'w-full text-left p-3 rounded-lg border transition-all',
@@ -185,6 +192,7 @@ export function ProductTypeSelectorModal({ open, onOpenChange, onSelect }: Produ
             {tCommon('cancel')}
           </Button>
           <Button
+            data-tour="product-type-next"
             onClick={handleNext}
             disabled={!selectedType}
           >

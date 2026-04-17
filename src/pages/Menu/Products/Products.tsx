@@ -63,9 +63,11 @@ import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { ProductWizardDialog } from '@/pages/Inventory/components/ProductWizardDialog'
 import { ProductTypeSelectorModal } from '@/pages/Inventory/components/ProductTypeSelectorModal'
 import { type ProductType } from '@/services/inventory.service'
-import { Sparkles, ArrowRightLeft } from 'lucide-react'
+import { Sparkles, ArrowRightLeft, HelpCircle, ChefHat as ChefHatIcon, Package as PackageIcon } from 'lucide-react'
 import { ConvertToServiceDialog } from '@/pages/Menu/Services/ConvertToServiceDialog'
 import { useMenuMakerHeader } from '../MenuMakerLayout'
+import { useProductCreationTour } from '@/hooks/useProductCreationTour'
+import { useRecipeCreationTour } from '@/hooks/useRecipeCreationTour'
 
 export default function Products() {
   const { t } = useTranslation('menu')
@@ -98,6 +100,10 @@ export default function Products() {
   const [convertDialogOpen, setConvertDialogOpen] = useState(false)
   const [productToConvert, setProductToConvert] = useState<Product | null>(null)
 
+  // Interactive onboarding tours
+  const { start: startProductTour } = useProductCreationTour()
+  const { start: startRecipeTour } = useRecipeCreationTour()
+
   // Push header into MenuMakerLayout (title + actions appear above tabs)
   const { setHeader } = useMenuMakerHeader()
   useEffect(() => {
@@ -112,16 +118,63 @@ export default function Products() {
         />
       ),
       actions: (
-        <PermissionGate permission="menu:create">
-          <Button onClick={() => setTypeSelectorOpen(true)}>
-            <Sparkles className="mr-2 h-4 w-4" />
-            <span>{t('products.new')}</span>
-          </Button>
-        </PermissionGate>
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <HelpCircle className="h-4 w-4" />
+                <span className="hidden sm:inline">
+                  {t('tour.launchButton', { defaultValue: '¿Cómo crear un producto?' })}
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-72">
+              <DropdownMenuLabel>
+                {t('tour.menuLabel', { defaultValue: 'Tours interactivos' })}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={startProductTour} className="gap-3 py-3">
+                <PackageIcon className="h-5 w-5 text-green-600 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">
+                    {t('tour.productSimple.title', { defaultValue: 'Producto simple' })}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {t('tour.productSimple.subtitle', {
+                      defaultValue: 'Merch, botellas, chips empacados',
+                    })}
+                  </p>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={startRecipeTour} className="gap-3 py-3">
+                <ChefHatIcon className="h-5 w-5 text-orange-600 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">
+                    {t('tour.productRecipe.title', { defaultValue: 'Producto con receta' })}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {t('tour.productRecipe.subtitle', {
+                      defaultValue: 'Shakes, lattes, bebidas frescas',
+                    })}
+                  </p>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <PermissionGate permission="menu:create">
+            <Button
+              data-tour="product-new-btn"
+              onClick={() => setTypeSelectorOpen(true)}
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              <span>{t('products.new')}</span>
+            </Button>
+          </PermissionGate>
+        </div>
       ),
     })
     return () => setHeader({})
-  }, [t, setHeader])
+  }, [t, setHeader, startProductTour, startRecipeTour])
 
   // ✅ STRIPE-STYLE FILTERS: State for FilterPills
   const [searchTerm, setSearchTerm] = useState('')

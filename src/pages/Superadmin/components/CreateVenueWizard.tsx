@@ -379,19 +379,24 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
           businessCategory: data.form.type,
           target: { type: 'venue', id: venueId },
           accountSlot: 'PRIMARY',
+          // The backend endpoint (/blumon/full-setup) divides these rates by 100
+          // to convert percent → decimal before storing. We MUST send the raw
+          // percent the user typed (e.g. 3.3 for 3.3%), not pre-divide.
+          // Previous bug: frontend divided → backend divided again → 0.00033
+          // (= 0.033% instead of 3.3%) saved in DB.
           costStructureOverrides: {
-            debitRate: data.merchant.providerCosts.debitRate / 100,
-            creditRate: data.merchant.providerCosts.creditRate / 100,
-            amexRate: data.merchant.providerCosts.amexRate / 100,
-            internationalRate: data.merchant.providerCosts.internationalRate / 100,
+            debitRate: data.merchant.providerCosts.debitRate,
+            creditRate: data.merchant.providerCosts.creditRate,
+            amexRate: data.merchant.providerCosts.amexRate,
+            internationalRate: data.merchant.providerCosts.internationalRate,
             fixedCostPerTransaction: data.merchant.providerCosts.fixedCost,
             monthlyFee: data.merchant.providerCosts.monthlyFee,
           },
           venuePricing: {
-            debitRate: data.merchant.venuePricing.debitRate / 100,
-            creditRate: data.merchant.venuePricing.creditRate / 100,
-            amexRate: data.merchant.venuePricing.amexRate / 100,
-            internationalRate: data.merchant.venuePricing.internationalRate / 100,
+            debitRate: data.merchant.venuePricing.debitRate,
+            creditRate: data.merchant.venuePricing.creditRate,
+            amexRate: data.merchant.venuePricing.amexRate,
+            internationalRate: data.merchant.venuePricing.internationalRate,
             fixedFeePerTransaction: data.merchant.venuePricing.fixedCost,
             monthlyServiceFee: data.merchant.venuePricing.monthlyFee,
           },
@@ -897,7 +902,10 @@ function StepOrganization({
         />
       )}
 
-      <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+      {/* No inner max-h/overflow here: the wizard's step content is already
+          `flex-1 overflow-y-auto`, so the list naturally fills the remaining
+          modal height and scrolls via the outer container (single scroll). */}
+      <div className="space-y-2 pr-1">
         {organizations.map(org => (
           <button
             key={org.id}
@@ -1276,6 +1284,7 @@ function StepPayments({
 
                   <RatesSection
                     title="Costos del procesador"
+                    subtitle="Lo que nos cobra el procesador de pagos"
                     rates={merchant.providerCosts}
                     onRateChange={(field, value) => handleRateChange('providerCosts', field, value)}
                   />
@@ -1405,6 +1414,7 @@ function StepPayments({
 
                   <RatesSection
                     title="Costos del procesador"
+                    subtitle="Lo que nos cobra el procesador de pagos"
                     rates={merchant.providerCosts}
                     onRateChange={(field, value) => handleRateChange('providerCosts', field, value)}
                   />
@@ -1434,16 +1444,21 @@ function StepPayments({
 
 function RatesSection({
   title,
+  subtitle,
   rates,
   onRateChange,
 }: {
   title: string
+  subtitle?: string
   rates: RateData
   onRateChange: (field: keyof RateData, value: string) => void
 }) {
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-semibold">{title}</h3>
+      <div>
+        <h3 className="text-sm font-semibold">{title}</h3>
+        {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
+      </div>
       <div className="rounded-xl border border-input bg-card p-4 space-y-2">
         {RATE_FIELDS.map(field => (
           <div key={field.key} className={cn('flex items-center gap-3 p-2.5 rounded-lg', field.bgColor)}>

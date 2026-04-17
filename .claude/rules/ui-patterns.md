@@ -99,3 +99,31 @@ When a row has a checkbox/radio, make the ENTIRE row clickable.
 - Add `cursor-pointer hover:bg-muted/50` to row container
 - Use `onClick={(e) => e.stopPropagation()}` on nested interactive elements
 - **Reference**: `src/pages/Reports/SalesSummary.tsx`
+
+## Onboarding Tours: `data-tour` Attributes (MANDATORY)
+
+The dashboard ships interactive step-by-step tours powered by [driver.js](https://driverjs.com/). Tours target DOM elements by a stable
+`data-tour="<key>"` attribute — never by class, generated id, or text content.
+
+**When building or modifying any of these, add `data-tour` in the SAME PR:**
+
+- Primary CTAs ("Nuevo producto", "Crear", "Guardar")
+- Every wizard / multi-step form field (name, price, category, toggles…)
+- Destination radios / tiles when they determine the next flow branch (e.g. "Basado en Recetas")
+- Section containers the tour needs to spotlight as a block
+
+```tsx
+// ✅ Stable + self-documenting + kebab-case + scoped to feature
+<Button data-tour="product-new-btn">Nuevo producto</Button>
+<Input data-tour="product-wizard-name" {...register('name')} />
+<section data-tour="product-wizard-ingredients">...</section>
+
+// ❌ Don't rely on these for tours
+<Button className="bg-primary">...</Button>  // class can change
+<Input id="price" />                          // id collisions across dialogs
+```
+
+Naming: `kebab-case`, scoped by feature: `product-new-btn`, `product-wizard-category`, `product-type-food`, `add-ingredient-qty`.
+
+**Existing tours:** `src/hooks/useProductCreationTour.ts`, `src/hooks/useRecipeCreationTour.ts`.
+**Full pattern + checklist:** `docs/guides/onboarding-tours.md`.

@@ -74,6 +74,11 @@ src/
 15. **No gradients**: NEVER use `bg-gradient-to-*` (deprecated in Tailwind v4). Prefer flat surfaces using semantic tokens. If a gradient is
     genuinely required, use the v4 canonical `bg-linear-to-*` syntax. Avoid creating new gradient surfaces — they tend to read as AI slop
     and are inconsistent with the design system.
+16. **Onboarding tours (`driver.js`)**: the project ships interactive step-by-step tours via `driver.js`. Every new primary CTA, wizard
+    field, form section, or destination the user is guided toward MUST have a stable `data-tour="<kebab-case-key>"` attribute so tours can
+    target it reliably. Never target by class or generated id. Existing hooks: `useProductCreationTour`, `useRecipeCreationTour` (under
+    `src/hooks/`). Create a new hook per long flow, reuse the `waitForElement` + `exists` + `onNextClick` pattern for flow-aware auto-advance.
+    Full pattern + i18n keys live in `docs/guides/onboarding-tours.md`.
 
 ## API Integration
 

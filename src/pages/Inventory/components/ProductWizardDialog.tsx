@@ -996,6 +996,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         <Button
           type="submit"
           form="step1-form"
+          data-tour="product-wizard-finish"
           disabled={isLoading || (mode === 'create' && (uploading || !!imageForCrop))}
         >
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -1053,7 +1054,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
                     <div className="space-y-5">
                       {/* Name */}
-                      <div>
+                      <div data-tour="product-wizard-name">
                         <FieldLabel htmlFor="name" label={t('wizard.step1.name')} required />
                         <Input
                           id="name"
@@ -1067,7 +1068,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                       </div>
 
                       {/* Price */}
-                      <div>
+                      <div data-tour="product-wizard-price">
                         <FieldLabel htmlFor="price" label={t('wizard.step1.price')} required />
                         <div className="relative">
                           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-base">$</span>
@@ -1278,6 +1279,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                     <div className="space-y-3">
                       {/* Toggle Switch for Inventory */}
                       <div
+                        data-tour="product-wizard-track-inventory"
                         className={cn(
                           'flex items-center gap-3 p-4 rounded-lg border transition-colors',
                           step2Form.watch('useInventory')
@@ -1336,6 +1338,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                           >
                             <Label
                               htmlFor="quantity-tracking-left"
+                              data-tour="product-wizard-method-quantity"
                               className={cn(
                                 'flex items-center gap-3 p-4 rounded-lg border transition-colors cursor-pointer',
                                 step2Form.watch('inventoryMethod') === 'QUANTITY'
@@ -1353,6 +1356,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
                             <Label
                               htmlFor="recipe-based-left"
+                              data-tour="product-wizard-method-recipe"
                               className={cn(
                                 'flex items-center gap-3 p-4 rounded-lg border transition-colors cursor-pointer',
                                 step2Form.watch('inventoryMethod') === 'RECIPE'
@@ -1377,7 +1381,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                 <AlertDescription className="text-green-800 dark:text-green-200">{t('wizard.step3.simpleStockInfo')}</AlertDescription>
                               </Alert>
 
-                              <div className="space-y-2">
+                              <div className="space-y-2" data-tour="product-wizard-initial-stock">
                                 <Label htmlFor="initialStock">{t('wizard.step3.initialStock')} *</Label>
                                 <Input
                                   id="initialStock"
@@ -1469,9 +1473,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                           )}
 
                           {step2Form.watch('inventoryMethod') === 'RECIPE' && (
-                            <div className="space-y-4 pt-4 border-t border-border/50">
+                            <div className="space-y-4 pt-4 border-t border-border/50" data-tour="product-wizard-recipe-section">
                               {/* Portion Yield */}
-                              <div className="space-y-2">
+                              <div className="space-y-2" data-tour="product-wizard-portion-yield">
                                 <div className="flex items-center gap-2">
                                   <Label htmlFor="portionYield">{t('recipes.fields.portionYield')} *</Label>
                                   <TooltipProvider>
@@ -1596,13 +1600,14 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                               </Collapsible>
 
                               {/* Ingredients List */}
-                              <div className="space-y-3">
+                              <div className="space-y-3" data-tour="product-wizard-ingredients">
                                 <div className="flex items-center justify-between">
                                   <Label>{t('recipes.ingredients.title')} *</Label>
                                   <Button
                                     type="button"
                                     variant="ghost"
                                     size="sm"
+                                    data-tour="product-wizard-add-ingredient"
                                     onClick={() => {
                                       setAddIngredientOpen(true)
                                       setHighlightAddButton(false)
@@ -1710,7 +1715,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                 <div className="lg:col-span-4 space-y-6">
                   {/* Category Section — hidden for digital/donation types */}
                   {!NO_CATEGORY_TYPES.includes(effectiveProductType as ProductType) && (
-                  <section className="bg-card rounded-2xl border border-border/50 p-6">
+                  <section data-tour="product-wizard-category" className="bg-card rounded-2xl border border-border/50 p-6">
                     <SectionHeader icon={Grid3X3} title={t('wizard.step1.category')} className="mb-4" />
                     <p className="text-xs text-muted-foreground mb-3">
                       {t('wizard.step1.categoryHelp', { defaultValue: 'Organiza tus productos en categorías para facilitar la navegación.' })}

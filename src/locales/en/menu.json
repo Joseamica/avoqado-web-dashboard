@@ -844,5 +844,115 @@
     "legendDisabled": "Disabled",
     "legendInstructor": "Instructor",
     "capacityFromLayout": "Calculated from spot map"
+  },
+  "tour": {
+    "launchButton": "How to create a product?",
+    "next": "Next →",
+    "prev": "← Back",
+    "done": "Done!",
+    "progress": "Step {{current}} of {{total}}",
+    "welcome": {
+      "title": "👋 Let's create your first product",
+      "description": "I'll guide you step by step. You can close the tour any time with ESC."
+    },
+    "step1": {
+      "title": "New product",
+      "description": "Click this button to start. A wizard will open and ask what type of product you want to create."
+    },
+    "step2": {
+      "title": "Choose the item type",
+      "description": "For merch (hoodies, caps, bottles) use <b>Regular Item</b>. For freshly-prepared food or drinks use <b>Food & Beverage</b>."
+    },
+    "step3": {
+      "title": "Enter the name",
+      "description": "Use a clear short name. Example: <b>White Hoodie M</b>. Customers will see this name on the POS."
+    },
+    "step4": {
+      "title": "Set the selling price",
+      "description": "Enter the price. You can change it later if needed."
+    },
+    "step5": {
+      "title": "Assign a category",
+      "description": "Select where it appears in the menu (e.g. <b>Merch</b>, <b>Drinks</b>, <b>Food</b>). If the category doesn't exist, create it first in <b>Categories</b>."
+    },
+    "step6": {
+      "title": "Enable inventory tracking",
+      "description": "When you turn on this switch, each sale will automatically deduct from stock and you'll be alerted when it's running low."
+    },
+    "step7": {
+      "title": "Enter the current stock",
+      "description": "Count the units you have right now and put them here. Example: <b>15</b> hoodies in storage."
+    },
+    "step8": {
+      "title": "Save the product",
+      "description": "Click <b>Finish</b>. Your product is ready to sell from the POS."
+    },
+    "complete": {
+      "title": "🎉 Congratulations!",
+      "description": "You now know how to create products. You can replay this tour anytime from the <b>?</b> icon up top."
+    },
+    "menuLabel": "Interactive tours",
+    "productSimple": {
+      "title": "Simple product",
+      "subtitle": "Merch, bottles, packaged snacks"
+    },
+    "productRecipe": {
+      "title": "Recipe-based product",
+      "subtitle": "Shakes, lattes, fresh drinks"
+    }
+  },
+  "tourRecipe": {
+    "welcome": {
+      "title": "🥤 Create a recipe-based product",
+      "description": "Perfect for shakes, lattes, fresh drinks, and prepared food. The system deducts ingredients automatically with every sale. <br/><br/>⚠️ You need at least one <b>ingredient</b> created first. If you don't have any, create them in <b>Inventory → Ingredients</b>."
+    },
+    "step1": {
+      "title": "New product",
+      "description": "Click here. A wizard opens where you choose the product type."
+    },
+    "step2": {
+      "title": "Choose \"Food & Beverage\"",
+      "description": "For items prepared on the fly (shakes, lattes, sandwiches). This type lets you define a <b>recipe</b> with the ingredients it consumes."
+    },
+    "step3": {
+      "title": "Product name",
+      "description": "Example: <b>Small Latte</b>, <b>Zen Matcha</b>, <b>Buffalo Sandwich</b>. This is what customers see on the POS."
+    },
+    "step4": {
+      "title": "Selling price",
+      "description": "Price for the customer. Later you'll see your <b>Food Cost %</b> (what % of the price is ingredients)."
+    },
+    "step5": {
+      "title": "Category",
+      "description": "Choose where it appears in the menu: <b>Drinks</b>, <b>Shakes</b>, <b>Food</b>, etc."
+    },
+    "step6": {
+      "title": "Enable inventory tracking",
+      "description": "Turning this on lets you pick the tracking method. For recipes, each sale deducts ingredients automatically."
+    },
+    "step7": {
+      "title": "Pick \"Recipe-Based\"",
+      "description": "Instead of counting whole units, the system tracks <b>ingredients</b>. Selling 1 Small Latte deducts 120ml of milk + 9g of coffee, for example."
+    },
+    "step8": {
+      "title": "Portions per recipe",
+      "description": "If a full recipe makes <b>1 portion</b> (typical for drinks), leave 1. If you batch a salsa that yields 10 tacos, enter 10 — the system prorates ingredients when selling 1."
+    },
+    "step9": {
+      "title": "Add ingredients",
+      "description": "Define what's in the recipe. Example: <b>120 ml Almond Milk</b> + <b>9 g Espresso Coffee</b>. Each ingredient is deducted automatically on sale."
+    },
+    "step10": {
+      "title": "+ Add ingredient button",
+      "description": "Clicking opens a dialog where you pick the ingredient (must already exist in <b>Inventory → Ingredients</b>), quantity, and unit. Add them one by one."
+    },
+    "step11": {
+      "title": "Save the recipe",
+      "description": "When you're done adding ingredients, click <b>Finish</b>. The system computes <b>Total Cost</b> and <b>Food Cost %</b> automatically."
+    },
+    "complete": {
+      "title": "🎉 All set!",
+      "description": "You now know how to create recipe-based products. Each sale deducts ingredients automatically and you'll be alerted when any drops below its minimum."
+    }
   }
 }
