@@ -467,14 +467,17 @@ export default function Payments() {
     [t, statusTabCounts],
   )
 
-  // Summary cards (computed from filtered data)
+  // Summary cards (computed from filtered data).
+  // Refunds carry a negative `amount`, so summing without `Math.abs` naturally
+  // nets them out of both "Total Collected" and "Net Sales" — which is what
+  // someone looking at a refund-filtered window expects to see.
   const summaryCards = useMemo<SummaryCardItem[]>(() => {
     const count = filteredPayments.length
     const totalCollected = filteredPayments.reduce((sum: number, p: PaymentType) => {
-      return sum + Math.abs(Number(p.amount) || 0) + (Number(p.tipAmount) || 0)
+      return sum + (Number(p.amount) || 0) + (Number(p.tipAmount) || 0)
     }, 0)
     const netSales = filteredPayments.reduce((sum: number, p: PaymentType) => {
-      return sum + Math.abs(Number(p.amount) || 0)
+      return sum + (Number(p.amount) || 0)
     }, 0)
     return [
       { label: t('summaryCards.transactions'), value: count, format: 'number' as const },
@@ -1392,14 +1395,17 @@ export default function Payments() {
       <SelectionSummaryBar
         selectedRows={selectedPayments}
         fields={[
-          { label: t('columns.subtotal'), getValue: row => Math.abs(Number(row.amount) || 0) },
+          // Refunds carry a negative `amount`; keep the sign so selecting a refund row
+          // subtracts from the total rather than inflating it.
+          { label: t('columns.subtotal'), getValue: row => Number(row.amount) || 0 },
           { label: t('columns.tip'), getValue: row => Number(row.tipAmount) || 0 },
-          { label: t('columns.total'), getValue: row => Math.abs(Number(row.amount) || 0) + (Number(row.tipAmount) || 0) },
+          { label: t('columns.total'), getValue: row => (Number(row.amount) || 0) + (Number(row.tipAmount) || 0) },
           {
             label: t('detail.summary.toBank'),
             getValue: row => {
-              const total = Math.abs(Number(row.amount) || 0) + (Number(row.tipAmount) || 0)
+              const total = (Number(row.amount) || 0) + (Number(row.tipAmount) || 0)
               const fee = (Number(row.transactionCost?.venueChargeAmount) || 0) + (Number(row.transactionCost?.venueFixedFee) || 0)
+              // Fees on refunds are typically 0, but subtract whichever sign the row carries.
               return total - fee
             },
           },

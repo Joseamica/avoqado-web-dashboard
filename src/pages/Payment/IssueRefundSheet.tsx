@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast'
 import { Currency } from '@/utils/currency'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, X } from 'lucide-react'
+import { ArrowLeft, Minus, Plus, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -73,6 +73,8 @@ export function IssueRefundSheet({
   const [tab, setTab] = useState<Tab>('amount')
   const [itemStep, setItemStep] = useState<ItemStep>('select')
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set())
+  /** Per-line refund quantity; set when the line is selected, defaults to full qty. */
+  const [refundQtyByItem, setRefundQtyByItem] = useState<Record<string, number>>({})
   const [restockItemIds, setRestockItemIds] = useState<Set<string>>(new Set())
   const [amountStr, setAmountStr] = useState('')
   const [reason, setReason] = useState<Reason | ''>('')
@@ -82,6 +84,7 @@ export function IssueRefundSheet({
       setTab(orderItems.length > 0 ? 'items' : 'amount')
       setItemStep('select')
       setSelectedItemIds(new Set())
+      setRefundQtyByItem({})
       setRestockItemIds(new Set())
       setAmountStr('')
       setReason('')
@@ -99,10 +102,16 @@ export function IssueRefundSheet({
     () => orderItems.filter(i => selectedItemIds.has(i.id)),
     [orderItems, selectedItemIds],
   )
-  const itemsRefundAmount = useMemo(
-    () => Math.round(selectedItems.reduce((s, i) => s + i.total, 0) * 100) / 100,
-    [selectedItems],
-  )
+  /** Effective refund quantity for a selected line (fallback: full qty). */
+  const effectiveQty = (item: RefundableItem) => refundQtyByItem[item.id] ?? item.quantity
+  const itemsRefundAmount = useMemo(() => {
+    const sum = selectedItems.reduce((s, i) => {
+      const q = effectiveQty(i)
+      const lineAmount = q === i.quantity ? i.total : (i.total * q) / i.quantity
+      return s + Math.round(lineAmount * 100) / 100
+    }, 0)
+    return Math.round(sum * 100) / 100
+  }, [selectedItems, refundQtyByItem])
   const restockableItems = useMemo(
     () => selectedItems.filter(i => !!i.trackInventory && !!i.productId),
     [selectedItems],
@@ -114,7 +123,7 @@ export function IssueRefundSheet({
       if (tab === 'amount') {
         body.amount = Math.round(parsedAmount * 100)
       } else {
-        body.items = selectedItems.map(i => ({ orderItemId: i.id })) // full-qty refund
+        body.items = selectedItems.map(i => ({ orderItemId: i.id, quantity: effectiveQty(i) }))
         if (restockItemIds.size > 0) {
           body.restockItemIds = [...restockItemIds].filter(id =>
             selectedItemIds.has(id),
@@ -175,6 +184,15 @@ export function IssueRefundSheet({
       if (next.has(id)) next.delete(id)
       else next.add(id)
       return next
+    })
+  }
+  const changeQty = (id: string, delta: number) => {
+    const item = orderItems.find(i => i.id === id)
+    if (!item) return
+    setRefundQtyByItem(prev => {
+      const current = prev[id] ?? item.quantity
+      const next = Math.max(1, Math.min(item.quantity, current + delta))
+      return { ...prev, [id]: next }
     })
   }
   const toggleRestock = (id: string) => {
@@ -240,7 +258,9 @@ export function IssueRefundSheet({
             <ItemsSelectBody
               items={orderItems}
               selectedIds={selectedItemIds}
+              refundQty={refundQtyByItem}
               onToggle={toggleItem}
+              onQtyChange={changeQty}
               t={t}
             />
           )}
@@ -343,12 +363,16 @@ export function IssueRefundSheet({
 function ItemsSelectBody({
   items,
   selectedIds,
+  refundQty,
   onToggle,
+  onQtyChange,
   t,
 }: {
   items: RefundableItem[]
   selectedIds: Set<string>
+  refundQty: Record<string, number>
   onToggle: (id: string) => void
+  onQtyChange: (id: string, delta: number) => void
   t: (k: string, o?: any) => string
 }) {
   return (
@@ -370,34 +394,66 @@ function ItemsSelectBody({
           <span>{t('refund.items.column.item', { defaultValue: 'Artículos' })}</span>
           <span>{t('refund.items.column.amount', { defaultValue: 'Importe' })}</span>
         </div>
-        {items.map(i => (
-          <label
-            key={i.id}
-            className="flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-muted/30"
-          >
-            <Checkbox
-              className="mt-0.5"
-              checked={selectedIds.has(i.id)}
-              onCheckedChange={() => onToggle(i.id)}
-            />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+        {items.map(i => {
+          const selected = selectedIds.has(i.id)
+          const qty = refundQty[i.id] ?? i.quantity
+          const effectiveTotal = qty === i.quantity ? i.total : (i.total * qty) / i.quantity
+          const showStepper = selected && i.quantity > 1
+          return (
+            <div key={i.id} className="flex items-start gap-3 px-4 py-3 hover:bg-muted/30">
+              <Checkbox
+                className="mt-0.5 cursor-pointer"
+                checked={selected}
+                onCheckedChange={() => onToggle(i.id)}
+              />
+              <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onToggle(i.id)}>
+                <div className="flex items-center gap-2">
+                  {i.quantity > 1 && (
+                    <Badge variant="secondary" className="font-medium shrink-0">
+                      {i.quantity}x
+                    </Badge>
+                  )}
+                  <span className="font-medium">
+                    {i.productName || t('refund.items.customLabel', { defaultValue: 'Importe personalizado' })}
+                  </span>
+                </div>
                 {i.quantity > 1 && (
-                  <Badge variant="secondary" className="font-medium shrink-0">
-                    {i.quantity}x
-                  </Badge>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {Currency(i.unitPrice)} {t('refund.items.each', { defaultValue: 'c/u' })}
+                  </p>
                 )}
-                <span className="font-medium">{i.productName || t('refund.items.customLabel', { defaultValue: 'Importe personalizado' })}</span>
               </div>
-              {i.quantity > 1 && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  {Currency(i.unitPrice)} {t('refund.items.each', { defaultValue: 'c/u' })}
-                </p>
+              {showStepper && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onQtyChange(i.id, -1)}
+                    disabled={qty <= 1}
+                    className="h-7 w-7 rounded-full border border-border/60 flex items-center justify-center disabled:opacity-30"
+                    aria-label="-"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </button>
+                  <span className="tabular-nums font-medium w-8 text-center">
+                    {qty}/{i.quantity}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onQtyChange(i.id, +1)}
+                    disabled={qty >= i.quantity}
+                    className="h-7 w-7 rounded-full border border-border/60 flex items-center justify-center disabled:opacity-30"
+                    aria-label="+"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                </div>
               )}
+              <span className="font-medium whitespace-nowrap text-right min-w-[72px]">
+                {Currency(effectiveTotal)}
+              </span>
             </div>
-            <span className="font-medium whitespace-nowrap">{Currency(i.total)}</span>
-          </label>
-        ))}
+          )
+        })}
       </div>
     </>
   )

@@ -6,7 +6,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from './components/ui/s
 import { ThemeToggle } from './components/theme-toggle'
 import { useAuth } from './context/AuthContext'
 import { useEffect, useState } from 'react'
-import { ChatBubble } from './components/Chatbot'
+// ChatBubble moved to sidebar footer; imported directly by AppSidebar.
 import DashboardCommandPalette from './components/Sidebar/DashboardCommandPalette'
 import type { SidebarMeta } from './components/Sidebar/app-sidebar'
 import { DemoBanner } from './components/DemoBanner'
@@ -19,6 +19,8 @@ import { Button } from './components/ui/button'
 import { Shield, ArrowLeft } from 'lucide-react'
 import NotificationBell from './components/notifications/NotificationBell'
 import LanguageSwitcher from './components/language-switcher'
+import { InventorySetupChecklist } from './components/onboarding/InventorySetupChecklist'
+import { useInventoryWelcomeTourOrchestrator } from './hooks/useInventoryWelcomeTour'
 import { useTranslation } from 'react-i18next'
 import { BreadcrumbProvider, useBreadcrumb } from './context/BreadcrumbContext'
 import { ChatReferencesProvider } from './context/ChatReferencesContext'
@@ -53,6 +55,11 @@ function DashboardContent() {
   const { user, authorizeVenue, allVenues, checkFeatureAccess } = useAuth()
   const { venue, venueSlug, isLoading, hasVenueAccess } = useCurrentVenue()
   const { customSegments } = useBreadcrumb()
+
+  // Mount the inventory welcome tour orchestrator here (stable across
+  // venue sub-routes like /menumaker/* and /inventory/*), so the tour can
+  // navigate between sections without losing state.
+  useInventoryWelcomeTourOrchestrator()
 
   // Command palette state
   const [commandOpen, setCommandOpen] = useState(false)
@@ -276,6 +283,16 @@ function DashboardContent() {
               </Button>
             )}
             <LanguageSwitcher />
+            {/* Payment setup alert (SUPERADMIN-only) — header variant shows
+                a compact gradient icon button that opens a popover with the
+                full alert card. Replaces the old fixed floating version that
+                used to cover pagination in the bottom-right. */}
+            {venue && <PaymentSetupAlert venueId={venue.id} variant="header" />}
+            {/* Inventory setup checklist — compact header variant so it's
+                reachable from every page (not just /inventory/*) and doesn't
+                overlap DataTable pagination. Auto-hides when all required
+                steps are done or user dismisses. */}
+            {venue && <InventorySetupChecklist variant="header" />}
             <NotificationBell />
             <ThemeToggle />
           </div>
@@ -294,15 +311,12 @@ function DashboardContent() {
           </div>
         </div>
 
-        {/* Payment Setup Alert for SUPERADMIN - shows when venue needs payment configuration */}
-        {venue && <PaymentSetupAlert venueId={venue.id} className="bottom-20" />}
+        {/* PaymentSetupAlert moved to the header (see above) — the floating
+            bottom-right version was covering DataTable pagination. */}
 
-        {/* ChatBubble positioned at bottom-right edge */}
-        {venue && checkFeatureAccess('CHATBOT') && (
-          <div className="fixed bottom-4 right-4 z-50">
-            <ChatBubble />
-          </div>
-        )}
+        {/* ChatBubble trigger has moved to the sidebar footer (see AppSidebar).
+            The chat panel itself is still position:fixed so it opens from the
+            bottom-right regardless of where the trigger button lives. */}
       </SidebarInset>
       <DashboardCommandPalette
         open={commandOpen}

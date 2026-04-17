@@ -2,6 +2,7 @@ import { driver, type Driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useAtomicTourListener, notifyAtomicTourCompleted } from '@/hooks/useAtomicTourListener'
 
 /**
  * Interactive onboarding tour for stock adjustments.
@@ -209,6 +210,10 @@ export function useStockAdjustmentTour() {
               defaultValue:
                 'La regla de oro: <b>siempre elige el tipo correcto</b>. Un ajuste mal clasificado hace imposible entender después si fue robo, merma o error. Si tienes dudas usa <b>Recuento de inventario</b>.',
             }),
+            onNextClick: () => {
+              notifyAtomicTourCompleted('stock-adjustment')
+              d.destroy()
+            },
           },
         },
       ],
@@ -237,6 +242,9 @@ export function useStockAdjustmentTour() {
       driverRef.current?.destroy()
     }
   }, [])
+
+  // Listen for launch requests from the welcome tour / checklist.
+  useAtomicTourListener('stock-adjustment', start)
 
   return { start, stop }
 }

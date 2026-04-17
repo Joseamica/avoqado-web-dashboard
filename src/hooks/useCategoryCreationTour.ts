@@ -2,6 +2,7 @@ import { driver, type Driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useAtomicTourListener, notifyAtomicTourCompleted } from '@/hooks/useAtomicTourListener'
 
 /**
  * Interactive onboarding tour for category creation.
@@ -145,6 +146,10 @@ export function useCategoryCreationTour() {
               defaultValue:
                 'Al guardar, la categoría queda disponible para asignarse a productos. Te recomendamos crear <b>3-5 categorías</b> primero para tener tu menú organizado.<br/><br/>Siguiente: crea tus <b>Ingredientes</b> o tus <b>Productos</b>.',
             }),
+            onNextClick: () => {
+              notifyAtomicTourCompleted('category')
+              d.destroy()
+            },
           },
         },
       ],
@@ -169,6 +174,9 @@ export function useCategoryCreationTour() {
       driverRef.current?.destroy()
     }
   }, [])
+
+  // Listen for launch requests from the welcome tour / checklist.
+  useAtomicTourListener('category', start)
 
   return { start, stop }
 }

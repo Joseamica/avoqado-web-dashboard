@@ -2,6 +2,7 @@ import { driver, type Driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useAtomicTourListener, notifyAtomicTourCompleted } from '@/hooks/useAtomicTourListener'
 
 /**
  * Interactive onboarding tour for purchase orders.
@@ -200,6 +201,10 @@ export function usePurchaseOrderTour() {
               defaultValue:
                 'Recuerda el ciclo: <b>Crear orden</b> → enviar al proveedor → <b>Recibir</b> (botón en el detalle de la orden) → se crean los lotes con costo → tus recetas ya conocen el costo real.<br/><br/>Cada orden recibida queda en <b>Historial</b> para auditoría.',
             }),
+            onNextClick: () => {
+              notifyAtomicTourCompleted('purchase-order')
+              d.destroy()
+            },
           },
         },
       ],
@@ -224,6 +229,9 @@ export function usePurchaseOrderTour() {
       driverRef.current?.destroy()
     }
   }, [])
+
+  // Listen for launch requests from the welcome tour / checklist.
+  useAtomicTourListener('purchase-order', start)
 
   return { start, stop }
 }

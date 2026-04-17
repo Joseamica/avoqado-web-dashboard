@@ -15,6 +15,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { CreditCard, X, ChevronRight, CheckCircle2, Circle, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { getVenuePaymentReadiness } from '@/services/paymentProvider.service'
@@ -26,6 +27,15 @@ const useCommonTranslation = () => useTranslation('common')
 interface PaymentSetupAlertProps {
   venueId: string
   className?: string
+  /**
+   * `'floating'` (default): original fixed-position card anchored to the
+   * bottom-right. Ignore `className` for the header variant.
+   * `'header'`: compact icon button designed for the dashboard topbar. Keeps
+   * the amber→pink gradient so superadmins still recognise it, and opens the
+   * full alert inside a Popover so it never covers pagination or other
+   * bottom-right UI.
+   */
+  variant?: 'floating' | 'header'
 }
 
 /**
@@ -34,7 +44,7 @@ interface PaymentSetupAlertProps {
  * Displays a fixed-position alert when the current venue needs payment configuration.
  * Uses the amber-to-pink gradient to indicate superadmin-only functionality.
  */
-export function PaymentSetupAlert({ venueId, className = '' }: PaymentSetupAlertProps) {
+export function PaymentSetupAlert({ venueId, className = '', variant = 'floating' }: PaymentSetupAlertProps) {
   const { staffInfo } = useAuth()
   const { t } = useTranslation()
   const { t: tCommon } = useCommonTranslation()
@@ -70,43 +80,82 @@ export function PaymentSetupAlert({ venueId, className = '' }: PaymentSetupAlert
     : 0
   const totalCount = 8
 
+  // Shared body used by both variants so copy/behaviour stays in one place.
+  const cardBody = (
+    <div className="rounded-lg bg-gradient-to-r from-amber-400 to-pink-500 p-4 text-primary-foreground shadow-lg">
+      <div className="flex items-start gap-3">
+        <div className="p-2 rounded-full bg-background/20 shrink-0">
+          <CreditCard className="h-5 w-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-1">
+            <span className="font-semibold">{t('paymentSetup.alert.title', 'Configurar Pagos')}</span>
+            {variant === 'floating' && (
+              <button
+                onClick={() => setDismissed(true)}
+                className="p-1 hover:bg-background/20 rounded-full transition-colors -mr-1"
+                aria-label={tCommon('dismiss')}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <p className="text-sm text-primary-foreground/90 mb-2">{readiness?.nextAction}</p>
+          <div className="flex items-center gap-1 text-xs text-primary-foreground/80 mb-3">
+            <CheckCircle2 className="h-3 w-3" />
+            <span>
+              {completedCount}/{totalCount} {t('paymentSetup.alert.completed', 'completado')}
+            </span>
+          </div>
+          <Button
+            size="sm"
+            className="w-full bg-background text-pink-600 hover:bg-background/90 font-medium"
+            onClick={() => setWizardOpen(true)}
+          >
+            {t('paymentSetup.alert.action', 'Ver Checklist')}
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+
+  // Header variant: compact icon trigger + popover. Uses the same gradient on
+  // a 36x36 button so superadmins still recognise it immediately at a glance.
+  if (variant === 'header') {
+    return (
+      <>
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              aria-label={t('paymentSetup.alert.title', 'Configurar Pagos')}
+              className="relative inline-flex h-9 w-9 items-center justify-center rounded-md bg-gradient-to-r from-amber-400 to-pink-500 text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer shadow-sm"
+            >
+              <CreditCard className="h-4 w-4" />
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-[18px] items-center justify-center rounded-full bg-background px-1 text-[10px] font-semibold text-pink-600 shadow-sm border border-pink-300">
+                {completedCount}/{totalCount}
+              </span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-80 p-0 bg-transparent border-0 shadow-none overflow-visible">
+            {cardBody}
+          </PopoverContent>
+        </Popover>
+        <PaymentSetupWizardDialog
+          open={wizardOpen}
+          onOpenChange={setWizardOpen}
+          venueId={venueId}
+          readiness={readiness}
+        />
+      </>
+    )
+  }
+
   return (
     <>
       <div className={`fixed right-4 z-50 w-80 animate-in slide-in-from-bottom-4 ${className || 'bottom-4'}`}>
-        <div className="rounded-lg bg-gradient-to-r from-amber-400 to-pink-500 p-4 text-primary-foreground shadow-lg">
-          <div className="flex items-start gap-3">
-            <div className="p-2 rounded-full bg-background/20 shrink-0">
-              <CreditCard className="h-5 w-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-semibold">{t('paymentSetup.alert.title', 'Configurar Pagos')}</span>
-                <button
-                  onClick={() => setDismissed(true)}
-                  className="p-1 hover:bg-background/20 rounded-full transition-colors -mr-1"
-                  aria-label={tCommon('dismiss')}
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <p className="text-sm text-primary-foreground/90 mb-2">{readiness?.nextAction}</p>
-              <div className="flex items-center gap-1 text-xs text-primary-foreground/80 mb-3">
-                <CheckCircle2 className="h-3 w-3" />
-                <span>
-                  {completedCount}/{totalCount} {t('paymentSetup.alert.completed', 'completado')}
-                </span>
-              </div>
-              <Button
-                size="sm"
-                className="w-full bg-background text-pink-600 hover:bg-background/90 font-medium"
-                onClick={() => setWizardOpen(true)}
-              >
-                {t('paymentSetup.alert.action', 'Ver Checklist')}
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          </div>
-        </div>
+        {cardBody}
       </div>
 
       <PaymentSetupWizardDialog
