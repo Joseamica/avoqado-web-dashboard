@@ -436,7 +436,12 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
       onClose={() => onOpenChange(false)}
       title={mode === 'create' ? t('rawMaterials.add') : t('rawMaterials.edit')}
       actions={
-        <Button onClick={handleSubmit(onSubmit)} disabled={isLoading} className="h-10 px-6">
+        <Button
+          data-tour="ingredient-dialog-save"
+          onClick={handleSubmit(onSubmit)}
+          disabled={isLoading}
+          className="h-10 px-6"
+        >
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {t('save')}
         </Button>
@@ -450,7 +455,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Name */}
-            <div>
+            <div data-tour="ingredient-dialog-name">
               <FieldLabel htmlFor="name" label={t('rawMaterials.fields.name')} required />
               <Input
                 id="name"
@@ -462,7 +467,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
             </div>
 
             {/* SKU */}
-            <div>
+            <div data-tour="ingredient-dialog-sku">
               <FieldLabel htmlFor="sku" label={t('rawMaterials.fields.sku')} required helpKey="rawMaterials.fieldHelp.sku" />
               <div className="flex gap-2">
                 <Input id="sku" {...register('sku', { required: true })} className="h-12 text-base flex-1" placeholder="TOM-001" />
@@ -497,7 +502,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
             </div>
 
             {/* Category */}
-            <div>
+            <div data-tour="ingredient-dialog-category">
               <FieldLabel htmlFor="category" label={t('rawMaterials.fields.category')} required />
               <SearchableSelect
                 options={categoryOptions}
@@ -511,7 +516,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
             </div>
 
             {/* Unit */}
-            <div>
+            <div data-tour="ingredient-dialog-unit">
               <FieldLabel htmlFor="unit" label={t('rawMaterials.fields.unit')} required helpKey="rawMaterials.fieldHelp.unit" />
               <SearchableSelect
                 options={unitOptions}
@@ -541,7 +546,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
         </section>
 
         {/* Stock Levels Section */}
-        <section className="bg-card rounded-2xl border border-border/50 p-6">
+        <section className="bg-card rounded-2xl border border-border/50 p-6" data-tour="ingredient-dialog-stock">
           <SectionHeader icon={BarChart3} title={t('rawMaterials.fields.currentStock')} />
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -722,7 +727,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
             const calculatorActive = parseFloat(purchasePrice) > 0 && parseFloat(purchaseQty) > 0 && !manualCostMode
             const unitAbbr = selectedUnit ? t(`units.${selectedUnit}_abbr`, { defaultValue: selectedUnit?.toLowerCase() }) : ''
             return (
-              <div className="mt-5">
+              <div className="mt-5" data-tour="ingredient-dialog-cost">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <FieldLabel

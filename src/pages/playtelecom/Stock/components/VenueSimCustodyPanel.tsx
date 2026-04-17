@@ -53,7 +53,7 @@ export function VenueSimCustodyPanel({ orgId }: Props) {
     const start = new Date(end)
     start.setDate(start.getDate() - 30)
     return { dateFrom: start.toISOString(), dateTo: end.toISOString() }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional one-shot
+     
   }, [])
   const { data, isLoading, error } = useOrgStockControl(orgId, stockParams)
 

@@ -43,7 +43,9 @@ import { ArrowDown, ArrowUp, ArrowUpDown, Clock, Download, Pencil, Search, Trash
 import { DateTime } from 'luxon'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Sheet, SheetContent } from '@/components/ui/sheet'
+import OrderId from './OrderId'
 
 // Table interface for dropdowns
 interface Table {
@@ -65,6 +67,7 @@ export default function Orders() {
   const { formatTime: _formatTime, formatDate, venueTimezoneShort: _venueTimezoneShort } = useVenueDateTime()
   const location = useLocation()
   const navigate = useNavigate()
+  const { orderId: drawerOrderId } = useParams<{ orderId: string }>()
   const queryClient = useQueryClient()
   const { user, checkFeatureAccess, activeVenue } = useAuth()
   const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
@@ -1472,6 +1475,19 @@ export default function Orders() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Square-style drawer: URL /orders/:orderId opens this Sheet over the list.
+          Reusing <OrderId /> as the drawer body — it already reads :orderId from params. */}
+      <Sheet
+        open={!!drawerOrderId}
+        onOpenChange={open => {
+          if (!open) navigate('..', { relative: 'path' })
+        }}
+      >
+        <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto p-0 [&>button]:z-20">
+          {drawerOrderId && <OrderId />}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

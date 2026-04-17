@@ -807,5 +807,161 @@
     "legendDisabled": "Desactivado",
     "legendInstructor": "Instructor",
     "capacityFromLayout": "Calculado desde el mapa de lugares"
+  },
+  "tour": {
+    "launchButton": "¿Cómo crear un producto?",
+    "next": "Siguiente →",
+    "prev": "← Anterior",
+    "done": "¡Listo!",
+    "progress": "Paso {{current}} de {{total}}",
+    "welcome": {
+      "title": "👋 Vamos a crear tu primer producto",
+      "description": "Te voy a guiar paso a paso. Puedes cerrar el tour en cualquier momento con la tecla ESC."
+    },
+    "step1": {
+      "title": "Nuevo producto",
+      "description": "Haz clic en este botón para empezar. Se abrirá un asistente que te pedirá qué tipo de producto quieres crear."
+    },
+    "step2": {
+      "title": "Elige el tipo de artículo",
+      "description": "Para merch (hoodies, gorras, botellas) usa <b>Artículo Regular</b>. Para bebidas preparadas o comida fresca usa <b>Comida y Bebida</b>."
+    },
+    "step3": {
+      "title": "Escribe el nombre",
+      "description": "Usa un nombre claro y corto. Ejemplo: <b>Hoodie Blanca M</b>. Este nombre lo verá el cliente en el TPV."
+    },
+    "step4": {
+      "title": "Define el precio de venta",
+      "description": "Escribe el precio en pesos. Lo podrás cambiar después si hace falta."
+    },
+    "stepSku": {
+      "title": "SKU (código interno)",
+      "description": "Código único para identificar el producto en reportes. <br/><br/>💡 Puedes dejarlo en blanco y se <b>genera automáticamente</b>. Úsalo solo si ya tienes una nomenclatura propia (ej. <b>HOODIE-BLANCA-M</b>)."
+    },
+    "stepGtin": {
+      "title": "GTIN / Código de barras",
+      "description": "Es el código de barras universal (UPC/EAN) que viene impreso en el producto. <br/><br/>💡 Útil si vas a <b>escanear</b> productos en la venta o el conteo. Opcional — si no vendes con escáner, déjalo vacío."
+    },
+    "step5": {
+      "title": "Asigna una categoría",
+      "description": "Selecciona dónde aparecerá en el menú (ej. <b>Merch</b>, <b>Bebidas</b>, <b>Comida</b>). Si no existe la categoría, créala primero en la sección de <b>Categorías</b>."
+    },
+    "step6": {
+      "title": "Activa el control de inventario",
+      "description": "Al prender este switch, cada venta descontará automáticamente del stock. Te avisará cuando esté por agotarse."
+    },
+    "step7": {
+      "title": "Ingresa el stock actual",
+      "description": "Cuenta las piezas que tienes hoy y ponlas aquí. Ejemplo: <b>15</b> hoodies en bodega."
+    },
+    "step8": {
+      "title": "Guarda el producto",
+      "description": "Haz clic en <b>Finalizar</b>. Tu producto queda listo para venderse desde el TPV."
+    },
+    "complete": {
+      "title": "🎉 ¡Felicidades!",
+      "description": "Ya sabes crear productos. Puedes volver a ver este tour cuando quieras desde el ícono <b>?</b> arriba."
+    },
+    "menuLabel": "Tours interactivos",
+    "productSimple": {
+      "title": "Producto simple",
+      "subtitle": "Merch, botellas, chips empacados"
+    },
+    "productRecipe": {
+      "title": "Producto con receta",
+      "subtitle": "Shakes, lattes, bebidas frescas"
+    },
+    "discoveryBanner": {
+      "title": "🎓 ¿Primera vez configurando tu menú?",
+      "description": "Tenemos tours interactivos paso a paso para crear productos simples y con receta.",
+      "titleCategories": "🎓 ¿Apenas empiezas con tu menú?",
+      "descriptionCategories": "Las categorías son el primer paso. Te guiamos en 1 minuto con un tour interactivo.",
+      "cta": "Ver tour guiado"
+    }
+  },
+  "tourCategory": {
+    "launchButton": "¿Cómo crear una categoría?",
+    "welcome": {
+      "title": "📂 Crear una categoría",
+      "description": "Las categorías sirven para agrupar tus productos en el menú: <b>Merch</b>, <b>Bebidas</b>, <b>Comida</b>, <b>Postres</b>, etc.<br/><br/>⚠️ <b>Importante</b>: todo producto necesita una categoría. Si es tu primer día, crea estas antes que nada."
+    },
+    "step1": {
+      "title": "Botón \"Nueva categoría\"",
+      "description": "Haz clic aquí para abrir el asistente. Vas a llenar un nombre y listo."
+    },
+    "step2": {
+      "title": "Ponle nombre a la categoría",
+      "description": "Usa un nombre claro que la admin o cajera vaya a reconocer. Ejemplos: <b>Merch</b>, <b>Bebidas frías</b>, <b>Comida</b>, <b>Shakes</b>, <b>Postres</b>."
+    },
+    "step3": {
+      "title": "Avanza al siguiente paso",
+      "description": "En los siguientes pasos puedes configurar <b>horarios de disponibilidad</b> (ej. categoría \"Desayuno\" solo antes de las 12 pm) o dejar todo por defecto si siempre está activa."
+    },
+    "complete": {
+      "title": "🎉 ¡Así se hace!",
+      "description": "Al guardar, la categoría queda disponible para asignarse a productos. Te recomendamos crear <b>3-5 categorías</b> primero para tener tu menú organizado.<br/><br/>Siguiente: crea tus <b>Ingredientes</b> o tus <b>Productos</b>."
+    }
+  },
+  "tourRecipe": {
+    "welcome": {
+      "title": "🥤 Crear un producto con receta",
+      "description": "Perfecto para shakes, lattes, bebidas frescas y comida preparada. El sistema descontará automáticamente los ingredientes con cada venta. <br/><br/>⚠️ Necesitas tener al menos un <b>ingrediente</b> creado antes. Si no, crea primero desde <b>Inventario → Ingredientes</b>."
+    },
+    "step1": {
+      "title": "Nuevo producto",
+      "description": "Haz clic aquí. Se abrirá un asistente para elegir el tipo de producto."
+    },
+    "step2": {
+      "title": "Elige \"Comida y Bebida\"",
+      "description": "Para productos preparados al momento (shakes, lattes, sandwiches). Este tipo te permite definir una <b>receta</b> con los ingredientes que consume."
+    },
+    "step3": {
+      "title": "Nombre del producto",
+      "description": "Ejemplo: <b>Latte Chico</b>, <b>Zen Matcha</b>, <b>Sandwich Búfalo</b>. Este nombre es el que verá el cliente en el TPV."
+    },
+    "step4": {
+      "title": "Precio de venta",
+      "description": "Precio al público. Más adelante verás cuál es tu <b>Food Cost %</b> (qué porcentaje del precio son ingredientes)."
+    },
+    "stepSku": {
+      "title": "SKU (código interno)",
+      "description": "Código único para este producto (ej. <b>LATTE-CHICO</b>). <br/><br/>💡 Déjalo vacío y se <b>genera automáticamente</b>. Úsalo solo si tienes tu propio sistema de nomenclatura."
+    },
+    "stepGtin": {
+      "title": "GTIN / Código de barras",
+      "description": "Código de barras universal. Para productos preparados (bebidas, comida) <b>casi siempre se deja vacío</b> — no vienen con código impreso."
+    },
+    "step5": {
+      "title": "Categoría",
+      "description": "Selecciona dónde aparecerá en el menú: <b>Bebidas</b>, <b>Shakes</b>, <b>Comida</b>, etc."
+    },
+    "step6": {
+      "title": "Activa el control de inventario",
+      "description": "Al prender este switch podrás elegir el método de rastreo. Para recetas, cada venta descontará los ingredientes automáticamente."
+    },
+    "step7": {
+      "title": "Elige \"Basado en Recetas\"",
+      "description": "En lugar de contar unidades completas, el sistema rastrea los <b>ingredientes</b>. Al vender 1 Latte Chico se descuentan 120ml de leche + 9g de café, por ejemplo."
+    },
+    "step8": {
+      "title": "Porciones por receta",
+      "description": "Si una receta completa da <b>1 porción</b> (típico para bebidas), deja 1. Si preparas una salsa que rinde para 10 tacos, pon 10. Así el sistema prorratea los ingredientes al vender 1 taco."
+    },
+    "step9": {
+      "title": "Agrega los ingredientes",
+      "description": "Aquí defines qué lleva la receta. Ejemplo: <b>120 ml de Leche de Almendras</b> + <b>9 g de Café Espresso</b>. Cada ingrediente se descuenta automáticamente al vender."
+    },
+    "step10": {
+      "title": "Botón + Agregar ingrediente",
+      "description": "Al hacer clic se abre un diálogo donde eliges el ingrediente (debe existir ya en <b>Inventario → Ingredientes</b>), la cantidad y la unidad. Agrega uno por uno."
+    },
+    "step11": {
+      "title": "Guarda la receta",
+      "description": "Cuando termines de agregar ingredientes, haz clic en <b>Finalizar</b>. El sistema calcula automáticamente el <b>Costo Total</b> y el <b>Food Cost %</b>."
+    },
+    "complete": {
+      "title": "🎉 ¡Listo!",
+      "description": "Ya sabes crear productos basados en recetas. Cada venta descontará los ingredientes automáticamente y te avisaremos cuando alguno baje del mínimo."
+    }
   }
 }

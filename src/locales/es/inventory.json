@@ -1090,5 +1090,197 @@
     "noModifiersTracked": "Sin Modificadores con Seguimiento de Inventario",
     "noModifiersDescription": "Configura el seguimiento de inventario para modificadores para ver análisis de uso e impacto en costos.",
     "configureModifiers": "Configurar Modificadores"
+  },
+  "tour": {
+    "launchButton": "¿Cómo agregar un ingrediente?",
+    "next": "Siguiente →",
+    "prev": "← Anterior",
+    "done": "¡Listo!",
+    "progress": "Paso {{current}} de {{total}}",
+    "discoveryBanner": {
+      "title": "🎓 ¿Primera vez agregando ingredientes?",
+      "description": "Te mostramos paso a paso cómo agregar tu primer ingrediente (leche, café, etc.).",
+      "cta": "Ver tour guiado"
+    }
+  },
+  "tourHistory": {
+    "launchButton": "¿Cómo leer el historial?",
+    "discoveryBanner": {
+      "title": "🎓 ¿Cómo investigar qué pasó con tu inventario?",
+      "description": "El Historial es tu auditoría. Te enseñamos a usar filtros para encontrar cualquier movimiento."
+    },
+    "welcome": {
+      "title": "📜 Historial de movimientos",
+      "description": "Aquí queda <b>registrado cada cambio</b> de tu inventario: ventas, compras, ajustes, mermas, robos, devoluciones.<br/><br/>Es tu <b>auditoría</b>: no se puede editar ni borrar. Si algo no cuadra, aquí encuentras la respuesta."
+    },
+    "step1": {
+      "title": "La tabla",
+      "description": "Cada fila es un movimiento. Las columnas más importantes:<br/><br/>• <b>Fecha</b> · cuándo ocurrió<br/>• <b>Nombre</b> · qué artículo o ingrediente<br/>• <b>Proveedor</b> · si hubo uno involucrado<br/>• <b>Coste total</b> · impacto económico del movimiento<br/>• <b>Ajuste</b> · cuántas unidades se sumaron o restaron<br/><br/>Haz clic en cualquier fila para ver el detalle completo."
+    },
+    "step2": {
+      "title": "Filtros para investigar",
+      "description": "Cuando algo no cuadra, filtra para encontrarlo:<br/><br/>• <b>Fecha</b> · \"¿Qué pasó el martes pasado?\"<br/>• <b>SKU</b> · \"¿Qué le pasó a este producto?\"<br/>• <b>Proveedor</b> · \"¿Qué entró de Lácteos del Valle?\"<br/>• <b>Coste total</b> · movimientos grandes<br/>• <b>Tipo</b> · filtra por clase de movimiento"
+    },
+    "step3": {
+      "title": "Filtro por Tipo — el más útil",
+      "description": "Filtra por <b>tipo de movimiento</b> para detectar patrones:<br/><br/>• Ver solo <b>ventas</b> → confirma que el TPV descontó correcto<br/>• Ver solo <b>ajustes manuales</b> → audita decisiones del equipo<br/>• Ver solo <b>mermas / robos / daños</b> → calcula pérdidas del mes<br/>• Ver solo <b>compras recibidas</b> → contabiliza entradas"
+    },
+    "complete": {
+      "title": "🔍 Usos típicos del historial",
+      "description": "• <b>Al cierre del día</b>: filtro por fecha = hoy. Revisa movimientos sospechosos.<br/>• <b>Al cierre del mes</b>: filtro por fecha + tipo = Pérdida/Daño/Robo. Calcula mermas.<br/>• <b>Discrepancia en conteo</b>: filtro por SKU. Rastrea cada entrada y salida de ese producto.<br/>• <b>Auditoría de equipo</b>: filtro por tipo = Ajuste manual. Revisa quién hizo qué."
+    }
+  },
+  "tourStockAdjustment": {
+    "launchButton": "¿Cómo ajustar existencias?",
+    "discoveryBanner": {
+      "title": "🎓 ¿Cómo ajustar existencias cuando llega mercancía o hay una merma?",
+      "description": "Te guiamos paso a paso — es la operación que más vas a hacer en el día a día."
+    },
+    "welcome": {
+      "title": "📦 Ajustar existencias",
+      "description": "Te enseñamos el flujo del día a día: <b>recibir mercancía</b>, registrar una <b>merma</b>, corregir un <b>robo</b>, o dejar constancia de un <b>conteo físico</b>.<br/><br/>Todo cambio queda registrado en <b>Historial</b> para auditoría."
+    },
+    "step1": {
+      "title": "Haz clic en el número de existencias",
+      "description": "Cada fila de la tabla muestra el stock actual en la columna <b>Existencias físicas</b>. Al dar clic sobre ese número se abre un panel para ajustarlo."
+    },
+    "step2": {
+      "title": "Elige el tipo de movimiento",
+      "description": "Hay 6 tipos. La regla es simple — elige el que describa qué pasó realmente:<br/><br/>• <b>Existencias recibidas</b>: llegó mercancía del proveedor (suma)<br/>• <b>Recuento de inventario</b>: corrige con el conteo físico (ajusta al total)<br/>• <b>Daño</b>: producto roto/inutilizable (resta)<br/>• <b>Robo</b>: faltante por robo/extravío (resta)<br/>• <b>Pérdida</b>: caducidad o desperdicio (resta)<br/>• <b>Devolución</b>: mercancía devuelta al proveedor (resta)"
+    },
+    "step3": {
+      "title": "Ingresa la cantidad",
+      "description": "Para <b>Existencias recibidas</b> o <b>Devolución</b>: la cantidad se suma o resta.<br/>Para <b>Recuento de inventario</b>: escribes el nuevo total después del conteo físico — el sistema calcula la diferencia.<br/><br/>El <b>Nuevo total</b> se calcula automáticamente debajo."
+    },
+    "step4": {
+      "title": "Guarda el ajuste",
+      "description": "Al guardar, el stock se actualiza y queda un <b>registro permanente</b> en <b>Historial</b> con quién hizo el cambio, cuándo y por qué. Este historial es auditable y no se puede borrar."
+    },
+    "complete": {
+      "title": "🎉 ¡Así se ajusta!",
+      "description": "La regla de oro: <b>siempre elige el tipo correcto</b>. Un ajuste mal clasificado hace imposible entender después si fue robo, merma o error. Si tienes dudas usa <b>Recuento de inventario</b>."
+    }
+  },
+  "tourIngredient": {
+    "welcome": {
+      "title": "🥛 Agregar un ingrediente",
+      "description": "Los ingredientes son los insumos que usas en tus recetas: <b>leche</b>, <b>café</b>, <b>matcha</b>, <b>azúcar</b>, <b>popotes</b>. No se venden solos — se consumen al preparar productos. <br/><br/>Cada ingrediente debe crearse antes de usarse en una receta."
+    },
+    "step1": {
+      "title": "Botón \"Agregar Ingrediente\"",
+      "description": "Haz clic aquí para abrir el formulario. Vas a llenar unos pocos datos básicos."
+    },
+    "step2": {
+      "title": "Nombre del ingrediente",
+      "description": "Usa el nombre con el que lo conoces en la cocina. Ejemplo: <b>Leche de Almendras</b>, <b>Café Espresso</b>, <b>Matcha en Polvo</b>."
+    },
+    "step3": {
+      "title": "Código interno (SKU)",
+      "description": "Un código único para identificarlo en reportes. Puedes dejar el que se genera automáticamente o usar uno tuyo (ej. <b>RM-LECHE-ALM</b>)."
+    },
+    "step4": {
+      "title": "Unidad de medida",
+      "description": "La unidad en la que mides este ingrediente. Ejemplos: <b>kg</b> para matcha, <b>litros</b> para leche, <b>piezas</b> para popotes. <br/><br/>⚠️ Elige bien — no se puede cambiar fácilmente después."
+    },
+    "step5": {
+      "title": "Categoría",
+      "description": "Agrupa tus ingredientes para reportes: <b>Lácteos</b>, <b>Proteínas</b>, <b>Bebidas</b>, <b>Especias</b>, etc."
+    },
+    "step6": {
+      "title": "Existencias actuales",
+      "description": "Cuenta cuánto tienes AHORA en la unidad elegida. Ejemplo: si tienes 5 cartones de 1 litro de leche, escribe <b>5</b>. <br/><br/>También define el <b>mínimo</b> (cuándo te avisamos) y el <b>punto de reorden</b> (cuándo hacer pedido)."
+    },
+    "step7": {
+      "title": "Costo por unidad",
+      "description": "Cuánto pagas por cada unidad al proveedor. Ejemplo: <b>$45</b> por litro de leche. Usaremos este dato para calcular el costo de cada producto y tu <b>Food Cost %</b>."
+    },
+    "step8": {
+      "title": "Guarda el ingrediente",
+      "description": "Al guardar, el ingrediente queda disponible para usarse en recetas. Puedes repetir este proceso por cada insumo que manejes."
+    },
+    "complete": {
+      "title": "🎉 ¡Listo!",
+      "description": "Ahora que tienes un ingrediente, puedes ir a <b>Productos</b> y crear una bebida con receta que lo use. Cada venta descontará automáticamente la cantidad que definas en la receta."
+    }
+  },
+  "checklist": {
+    "ariaLabel": "Configuración de inventario",
+    "title": "Configura tu inventario",
+    "progress": "{{done}} de {{total}} pasos",
+    "goAction": "Hacerlo",
+    "markDone": "Ya lo hice",
+    "optional": "Opcional",
+    "dismiss": "Omitir",
+    "footerHint": "Puedes hacer los pasos en cualquier orden.",
+    "allDone": "¡Configuración lista!",
+    "steps": {
+      "category": {
+        "title": "Crea tu primera categoría",
+        "description": "Las categorías agrupan productos en el menú. Sin categoría no puedes crear productos."
+      },
+      "ingredient": {
+        "title": "Crea tu primer ingrediente",
+        "description": "Solo si vas a usar productos con receta (shakes, bebidas). Puedes saltarte este paso si todo es por unidad."
+      },
+      "product": {
+        "title": "Crea tu primer producto",
+        "description": "Elige entre por unidad (hoodies) o por receta (shakes). Necesita una categoría ya creada."
+      },
+      "purchaseOrder": {
+        "title": "Haz tu primera orden de compra",
+        "description": "Le pides mercancía al proveedor. Al recibirla se crean los lotes con costo — esto permite calcular márgenes."
+      },
+      "adjustStock": {
+        "title": "Haz tu primer ajuste de stock",
+        "description": "Aprende la operación más común del día: ajustar existencias por merma, daño o conteo."
+      }
+    }
+  },
+  "tourWelcome": {
+    "launchButton": "Tour completo del inventario (3 min)",
+    "discoveryBanner": {
+      "title": "🎓 ¿Nuevo en Avoqado? Haz el recorrido completo",
+      "description": "Un paseo de 3 minutos por todo el sistema de inventario: categorías, ingredientes, productos, órdenes, existencias e historial."
+    },
+    "welcome": {
+      "title": "🎓 Bienvenido al sistema de inventario",
+      "description": "Este recorrido de <b>3 minutos</b> te enseña el sistema completo. Al final vas a saber:<br/><br/>• Qué hay en cada sección<br/>• Cuándo usar cada una<br/>• Por dónde empezar si es tu primer día<br/><br/><i>Cada sección tiene después su propio tour detallado con el botón <b>\"?\"</b> arriba a la derecha.</i>"
+    },
+    "methods": {
+      "title": "🔀 Las 2 formas de controlar tu inventario",
+      "description": "Cada producto puede controlarse de <b>dos maneras</b>:<br/><br/>📦 <b>Por unidad (QUANTITY)</b>: cuentas piezas enteras.<br/><i>Ejemplo: vendes hoodies o tazas — si vendes 1, tu inventario baja en 1.</i><br/><br/>🥣 <b>Por receta (RECIPE)</b>: el producto se hace con ingredientes.<br/><i>Ejemplo: un shake de proteína usa 120 ml de leche + 30 g de proteína. Al vender, se descuentan los ingredientes, no el shake.</i><br/><br/>⚠️ <b>Elige bien</b>: cambiar de método después es lioso."
+    },
+    "categories": {
+      "title": "📂 Paso 1 — Categorías",
+      "description": "Todo producto necesita una <b>categoría</b>. Es el primer paso si estás arrancando de cero.<br/><br/>Ejemplos: <b>Bebidas</b>, <b>Comida</b>, <b>Postres</b>, <b>Merch</b>, <b>Shakes</b>.<br/><br/>Te recomendamos crear <b>3-5 categorías</b> antes de crear productos."
+    },
+    "ingredients": {
+      "title": "🥣 Paso 2 — Ingredientes (opcional)",
+      "description": "Los <b>ingredientes</b> (raw materials) son los insumos crudos que alimentan tus recetas.<br/><br/><i>Ejemplos: leche, café en grano, proteína, hielo, vaso 12 oz, popote.</i><br/><br/>⚠️ <b>Solo los necesitas si vas a usar el método de RECETA.</b> Si todos tus productos son por unidad (hoodies, tazas), puedes saltarte este paso."
+    },
+    "products": {
+      "title": "📦 Paso 3 — Productos",
+      "description": "Los <b>productos</b> son lo que realmente vendes al cliente. Aquí eliges el método:<br/><br/>• <b>QUANTITY</b>: \"Hoodie Negro M\" — stock inicial 20 piezas.<br/>• <b>RECIPE</b>: \"Shake de Chocolate\" — receta de 120ml leche + 30g proteína.<br/><br/>Cada producto se asigna a una <b>categoría</b> (Paso 1) y opcionalmente tiene <b>SKU</b> y <b>código de barras (GTIN)</b>."
+    },
+    "purchaseOrders": {
+      "title": "🛒 Paso 4 — Órdenes de compra",
+      "description": "Las <b>órdenes de compra</b> son cómo le pides mercancía al proveedor. Al recibirlas, el sistema crea <b>lotes</b> con costo y caducidad.<br/><br/>💡 <b>Clave</b>: Sin órdenes de compra, tus productos con <b>receta</b> no saben cuánto cuestan — el margen queda incorrecto.<br/><br/>Para productos por unidad (QUANTITY), las órdenes de compra son <b>opcionales</b> pero recomendables para llevar el costo."
+    },
+    "stockSummary": {
+      "title": "📊 Paso 5 — Resumen de Existencias",
+      "description": "Tu panel de control diario. Muestra:<br/><br/>• <b>Existencias actuales</b> de cada producto/ingrediente<br/>• <b>Alertas</b> de stock bajo<br/>• <b>Ajustes manuales</b> (merma, daño, robo, recuento)<br/><br/>Desde aquí haces el día a día: <i>\"llegó un pedido, corrige esto\"</i>, <i>\"se rompieron 2 cajas\"</i>, <i>\"hicimos conteo físico\"</i>."
+    },
+    "history": {
+      "title": "📋 Paso 6 — Historial",
+      "description": "Cada movimiento queda registrado para siempre: ventas, ajustes, órdenes recibidas. Es tu <b>auditoría</b>.<br/><br/>Útil cuando un inventario \"no cuadra\" y necesitas investigar qué pasó: <i>quién, cuándo, qué hizo y por qué</i>.<br/><br/>⚠️ <b>El historial nunca se borra</b>. Si algo se registró mal, se corrige con un <b>ajuste nuevo</b>, no borrando."
+    },
+    "flow": {
+      "title": "🔄 El flujo completo",
+      "description": "Así es como todo se conecta:<br/><br/>1️⃣ Creas <b>Categorías</b><br/>⬇️<br/>2️⃣ (Si usas receta) creas <b>Ingredientes</b><br/>⬇️<br/>3️⃣ Creas <b>Productos</b> (eligiendo QUANTITY o RECIPE)<br/>⬇️<br/>4️⃣ Levantas <b>Órdenes de compra</b> y las recibes → se crean <b>lotes</b> con costo<br/>⬇️<br/>5️⃣ Vendes en <b>TPV</b> → el stock baja automáticamente (unidad o receta)<br/>⬇️<br/>6️⃣ Ajustas manualmente merma/daño en <b>Resumen de Existencias</b><br/>⬇️<br/>7️⃣ Todo queda en <b>Historial</b>"
+    },
+    "complete": {
+      "title": "🎉 ¡Ya conoces el sistema!",
+      "description": "Para arrancar, sigue este orden:<br/><br/>✅ <b>Categorías</b> → crea 3-5<br/>✅ <b>Ingredientes</b> (solo si usas recetas)<br/>✅ <b>Productos</b> → 5-10 para empezar<br/>✅ <b>Orden de compra</b> → recibe mercancía inicial<br/>✅ <b>Venta de prueba</b> → verifica que el stock baje correcto<br/><br/>En cada sección verás el botón <b>\"?\"</b> con el tour detallado. Si te pierdes, regresa aquí y vuelve a abrir este recorrido.<br/><br/>¡Éxito!"
+    }
   }
 }

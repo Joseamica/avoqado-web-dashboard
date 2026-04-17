@@ -503,6 +503,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
               onClick={() => handleSubmit(true)}
               disabled={createMutation.isPending}
               className="rounded-full"
+              data-tour="po-wizard-save-draft"
             >
               {t('wizard.saveDraft')}
             </Button>
@@ -512,6 +513,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
             onClick={() => handleSubmit(false)}
             disabled={createMutation.isPending || updateMutation.isPending}
             className="rounded-full"
+            data-tour="po-wizard-submit"
           >
             {(createMutation.isPending || updateMutation.isPending) && (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -687,7 +689,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
 
               <div className="divide-y divide-border/50">
                 {/* Nombre de proveedor */}
-                <div className="grid grid-cols-[200px_1fr]">
+                <div className="grid grid-cols-[200px_1fr]" data-tour="po-wizard-supplier">
                   <div className="bg-muted/30 px-4 py-3 font-medium text-sm">
                     Nombre de proveedor
                   </div>
@@ -912,7 +914,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
             />
 
             {/* Items Section */}
-            <div className="space-y-4">
+            <div className="space-y-4" data-tour="po-wizard-items">
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-base font-semibold">{t('wizard.addItems')}</Label>
@@ -922,7 +924,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                     </p>
                   )}
                 </div>
-                <Button type="button" variant="outline" size="sm" onClick={handleAddItem}>
+                <Button type="button" variant="outline" size="sm" onClick={handleAddItem} data-tour="po-wizard-add-item">
                   <Plus className="h-4 w-4 mr-2" />
                   {t('wizard.addItem')}
                 </Button>
@@ -1056,7 +1058,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                 </Table>
               </div>
 
-              <div className="flex justify-end space-y-2">
+              <div className="flex justify-end space-y-2" data-tour="po-wizard-totals">
                 <div className="w-80 space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">{t('wizard.subtotal')}</span>

@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { toast } from '@/hooks/use-toast'
-import { useOrgStaffByRole } from '@/hooks/use-org-staff-by-role'
+import { useOrgPromoters } from '@/hooks/use-org-staff-by-role'
 import { assignSimsToPromoter, type BulkResponse } from '@/services/simCustody.service'
 
 interface Props {
@@ -23,7 +23,7 @@ interface Props {
 
 export function AssignToPromoterDialog({ open, onOpenChange, orgId, serialNumbers }: Props) {
   const [promoterStaffId, setPromoterStaffId] = useState<string>('')
-  const promoters = useOrgStaffByRole(orgId, 'WAITER')
+  const promoters = useOrgPromoters(orgId)
   const queryClient = useQueryClient()
 
   const mutation = useMutation<BulkResponse, Error, void>({

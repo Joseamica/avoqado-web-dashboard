@@ -45,7 +45,9 @@ import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown, Banknote, Bitcoin, Download, Pencil, RotateCcw, Search, Trash2, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { PaymentDrawerContent } from './PaymentDrawerContent'
 
 export default function Payments() {
   const { t } = useTranslation('payment')
@@ -58,6 +60,8 @@ export default function Payments() {
   const hasChatbot = checkFeatureAccess('CHATBOT')
   const { formatDate } = useVenueDateTime()
   const location = useLocation()
+  const navigate = useNavigate()
+  const { paymentId: drawerPaymentId } = useParams<{ paymentId: string }>()
   const queryClient = useQueryClient()
   const [pagination, setPagination] = useState({
     pageIndex: 0,
@@ -533,7 +537,7 @@ export default function Payments() {
         accessorKey: 'createdAt',
         meta: { label: t('columns.date') },
         header: t('columns.date'),
-        cell: ({ cell }) => {
+        cell: ({ cell, row }) => {
           const value = cell.getValue() as string
           // Format as "13 ene 14:30" - day, month abbrev, 24-hour time (no year, no AM/PM)
           const dateObj = new Date(value)
@@ -541,10 +545,24 @@ export default function Payments() {
           const month = dateObj.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '')
           const hours = dateObj.getHours().toString().padStart(2, '0')
           const minutes = dateObj.getMinutes().toString().padStart(2, '0')
+          // Legacy QR payments are merged from the old avo-pwa system.
+          // Backend sets `isLegacyQR: true` on every mapped row. Show a pill
+          // so operators can distinguish legacy QR from regular payments.
+          const isLegacyQR = (row.original as any)?.isLegacyQR === true
           return (
-            <span className="text-sm text-muted-foreground dark:text-foreground whitespace-nowrap">
-              {day} {month} {hours}:{minutes}
-            </span>
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <span className="text-sm text-muted-foreground dark:text-foreground">
+                {day} {month} {hours}:{minutes}
+              </span>
+              {isLegacyQR && (
+                <span
+                  title="Pago realizado con QR desde el sistema anterior de Avoqado"
+                  className="inline-flex items-center rounded-md border border-purple-300 bg-purple-50 px-1.5 py-0.5 text-[10px] font-medium text-purple-700 dark:border-purple-700/60 dark:bg-purple-900/30 dark:text-purple-300"
+                >
+                  QR
+                </span>
+              )}
+            </div>
           )
         },
       },
@@ -1519,6 +1537,24 @@ export default function Payments() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Square-style drawer: URL /payments/:paymentId opens this Sheet over the list. */}
+      <Sheet
+        open={!!drawerPaymentId}
+        onOpenChange={open => {
+          if (!open) navigate('..', { relative: 'path' })
+        }}
+      >
+        <SheetContent side="right" className="w-full sm:max-w-lg p-0 [&>button]:hidden">
+          {drawerPaymentId && (
+            <PaymentDrawerContent
+              paymentId={drawerPaymentId}
+              venueTimezone={venueTimezone}
+              onClose={() => navigate('..', { relative: 'path' })}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

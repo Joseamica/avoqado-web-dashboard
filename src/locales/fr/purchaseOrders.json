@@ -48,6 +48,7 @@
   "statuses": {
     "DRAFT": "Brouillon",
     "PENDING_APPROVAL": "En Attente d'Approbation",
+    "REJECTED": "Rejeté",
     "APPROVED": "Approuvé",
     "SENT": "Envoyé",
     "CONFIRMED": "Confirmé",
@@ -213,5 +214,53 @@
     "receiveError": "Erreur lors de la réception de la commande",
     "cancelSuccess": "Commande annulée avec succès",
     "cancelError": "Erreur lors de l'annulation de la commande"
+  },
+  "tour": {
+    "next": "Suivant →",
+    "prev": "← Précédent",
+    "done": "Terminé !",
+    "progress": "Étape {{current}} sur {{total}}",
+    "discoveryBanner": {
+      "cta": "Voir le tutoriel"
+    }
+  },
+  "tourPurchaseOrder": {
+    "launchButton": "Comment créer une commande ?",
+    "discoveryBanner": {
+      "title": "🎓 Comment commander chez un fournisseur ?",
+      "description": "Les bons de commande alimentent votre inventaire et le coût réel de chaque recette. Nous vous guidons pas à pas."
+    },
+    "welcome": {
+      "title": "📦 Créer un bon de commande",
+      "description": "Les bons de commande sont votre moyen de <b>demander des marchandises à vos fournisseurs</b>. À la réception, le système crée des <b>lots</b> avec coût et date de péremption.<br/><br/>Sans bons de commande, le <b>coût de vos recettes</b> reste à zéro."
+    },
+    "step1": {
+      "title": "Bouton « Créer une commande »",
+      "description": "C'est ici que vous ouvrez l'assistant. Le bouton <b>Suivant</b> l'ouvre pour vous."
+    },
+    "step2": {
+      "title": "Choisissez le fournisseur",
+      "description": "Chaque commande a besoin d'un fournisseur. Si vous ne l'avez pas encore enregistré, tapez son nom et cliquez sur <b>Créer</b>."
+    },
+    "step3": {
+      "title": "Ajoutez les articles",
+      "description": "Chaque ligne est un <b>ingrédient</b> (matière première) que vous commandez. Il doit déjà exister dans votre catalogue d'Ingrédients — sinon, créez-le d'abord."
+    },
+    "step4": {
+      "title": "Bouton « Ajouter un article »",
+      "description": "Utilisez-le autant de fois que nécessaire. Il est normal d'avoir 5 à 15 lignes dans une commande hebdomadaire."
+    },
+    "step5": {
+      "title": "Sous-total, TVA et total",
+      "description": "La <b>TVA</b> est optionnelle — activez <i>« Ajouter une taxe »</i> si votre fournisseur la facture. Pourcentage (20 %) ou montant fixe."
+    },
+    "step6": {
+      "title": "Enregistrer ou soumettre",
+      "description": "<b>Enregistrer comme brouillon</b> : la commande est prête mais pas encore approuvée.<br/><b>Créer la commande</b> : l'envoie au flux d'approbation.<br/><br/>⚠️ <b>L'inventaire se met à jour à la réception</b>, pas à la création."
+    },
+    "complete": {
+      "title": "🎉 Vous savez commander !",
+      "description": "Le cycle : <b>Créer</b> → envoyer au fournisseur → <b>Réceptionner</b> → les lots sont créés avec leur coût → vos recettes connaissent le vrai coût."
+    }
   }
 }

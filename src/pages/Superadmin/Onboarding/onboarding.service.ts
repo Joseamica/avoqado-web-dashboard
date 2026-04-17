@@ -2,10 +2,29 @@ import api from '@/api'
 import type { WizardState, WizardResponse, OrgPaymentStatus, MerchantAccountOption, OrganizationOption } from './onboarding.types'
 
 export async function createVenueWizard(state: WizardState): Promise<WizardResponse> {
+  // The onboarding.controller.ts stores pricing rates directly via
+  // `new Prisma.Decimal(payload.pricing.debitRate)` without any percent→decimal
+  // conversion. The UI collects rates in PERCENT form (e.g. "2.5" for 2.5%),
+  // so we must convert to decimal (0.025) on the client before sending,
+  // otherwise the DB would end up with values like 2.5 (= 250%).
+  // Fee fields (fixedFeePerTransaction, monthlyServiceFee) are absolute money
+  // amounts, not percentages — they pass through unchanged.
+  const toDecimal = (v: number | undefined | null) =>
+    typeof v === 'number' && !isNaN(v) ? v / 100 : v
+  const pricingPayload = state.pricing
+    ? {
+        ...state.pricing,
+        debitRate: toDecimal(state.pricing.debitRate) as number,
+        creditRate: toDecimal(state.pricing.creditRate) as number,
+        amexRate: toDecimal(state.pricing.amexRate) as number,
+        internationalRate: toDecimal(state.pricing.internationalRate) as number,
+      }
+    : state.pricing
+
   const payload = {
     organization: state.organization,
     venue: state.venue,
-    pricing: state.pricing,
+    pricing: pricingPayload,
     terminal: state.terminal || undefined,
     settlement: state.settlement,
     team: state.team.owner.email ? state.team : undefined,

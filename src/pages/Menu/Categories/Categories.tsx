@@ -16,8 +16,10 @@ import { MenuCategory } from '@/types'
 import { PermissionGate } from '@/components/PermissionGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { CategoryWizardDialog } from './components/CategoryWizardDialog'
-import { Sparkles } from 'lucide-react'
+import { Sparkles, HelpCircle } from 'lucide-react'
 import { useMenuMakerHeader } from '../MenuMakerLayout'
+import { useCategoryCreationTour } from '@/hooks/useCategoryCreationTour'
+import { TourDiscoveryBanner } from '@/components/onboarding/TourDiscoveryBanner'
 
 export default function Categories() {
   const { t } = useTranslation('menu')
@@ -27,6 +29,7 @@ export default function Categories() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const [wizardOpen, setWizardOpen] = useState(false)
+  const { start: startCategoryTour } = useCategoryCreationTour()
 
   // Push header into MenuMakerLayout (title + actions appear above tabs)
   const { setHeader } = useMenuMakerHeader()
@@ -42,16 +45,29 @@ export default function Categories() {
         />
       ),
       actions: (
-        <PermissionGate permission="menu:create">
-          <Button onClick={() => setWizardOpen(true)}>
-            <Sparkles className="mr-2 h-4 w-4" />
-            <span>{t('categories.newCategory')}</span>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={startCategoryTour}
+            className="gap-1.5"
+          >
+            <HelpCircle className="h-4 w-4" />
+            <span className="hidden sm:inline">
+              {t('tourCategory.launchButton', { defaultValue: '¿Cómo crear una categoría?' })}
+            </span>
           </Button>
-        </PermissionGate>
+          <PermissionGate permission="menu:create">
+            <Button data-tour="category-new-btn" onClick={() => setWizardOpen(true)}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              <span>{t('categories.newCategory')}</span>
+            </Button>
+          </PermissionGate>
+        </div>
       ),
     })
     return () => setHeader({})
-  }, [t, setHeader])
+  }, [t, setHeader, startCategoryTour])
 
   const { data: categories, isLoading } = useQuery({
     queryKey: ['categories', venueId],
@@ -177,6 +193,20 @@ export default function Categories() {
 
   return (
     <div className="p-4">
+      {/* Discovery banner for first-time admins — dismissable */}
+      <TourDiscoveryBanner
+        storageKey="menu-categories"
+        className="mb-4"
+        title={t('tour.discoveryBanner.titleCategories', {
+          defaultValue: '🎓 ¿Apenas empiezas con tu menú?',
+        })}
+        description={t('tour.discoveryBanner.descriptionCategories', {
+          defaultValue:
+            'Las categorías son el primer paso. Te guiamos en 1 minuto con un tour interactivo.',
+        })}
+        ctaLabel={t('tour.discoveryBanner.cta', { defaultValue: 'Ver tour guiado' })}
+        onStart={startCategoryTour}
+      />
 
       <DataTable
         data={categories || []}

@@ -35,6 +35,7 @@ Agent roles for multi-agent workflows. Each role defines scope, context to load,
 - `docs/guides/DESIGN_SYSTEM_GUIDE.md` — GlassCard, StatusPulse, MetricCard, Bento grid
 - `docs/guides/ui-patterns.md` — icon selections, horizontal nav
 - `docs/features/theme.md` — semantic color tokens
+- `docs/guides/onboarding-tours.md` — interactive `driver.js` tours
 
 **Focus**:
 - Follow mandatory UI patterns: pill tabs, Stripe filters, expandable search, FullScreenModal
@@ -42,6 +43,7 @@ Agent roles for multi-agent workflows. Each role defines scope, context to load,
 - Cursor pointer on all icon buttons (especially in Tooltip wrappers)
 - Clickable selection rows: entire row clickable, not just checkbox
 - All colors must be theme-aware (no hardcoded grays)
+- **Interactive tours (`driver.js`)**: every new primary CTA, every new wizard field, every new form section MUST get a stable `data-tour="<key>"` attribute so an onboarding tour can target it. Key convention: `kebab-case`, scoped (e.g. `product-wizard-name`, `order-payment-submit`). Never couple tours to CSS classes or IDs. See `docs/guides/onboarding-tours.md`.
 
 ---
 

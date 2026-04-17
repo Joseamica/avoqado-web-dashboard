@@ -48,6 +48,7 @@
   "statuses": {
     "DRAFT": "Draft",
     "PENDING_APPROVAL": "Pending Approval",
+    "REJECTED": "Rejected",
     "APPROVED": "Approved",
     "SENT": "Sent",
     "CONFIRMED": "Confirmed",
@@ -287,5 +288,53 @@
   "common": {
     "cancel": "Cancel",
     "close": "Close"
+  },
+  "tour": {
+    "next": "Next →",
+    "prev": "← Back",
+    "done": "Done!",
+    "progress": "Step {{current}} of {{total}}",
+    "discoveryBanner": {
+      "cta": "Start guided tour"
+    }
+  },
+  "tourPurchaseOrder": {
+    "launchButton": "How to create an order?",
+    "discoveryBanner": {
+      "title": "🎓 How do I order stock from a supplier?",
+      "description": "Purchase orders feed your inventory and the real cost of every recipe. We'll walk you through it step by step."
+    },
+    "welcome": {
+      "title": "📦 Create a purchase order",
+      "description": "Purchase orders are how you <b>request goods from your suppliers</b>. When you receive them, the system creates <b>batches</b> with cost and expiry — that's what lets recipes like a shake know what they actually cost.<br/><br/>Without purchase orders, your <b>recipe cost</b> stays at zero."
+    },
+    "step1": {
+      "title": "\"Create order\" button",
+      "description": "This is where you open the wizard. Hitting <b>Next</b> opens it for you."
+    },
+    "step2": {
+      "title": "Pick the supplier",
+      "description": "Every order needs a supplier. If you don't have it on file, type the name and press <b>Create</b> — it's saved inline without leaving the wizard.<br/><br/>Example: <b>Sysco</b>, <b>Local Dairy</b>, <b>Produce Vendor</b>."
+    },
+    "step3": {
+      "title": "Add the line items",
+      "description": "Each row is an <b>ingredient</b> (raw material) you're asking the supplier for. It must already exist in your Ingredients catalog — if not, create it first.<br/><br/>Enter the <b>quantity</b> and <b>unit price</b>. The subtotal calculates on its own."
+    },
+    "step4": {
+      "title": "\"Add item\" button",
+      "description": "If you need multiple ingredients on the same order, use it as many times as needed. It's normal to have 5-15 lines on a weekly order."
+    },
+    "step5": {
+      "title": "Subtotal, tax, and total",
+      "description": "<b>Tax</b> is optional — turn on <i>\"Add tax\"</i> if your supplier invoices it to you. Can be percentage (16%) or flat. The <b>total</b> is what you'll actually pay."
+    },
+    "step6": {
+      "title": "Save or submit",
+      "description": "<b>Save as draft</b>: the order is ready but not yet approved.<br/><b>Create order</b>: sends it to the approval flow (if applicable) or makes it ready to send to the supplier.<br/><br/>⚠️ <b>Inventory updates on receive</b>, not on creation."
+    },
+    "complete": {
+      "title": "🎉 You know how to order stock!",
+      "description": "Remember the cycle: <b>Create order</b> → send to supplier → <b>Receive</b> (button on the order detail) → batches are created with cost → your recipes now know the real cost.<br/><br/>Every received order lands in <b>History</b> for audit."
+    }
   }
 }
