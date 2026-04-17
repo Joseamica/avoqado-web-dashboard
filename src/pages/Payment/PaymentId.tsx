@@ -1,3 +1,11 @@
+/**
+ * @deprecated The full-page payment detail route (`/payments/:paymentId`) was
+ * replaced by the Square-style drawer at `PaymentDrawer.tsx`, which is mounted
+ * as a nested child route over the Payments list. This component is still
+ * rendered *inside* the drawer, but is no longer wired as a standalone page.
+ *
+ * Kept intentionally in case we want to re-enable the full-page view later.
+ */
 import api from '@/api'
 import { DateTime } from 'luxon'
 import { Input } from '@/components/ui/input'

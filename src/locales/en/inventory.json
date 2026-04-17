@@ -1203,6 +1203,39 @@
       "description": "Now that you have an ingredient, you can go to <b>Products</b> and create a recipe-based drink that uses it. Each sale will automatically deduct the quantity defined in the recipe."
     }
   },
+  "checklist": {
+    "ariaLabel": "Inventory setup",
+    "title": "Set up your inventory",
+    "progress": "{{done}} of {{total}} steps",
+    "goAction": "Do it",
+    "markDone": "Already done",
+    "optional": "Optional",
+    "dismiss": "Dismiss",
+    "footerHint": "You can do the steps in any order.",
+    "allDone": "Setup complete!",
+    "steps": {
+      "category": {
+        "title": "Create your first category",
+        "description": "Categories group products in the menu. You can't create products without a category."
+      },
+      "ingredient": {
+        "title": "Create your first ingredient",
+        "description": "Only if you'll use recipe-based products (shakes, drinks). Skip it if everything is per unit."
+      },
+      "product": {
+        "title": "Create your first product",
+        "description": "Pick between per-unit (hoodies) or per-recipe (shakes). Needs a category already created."
+      },
+      "purchaseOrder": {
+        "title": "Place your first purchase order",
+        "description": "Request goods from a supplier. On receipt, batches with cost are created — this enables margin tracking."
+      },
+      "adjustStock": {
+        "title": "Make your first stock adjustment",
+        "description": "Learn the most common daily operation: adjusting stock for damage, loss, or physical count."
+      }
+    }
+  },
   "tourWelcome": {
     "launchButton": "Full inventory tour (3 min)",
     "discoveryBanner": {

@@ -1,16 +1,15 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { GraduationCap, X } from 'lucide-react'
-import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
+import { useOnboardingKey } from '@/hooks/useOnboardingState'
 import { cn } from '@/lib/utils'
 
 interface TourDiscoveryBannerProps {
   /**
-   * Unique identifier for this banner.
-   * Used to persist dismissal state in localStorage.
-   * Example: 'inventory-ingredients', 'menu-products'.
-   * Keep it stable — if you change the key, the user will see the banner again.
+   * Unique identifier for this banner. Persisted on the backend under
+   * `tour-banner::<storageKey>`, scoped per venue and staff.
+   * Example: `inventory-ingredients`, `menu-products`. Keep it stable — if
+   * you change the key, users will see the banner again.
    */
   storageKey: string
   title: ReactNode
@@ -28,13 +27,9 @@ interface TourDiscoveryBannerProps {
 /**
  * Dismissable discovery banner that surfaces onboarding tours.
  *
- * Persistence is scoped per venue AND per user via localStorage so:
- *   - The same admin won't see the banner again on the same venue.
- *   - Different users on the same venue can each see it once.
- *   - Same user on different venues sees it per venue.
- *
- * TODO(post-MVP): move dismissal to a backend `StaffOnboardingState` table so it
- * persists across devices and clearing browser storage doesn't reset it.
+ * Dismissal state is persisted on the backend via `StaffOnboardingState`,
+ * scoped per staff + venue. Progress syncs across devices and survives
+ * cache clears.
  */
 export function TourDiscoveryBanner({
   storageKey,
@@ -44,33 +39,13 @@ export function TourDiscoveryBanner({
   onStart,
   className,
 }: TourDiscoveryBannerProps) {
-  const { venueId } = useCurrentVenue()
-  const { user } = useAuth()
-  const userId = user?.id ?? 'anon'
-  const key = `tour-banner-dismissed::${venueId ?? 'no-venue'}::${userId}::${storageKey}`
+  const { value: dismissed, isLoaded, setValue: setDismissed } = useOnboardingKey<boolean>(
+    `tour-banner::${storageKey}`,
+    false,
+  )
 
-  // Default to dismissed=true so we don't flash the banner before hydrating.
-  const [dismissed, setDismissed] = useState(true)
-
-  useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(key)
-      setDismissed(stored === '1')
-    } catch {
-      setDismissed(false)
-    }
-  }, [key])
-
-  const handleDismiss = () => {
-    setDismissed(true)
-    try {
-      window.localStorage.setItem(key, '1')
-    } catch {
-      /* storage quota or private mode — ignore */
-    }
-  }
-
-  if (dismissed) return null
+  // Don't paint until we know whether it was dismissed — avoids a flash on reload.
+  if (!isLoaded || dismissed) return null
 
   return (
     <div
@@ -88,19 +63,14 @@ export function TourDiscoveryBanner({
         <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <Button
-          size="sm"
-          onClick={() => {
-            onStart()
-          }}
-        >
+        <Button size="sm" onClick={onStart}>
           {ctaLabel ?? 'Ver tour guiado'}
         </Button>
         <Button
           variant="ghost"
           size="icon"
           aria-label="Cerrar"
-          onClick={handleDismiss}
+          onClick={() => setDismissed(true)}
           className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
         >
           <X className="h-4 w-4" />

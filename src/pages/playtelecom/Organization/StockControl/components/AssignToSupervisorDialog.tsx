@@ -23,7 +23,7 @@ import {
   assignSimsToSupervisor,
   type BulkResponse,
 } from '@/services/simCustody.service'
-import { useOrgStaffByRole } from '@/hooks/use-org-staff-by-role'
+import { useOrgStaffByRole, useOrgPromoters } from '@/hooks/use-org-staff-by-role'
 import { getItemCategories } from '@/services/stockDashboard.service'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useAccess } from '@/hooks/use-access'
@@ -81,7 +81,7 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
   const availableItems = useMemo(() => stockData?.items ?? [], [stockData?.items])
 
   const supervisors = useOrgStaffByRole(orgId, 'MANAGER')
-  const promoters = useOrgStaffByRole(orgId, 'WAITER')
+  const promoters = useOrgPromoters(orgId)
 
   // Categories used as the optional Buscar filter only.
   const { data: categoriesData } = useQuery({

@@ -1203,6 +1203,39 @@
       "description": "Ahora que tienes un ingrediente, puedes ir a <b>Productos</b> y crear una bebida con receta que lo use. Cada venta descontará automáticamente la cantidad que definas en la receta."
     }
   },
+  "checklist": {
+    "ariaLabel": "Configuración de inventario",
+    "title": "Configura tu inventario",
+    "progress": "{{done}} de {{total}} pasos",
+    "goAction": "Hacerlo",
+    "markDone": "Ya lo hice",
+    "optional": "Opcional",
+    "dismiss": "Omitir",
+    "footerHint": "Puedes hacer los pasos en cualquier orden.",
+    "allDone": "¡Configuración lista!",
+    "steps": {
+      "category": {
+        "title": "Crea tu primera categoría",
+        "description": "Las categorías agrupan productos en el menú. Sin categoría no puedes crear productos."
+      },
+      "ingredient": {
+        "title": "Crea tu primer ingrediente",
+        "description": "Solo si vas a usar productos con receta (shakes, bebidas). Puedes saltarte este paso si todo es por unidad."
+      },
+      "product": {
+        "title": "Crea tu primer producto",
+        "description": "Elige entre por unidad (hoodies) o por receta (shakes). Necesita una categoría ya creada."
+      },
+      "purchaseOrder": {
+        "title": "Haz tu primera orden de compra",
+        "description": "Le pides mercancía al proveedor. Al recibirla se crean los lotes con costo — esto permite calcular márgenes."
+      },
+      "adjustStock": {
+        "title": "Haz tu primer ajuste de stock",
+        "description": "Aprende la operación más común del día: ajustar existencias por merma, daño o conteo."
+      }
+    }
+  },
   "tourWelcome": {
     "launchButton": "Tour completo del inventario (3 min)",
     "discoveryBanner": {

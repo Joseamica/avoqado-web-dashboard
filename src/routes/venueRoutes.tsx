@@ -177,6 +177,9 @@ export function createVenueRoutes(): RouteObject[] {
     },
 
     // Payments (requires payments:read permission + KYC verification)
+    // Both /payments and /payments/:paymentId render the same <Payments /> component.
+    // When :paymentId is present the component opens an inline drawer over its list
+    // (Square-style). The full-page <PaymentId /> is kept @deprecated.
     {
       element: <PermissionProtectedRoute permission="payments:read" />,
       children: [
@@ -184,13 +187,16 @@ export function createVenueRoutes(): RouteObject[] {
           element: <KYCProtectedRoute />,
           children: [
             { path: 'payments', element: <Payments /> },
-            { path: 'payments/:paymentId', element: <PaymentId /> },
+            { path: 'payments/:paymentId', element: <Payments /> },
           ],
         },
       ],
     },
 
     // Orders (requires orders:read permission + KYC verification)
+    // Both /orders and /orders/:orderId render the same <Orders /> component.
+    // When :orderId is present the component opens an inline drawer over its list
+    // (Square-style). The full-page <OrderId /> is kept @deprecated.
     {
       element: <PermissionProtectedRoute permission="orders:read" />,
       children: [
@@ -198,7 +204,7 @@ export function createVenueRoutes(): RouteObject[] {
           element: <KYCProtectedRoute />,
           children: [
             { path: 'orders', element: <Orders /> },
-            { path: 'orders/:orderId', element: <OrderId /> },
+            { path: 'orders/:orderId', element: <Orders /> },
           ],
         },
       ],
