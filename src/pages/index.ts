@@ -30,7 +30,6 @@ export { default as ShiftId } from '@/pages/Shift/ShiftId'
 
 // Bill
 export { default as Orders } from './Order/Orders'
-export { default as OrderId } from './Order/OrderId'
 
 // Admin
 export { default as AdminDashboard } from '@/pages/Admin/DEPRECATEDAdminDashboard'

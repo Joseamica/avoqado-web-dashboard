@@ -170,6 +170,24 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
   const primaryReceipt = receipts[0]
   const receiptLabel = primaryReceipt?.accessKey?.slice(-4)
 
+  // Merchant account — `displayName` or `externalMerchantId` for cards,
+  // `null` for cash / non-card methods (backend never attaches a merchant
+  // account to them), so fall back to a dash instead of showing "N/A".
+  const merchantAccount = payment.merchantAccount
+  const merchantAccountLabel = merchantAccount
+    ? merchantAccount.displayName || merchantAccount.externalMerchantId || '-'
+    : '-'
+  const merchantAccountBank = merchantAccount?.bankName || null
+
+  // Method label + card detail suffix (e.g. "Tarjeta de crédito · VISA 4242").
+  // Keeps the top metadata row compact while still surfacing the identifying
+  // digits an operator needs to match a physical receipt.
+  const cardBrand = payment.cardBrand || payment.processorData?.cardBrand || null
+  const last4Raw = payment.last4 || payment.processorData?.last4 || payment.processorData?.maskedPan || ''
+  const last4Digits = last4Raw ? String(last4Raw).replace(/\D/g, '').slice(-4) : ''
+  const methodSuffix = [cardBrand, last4Digits].filter(Boolean).join(' ')
+  const methodDisplay = methodSuffix ? `${methodLabel} · ${methodSuffix}` : methodLabel
+
   // Refund calculations
   const refundedTotal = refunds.reduce((sum, r) => sum + Math.abs(Number(r.amount) || 0), 0)
   const remainingRefundable = Math.max(0, total - refundedTotal)
@@ -303,6 +321,11 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
 
           <div className="space-y-1.5 text-sm text-muted-foreground">
             <InfoLine label={t('detail.fields.chargedAt', { defaultValue: 'Cobrado en' })} value={venue?.name ?? '-'} />
+            <InfoLine
+              label={t('detail.fields.merchantAccount', { defaultValue: 'Cuenta comercial' })}
+              value={merchantAccountBank ? `${merchantAccountLabel} · ${merchantAccountBank}` : merchantAccountLabel}
+            />
+            <InfoLine label={t('detail.fields.method', { defaultValue: 'Método de pago' })} value={methodDisplay} />
             <InfoLine label={t('detail.fields.device', { defaultValue: 'Dispositivo' })} value={deviceName} />
             <InfoLine label={t('detail.fields.orderSource', { defaultValue: 'Fuente del pedido' })} value={sourceLabel} />
             <InfoLine label={t('detail.fields.attributedTo', { defaultValue: 'Venta atribuida a' })} value={staffName} />
@@ -359,35 +382,29 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
           ))}
         </div>
 
-        {/* Totals card */}
+        {/* Totals card — pure money breakdown. Method and date live in the
+         * meta card above so we don't repeat them here. Propina is always
+         * visible (even $0.00) so the breakdown doesn't collapse for pagos
+         * en efectivo sin propina. */}
         <div className="rounded-xl border border-border/60 bg-card p-6 space-y-3 text-sm">
-          {tip > 0 && (
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span>{t('detail.subtotal', { defaultValue: 'Subtotal' })}</span>
-              <span>{Currency(amount)}</span>
-            </div>
-          )}
-          {tip > 0 && (
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span>{t('detail.tip', { defaultValue: 'Propina' })}</span>
-              <span>{Currency(tip)}</span>
-            </div>
-          )}
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span>{t('detail.subtotal', { defaultValue: 'Subtotal' })}</span>
+            <span>{Currency(amount)}</span>
+          </div>
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span>{t('detail.tip', { defaultValue: 'Propina' })}</span>
+            <span>{Currency(tip)}</span>
+          </div>
           <div className="flex items-center justify-between font-semibold text-base pt-2 border-t border-border/60">
             <span className="uppercase tracking-wide">{t('detail.total', { defaultValue: 'Total' })}</span>
             <span>{Currency(total)}</span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-foreground">{methodLabel}</span>
-            <span>{Currency(total)}</span>
-          </div>
-          <p className="text-xs text-muted-foreground">{dateShort}</p>
           {primaryReceipt?.accessKey && receiptLabel && (
             <a
               href={`${RECEIPT_PATHS.PUBLIC}/${primaryReceipt.accessKey}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block underline underline-offset-2 text-sm text-foreground hover:text-primary"
+              className="inline-block underline underline-offset-2 text-sm text-foreground hover:text-primary pt-2"
             >
               {t('detail.receiptNumber', { defaultValue: 'Recibo n.º' })} {receiptLabel}
             </a>
@@ -424,16 +441,34 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
         paymentId={paymentId}
         maxRefundable={remainingRefundable}
         methodLabel={methodLabel}
+        paymentTipAmount={tip}
         venueName={venue?.name}
-        orderItems={orderItems.map((item: any) => ({
-          id: item.id,
-          productId: item.productId,
-          productName: item.productName || item.product?.name || null,
-          quantity: item.quantity,
-          unitPrice: Number(item.unitPrice) || 0,
-          total: Number(item.total) || 0,
-          trackInventory: !!item.product?.trackInventory,
-        }))}
+        orderItems={orderItems.map((item: any) => {
+          // Sum qty + amount already refunded for this orderItemId across
+          // all prior REFUND payments on this payment.
+          let priorRefundedQty = 0
+          let priorRefundedAmount = 0
+          refunds.forEach((r: any) => {
+            const refundedItems = (r.processorData as any)?.refundedItems ?? []
+            refundedItems.forEach((ri: any) => {
+              if (ri.orderItemId === item.id) {
+                priorRefundedQty += Number(ri.quantity) || 0
+                priorRefundedAmount += Number(ri.amount) || 0
+              }
+            })
+          })
+          return {
+            id: item.id,
+            productId: item.productId,
+            productName: item.productName || item.product?.name || null,
+            quantity: item.quantity,
+            unitPrice: Number(item.unitPrice) || 0,
+            total: Number(item.total) || 0,
+            trackInventory: !!item.product?.trackInventory,
+            priorRefundedQty,
+            priorRefundedAmount,
+          }
+        })}
         open={refundOpen}
         onOpenChange={setRefundOpen}
         onRefunded={() => setRefundOpen(false)}

@@ -59,6 +59,94 @@
   "editDialog": {
     "description": "Editar orden #{{id}}"
   },
+  "drawer": {
+    "title": "Recibo n.° {{number}}",
+    "actions": {
+      "title": "Acciones",
+      "print": "Imprimir",
+      "more": "Más acciones",
+      "close": "Cerrar",
+      "viewTransaction": "Ver la información de la transacción",
+      "sendReceipt": "Enviar recibo",
+      "selectPayment": "Selecciona un pago"
+    },
+    "sections": {
+      "details": "Detalles",
+      "items": "Artículos",
+      "payments": "Pagos",
+      "activity": "Actividad"
+    },
+    "details": {
+      "email": "Email",
+      "phone": "Teléfono",
+      "customer": "Cliente",
+      "createdAt": "Fecha de creación",
+      "source": "Origen",
+      "terminal": "Punto de venta",
+      "table": "Mesa",
+      "server": "Mesero",
+      "type": "Tipo"
+    },
+    "sources": {
+      "TPV": "TPV",
+      "KIOSK": "Kiosko",
+      "QR": "QR Cliente",
+      "WEB": "Web",
+      "APP": "App",
+      "AVOQADO_IOS": "Avoqado iOS",
+      "AVOQADO_ANDROID": "Avoqado Android",
+      "PHONE": "Por teléfono",
+      "POS": "POS",
+      "PAYMENT_LINK": "Link de pago"
+    },
+    "items": {
+      "perUnit": "c/u",
+      "customAmount": "Importe personalizado",
+      "skuLabel": "SKU",
+      "noItems": "Sin artículos",
+      "refunded": "Reembolsado"
+    },
+    "totals": {
+      "subtotal": "Subtotal",
+      "discount": "Descuento",
+      "tax": "Impuestos",
+      "tip": "Propina",
+      "total": "Total"
+    },
+    "payments": {
+      "showMore": "Mostrar más",
+      "showLess": "Ocultar detalles",
+      "refund": "Reembolso",
+      "receipt": "Recibo",
+      "originalPayment": "Pago original",
+      "processedBy": "Procesado por",
+      "authorization": "Autorización",
+      "reference": "Referencia",
+      "reason": "Motivo",
+      "noPayments": "Sin pagos registrados"
+    },
+    "refundReasons": {
+      "RETURNED_GOODS": "Productos devueltos",
+      "ACCIDENTAL_CHARGE": "Cargo accidental",
+      "CANCELLED_ORDER": "Orden cancelada",
+      "FRAUDULENT_CHARGE": "Cargo fraudulento",
+      "OTHER": "Otro"
+    },
+    "activity": {
+      "created": "Pedido creado",
+      "itemsAdded_one": "Se ha añadido {{count}} artículo",
+      "itemsAdded_other": "Se han añadido {{count}} artículos",
+      "paymentProcessed": "Pago de {{amount}} con {{method}}",
+      "refundIssued": "Reembolso emitido: {{amount}}",
+      "completed": "Pedido completado",
+      "showDetails": "Mostrar detalles",
+      "hideDetails": "Ocultar detalles"
+    },
+    "toast": {
+      "receiptSent": "Recibo enviado",
+      "receiptError": "No se pudo enviar el recibo"
+    }
+  },
   "detail": {
     "title": "Orden {{number}}",
     "loading": "Cargando orden...",

@@ -123,12 +123,16 @@ export const useDashboardData = () => {
   const filteredReviews = useMemo(() => basicData?.reviews || [], [basicData?.reviews])
 
   // Filter out payments from cancelled orders - these should not count towards total sales
+  // Refund payments are already filtered server-side in `getBasicMetricsData` so
+  // they never reach this hook (see `generalStats.dashboard.service.ts`).
   const filteredPayments = useMemo(() => {
     const payments = basicData?.payments || []
     return payments.filter((payment: any) => {
       // Exclude if the payment's order is cancelled
       const orderStatus = payment.order?.status || payment.orderStatus
       if (orderStatus === 'CANCELLED') return false
+      // Defensive: if a refund slips through (type=REFUND), exclude it too
+      if (payment.type === 'REFUND') return false
       return true
     })
   }, [basicData?.payments])

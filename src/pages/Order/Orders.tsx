@@ -45,7 +45,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
-import OrderId from './OrderId'
+import { OrderDrawerContent } from './OrderDrawerContent'
 
 // Table interface for dropdowns
 interface Table {
@@ -63,7 +63,7 @@ export default function Orders() {
   const { t } = useTranslation('orders')
   const { t: tCommon } = useTranslation('common')
   const { toast } = useToast()
-  const { venueId } = useCurrentVenue()
+  const { venueId, fullBasePath } = useCurrentVenue()
   const { formatTime: _formatTime, formatDate, venueTimezoneShort: _venueTimezoneShort } = useVenueDateTime()
   const location = useLocation()
   const navigate = useNavigate()
@@ -76,7 +76,7 @@ export default function Orders() {
 
   const [pagination, setPagination] = useState({
     pageIndex: 0,
-    pageSize: 20,
+    pageSize: 100,
   })
 
   // Status tab filter
@@ -89,11 +89,11 @@ export default function Orders() {
   const [waiterFilter, setWaiterFilter] = useState<string[]>([])
   const [totalFilter, setTotalFilter] = useState<AmountFilter | null>(null)
   const [tipFilter, setTipFilter] = useState<AmountFilter | null>(null)
-  // Date range state — defaults to last 30 days (Stripe-style)
+  // Date range state — defaults to last 12 months.
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(() => {
     const now = DateTime.now().setZone(venueTimezone)
     return {
-      from: now.minus({ days: 30 }).startOf('day').toJSDate(),
+      from: now.minus({ days: 365 }).startOf('day').toJSDate(),
       to: now.endOf('day').toJSDate(),
     }
   })
@@ -227,6 +227,39 @@ export default function Orders() {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   })
 
+  // Aggregation query: fetches the FULL server-filtered set (not paginated) so
+  // the summary cards and tab counts reflect everything inside the date range /
+  // filters, not just the page currently visible in the table.
+  const { data: summaryOrders } = useQuery({
+    queryKey: [
+      'orders-summary',
+      venueId,
+      statusFilter,
+      typeFilter,
+      tableFilter,
+      waiterFilter,
+      dateRange,
+      debouncedSearchTerm,
+    ],
+    queryFn: async () => {
+      const response = await orderService.getOrders(
+        venueId,
+        { pageIndex: 0, pageSize: 10000 },
+        {
+          statuses: statusFilter.length > 0 ? statusFilter : undefined,
+          types: typeFilter.length > 0 ? typeFilter : undefined,
+          tableIds: tableFilter.length > 0 ? tableFilter : undefined,
+          staffIds: waiterFilter.length > 0 ? waiterFilter : undefined,
+          search: debouncedSearchTerm || undefined,
+          startDate: dateRange.from.toISOString(),
+          endDate: dateRange.to.toISOString(),
+        },
+      )
+      return (response.data || []) as Order[]
+    },
+    staleTime: 30 * 1000,
+  })
+
   // Extract unique options for filters from unfiltered data
   const {
     statuses,
@@ -305,7 +338,7 @@ export default function Orders() {
     setTotalFilter(null)
     setTipFilter(null)
     const now = DateTime.now().setZone(venueTimezone)
-    setDateRange({ from: now.minus({ days: 30 }).startOf('day').toJSDate(), to: now.endOf('day').toJSDate() })
+    setDateRange({ from: now.minus({ days: 365 }).startOf('day').toJSDate(), to: now.endOf('day').toJSDate() })
     setSearchTerm('')
   }, [venueTimezone])
 
@@ -846,9 +879,10 @@ export default function Orders() {
     // this memo's output.
   }, [data?.data, activeStatusTab, sortField, sortOrder, totalFilter, tipFilter])
 
-  // Status tab counts (computed from unfiltered-by-tab data)
+  // Status tab counts (computed over ALL server-filtered orders, not just the
+  // paginated page, so "Activos 12" means 12 in the whole date range).
   const statusTabCounts = useMemo(() => {
-    const allOrders = data?.data || []
+    const allOrders = summaryOrders || []
     const active = [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY]
     return {
       all: allOrders.length,
@@ -856,7 +890,7 @@ export default function Orders() {
       completed: allOrders.filter((o: Order) => o.status === OrderStatus.COMPLETED).length,
       cancelled: allOrders.filter((o: Order) => o.status === OrderStatus.CANCELLED).length,
     }
-  }, [data?.data])
+  }, [summaryOrders])
 
   const orderStatusTabs = useMemo<StatusTab[]>(
     () => [
@@ -868,17 +902,68 @@ export default function Orders() {
     [t, statusTabCounts],
   )
 
-  // Summary cards (computed from filtered data)
+  // Summary cards — computed over ALL server-filtered orders (not just the
+  // current page) so "Total" reflects the whole date range. We still apply the
+  // status tab + client-side amount filters (total/tip) here so cards match
+  // whatever the table is currently narrowed to.
   const orderSummaryCards = useMemo<SummaryCardItem[]>(() => {
-    const count = sortedData.length
-    const total = sortedData.reduce((sum: number, o: Order) => sum + (Number(o.total) || 0), 0)
+    let orders: Order[] = summaryOrders || []
+
+    if (activeStatusTab !== 'all') {
+      const tabStatusMap: Record<string, OrderStatus[]> = {
+        active: [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY],
+        completed: [OrderStatus.COMPLETED],
+        cancelled: [OrderStatus.CANCELLED],
+      }
+      const allowed = tabStatusMap[activeStatusTab] || []
+      if (allowed.length > 0) orders = orders.filter((o: Order) => allowed.includes(o.status))
+    }
+
+    if (totalFilter) {
+      orders = orders.filter((o: Order) => {
+        const total = Number(o.total) || 0
+        switch (totalFilter.operator) {
+          case 'gt':
+            return total > (totalFilter.value || 0)
+          case 'lt':
+            return total < (totalFilter.value || 0)
+          case 'eq':
+            return total === (totalFilter.value || 0)
+          case 'between':
+            return total >= (totalFilter.value || 0) && total <= (totalFilter.value2 || 0)
+          default:
+            return true
+        }
+      })
+    }
+
+    if (tipFilter) {
+      orders = orders.filter((o: Order) => {
+        const tip = o.tipAmount || 0
+        switch (tipFilter.operator) {
+          case 'gt':
+            return tip > (tipFilter.value || 0)
+          case 'lt':
+            return tip < (tipFilter.value || 0)
+          case 'eq':
+            return tip === (tipFilter.value || 0)
+          case 'between':
+            return tip >= (tipFilter.value || 0) && tip <= (tipFilter.value2 || 0)
+          default:
+            return true
+        }
+      })
+    }
+
+    const count = orders.length
+    const total = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0)
     const avgTicket = count > 0 ? total / count : 0
     return [
       { label: t('summaryCards.orders'), value: count, format: 'number' as const },
       { label: t('summaryCards.total'), value: total, format: 'currency' as const },
       { label: t('summaryCards.avgTicket'), value: avgTicket, format: 'currency' as const },
     ]
-  }, [sortedData, t])
+  }, [summaryOrders, activeStatusTab, totalFilter, tipFilter, t])
 
   // Export functionality
   const handleExport = useCallback(
@@ -1477,15 +1562,15 @@ export default function Orders() {
       </Dialog>
 
       {/* Square-style drawer: URL /orders/:orderId opens this Sheet over the list.
-          Reusing <OrderId /> as the drawer body — it already reads :orderId from params. */}
+          OrderDrawerContent renders its own header (with X) and handles its own scroll. */}
       <Sheet
         open={!!drawerOrderId}
         onOpenChange={open => {
-          if (!open) navigate('..', { relative: 'path' })
+          if (!open) navigate(`${fullBasePath}/orders`)
         }}
       >
-        <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto p-0 [&>button]:z-20">
-          {drawerOrderId && <OrderId />}
+        <SheetContent side="right" className="w-full sm:max-w-2xl p-0 [&>button]:hidden">
+          {drawerOrderId && <OrderDrawerContent orderId={drawerOrderId} onClose={() => navigate(`${fullBasePath}/orders`)} />}
         </SheetContent>
       </Sheet>
     </div>

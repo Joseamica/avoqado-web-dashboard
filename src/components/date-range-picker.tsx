@@ -70,6 +70,7 @@ const PRESETS: Preset[] = [
   { name: 'last7', label: 'last7' },
   { name: 'last14', label: 'last14' },
   { name: 'last30', label: 'last30' },
+  { name: 'last365', label: 'last365' },
   { name: 'thisWeek', label: 'thisWeek' },
   { name: 'lastWeek', label: 'lastWeek' },
   { name: 'thisMonth', label: 'thisMonth' },
@@ -169,6 +170,16 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
       case 'last30': {
         const range = getLast30Days(timezone)
         return { from: range.from, to: range.to }
+      }
+      case 'last365': {
+        // Last 365 days ending today. Use the same start-of-day / end-of-day
+        // semantics as the other rolling presets so timezone math stays consistent.
+        const startOfRange = now.minus({ days: 365 }).startOf('day')
+        const endOfRange = now.endOf('day')
+        return {
+          from: startOfRange.toJSDate(),
+          to: endOfRange.toJSDate(),
+        }
       }
       case 'thisWeek': {
         // Calendar week (Monday-Sunday)
