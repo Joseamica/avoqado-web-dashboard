@@ -49,6 +49,9 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { PaymentDrawerContent } from './PaymentDrawerContent'
 
+const isRefundPayment = (payment: PaymentType) =>
+  payment.type === PaymentRecordType.REFUND || payment.status === PaymentStatus.REFUNDED
+
 export default function Payments() {
   const { t } = useTranslation('payment')
   const { t: tCommon } = useTranslation('common')
@@ -65,7 +68,7 @@ export default function Payments() {
   const queryClient = useQueryClient()
   const [pagination, setPagination] = useState({
     pageIndex: 0,
-    pageSize: 20,
+    pageSize: 100,
   })
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [paymentToDelete, setPaymentToDelete] = useState<PaymentType | null>(null)
@@ -86,11 +89,11 @@ export default function Payments() {
   const [methodFilter, setMethodFilter] = useState<string[]>([])
   const [sourceFilter, setSourceFilter] = useState<string[]>([])
   const [waiterFilter, setWaiterFilter] = useState<string[]>([])
-  // Date range state — defaults to last 30 days (Stripe-style)
+  // Date range state — defaults to last 365 days.
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(() => {
     const now = DateTime.now().setZone(venueTimezone)
     return {
-      from: now.minus({ days: 30 }).startOf('day').toJSDate(),
+      from: now.minus({ days: 365 }).startOf('day').toJSDate(),
       to: now.endOf('day').toJSDate(),
     }
   })
@@ -108,7 +111,6 @@ export default function Payments() {
     'createdAt',
     'waiterName',
     'merchantAccount',
-    'source',
     'method',
     'amount',
     'totalTipAmount',
@@ -278,6 +280,38 @@ export default function Payments() {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   })
 
+  // Aggregation query: fetches the FULL server-filtered set (not paginated) so
+  // the summary cards and tab counts reflect everything inside the date range /
+  // filters, not just the page currently visible in the table.
+  const { data: summaryPayments } = useQuery({
+    queryKey: [
+      'payments-summary',
+      venueId,
+      dateParams,
+      merchantAccountFilter,
+      methodFilter,
+      sourceFilter,
+      waiterFilter,
+      debouncedSearchTerm,
+    ],
+    queryFn: async () => {
+      const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payments`, {
+        params: {
+          page: 1,
+          pageSize: 10000,
+          ...dateParams,
+          ...(merchantAccountFilter.length > 0 && { merchantAccountIds: merchantAccountFilter.join(',') }),
+          ...(methodFilter.length > 0 && { methods: methodFilter.join(',') }),
+          ...(sourceFilter.length > 0 && { sources: sourceFilter.join(',') }),
+          ...(waiterFilter.length > 0 && { staffIds: waiterFilter.join(',') }),
+          ...(debouncedSearchTerm && { search: debouncedSearchTerm }),
+        },
+      })
+      return (response.data?.data || []) as PaymentType[]
+    },
+    staleTime: 30 * 1000,
+  })
+
   // Extract unique options for filters from unfiltered data
   const { merchantAccounts, methods, sources, waiters } = useMemo(() => {
     const allPayments = filterOptionsData?.data || []
@@ -369,14 +403,17 @@ export default function Payments() {
 
     // Status tab filter
     if (activeStatusTab !== 'all') {
-      const statusMap: Record<string, string[]> = {
-        completed: [PaymentStatus.PAID],
-        pending: [PaymentStatus.PENDING, PaymentStatus.PARTIAL],
-        refunded: [PaymentStatus.REFUNDED],
-      }
-      const allowedStatuses = statusMap[activeStatusTab] || []
-      if (allowedStatuses.length > 0) {
-        payments = payments.filter((p: PaymentType) => allowedStatuses.includes(p.status))
+      if (activeStatusTab === 'refunded') {
+        payments = payments.filter(isRefundPayment)
+      } else {
+        const statusMap: Record<string, string[]> = {
+          completed: [PaymentStatus.PAID],
+          pending: [PaymentStatus.PENDING, PaymentStatus.PARTIAL],
+        }
+        const allowedStatuses = statusMap[activeStatusTab] || []
+        if (allowedStatuses.length > 0) {
+          payments = payments.filter((p: PaymentType) => allowedStatuses.includes(p.status))
+        }
       }
     }
 
@@ -446,16 +483,17 @@ export default function Payments() {
     // still affect this memo's output.
   }, [data?.data, activeStatusTab, subtotalFilter, tipFilter, totalFilter])
 
-  // Status tab counts (computed from unfiltered-by-tab data)
+  // Status tab counts (computed over ALL server-filtered payments, not just
+  // the paginated page, so "Completados 450" means 450 in the whole date range).
   const statusTabCounts = useMemo(() => {
-    const allPayments = data?.data || []
+    const allPayments = summaryPayments || []
     return {
       all: allPayments.length,
       completed: allPayments.filter((p: PaymentType) => p.status === PaymentStatus.PAID).length,
       pending: allPayments.filter((p: PaymentType) => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.PARTIAL).length,
-      refunded: allPayments.filter((p: PaymentType) => p.status === PaymentStatus.REFUNDED).length,
+      refunded: allPayments.filter(isRefundPayment).length,
     }
-  }, [data?.data])
+  }, [summaryPayments])
 
   const statusTabs = useMemo<StatusTab[]>(
     () => [
@@ -467,24 +505,90 @@ export default function Payments() {
     [t, statusTabCounts],
   )
 
-  // Summary cards (computed from filtered data).
+  // Summary cards — computed over ALL server-filtered payments (not just the
+  // current page) so "Total Collected" reflects the whole date range. We still
+  // apply the status tab + client-side amount filters here so cards match
+  // whatever the table is currently narrowed to.
   // Refunds carry a negative `amount`, so summing without `Math.abs` naturally
   // nets them out of both "Total Collected" and "Net Sales" — which is what
   // someone looking at a refund-filtered window expects to see.
   const summaryCards = useMemo<SummaryCardItem[]>(() => {
-    const count = filteredPayments.length
-    const totalCollected = filteredPayments.reduce((sum: number, p: PaymentType) => {
-      return sum + (Number(p.amount) || 0) + (Number(p.tipAmount) || 0)
-    }, 0)
-    const netSales = filteredPayments.reduce((sum: number, p: PaymentType) => {
-      return sum + (Number(p.amount) || 0)
-    }, 0)
+    let payments: PaymentType[] = summaryPayments || []
+
+    if (activeStatusTab !== 'all') {
+      if (activeStatusTab === 'refunded') {
+        payments = payments.filter(isRefundPayment)
+      } else {
+        const statusMap: Record<string, string[]> = {
+          completed: [PaymentStatus.PAID],
+          pending: [PaymentStatus.PENDING, PaymentStatus.PARTIAL],
+        }
+        const allowed = statusMap[activeStatusTab] || []
+        if (allowed.length > 0) payments = payments.filter((p: PaymentType) => allowed.includes(p.status))
+      }
+    }
+
+    if (subtotalFilter) {
+      payments = payments.filter((p: PaymentType) => {
+        const subtotal = Number(p.amount) || 0
+        switch (subtotalFilter.operator) {
+          case 'gt':
+            return subtotal > (subtotalFilter.value || 0)
+          case 'lt':
+            return subtotal < (subtotalFilter.value || 0)
+          case 'eq':
+            return subtotal === (subtotalFilter.value || 0)
+          case 'between':
+            return subtotal >= (subtotalFilter.value || 0) && subtotal <= (subtotalFilter.value2 || 0)
+          default:
+            return true
+        }
+      })
+    }
+    if (tipFilter) {
+      payments = payments.filter((p: PaymentType) => {
+        const tip = Number(p.tipAmount) || 0
+        switch (tipFilter.operator) {
+          case 'gt':
+            return tip > (tipFilter.value || 0)
+          case 'lt':
+            return tip < (tipFilter.value || 0)
+          case 'eq':
+            return tip === (tipFilter.value || 0)
+          case 'between':
+            return tip >= (tipFilter.value || 0) && tip <= (tipFilter.value2 || 0)
+          default:
+            return true
+        }
+      })
+    }
+    if (totalFilter) {
+      payments = payments.filter((p: PaymentType) => {
+        const total = (Number(p.amount) || 0) + (Number(p.tipAmount) || 0)
+        switch (totalFilter.operator) {
+          case 'gt':
+            return total > (totalFilter.value || 0)
+          case 'lt':
+            return total < (totalFilter.value || 0)
+          case 'eq':
+            return total === (totalFilter.value || 0)
+          case 'between':
+            return total >= (totalFilter.value || 0) && total <= (totalFilter.value2 || 0)
+          default:
+            return true
+        }
+      })
+    }
+
+    const count = payments.length
+    const totalCollected = payments.reduce((sum, p) => sum + (Number(p.amount) || 0) + (Number(p.tipAmount) || 0), 0)
+    const netSales = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
     return [
       { label: t('summaryCards.transactions'), value: count, format: 'number' as const },
       { label: t('summaryCards.totalCollected'), value: totalCollected, format: 'currency' as const },
       { label: t('summaryCards.netSales'), value: netSales, format: 'currency' as const },
     ]
-  }, [filteredPayments, t])
+  }, [summaryPayments, activeStatusTab, subtotalFilter, tipFilter, totalFilter, t])
 
   // Get unique payment IDs from filtered payments to fetch their commissions
   const paymentIds = useMemo(() => {
@@ -1350,7 +1454,6 @@ export default function Payments() {
                 { id: 'createdAt', label: t('columns.date'), visible: visibleColumns.includes('createdAt') },
                 { id: 'waiterName', label: t('columns.waiter'), visible: visibleColumns.includes('waiterName') },
                 { id: 'merchantAccount', label: t('columns.merchantAccount'), visible: visibleColumns.includes('merchantAccount') },
-                { id: 'source', label: t('columns.source'), visible: visibleColumns.includes('source') },
                 { id: 'method', label: t('columns.method'), visible: visibleColumns.includes('method') },
                 { id: 'amount', label: t('columns.subtotal'), visible: visibleColumns.includes('amount') },
                 { id: 'totalTipAmount', label: t('columns.tip'), visible: visibleColumns.includes('totalTipAmount') },
@@ -1554,6 +1657,7 @@ export default function Payments() {
         <SheetContent side="right" className="w-full sm:max-w-lg p-0 [&>button]:hidden">
           {drawerPaymentId && (
             <PaymentDrawerContent
+              key={drawerPaymentId}
               paymentId={drawerPaymentId}
               venueTimezone={venueTimezone}
               onClose={() => navigate('..', { relative: 'path' })}

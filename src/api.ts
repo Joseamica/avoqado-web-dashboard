@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { emitImpersonationError, extractImpersonationErrorCode } from './lib/impersonation-errors'
 
 // Connection status tracking
 let isOnline = navigator.onLine
@@ -96,8 +97,27 @@ api.interceptors.response.use(
       }
     }
 
+    // Handle impersonation-specific errors BEFORE the 401-login redirect.
+    // When the server rejects a request because of impersonation rules
+    // (read-only, blocked route, target invalid, or expired session), we
+    // stay on the current page, let React components show a toast / clean up
+    // state, and — crucially for EXPIRED — we do NOT redirect to /login
+    // because the user is still authenticated as SUPERADMIN.
+    const status = error.response?.status
+    if (status === 401 || status === 403) {
+      const impersonationCode = extractImpersonationErrorCode(error)
+      if (impersonationCode) {
+        emitImpersonationError({
+          code: impersonationCode,
+          message: error.response?.data?.message,
+          url: error.config?.url,
+        })
+        return Promise.reject(error)
+      }
+    }
+
     // Handle 401 - redirect to login preserving deep-link context
-    if (error.response?.status === 401) {
+    if (status === 401) {
       const loginRedirectUrl = getUnauthorizedLoginRedirectUrl(window.location)
       if (loginRedirectUrl) {
         window.location.href = loginRedirectUrl

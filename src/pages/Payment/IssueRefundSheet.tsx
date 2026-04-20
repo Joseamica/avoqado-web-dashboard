@@ -36,6 +36,10 @@ export interface RefundableItem {
   /** Whether this product has inventory tracking enabled (for the restock step) */
   trackInventory?: boolean
   venueName?: string
+  /** Quantity already refunded across prior REFUND payments for this orderItemId */
+  priorRefundedQty?: number
+  /** Total amount already refunded for this orderItemId (decimal) */
+  priorRefundedAmount?: number
 }
 
 interface IssueRefundSheetProps {
@@ -49,6 +53,13 @@ interface IssueRefundSheetProps {
   orderItems?: RefundableItem[]
   /** Venue name shown in the restock step */
   venueName?: string
+  /**
+   * Original payment's tip amount (decimal). Used to drive the "Incluir
+   * propina" toggle on amount-refunds. Pass 0 or omit when the payment had no
+   * tip — the toggle is then hidden and the refund always targets the sale
+   * portion.
+   */
+  paymentTipAmount?: number
   open: boolean
   onOpenChange: (open: boolean) => void
   onRefunded: () => void
@@ -61,6 +72,7 @@ export function IssueRefundSheet({
   methodLabel,
   orderItems = [],
   venueName,
+  paymentTipAmount = 0,
   open,
   onOpenChange,
   onRefunded,
@@ -78,6 +90,10 @@ export function IssueRefundSheet({
   const [restockItemIds, setRestockItemIds] = useState<Set<string>>(new Set())
   const [amountStr, setAmountStr] = useState('')
   const [reason, setReason] = useState<Reason | ''>('')
+  // "Include tip in the refund" toggle. Only surfaced when the payment had a
+  // tip. ON → backend default (proportional split). OFF → send tipRefundCents=0
+  // so the refund pulls 100% from the sale portion and the staff tip stays.
+  const [includeTip, setIncludeTip] = useState(true)
 
   useEffect(() => {
     if (open) {
@@ -88,6 +104,7 @@ export function IssueRefundSheet({
       setRestockItemIds(new Set())
       setAmountStr('')
       setReason('')
+      setIncludeTip(true)
     }
   }, [open, orderItems.length])
 
@@ -102,12 +119,23 @@ export function IssueRefundSheet({
     () => orderItems.filter(i => selectedItemIds.has(i.id)),
     [orderItems, selectedItemIds],
   )
-  /** Effective refund quantity for a selected line (fallback: full qty). */
-  const effectiveQty = (item: RefundableItem) => refundQtyByItem[item.id] ?? item.quantity
+  const remainingQty = (item: RefundableItem) =>
+    Math.max(0, item.quantity - (item.priorRefundedQty ?? 0))
+  /** Effective refund quantity for a selected line (default: all remaining). */
+  const effectiveQty = (item: RefundableItem) =>
+    Math.min(refundQtyByItem[item.id] ?? remainingQty(item), remainingQty(item))
   const itemsRefundAmount = useMemo(() => {
     const sum = selectedItems.reduce((s, i) => {
       const q = effectiveQty(i)
-      const lineAmount = q === i.quantity ? i.total : (i.total * q) / i.quantity
+      const remaining = remainingQty(i)
+      // Close-out case: user refunds ALL remaining qty of the line. Use
+      // (item.total − priorRefundedAmount) exact to avoid rounding drift
+      // (a line of $10 / qty 3, refunded 3× qty=1, would otherwise sum to
+      // $9.99 instead of $10.00).
+      const closingLine = q === remaining
+      const lineAmount = closingLine
+        ? Math.max(0, i.total - (i.priorRefundedAmount ?? 0))
+        : (i.total * q) / i.quantity
       return s + Math.round(lineAmount * 100) / 100
     }, 0)
     return Math.round(sum * 100) / 100
@@ -122,6 +150,11 @@ export function IssueRefundSheet({
       const body: Record<string, unknown> = { reason }
       if (tab === 'amount') {
         body.amount = Math.round(parsedAmount * 100)
+        // When the user unchecks "Incluir propina" on a payment that had tip,
+        // force the backend split to pull 100% from sale (staff tip untouched).
+        if (paymentTipAmount > 0 && !includeTip) {
+          body.tipRefundCents = 0
+        }
       } else {
         body.items = selectedItems.map(i => ({ orderItemId: i.id, quantity: effectiveQty(i) }))
         if (restockItemIds.size > 0) {
@@ -189,9 +222,10 @@ export function IssueRefundSheet({
   const changeQty = (id: string, delta: number) => {
     const item = orderItems.find(i => i.id === id)
     if (!item) return
+    const remaining = Math.max(1, item.quantity - (item.priorRefundedQty ?? 0))
     setRefundQtyByItem(prev => {
-      const current = prev[id] ?? item.quantity
-      const next = Math.max(1, Math.min(item.quantity, current + delta))
+      const current = prev[id] ?? remaining
+      const next = Math.max(1, Math.min(remaining, current + delta))
       return { ...prev, [id]: next }
     })
   }
@@ -296,6 +330,9 @@ export function IssueRefundSheet({
               onReasonChange={setReason}
               reasons={reasons}
               overLimit={parsedAmount > maxRefundable}
+              paymentTipAmount={paymentTipAmount}
+              includeTip={includeTip}
+              onIncludeTipChange={setIncludeTip}
               t={t}
             />
           )}
@@ -395,19 +432,41 @@ function ItemsSelectBody({
           <span>{t('refund.items.column.amount', { defaultValue: 'Importe' })}</span>
         </div>
         {items.map(i => {
+          const priorQty = i.priorRefundedQty ?? 0
+          const priorAmount = i.priorRefundedAmount ?? 0
+          const remainingQty = Math.max(0, i.quantity - priorQty)
+          const fullyRefunded = remainingQty === 0
+          const partiallyRefunded = priorQty > 0 && !fullyRefunded
+
           const selected = selectedIds.has(i.id)
-          const qty = refundQty[i.id] ?? i.quantity
-          const effectiveTotal = qty === i.quantity ? i.total : (i.total * qty) / i.quantity
-          const showStepper = selected && i.quantity > 1
+          // Clamp any legacy stepper value to the remaining available qty.
+          const rawQty = refundQty[i.id] ?? remainingQty
+          const qty = Math.min(Math.max(rawQty, 1), Math.max(1, remainingQty))
+          const effectiveTotal = fullyRefunded
+            ? priorAmount || i.total // show what was actually refunded, not a prorated slice
+            : qty === i.quantity
+              ? i.total
+              : (i.total * qty) / i.quantity
+          const showStepper = selected && remainingQty > 1
+
           return (
-            <div key={i.id} className="flex items-start gap-3 px-4 py-3 hover:bg-muted/30">
+            <div
+              key={i.id}
+              className={`flex items-start gap-3 px-4 py-3 ${
+                fullyRefunded ? 'opacity-50' : 'hover:bg-muted/30'
+              }`}
+            >
               <Checkbox
                 className="mt-0.5 cursor-pointer"
                 checked={selected}
-                onCheckedChange={() => onToggle(i.id)}
+                disabled={fullyRefunded}
+                onCheckedChange={() => !fullyRefunded && onToggle(i.id)}
               />
-              <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onToggle(i.id)}>
-                <div className="flex items-center gap-2">
+              <div
+                className={`flex-1 min-w-0 ${fullyRefunded ? '' : 'cursor-pointer'}`}
+                onClick={() => !fullyRefunded && onToggle(i.id)}
+              >
+                <div className="flex items-center gap-2 flex-wrap">
                   {i.quantity > 1 && (
                     <Badge variant="secondary" className="font-medium shrink-0">
                       {i.quantity}x
@@ -416,10 +475,24 @@ function ItemsSelectBody({
                   <span className="font-medium">
                     {i.productName || t('refund.items.customLabel', { defaultValue: 'Importe personalizado' })}
                   </span>
+                  {fullyRefunded && (
+                    <Badge variant="outline" className="text-xs font-medium border-destructive/40 text-destructive">
+                      {t('refund.items.alreadyRefunded', { defaultValue: 'Reembolsado' })}
+                    </Badge>
+                  )}
                 </div>
-                {i.quantity > 1 && (
+                {i.quantity > 1 && !fullyRefunded && (
                   <p className="text-xs text-muted-foreground mt-1">
                     {Currency(i.unitPrice)} {t('refund.items.each', { defaultValue: 'c/u' })}
+                  </p>
+                )}
+                {partiallyRefunded && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t('refund.items.partialRefunded', {
+                      defaultValue: `${priorQty} de ${i.quantity} ya se reembolsó`,
+                      refunded: priorQty,
+                      total: i.quantity,
+                    })}
                   </p>
                 )}
               </div>
@@ -434,13 +507,13 @@ function ItemsSelectBody({
                   >
                     <Minus className="h-3 w-3" />
                   </button>
-                  <span className="tabular-nums font-medium w-8 text-center">
-                    {qty}/{i.quantity}
+                  <span className="tabular-nums font-medium w-10 text-center">
+                    {qty}/{remainingQty}
                   </span>
                   <button
                     type="button"
                     onClick={() => onQtyChange(i.id, +1)}
-                    disabled={qty >= i.quantity}
+                    disabled={qty >= remainingQty}
                     className="h-7 w-7 rounded-full border border-border/60 flex items-center justify-center disabled:opacity-30"
                     aria-label="+"
                   >
@@ -448,7 +521,11 @@ function ItemsSelectBody({
                   </button>
                 </div>
               )}
-              <span className="font-medium whitespace-nowrap text-right min-w-[72px]">
+              <span
+                className={`font-medium whitespace-nowrap text-right min-w-[72px] ${
+                  fullyRefunded ? 'line-through' : ''
+                }`}
+              >
                 {Currency(effectiveTotal)}
               </span>
             </div>
@@ -577,6 +654,9 @@ function AmountBody({
   onReasonChange,
   reasons,
   overLimit,
+  paymentTipAmount,
+  includeTip,
+  onIncludeTipChange,
   t,
 }: {
   amountStr: string
@@ -587,6 +667,9 @@ function AmountBody({
   onReasonChange: (r: Reason) => void
   reasons: { value: Reason; label: string }[]
   overLimit: boolean
+  paymentTipAmount: number
+  includeTip: boolean
+  onIncludeTipChange: (v: boolean) => void
   t: (k: string, o?: any) => string
 }) {
   return (
@@ -646,6 +729,35 @@ function AmountBody({
           </div>
         </div>
       </div>
+
+      {paymentTipAmount > 0 && (
+        <label className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/20 px-4 py-3 cursor-pointer">
+          <Checkbox
+            checked={includeTip}
+            onCheckedChange={v => onIncludeTipChange(v === true)}
+            className="mt-0.5"
+          />
+          <div className="flex-1">
+            <div className="text-sm font-medium">
+              {t('refund.amount.includeTip', { defaultValue: 'Incluir propina en el reembolso' })}
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5">
+              {includeTip
+                ? t('refund.amount.includeTipOn', {
+                    defaultValue:
+                      'El reembolso se divide proporcionalmente entre la venta y la propina del pago original.',
+                  })
+                : t('refund.amount.includeTipOff', {
+                    defaultValue:
+                      'Solo se reembolsa el producto; la propina del mesero queda intacta.',
+                  })}
+            </div>
+          </div>
+          <span className="text-sm text-muted-foreground whitespace-nowrap self-center">
+            {Currency(paymentTipAmount)}
+          </span>
+        </label>
+      )}
 
       {overLimit && (
         <p className="text-sm text-destructive">

@@ -55,7 +55,6 @@ export const ShiftId = lazyWithRetry(() => import('@/pages/Shift/ShiftId'))
 
 // Bill components
 export const Orders = lazyWithRetry(() => import('@/pages/Order/Orders'))
-export const OrderId = lazyWithRetry(() => import('@/pages/Order/OrderId'))
 
 // Admin components
 export const AcceptAdminInvitation = lazyWithRetry(() => import('@/pages/Admin/AcceptAdminInvitation'))

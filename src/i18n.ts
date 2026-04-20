@@ -4,6 +4,9 @@ import { initReactI18next } from 'react-i18next'
 import testingEn from '@/locales/en/testing.json'
 import testingEs from '@/locales/es/testing.json'
 import testingFr from '@/locales/fr/testing.json'
+import impersonationEn from '@/locales/en/impersonation.json'
+import impersonationEs from '@/locales/es/impersonation.json'
+import impersonationFr from '@/locales/fr/impersonation.json'
 import sidebarEn from '@/locales/en/sidebar.json'
 import sidebarEs from '@/locales/es/sidebar.json'
 import sidebarFr from '@/locales/fr/sidebar.json'
@@ -205,6 +208,15 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'testing', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', impersonationEn],
+    ['es', impersonationEs],
+    ['fr', impersonationFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'impersonation', bundle as Record<string, unknown>, true, true)
 })
 ;(
   [

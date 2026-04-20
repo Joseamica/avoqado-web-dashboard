@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LogOut } from 'lucide-react'
+import { LogOut, UserCog } from 'lucide-react'
 import { useCommandState } from 'cmdk'
 import {
   CommandDialog,
@@ -21,6 +21,8 @@ interface DashboardCommandPaletteProps {
   navItems: NavItem[]
   hiddenSidebarItems?: string[]
   isSuperadmin?: boolean
+  /** Opens the SUPERADMIN impersonation picker popover in the header. */
+  onOpenImpersonation?: () => void
 }
 
 /** Substring-based filter: every search word must appear in the value (accent-insensitive). */
@@ -63,6 +65,7 @@ const DashboardCommandPalette: React.FC<DashboardCommandPaletteProps> = ({
   navItems,
   hiddenSidebarItems = [],
   isSuperadmin = false,
+  onOpenImpersonation,
 }) => {
   const navigate = useNavigate()
   const { logout } = useAuth()
@@ -144,6 +147,18 @@ const DashboardCommandPalette: React.FC<DashboardCommandPaletteProps> = ({
         <CommandSeparator />
 
         <CommandGroup heading="Acciones rápidas">
+          {isSuperadmin && onOpenImpersonation ? (
+            <CommandItem
+              value="impersonar usuario rol ver como cliente superadmin"
+              onSelect={() => {
+                onOpenChange(false)
+                onOpenImpersonation()
+              }}
+            >
+              <UserCog className="mr-2 h-4 w-4 shrink-0" />
+              <span>Impersonar usuario o rol</span>
+            </CommandItem>
+          ) : null}
           <CommandItem
             value="cerrar sesion logout salir"
             onSelect={() => {

@@ -58,6 +58,94 @@
   "editDialog": {
     "description": "Edit order #{{id}}"
   },
+  "drawer": {
+    "title": "Receipt #{{number}}",
+    "actions": {
+      "title": "Actions",
+      "print": "Print",
+      "more": "More actions",
+      "close": "Close",
+      "viewTransaction": "View transaction details",
+      "sendReceipt": "Send receipt",
+      "selectPayment": "Select a payment"
+    },
+    "sections": {
+      "details": "Details",
+      "items": "Items",
+      "payments": "Payments",
+      "activity": "Activity"
+    },
+    "details": {
+      "email": "Email",
+      "phone": "Phone",
+      "customer": "Customer",
+      "createdAt": "Created at",
+      "source": "Source",
+      "terminal": "Point of sale",
+      "table": "Table",
+      "server": "Server",
+      "type": "Type"
+    },
+    "sources": {
+      "TPV": "POS",
+      "KIOSK": "Kiosk",
+      "QR": "Customer QR",
+      "WEB": "Web",
+      "APP": "App",
+      "AVOQADO_IOS": "Avoqado iOS",
+      "AVOQADO_ANDROID": "Avoqado Android",
+      "PHONE": "Phone",
+      "POS": "POS",
+      "PAYMENT_LINK": "Payment link"
+    },
+    "items": {
+      "perUnit": "ea",
+      "customAmount": "Custom amount",
+      "skuLabel": "SKU",
+      "noItems": "No items",
+      "refunded": "Refunded"
+    },
+    "totals": {
+      "subtotal": "Subtotal",
+      "discount": "Discount",
+      "tax": "Tax",
+      "tip": "Tip",
+      "total": "Total"
+    },
+    "payments": {
+      "showMore": "Show more",
+      "showLess": "Show less",
+      "refund": "Refund",
+      "receipt": "Receipt",
+      "originalPayment": "Original payment",
+      "processedBy": "Processed by",
+      "authorization": "Authorization",
+      "reference": "Reference",
+      "reason": "Reason",
+      "noPayments": "No payments recorded"
+    },
+    "refundReasons": {
+      "RETURNED_GOODS": "Returned goods",
+      "ACCIDENTAL_CHARGE": "Accidental charge",
+      "CANCELLED_ORDER": "Cancelled order",
+      "FRAUDULENT_CHARGE": "Fraudulent charge",
+      "OTHER": "Other"
+    },
+    "activity": {
+      "created": "Order created",
+      "itemsAdded_one": "{{count}} item added",
+      "itemsAdded_other": "{{count}} items added",
+      "paymentProcessed": "Payment of {{amount}} via {{method}}",
+      "refundIssued": "Refund issued: {{amount}}",
+      "completed": "Order completed",
+      "showDetails": "Show details",
+      "hideDetails": "Hide details"
+    },
+    "toast": {
+      "receiptSent": "Receipt sent",
+      "receiptError": "Failed to send receipt"
+    }
+  },
   "detail": {
     "title": "Order {{number}}",
     "loading": "Loading order...",

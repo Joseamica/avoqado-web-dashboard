@@ -990,6 +990,11 @@ export interface Order {
   createdBy?: Staff | null
   createdAt: string
   updatedAt: string
+  // ▼ Square-style drawer additions (2026-04-19)
+  terminalId: string | null
+  terminal?: { id: string; name: string } | null
+  actions?: OrderAction[]
+  completedAt?: string | null
 }
 
 // Junction table for many-to-many Order <-> Customer relationship
@@ -1106,6 +1111,31 @@ export interface Payment {
 
   // 📸 PRE-payment verification (retail/telecommunications)
   saleVerification?: SaleVerification | null
+
+  // ▼ Square-style drawer additions (2026-04-19)
+  receipts?: Array<{
+    id: string
+    accessKey: string
+    status: string
+    recipientEmail: string | null
+    recipientPhone: string | null
+    sentAt: string | null
+    viewedAt: string | null
+    createdAt: string
+  }>
+  // Hoisted by backend mapOrderPaymentsWithRefunds():
+  originalPaymentId?: string | null
+  refundReason?: string | null
+  refunds?: Array<{
+    id: string
+    amount: number
+    createdAt: string
+    refundReason: string | null
+  }>
+  authorizationNumber?: string | null
+  referenceNumber?: string | null
+  maskedPan?: string | null
+  entryMode?: string | null
 }
 
 // 📸 Sale verification evidence (photos + barcodes)
@@ -1894,4 +1924,16 @@ export const DEFAULT_ROLE_DISPLAY_NAMES: Record<StaffRole, string> = {
   [StaffRole.KITCHEN]: 'Cocina',
   [StaffRole.HOST]: 'Host',
   [StaffRole.VIEWER]: 'Observador',
+}
+
+// Audit trail entry on an Order (COMP, VOID, DISCOUNT, SPLIT, MERGE, TRANSFER)
+export interface OrderAction {
+  id: string
+  orderId: string
+  actionType: 'COMP' | 'VOID' | 'DISCOUNT' | 'SPLIT' | 'MERGE' | 'TRANSFER'
+  performedById: string
+  performedBy?: { id: string; firstName: string; lastName: string; photoUrl?: string | null } | null
+  reason: string | null
+  metadata: any | null
+  createdAt: string
 }
