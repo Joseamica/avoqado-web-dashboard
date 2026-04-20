@@ -47,7 +47,8 @@ import {
   TrendingUp,
   User,
 } from 'lucide-react'
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { lazyWithRetry } from '@/lib/lazyWithRetry'
 import { useTranslation } from 'react-i18next'
 import CreateStoreGoalDialog from './CreateStoreGoalDialog'
 
@@ -68,8 +69,9 @@ import { getToday } from '@/utils/datetime'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { format } from 'date-fns'
 
-const AttendanceHeatmap = lazy(() => import('./components/AttendanceHeatmap').then(m => ({ default: m.AttendanceHeatmap })))
-const SalesHeatmap = lazy(() => import('./components/SalesHeatmap').then(m => ({ default: m.SalesHeatmap })))
+// `lazyWithRetry` → auto hard-reload on stale chunks after deploys.
+const AttendanceHeatmap = lazyWithRetry(() => import('./components/AttendanceHeatmap').then(m => ({ default: m.AttendanceHeatmap })))
+const SalesHeatmap = lazyWithRetry(() => import('./components/SalesHeatmap').then(m => ({ default: m.SalesHeatmap })))
 
 const VALID_TABS = ['operativo', 'checkin', 'ventas'] as const
 const STANDARD_REQUIRED_EVIDENCE_PHOTOS = 1

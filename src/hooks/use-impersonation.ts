@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import impersonationService, {
-  EligibleTargetsResponse,
+  EligibleTargetsResponseWithScope,
   ImpersonationMode,
   ImpersonationState,
 } from '@/services/impersonation.service'
@@ -21,17 +21,15 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { StaffRole as StaffRoleEnum } from '@/types'
 
 export const impersonationStatusQueryKey = ['impersonation', 'status']
-export const impersonationTargetsQueryKey = (venueId: string | null | undefined) => [
-  'impersonation',
-  'eligible-targets',
-  venueId,
-]
+export const impersonationTargetsQueryKey = (venueId: string | null | undefined) => ['impersonation', 'eligible-targets', venueId]
 
 export interface StartImpersonationArgs {
   mode: ImpersonationMode
   targetUserId?: string
   targetRole?: StaffRole
   reason: string
+  /** venueId currently shown in the URL. Sent explicitly to avoid JWT staleness. */
+  venueId?: string
 }
 
 export interface UseImpersonationReturn {
@@ -72,7 +70,7 @@ export interface UseImpersonationReturn {
   extendImpersonation: () => Promise<ImpersonationState>
   stopImpersonation: () => Promise<void>
   /** Targets for the picker. Loaded lazily (enabled controlled by caller). */
-  useEligibleTargets: () => ReturnType<typeof useQuery<EligibleTargetsResponse>>
+  useEligibleTargets: () => ReturnType<typeof useQuery<EligibleTargetsResponseWithScope>>
   /** Force a refetch of the server-side session state. */
   refreshStatus: () => void
 }
@@ -189,10 +187,12 @@ export function useImpersonation(): UseImpersonationReturn {
   }, [stopMutation])
 
   // Expose the eligible-targets query as a hook the picker opens lazily.
+  // The venueId here comes from useCurrentVenue() → URL slug, so the response
+  // reflects the venue the user sees in the address bar (not the stale JWT).
   const useEligibleTargets = () =>
-    useQuery<EligibleTargetsResponse>({
+    useQuery<EligibleTargetsResponseWithScope>({
       queryKey: impersonationTargetsQueryKey(venueId),
-      queryFn: () => impersonationService.getEligibleTargets(),
+      queryFn: () => impersonationService.getEligibleTargets(venueId ?? undefined),
       enabled: isSuperadmin && !!venueId,
       staleTime: 2 * 60 * 1000,
     })

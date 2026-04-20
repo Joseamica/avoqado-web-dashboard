@@ -37,6 +37,17 @@ export interface StartImpersonationRequest {
   targetUserId?: string
   targetRole?: StaffRole
   reason: string
+  /**
+   * venueId the frontend is currently showing (from URL slug). Sent explicitly
+   * so the session is scoped to the URL venue, not the (possibly stale) JWT
+   * venueId. When omitted the backend falls back to the JWT venueId.
+   */
+  venueId?: string
+}
+
+export interface EligibleTargetsResponseWithScope extends EligibleTargetsResponse {
+  /** The venueId the results are scoped to (echoed by the backend). */
+  venueId: string
 }
 
 export interface ImpersonationMutationResponse {
@@ -88,10 +99,13 @@ const impersonationService = {
   },
 
   /**
-   * List staff members and roles that the SUPERADMIN may impersonate within the current venue.
+   * List staff members and roles that the SUPERADMIN may impersonate within the given venue.
+   * The venueId should come from the URL slug so the response matches what the UI shows,
+   * not the stale JWT's venueId. Omitting it falls back to the JWT venueId.
    */
-  async getEligibleTargets(): Promise<EligibleTargetsResponse> {
-    const res = await api.get<EligibleTargetsResponse>('/api/v1/dashboard/impersonation/eligible-targets')
+  async getEligibleTargets(venueId?: string): Promise<EligibleTargetsResponseWithScope> {
+    const params = venueId ? { venueId } : {}
+    const res = await api.get<EligibleTargetsResponseWithScope>('/api/v1/dashboard/impersonation/eligible-targets', { params })
     return res.data
   },
 }

@@ -147,7 +147,12 @@ export function ImpersonationBanner() {
     <div
       role="status"
       aria-live="polite"
-      className={`relative overflow-hidden text-primary-foreground ${bgClass} ${stripeClass}`}
+      // STICKY: the banner must remain visible during scroll. It is the primary
+      // cue that the user is currently seeing the dashboard through someone
+      // else's eyes — if it scrolls off-screen, the superadmin can easily
+      // forget and act with stale context. z-40 sits below Radix portals (z-50)
+      // but above normal content.
+      className={`sticky top-0 z-40 shrink-0 overflow-hidden text-primary-foreground ${bgClass} ${stripeClass}`}
     >
       {/* Local keyframes for diagonal stripe animation */}
       <style>{`

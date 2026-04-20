@@ -23,12 +23,16 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { getCategoryStock, getStockMetrics, getStockMovements, type StockMovement } from '@/services/stockDashboard.service'
 import { useQuery } from '@tanstack/react-query'
 import { Box, CheckCircle2, Download, FileSpreadsheet, FileText, Package, Plus, Search, Settings2, Upload } from 'lucide-react'
-import { lazy, Suspense, useCallback, useMemo, useState } from 'react'
+import { Suspense, useCallback, useMemo, useState } from 'react'
+import { lazyWithRetry } from '@/lib/lazyWithRetry'
 import { useTranslation } from 'react-i18next'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { BulkUploadDialog, CategoryManagement, LowStockAlerts, StockVsSalesChart } from './components'
 
-const VenueSimCustodyPanel = lazy(() =>
+// `lazyWithRetry` instead of raw `lazy` so a stale chunk after a deploy triggers
+// an automatic hard reload (fetching fresh chunk hashes) instead of bubbling a
+// "Failed to fetch dynamically imported module" to the route-level error page.
+const VenueSimCustodyPanel = lazyWithRetry(() =>
   import('./components/VenueSimCustodyPanel').then(m => ({ default: m.VenueSimCustodyPanel })),
 )
 

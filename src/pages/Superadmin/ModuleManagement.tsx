@@ -20,16 +20,18 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Building2, Boxes, CheckCircle2, Eye, MoreHorizontal, Package, Pencil, Plus, Trash2, Sparkles, Settings2 } from 'lucide-react'
 import type { WhiteLabelConfig } from '@/types/white-label'
-import React, { Suspense, lazy, useMemo, useState } from 'react'
+import React, { Suspense, useMemo, useState } from 'react'
+import { lazyWithRetry } from '@/lib/lazyWithRetry'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import JsonBooleanToggles from '@/pages/Superadmin/components/JsonBooleanToggles'
 
 // Lazy load WhiteLabelWizard to avoid loading it for all users
-const WhiteLabelWizard = lazy(() => import('@/pages/Superadmin/WhiteLabelBuilder/WhiteLabelWizard'))
+// `lazyWithRetry` → auto hard-reload on stale chunks after deploys.
+const WhiteLabelWizard = lazyWithRetry(() => import('@/pages/Superadmin/WhiteLabelBuilder/WhiteLabelWizard'))
 // Lazy load ModuleCreationWizard (v2 interactive wizard)
-const ModuleCreationWizard = lazy(() => import('@/pages/Superadmin/components/ModuleCreationWizard'))
+const ModuleCreationWizard = lazyWithRetry(() => import('@/pages/Superadmin/components/ModuleCreationWizard'))
 // Lazy load ModuleOrganizationDialog
-const ModuleOrganizationDialog = lazy(() => import('@/pages/Superadmin/components/ModuleOrganizationDialog'))
+const ModuleOrganizationDialog = lazyWithRetry(() => import('@/pages/Superadmin/components/ModuleOrganizationDialog'))
 
 // ===========================================
 // GLASS CARD COMPONENT

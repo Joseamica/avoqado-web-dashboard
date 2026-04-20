@@ -34,7 +34,7 @@ type PickerTab = 'user' | 'role'
 
 export function ImpersonationPicker({ onImpersonationStarted }: ImpersonationPickerProps) {
   const { t } = useTranslation(['impersonation', 'common'])
-  const { venue } = useCurrentVenue()
+  const { venue, venueId } = useCurrentVenue()
   const { toast } = useToast()
   const { startImpersonation, isStarting, useEligibleTargets } = useImpersonation()
   const { data, isLoading, error } = useEligibleTargets()
@@ -75,10 +75,13 @@ export function ImpersonationPicker({ onImpersonationStarted }: ImpersonationPic
   const handleStart = async () => {
     setSubmitError(null)
     try {
+      // Pass the URL-scoped venueId so the impersonation JWT matches what the
+      // user sees (not the JWT's stale venueId after URL-based navigation).
+      const baseArgs = { reason: reason.trim(), venueId: venueId ?? undefined }
       if (tab === 'user' && selectedUserId) {
-        await startImpersonation({ mode: 'user', targetUserId: selectedUserId, reason: reason.trim() })
+        await startImpersonation({ mode: 'user', targetUserId: selectedUserId, ...baseArgs })
       } else if (tab === 'role' && selectedRole) {
-        await startImpersonation({ mode: 'role', targetRole: selectedRole, reason: reason.trim() })
+        await startImpersonation({ mode: 'role', targetRole: selectedRole, ...baseArgs })
       }
       toast({ title: t('impersonation:toast.started') })
       onImpersonationStarted?.()
