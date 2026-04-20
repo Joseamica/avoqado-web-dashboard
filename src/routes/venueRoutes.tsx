@@ -67,10 +67,8 @@ import {
   NotificationPreferences4,
   NotificationPreferences5,
   Notifications,
-  OrderId,
   Orders,
   PayLaterAging,
-  PaymentId,
   PaymentLinkBranding,
   PaymentLinks,
   PaymentLinkSettings,
@@ -196,7 +194,7 @@ export function createVenueRoutes(): RouteObject[] {
     // Orders (requires orders:read permission + KYC verification)
     // Both /orders and /orders/:orderId render the same <Orders /> component.
     // When :orderId is present the component opens an inline drawer over its list
-    // (Square-style). The full-page <OrderId /> is kept @deprecated.
+    // (Square-style OrderDrawerContent).
     {
       element: <PermissionProtectedRoute permission="orders:read" />,
       children: [
@@ -480,44 +478,44 @@ export function createVenueRoutes(): RouteObject[] {
       ],
     },
 
-    // Inventory Management (ADMIN access + inventory:read permission + KYC verification)
+    // Inventory Management (inventory:read permission + KYC verification)
+    // Granular permission only — venue admins can grant `inventory:read` to MANAGER
+    // (or any other role) via the per-venue role customization editor and have it
+    // actually take effect. The legacy `AdminProtectedRoute` was removed because it
+    // bypassed the customization system: even after granting the permission,
+    // non-ADMIN roles were redirected back to home.
     {
       path: 'inventory',
-      element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
+      element: <PermissionProtectedRoute permission="inventory:read" />,
       children: [
         {
-          element: <PermissionProtectedRoute permission="inventory:read" />,
+          element: <KYCProtectedRoute />,
           children: [
             {
-              element: <KYCProtectedRoute />,
+              element: <InventoryLayout />,
               children: [
-                {
-                  element: <InventoryLayout />,
-                  children: [
-                    { index: true, element: <Navigate to="stock-overview" replace /> },
-                    { path: 'stock-overview', element: <InventorySummary /> },
-                    { path: 'raw-materials', element: <RawMaterials /> },
-                    { path: 'history', element: <InventoryHistory /> },
-                    // Stock counts — READ-ONLY audit view. Counts are created in the mobile POS apps.
-                    { path: 'stock-counts', element: <StockCountsPage /> },
-                    { path: 'stock-counts/:countId', element: <StockCountDetailPage /> },
-                    { path: 'counts', element: <Navigate to="../stock-counts" replace /> },
-                    // Inventory transfers — READ-ONLY audit view. Transfers are created in the mobile POS apps.
-                    { path: 'transfers', element: <InventoryTransfersPage /> },
-                    { path: 'transfers/:transferId', element: <InventoryTransferDetailPage /> },
-                    { path: 'purchase-orders', element: <PurchaseOrdersPage /> },
-                    { path: 'purchase-orders/:poId', element: <PurchaseOrderDetailPage /> },
-                    { path: 'vendors', element: <div>Vendors</div> }, // Placeholder
-                    { path: 'suppliers', element: <SuppliersPage /> },
-                    { path: 'restocks', element: <div>Restocks</div> }, // Placeholder
-                    { path: 'ingredients', element: <RawMaterials /> }, // Ingredients = Raw Materials
-                    { path: 'product-stock', element: <ProductStock /> },
-                    { path: 'recipes', element: <Recipes /> },
-                    { path: 'pricing', element: <Navigate to="../recipes" replace /> },
-                    { path: 'modifiers', element: <ModifierInventory /> },
-                    { path: 'modifier-analytics', element: <ModifierAnalytics /> },
-                  ],
-                },
+                { index: true, element: <Navigate to="stock-overview" replace /> },
+                { path: 'stock-overview', element: <InventorySummary /> },
+                { path: 'raw-materials', element: <RawMaterials /> },
+                { path: 'history', element: <InventoryHistory /> },
+                // Stock counts — READ-ONLY audit view. Counts are created in the mobile POS apps.
+                { path: 'stock-counts', element: <StockCountsPage /> },
+                { path: 'stock-counts/:countId', element: <StockCountDetailPage /> },
+                { path: 'counts', element: <Navigate to="../stock-counts" replace /> },
+                // Inventory transfers — READ-ONLY audit view. Transfers are created in the mobile POS apps.
+                { path: 'transfers', element: <InventoryTransfersPage /> },
+                { path: 'transfers/:transferId', element: <InventoryTransferDetailPage /> },
+                { path: 'purchase-orders', element: <PurchaseOrdersPage /> },
+                { path: 'purchase-orders/:poId', element: <PurchaseOrderDetailPage /> },
+                { path: 'vendors', element: <div>Vendors</div> }, // Placeholder
+                { path: 'suppliers', element: <SuppliersPage /> },
+                { path: 'restocks', element: <div>Restocks</div> }, // Placeholder
+                { path: 'ingredients', element: <RawMaterials /> }, // Ingredients = Raw Materials
+                { path: 'product-stock', element: <ProductStock /> },
+                { path: 'recipes', element: <Recipes /> },
+                { path: 'pricing', element: <Navigate to="../recipes" replace /> },
+                { path: 'modifiers', element: <ModifierInventory /> },
+                { path: 'modifier-analytics', element: <ModifierAnalytics /> },
               ],
             },
           ],
