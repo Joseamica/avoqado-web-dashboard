@@ -1,0 +1,95 @@
+{
+  "button": {
+    "open": "Impersonate",
+    "exit": "Exit impersonation",
+    "tooltip": "Impersonate a user or role",
+    "tooltipExit": "End impersonation session"
+  },
+  "picker": {
+    "title": "Impersonate at",
+    "tabs": {
+      "user": "User",
+      "role": "Role"
+    },
+    "searchPlaceholder": "Search member...",
+    "emptyUsers": "No members available in this venue.",
+    "emptySearch": "No user matches your search.",
+    "reasonLabel": "Reason (required)",
+    "reasonPlaceholder": "e.g. Ticket #123 — customer reports they cannot see payments",
+    "reasonTooShort": "Reason must be at least {{min}} characters.",
+    "start": "Impersonate",
+    "starting": "Starting..."
+  },
+  "roles": {
+    "VIEWER": {
+      "name": "Viewer",
+      "description": "Read-only — can see information but cannot modify anything."
+    },
+    "HOST": {
+      "name": "Host",
+      "description": "Customer-facing — seats guests and manages reservations."
+    },
+    "WAITER": {
+      "name": "Waiter",
+      "description": "Day-to-day service — takes orders and processes payments."
+    },
+    "CASHIER": {
+      "name": "Cashier",
+      "description": "Processes payments and manages the register."
+    },
+    "KITCHEN": {
+      "name": "Kitchen",
+      "description": "Kitchen operations — receives orders and marks them ready."
+    },
+    "MANAGER": {
+      "name": "Manager",
+      "description": "Supervises staff and accesses venue reports."
+    },
+    "ADMIN": {
+      "name": "Administrator",
+      "description": "Venue configuration — menus, promotions, integrations."
+    },
+    "OWNER": {
+      "name": "Owner",
+      "description": "Full venue access — including billing and permissions."
+    }
+  },
+  "banner": {
+    "viewingAsUser": "Viewing as <strong>{{name}}</strong> ({{role}})",
+    "viewingAsRole": "Viewing as role <strong>{{role}}</strong>",
+    "readOnly": "Read-only",
+    "expiresIn": "Expires in {{countdown}}",
+    "reasonLabel": "Reason:",
+    "extend": "Extend +15 min",
+    "extendTooltipMax": "You reached the max of {{max}} extensions",
+    "extending": "Extending...",
+    "exit": "Exit",
+    "exiting": "Exiting...",
+    "progressLabel": "Time remaining"
+  },
+  "toast": {
+    "started": "Impersonation session started.",
+    "extended": "Session extended by 15 min.",
+    "stopped": "Impersonation session ended.",
+    "expiredSoon": "Your impersonation session expires in {{minutes}} min.",
+    "expiredCritical": "Your session expires in seconds. Extend or exit now.",
+    "expired": "Impersonation session expired. You are back as SUPERADMIN.",
+    "readOnlyBlocked": "You cannot edit in impersonation mode.",
+    "blockedRoute": "Exit impersonation to access this section.",
+    "targetInvalid": "The user you were viewing is no longer active.",
+    "startFailed": "Could not start impersonation.",
+    "extendFailed": "Could not extend the session.",
+    "stopFailed": "Could not end the session."
+  },
+  "navigation": {
+    "blockModalTitle": "Exit impersonation to continue",
+    "blockModalBody": "This section is only available to your SUPERADMIN account. End impersonation to continue.",
+    "blockModalStop": "Exit and continue",
+    "blockModalCancel": "Cancel"
+  },
+  "status": {
+    "notImpersonating": "Not impersonating",
+    "user": "Impersonating user",
+    "role": "Impersonating role"
+  }
+}

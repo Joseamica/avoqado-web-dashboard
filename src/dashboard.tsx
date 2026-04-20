@@ -20,6 +20,11 @@ import { Shield, ArrowLeft } from 'lucide-react'
 import NotificationBell from './components/notifications/NotificationBell'
 import LanguageSwitcher from './components/language-switcher'
 import { InventorySetupChecklist } from './components/onboarding/InventorySetupChecklist'
+import { ImpersonationHeaderButton } from './components/impersonation/ImpersonationHeaderButton'
+import { ImpersonationBanner } from './components/impersonation/ImpersonationBanner'
+import { ImpersonationShortcut } from './components/impersonation/ImpersonationShortcut'
+import { ImpersonationScreenRing } from './components/impersonation/ImpersonationScreenRing'
+import { ImpersonationErrorListener } from './components/impersonation/ImpersonationErrorListener'
 import { useInventoryWelcomeTourOrchestrator } from './hooks/useInventoryWelcomeTour'
 import { useTranslation } from 'react-i18next'
 import { BreadcrumbProvider, useBreadcrumb } from './context/BreadcrumbContext'
@@ -64,6 +69,8 @@ function DashboardContent() {
   // Command palette state
   const [commandOpen, setCommandOpen] = useState(false)
   const [sidebarMeta, setSidebarMeta] = useState<SidebarMeta>({ navItems: [], hiddenSidebarItems: [], isSuperadmin: false })
+  // SUPERADMIN impersonation picker — popover open state controlled by the header button + global shortcut
+  const [impersonationPickerOpen, setImpersonationPickerOpen] = useState(false)
 
   // Cmd+K / Ctrl+K shortcut
   useEffect(() => {
@@ -282,6 +289,10 @@ function DashboardContent() {
                 <ArrowLeft className="w-3 h-3 hidden sm:block" />
               </Button>
             )}
+            {/* SUPERADMIN impersonation — button hidden for non-superadmins.
+                While an impersonation session is active, the button transforms
+                into a destructive "Salir" action. */}
+            <ImpersonationHeaderButton open={impersonationPickerOpen} onOpenChange={setImpersonationPickerOpen} />
             <LanguageSwitcher />
             {/* Payment setup alert (SUPERADMIN-only) — header variant shows
                 a compact gradient icon button that opens a popover with the
@@ -297,6 +308,11 @@ function DashboardContent() {
             <ThemeToggle />
           </div>
         </header>
+
+        {/* Impersonation banner — visible only while the SUPERADMIN is inside
+            a read-only impersonation session. Sticky at the top with a striped
+            amber→pink gradient that is visually distinct from every other banner. */}
+        <ImpersonationBanner />
 
         {/* Onboarding Demo Banner - only show if venue is in TRIAL status */}
         {venue?.status === 'TRIAL' && <DemoBanner />}
@@ -324,7 +340,19 @@ function DashboardContent() {
         navItems={sidebarMeta.navItems}
         hiddenSidebarItems={sidebarMeta.hiddenSidebarItems}
         isSuperadmin={sidebarMeta.isSuperadmin}
+        onOpenImpersonation={() => setImpersonationPickerOpen(true)}
       />
+
+      {/* Global keyboard shortcut (⌘⇧I) to toggle the impersonation picker / exit. */}
+      <ImpersonationShortcut
+        onTogglePicker={() => setImpersonationPickerOpen(prev => !prev)}
+      />
+
+      {/* Whole-screen amber ring while impersonating — peripheral-vision reminder. */}
+      <ImpersonationScreenRing />
+
+      {/* Turns impersonation 401/403 responses into toasts + state cleanup. */}
+      <ImpersonationErrorListener />
     </SidebarProvider>
   )
 }

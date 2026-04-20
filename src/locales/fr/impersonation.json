@@ -1,0 +1,95 @@
+{
+  "button": {
+    "open": "Usurper",
+    "exit": "Quitter l'usurpation",
+    "tooltip": "Usurper un utilisateur ou un rôle",
+    "tooltipExit": "Terminer la session d'usurpation"
+  },
+  "picker": {
+    "title": "Usurper dans",
+    "tabs": {
+      "user": "Utilisateur",
+      "role": "Rôle"
+    },
+    "searchPlaceholder": "Rechercher un membre...",
+    "emptyUsers": "Aucun membre disponible dans ce venue.",
+    "emptySearch": "Aucun utilisateur ne correspond à votre recherche.",
+    "reasonLabel": "Raison (obligatoire)",
+    "reasonPlaceholder": "Ex : Ticket #123 — le client signale qu'il ne voit pas les paiements",
+    "reasonTooShort": "La raison doit comporter au moins {{min}} caractères.",
+    "start": "Usurper",
+    "starting": "Démarrage..."
+  },
+  "roles": {
+    "VIEWER": {
+      "name": "Observateur",
+      "description": "Lecture seule — peut voir mais rien modifier."
+    },
+    "HOST": {
+      "name": "Hôte",
+      "description": "Service client — installe les clients et gère les réservations."
+    },
+    "WAITER": {
+      "name": "Serveur",
+      "description": "Opérations quotidiennes — prend les commandes et encaisse."
+    },
+    "CASHIER": {
+      "name": "Caissier",
+      "description": "Traite les paiements et gère la caisse."
+    },
+    "KITCHEN": {
+      "name": "Cuisine",
+      "description": "Opérations de cuisine — reçoit et valide les commandes prêtes."
+    },
+    "MANAGER": {
+      "name": "Manager",
+      "description": "Supervise l'équipe et consulte les rapports du venue."
+    },
+    "ADMIN": {
+      "name": "Administrateur",
+      "description": "Configuration du venue — menus, promotions, intégrations."
+    },
+    "OWNER": {
+      "name": "Propriétaire",
+      "description": "Accès complet au venue — incluant facturation et permissions."
+    }
+  },
+  "banner": {
+    "viewingAsUser": "Vue en tant que <strong>{{name}}</strong> ({{role}})",
+    "viewingAsRole": "Vue en tant que rôle <strong>{{role}}</strong>",
+    "readOnly": "Lecture seule",
+    "expiresIn": "Expire dans {{countdown}}",
+    "reasonLabel": "Raison :",
+    "extend": "Prolonger +15 min",
+    "extendTooltipMax": "Vous avez atteint le maximum de {{max}} prolongations",
+    "extending": "Prolongation...",
+    "exit": "Quitter",
+    "exiting": "Sortie...",
+    "progressLabel": "Temps restant"
+  },
+  "toast": {
+    "started": "Session d'usurpation démarrée.",
+    "extended": "Session prolongée de 15 min.",
+    "stopped": "Session d'usurpation terminée.",
+    "expiredSoon": "Votre session d'usurpation expire dans {{minutes}} min.",
+    "expiredCritical": "Votre session expire dans quelques secondes. Prolongez ou quittez maintenant.",
+    "expired": "La session d'usurpation a expiré. Vous êtes de retour en SUPERADMIN.",
+    "readOnlyBlocked": "Vous ne pouvez pas modifier en mode usurpation.",
+    "blockedRoute": "Quittez l'usurpation pour accéder à cette section.",
+    "targetInvalid": "L'utilisateur que vous consultiez n'est plus actif.",
+    "startFailed": "Impossible de démarrer l'usurpation.",
+    "extendFailed": "Impossible de prolonger la session.",
+    "stopFailed": "Impossible de terminer la session."
+  },
+  "navigation": {
+    "blockModalTitle": "Quittez l'usurpation pour continuer",
+    "blockModalBody": "Cette section est réservée à votre compte SUPERADMIN. Terminez l'usurpation pour continuer.",
+    "blockModalStop": "Quitter et continuer",
+    "blockModalCancel": "Annuler"
+  },
+  "status": {
+    "notImpersonating": "Aucune usurpation",
+    "user": "Usurpation d'utilisateur",
+    "role": "Usurpation de rôle"
+  }
+}

@@ -736,11 +736,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   )
 
   const switchVenueMutation = useMutation({
-    mutationFn: (newVenueSlug: string) => {
+    mutationFn: async (newVenueSlug: string) => {
       // Obtener el ID del venue por el slug para el servicio
       const targetVenue = getVenueBySlug(newVenueSlug)
       if (!targetVenue) {
         throw new Error(`Venue con slug '${newVenueSlug}' no encontrado`)
+      }
+      // IMPERSONATION: exit any active session before switching venues.
+      // The impersonation JWT is scoped to a specific venueId, so switching
+      // while impersonating would leave a stale session pointing at the
+      // previous venue. Fire-and-forget-with-wait: best-effort stop, then
+      // swallow errors so the venue switch still proceeds.
+      try {
+        const statusRes = await import('@/services/impersonation.service').then(m => m.default.getStatus())
+        if (statusRes.isImpersonating) {
+          await import('@/services/impersonation.service').then(m => m.default.stop())
+        }
+      } catch {
+        // If /status or /stop fail, continue with the switch — backend will
+        // reject any stale impersonation token on the next request anyway.
       }
       return authService.switchVenue(targetVenue.id)
     },
