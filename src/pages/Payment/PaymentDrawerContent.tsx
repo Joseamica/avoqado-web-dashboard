@@ -139,17 +139,24 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
   const orderItems = payment.order?.items ?? []
   const items: DrawerLineItem[] =
     orderItems.length > 0
-      ? orderItems.map((item: any) => ({
-          name: item.productName || item.product?.name || t('detail.customAmount', { defaultValue: 'Importe personalizado' }),
-          quantity: item.quantity || 1,
-          unitPrice: Number(item.unitPrice) || 0,
-          total: Number(item.total) || 0,
-          isCustom: !item.productId,
-          modifiers: (item.modifiers || []).map((m: any) => ({
-            name: m.name ?? m.modifier?.name ?? '-',
-            price: Number(m.price ?? m.modifier?.price ?? 0),
-          })),
-        }))
+      ? orderItems.map((item: any) => {
+          const unitPrice = Number(item.unitPrice) || 0
+          const lineTotal = Number(item.total) || 0
+          return {
+            name: item.productName || item.product?.name || t('detail.customAmount', { defaultValue: 'Importe personalizado' }),
+            quantity: item.quantity || 1,
+            unitPrice,
+            total: lineTotal,
+            isCustom: !item.productId,
+            // Item fully comped (courtesy): original price > 0 but charged total = 0.
+            // Matches TPV/Android behavior where cortesía zeroes the line total.
+            isCourtesy: unitPrice > 0 && lineTotal === 0,
+            modifiers: (item.modifiers || []).map((m: any) => ({
+              name: m.name ?? m.modifier?.name ?? '-',
+              price: Number(m.price ?? m.modifier?.price ?? 0),
+            })),
+          }
+        })
       : [
           {
             name: t('detail.customAmount', { defaultValue: 'Importe personalizado' }),
@@ -157,6 +164,7 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
             unitPrice: amount,
             total: amount,
             isCustom: true,
+            isCourtesy: false,
             modifiers: [],
           },
         ]
@@ -352,11 +360,19 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
           {items.map((item, idx) => (
             <div key={idx} className="rounded-lg px-3 py-3 flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="secondary" className="font-medium shrink-0">
                     {item.quantity}x
                   </Badge>
                   <span className="font-medium text-foreground truncate">{item.name}</span>
+                  {item.isCourtesy && (
+                    <Badge
+                      variant="outline"
+                      className="shrink-0 border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
+                    >
+                      {t('detail.items.courtesy', { defaultValue: 'Cortesía' })}
+                    </Badge>
+                  )}
                 </div>
                 {item.modifiers.length > 0 && (
                   <div className="mt-2 space-y-1 ml-9">
@@ -376,7 +392,14 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
                     {Currency(item.unitPrice)} {t('detail.items.each', { defaultValue: 'c/u' })}
                   </span>
                 )}
-                <span className="font-medium text-foreground">{Currency(item.total)}</span>
+                {item.isCourtesy ? (
+                  <div className="flex flex-col items-end">
+                    <span className="text-xs text-muted-foreground line-through">{Currency(item.unitPrice * item.quantity)}</span>
+                    <span className="font-medium text-emerald-600 dark:text-emerald-400">{Currency(item.total)}</span>
+                  </div>
+                ) : (
+                  <span className="font-medium text-foreground">{Currency(item.total)}</span>
+                )}
               </div>
             </div>
           ))}
@@ -604,5 +627,6 @@ interface DrawerLineItem {
   unitPrice: number
   total: number
   isCustom: boolean
+  isCourtesy: boolean
   modifiers: Array<{ name: string; price: number }>
 }

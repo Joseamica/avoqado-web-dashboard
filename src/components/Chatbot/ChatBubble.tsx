@@ -3,6 +3,7 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   AlertTriangle,
+  ArrowRight,
   BarChart3,
   ChevronDown,
   ChevronUp,
@@ -17,6 +18,7 @@ import {
   Save,
   Send,
   Sparkles,
+  Lock,
   ThumbsDown,
   ThumbsUp,
   Trash2,
@@ -75,6 +77,7 @@ import {
   sendChatMessage,
   submitFeedback,
   submitFeedbackWithCorrection,
+  isChatFeatureLockedError,
   type ChatResponseMetadata,
   type CreateProductActionMetadata,
   type VisualizationResult,
@@ -126,6 +129,12 @@ interface PendingCreateProductConfirmation {
   idempotencyKey: string
   confirmationSummary: string
   productName: string
+}
+
+interface ChatFeatureLockNotice {
+  message: string
+  trialExpired?: boolean
+  suspended?: boolean
 }
 
 // Helper function to convert conversation history to chat messages
@@ -278,6 +287,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   // Estado para diálogo de advertencia de tokens
   const [showTokenWarningDialog, setShowTokenWarningDialog] = useState(false)
   const [pendingMessage, setPendingMessage] = useState<string | null>(null)
+  const [featureLockNotice, setFeatureLockNotice] = useState<ChatFeatureLockNotice | null>(null)
 
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -347,6 +357,16 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
     },
     onError: (error: Error) => {
       console.error('Chat error:', error)
+
+      if (isChatFeatureLockedError(error)) {
+        setFeatureLockNotice({
+          message: error.message,
+          trialExpired: error.trialExpired,
+          suspended: error.suspended,
+        })
+        return
+      }
+
       // Debounce toast errors to prevent spam
       if (!window[`__chat_error_${error.message}`]) {
         window[`__chat_error_${error.message}`] = true
@@ -778,6 +798,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 
   // Check token warning and show dialog if needed
   const tokenWarning = useMemo(() => shouldWarnBeforeSending(tokenBudget), [tokenBudget])
+  const billingPath = venueSlug ? `/dashboard/venues/${venueSlug}/billing` : '/dashboard'
 
   // Function to actually send the message (used by both direct send and action forms)
   const sendMessage = useCallback(
@@ -805,6 +826,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         { message: backendMessage, withVisualization: includeVisualization, referencesContext },
         {
           onSuccess: result => {
+            setFeatureLockNotice(null)
             const botMessage: ChatMessage = {
               id: `bot-${Date.now()}`,
               text: result.response,
@@ -1374,7 +1396,34 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
           {/* Messages */}
           <div className={`flex-1 p-4 overflow-y-auto bg-background ${!isExpanded ? 'h-72' : ''}`}>
             <div className="space-y-4">
-              {messages.map((message, index) => (
+              {featureLockNotice ? (
+                <div className="max-w-xl mx-auto mt-6">
+                  <div className="rounded-lg border border-amber-300/60 bg-amber-50 dark:bg-amber-950/20 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-full bg-amber-100 dark:bg-amber-900/40 p-2">
+                        <Lock className="h-4 w-4 text-amber-700 dark:text-amber-300" />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                          {featureLockNotice.suspended
+                            ? 'Tu suscripción del asistente está suspendida'
+                            : featureLockNotice.trialExpired
+                              ? 'Tu prueba del asistente expiró'
+                              : 'Activa el feature CHATBOT para usar el asistente'}
+                        </p>
+                        <p className="text-xs text-amber-800/90 dark:text-amber-300/90">{featureLockNotice.message}</p>
+                        <Button asChild size="sm" className="mt-1">
+                          <Link to={billingPath}>
+                            Activar ahora
+                            <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                messages.map((message, index) => (
                 <div key={message.id} className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
                   <div
                     className={`max-w-[80%] px-3 py-2 rounded-lg theme-transition ${
@@ -1620,7 +1669,8 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                       ))}
                   </div>
                 </div>
-              ))}
+                ))
+              )}
               <div ref={setMessagesEndRef} />
             </div>
           </div>
@@ -1630,7 +1680,13 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
             {/* Visualization toggle */}
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
-                <Switch id="viz-toggle" checked={includeVisualization} onCheckedChange={setIncludeVisualization} className="scale-75" />
+                <Switch
+                  id="viz-toggle"
+                  checked={includeVisualization}
+                  onCheckedChange={setIncludeVisualization}
+                  className="scale-75"
+                  disabled={!!featureLockNotice}
+                />
                 <label htmlFor="viz-toggle" className="text-xs text-muted-foreground flex items-center gap-1 cursor-pointer">
                   <BarChart3 className="h-3 w-3" />
                   {t('chat.visualization.toggle')}
@@ -1655,13 +1711,13 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                           placeholder={t('chat.input.placeholder')}
                           className="border-input bg-background text-foreground"
                           {...field}
-                          disabled={chatMutation.isPending || isCreateProductSubmitting}
+                          disabled={chatMutation.isPending || isCreateProductSubmitting || !!featureLockNotice}
                         />
                       </FormControl>
                     </FormItem>
                   )}
                 />
-                <Button type="submit" size="icon" disabled={chatMutation.isPending || isCreateProductSubmitting}>
+                <Button type="submit" size="icon" disabled={chatMutation.isPending || isCreateProductSubmitting || !!featureLockNotice}>
                   {chatMutation.isPending || isCreateProductSubmitting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
@@ -1952,7 +2008,12 @@ export function ChatBubble({ variant = 'fab' }: { variant?: 'fab' | 'sidebar' } 
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <Sparkles className="h-4 w-4" />
             </span>
-            <span className="flex-1 text-left font-medium">{t('chat.a11y.open', { defaultValue: 'Chatbot' })}</span>
+            <span className="flex-1 flex items-center gap-2 text-left font-medium">
+              <span>{t('chat.a11y.open', { defaultValue: 'Chatbot' })}</span>
+              <Badge variant="outline" className="h-5 rounded-full border-primary/30 bg-primary/5 px-2 text-[10px] font-semibold text-primary">
+                PRO
+              </Badge>
+            </span>
             {referenceCount > 0 && (
               <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-medium text-destructive-foreground">
                 {referenceCount}

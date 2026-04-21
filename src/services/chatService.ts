@@ -146,6 +146,35 @@ interface ChatResponse {
   metadata?: ChatResponseMetadata
 }
 
+export class ChatFeatureLockedError extends Error {
+  code = 'CHATBOT_FEATURE_LOCKED' as const
+  featureCode?: string
+  subscriptionRequired?: boolean
+  trialExpired?: boolean
+  suspended?: boolean
+
+  constructor(
+    message: string,
+    details?: {
+      featureCode?: string
+      subscriptionRequired?: boolean
+      trialExpired?: boolean
+      suspended?: boolean
+    },
+  ) {
+    super(message)
+    this.name = 'ChatFeatureLockedError'
+    this.featureCode = details?.featureCode
+    this.subscriptionRequired = details?.subscriptionRequired
+    this.trialExpired = details?.trialExpired
+    this.suspended = details?.suspended
+  }
+}
+
+export const isChatFeatureLockedError = (error: unknown): error is ChatFeatureLockedError => {
+  return error instanceof ChatFeatureLockedError
+}
+
 export interface AssistantActionPreviewRequest {
   actionType: 'create_product'
   draft?: {
@@ -596,8 +625,25 @@ export const sendChatMessage = async (message: string, options?: SendChatMessage
     if (error.response?.status === 401) {
       throw new Error('No estás autenticado. Por favor, recarga la página e inicia sesión nuevamente.')
     } else if (error.response?.status === 403) {
+      const backendPayload = error.response?.data || {}
       const backendMessage = error.response?.data?.message
       const friendlyMessage = backendMessage || 'No tienes permisos para usar el asistente IA.'
+      const isChatbotGate =
+        backendPayload?.featureCode === 'CHATBOT' ||
+        backendPayload?.subscriptionRequired === true ||
+        backendPayload?.trialExpired === true ||
+        backendPayload?.suspended === true ||
+        /chatbot feature/i.test(friendlyMessage)
+
+      if (isChatbotGate) {
+        throw new ChatFeatureLockedError(friendlyMessage, {
+          featureCode: backendPayload?.featureCode,
+          subscriptionRequired: backendPayload?.subscriptionRequired,
+          trialExpired: backendPayload?.trialExpired,
+          suspended: backendPayload?.suspended,
+        })
+      }
+
       throw new Error(friendlyMessage)
     } else if (error.response?.status >= 500) {
       throw new Error('Error del servidor. Por favor, intenta más tarde.')

@@ -700,11 +700,10 @@ export function AppSidebar({
         {/* <NavProjects projects={data.projects} /> */}
       </SidebarContent>
       <SidebarFooter className="p-0 border-t border-sidebar-border">
-        {/* Chatbot trigger — shows only when the venue has the CHATBOT feature
-            enabled. Replaces the old fixed bottom-right FAB that used to live
-            in dashboard.tsx. The chat panel itself still opens from the
-            bottom-right corner of the viewport. */}
-        {activeVenue && checkFeatureAccess('CHATBOT') && <ChatBubble variant="sidebar" />}
+        {/* Chatbot trigger is always visible in the sidebar. Backend endpoints
+            still enforce feature access and return 403 when the venue is not
+            subscribed. */}
+        {activeVenue && <ChatBubble variant="sidebar" />}
         <NavUser user={navUser} />
       </SidebarFooter>
       <SidebarRail />
