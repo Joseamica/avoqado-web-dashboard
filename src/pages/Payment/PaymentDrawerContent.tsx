@@ -137,6 +137,11 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
   const dateShort = createdAt.toFormat("d 'de' LLL. yyyy HH:mm", { locale: 'es' })
 
   const orderItems = payment.order?.items ?? []
+  // Order-level cortesía detection: TPV applies 100% discount at order level (not per-item),
+  // so OrderItem.total stays at original price — the signal is order.discountAmount > 0 && order.total === 0.
+  const orderDiscountAmount = Number(payment.order?.discountAmount) || 0
+  const orderTotalAmount = Number(payment.order?.total) || 0
+  const isOrderFullyComped = orderDiscountAmount > 0 && orderTotalAmount === 0
   const items: DrawerLineItem[] =
     orderItems.length > 0
       ? orderItems.map((item: any) => {
@@ -148,9 +153,7 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
             unitPrice,
             total: lineTotal,
             isCustom: !item.productId,
-            // Item fully comped (courtesy): original price > 0 but charged total = 0.
-            // Matches TPV/Android behavior where cortesía zeroes the line total.
-            isCourtesy: unitPrice > 0 && lineTotal === 0,
+            isCourtesy: isOrderFullyComped || (unitPrice > 0 && lineTotal === 0),
             modifiers: (item.modifiers || []).map((m: any) => ({
               name: m.name ?? m.modifier?.name ?? '-',
               price: Number(m.price ?? m.modifier?.price ?? 0),

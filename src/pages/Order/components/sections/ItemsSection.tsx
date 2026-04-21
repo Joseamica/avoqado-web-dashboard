@@ -69,6 +69,8 @@ export function ItemsSection({ order }: Props) {
   const tax = Number(order.taxAmount ?? 0)
   const tip = Number(order.tipAmount ?? 0)
   const total = Number(order.total ?? 0)
+  // 100% off (discount covers full subtotal) = cortesía; anything less = descuento parcial.
+  const isFullyComped = discount > 0 && subtotal > 0 && discount >= subtotal
 
   return (
     <section>
@@ -87,8 +89,14 @@ export function ItemsSection({ order }: Props) {
           </div>
           {discount > 0 && (
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{t('drawer.totals.discount')}</span>
-              <span className="text-foreground">-{Currency(discount)}</span>
+              <span className="text-muted-foreground">
+                {isFullyComped
+                  ? t('drawer.totals.courtesy', { defaultValue: 'Cortesía' })
+                  : t('drawer.totals.discount')}
+              </span>
+              <span className={isFullyComped ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-foreground'}>
+                -{Currency(discount)}
+              </span>
             </div>
           )}
           {tax > 0 && (
