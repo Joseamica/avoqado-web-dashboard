@@ -33,6 +33,7 @@ import {
   shouldWarnBeforeSending,
 } from '@/hooks/use-token-budget'
 import { useChatReferences } from '@/hooks/use-chat-references'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useAuth } from '@/context/AuthContext'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -228,6 +229,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   const { t, i18n } = useTranslation()
   const { t: tCommon } = useTranslation('common')
   const { slug } = useParams<{ slug: string }>()
+  const { fullBasePath } = useCurrentVenue()
   const { user } = useAuth()
   const userId = user?.id ?? null
   const venueSlug = slug ?? null
@@ -798,7 +800,10 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 
   // Check token warning and show dialog if needed
   const tokenWarning = useMemo(() => shouldWarnBeforeSending(tokenBudget), [tokenBudget])
-  const billingPath = venueSlug ? `/dashboard/venues/${venueSlug}/billing` : '/dashboard'
+  // Use fullBasePath so billing link works in both /venues/:slug and
+  // /wl/venues/:slug routes (white-label). Fall back to / when there's no
+  // venue slug (chatbot shouldn't render anyway in that case).
+  const billingPath = venueSlug ? `${fullBasePath}/settings/billing` : '/'
 
   // Function to actually send the message (used by both direct send and action forms)
   const sendMessage = useCallback(
