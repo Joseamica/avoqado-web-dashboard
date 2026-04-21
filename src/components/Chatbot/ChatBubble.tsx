@@ -1916,8 +1916,10 @@ export function ChatBubble({ variant = 'fab' }: { variant?: 'fab' | 'sidebar' } 
   const [isMounted, setIsMounted] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
   const { venueId } = useParams()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { referenceCount } = useChatReferences()
+  const isSpanish = i18n.resolvedLanguage?.toLowerCase().startsWith('es') ?? false
+  const sidebarTriggerLabel = isSpanish ? 'Asistente IA' : 'AI Assistant'
 
   // Track previous venue ID to detect changes
   const previousVenueIdRef = useRef<string | undefined>(venueId)
@@ -1985,10 +1987,10 @@ export function ChatBubble({ variant = 'fab' }: { variant?: 'fab' | 'sidebar' } 
     <>
       {panel && typeof document !== 'undefined' ? createPortal(panel, document.body) : null}
 
-      {/* Trigger — visible only when chat is closed. Two variants:
+      {/* Trigger. Two variants:
           - 'fab' (default): the big round floating action button
           - 'sidebar': a compact row sized to fit inside the sidebar footer */}
-      {!isOpen && (
+      {(variant === 'sidebar' || !isOpen) && (
         variant === 'sidebar' ? (
           <button
             type="button"
@@ -2000,7 +2002,7 @@ export function ChatBubble({ variant = 'fab' }: { variant?: 'fab' | 'sidebar' } 
               <Sparkles className="h-4 w-4" />
             </span>
             <span className="flex-1 flex items-center gap-2 text-left font-medium">
-              <span>{t('chat.a11y.open', { defaultValue: 'Chatbot' })}</span>
+              <span>{sidebarTriggerLabel}</span>
               <Badge variant="outline" className="h-5 rounded-full border-primary/30 bg-primary/5 px-2 text-[10px] font-semibold text-primary">
                 PRO
               </Badge>

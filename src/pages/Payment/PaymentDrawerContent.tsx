@@ -398,7 +398,7 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
                 {item.isCourtesy ? (
                   <div className="flex flex-col items-end">
                     <span className="text-xs text-muted-foreground line-through">{Currency(item.unitPrice * item.quantity)}</span>
-                    <span className="font-medium text-emerald-600 dark:text-emerald-400">{Currency(item.total)}</span>
+                    <span className="font-medium text-emerald-600 dark:text-emerald-400">{Currency(0)}</span>
                   </div>
                 ) : (
                   <span className="font-medium text-foreground">{Currency(item.total)}</span>
