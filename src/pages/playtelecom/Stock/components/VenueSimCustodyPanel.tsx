@@ -33,6 +33,12 @@ import type { OrgStockOverviewItem } from '@/services/stockDashboard.service'
 
 interface Props {
   orgId: string
+  /**
+   * Optional user-controlled date window (driven by the page-level
+   * DateRangePicker in StockControl). When omitted we fall back to the
+   * legacy 30-day window frozen at mount time.
+   */
+  dateRange?: { from: Date; to: Date }
 }
 
 // A SIM is "stuck" when it's been with a promoter (pending or accepted, not
@@ -42,19 +48,25 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000
 
 type FilterKey = 'todos' | 'almacen' | 'pendientes' | 'aceptados' | 'rechazados' | 'vendidos'
 
-export function VenueSimCustodyPanel({ orgId }: Props) {
+export function VenueSimCustodyPanel({ orgId, dateRange }: Props) {
   const { user } = useAuth()
   const currentStaffId = user?.id ?? null
 
-  // Freeze the window once per mount (prevents infinite refetch loop — same
-  // pattern used in AssignToSupervisorDialog).
+  // Memoize ISO string params — using the date refs directly would re-emit on
+  // every render of the parent, thrashing react-query. Comparing by ms keeps
+  // the query stable as long as the caller passes the same range instance or
+  // a structurally identical one.
+  const fromMs = dateRange?.from.getTime()
+  const toMs = dateRange?.to.getTime()
   const stockParams = useMemo(() => {
+    if (fromMs != null && toMs != null) {
+      return { dateFrom: new Date(fromMs).toISOString(), dateTo: new Date(toMs).toISOString() }
+    }
     const end = new Date()
     const start = new Date(end)
     start.setDate(start.getDate() - 30)
     return { dateFrom: start.toISOString(), dateTo: end.toISOString() }
-     
-  }, [])
+  }, [fromMs, toMs])
   const { data, isLoading, error } = useOrgStockControl(orgId, stockParams)
 
   // Narrow to SIMs owned by this supervisor.
@@ -101,10 +113,7 @@ export function VenueSimCustodyPanel({ orgId }: Props) {
   // Promoter ranking (top 5 by SIMs actively in hand)
   // ============================================================
   const promoterRanking = useMemo(() => {
-    const byPromoter = new Map<
-      string,
-      { id: string; name: string; pending: number; held: number; sold: number }
-    >()
+    const byPromoter = new Map<string, { id: string; name: string; pending: number; held: number; sold: number }>()
     for (const s of mySims) {
       if (!s.assignedPromoterId || !s.assignedPromoterName) continue
       const key = s.assignedPromoterId
@@ -182,8 +191,18 @@ export function VenueSimCustodyPanel({ orgId }: Props) {
     )
   }
 
+  const rangeLabel = dateRange
+    ? `${dateRange.from.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })} – ${dateRange.to.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}`
+    : 'Últimos 30 días'
+
   return (
     <div className="space-y-6">
+      {/* Active range indicator — makes it obvious why certain SIMs aren't
+          appearing (they're outside the window). */}
+      <p className="text-xs text-muted-foreground">
+        Mostrando SIMs asignados a ti en el rango: <span className="font-medium text-foreground">{rangeLabel}</span>
+      </p>
+
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         <SummaryCard label="Total" value={summary.total} tint="slate" />
@@ -241,9 +260,7 @@ export function VenueSimCustodyPanel({ orgId }: Props) {
             <ul className="space-y-2">
               {promoterRanking.map((p, idx) => (
                 <li key={p.id} className="flex items-center gap-3 text-sm">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                    {idx + 1}
-                  </span>
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-semibold">{idx + 1}</span>
                   <span className="flex-1 truncate">{p.name}</span>
                   <span className="flex items-center gap-1 text-xs">
                     {p.pending > 0 && (
@@ -302,9 +319,7 @@ export function VenueSimCustodyPanel({ orgId }: Props) {
                 type="button"
                 onClick={() => setFilter(key)}
                 className={`rounded-full px-3 py-1 text-xs transition-colors ${
-                  filter === key
-                    ? 'bg-foreground text-background'
-                    : 'bg-muted/60 text-muted-foreground hover:bg-muted'
+                  filter === key ? 'bg-foreground text-background' : 'bg-muted/60 text-muted-foreground hover:bg-muted'
                 }`}
               >
                 {filterLabel(key)}
@@ -400,7 +415,15 @@ export function VenueSimCustodyPanel({ orgId }: Props) {
 // Subcomponents
 // ============================================================
 
-function SummaryCard({ label, value, tint }: { label: string; value: number; tint: 'slate' | 'blue' | 'amber' | 'emerald' | 'red' | 'violet' }) {
+function SummaryCard({
+  label,
+  value,
+  tint,
+}: {
+  label: string
+  value: number
+  tint: 'slate' | 'blue' | 'amber' | 'emerald' | 'red' | 'violet'
+}) {
   const tintMap: Record<typeof tint, string> = {
     slate: 'from-slate-500/20 to-slate-500/5 text-slate-700 dark:text-slate-200',
     blue: 'from-blue-500/20 to-blue-500/5 text-blue-700 dark:text-blue-300',
@@ -446,8 +469,7 @@ interface RowProps {
 function SupervisorSimRow({ item, checked, onToggle, onTimeline, onCollect, onAssign }: RowProps) {
   const custody = (item.custodyState ?? 'ADMIN_HELD') as SimCustodyState
   const isAssignable = custody === 'SUPERVISOR_HELD'
-  const canCollect =
-    custody === 'PROMOTER_PENDING' || custody === 'PROMOTER_HELD' || custody === 'PROMOTER_REJECTED'
+  const canCollect = custody === 'PROMOTER_PENDING' || custody === 'PROMOTER_HELD' || custody === 'PROMOTER_REJECTED'
 
   return (
     <tr

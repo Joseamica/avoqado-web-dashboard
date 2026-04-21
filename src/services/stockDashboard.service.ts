@@ -186,8 +186,13 @@ export const bulkUploadItems = async (
 
 /**
  * Get recent stock movements
+ *
+ * `dateFrom`/`dateTo` are ISO strings; pass `undefined` to skip the filter.
  */
-export const getStockMovements = async (venueId: string, params?: { limit?: number }): Promise<StockMovementsResponse> => {
+export const getStockMovements = async (
+  venueId: string,
+  params?: { limit?: number; dateFrom?: string; dateTo?: string },
+): Promise<StockMovementsResponse> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stock/movements`, { params })
   return response.data.data
 }

@@ -11,6 +11,7 @@
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { DateRangePicker } from '@/components/date-range-picker'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { GlassCard } from '@/components/ui/glass-card'
@@ -28,6 +29,21 @@ import { lazyWithRetry } from '@/lib/lazyWithRetry'
 import { useTranslation } from 'react-i18next'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { BulkUploadDialog, CategoryManagement, LowStockAlerts, StockVsSalesChart } from './components'
+
+// Default window: last 30 days ending today. Matches OrgStockControlPage so
+// the Supervisor sees the same timeframe across the platform.
+function thirtyDaysAgo(): Date {
+  const d = new Date()
+  d.setDate(d.getDate() - 30)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+function todayEndOfDay(): Date {
+  const d = new Date()
+  d.setHours(23, 59, 59, 999)
+  return d
+}
 
 // `lazyWithRetry` instead of raw `lazy` so a stale chunk after a deploy triggers
 // an automatic hard reload (fetching fresh chunk hashes) instead of bubbling a
@@ -93,6 +109,31 @@ export function StockControl() {
   const [movementTypeFilter, setMovementTypeFilter] = useState<string>('all')
   const [movementCategoryFilter, setMovementCategoryFilter] = useState<string>('all')
 
+  // Shared date range — drives BOTH the Movimientos query and the Custodia
+  // panel so Supervisor sees one consistent window across the page.
+  const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date }>(() => ({
+    from: thirtyDaysAgo(),
+    to: todayEndOfDay(),
+  }))
+
+  // DateRangePicker re-emits onUpdate with a fresh `to = new Date()` on every
+  // open — compare by calendar day to avoid an update loop.
+  const handleDateRangeUpdate = useCallback(({ range }: { range: { from: Date; to?: Date } }) => {
+    const nextFrom = range.from
+    const nextTo = range.to ?? range.from
+    const sameDay = (a: Date, b: Date) =>
+      a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+    setSelectedRange(prev => {
+      if (sameDay(prev.from, nextFrom) && sameDay(prev.to, nextTo)) return prev
+      return { from: nextFrom, to: nextTo }
+    })
+  }, [])
+
+  const dateRangeIsoParams = useMemo(
+    () => ({ dateFrom: selectedRange.from.toISOString(), dateTo: selectedRange.to.toISOString() }),
+    [selectedRange],
+  )
+
   // ─── Queries ───
   const { data: metricsData, isLoading: isLoadingMetrics } = useQuery({
     queryKey: ['stock', 'metrics', venueId],
@@ -107,8 +148,8 @@ export function StockControl() {
   })
 
   const { data: movementsData, isLoading: isLoadingMovements } = useQuery({
-    queryKey: ['stock', 'movements', venueId],
-    queryFn: () => getStockMovements(venueId!, { limit: 500 }),
+    queryKey: ['stock', 'movements', venueId, dateRangeIsoParams.dateFrom, dateRangeIsoParams.dateTo],
+    queryFn: () => getStockMovements(venueId!, { limit: 500, ...dateRangeIsoParams }),
     enabled: !!venueId,
   })
 
@@ -177,10 +218,28 @@ export function StockControl() {
       const soldAt = m.soldAtVenueName || '-'
       if (m.type === 'BULK_UPLOAD' && m.serialNumbers && m.serialNumbers.length > 0) {
         for (const sn of m.serialNumbers) {
-          rows.push([sn, m.categoryName, getTypeLabel(m.type), formatDate(m.timestamp), m.userName || '-', m.registeredFromVenueName || '-', soldBy, soldAt])
+          rows.push([
+            sn,
+            m.categoryName,
+            getTypeLabel(m.type),
+            formatDate(m.timestamp),
+            m.userName || '-',
+            m.registeredFromVenueName || '-',
+            soldBy,
+            soldAt,
+          ])
         }
       } else {
-        rows.push([m.serialNumber, m.categoryName, getTypeLabel(m.type), formatDate(m.timestamp), m.userName || '-', m.registeredFromVenueName || '-', soldBy, soldAt])
+        rows.push([
+          m.serialNumber,
+          m.categoryName,
+          getTypeLabel(m.type),
+          formatDate(m.timestamp),
+          m.userName || '-',
+          m.registeredFromVenueName || '-',
+          soldBy,
+          soldAt,
+        ])
       }
     }
     return { headers, rows }
@@ -247,7 +306,13 @@ ${dataRows}
             {t('playtelecom:stock.subtitle', { defaultValue: 'Gestiona categorías y números de serie' })}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <DateRangePicker
+            showCompare={false}
+            initialDateFrom={selectedRange.from}
+            initialDateTo={selectedRange.to}
+            onUpdate={handleDateRangeUpdate}
+          />
           <Button variant="outline" onClick={() => setShowCategoryManagement(true)}>
             <Settings2 className="w-4 h-4 mr-2" />
             {t('playtelecom:stock.manageCategories', { defaultValue: 'Configurar Categorías' })}
@@ -269,9 +334,7 @@ ${dataRows}
               type="button"
               onClick={() => setActiveTab('inventario')}
               className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                activeTab === 'inventario'
-                  ? 'bg-foreground text-background'
-                  : 'bg-muted/60 text-muted-foreground hover:bg-muted'
+                activeTab === 'inventario' ? 'bg-foreground text-background' : 'bg-muted/60 text-muted-foreground hover:bg-muted'
               }`}
             >
               {t('playtelecom:stock.tabs.inventario', { defaultValue: 'Inventario' })}
@@ -280,9 +343,7 @@ ${dataRows}
               type="button"
               onClick={() => setActiveTab('custodia')}
               className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                activeTab === 'custodia'
-                  ? 'bg-foreground text-background'
-                  : 'bg-muted/60 text-muted-foreground hover:bg-muted'
+                activeTab === 'custodia' ? 'bg-foreground text-background' : 'bg-muted/60 text-muted-foreground hover:bg-muted'
               }`}
             >
               {t('playtelecom:stock.tabs.custodia', { defaultValue: 'Custodia de SIMs' })}
@@ -291,309 +352,320 @@ ${dataRows}
         )}
 
         <TabsContent value="inventario" className="mt-4 space-y-6">
+          {/* Category Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {categories.length > 0 ? (
+              categories.slice(0, 4).map(category => (
+                <GlassCard key={category.id} className="p-4" hover>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-medium text-sm">{category.name}</h3>
+                    <Package className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">{t('playtelecom:stock.available', { defaultValue: 'Disponible' })}</span>
+                      <span className="font-semibold text-green-600 dark:text-green-400">{category.available}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">{t('playtelecom:stock.sold7d', { defaultValue: 'Vendidos 7d' })}</span>
+                      <span className="font-medium">{category.sold7d}</span>
+                    </div>
+                    <div className="h-px bg-border/50" />
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">{t('playtelecom:stock.coverage', { defaultValue: 'Cobertura' })}</span>
+                      <span
+                        className={`font-bold ${
+                          (category.coverage || 0) < 7 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
+                        }`}
+                      >
+                        {category.coverage !== null ? `${category.coverage} días` : '-'}
+                      </span>
+                    </div>
+                  </div>
+                </GlassCard>
+              ))
+            ) : (
+              <GlassCard className="col-span-full p-8 text-center">
+                <Package className="w-10 h-10 mx-auto mb-2 text-muted-foreground opacity-50" />
+                <p className="text-muted-foreground mb-4">
+                  {t('playtelecom:stock.noCategories', { defaultValue: 'No hay categorías de stock configuradas' })}
+                </p>
+                <Button onClick={() => setShowCategoryManagement(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t('playtelecom:stock.createFirstCategory', { defaultValue: 'Crear Primera Categoría' })}
+                </Button>
+              </GlassCard>
+            )}
+          </div>
 
-      {/* Category Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {categories.length > 0 ? (
-          categories.slice(0, 4).map(category => (
-            <GlassCard key={category.id} className="p-4" hover>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-medium text-sm">{category.name}</h3>
-                <Package className="w-4 h-4 text-muted-foreground" />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{t('playtelecom:stock.available', { defaultValue: 'Disponible' })}</span>
-                  <span className="font-semibold text-green-600 dark:text-green-400">{category.available}</span>
+          {/* Summary Bar */}
+          <GlassCard className="p-4">
+            <div className="flex flex-wrap items-center gap-6">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-linear-to-br from-green-500/20 to-green-500/5">
+                  <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{t('playtelecom:stock.sold7d', { defaultValue: 'Vendidos 7d' })}</span>
-                  <span className="font-medium">{category.sold7d}</span>
-                </div>
-                <div className="h-px bg-border/50" />
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{t('playtelecom:stock.coverage', { defaultValue: 'Cobertura' })}</span>
-                  <span
-                    className={`font-bold ${
-                      (category.coverage || 0) < 7 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
-                    }`}
-                  >
-                    {category.coverage !== null ? `${category.coverage} días` : '-'}
-                  </span>
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    {t('playtelecom:stock.totalAvailable', { defaultValue: 'Total Disponible' })}
+                  </p>
+                  <p className="text-lg font-semibold">{totals.available}</p>
                 </div>
               </div>
-            </GlassCard>
-          ))
-        ) : (
-          <GlassCard className="col-span-full p-8 text-center">
-            <Package className="w-10 h-10 mx-auto mb-2 text-muted-foreground opacity-50" />
-            <p className="text-muted-foreground mb-4">
-              {t('playtelecom:stock.noCategories', { defaultValue: 'No hay categorías de stock configuradas' })}
-            </p>
-            <Button onClick={() => setShowCategoryManagement(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              {t('playtelecom:stock.createFirstCategory', { defaultValue: 'Crear Primera Categoría' })}
-            </Button>
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-linear-to-br from-blue-500/20 to-blue-500/5">
+                  <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">{t('playtelecom:stock.soldToday', { defaultValue: 'Vendido Hoy' })}</p>
+                  <p className="text-lg font-semibold">{totals.sold}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-linear-to-br from-purple-500/20 to-purple-500/5">
+                  <Box className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    {t('playtelecom:stock.totalInventory', { defaultValue: 'Inventario Total' })}
+                  </p>
+                  <p className="text-lg font-semibold">{totals.total}</p>
+                </div>
+              </div>
+            </div>
           </GlassCard>
-        )}
-      </div>
 
-      {/* Summary Bar */}
-      <GlassCard className="p-4">
-        <div className="flex flex-wrap items-center gap-6">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-linear-to-br from-green-500/20 to-green-500/5">
-              <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">{t('playtelecom:stock.totalAvailable', { defaultValue: 'Total Disponible' })}</p>
-              <p className="text-lg font-semibold">{totals.available}</p>
-            </div>
+          {/* Stock vs Sales Chart & Low Stock Alerts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <StockVsSalesChart />
+            <LowStockAlerts onRequestStock={handleRequestStock} />
           </div>
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-linear-to-br from-blue-500/20 to-blue-500/5">
-              <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+
+          {/* ─── Movimientos Recientes ─── */}
+          <GlassCard className="p-6">
+            {/* Header + Export */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+              <div>
+                <h3 className="text-lg font-semibold">Movimientos Recientes</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Mostrando del {selectedRange.from.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })} al{' '}
+                  {selectedRange.to.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Download className="w-4 h-4 mr-2" />
+                    {t('playtelecom:stock.export', { defaultValue: 'Exportar' })}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleExportCSV}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportExcel}>
+                    <FileSpreadsheet className="w-4 h-4 mr-2" />
+                    Excel (.xls)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">{t('playtelecom:stock.soldToday', { defaultValue: 'Vendido Hoy' })}</p>
-              <p className="text-lg font-semibold">{totals.sold}</p>
+
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-3 mb-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  value={movementSearch}
+                  onChange={e => setMovementSearch(e.target.value)}
+                  placeholder={t('playtelecom:stock.searchPlaceholder', { defaultValue: 'Buscar por SIM ID, categoría, usuario...' })}
+                  className="pl-9 h-9"
+                />
+              </div>
+              <Select value={movementTypeFilter} onValueChange={setMovementTypeFilter}>
+                <SelectTrigger className="w-full sm:w-[160px] h-9">
+                  <SelectValue placeholder={t('playtelecom:stock.filterType', { defaultValue: 'Tipo' })} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('playtelecom:stock.allTypes', { defaultValue: 'Todos los tipos' })}</SelectItem>
+                  <SelectItem value="REGISTERED">Registro SIM</SelectItem>
+                  <SelectItem value="SOLD">Vendido</SelectItem>
+                  <SelectItem value="RETURNED">Devuelto</SelectItem>
+                  <SelectItem value="DAMAGED">Dañado</SelectItem>
+                  <SelectItem value="BULK_UPLOAD">Carga masiva</SelectItem>
+                </SelectContent>
+              </Select>
+              {uniqueCategories.length > 1 && (
+                <Select value={movementCategoryFilter} onValueChange={setMovementCategoryFilter}>
+                  <SelectTrigger className="w-full sm:w-[180px] h-9">
+                    <SelectValue placeholder={t('playtelecom:stock.filterCategory', { defaultValue: 'Categoría' })} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t('playtelecom:stock.allCategories', { defaultValue: 'Todas las categorías' })}</SelectItem>
+                    {uniqueCategories.map(cat => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-linear-to-br from-purple-500/20 to-purple-500/5">
-              <Box className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+
+            {/* Results count */}
+            {(movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all') && (
+              <p className="text-xs text-muted-foreground mb-3">
+                {filteredMovements.length} {filteredMovements.length === 1 ? 'resultado' : 'resultados'}
+              </p>
+            )}
+
+            {/* Table — desktop */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border/50">
+                    <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">SIM ID</th>
+                    <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      {t('playtelecom:stock.category', { defaultValue: 'Categoría' })}
+                    </th>
+                    <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      {t('playtelecom:stock.type', { defaultValue: 'Tipo' })}
+                    </th>
+                    <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      {t('playtelecom:stock.timestamp', { defaultValue: 'Fecha' })}
+                    </th>
+                    <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      {t('playtelecom:stock.user', { defaultValue: 'Usuario' })}
+                    </th>
+                    <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Registrado desde
+                    </th>
+                    <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Vendido por</th>
+                    <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Vendido en</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredMovements.length > 0 ? (
+                    filteredMovements.map(movement => {
+                      const typeConfig = MOVEMENT_TYPE_CONFIG[movement.type] || FALLBACK_TYPE_CONFIG
+                      return (
+                        <tr
+                          key={movement.id}
+                          className={`border-b border-border/30 hover:bg-muted/30 transition-colors ${movement.type === 'BULK_UPLOAD' ? 'cursor-pointer' : ''}`}
+                          onClick={movement.type === 'BULK_UPLOAD' ? () => setBulkDetailMovement(movement) : undefined}
+                        >
+                          <td className="py-3 px-2">
+                            {movement.type === 'BULK_UPLOAD' ? (
+                              <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
+                                {movement.itemCount ?? movement.serialNumber} items
+                              </span>
+                            ) : (
+                              <code className="text-xs bg-muted/50 px-2 py-1 rounded font-mono">{movement.serialNumber}</code>
+                            )}
+                          </td>
+                          <td className="py-3 px-2 text-sm">{movement.categoryName}</td>
+                          <td className="py-3 px-2">
+                            <Badge variant="outline" className={`text-xs ${typeConfig.className}`}>
+                              {typeConfig.label}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-2 text-sm text-muted-foreground whitespace-nowrap">{formatDate(movement.timestamp)}</td>
+                          <td className="py-3 px-2 text-sm">{movement.userName || <span className="text-muted-foreground">-</span>}</td>
+                          <td className="py-3 px-2 text-sm">
+                            {movement.registeredFromVenueName || <span className="text-muted-foreground">-</span>}
+                          </td>
+                          <td className="py-3 px-2 text-sm">{movement.soldByName || <span className="text-muted-foreground">-</span>}</td>
+                          <td className="py-3 px-2 text-sm">
+                            {movement.soldAtVenueName || <span className="text-muted-foreground">-</span>}
+                          </td>
+                        </tr>
+                      )
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={8} className="py-8 text-center text-muted-foreground">
+                        {movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all'
+                          ? t('playtelecom:stock.noResults', { defaultValue: 'No se encontraron movimientos con esos filtros' })
+                          : t('playtelecom:stock.noMovements', { defaultValue: 'No hay movimientos recientes' })}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">{t('playtelecom:stock.totalInventory', { defaultValue: 'Inventario Total' })}</p>
-              <p className="text-lg font-semibold">{totals.total}</p>
-            </div>
-          </div>
-        </div>
-      </GlassCard>
 
-      {/* Stock vs Sales Chart & Low Stock Alerts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <StockVsSalesChart />
-        <LowStockAlerts onRequestStock={handleRequestStock} />
-      </div>
-
-      {/* ─── Movimientos Recientes ─── */}
-      <GlassCard className="p-6">
-        {/* Header + Export */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-          <h3 className="text-lg font-semibold">{t('playtelecom:stock.recentMovements', { defaultValue: 'Movimientos Recientes' })}</h3>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Download className="w-4 h-4 mr-2" />
-                {t('playtelecom:stock.export', { defaultValue: 'Exportar' })}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleExportCSV}>
-                <FileText className="w-4 h-4 mr-2" />
-                CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportExcel}>
-                <FileSpreadsheet className="w-4 h-4 mr-2" />
-                Excel (.xls)
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              value={movementSearch}
-              onChange={e => setMovementSearch(e.target.value)}
-              placeholder={t('playtelecom:stock.searchPlaceholder', { defaultValue: 'Buscar por SIM ID, categoría, usuario...' })}
-              className="pl-9 h-9"
-            />
-          </div>
-          <Select value={movementTypeFilter} onValueChange={setMovementTypeFilter}>
-            <SelectTrigger className="w-full sm:w-[160px] h-9">
-              <SelectValue placeholder={t('playtelecom:stock.filterType', { defaultValue: 'Tipo' })} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('playtelecom:stock.allTypes', { defaultValue: 'Todos los tipos' })}</SelectItem>
-              <SelectItem value="REGISTERED">Registro SIM</SelectItem>
-              <SelectItem value="SOLD">Vendido</SelectItem>
-              <SelectItem value="RETURNED">Devuelto</SelectItem>
-              <SelectItem value="DAMAGED">Dañado</SelectItem>
-              <SelectItem value="BULK_UPLOAD">Carga masiva</SelectItem>
-            </SelectContent>
-          </Select>
-          {uniqueCategories.length > 1 && (
-            <Select value={movementCategoryFilter} onValueChange={setMovementCategoryFilter}>
-              <SelectTrigger className="w-full sm:w-[180px] h-9">
-                <SelectValue placeholder={t('playtelecom:stock.filterCategory', { defaultValue: 'Categoría' })} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('playtelecom:stock.allCategories', { defaultValue: 'Todas las categorías' })}</SelectItem>
-                {uniqueCategories.map(cat => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-
-        {/* Results count */}
-        {(movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all') && (
-          <p className="text-xs text-muted-foreground mb-3">
-            {filteredMovements.length} {filteredMovements.length === 1 ? 'resultado' : 'resultados'}
-          </p>
-        )}
-
-        {/* Table — desktop */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border/50">
-                <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">SIM ID</th>
-                <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t('playtelecom:stock.category', { defaultValue: 'Categoría' })}
-                </th>
-                <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t('playtelecom:stock.type', { defaultValue: 'Tipo' })}
-                </th>
-                <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t('playtelecom:stock.timestamp', { defaultValue: 'Fecha' })}
-                </th>
-                <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t('playtelecom:stock.user', { defaultValue: 'Usuario' })}
-                </th>
-                <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Registrado desde</th>
-                <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Vendido por</th>
-                <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Vendido en</th>
-              </tr>
-            </thead>
-            <tbody>
+            {/* Mobile card list */}
+            <div className="md:hidden space-y-2">
               {filteredMovements.length > 0 ? (
                 filteredMovements.map(movement => {
                   const typeConfig = MOVEMENT_TYPE_CONFIG[movement.type] || FALLBACK_TYPE_CONFIG
                   return (
-                    <tr
+                    <div
                       key={movement.id}
-                      className={`border-b border-border/30 hover:bg-muted/30 transition-colors ${movement.type === 'BULK_UPLOAD' ? 'cursor-pointer' : ''}`}
+                      className={`rounded-lg border border-border/50 p-3 space-y-2 ${movement.type === 'BULK_UPLOAD' ? 'cursor-pointer active:bg-muted/50' : ''}`}
                       onClick={movement.type === 'BULK_UPLOAD' ? () => setBulkDetailMovement(movement) : undefined}
                     >
-                      <td className="py-3 px-2">
+                      <div className="flex items-center justify-between gap-2">
                         {movement.type === 'BULK_UPLOAD' ? (
                           <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
                             {movement.itemCount ?? movement.serialNumber} items
                           </span>
                         ) : (
-                          <code className="text-xs bg-muted/50 px-2 py-1 rounded font-mono">{movement.serialNumber}</code>
+                          <code className="text-xs bg-muted/50 px-2 py-1 rounded font-mono truncate">{movement.serialNumber}</code>
                         )}
-                      </td>
-                      <td className="py-3 px-2 text-sm">{movement.categoryName}</td>
-                      <td className="py-3 px-2">
-                        <Badge variant="outline" className={`text-xs ${typeConfig.className}`}>
+                        <Badge variant="outline" className={`text-xs shrink-0 ${typeConfig.className}`}>
                           {typeConfig.label}
                         </Badge>
-                      </td>
-                      <td className="py-3 px-2 text-sm text-muted-foreground whitespace-nowrap">{formatDate(movement.timestamp)}</td>
-                      <td className="py-3 px-2 text-sm">{movement.userName || <span className="text-muted-foreground">-</span>}</td>
-                      <td className="py-3 px-2 text-sm">
-                        {movement.registeredFromVenueName || <span className="text-muted-foreground">-</span>}
-                      </td>
-                      <td className="py-3 px-2 text-sm">{movement.soldByName || <span className="text-muted-foreground">-</span>}</td>
-                      <td className="py-3 px-2 text-sm">{movement.soldAtVenueName || <span className="text-muted-foreground">-</span>}</td>
-                    </tr>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                        <span className="text-muted-foreground">Categoría</span>
+                        <span className="truncate">{movement.categoryName}</span>
+                        <span className="text-muted-foreground">Fecha</span>
+                        <span>{formatDate(movement.timestamp)}</span>
+                        <span className="text-muted-foreground">Usuario</span>
+                        <span>{movement.userName || '-'}</span>
+                        {movement.registeredFromVenueName && (
+                          <>
+                            <span className="text-muted-foreground">Registrado desde</span>
+                            <span className="truncate">{movement.registeredFromVenueName}</span>
+                          </>
+                        )}
+                        {movement.soldByName && (
+                          <>
+                            <span className="text-muted-foreground">Vendido por</span>
+                            <span className="truncate">{movement.soldByName}</span>
+                          </>
+                        )}
+                        {movement.soldAtVenueName && (
+                          <>
+                            <span className="text-muted-foreground">Vendido en</span>
+                            <span className="truncate">{movement.soldAtVenueName}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   )
                 })
               ) : (
-                <tr>
-                  <td colSpan={8} className="py-8 text-center text-muted-foreground">
-                    {movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all'
-                      ? t('playtelecom:stock.noResults', { defaultValue: 'No se encontraron movimientos con esos filtros' })
-                      : t('playtelecom:stock.noMovements', { defaultValue: 'No hay movimientos recientes' })}
-                  </td>
-                </tr>
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  {movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all'
+                    ? t('playtelecom:stock.noResults', { defaultValue: 'No se encontraron movimientos con esos filtros' })
+                    : t('playtelecom:stock.noMovements', { defaultValue: 'No hay movimientos recientes' })}
+                </p>
               )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile card list */}
-        <div className="md:hidden space-y-2">
-          {filteredMovements.length > 0 ? (
-            filteredMovements.map(movement => {
-              const typeConfig = MOVEMENT_TYPE_CONFIG[movement.type] || FALLBACK_TYPE_CONFIG
-              return (
-                <div
-                  key={movement.id}
-                  className={`rounded-lg border border-border/50 p-3 space-y-2 ${movement.type === 'BULK_UPLOAD' ? 'cursor-pointer active:bg-muted/50' : ''}`}
-                  onClick={movement.type === 'BULK_UPLOAD' ? () => setBulkDetailMovement(movement) : undefined}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    {movement.type === 'BULK_UPLOAD' ? (
-                      <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
-                        {movement.itemCount ?? movement.serialNumber} items
-                      </span>
-                    ) : (
-                      <code className="text-xs bg-muted/50 px-2 py-1 rounded font-mono truncate">{movement.serialNumber}</code>
-                    )}
-                    <Badge variant="outline" className={`text-xs shrink-0 ${typeConfig.className}`}>
-                      {typeConfig.label}
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                    <span className="text-muted-foreground">Categoría</span>
-                    <span className="truncate">{movement.categoryName}</span>
-                    <span className="text-muted-foreground">Fecha</span>
-                    <span>{formatDate(movement.timestamp)}</span>
-                    <span className="text-muted-foreground">Usuario</span>
-                    <span>{movement.userName || '-'}</span>
-                    {movement.registeredFromVenueName && (
-                      <>
-                        <span className="text-muted-foreground">Registrado desde</span>
-                        <span className="truncate">{movement.registeredFromVenueName}</span>
-                      </>
-                    )}
-                    {movement.soldByName && (
-                      <>
-                        <span className="text-muted-foreground">Vendido por</span>
-                        <span className="truncate">{movement.soldByName}</span>
-                      </>
-                    )}
-                    {movement.soldAtVenueName && (
-                      <>
-                        <span className="text-muted-foreground">Vendido en</span>
-                        <span className="truncate">{movement.soldAtVenueName}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )
-            })
-          ) : (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              {movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all'
-                ? t('playtelecom:stock.noResults', { defaultValue: 'No se encontraron movimientos con esos filtros' })
-                : t('playtelecom:stock.noMovements', { defaultValue: 'No hay movimientos recientes' })}
-            </p>
-          )}
-        </div>
-      </GlassCard>
+            </div>
+          </GlassCard>
         </TabsContent>
 
         {/* Custodia de SIMs — panel del Supervisor (o filtrado a su inventario) */}
         <TabsContent value="custodia" className="mt-4">
           {orgIdFromVenue ? (
             <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
-              <VenueSimCustodyPanel orgId={orgIdFromVenue} />
+              <VenueSimCustodyPanel orgId={orgIdFromVenue} dateRange={selectedRange} />
             </Suspense>
           ) : (
-            <div className="text-sm text-muted-foreground py-8 text-center">
-              No se pudo determinar la organización del venue activo.
-            </div>
+            <div className="text-sm text-muted-foreground py-8 text-center">No se pudo determinar la organización del venue activo.</div>
           )}
         </TabsContent>
       </Tabs>
