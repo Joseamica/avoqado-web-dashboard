@@ -1977,21 +1977,7 @@ export function ChatBubble({ variant = 'fab' }: { variant?: 'fab' | 'sidebar' } 
         filter: 'drop-shadow(0 25px 50px rgba(0,0,0,0.18)) drop-shadow(0 6px 16px rgba(0,0,0,0.1))',
       }}
     >
-      {/* Card — negative margin so circle overlaps bottom-right */}
-      <div style={{ marginBottom: -28 }}>
-        <ChatInterface key={`chat-${venueId}`} onClose={handleClose} />
-      </div>
-
-      {/* Close circle — overlaps into the card's bottom-right corner */}
-      <div className="flex justify-end">
-        <button
-          onClick={toggleChat}
-          className="h-14 w-14 rounded-full bg-popover flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-          aria-label={t('chat.a11y.close')}
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
+      <ChatInterface key={`chat-${venueId}`} onClose={handleClose} />
     </div>
   ) : null
 

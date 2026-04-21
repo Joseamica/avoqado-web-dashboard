@@ -703,7 +703,7 @@ export function AppSidebar({
         {/* Chatbot trigger is always visible in the sidebar. Backend endpoints
             still enforce feature access and return 403 when the venue is not
             subscribed. */}
-        {activeVenue && <ChatBubble variant="sidebar" />}
+        <ChatBubble variant="sidebar" />
         <NavUser user={navUser} />
       </SidebarFooter>
       <SidebarRail />
