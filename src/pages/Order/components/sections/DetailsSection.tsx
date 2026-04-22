@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge'
+import { useTerminology } from '@/hooks/use-terminology'
 import type { Order } from '@/types'
 import { getOrderTypeConfig } from '@/utils/orderStatus'
 import { DateTime } from 'luxon'
@@ -18,18 +19,31 @@ const Row = ({ label, children }: { label: string; children: React.ReactNode }) 
 
 export function DetailsSection({ order, venueTimezone }: Props) {
   const { t } = useTranslation('orders')
+  const { category, term } = useTerminology()
+  const isNonFoodService = category !== 'FOOD_SERVICE'
 
-  const email = order.customerEmail || (order as any).customer?.email
-  const phone = order.customerPhone || (order as any).customer?.phone
-  const customerName = (order as any).customer
-    ? `${(order as any).customer.firstName ?? ''} ${(order as any).customer.lastName ?? ''}`.trim()
-    : null
+  const primaryOrderCustomer = order.orderCustomers?.[0]?.customer
+  const email = order.customerEmail || (order as any).customer?.email || primaryOrderCustomer?.email
+  const phone = order.customerPhone || (order as any).customer?.phone || primaryOrderCustomer?.phone
+  const customerName = primaryOrderCustomer
+    ? [primaryOrderCustomer.firstName, primaryOrderCustomer.lastName]
+        .filter(part => typeof part === 'string' && part.trim().length > 0)
+        .join(' ')
+        .trim()
+    : (order as any).customer
+      ? `${(order as any).customer.firstName ?? ''} ${(order as any).customer.lastName ?? ''}`.trim()
+      : null
   const server = order.servedBy ?? order.createdBy
   const serverName = server ? `${server.firstName ?? ''} ${server.lastName ?? ''}`.trim() : null
   const createdAt = DateTime.fromISO(order.createdAt, { zone: 'utc' })
     .setZone(venueTimezone)
     .toFormat("d 'de' LLL yyyy, HH:mm", { locale: 'es' })
   const typeCfg = getOrderTypeConfig(order.type)
+  const normalizedType = (order.type || '').toUpperCase()
+  const typeLabel =
+    isNonFoodService && (normalizedType === 'DINE_IN' || normalizedType === 'TAKEOUT')
+      ? term('order')
+      : t(`types.${order.type}`, { defaultValue: typeCfg.label })
 
   return (
     <section>
@@ -47,7 +61,7 @@ export function DetailsSection({ order, venueTimezone }: Props) {
         {serverName && <Row label={t('drawer.details.server')}>{serverName}</Row>}
         <Row label={t('drawer.details.type')}>
           <Badge variant="outline" className={`${typeCfg.bg} ${typeCfg.color} border-transparent`}>
-            {typeCfg.label}
+            {typeLabel}
           </Badge>
         </Row>
       </div>

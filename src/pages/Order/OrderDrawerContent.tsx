@@ -68,6 +68,12 @@ export function OrderDrawerContent({ orderId, onClose }: Props) {
 
   const statusCfg = getOrderStatusConfig(order.status)
   const paymentStatusCfg = getOrderStatusConfig(order.paymentStatus)
+  const hasCustomerLink = Boolean((order.orderCustomers?.length || 0) > 0 || order.customerId)
+  const hasPendingBalance = Number(order.remainingBalance ?? 0) > 0
+  const isPayLaterOrder =
+    hasCustomerLink &&
+    hasPendingBalance &&
+    (order.paymentStatus === 'PENDING' || order.paymentStatus === 'PARTIAL')
 
   return (
     <div data-print-root className="flex flex-col h-full bg-background">
@@ -117,6 +123,14 @@ export function OrderDrawerContent({ orderId, onClose }: Props) {
             >
               {t(`detail.statuses.${order.paymentStatus}`, { defaultValue: order.paymentStatus })}
             </Badge>
+            {isPayLaterOrder && (
+              <Badge
+                variant="outline"
+                className="text-xs px-1.5 py-0.5 bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
+              >
+                {t('payLater.badge', { defaultValue: 'Por Cobrar' })}
+              </Badge>
+            )}
           </div>
         </div>
 

@@ -29,6 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useSocketEvents } from '@/hooks/use-socket-events'
+import { useTerminology } from '@/hooks/use-terminology'
 import { useToast } from '@/hooks/use-toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import * as orderService from '@/services/order.service'
@@ -37,6 +38,8 @@ import { Order, OrderStatus, OrderType as OrderTypeEnum, StaffRole } from '@/typ
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { exportToCSV, exportToExcel, formatCurrencyForExport, generateFilename } from '@/utils/export'
+import { formatOrderNumber } from '@/utils/orderStatus'
+import { ItemsSection } from './components/sections/ItemsSection'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowDown, ArrowUp, ArrowUpDown, Clock, Download, Pencil, Search, Trash2, X } from 'lucide-react'
@@ -70,9 +73,37 @@ export default function Orders() {
   const { orderId: drawerOrderId } = useParams<{ orderId: string }>()
   const queryClient = useQueryClient()
   const { user, checkFeatureAccess, activeVenue } = useAuth()
+  const { category, term } = useTerminology()
   const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
   const isSuperAdmin = user?.role === StaffRole.SUPERADMIN
   const hasChatbot = checkFeatureAccess('CHATBOT')
+  const isNonFoodService = category !== 'FOOD_SERVICE'
+
+  const getCustomerDisplayName = (customer?: { firstName?: string | null; lastName?: string | null } | null) => {
+    if (!customer) return ''
+    return [customer.firstName, customer.lastName]
+      .filter(part => typeof part === 'string' && part.trim().length > 0)
+      .join(' ')
+      .trim()
+  }
+
+  const getOrderTypeDisplayLabel = (type?: string | null, orderNumber?: string | null) => {
+    const normalizedType = (type || '').toUpperCase()
+    const isFastSale = (orderNumber || '').startsWith('FAST-')
+
+    if (isFastSale) {
+      return t('types.FAST', { defaultValue: 'Venta sin productos' })
+    }
+
+    // Non-restaurant sectors: DINE_IN/TAKEOUT lose meaning → use sector-aware term
+    // (RETAIL → "Venta", SERVICES → "Cita/Orden", HOSPITALITY → "Reservacion", ENTERTAINMENT → "Entrada")
+    if (isNonFoodService && (normalizedType === 'DINE_IN' || normalizedType === 'TAKEOUT')) {
+      return term('order')
+    }
+
+    if (!normalizedType) return '-'
+    return t(`types.${normalizedType}` as any, { defaultValue: normalizedType })
+  }
 
   const [pagination, setPagination] = useState({
     pageIndex: 0,
@@ -108,13 +139,21 @@ export default function Orders() {
     'createdAt',
     'orderNumber',
     'customerName',
-    'type',
+    'productsCount',
     'tableName',
     'waiterName',
     'status',
     'tipAmount',
     'total',
   ])
+
+  // Products dialog — clicking the "N productos" cell opens this without triggering row navigation
+  const [productsDialogOrder, setProductsDialogOrder] = useState<Order | null>(null)
+  const { data: productsDialogFullOrder, isLoading: productsDialogLoading } = useQuery({
+    queryKey: ['order', venueId, productsDialogOrder?.id],
+    queryFn: () => orderService.getOrder(venueId, productsDialogOrder!.id),
+    enabled: !!productsDialogOrder?.id,
+  })
 
   // Reset pagination when filters change
   useEffect(() => {
@@ -211,7 +250,7 @@ export default function Orders() {
             total_count: number
           }
         }
-      }>('/api/v1/dashboard/reports/pay-later-aging')
+      }>(`/api/v1/dashboard/reports/venues/${venueId}/pay-later-aging`)
       return response.data.data.summary
     },
     staleTime: 60000, // Cache for 1 minute
@@ -576,7 +615,7 @@ export default function Orders() {
         accessorFn: row => {
           if (row.orderCustomers && row.orderCustomers.length > 0) {
             const customer = row.orderCustomers[0].customer
-            return `${customer.firstName} ${customer.lastName}`.trim()
+            return getCustomerDisplayName(customer)
           }
           return null
         },
@@ -588,10 +627,11 @@ export default function Orders() {
           if (
             row.original.orderCustomers &&
             row.original.orderCustomers.length > 0 &&
-            (row.original.paymentStatus === 'PENDING' || row.original.paymentStatus === 'PARTIAL')
+            (row.original.paymentStatus === 'PENDING' || row.original.paymentStatus === 'PARTIAL') &&
+            Number(row.original.remainingBalance ?? 0) > 0
           ) {
             const customer = row.original.orderCustomers[0].customer
-            const customerName = `${customer.firstName} ${customer.lastName}`.trim()
+            const customerName = getCustomerDisplayName(customer)
             return (
               <div className="flex items-center gap-1.5">
                 <span className="text-sm font-medium">{customerName}</span>
@@ -609,7 +649,7 @@ export default function Orders() {
           // Show customer name without badge for PAID orders
           if (row.original.orderCustomers && row.original.orderCustomers.length > 0) {
             const customer = row.original.orderCustomers[0].customer
-            const customerName = `${customer.firstName} ${customer.lastName}`.trim()
+            const customerName = getCustomerDisplayName(customer)
             return <span className="text-sm font-medium">{customerName}</span>
           }
 
@@ -621,25 +661,39 @@ export default function Orders() {
         meta: { label: t('columns.type') },
         header: () => <div className="flex justify-center">{t('columns.type')}</div>,
         cell: ({ row }) => {
-          const type = row.original.type as string
-          const orderNumber = row.original.orderNumber || ''
-          const isFastSale = orderNumber.startsWith('FAST-')
-
-          let displayText = type
-
-          if (isFastSale) {
-            displayText = t('types.FAST', { defaultValue: 'Venta sin productos' })
-          } else if (type === 'DINE_IN') {
-            displayText = t('types.DINE_IN')
-          } else if (type === 'TAKEOUT') {
-            displayText = t('types.TAKEOUT')
-          } else if (type === 'DELIVERY') {
-            displayText = t('types.DELIVERY')
-          } else if (type === 'PICKUP') {
-            displayText = t('types.PICKUP')
-          }
-
+          const displayText = getOrderTypeDisplayLabel(row.original.type, row.original.orderNumber)
           return <span className="text-sm text-foreground">{displayText}</span>
+        },
+      },
+      {
+        id: 'productsCount',
+        meta: { label: t('columns.products') },
+        header: () => <div className="flex justify-center">{t('columns.products')}</div>,
+        cell: ({ row }) => {
+          const count = row.original._count?.items ?? row.original.items?.length ?? 0
+          if (count === 0) {
+            return (
+              <div className="flex justify-center">
+                <span className="text-sm text-muted-foreground">—</span>
+              </div>
+            )
+          }
+          return (
+            <div className="flex justify-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto p-0 text-sm font-normal text-foreground underline decoration-dotted decoration-muted-foreground underline-offset-4 hover:bg-transparent hover:text-primary hover:decoration-primary"
+                onClick={e => {
+                  e.stopPropagation()
+                  e.preventDefault()
+                  setProductsDialogOrder(row.original)
+                }}
+              >
+                {t('columns.productsCount', { count, defaultValue: `${count} productos` })}
+              </Button>
+            </div>
+          )
         },
       },
       {
@@ -984,16 +1038,11 @@ export default function Orders() {
           const waiter = order.servedBy || order.createdBy
           const waiterName = waiter ? `${waiter.firstName} ${waiter.lastName}` : '-'
           const tableName = order.table?.number || '-'
-          const isFastSale = order.orderNumber?.startsWith('FAST-')
 
           // Show last 6 digits for ALL orders: "ORD-1767664106975" → "#106975", "FAST-1766069887997" → "#887997"
           const displayFolio =
             order.orderNumber && order.orderNumber.length > 6 ? `#${order.orderNumber.slice(-6)}` : order.orderNumber || '-'
-          const displayType = isFastSale
-            ? t('types.FAST', { defaultValue: 'Venta sin productos' })
-            : order.type
-              ? t(`types.${order.type}` as any)
-              : '-'
+          const displayType = getOrderTypeDisplayLabel(order.type, order.orderNumber)
 
           return {
             [t('columns.date')]: formatDate(order.createdAt),
@@ -1159,7 +1208,7 @@ export default function Orders() {
               typeFilter,
               typeOptions.map(type => ({
                 value: type,
-                label: type === 'FAST' ? t('types.FAST', { defaultValue: 'Venta sin productos' }) : t(`types.${type}` as any),
+                label: getOrderTypeDisplayLabel(type),
               })),
             )}
             isActive={typeFilter.length > 0}
@@ -1169,7 +1218,7 @@ export default function Orders() {
               title={`Filtrar por: ${t('columns.type').toLowerCase()}`}
               options={typeOptions.map(type => ({
                 value: type,
-                label: type === 'FAST' ? t('types.FAST', { defaultValue: 'Venta sin productos' }) : t(`types.${type}` as any),
+                label: getOrderTypeDisplayLabel(type),
               }))}
               selectedValues={typeFilter}
               onApply={setTypeFilter}
@@ -1311,6 +1360,7 @@ export default function Orders() {
                 { id: 'orderNumber', label: t('columns.orderNumber'), visible: visibleColumns.includes('orderNumber'), disabled: true },
                 { id: 'customerName', label: t('columns.customer'), visible: visibleColumns.includes('customerName') },
                 { id: 'type', label: t('columns.type'), visible: visibleColumns.includes('type') },
+                { id: 'productsCount', label: t('columns.products'), visible: visibleColumns.includes('productsCount') },
                 { id: 'tableName', label: t('columns.table'), visible: visibleColumns.includes('tableName') },
                 { id: 'waiterName', label: t('columns.waiter'), visible: visibleColumns.includes('waiterName') },
                 { id: 'status', label: t('columns.status'), visible: visibleColumns.includes('status') },
@@ -1438,8 +1488,8 @@ export default function Orders() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={OrderTypeEnum.DINE_IN}>{t('types.DINE_IN')}</SelectItem>
-                    <SelectItem value={OrderTypeEnum.TAKEOUT}>{t('types.TAKEOUT')}</SelectItem>
+                    <SelectItem value={OrderTypeEnum.DINE_IN}>{getOrderTypeDisplayLabel(OrderTypeEnum.DINE_IN)}</SelectItem>
+                    <SelectItem value={OrderTypeEnum.TAKEOUT}>{getOrderTypeDisplayLabel(OrderTypeEnum.TAKEOUT)}</SelectItem>
                     <SelectItem value={OrderTypeEnum.DELIVERY}>{t('types.DELIVERY')}</SelectItem>
                     <SelectItem value={OrderTypeEnum.PICKUP}>{t('types.PICKUP')}</SelectItem>
                   </SelectContent>
@@ -1558,6 +1608,26 @@ export default function Orders() {
               {updateOrderMutation.isPending ? tCommon('saving') : tCommon('save')}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Products-only dialog — opens when user clicks "N productos" in the list */}
+      <Dialog open={!!productsDialogOrder} onOpenChange={open => !open && setProductsDialogOrder(null)}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {productsDialogOrder?.orderNumber
+                ? t('productsDialog.title', { number: formatOrderNumber(productsDialogOrder.orderNumber) })
+                : t('productsDialog.title', { number: '' })}
+            </DialogTitle>
+          </DialogHeader>
+          {productsDialogLoading ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">{t('productsDialog.loading')}</p>
+          ) : productsDialogFullOrder ? (
+            <ItemsSection order={productsDialogFullOrder} />
+          ) : (
+            <p className="py-6 text-center text-sm text-muted-foreground">{t('productsDialog.empty')}</p>
+          )}
         </DialogContent>
       </Dialog>
 

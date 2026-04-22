@@ -8,15 +8,24 @@
     "orderNumber": "Order #",
     "customer": "Customer",
     "type": "Type",
+    "products": "Products",
+    "productsCount_one": "{{count}} product",
+    "productsCount_other": "{{count}} products",
     "table": "Table",
     "waiter": "Waiter",
     "status": "Status",
     "tip": "Tip",
     "total": "Total"
   },
+  "productsDialog": {
+    "title": "Products for order {{number}}",
+    "empty": "No products",
+    "loading": "Loading products…"
+  },
   "types": {
     "DINE_IN": "Dine In",
     "TAKEOUT": "Takeout",
+    "RETAIL_SALE": "Retail Sale",
     "DELIVERY": "Delivery",
     "PICKUP": "Pickup"
   },
@@ -122,7 +131,9 @@
       "authorization": "Authorization",
       "reference": "Reference",
       "reason": "Reason",
-      "noPayments": "No payments recorded"
+      "noPayments": "No payments recorded",
+      "pendingBalance": "Amount due",
+      "noPaymentsPayLater": "No payments — amount due"
     },
     "refundReasons": {
       "RETURNED_GOODS": "Returned goods",

@@ -83,7 +83,7 @@ export default function PayLaterAging() {
     queryKey: ['pay-later-aging', venueId],
     queryFn: async () => {
       const response = await api.get<{ success: boolean; data: AgingData }>(
-        '/api/v1/dashboard/reports/pay-later-aging'
+        `/api/v1/dashboard/reports/venues/${venueId}/pay-later-aging`
       )
       return response.data.data
     },

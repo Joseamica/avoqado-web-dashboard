@@ -290,6 +290,8 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   const [showTokenWarningDialog, setShowTokenWarningDialog] = useState(false)
   const [pendingMessage, setPendingMessage] = useState<string | null>(null)
   const [featureLockNotice, setFeatureLockNotice] = useState<ChatFeatureLockNotice | null>(null)
+  const chatbotDialogOverlayClassName = 'z-[10010]'
+  const chatbotDialogContentClassName = 'z-[10020]'
 
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -1757,6 +1759,8 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         cancelText={t('cancel')}
         variant="destructive"
         onConfirm={confirmClearHistory}
+        contentClassName={chatbotDialogContentClassName}
+        overlayClassName={chatbotDialogOverlayClassName}
       />
 
       <ConfirmDialog
@@ -1771,6 +1775,8 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         variant="destructive"
         onConfirm={confirmDeleteConversation}
         onCancel={() => setConversationToDelete(null)}
+        contentClassName={chatbotDialogContentClassName}
+        overlayClassName={chatbotDialogOverlayClassName}
       />
 
       <ConfirmDialog
@@ -1787,11 +1793,13 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         cancelText={t('cancel')}
         onConfirm={confirmCreateProductAction}
         onCancel={() => setPendingCreateProductConfirmation(null)}
+        contentClassName={chatbotDialogContentClassName}
+        overlayClassName={chatbotDialogOverlayClassName}
       />
 
       {/* Feedback Dialog */}
       <Dialog open={showFeedbackDialog} onOpenChange={setShowFeedbackDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className={cn('sm:max-w-md', chatbotDialogContentClassName)} overlayClassName={chatbotDialogOverlayClassName}>
           <DialogHeader>
             <DialogTitle>{t('chat.feedback.dialog.title')}</DialogTitle>
             <DialogDescription>{t('chat.feedback.dialog.desc')}</DialogDescription>
@@ -1840,7 +1848,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 
       {/* Unsaved Changes Dialog */}
       <Dialog open={showUnsavedChangesDialog} onOpenChange={setShowUnsavedChangesDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className={cn('sm:max-w-md', chatbotDialogContentClassName)} overlayClassName={chatbotDialogOverlayClassName}>
           <DialogHeader>
             <DialogTitle>{t('chat.unsavedChanges.title')}</DialogTitle>
             <DialogDescription>{t('chat.unsavedChanges.description')}</DialogDescription>
@@ -1870,7 +1878,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
           setShowTokenWarningDialog(open)
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className={cn('sm:max-w-md', chatbotDialogContentClassName)} overlayClassName={chatbotDialogOverlayClassName}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
@@ -1972,7 +1980,7 @@ export function ChatBubble({ variant = 'fab' }: { variant?: 'fab' | 'sidebar' } 
   const panel = isMounted ? (
     <div
       className={cn(
-        'fixed bottom-4 right-4 z-[9999] transition-opacity duration-200',
+        'fixed bottom-4 right-4 z-40 transition-opacity duration-200',
         isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none',
       )}
       style={{

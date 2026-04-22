@@ -154,15 +154,25 @@ const PaymentRow = ({ p, venueTimezone }: { p: Payment; venueTimezone: string })
 export function PaymentsSection({ order, venueTimezone }: Props) {
   const { t } = useTranslation('orders')
   const payments = order.payments ?? []
+  const remainingBalance = Number(order.remainingBalance ?? 0)
+  const hasPendingBalance = remainingBalance > 0 && (order.paymentStatus === 'PENDING' || order.paymentStatus === 'PARTIAL')
 
   return (
     <section>
       <h2 className="text-lg font-semibold text-foreground mb-3">{t('drawer.sections.payments')}</h2>
       <div className="rounded-lg border border-border bg-background px-4">
-        {payments.length > 0 ? (
-          payments.map(p => <PaymentRow key={p.id} p={p} venueTimezone={venueTimezone} />)
+        {payments.length > 0 && payments.map(p => <PaymentRow key={p.id} p={p} venueTimezone={venueTimezone} />)}
+        {hasPendingBalance ? (
+          <div className="py-3 flex items-center justify-between gap-3 border-t border-red-200/60 dark:border-red-800/40 first:border-t-0">
+            <span className="text-sm font-medium text-red-700 dark:text-red-400">
+              {t('drawer.payments.pendingBalance', { defaultValue: 'Pendiente de cobrar' })}
+            </span>
+            <span className="text-sm font-semibold text-red-700 dark:text-red-400">{Currency(remainingBalance)}</span>
+          </div>
         ) : (
-          <p className="py-4 text-sm text-muted-foreground">{t('drawer.payments.noPayments', { defaultValue: 'Sin pagos' })}</p>
+          payments.length === 0 && (
+            <p className="py-4 text-sm text-muted-foreground">{t('drawer.payments.noPayments', { defaultValue: 'Sin pagos' })}</p>
+          )
         )}
       </div>
     </section>

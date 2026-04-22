@@ -32,6 +32,7 @@ export enum BusinessType {
   HARDWARE = 'HARDWARE',
   BOOKSTORE = 'BOOKSTORE',
   PET_STORE = 'PET_STORE',
+  TELECOMUNICACIONES = 'TELECOMUNICACIONES',
 
   // === SERVICES ===
   SALON = 'SALON',
@@ -82,6 +83,7 @@ const CATEGORY_MAPPING: Record<BusinessType, BusinessCategory> = {
   [BusinessType.HARDWARE]: 'RETAIL',
   [BusinessType.BOOKSTORE]: 'RETAIL',
   [BusinessType.PET_STORE]: 'RETAIL',
+  [BusinessType.TELECOMUNICACIONES]: 'RETAIL',
   [BusinessType.SALON]: 'SERVICES',
   [BusinessType.SPA]: 'SERVICES',
   [BusinessType.FITNESS]: 'SERVICES',
@@ -129,6 +131,7 @@ export enum VenueType {
   HARDWARE = 'HARDWARE',
   BOOKSTORE = 'BOOKSTORE',
   PET_STORE = 'PET_STORE',
+  TELECOMUNICACIONES = 'TELECOMUNICACIONES',
 
   // === SERVICES ===
   SALON = 'SALON',
@@ -956,6 +959,7 @@ export interface Order {
   id: string
   venueId: string
   venue?: Venue
+  customerId?: string | null
   tableId: string | null
   table?: TableSimple | null
   staffId: string | null
@@ -972,6 +976,8 @@ export interface Order {
   subtotal: number
   taxAmount: number
   tipAmount: number
+  paidAmount?: number
+  remainingBalance?: number
   total: number
   customerName: string | null
   customerEmail: string | null
@@ -987,6 +993,9 @@ export interface Order {
   items?: OrderItem[]
   payments?: Payment[]
   orderCustomers?: OrderCustomer[]
+  _count?: {
+    items?: number
+  }
   createdBy?: Staff | null
   createdAt: string
   updatedAt: string

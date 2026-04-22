@@ -8,15 +8,24 @@
     "orderNumber": "Número de orden",
     "customer": "Cliente",
     "type": "Tipo",
+    "products": "Productos",
+    "productsCount_one": "{{count}} producto",
+    "productsCount_other": "{{count}} productos",
     "table": "Mesa",
     "waiter": "Mesero",
     "status": "Estado",
     "tip": "Propina",
     "total": "Total"
   },
+  "productsDialog": {
+    "title": "Productos del pedido {{number}}",
+    "empty": "Sin productos",
+    "loading": "Cargando productos…"
+  },
   "types": {
     "DINE_IN": "Servicio de mesa",
     "TAKEOUT": "Venta con productos",
+    "RETAIL_SALE": "Venta",
     "FAST": "Venta sin productos",
     "DELIVERY": "Entrega a Domicilio",
     "PICKUP": "Recoger"
@@ -123,7 +132,9 @@
       "authorization": "Autorización",
       "reference": "Referencia",
       "reason": "Motivo",
-      "noPayments": "Sin pagos registrados"
+      "noPayments": "Sin pagos registrados",
+      "pendingBalance": "Pendiente de cobrar",
+      "noPaymentsPayLater": "Sin pagos — pendiente de cobrar"
     },
     "refundReasons": {
       "RETURNED_GOODS": "Productos devueltos",

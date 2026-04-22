@@ -36,6 +36,38 @@ import { useTranslation } from 'react-i18next'
 import { TimezoneCombobox } from '@/components/timezone-combobox'
 import { useVenueEditActions } from '../VenueEditLayout'
 import { BusinessType } from '@/types'
+import type { FieldErrors } from 'react-hook-form'
+
+const LEGACY_BUSINESS_TYPE_MAP: Record<string, BusinessType> = {
+  HOTEL_RESTAURANT: BusinessType.HOTEL,
+  FITNESS_STUDIO: BusinessType.FITNESS,
+}
+
+const BUSINESS_TYPE_VALUES = new Set(Object.values(BusinessType))
+
+function coerceBusinessType(value: unknown): BusinessType {
+  if (typeof value !== 'string') return BusinessType.RESTAURANT
+  const normalized = value.trim()
+  if (!normalized) return BusinessType.RESTAURANT
+  if (normalized in LEGACY_BUSINESS_TYPE_MAP) {
+    return LEGACY_BUSINESS_TYPE_MAP[normalized]
+  }
+  if (BUSINESS_TYPE_VALUES.has(normalized as BusinessType)) {
+    return normalized as BusinessType
+  }
+  return BusinessType.RESTAURANT
+}
+
+function coerceNullableNumber(value: unknown): number | null | undefined {
+  if (value === undefined) return undefined
+  if (value === null || value === '') return null
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  if (typeof value === 'string') {
+    const parsed = Number(value.trim())
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  return null
+}
 
 const basicInfoFormSchema = z.object({
   // Required fields
@@ -47,11 +79,11 @@ const basicInfoFormSchema = z.object({
   zipCode: z.string().min(1, { message: 'El código postal es requerido.' }),
 
   // Optional fields
-  type: z.nativeEnum(BusinessType).default(BusinessType.RESTAURANT),
+  type: z.preprocess(value => coerceBusinessType(value), z.nativeEnum(BusinessType)).default(BusinessType.RESTAURANT),
   timezone: z.string().default('America/Mexico_City'),
   currency: z.string().default('MXN'),
-  latitude: z.number().nullable().optional(),
-  longitude: z.number().nullable().optional(),
+  latitude: z.preprocess(coerceNullableNumber, z.number().nullable().optional()),
+  longitude: z.preprocess(coerceNullableNumber, z.number().nullable().optional()),
   enableShifts: z.boolean().default(true).optional(),
   requireClockInPhoto: z.boolean().default(false).optional(),
   // Auto Clock-Out settings
@@ -153,7 +185,7 @@ export default function BasicInfo() {
         state: venue.state || '',
         country: venue.country || 'MX',
         zipCode: venue.zipCode || '',
-        type: (venue.type as BusinessType) || BusinessType.RESTAURANT,
+        type: coerceBusinessType(venue.type),
         timezone: venue.timezone || 'America/Mexico_City',
         currency: venue.currency || 'MXN',
         latitude: venue.latitude ?? null,
@@ -432,11 +464,23 @@ export default function BasicInfo() {
   saveVenueRef.current = saveVenue
 
   const handleSave = useCallback(() => {
+    const onInvalid = (errors: FieldErrors<BasicInfoFormValues>) => {
+      const firstFieldError = Object.values(errors)[0]
+      const description =
+        typeof firstFieldError?.message === 'string'
+          ? firstFieldError.message
+          : 'Revisa los campos requeridos antes de guardar.'
+      toast({
+        title: 'No se pudo guardar',
+        description,
+        variant: 'destructive',
+      })
+    }
     const onSubmit = (formValues: BasicInfoFormValues) => {
       saveVenueRef.current.mutate(formValues)
     }
-    formRef.current.handleSubmit(onSubmit)()
-  }, [])
+    formRef.current.handleSubmit(onSubmit, onInvalid)()
+  }, [toast])
 
   const handleCancel = useCallback(() => {
     formRef.current.reset()
@@ -628,7 +672,16 @@ export default function BasicInfo() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t('edit.labels.type')}</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                        <Select
+                          onValueChange={value => {
+                            form.setValue('type', coerceBusinessType(value), {
+                              shouldDirty: true,
+                              shouldTouch: true,
+                              shouldValidate: true,
+                            })
+                          }}
+                          value={coerceBusinessType(field.value)}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder={t('edit.placeholders.type')} />

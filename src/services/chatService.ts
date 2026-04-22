@@ -497,7 +497,50 @@ const serializeConversationHistoryForRequest = (history: ConversationEntry[]) =>
     return `${value.slice(0, maxChars - suffix.length)}${suffix}`
   }
 
-  return history.map(entry => ({
+  const normalized = (value: string) => value.toLowerCase().replace(/\s+/g, ' ').trim()
+
+  const isSecurityBlockTemplate = (content: string): boolean => {
+    const msg = normalized(content)
+    const containsSecurityLead =
+      msg.includes('por seguridad, no puedo proporcionar esa información') ||
+      msg.includes('for security reasons, i cannot provide that information')
+
+    const containsPromptInjectionReason =
+      msg.includes('no puedo procesar instrucciones que intenten modificar mi comportamiento') ||
+      msg.includes('cannot process instructions that attempt to modify my behavior')
+
+    return containsSecurityLead || containsPromptInjectionReason
+  }
+
+  const isSyntheticContextEntry = (content: string): boolean => {
+    const msg = content.trim()
+    return msg.startsWith('[CONTEXTO:') || msg.startsWith('[CONTEXT:')
+  }
+
+  const filteredHistory = history.filter(entry => {
+    if (entry.role !== 'user' && entry.role !== 'assistant') {
+      return false
+    }
+
+    const content = String(entry.content || '').trim()
+    if (!content) {
+      return false
+    }
+
+    // Prevent blocked/security assistant templates from poisoning the next turn.
+    if (entry.role === 'assistant' && isSecurityBlockTemplate(content)) {
+      return false
+    }
+
+    // Skip synthetic context wrappers; backend already receives venue context explicitly.
+    if (entry.role === 'assistant' && isSyntheticContextEntry(content)) {
+      return false
+    }
+
+    return true
+  })
+
+  return filteredHistory.map(entry => ({
     ...entry,
     content: truncateWithEllipsis(entry.content, CHAT_CONFIG.MAX_HISTORY_ENTRY_CHARS),
     timestamp: entry.timestamp instanceof Date ? entry.timestamp.toISOString() : entry.timestamp,

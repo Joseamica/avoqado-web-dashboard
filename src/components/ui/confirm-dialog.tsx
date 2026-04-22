@@ -19,6 +19,8 @@ interface ConfirmDialogProps {
   variant?: 'default' | 'destructive'
   onConfirm: () => void
   onCancel?: () => void
+  contentClassName?: string
+  overlayClassName?: string
 }
 
 export function ConfirmDialog({
@@ -31,6 +33,8 @@ export function ConfirmDialog({
   variant = 'default',
   onConfirm,
   onCancel,
+  contentClassName,
+  overlayClassName,
 }: ConfirmDialogProps) {
   const handleConfirm = () => {
     onConfirm()
@@ -44,7 +48,7 @@ export function ConfirmDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent className={contentClassName} overlayClassName={overlayClassName}>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
