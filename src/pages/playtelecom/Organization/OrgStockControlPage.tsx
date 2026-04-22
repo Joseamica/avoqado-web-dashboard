@@ -56,7 +56,7 @@ function todayEndOfDay(): Date {
 
 export default function OrgStockControlPage() {
   const { orgId } = useParams<{ orgId: string }>()
-  const { organization, hasSerializedInventory, venues } = useCurrentOrganization()
+  const { organization, venues } = useCurrentOrganization()
   const { can } = useAccess()
   const { user, staffInfo } = useAuth()
   const [activeTab, setActiveTab] = useState<TabValue>('resumen')
@@ -179,11 +179,10 @@ export default function OrgStockControlPage() {
             initialDateTo={selectedRange.to}
             onUpdate={handleDateRangeUpdate}
           />
-          <ExportButton orgId={orgId!} params={queryParams} />
+          <ExportButton orgId={orgId!} params={queryParams} items={data.items} />
           {/* If the user already reached /stock-control they're implicitly on a
-              PlayTelecom-style org. `hasSerializedInventory` is a hard guard
-              from use-current-organization; we keep it but allow bypass when
-              that detection fails (e.g. stale auth cache). */}
+              PlayTelecom-style org; keep this button gated by permissions +
+              org venues only. */}
           {canAssignToSupervisor && venues.length > 0 && (
             <Button
               variant="outline"
