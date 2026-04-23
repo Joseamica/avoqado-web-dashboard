@@ -74,6 +74,12 @@ export interface CollectInput {
   reason: SimCustodyCollectionReason
 }
 
+export interface CustodyEventStaff {
+  id: string
+  firstName: string | null
+  lastName: string | null
+}
+
 export interface CustodyEvent {
   id: string
   serializedItemId: string
@@ -84,6 +90,9 @@ export interface CustodyEvent {
   fromStaffId: string | null
   toStaffId: string | null
   actorStaffId: string
+  fromStaff: CustodyEventStaff | null
+  toStaff: CustodyEventStaff | null
+  actorStaff: CustodyEventStaff | null
   reason: SimCustodyCollectionReason | null
   idempotencyRequestId: string | null
   createdAt: string
