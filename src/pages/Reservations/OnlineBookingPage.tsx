@@ -58,7 +58,9 @@ export default function OnlineBookingPage() {
 	const slug = venueSlug ?? 'your-venue-slug'
 	const cdnUrl = 'https://cdn.avoqado.io/widget.js'
 	const embedUrl = `https://cdn.avoqado.io/embed?venue=${slug}&locale=${locale}&theme=${theme}&mode=inline`
-	const previewUrl = venueSlug ? `/book/${venueSlug}` : null
+	const previewUrl = venueSlug
+		? `https://cdn.avoqado.io/embed?venue=${slug}&locale=${locale}&theme=${theme}&mode=inline&venueName=${encodeURIComponent(venue?.name ?? '')}`
+		: null
 	const venueName = venue?.name ?? 'tu negocio'
 
 	const htmlSnippet = `<!-- Avoqado Booking Widget -->
@@ -318,8 +320,9 @@ import '@avoqado/booking-widget'
 						<iframe
 							src={previewUrl}
 							title={t('onlineBooking.preview')}
-							className="h-[600px] w-full rounded-b-lg border-t border-border"
-							sandbox="allow-scripts allow-same-origin allow-forms"
+							className="h-[800px] w-full rounded-b-lg border-t border-border"
+							loading="lazy"
+							allow="payment"
 						/>
 					</CardContent>
 				</Card>
