@@ -223,6 +223,17 @@ export default function CustomerDetail() {
 		return colors[type] || 'bg-muted text-muted-foreground'
 	}
 
+	// Credit pack purchase status badge colors
+	const getCreditStatusBadge = (status: string) => {
+		const colors: Record<string, string> = {
+			ACTIVE: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/40 dark:text-green-200 dark:border-green-800',
+			EXHAUSTED: 'bg-muted text-muted-foreground border-input',
+			EXPIRED: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/40 dark:text-amber-200 dark:border-amber-800',
+			REFUNDED: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/40 dark:text-red-200 dark:border-red-800',
+		}
+		return colors[status] || 'bg-muted text-muted-foreground'
+	}
+
 	if (isLoading) {
 		return (
 			<div className="p-6 bg-background text-foreground">
@@ -552,15 +563,17 @@ export default function CustomerDetail() {
 										<div className="space-y-4">
 											{creditPurchases.map((purchase) => {
 												const statusKey = `detail.credits.status.${purchase.status}`
+												const amountPaidNum = Number(purchase.amountPaid)
+												const amountStr = Number.isFinite(amountPaidNum) ? formatCurrency(amountPaidNum) : '—'
 												return (
 													<div key={purchase.id} className="border rounded-lg p-4">
-														<div className="flex items-start justify-between mb-3">
-															<div>
-																<div className="font-semibold">{purchase.creditPack.name}</div>
+														<div className="flex items-start justify-between mb-3 gap-3">
+															<div className="min-w-0">
+																<div className="font-semibold truncate">{purchase.creditPack.name}</div>
 																<div className="text-xs text-muted-foreground mt-1">
 																	{t('detail.credits.purchasedAt', { date: formatDate(purchase.purchasedAt) })}
 																	{' · '}
-																	{t('detail.credits.amountPaid')}: {formatCurrency(Number(purchase.amountPaid))}
+																	{t('detail.credits.amountPaid')}: {amountStr}
 																</div>
 																<div className="text-xs text-muted-foreground">
 																	{purchase.expiresAt
@@ -568,23 +581,28 @@ export default function CustomerDetail() {
 																		: t('detail.credits.noExpiry')}
 																</div>
 															</div>
-															<Badge variant="outline">{t(statusKey)}</Badge>
+															<Badge variant="outline" className={getCreditStatusBadge(purchase.status)}>
+																{t(statusKey)}
+															</Badge>
 														</div>
 														<div className="space-y-2">
-															{purchase.itemBalances.map((balance) => (
-																<div
-																	key={balance.id}
-																	className="flex items-center justify-between p-2 bg-muted/40 rounded-md"
-																>
-																	<span className="text-sm">{balance.product.name}</span>
-																	<span className="text-sm font-medium">
-																		{t('detail.credits.remaining', {
-																			remaining: balance.remainingQuantity,
-																			total: balance.originalQuantity,
-																		})}
-																	</span>
-																</div>
-															))}
+															{purchase.itemBalances.map((balance) => {
+																const exhausted = balance.remainingQuantity === 0
+																return (
+																	<div
+																		key={balance.id}
+																		className={'flex items-center justify-between px-3 py-2 rounded-md ' + (exhausted ? 'bg-muted/30 text-muted-foreground' : 'bg-muted/40')}
+																	>
+																		<span className="text-sm truncate min-w-0 mr-3">{balance.product.name}</span>
+																		<span className={'text-sm font-medium tabular-nums whitespace-nowrap ' + (exhausted ? '' : 'text-foreground')}>
+																			{t('detail.credits.remaining', {
+																				remaining: balance.remainingQuantity,
+																				total: balance.originalQuantity,
+																			})}
+																		</span>
+																	</div>
+																)
+															})}
 														</div>
 													</div>
 												)

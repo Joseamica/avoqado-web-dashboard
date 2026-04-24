@@ -517,30 +517,33 @@ export function CreateClassSessionDialog({ open, onOpenChange, defaultDate, defa
                     control={control}
                     name="weekdays"
                     render={({ field }) => (
-                      <div className="flex gap-1 flex-wrap">
+                      <div className="flex gap-1.5 flex-wrap">
                         {[
-                          { v: 1, l: 'L' },
-                          { v: 2, l: 'M' },
-                          { v: 3, l: 'X' },
-                          { v: 4, l: 'J' },
-                          { v: 5, l: 'V' },
-                          { v: 6, l: 'S' },
-                          { v: 0, l: 'D' },
-                        ].map(({ v, l }) => {
+                          { v: 1, l: 'L', full: 'Lunes' },
+                          { v: 2, l: 'M', full: 'Martes' },
+                          { v: 3, l: 'X', full: 'Miércoles' },
+                          { v: 4, l: 'J', full: 'Jueves' },
+                          { v: 5, l: 'V', full: 'Viernes' },
+                          { v: 6, l: 'S', full: 'Sábado' },
+                          { v: 0, l: 'D', full: 'Domingo' },
+                        ].map(({ v, l, full }) => {
                           const selected = (field.value as number[] | undefined)?.includes(v) ?? false
                           return (
                             <button
                               key={v}
                               type="button"
+                              title={full}
+                              aria-label={full}
+                              aria-pressed={selected}
                               onClick={() => {
                                 const current = (field.value as number[] | undefined) ?? []
                                 field.onChange(selected ? current.filter(x => x !== v) : [...current, v].sort())
                               }}
                               className={
-                                'h-8 w-8 rounded-md border text-xs font-medium transition ' +
+                                'h-11 w-11 rounded-lg border text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ' +
                                 (selected
-                                  ? 'bg-primary text-primary-foreground border-primary'
-                                  : 'bg-background hover:bg-muted border-input')
+                                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                                  : 'bg-background hover:bg-muted border-input text-muted-foreground hover:text-foreground')
                               }
                             >
                               {l}
