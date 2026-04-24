@@ -54,6 +54,7 @@
 			"description": "Active purchases and remaining credits per product",
 			"emptyState": "This customer has no credit pack purchases",
 			"remaining": "{{remaining}} of {{total}}",
+			"remainingAdjusted": "{{remaining}} available",
 			"expires": "Expires {{date}}",
 			"noExpiry": "No expiry",
 			"purchasedAt": "Purchased {{date}}",

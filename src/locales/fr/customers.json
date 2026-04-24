@@ -54,6 +54,7 @@
 			"description": "Achats actifs et crédits restants par produit",
 			"emptyState": "Ce client n'a aucun achat de forfait de crédits",
 			"remaining": "{{remaining}} sur {{total}}",
+			"remainingAdjusted": "{{remaining}} disponibles",
 			"expires": "Expire le {{date}}",
 			"noExpiry": "Sans expiration",
 			"purchasedAt": "Acheté le {{date}}",

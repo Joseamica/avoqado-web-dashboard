@@ -54,6 +54,7 @@
 			"description": "Compras activas y créditos restantes por producto",
 			"emptyState": "Este cliente no ha comprado paquetes de créditos",
 			"remaining": "{{remaining}} de {{total}}",
+			"remainingAdjusted": "{{remaining}} disponibles",
 			"expires": "Expira {{date}}",
 			"noExpiry": "Sin expiración",
 			"purchasedAt": "Comprado el {{date}}",

@@ -588,6 +588,9 @@ export default function CustomerDetail() {
 														<div className="space-y-2">
 															{purchase.itemBalances.map((balance) => {
 																const exhausted = balance.remainingQuantity === 0
+																// When admin has adjusted balance above the original purchase amount,
+																// "X of Y" misleads ("6 of 1"). Show "X available" instead.
+																const adjusted = balance.remainingQuantity > balance.originalQuantity
 																return (
 																	<div
 																		key={balance.id}
@@ -595,10 +598,12 @@ export default function CustomerDetail() {
 																	>
 																		<span className="text-sm truncate min-w-0 mr-3">{balance.product.name}</span>
 																		<span className={'text-sm font-medium tabular-nums whitespace-nowrap ' + (exhausted ? '' : 'text-foreground')}>
-																			{t('detail.credits.remaining', {
-																				remaining: balance.remainingQuantity,
-																				total: balance.originalQuantity,
-																			})}
+																			{adjusted
+																				? t('detail.credits.remainingAdjusted', { remaining: balance.remainingQuantity })
+																				: t('detail.credits.remaining', {
+																					remaining: balance.remainingQuantity,
+																					total: balance.originalQuantity,
+																				})}
 																		</span>
 																	</div>
 																)
