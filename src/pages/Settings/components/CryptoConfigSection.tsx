@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 
 import cryptoConfigService from '@/services/crypto-config.service'
@@ -29,12 +28,6 @@ export function CryptoConfigSection() {
     queryKey: ['cryptoConfig', venueId],
     queryFn: () => cryptoConfigService.getConfig(venueId!),
     enabled: !!venueId,
-  })
-
-  const { data: devices, isLoading: devicesLoading } = useQuery({
-    queryKey: ['b4bitDevices'],
-    queryFn: () => cryptoConfigService.listDevices(),
-    enabled: config?.status === 'PENDING_SETUP',
   })
 
   const enableMutation = useMutation({
@@ -150,44 +143,38 @@ export function CryptoConfigSection() {
             </AlertDescription>
           </Alert>
 
-          {/* Step 1: Select B4Bit device */}
+          {/* Step 1: Paste B4Bit Device ID */}
           <div className="flex items-start gap-3">
             <div className="h-5 w-5 rounded-full border-2 border-primary flex items-center justify-center mt-0.5 shrink-0">
               <span className="text-xs font-bold text-primary">1</span>
             </div>
             <div className="flex-1 space-y-3">
-              <p className="font-medium">{t('crypto.step1', 'Seleccionar dispositivo B4Bit')}</p>
+              <p className="font-medium">{t('crypto.step1', 'Ingresar Device ID')}</p>
               <p className="text-sm text-muted-foreground">
-                {t('crypto.step1Desc', 'Selecciona el dispositivo de tu cuenta B4Bit que se asignará a este venue.')}
+                {t(
+                  'crypto.step1Desc',
+                  'Crea un dispositivo en tu cuenta de B4Bit y pega aquí el Device ID (UUID).',
+                )}{' '}
+                <a
+                  href={config.b4bitDashboardUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline inline-flex items-center gap-1"
+                >
+                  {t('crypto.openB4BitDashboard', 'Abrir dashboard de B4Bit')} <ExternalLink className="h-3 w-3" />
+                </a>
               </p>
 
               <div>
-                <Label htmlFor="deviceSelect">Device</Label>
-                {devicesLoading ? (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Cargando dispositivos...
-                  </div>
-                ) : devices && devices.length > 0 ? (
-                  <Select value={deviceId} onValueChange={setDeviceId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('crypto.selectDevice', 'Seleccionar dispositivo...')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {devices.map((device) => (
-                        <SelectItem key={device.deviceId} value={device.deviceId}>
-                          {device.name} ({device.deviceId.slice(0, 8)}...)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {t('crypto.noDevices', 'No se encontraron dispositivos. Crea uno en el')}{' '}
-                    <a href={config.b4bitDashboardUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
-                      dashboard de B4Bit <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </p>
-                )}
+                <Label htmlFor="deviceId">Device ID</Label>
+                <Input
+                  id="deviceId"
+                  type="text"
+                  placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                  value={deviceId}
+                  onChange={e => setDeviceId(e.target.value.trim())}
+                  className="font-mono"
+                />
               </div>
             </div>
           </div>
@@ -214,7 +201,7 @@ export function CryptoConfigSection() {
                 />
               </div>
 
-              <Button onClick={() => setupMutation.mutate()} disabled={!deviceId || !secretKey.trim() || setupMutation.isPending}>
+              <Button onClick={() => setupMutation.mutate()} disabled={!deviceId.trim() || !secretKey.trim() || setupMutation.isPending}>
                 {setupMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t('crypto.validateButton', 'Validar y Activar')}
               </Button>
             </div>

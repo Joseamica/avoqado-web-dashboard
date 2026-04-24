@@ -48,6 +48,8 @@ const settingsSchema = z.object({
 	creditFreeRefundHoursBefore: z.coerce.number().min(0).max(720),
 	creditLateRefundPercent: z.coerce.number().min(0).max(100),
 	creditNoShowRefund: z.boolean(),
+	// Reschedule
+	allowCustomerReschedule: z.boolean(),
 	// Waitlist
 	waitlistEnabled: z.boolean(),
 	waitlistMaxSize: z.coerce.number().min(1).max(500),
@@ -104,6 +106,7 @@ export default function ReservationSettings() {
 			creditFreeRefundHoursBefore: 12,
 			creditLateRefundPercent: 0,
 			creditNoShowRefund: false,
+			allowCustomerReschedule: true,
 			waitlistEnabled: true,
 			waitlistMaxSize: 50,
 			waitlistPriorityMode: 'fifo',
@@ -142,6 +145,7 @@ export default function ReservationSettings() {
 				creditFreeRefundHoursBefore: (settings.cancellation as any).creditFreeRefundHoursBefore ?? 12,
 				creditLateRefundPercent: (settings.cancellation as any).creditLateRefundPercent ?? 0,
 				creditNoShowRefund: (settings.cancellation as any).creditNoShowRefund ?? false,
+				allowCustomerReschedule: (settings.cancellation as any).allowCustomerReschedule ?? true,
 				waitlistEnabled: settings.waitlist.enabled,
 				waitlistMaxSize: settings.waitlist.maxSize,
 				waitlistPriorityMode: settings.waitlist.priorityMode,
@@ -187,6 +191,7 @@ export default function ReservationSettings() {
 					creditFreeRefundHoursBefore: data.creditFreeRefundHoursBefore,
 					creditLateRefundPercent: data.creditLateRefundPercent,
 					creditNoShowRefund: data.creditNoShowRefund,
+					allowCustomerReschedule: data.allowCustomerReschedule,
 				} as any,
 				waitlist: {
 					enabled: data.waitlistEnabled,
@@ -420,6 +425,20 @@ export default function ReservationSettings() {
 							<Switch
 								checked={watch('allowCustomerCancel')}
 								onCheckedChange={v => setValue('allowCustomerCancel', v, { shouldDirty: true })}
+							/>
+						</div>
+						<div className="flex items-center justify-between rounded-lg border border-input p-4">
+							<div>
+								<Label>{t('settings.cancellation.allowReschedule', { defaultValue: 'Permitir cambio de horario' })}</Label>
+								<p className="text-xs text-muted-foreground mt-1">
+									{t('settings.cancellation.allowRescheduleHelp', {
+										defaultValue: 'El cliente puede mover su reserva a otro horario de la misma clase, dentro de la ventana de cancelación.',
+									})}
+								</p>
+							</div>
+							<Switch
+								checked={watch('allowCustomerReschedule')}
+								onCheckedChange={v => setValue('allowCustomerReschedule', v, { shouldDirty: true })}
 							/>
 						</div>
 						<div className="grid grid-cols-2 gap-6">

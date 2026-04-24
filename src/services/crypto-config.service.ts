@@ -16,19 +16,9 @@ export interface CryptoConfig {
   updatedAt: string
 }
 
-export interface B4BitDevice {
-  deviceId: string
-  name: string
-}
-
 export const cryptoConfigService = {
   async getConfig(venueId: string): Promise<CryptoConfig | null> {
     const response = await api.get(`/api/v1/dashboard/venues/${venueId}/crypto/config`)
-    return response.data.data
-  },
-
-  async listDevices(): Promise<B4BitDevice[]> {
-    const response = await api.get('/api/v1/dashboard/crypto/devices')
     return response.data.data
   },
 
