@@ -8,7 +8,13 @@ import { useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 // Select and Tabs removed — view toggle now uses dropdown
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
@@ -128,11 +134,19 @@ export default function ReservationCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date())
 
   useEffect(() => {
-    try { localStorage.setItem(VIEW_STORAGE_KEY, view) } catch {}
+    try {
+      localStorage.setItem(VIEW_STORAGE_KEY, view)
+    } catch {
+      // localStorage unavailable (SSR / privacy mode) — fall through to default
+    }
   }, [view])
 
   useEffect(() => {
-    try { localStorage.setItem(GROUP_BY_STORAGE_KEY, groupBy) } catch {}
+    try {
+      localStorage.setItem(GROUP_BY_STORAGE_KEY, groupBy)
+    } catch {
+      // localStorage unavailable (SSR / privacy mode) — fall through to default
+    }
   }, [groupBy])
 
   // Click-to-create reservation modal state
@@ -275,7 +289,7 @@ export default function ReservationCalendar() {
         const rect = el.getBoundingClientRect()
         const relY = y - rect.top
         const hourFloat = (relY - GRID_TOP_PAD) / 64 + firstHour
-        return Math.round(hourFloat * 60 / 15) * 15 // total minutes, snapped
+        return Math.round((hourFloat * 60) / 15) * 15 // total minutes, snapped
       }
       return null
     }
@@ -285,7 +299,7 @@ export default function ReservationCalendar() {
     const handleMouseMove = (e: MouseEvent) => {
       if (!dragRef.current) return
       const deltaY = e.clientY - dragRef.current.startY
-      const deltaX = dragRef.current.mode === 'move' ? (e.clientX - dragRef.current.startX) : 0
+      const deltaX = dragRef.current.mode === 'move' ? e.clientX - dragRef.current.startX : 0
       if (!dragRef.current.didDrag && Math.abs(deltaY) < 4 && Math.abs(deltaX) < 4) return
       e.preventDefault()
       dragRef.current.didDrag = true
@@ -372,7 +386,7 @@ export default function ReservationCalendar() {
         } else {
           // Fallback: same-day vertical drag
           const deltaY = e.clientY - drag.startY
-          const deltaMinutes = Math.round((deltaY / 64) * 60 / 15) * 15
+          const deltaMinutes = Math.round(((deltaY / 64) * 60) / 15) * 15
           if (Math.abs(deltaMinutes) < 15) return
           newStart = origStart.plus({ minutes: deltaMinutes })
           newEnd = origEnd.plus({ minutes: deltaMinutes })
@@ -382,13 +396,13 @@ export default function ReservationCalendar() {
         if (newStart.equals(origStart) && newEnd.equals(origEnd)) return
       } else if (drag.mode === 'resize-bottom') {
         const deltaY = e.clientY - drag.startY
-        const deltaMinutes = Math.round((deltaY / 64) * 60 / 15) * 15
+        const deltaMinutes = Math.round(((deltaY / 64) * 60) / 15) * 15
         if (Math.abs(deltaMinutes) < 15) return
         newEnd = origEnd.plus({ minutes: deltaMinutes })
         if (newEnd.diff(origStart, 'minutes').minutes < 15) return
       } else if (drag.mode === 'resize-top') {
         const deltaY = e.clientY - drag.startY
-        const deltaMinutes = Math.round((deltaY / 64) * 60 / 15) * 15
+        const deltaMinutes = Math.round(((deltaY / 64) * 60) / 15) * 15
         if (Math.abs(deltaMinutes) < 15) return
         newStart = origStart.plus({ minutes: deltaMinutes })
         if (origEnd.diff(newStart, 'minutes').minutes < 15) return
@@ -412,33 +426,36 @@ export default function ReservationCalendar() {
     }
   }, [classSessions, venueTimezone, firstHour, dragUpdateMutation])
 
-  const handleSessionDragStart = useCallback((
-    e: React.MouseEvent,
-    session: (typeof classSessions)[0],
-    top: number,
-    height: number,
-    mode: 'move' | 'resize-top' | 'resize-bottom',
-  ) => {
-    if (session.status === 'CANCELLED' || session.status === 'COMPLETED') return
-    e.stopPropagation()
-    e.preventDefault()
-    const el = (mode === 'move' ? e.currentTarget : e.currentTarget.parentElement) as HTMLDivElement
-    const start = DateTime.fromISO(session.startsAt, { zone: 'utc' }).setZone(venueTimezone)
-    const end = DateTime.fromISO(session.endsAt, { zone: 'utc' }).setZone(venueTimezone)
-    didDragRef.current = false
-    dragRef.current = {
-      sessionId: session.id,
-      startX: e.clientX,
-      startY: e.clientY,
-      originalTop: top,
-      durationHours: end.diff(start, 'hours').hours,
-      dayKey: start.toFormat('yyyy-MM-dd'),
-      el,
-      didDrag: false,
-      mode,
-      originalHeight: height,
-    }
-  }, [venueTimezone])
+  const handleSessionDragStart = useCallback(
+    (
+      e: React.MouseEvent,
+      session: (typeof classSessions)[0],
+      top: number,
+      height: number,
+      mode: 'move' | 'resize-top' | 'resize-bottom',
+    ) => {
+      if (session.status === 'CANCELLED' || session.status === 'COMPLETED') return
+      e.stopPropagation()
+      e.preventDefault()
+      const el = (mode === 'move' ? e.currentTarget : e.currentTarget.parentElement) as HTMLDivElement
+      const start = DateTime.fromISO(session.startsAt, { zone: 'utc' }).setZone(venueTimezone)
+      const end = DateTime.fromISO(session.endsAt, { zone: 'utc' }).setZone(venueTimezone)
+      didDragRef.current = false
+      dragRef.current = {
+        sessionId: session.id,
+        startX: e.clientX,
+        startY: e.clientY,
+        originalTop: top,
+        durationHours: end.diff(start, 'hours').hours,
+        dayKey: start.toFormat('yyyy-MM-dd'),
+        el,
+        didDrag: false,
+        mode,
+        originalHeight: height,
+      }
+    },
+    [venueTimezone],
+  )
 
   // Ref for auto-scroll to current time
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -455,12 +472,10 @@ export default function ReservationCalendar() {
 
   // Navigate date
   const navStep = view === 'day' ? 1 : view === '5day' ? 5 : view === 'month' ? 30 : 7
-  const goPrev = () => setCurrentDate(prev => view === 'month'
-    ? new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
-    : addDays(prev, -navStep))
-  const goNext = () => setCurrentDate(prev => view === 'month'
-    ? new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
-    : addDays(prev, navStep))
+  const goPrev = () =>
+    setCurrentDate(prev => (view === 'month' ? new Date(prev.getFullYear(), prev.getMonth() - 1, 1) : addDays(prev, -navStep)))
+  const goNext = () =>
+    setCurrentDate(prev => (view === 'month' ? new Date(prev.getFullYear(), prev.getMonth() + 1, 1) : addDays(prev, navStep)))
 
   // Format current date display
   const dateDisplay = useMemo(() => {
@@ -520,7 +535,8 @@ export default function ReservationCalendar() {
         if (r.classSessionId) return false
         if (r.status === 'CANCELLED' && !calendarAttrs.showCancelled) return false
         if (r.status === 'PENDING' && !calendarAttrs.showPending) return false
-        if ((r.status === 'CONFIRMED' || r.status === 'CHECKED_IN' || r.status === 'COMPLETED') && !calendarAttrs.showConfirmed) return false
+        if ((r.status === 'CONFIRMED' || r.status === 'CHECKED_IN' || r.status === 'COMPLETED') && !calendarAttrs.showConfirmed)
+          return false
         return true
       })
 
@@ -605,9 +621,7 @@ export default function ReservationCalendar() {
               </Badge>
             )}
             {!isFull && spotsLeft <= 3 && (
-              <span className="text-[10px] opacity-80">
-                {t('classSession.spotsLeft', { count: spotsLeft })}
-              </span>
+              <span className="text-[10px] opacity-80">{t('classSession.spotsLeft', { count: spotsLeft })}</span>
             )}
           </div>
         )}
@@ -678,67 +692,76 @@ export default function ReservationCalendar() {
     return (hour - firstHour) * 64 + GRID_TOP_PAD
   }, [firstHour, lastHour, venueTimezone])
 
-  const handleGridMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>, day: Date) => {
-    if ((e.target as HTMLElement).closest('[data-reservation]')) {
-      setHoverSlot(null)
-      return
-    }
-    const rect = e.currentTarget.getBoundingClientRect()
-    const y = e.clientY - rect.top
-    const hourFloat = (y - GRID_TOP_PAD) / 64 + firstHour
+  const handleGridMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>, day: Date) => {
+      if ((e.target as HTMLElement).closest('[data-reservation]')) {
+        setHoverSlot(null)
+        return
+      }
+      const rect = e.currentTarget.getBoundingClientRect()
+      const y = e.clientY - rect.top
+      const hourFloat = (y - GRID_TOP_PAD) / 64 + firstHour
 
-    const hour = Math.floor(hourFloat)
-    const rawMinutes = Math.round(((hourFloat - hour) * 60) / 15) * 15
-    const snappedMinutes = rawMinutes >= 60 ? 0 : rawMinutes
-    const snappedHour = rawMinutes >= 60 ? hour + 1 : hour
+      const hour = Math.floor(hourFloat)
+      const rawMinutes = Math.round(((hourFloat - hour) * 60) / 15) * 15
+      const snappedMinutes = rawMinutes >= 60 ? 0 : rawMinutes
+      const snappedHour = rawMinutes >= 60 ? hour + 1 : hour
 
-    if (snappedHour < firstHour || snappedHour > lastHour) {
-      setHoverSlot(null)
-      return
-    }
+      if (snappedHour < firstHour || snappedHour > lastHour) {
+        setHoverSlot(null)
+        return
+      }
 
-    const top = (snappedHour - firstHour) * 64 + (snappedMinutes / 60) * 64 + GRID_TOP_PAD
-    const time = `${String(snappedHour).padStart(2, '0')}:${String(snappedMinutes).padStart(2, '0')}`
-    const dayKey = formatVenueDateISO(day)
-    setHoverSlot(prev => (prev?.time === time && prev?.dayKey === dayKey ? prev : { top, time, dayKey }))
-  }, [firstHour, lastHour, formatVenueDateISO])
+      const top = (snappedHour - firstHour) * 64 + (snappedMinutes / 60) * 64 + GRID_TOP_PAD
+      const time = `${String(snappedHour).padStart(2, '0')}:${String(snappedMinutes).padStart(2, '0')}`
+      const dayKey = formatVenueDateISO(day)
+      setHoverSlot(prev => (prev?.time === time && prev?.dayKey === dayKey ? prev : { top, time, dayKey }))
+    },
+    [firstHour, lastHour, formatVenueDateISO],
+  )
 
   const handleGridMouseLeave = useCallback(() => setHoverSlot(null), [])
 
   // Handle click on empty grid area — show event type picker
-  const handleGridClick = useCallback((e: React.MouseEvent<HTMLDivElement>, day: Date) => {
-    // Don't trigger if user clicked on an existing reservation block
-    if ((e.target as HTMLElement).closest('[data-reservation]')) return
+  const handleGridClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>, day: Date) => {
+      // Don't trigger if user clicked on an existing reservation block
+      if ((e.target as HTMLElement).closest('[data-reservation]')) return
 
-    const rect = e.currentTarget.getBoundingClientRect()
-    const y = e.clientY - rect.top
-    const hourFloat = (y - GRID_TOP_PAD) / 64 + firstHour
+      const rect = e.currentTarget.getBoundingClientRect()
+      const y = e.clientY - rect.top
+      const hourFloat = (y - GRID_TOP_PAD) / 64 + firstHour
 
-    // Snap to nearest 15-minute interval
-    const hour = Math.floor(hourFloat)
-    const rawMinutes = Math.round(((hourFloat - hour) * 60) / 15) * 15
-    const snappedMinutes = rawMinutes >= 60 ? 0 : rawMinutes
-    const snappedHour = rawMinutes >= 60 ? hour + 1 : hour
+      // Snap to nearest 15-minute interval
+      const hour = Math.floor(hourFloat)
+      const rawMinutes = Math.round(((hourFloat - hour) * 60) / 15) * 15
+      const snappedMinutes = rawMinutes >= 60 ? 0 : rawMinutes
+      const snappedHour = rawMinutes >= 60 ? hour + 1 : hour
 
-    // Clamp to valid range
-    if (snappedHour < firstHour || snappedHour > lastHour) return
+      // Clamp to valid range
+      if (snappedHour < firstHour || snappedHour > lastHour) return
 
-    const startTime = `${String(snappedHour).padStart(2, '0')}:${String(snappedMinutes).padStart(2, '0')}`
-    const date = formatVenueDateISO(day)
+      const startTime = `${String(snappedHour).padStart(2, '0')}:${String(snappedMinutes).padStart(2, '0')}`
+      const date = formatVenueDateISO(day)
 
-    // Show the event type picker at click position
-    setGridClickMenu({ open: true, x: e.clientX, y: e.clientY, date, startTime })
-  }, [firstHour, lastHour, formatVenueDateISO])
+      // Show the event type picker at click position
+      setGridClickMenu({ open: true, x: e.clientX, y: e.clientY, date, startTime })
+    },
+    [firstHour, lastHour, formatVenueDateISO],
+  )
 
-  const handleGridMenuSelect = useCallback((type: 'reservation' | 'class') => {
-    const { date, startTime } = gridClickMenu
-    setGridClickMenu(prev => ({ ...prev, open: false }))
-    if (type === 'reservation') {
-      setCreateModal({ open: true, date, startTime })
-    } else {
-      setClassModal({ open: true, date, startTime })
-    }
-  }, [gridClickMenu])
+  const handleGridMenuSelect = useCallback(
+    (type: 'reservation' | 'class') => {
+      const { date, startTime } = gridClickMenu
+      setGridClickMenu(prev => ({ ...prev, open: false }))
+      if (type === 'reservation') {
+        setCreateModal({ open: true, date, startTime })
+      } else {
+        setClassModal({ open: true, date, startTime })
+      }
+    },
+    [gridClickMenu],
+  )
 
   // Render the day column
   const renderDayColumn = (day: Date, isWide: boolean) => {
@@ -832,7 +855,9 @@ export default function ReservationCalendar() {
           className={`sticky top-0 z-10 border-b border-border px-2 py-1.5 text-center ${dayIsToday ? 'bg-primary/5' : 'bg-background'}`}
         >
           <div className="text-sm font-medium truncate">{col.headerLabel}</div>
-          <div className="text-xs text-muted-foreground">{col.reservations.length} {col.reservations.length === 1 ? t('people', { count: 1 }).split(' ').pop() : ''}</div>
+          <div className="text-xs text-muted-foreground">
+            {col.reservations.length} {col.reservations.length === 1 ? t('people', { count: 1 }).split(' ').pop() : ''}
+          </div>
         </div>
 
         {/* Time grid */}
@@ -915,7 +940,9 @@ export default function ReservationCalendar() {
                 <div className="border-r border-border p-2 space-y-0.5">
                   <button
                     className="block text-left px-3 py-1.5 text-sm rounded-md hover:bg-accent cursor-pointer whitespace-nowrap"
-                    onClick={() => { setCurrentDate(new Date()) }}
+                    onClick={() => {
+                      setCurrentDate(new Date())
+                    }}
                   >
                     {t('tabs.today', { defaultValue: 'Hoy' })}
                   </button>
@@ -923,7 +950,9 @@ export default function ReservationCalendar() {
                     <button
                       key={n}
                       className="block text-left px-3 py-1.5 text-sm rounded-md hover:bg-accent cursor-pointer text-muted-foreground whitespace-nowrap"
-                      onClick={() => { setCurrentDate(addDays(new Date(), n * 7)) }}
+                      onClick={() => {
+                        setCurrentDate(addDays(new Date(), n * 7))
+                      }}
                     >
                       {t('calendar.inWeeks', { count: n, defaultValue: `En ${n} semana${n > 1 ? 's' : ''}` })}
                     </button>
@@ -934,7 +963,9 @@ export default function ReservationCalendar() {
                   <Calendar
                     mode="single"
                     selected={currentDate}
-                    onSelect={date => { if (date) setCurrentDate(date) }}
+                    onSelect={date => {
+                      if (date) setCurrentDate(date)
+                    }}
                     weekStartsOn={1}
                     locale={getDateFnsLocale(locale)}
                   />
@@ -953,10 +984,13 @@ export default function ReservationCalendar() {
               <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs font-medium">
                 {t('calendar.interval', { defaultValue: 'Intervalo' })}{' '}
                 <span className="font-bold">
-                  {view === 'day' ? t('calendar.views.day')
-                    : view === '5day' ? t('calendar.views.5day', { defaultValue: '5-días' })
-                    : view === 'month' ? t('calendar.views.month', { defaultValue: 'Mes' })
-                    : t('calendar.views.week')}
+                  {view === 'day'
+                    ? t('calendar.views.day')
+                    : view === '5day'
+                      ? t('calendar.views.5day', { defaultValue: '5-días' })
+                      : view === 'month'
+                        ? t('calendar.views.month', { defaultValue: 'Mes' })
+                        : t('calendar.views.week')}
                 </span>
               </Button>
             </DropdownMenuTrigger>
@@ -967,10 +1001,13 @@ export default function ReservationCalendar() {
                   className={`cursor-pointer ${view === v ? 'font-bold bg-accent' : ''}`}
                   onClick={() => setView(v)}
                 >
-                  {v === 'day' ? t('calendar.views.day')
-                    : v === '5day' ? t('calendar.views.5day', { defaultValue: '5-días' })
-                    : v === 'month' ? t('calendar.views.month', { defaultValue: 'Mes' })
-                    : t('calendar.views.week')}
+                  {v === 'day'
+                    ? t('calendar.views.day')
+                    : v === '5day'
+                      ? t('calendar.views.5day', { defaultValue: '5-días' })
+                      : v === 'month'
+                        ? t('calendar.views.month', { defaultValue: 'Mes' })
+                        : t('calendar.views.week')}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -982,13 +1019,9 @@ export default function ReservationCalendar() {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs font-medium">
                   <Columns3 className="h-3.5 w-3.5" />
-                  {groupBy === 'none'
-                    ? t('calendar.groupBy.label')
-                    : `${t('calendar.groupBy.label')}: `}
+                  {groupBy === 'none' ? t('calendar.groupBy.label') : `${t('calendar.groupBy.label')}: `}
                   {groupBy !== 'none' && (
-                    <span className="font-bold">
-                      {groupBy === 'staff' ? t('calendar.groupBy.staff') : t('calendar.groupBy.table')}
-                    </span>
+                    <span className="font-bold">{groupBy === 'staff' ? t('calendar.groupBy.staff') : t('calendar.groupBy.table')}</span>
                   )}
                 </Button>
               </DropdownMenuTrigger>
@@ -999,9 +1032,11 @@ export default function ReservationCalendar() {
                     className={`cursor-pointer ${groupBy === mode ? 'font-bold bg-accent' : ''}`}
                     onClick={() => setGroupBy(mode)}
                   >
-                    {mode === 'none' ? t('calendar.groupBy.none')
-                      : mode === 'staff' ? t('calendar.groupBy.staff')
-                      : t('calendar.groupBy.table')}
+                    {mode === 'none'
+                      ? t('calendar.groupBy.none')
+                      : mode === 'staff'
+                        ? t('calendar.groupBy.staff')
+                        : t('calendar.groupBy.table')}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
@@ -1043,9 +1078,7 @@ export default function ReservationCalendar() {
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem
                 className="gap-2 cursor-pointer"
-                onClick={() =>
-                  setCreateModal({ open: true, date: formatVenueDateISO(currentDate), startTime: '' })
-                }
+                onClick={() => setCreateModal({ open: true, date: formatVenueDateISO(currentDate), startTime: '' })}
               >
                 <CalendarDays className="h-4 w-4 text-muted-foreground" />
                 {t('calendar.createCita', { defaultValue: 'Cita' })}
@@ -1053,9 +1086,7 @@ export default function ReservationCalendar() {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="gap-2 cursor-pointer"
-                onClick={() =>
-                  setClassModal({ open: true, date: formatVenueDateISO(currentDate), startTime: '' })
-                }
+                onClick={() => setClassModal({ open: true, date: formatVenueDateISO(currentDate), startTime: '' })}
               >
                 <Users className="h-4 w-4 text-muted-foreground" />
                 {t('calendar.createClase', { defaultValue: 'Clase' })}
@@ -1074,7 +1105,10 @@ export default function ReservationCalendar() {
           {/* Weekday headers */}
           <div className="grid grid-cols-7 border-b border-border">
             {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(d => (
-              <div key={d} className="px-2 py-1.5 text-xs font-medium text-muted-foreground text-center border-r border-border/30 last:border-r-0">
+              <div
+                key={d}
+                className="px-2 py-1.5 text-xs font-medium text-muted-foreground text-center border-r border-border/30 last:border-r-0"
+              >
                 {t(`settings.operatingHours.days.${d}`).slice(0, 3)}
               </div>
             ))}
@@ -1096,17 +1130,19 @@ export default function ReservationCalendar() {
                 <div
                   key={dayKey}
                   className={`min-h-[100px] border-r border-b border-border/30 p-1.5 cursor-pointer hover:bg-accent/30 transition-colors ${dayIsToday ? 'bg-primary/5' : ''}`}
-                  onClick={() => { setCurrentDate(day); setView('day') }}
+                  onClick={() => {
+                    setCurrentDate(day)
+                    setView('day')
+                  }}
                 >
-                  <div className={`text-sm mb-1 ${dayIsToday ? 'bg-primary text-primary-foreground rounded-full w-7 h-7 flex items-center justify-center' : 'text-foreground'}`}>
+                  <div
+                    className={`text-sm mb-1 ${dayIsToday ? 'bg-primary text-primary-foreground rounded-full w-7 h-7 flex items-center justify-center' : 'text-foreground'}`}
+                  >
                     {day.getDate()}
                   </div>
                   {/* Compact event indicators */}
                   {dayReservations.slice(0, 3).map(r => (
-                    <div
-                      key={r.id}
-                      className={`text-[10px] leading-tight truncate rounded px-1 py-0.5 mb-0.5 ${statusColorMap[r.status]}`}
-                    >
+                    <div key={r.id} className={`text-[10px] leading-tight truncate rounded px-1 py-0.5 mb-0.5 ${statusColorMap[r.status]}`}>
                       {r.customer ? r.customer.firstName : r.guestName || '—'} {formatTime(r.startsAt)}
                     </div>
                   ))}
@@ -1118,9 +1154,7 @@ export default function ReservationCalendar() {
                       {s.product.name} {formatTime(s.startsAt)}
                     </div>
                   ))}
-                  {totalEvents > 5 && (
-                    <div className="text-[10px] text-muted-foreground">+{totalEvents - 5}</div>
-                  )}
+                  {totalEvents > 5 && <div className="text-[10px] text-muted-foreground">+{totalEvents - 5}</div>}
                 </div>
               )
             })}
@@ -1132,7 +1166,9 @@ export default function ReservationCalendar() {
           <div className="flex min-w-[600px]">
             {/* Time axis */}
             <div className="w-14 shrink-0 border-r border-border">
-              {(view !== 'day' || (groupedColumns && groupedColumns.length > 0)) && <div className="sticky top-0 bg-background z-10 border-b border-border h-[44px]" />}
+              {(view !== 'day' || (groupedColumns && groupedColumns.length > 0)) && (
+                <div className="sticky top-0 bg-background z-10 border-b border-border h-[44px]" />
+              )}
               <div className="relative" style={{ height: `${HOURS.length * 64 + GRID_TOP_PAD + 8}px` }}>
                 {HOURS.map(hour => (
                   <div
@@ -1149,8 +1185,7 @@ export default function ReservationCalendar() {
             {/* Day columns — use grouped columns when groupBy is active in day view */}
             {view === 'day' && groupedColumns && groupedColumns.length > 0
               ? groupedColumns.map(col => renderGroupedColumn(col, currentDate))
-              : displayDays.map(day => renderDayColumn(day, displayDays.length === 1))
-            }
+              : displayDays.map(day => renderDayColumn(day, displayDays.length === 1))}
           </div>
         </div>
       )}
@@ -1179,9 +1214,7 @@ export default function ReservationCalendar() {
               {t('calendar.createClase', { defaultValue: 'Clase' })}
             </button>
           </div>
-          <div className="border-t border-border px-3 py-1.5 text-[11px] text-muted-foreground">
-            {gridClickMenu.startTime}
-          </div>
+          <div className="border-t border-border px-3 py-1.5 text-[11px] text-muted-foreground">{gridClickMenu.startTime}</div>
         </div>
       )}
 
@@ -1215,24 +1248,13 @@ export default function ReservationCalendar() {
       />
 
       {/* Edit class session dialog */}
-      <EditClassSessionDialog
-        open={!!editSessionId}
-        onOpenChange={open => !open && setEditSessionId(null)}
-        sessionId={editSessionId}
-      />
+      <EditClassSessionDialog open={!!editSessionId} onOpenChange={open => !open && setEditSessionId(null)} sessionId={editSessionId} />
 
       {/* Edit availability dialog */}
-      <EditAvailabilityDialog
-        open={availabilityOpen}
-        onOpenChange={setAvailabilityOpen}
-      />
+      <EditAvailabilityDialog open={availabilityOpen} onOpenChange={setAvailabilityOpen} />
 
       {/* Calendar attributes dialog */}
-      <CalendarAttributesDialog
-        open={attributesOpen}
-        onOpenChange={setAttributesOpen}
-        onSave={setCalendarAttrs}
-      />
+      <CalendarAttributesDialog open={attributesOpen} onOpenChange={setAttributesOpen} onSave={setCalendarAttrs} />
     </div>
   )
 }
