@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -32,25 +33,68 @@ import classSessionService from '@/services/classSession.service'
 import { ServiceFormDialog } from '@/pages/Menu/Services/ServiceFormDialog'
 import { ProductType } from '@/types'
 
-const formSchema = z
-  .object({
-    productId: z.string().min(1, 'Selecciona una clase'),
-    date: z.string().min(1, 'La fecha es requerida'),
-    startTime: z.string().min(1, 'La hora de inicio es requerida'),
-    endTime: z.string().min(1, 'La hora de finalización es requerida'),
-    capacity: z.coerce.number().int().min(1, 'El cupo mínimo es 1').optional(),
-    assignedStaffId: z.string().optional(),
-    internalNotes: z.string().max(2000).optional(),
-  })
-  .refine(
-    data => {
-      if (!data.startTime || !data.endTime) return true
-      return data.startTime < data.endTime
-    },
-    { message: 'La hora de finalización debe ser posterior a la de inicio', path: ['endTime'] },
-  )
+function buildFormSchema(venueTimezone: string) {
+  return z
+    .object({
+      productId: z.string().min(1, 'Selecciona una clase'),
+      date: z.string().min(1, 'La fecha es requerida'),
+      startTime: z.string().min(1, 'La hora de inicio es requerida'),
+      endTime: z.string().min(1, 'La hora de finalización es requerida'),
+      capacity: z.coerce.number().int().min(1, 'El cupo mínimo es 1').optional(),
+      assignedStaffId: z.string().optional(),
+      internalNotes: z.string().max(2000).optional(),
+      // Recurrence
+      isRecurring: z.boolean().optional().default(false),
+      weekdays: z.array(z.number().int().min(0).max(6)).optional().default([]),
+      endMode: z.enum(['date', 'count']).optional().default('count'),
+      endDate: z.string().optional(),
+      occurrences: z.coerce.number().int().min(1).max(104).optional(),
+    })
+    .superRefine((data, ctx) => {
+      if (data.startTime && data.endTime && data.startTime >= data.endTime) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'La hora de finalización debe ser posterior a la de inicio',
+          path: ['endTime'],
+        })
+      }
+      if (data.date && data.startTime) {
+        const startsAt = DateTime.fromISO(`${data.date}T${data.startTime}:00`, { zone: venueTimezone })
+        if (startsAt.isValid) {
+          const now = DateTime.now().setZone(venueTimezone)
+          if (startsAt < now) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'No puedes agendar una clase en el pasado',
+              path: ['startTime'],
+            })
+          }
+        }
+      }
+      if (data.isRecurring) {
+        if (!data.weekdays || data.weekdays.length === 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Selecciona al menos un día de la semana',
+            path: ['weekdays'],
+          })
+        }
+        if (data.endMode === 'date') {
+          if (!data.endDate) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'La fecha de fin es requerida', path: ['endDate'] })
+          } else if (data.date && data.endDate < data.date) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'La fecha de fin debe ser posterior a la fecha inicial', path: ['endDate'] })
+          }
+        } else {
+          if (!data.occurrences || data.occurrences < 1) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Indica el número de sesiones', path: ['occurrences'] })
+          }
+        }
+      }
+    })
+}
 
-type FormData = z.infer<typeof formSchema>
+type FormData = z.infer<ReturnType<typeof buildFormSchema>>
 
 interface CreateClassSessionDialogProps {
   open: boolean
@@ -71,6 +115,8 @@ export function CreateClassSessionDialog({ open, onOpenChange, defaultDate, defa
 
   const [createClassOpen, setCreateClassOpen] = useState(false)
 
+  const formSchema = useMemo(() => buildFormSchema(venueTimezone), [venueTimezone])
+
   const {
     control,
     register,
@@ -89,6 +135,11 @@ export function CreateClassSessionDialog({ open, onOpenChange, defaultDate, defa
       capacity: undefined,
       assignedStaffId: '',
       internalNotes: '',
+      isRecurring: false,
+      weekdays: [],
+      endMode: 'count',
+      endDate: '',
+      occurrences: 8,
     },
   })
 
@@ -121,6 +172,11 @@ export function CreateClassSessionDialog({ open, onOpenChange, defaultDate, defa
         capacity: undefined,
         assignedStaffId: '',
         internalNotes: '',
+        isRecurring: false,
+        weekdays: [],
+        endMode: 'count',
+        endDate: '',
+        occurrences: 8,
       })
     }
     wasOpenRef.current = open
@@ -177,33 +233,57 @@ export function CreateClassSessionDialog({ open, onOpenChange, defaultDate, defa
 
   const staffMembers = staffData?.data ?? []
 
-  // Create mutation
+  // Create mutation — single OR bulk depending on isRecurring
   const createMutation = useMutation({
-    mutationFn: (data: FormData) => {
-      const date = data.date
+    mutationFn: async (data: FormData) => {
       const tz = venueTimezone
 
-      const startsAtDt = DateTime.fromISO(`${date}T${data.startTime}:00`, { zone: tz })
-      const endsAtDt = DateTime.fromISO(`${date}T${data.endTime}:00`, { zone: tz })
+      if (data.isRecurring) {
+        const result = await classSessionService.createClassSessionsBulk(venueId!, {
+          productId: data.productId,
+          startDate: data.date,
+          startTime: data.startTime,
+          endTime: data.endTime,
+          weekdays: data.weekdays ?? [],
+          endDate: data.endMode === 'date' ? data.endDate || undefined : undefined,
+          occurrences: data.endMode === 'count' ? data.occurrences : undefined,
+          capacity: data.capacity ?? 1,
+          assignedStaffId: data.assignedStaffId || null,
+          internalNotes: data.internalNotes || null,
+        })
+        return { kind: 'bulk' as const, result }
+      }
+
+      const startsAtDt = DateTime.fromISO(`${data.date}T${data.startTime}:00`, { zone: tz })
+      const endsAtDt = DateTime.fromISO(`${data.date}T${data.endTime}:00`, { zone: tz })
 
       if (!startsAtDt.isValid || !endsAtDt.isValid) {
         throw new Error('Fecha/hora inválida')
       }
 
-      const startsAt = startsAtDt.toUTC().toISO()!
-      const endsAt = endsAtDt.toUTC().toISO()!
-
-      return classSessionService.createClassSession(venueId!, {
+      const session = await classSessionService.createClassSession(venueId!, {
         productId: data.productId,
-        startsAt,
-        endsAt,
+        startsAt: startsAtDt.toUTC().toISO()!,
+        endsAt: endsAtDt.toUTC().toISO()!,
         capacity: data.capacity ?? 1,
         assignedStaffId: data.assignedStaffId || null,
         internalNotes: data.internalNotes || null,
       })
+      return { kind: 'single' as const, session }
     },
-    onSuccess: () => {
-      toast({ title: t('classSession.createSuccess', { defaultValue: 'Clase agendada exitosamente' }) })
+    onSuccess: result => {
+      if (result.kind === 'bulk') {
+        const { count, skipped } = result.result
+        const skippedNote = skipped > 0 ? ` (${skipped} omitida${skipped === 1 ? '' : 's'} por conflicto)` : ''
+        toast({
+          title: t('classSession.bulkCreateSuccess', {
+            defaultValue: '{{count}} clases agendadas',
+            count,
+          }) + skippedNote,
+        })
+      } else {
+        toast({ title: t('classSession.createSuccess', { defaultValue: 'Clase agendada exitosamente' }) })
+      }
       queryClient.invalidateQueries({ queryKey: ['class-sessions', venueId] })
       queryClient.invalidateQueries({ queryKey: ['reservation-calendar', venueId] })
       onOpenChange(false)
@@ -300,7 +380,13 @@ export function CreateClassSessionDialog({ open, onOpenChange, defaultDate, defa
           {/* Date */}
           <div className="space-y-1.5">
             <Label htmlFor="date">{t('form.fields.date')}</Label>
-            <Input id="date" type="date" {...register('date')} className={errors.date ? 'border-destructive' : ''} />
+            <Input
+              id="date"
+              type="date"
+              min={formatDateISO(new Date())}
+              {...register('date')}
+              className={errors.date ? 'border-destructive' : ''}
+            />
             {errors.date && <p className="text-xs text-destructive">{errors.date.message}</p>}
           </div>
 
@@ -402,6 +488,110 @@ export function CreateClassSessionDialog({ open, onOpenChange, defaultDate, defa
                 </Select>
               )}
             </div>
+          </div>
+
+          {/* Recurrence */}
+          <div className="space-y-2 border-t border-border pt-4">
+            <div className="flex items-center gap-2">
+              <Controller
+                control={control}
+                name="isRecurring"
+                render={({ field }) => (
+                  <Checkbox
+                    id="isRecurring"
+                    checked={!!field.value}
+                    onCheckedChange={v => field.onChange(v === true)}
+                  />
+                )}
+              />
+              <Label htmlFor="isRecurring" className="cursor-pointer text-sm font-medium">
+                {t('classSession.recurrence.toggle', { defaultValue: 'Repetir esta clase' })}
+              </Label>
+            </div>
+
+            {watch('isRecurring') && (
+              <div className="space-y-3 rounded-lg border border-border p-3 bg-muted/30">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">{t('classSession.recurrence.weekdays', { defaultValue: 'Días de la semana' })}</Label>
+                  <Controller
+                    control={control}
+                    name="weekdays"
+                    render={({ field }) => (
+                      <div className="flex gap-1 flex-wrap">
+                        {[
+                          { v: 1, l: 'L' },
+                          { v: 2, l: 'M' },
+                          { v: 3, l: 'X' },
+                          { v: 4, l: 'J' },
+                          { v: 5, l: 'V' },
+                          { v: 6, l: 'S' },
+                          { v: 0, l: 'D' },
+                        ].map(({ v, l }) => {
+                          const selected = (field.value as number[] | undefined)?.includes(v) ?? false
+                          return (
+                            <button
+                              key={v}
+                              type="button"
+                              onClick={() => {
+                                const current = (field.value as number[] | undefined) ?? []
+                                field.onChange(selected ? current.filter(x => x !== v) : [...current, v].sort())
+                              }}
+                              className={
+                                'h-8 w-8 rounded-md border text-xs font-medium transition ' +
+                                (selected
+                                  ? 'bg-primary text-primary-foreground border-primary'
+                                  : 'bg-background hover:bg-muted border-input')
+                              }
+                            >
+                              {l}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  />
+                  {errors.weekdays && <p className="text-xs text-destructive">{errors.weekdays.message as string}</p>}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 items-end">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">{t('classSession.recurrence.endsOn', { defaultValue: 'Termina' })}</Label>
+                    <Select value={watch('endMode')} onValueChange={v => setValue('endMode', v as 'date' | 'count')}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent disablePortal>
+                        <SelectItem value="count">
+                          {t('classSession.recurrence.afterN', { defaultValue: 'Después de N sesiones' })}
+                        </SelectItem>
+                        <SelectItem value="date">
+                          {t('classSession.recurrence.onDate', { defaultValue: 'En una fecha' })}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {watch('endMode') === 'date' ? (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="endDate" className="text-xs">{t('classSession.recurrence.endDate', { defaultValue: 'Fecha fin' })}</Label>
+                      <Input id="endDate" type="date" min={watch('date') || formatDateISO(new Date())} {...register('endDate')} />
+                      {errors.endDate && <p className="text-xs text-destructive">{errors.endDate.message as string}</p>}
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="occurrences" className="text-xs">{t('classSession.recurrence.count', { defaultValue: '# de sesiones' })}</Label>
+                      <Input id="occurrences" type="number" min={1} max={104} {...register('occurrences')} />
+                      {errors.occurrences && <p className="text-xs text-destructive">{errors.occurrences.message as string}</p>}
+                    </div>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {t('classSession.recurrence.hint', {
+                    defaultValue:
+                      'Las sesiones se crearán todas a la misma hora. Si alguna fecha ya tiene una clase agendada, se omite automáticamente.',
+                  })}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Internal notes */}

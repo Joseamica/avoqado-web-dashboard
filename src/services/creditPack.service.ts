@@ -72,7 +72,9 @@ export const creditPackService = {
 
 	async getCustomerPurchases(venueId: string, customerId: string): Promise<CreditPackPurchase[]> {
 		const response = await api.get(`/api/v1/dashboard/venues/${venueId}/credit-packs/purchases/${customerId}`)
-		return response.data
+		// Backend returns { purchases, total, page, limit, totalPages } — same shape as the list endpoint.
+		const raw = response.data
+		return Array.isArray(raw) ? raw : (raw.purchases ?? raw.data ?? [])
 	},
 
 	// ==================== TRANSACTIONS ====================

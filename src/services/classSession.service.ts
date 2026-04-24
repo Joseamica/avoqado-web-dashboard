@@ -50,6 +50,31 @@ export interface CreateClassSessionDto {
   internalNotes?: string | null
 }
 
+export interface CreateClassSessionBulkDto {
+  productId: string
+  /** YYYY-MM-DD in venue timezone */
+  startDate: string
+  /** HH:mm local */
+  startTime: string
+  /** HH:mm local */
+  endTime: string
+  /** 0 = Sunday … 6 = Saturday */
+  weekdays: number[]
+  /** YYYY-MM-DD; mutually exclusive with `occurrences` */
+  endDate?: string
+  /** total instances; mutually exclusive with `endDate` */
+  occurrences?: number
+  capacity: number
+  assignedStaffId?: string | null
+  internalNotes?: string | null
+}
+
+export interface BulkCreateResult {
+  count: number
+  skipped: number
+  created: { id: string; startsAt: string; endsAt: string }[]
+}
+
 export interface UpdateClassSessionDto {
   startsAt?: string
   endsAt?: string
@@ -78,6 +103,11 @@ const classSessionService = {
 
   async createClassSession(venueId: string, data: CreateClassSessionDto): Promise<ClassSession> {
     const response = await api.post(`/api/v1/dashboard/venues/${venueId}/class-sessions`, data)
+    return response.data
+  },
+
+  async createClassSessionsBulk(venueId: string, data: CreateClassSessionBulkDto): Promise<BulkCreateResult> {
+    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/class-sessions/bulk`, data)
     return response.data
   },
 

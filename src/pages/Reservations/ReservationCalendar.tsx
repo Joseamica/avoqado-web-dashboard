@@ -29,6 +29,29 @@ import { CalendarAttributesDialog, loadAttributes, type CalendarAttributes } fro
 type CalendarView = 'day' | 'week' | '5day' | 'month'
 type GroupByMode = 'none' | 'staff' | 'table'
 
+const VIEW_STORAGE_KEY = 'avoqado:calendar-view'
+const GROUP_BY_STORAGE_KEY = 'avoqado:calendar-group-by'
+
+function loadView(): CalendarView {
+  try {
+    const stored = localStorage.getItem(VIEW_STORAGE_KEY)
+    if (stored === 'day' || stored === 'week' || stored === '5day' || stored === 'month') return stored
+  } catch {
+    // localStorage unavailable (SSR / privacy mode) — fall through to default
+  }
+  return 'day'
+}
+
+function loadGroupBy(): GroupByMode {
+  try {
+    const stored = localStorage.getItem(GROUP_BY_STORAGE_KEY)
+    if (stored === 'none' || stored === 'staff' || stored === 'table') return stored
+  } catch {
+    // localStorage unavailable — fall through to default
+  }
+  return 'none'
+}
+
 // Status colors for calendar blocks
 const statusColorMap: Record<ReservationStatus, string> = {
   PENDING: 'bg-yellow-500/20 border-yellow-500/40 text-yellow-700 dark:text-yellow-300',
@@ -100,9 +123,17 @@ export default function ReservationCalendar() {
   const HOURS = useMemo(() => computeHoursFromSettings(settings), [settings])
   const firstHour = HOURS[0]
 
-  const [view, setView] = useState<CalendarView>('day')
-  const [groupBy, setGroupBy] = useState<GroupByMode>('none')
+  const [view, setView] = useState<CalendarView>(loadView)
+  const [groupBy, setGroupBy] = useState<GroupByMode>(loadGroupBy)
   const [currentDate, setCurrentDate] = useState(new Date())
+
+  useEffect(() => {
+    try { localStorage.setItem(VIEW_STORAGE_KEY, view) } catch {}
+  }, [view])
+
+  useEffect(() => {
+    try { localStorage.setItem(GROUP_BY_STORAGE_KEY, groupBy) } catch {}
+  }, [groupBy])
 
   // Click-to-create reservation modal state
   const [createModal, setCreateModal] = useState<{ open: boolean; date: string; startTime: string }>({

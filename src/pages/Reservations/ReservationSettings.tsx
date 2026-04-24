@@ -43,6 +43,11 @@ const settingsSchema = z.object({
 	minHoursBeforeCancel: z.coerce.number().min(0).nullable(),
 	forfeitDeposit: z.boolean(),
 	noShowFeePercent: z.coerce.number().min(0).max(100).nullable(),
+	// Credit refund policy on cancellation
+	creditRefundMode: z.enum(['NEVER', 'ALWAYS', 'TIME_BASED']),
+	creditFreeRefundHoursBefore: z.coerce.number().min(0).max(720),
+	creditLateRefundPercent: z.coerce.number().min(0).max(100),
+	creditNoShowRefund: z.boolean(),
 	// Waitlist
 	waitlistEnabled: z.boolean(),
 	waitlistMaxSize: z.coerce.number().min(1).max(500),
@@ -95,6 +100,10 @@ export default function ReservationSettings() {
 			minHoursBeforeCancel: 2,
 			forfeitDeposit: false,
 			noShowFeePercent: null,
+			creditRefundMode: 'TIME_BASED',
+			creditFreeRefundHoursBefore: 12,
+			creditLateRefundPercent: 0,
+			creditNoShowRefund: false,
 			waitlistEnabled: true,
 			waitlistMaxSize: 50,
 			waitlistPriorityMode: 'fifo',
@@ -129,6 +138,10 @@ export default function ReservationSettings() {
 				minHoursBeforeCancel: settings.cancellation.minHoursBeforeStart,
 				forfeitDeposit: settings.cancellation.forfeitDeposit,
 				noShowFeePercent: settings.cancellation.noShowFeePercent,
+				creditRefundMode: (settings.cancellation as any).creditRefundMode ?? 'TIME_BASED',
+				creditFreeRefundHoursBefore: (settings.cancellation as any).creditFreeRefundHoursBefore ?? 12,
+				creditLateRefundPercent: (settings.cancellation as any).creditLateRefundPercent ?? 0,
+				creditNoShowRefund: (settings.cancellation as any).creditNoShowRefund ?? false,
 				waitlistEnabled: settings.waitlist.enabled,
 				waitlistMaxSize: settings.waitlist.maxSize,
 				waitlistPriorityMode: settings.waitlist.priorityMode,
@@ -170,7 +183,11 @@ export default function ReservationSettings() {
 					minHoursBeforeStart: data.minHoursBeforeCancel,
 					forfeitDeposit: data.forfeitDeposit,
 					noShowFeePercent: data.noShowFeePercent,
-				},
+					creditRefundMode: data.creditRefundMode,
+					creditFreeRefundHoursBefore: data.creditFreeRefundHoursBefore,
+					creditLateRefundPercent: data.creditLateRefundPercent,
+					creditNoShowRefund: data.creditNoShowRefund,
+				} as any,
 				waitlist: {
 					enabled: data.waitlistEnabled,
 					maxSize: data.waitlistMaxSize,
@@ -426,6 +443,68 @@ export default function ReservationSettings() {
 								checked={watch('forfeitDeposit')}
 								onCheckedChange={v => setValue('forfeitDeposit', v, { shouldDirty: true })}
 							/>
+						</div>
+
+						{/* Credit Refund Policy */}
+						<div className="border-t border-input pt-4 mt-4 space-y-4">
+							<div>
+								<h3 className="text-sm font-semibold">{t('settings.cancellation.creditRefundTitle', { defaultValue: 'Reembolso de créditos al cancelar' })}</h3>
+								<p className="text-xs text-muted-foreground mt-1">
+									{t('settings.cancellation.creditRefundHelp', {
+										defaultValue: 'Decide cuántos créditos recuperan los clientes cuando cancelan una clase pagada con paquete.',
+									})}
+								</p>
+							</div>
+
+							<div className="space-y-2">
+								<Label>{t('settings.cancellation.creditRefundMode', { defaultValue: 'Política de reembolso' })}</Label>
+								<Select value={watch('creditRefundMode')} onValueChange={v => setValue('creditRefundMode', v as any, { shouldDirty: true })}>
+									<SelectTrigger><SelectValue /></SelectTrigger>
+									<SelectContent>
+										<SelectItem value="ALWAYS">{t('settings.cancellation.creditRefundAlways', { defaultValue: 'Siempre devolver 100%' })}</SelectItem>
+										<SelectItem value="TIME_BASED">{t('settings.cancellation.creditRefundTimeBased', { defaultValue: 'Según anticipación' })}</SelectItem>
+										<SelectItem value="NEVER">{t('settings.cancellation.creditRefundNever', { defaultValue: 'Nunca devolver' })}</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+
+							{watch('creditRefundMode') === 'TIME_BASED' && (
+								<div className="grid grid-cols-2 gap-6">
+									<div className="space-y-2">
+										<Label>{t('settings.cancellation.creditFreeRefundHoursBefore', { defaultValue: 'Reembolso 100% si cancela con (horas)' })}</Label>
+										<Input type="number" min={0} max={720} {...register('creditFreeRefundHoursBefore')} />
+										<p className="text-xs text-muted-foreground">
+											{t('settings.cancellation.creditFreeRefundHoursHelp', {
+												defaultValue: 'Cancelar al menos N horas antes del inicio devuelve todos los créditos.',
+											})}
+										</p>
+									</div>
+									<div className="space-y-2">
+										<Label>{t('settings.cancellation.creditLateRefundPercent', { defaultValue: '% de reembolso si cancela tarde' })}</Label>
+										<div className="flex items-center gap-2">
+											<Input type="number" min={0} max={100} {...register('creditLateRefundPercent')} className="flex-1" />
+											<span className="text-muted-foreground">%</span>
+										</div>
+										<p className="text-xs text-muted-foreground">
+											{t('settings.cancellation.creditLateRefundHelp', {
+												defaultValue: 'Aplica cuando se cancela dentro de la ventana de arriba. 0 = pierde todo, 100 = devuelve todo.',
+											})}
+										</p>
+									</div>
+								</div>
+							)}
+
+							<div className="flex items-center justify-between rounded-lg border border-input p-4">
+								<div>
+									<Label>{t('settings.cancellation.creditNoShowRefund', { defaultValue: 'Devolver créditos en no-show' })}</Label>
+									<p className="text-xs text-muted-foreground mt-1">
+										{t('settings.cancellation.creditNoShowRefundHelp', {
+											defaultValue: 'Si el cliente no se presentó, ¿se devuelve igualmente el crédito? (Default: no)',
+										})}
+									</p>
+								</div>
+								<Switch checked={watch('creditNoShowRefund')} onCheckedChange={v => setValue('creditNoShowRefund', v, { shouldDirty: true })} />
+							</div>
 						</div>
 					</CardContent>
 				</Card>
