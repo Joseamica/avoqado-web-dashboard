@@ -44,9 +44,11 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import customerService from '@/services/customer.service'
 import loyaltyService from '@/services/loyalty.service'
+import creditPackService from '@/services/creditPack.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { useVenueDateTime } from '@/utils/datetime'
 import type { LoyaltyTransaction, CustomerGroup, LoyaltyTransactionType } from '@/types/customer'
+import type { CreditPackPurchase } from '@/types/creditPack'
 
 import CustomerForm from './components/CustomerForm'
 
@@ -93,6 +95,13 @@ export default function CustomerDetail() {
 	const { data: loyaltyConfig } = useQuery({
 		queryKey: ['loyalty-config', venueId],
 		queryFn: () => loyaltyService.getConfig(venueId),
+	})
+
+	// Fetch customer's credit pack purchases
+	const { data: creditPurchases } = useQuery<CreditPackPurchase[]>({
+		queryKey: ['customer-credits', venueId, customerId],
+		queryFn: () => creditPackService.getCustomerPurchases(venueId, customerId!),
+		enabled: !!customerId,
 	})
 
 	// Delete mutation
@@ -427,6 +436,15 @@ export default function CustomerDetail() {
 									{loyaltyData?.data?.length || 0}
 								</span>
 							</TabsTrigger>
+							<TabsTrigger
+								value="credits"
+								className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+							>
+								<span>{t('detail.tabs.credits')}</span>
+								<span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
+									{creditPurchases?.length || 0}
+								</span>
+							</TabsTrigger>
 						</TabsList>
 
 						<TabsContent value="orders">
@@ -518,6 +536,64 @@ export default function CustomerDetail() {
 										</div>
 									) : (
 										<p className="text-center text-muted-foreground py-8">{t('detail.loyalty.emptyState')}</p>
+									)}
+								</CardContent>
+							</Card>
+						</TabsContent>
+
+						<TabsContent value="credits">
+							<Card>
+								<CardHeader>
+									<CardTitle>{t('detail.credits.title')}</CardTitle>
+									<CardDescription>{t('detail.credits.description')}</CardDescription>
+								</CardHeader>
+								<CardContent>
+									{creditPurchases && creditPurchases.length > 0 ? (
+										<div className="space-y-4">
+											{creditPurchases.map((purchase) => {
+												const statusKey = `detail.credits.status.${purchase.status}`
+												return (
+													<div key={purchase.id} className="border rounded-lg p-4">
+														<div className="flex items-start justify-between mb-3">
+															<div>
+																<div className="font-semibold">{purchase.creditPack.name}</div>
+																<div className="text-xs text-muted-foreground mt-1">
+																	{t('detail.credits.purchasedAt', { date: formatDate(purchase.purchasedAt) })}
+																	{' · '}
+																	{t('detail.credits.amountPaid')}: {formatCurrency(Number(purchase.amountPaid))}
+																</div>
+																<div className="text-xs text-muted-foreground">
+																	{purchase.expiresAt
+																		? t('detail.credits.expires', { date: formatDate(purchase.expiresAt) })
+																		: t('detail.credits.noExpiry')}
+																</div>
+															</div>
+															<Badge variant="outline">{t(statusKey)}</Badge>
+														</div>
+														<div className="space-y-2">
+															{purchase.itemBalances.map((balance) => (
+																<div
+																	key={balance.id}
+																	className="flex items-center justify-between p-2 bg-muted/40 rounded-md"
+																>
+																	<span className="text-sm">{balance.product.name}</span>
+																	<span className="text-sm font-medium">
+																		{t('detail.credits.remaining', {
+																			remaining: balance.remainingQuantity,
+																			total: balance.originalQuantity,
+																		})}
+																	</span>
+																</div>
+															))}
+														</div>
+													</div>
+												)
+											})}
+										</div>
+									) : (
+										<p className="text-center text-muted-foreground py-8">
+											{t('detail.credits.emptyState')}
+										</p>
 									)}
 								</CardContent>
 							</Card>

@@ -46,7 +46,24 @@
 		"tabs": {
 			"orders": "Orders",
 			"loyalty": "Loyalty History",
+			"credits": "Credits",
 			"notes": "Notes"
+		},
+		"credits": {
+			"title": "Credit Packs",
+			"description": "Active purchases and remaining credits per product",
+			"emptyState": "This customer has no credit pack purchases",
+			"remaining": "{{remaining}} of {{total}}",
+			"expires": "Expires {{date}}",
+			"noExpiry": "No expiry",
+			"purchasedAt": "Purchased {{date}}",
+			"amountPaid": "Paid",
+			"status": {
+				"ACTIVE": "Active",
+				"EXHAUSTED": "Exhausted",
+				"EXPIRED": "Expired",
+				"REFUNDED": "Refunded"
+			}
 		},
 		"orders": {
 			"title": "Recent Orders",

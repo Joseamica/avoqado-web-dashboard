@@ -46,7 +46,24 @@
 		"tabs": {
 			"orders": "Pedidos",
 			"loyalty": "Historial de Lealtad",
+			"credits": "Créditos",
 			"notes": "Notas"
+		},
+		"credits": {
+			"title": "Paquetes de Créditos",
+			"description": "Compras activas y créditos restantes por producto",
+			"emptyState": "Este cliente no ha comprado paquetes de créditos",
+			"remaining": "{{remaining}} de {{total}}",
+			"expires": "Expira {{date}}",
+			"noExpiry": "Sin expiración",
+			"purchasedAt": "Comprado el {{date}}",
+			"amountPaid": "Pagado",
+			"status": {
+				"ACTIVE": "Activo",
+				"EXHAUSTED": "Agotado",
+				"EXPIRED": "Expirado",
+				"REFUNDED": "Reembolsado"
+			}
 		},
 		"orders": {
 			"title": "Pedidos Recientes",

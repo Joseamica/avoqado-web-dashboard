@@ -46,7 +46,24 @@
 		"tabs": {
 			"orders": "Commandes",
 			"loyalty": "Historique Fidélité",
+			"credits": "Crédits",
 			"notes": "Notes"
+		},
+		"credits": {
+			"title": "Forfaits de Crédits",
+			"description": "Achats actifs et crédits restants par produit",
+			"emptyState": "Ce client n'a aucun achat de forfait de crédits",
+			"remaining": "{{remaining}} sur {{total}}",
+			"expires": "Expire le {{date}}",
+			"noExpiry": "Sans expiration",
+			"purchasedAt": "Acheté le {{date}}",
+			"amountPaid": "Payé",
+			"status": {
+				"ACTIVE": "Actif",
+				"EXHAUSTED": "Épuisé",
+				"EXPIRED": "Expiré",
+				"REFUNDED": "Remboursé"
+			}
 		},
 		"orders": {
 			"title": "Commandes Récentes",
