@@ -181,53 +181,67 @@ export default function ReservationDetail() {
 
 	return (
 		<div className="p-4 bg-background text-foreground">
-			{/* Header */}
-			<div className="flex items-center justify-between mb-6">
-				<div>
-					<div className="flex items-center gap-3">
-						<h1 className="text-2xl font-bold">
+			{/* Header: stacks on mobile, side-by-side from md+ */}
+			<div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+				<div className="min-w-0">
+					<div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+						<h1 className="text-xl font-bold md:text-2xl">
 							{t('detail.title', { code: reservation.confirmationCode })}
 						</h1>
 						<ReservationStatusBadge status={reservation.status} />
 					</div>
-					<p className="text-muted-foreground">{guestName}</p>
+					<p className="mt-1 text-sm text-muted-foreground md:text-base">{guestName}</p>
 				</div>
 
-				{/* Action buttons */}
-				<div className="flex items-center gap-2">
+				{/* Action buttons: edge-to-edge horizontal scroll on mobile, wrap on md+. */}
+				{/* -mx-4 + px-4 lets the scroll area bleed to the viewport edges on mobile */}
+				{/* so the last button doesn't look clipped mid-label ("Cancela..."). */}
+				<div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:justify-end md:overflow-visible md:px-0 md:pb-0">
 					{canConfirm && (
-						<Button onClick={() => confirmMutation.mutate()} disabled={confirmMutation.isPending}>
-							<Check className="h-4 w-4 mr-2" />
+						<Button
+							className="shrink-0"
+							onClick={() => confirmMutation.mutate()}
+							disabled={confirmMutation.isPending}
+						>
+							<Check className="mr-2 h-4 w-4" />
 							{t('actions.confirm')}
 						</Button>
 					)}
 					{canCheckIn && (
-						<Button onClick={() => checkInMutation.mutate()} disabled={checkInMutation.isPending}>
-							<LogIn className="h-4 w-4 mr-2" />
+						<Button
+							className="shrink-0"
+							onClick={() => checkInMutation.mutate()}
+							disabled={checkInMutation.isPending}
+						>
+							<LogIn className="mr-2 h-4 w-4" />
 							{t('actions.checkIn')}
 						</Button>
 					)}
 					{canComplete && (
-						<Button onClick={() => completeMutation.mutate()} disabled={completeMutation.isPending}>
-							<Check className="h-4 w-4 mr-2" />
+						<Button
+							className="shrink-0"
+							onClick={() => completeMutation.mutate()}
+							disabled={completeMutation.isPending}
+						>
+							<Check className="mr-2 h-4 w-4" />
 							{t('actions.complete')}
 						</Button>
 					)}
 					{canReschedule && (
-						<Button variant="outline" onClick={() => setShowRescheduleDialog(true)}>
-							<CalendarClock className="h-4 w-4 mr-2" />
+						<Button variant="outline" className="shrink-0" onClick={() => setShowRescheduleDialog(true)}>
+							<CalendarClock className="mr-2 h-4 w-4" />
 							{t('actions.reschedule')}
 						</Button>
 					)}
 					{canNoShow && (
-						<Button variant="outline" onClick={() => setShowNoShowDialog(true)}>
-							<AlertTriangle className="h-4 w-4 mr-2" />
+						<Button variant="outline" className="shrink-0" onClick={() => setShowNoShowDialog(true)}>
+							<AlertTriangle className="mr-2 h-4 w-4" />
 							{t('actions.markNoShow')}
 						</Button>
 					)}
 					{canCancel && (
-						<Button variant="destructive" onClick={() => setShowCancelDialog(true)}>
-							<X className="h-4 w-4 mr-2" />
+						<Button variant="destructive" className="shrink-0" onClick={() => setShowCancelDialog(true)}>
+							<X className="mr-2 h-4 w-4" />
 							{t('actions.cancel')}
 						</Button>
 					)}
@@ -235,13 +249,13 @@ export default function ReservationDetail() {
 			</div>
 
 			{/* Content grid */}
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+			<div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
 				{/* Main info */}
-				<div className="lg:col-span-2 space-y-6">
+				<div className="space-y-4 lg:col-span-2 lg:space-y-6">
 					{/* Reservation Details */}
-					<div className="rounded-2xl border border-border/50 bg-card p-6">
+					<div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6">
 						<h3 className="font-semibold mb-4">{t('detail.sections.reservationInfo')}</h3>
-						<div className="grid grid-cols-2 gap-4">
+						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 							<div className="flex items-center gap-3">
 								<CalendarDays className="h-5 w-5 text-muted-foreground" />
 								<div>
@@ -302,7 +316,7 @@ export default function ReservationDetail() {
 
 					{/* Notes */}
 					{(reservation.specialRequests || reservation.internalNotes) && (
-						<div className="rounded-2xl border border-border/50 bg-card p-6">
+						<div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6">
 							<h3 className="font-semibold mb-4">{t('detail.sections.notes')}</h3>
 							{reservation.specialRequests && (
 								<div className="mb-4">
@@ -321,7 +335,7 @@ export default function ReservationDetail() {
 
 					{/* Status Timeline */}
 					{reservation.statusLog && reservation.statusLog.length > 0 && (
-						<div className="rounded-2xl border border-border/50 bg-card p-6">
+						<div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6">
 							<h3 className="font-semibold mb-4">{t('detail.timeline')}</h3>
 							<div className="space-y-3">
 								{reservation.statusLog.map((entry, i) => (
@@ -347,9 +361,9 @@ export default function ReservationDetail() {
 				</div>
 
 				{/* Sidebar */}
-				<div className="space-y-6">
+				<div className="space-y-4 lg:space-y-6">
 					{/* Guest Info */}
-					<div className="rounded-2xl border border-border/50 bg-card p-6">
+					<div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6">
 						<h3 className="font-semibold mb-4">{t('detail.sections.guestInfo')}</h3>
 						<div className="space-y-3">
 							<div className="flex items-center gap-3">
@@ -372,7 +386,7 @@ export default function ReservationDetail() {
 					</div>
 
 					{/* Meta info */}
-					<div className="rounded-2xl border border-border/50 bg-card p-6">
+					<div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6">
 						<h3 className="font-semibold mb-4">{t('detail.confirmationCode')}</h3>
 						<div className="font-mono text-lg text-center p-3 bg-muted rounded-lg">
 							{reservation.confirmationCode}
@@ -396,7 +410,7 @@ export default function ReservationDetail() {
 
 					{/* Deposit info */}
 					{reservation.depositAmount != null && reservation.depositAmount > 0 && (
-						<div className="rounded-2xl border border-border/50 bg-card p-6">
+						<div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6">
 							<h3 className="font-semibold mb-4">{t('detail.deposit.title')}</h3>
 							<div className="space-y-2">
 								<div className="flex justify-between">
