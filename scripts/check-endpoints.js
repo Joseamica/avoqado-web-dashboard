@@ -56,12 +56,17 @@ function extractFrontendEndpoints() {
       const trimmed = line.trim()
       if (trimmed.startsWith('//')) continue
 
-      // Track current function/method name
+      // Track current function/method name. The object-method pattern allows
+      // optional TypeScript generic params between `async` and `(` so that
+      // methods like `set: async <T = unknown>(…)` are detected — without
+      // this the previous method's name leaks into subsequent lines.
       const fnMatch = line.match(/(?:export\s+)?(?:async\s+)?function\s+(\w+)/)
         || line.match(/(?:export\s+)?const\s+(\w+)\s*=\s*async/)
         || line.match(/^\s+(?:async\s+)?(\w+)\s*\(/)
-        || line.match(/(\w+)\s*:\s*(?:async\s*)?\(/)
-      if (fnMatch) currentFunctionName = fnMatch[1]
+        || line.match(/(\w+)\s*:\s*(?:async\s+)?(?:<[^>]*>\s*)?\(/)
+      if (fnMatch && !/^(if|for|while|switch|return|await|new|typeof|throw|catch|else|do)$/.test(fnMatch[1])) {
+        currentFunctionName = fnMatch[1]
+      }
 
       // Match api.get(...), api.post(...), etc.
       const regex = /api\.(get|post|put|patch|delete)\s*[<(]/gi
@@ -153,8 +158,15 @@ function normalizeTemplateLiterals(urlPath) {
       const expr = urlPath.substring(i + 2, j - 1)
 
       // Simple variable or property access (path parameter) → :varName
-      // Function calls, ternary, etc. → non-path expression, discard
       const simpleVar = expr.match(/^(?:this\.)?([a-zA-Z_]\w*)$/)
+      // Encoder/coercion wrapping a simple var — e.g. `encodeURIComponent(key)`,
+      // `String(id)`. These are still path segments, just URL-safed at the call
+      // site. Without this the segment was silently dropped, producing false
+      // positives like `GET /foo/:id` vs `GET /foo` mismatches.
+      const wrappedVar = expr.match(
+        /^(?:encodeURIComponent|encodeURI|String|Number|parseInt|parseFloat)\s*\(\s*(?:this\.)?([a-zA-Z_]\w*)\s*\)$/,
+      )
+
       if (simpleVar) {
         const varName = simpleVar[1]
         // Skip query-string variables (not path segments)
@@ -163,8 +175,17 @@ function normalizeTemplateLiterals(urlPath) {
         } else {
           result += ':' + varName
         }
+      } else if (wrappedVar) {
+        result += ':' + wrappedVar[1]
+      } else if (result.length > 0 && result[result.length - 1] === '/') {
+        // Dynamic expression that sits immediately after a `/` — it's a new
+        // path segment by position (ternary-built ID, method call, etc.).
+        // Emit generic placeholder so the comparator (which normalizes all
+        // :foo → :_) still matches the backend shape.
+        result += ':_'
       }
-      // else: discard non-path expressions
+      // else: the interpolation is appended to an existing path segment
+      // (e.g. `…/foo${queryString ? '?x=1' : ''}`). Not a path param — discard.
 
       i = j
     } else {

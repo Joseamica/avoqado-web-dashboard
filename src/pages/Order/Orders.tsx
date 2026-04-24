@@ -26,7 +26,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ManualPaymentDialog } from '@/components/ManualPaymentDialog/ManualPaymentDialog'
 import { useAuth } from '@/context/AuthContext'
+import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useSocketEvents } from '@/hooks/use-socket-events'
 import { useTerminology } from '@/hooks/use-terminology'
@@ -42,7 +44,7 @@ import { formatOrderNumber } from '@/utils/orderStatus'
 import { ItemsSection } from './components/sections/ItemsSection'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowDown, ArrowUp, ArrowUpDown, Clock, Download, Pencil, Search, Trash2, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Clock, Download, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
 import { DateTime } from 'luxon'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -166,6 +168,9 @@ export default function Orders() {
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [orderToEdit, setOrderToEdit] = useState<Order | null>(null)
+  const [manualPayOrder, setManualPayOrder] = useState<{ id: string; code?: string } | null>(null)
+  const { can } = useAccess()
+  const canCreateManualPayment = can('payment:create-manual')
   const [editValues, setEditValues] = useState<{
     status: OrderStatus
     customerName: string
@@ -773,6 +778,38 @@ export default function Orders() {
           return <span className="text-sm font-medium">{Currency(value)}</span>
         },
       },
+      // Row actions column (non-superadmin): manual payment, etc.
+      ...(canCreateManualPayment
+        ? [
+            {
+              id: 'row-actions',
+              header: () => <span className="sr-only">Acciones</span>,
+              cell: ({ row }: { row: { original: Order } }) => (
+                <div className="flex items-center justify-end">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" onClick={e => e.stopPropagation()}>
+                      <DropdownMenuItem
+                        onClick={e => {
+                          e.stopPropagation()
+                          setManualPayOrder({ id: row.original.id, code: row.original.orderNumber ?? undefined })
+                        }}
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Registrar pago manual
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              ),
+              size: 60,
+            },
+          ]
+        : []),
       // Superadmin actions column
       ...(isSuperAdmin
         ? [
@@ -810,13 +847,13 @@ export default function Orders() {
     ],
     // formatDate/formatTime/venueTimezoneShort/sortField/sortOrder are captured transitively
     // through renderSortableHeader, so they are not direct deps of this useMemo.
-    [t, tCommon, isSuperAdmin, hasChatbot, renderSortableHeader],
+    [t, tCommon, isSuperAdmin, hasChatbot, renderSortableHeader, canCreateManualPayment],
   )
 
   // Filter columns based on visibility settings
   const filteredColumns = useMemo(() => {
     // Columns that should always be visible (not customizable)
-    const alwaysVisibleColumns = ['ai', 'actions']
+    const alwaysVisibleColumns = ['ai', 'actions', 'row-actions']
     return columns.filter(col => {
       // Get column id (either from 'id' or 'accessorKey')
       const colId = col.id || (col as any).accessorKey
@@ -1643,6 +1680,16 @@ export default function Orders() {
           {drawerOrderId && <OrderDrawerContent orderId={drawerOrderId} onClose={() => navigate(`${fullBasePath}/orders`)} />}
         </SheetContent>
       </Sheet>
+
+      {manualPayOrder && (
+        <ManualPaymentDialog
+          open={!!manualPayOrder}
+          onClose={() => setManualPayOrder(null)}
+          venueId={venueId}
+          orderId={manualPayOrder.id}
+          orderCode={manualPayOrder.code}
+        />
+      )}
     </div>
   )
 }

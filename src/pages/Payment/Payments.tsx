@@ -42,12 +42,15 @@ import { exportToCSV, exportToExcel, formatCurrencyForExport, generateFilename }
 import getIcon from '@/utils/getIcon'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, Banknote, Bitcoin, Download, Pencil, RotateCcw, Search, Trash2, X } from 'lucide-react'
+import { ArrowUpDown, Banknote, Bitcoin, Download, Pencil, Plus, RotateCcw, Search, Trash2, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { PaymentDrawerContent } from './PaymentDrawerContent'
+import { ManualPaymentDialog } from '@/components/ManualPaymentDialog/ManualPaymentDialog'
+import { PaymentSourceBadge } from '@/components/PaymentSourceBadge'
+import { useAccess } from '@/hooks/use-access'
 
 const isRefundPayment = (payment: PaymentType) =>
   payment.type === PaymentRecordType.REFUND || payment.status === PaymentStatus.REFUNDED
@@ -57,6 +60,11 @@ export default function Payments() {
   const { t: tCommon } = useTranslation('common')
   const { toast } = useToast()
   const { venueId } = useCurrentVenue()
+  const { can } = useAccess()
+  const canCreateManualPayment = can('payment:create-manual')
+  // Single-step: button opens the full ManualPaymentDialog which includes an
+  // order selector inside. No more "paste order id" intermediate dialog.
+  const [manualPaymentOpen, setManualPaymentOpen] = useState(false)
   const { user, checkFeatureAccess, activeVenue } = useAuth()
   const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
   const isSuperAdmin = user?.role === StaffRole.SUPERADMIN
@@ -106,12 +114,15 @@ export default function Payments() {
   const [selectedPayments, setSelectedPayments] = useState<PaymentType[]>([])
   const [clearSelectionTrigger, setClearSelectionTrigger] = useState(0)
 
-  // Column visibility state
+  // Column visibility state. 'source' shows a badge — enabled by default
+  // because manual-payment feature depends on it to display external
+  // providers (BUQ, Clip...).
   const [visibleColumns, setVisibleColumns] = useState<string[]>([
     'createdAt',
     'waiterName',
     'merchantAccount',
     'method',
+    'source',
     'amount',
     'totalTipAmount',
     'totalAmount',
@@ -696,72 +707,19 @@ export default function Payments() {
           )
         },
       },
-      //Habilitar cuando haya mas metodos de origen, por ejemplo QR
-      // {
-      //   // Source viene directamente del campo `source` del Payment
-      //   accessorKey: 'source',
-      //   id: 'source',
-      //   meta: { label: t('columns.source') },
-      //   header: ({ column }) => (
-      //     <Button
-      //       variant="ghost"
-      //       size="sm"
-      //       className="text-xs h-7 px-2"
-      //       onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-      //     >
-      //       {t('columns.source')}
-      //       <ArrowUpDown className="w-3 h-3 ml-1" />
-      //     </Button>
-      //   ),
-      //   cell: ({ cell }) => {
-      //     // Valores posibles: TPV, QR, WEB, APP, POS, UNKNOWN
-      //     const source = String(cell.getValue() || 'UNKNOWN')
-
-      //     const iconBox = (icon: JSX.Element, bgColor: string = 'bg-muted') => (
-      //       <div className={`flex items-center justify-center w-6 h-6 rounded-md ${bgColor} border border-border shadow-sm`}>{icon}</div>
-      //     )
-
-      //     const map = {
-      //       POS: {
-      //         icon: iconBox(<Computer className="h-3 w-3 text-blue-600" />, 'bg-blue-50 dark:bg-blue-950/50'),
-      //         label: t('sources.POS'),
-      //       },
-      //       TPV: {
-      //         icon: iconBox(<TabletSmartphone className="h-3 w-3 text-green-600" />, 'bg-green-50 dark:bg-green-950/50'),
-      //         label: t('sources.TPV'),
-      //       },
-      //       QR: {
-      //         icon: iconBox(<QrCode className="h-3 w-3 text-purple-600" />, 'bg-purple-50 dark:bg-purple-950/50'),
-      //         label: t('sources.QR'),
-      //       },
-      //       WEB: {
-      //         icon: iconBox(<Globe className="h-3 w-3 text-orange-600" />, 'bg-orange-50 dark:bg-orange-950/50'),
-      //         label: t('sources.WEB'),
-      //       },
-      //       APP: {
-      //         icon: iconBox(<AppWindow className="h-3 w-3 text-indigo-600" />, 'bg-indigo-50 dark:bg-indigo-950/50'),
-      //         label: t('sources.APP'),
-      //       },
-      //       DASHBOARD_TEST: {
-      //         icon: iconBox(<TestTube className="h-3 w-3 text-indigo-600" />, 'bg-indigo-50 dark:bg-indigo-950/50'),
-      //         label: t('sources.DASHBOARD_TEST'),
-      //       },
-      //       UNKNOWN: {
-      //         icon: iconBox(<Smartphone className="h-3 w-3 text-muted-foreground" />, 'bg-muted'),
-      //         label: t('sources.UNKNOWN'),
-      //       },
-      //     } as const
-
-      //     const item = map[source as keyof typeof map] || map.UNKNOWN
-
-      //     return (
-      //       <div className="flex items-center gap-2">
-      //         {item.icon}
-      //         <span className="text-xs text-muted-foreground dark:text-foreground">{item.label}</span>
-      //       </div>
-      //     )
-      //   },
-      // },
+      {
+        // Source column — renders PaymentSourceBadge, which shows the
+        // externalSource text (e.g. "BUQ") when source=OTHER, or the matching
+        // built-in icon/label otherwise (TPV, QR, WEB, App, etc.).
+        accessorKey: 'source',
+        id: 'source',
+        meta: { label: t('columns.source') },
+        header: t('columns.source'),
+        cell: ({ row }) => {
+          const payment = row.original as any
+          return <PaymentSourceBadge source={payment.source} externalSource={payment.externalSource} />
+        },
+      },
       {
         accessorKey: 'method',
         meta: { label: t('columns.method') },
@@ -1434,6 +1392,12 @@ export default function Payments() {
 
           {/* Action buttons - pushed right with ml-auto, wrap left when needed */}
           <div className="ml-auto flex flex-wrap items-center gap-2">
+            {canCreateManualPayment && (
+              <Button size="sm" className="h-8 gap-1.5" onClick={() => setManualPaymentOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Nuevo pago manual
+              </Button>
+            )}
             {/* Export button */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -1455,6 +1419,7 @@ export default function Payments() {
                 { id: 'waiterName', label: t('columns.waiter'), visible: visibleColumns.includes('waiterName') },
                 { id: 'merchantAccount', label: t('columns.merchantAccount'), visible: visibleColumns.includes('merchantAccount') },
                 { id: 'method', label: t('columns.method'), visible: visibleColumns.includes('method') },
+                { id: 'source', label: t('columns.source'), visible: visibleColumns.includes('source') },
                 { id: 'amount', label: t('columns.subtotal'), visible: visibleColumns.includes('amount') },
                 { id: 'totalTipAmount', label: t('columns.tip'), visible: visibleColumns.includes('totalTipAmount') },
                 { id: 'totalAmount', label: t('columns.total'), visible: visibleColumns.includes('totalAmount'), disabled: true },
@@ -1665,6 +1630,14 @@ export default function Payments() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Single-step manual payment dialog — includes an embedded order
+          selector, so the admin picks the order inside the same form. */}
+      <ManualPaymentDialog
+        open={manualPaymentOpen}
+        onClose={() => setManualPaymentOpen(false)}
+        venueId={venueId}
+      />
     </div>
   )
 }

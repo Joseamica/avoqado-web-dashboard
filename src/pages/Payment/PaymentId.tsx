@@ -54,6 +54,7 @@ import { Button } from '@/components/ui/button'
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { PaymentSourceBadge } from '@/components/PaymentSourceBadge'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -765,10 +766,11 @@ export default function PaymentId() {
                   )}
                   {/* Source Badge */}
                   {payment?.source && (
-                    <Badge variant="outline" className="bg-muted/50 text-muted-foreground border-border">
-                      {payment.source === 'QR' && <QrCode className="h-3 w-3 mr-1" />}
-                      {t(`sources.${payment.source}`, { defaultValue: payment.source })}
-                    </Badge>
+                    <PaymentSourceBadge
+                      source={payment.source as any}
+                      externalSource={payment.externalSource}
+                      className="bg-muted/50 text-muted-foreground border-border"
+                    />
                   )}
                   {/* Test Payment Badge */}
                   {(payment?.source === 'DASHBOARD_TEST' || payment?.posRawData?.paymentType === 'TEST') && (

@@ -1070,6 +1070,7 @@ export interface Payment {
   status: PaymentStatus
   type: PaymentRecordType | null // REGULAR, FAST, TEST, REFUND, ADJUSTMENT
   source: string // De dónde se procesó el pago: AVOQADO_TPV, DASHBOARD_TEST, QR, WEB, APP, POS
+  externalSource?: string | null // Free-text label when source === 'OTHER' (e.g. "Uber Eats")
   processorName: string | null
   processorPaymentId: string | null
   posRawData: {
