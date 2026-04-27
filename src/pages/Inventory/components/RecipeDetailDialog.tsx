@@ -22,6 +22,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { useNavigate } from 'react-router-dom'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { Currency } from '@/utils/currency'
 
@@ -95,6 +97,14 @@ function fmtRelative(iso?: string) {
 
 export function RecipeDetailDialog({ open, onOpenChange, product, onEdit }: RecipeDetailDialogProps) {
   const { getShortLabel } = useUnitTranslation()
+  const { fullBasePath } = useCurrentVenue()
+  const navigate = useNavigate()
+
+  function openIngredient(rawMaterialId: string) {
+    onOpenChange(false)
+    navigate(`${fullBasePath}/inventory/raw-materials?highlight=${rawMaterialId}`)
+  }
+
   if (!product) return null
 
   const recipe = product.recipe
@@ -105,6 +115,8 @@ export function RecipeDetailDialog({ open, onOpenChange, product, onEdit }: Reci
   const costPerPortion = totalCost / Math.max(1, portionYield)
   const margin = product.price > 0 ? ((product.price - costPerPortion) / product.price) * 100 : 0
   const totalTime = (recipe?.prepTime ?? 0) + (recipe?.cookTime ?? 0)
+  // Hide the "Tipo" column entirely when no line uses it — avoids a strip of dashes.
+  const showTypeColumn = !!recipe?.lines.some(l => l.isOptional || l.isVariable)
 
   // Detect missing or low-stock ingredients (the audit case the user mentioned).
   // Prisma Decimals deserialize as strings — `"203" <= "40"` is true via lexicographic
@@ -338,7 +350,9 @@ export function RecipeDetailDialog({ open, onOpenChange, product, onEdit }: Reci
                           <th className="text-right px-3 pb-2 font-medium border-b border-border/40">Cantidad</th>
                           <th className="text-right px-3 pb-2 font-medium border-b border-border/40">Aporta</th>
                           <th className="text-right px-3 pb-2 font-medium border-b border-border/40">Costo / porción</th>
-                          <th className="text-center px-3 pb-2 font-medium border-b border-border/40">Tipo</th>
+                          {showTypeColumn && (
+                            <th className="text-center px-3 pb-2 font-medium border-b border-border/40">Tipo</th>
+                          )}
                         </tr>
                       </thead>
                       <tbody>
@@ -366,9 +380,20 @@ export function RecipeDetailDialog({ open, onOpenChange, product, onEdit }: Reci
                               <tr key={line.id} className={rowClass}>
                                 <td className={`px-3 py-2.5 ${cellBorder}`}>
                                   <div className="flex items-center gap-2">
-                                    <span className={stockMissing ? 'text-muted-foreground line-through' : ''}>
-                                      {rm?.name ?? 'Ingrediente eliminado'}
-                                    </span>
+                                    {rm && !stockMissing ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => openIngredient(rm.id)}
+                                        className="text-left underline-offset-4 decoration-muted-foreground/40 hover:underline hover:text-foreground focus-visible:underline focus-visible:outline-none transition-colors"
+                                        title="Ver detalle del ingrediente"
+                                      >
+                                        {rm.name}
+                                      </button>
+                                    ) : (
+                                      <span className={stockMissing ? 'text-muted-foreground line-through' : ''}>
+                                        {rm?.name ?? 'Ingrediente eliminado'}
+                                      </span>
+                                    )}
                                     {stockMissing && (
                                       <TooltipProvider>
                                         <Tooltip>
@@ -446,36 +471,40 @@ export function RecipeDetailDialog({ open, onOpenChange, product, onEdit }: Reci
                                   )}
                                 </td>
                                 <td className={`px-3 py-2.5 text-right tabular-nums ${cellBorder}`}>{Currency(line.costPerServing)}</td>
-                                <td className={`px-3 py-2.5 text-center ${cellBorder}`}>
-                                  <div className="flex flex-col items-center gap-1">
-                                    {line.isOptional && (
-                                      <Badge variant="outline" className="text-[10px] py-0">
-                                        Opcional
-                                      </Badge>
-                                    )}
-                                    {line.isVariable && (
-                                      <TooltipProvider>
-                                        <Tooltip>
-                                          <TooltipTrigger>
-                                            <Badge
-                                              variant="outline"
-                                              className="text-[10px] py-0 gap-1 border-sky-300 dark:border-sky-800 text-sky-700 dark:text-sky-300"
-                                            >
-                                              <Sparkles className="h-2.5 w-2.5" />
-                                              Variable
-                                            </Badge>
-                                          </TooltipTrigger>
-                                          <TooltipContent>
-                                            {line.linkedModifierGroup
-                                              ? `Vinculado a grupo: ${line.linkedModifierGroup.name}`
-                                              : 'Ingrediente variable'}
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </TooltipProvider>
-                                    )}
-                                    {!line.isOptional && !line.isVariable && <span className="text-[10px] text-muted-foreground">—</span>}
-                                  </div>
-                                </td>
+                                {showTypeColumn && (
+                                  <td className={`px-3 py-2.5 text-center ${cellBorder}`}>
+                                    <div className="flex flex-col items-center gap-1">
+                                      {line.isOptional && (
+                                        <Badge variant="outline" className="text-[10px] py-0">
+                                          Opcional
+                                        </Badge>
+                                      )}
+                                      {line.isVariable && (
+                                        <TooltipProvider>
+                                          <Tooltip>
+                                            <TooltipTrigger>
+                                              <Badge
+                                                variant="outline"
+                                                className="text-[10px] py-0 gap-1 border-sky-300 dark:border-sky-800 text-sky-700 dark:text-sky-300"
+                                              >
+                                                <Sparkles className="h-2.5 w-2.5" />
+                                                Variable
+                                              </Badge>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                              {line.linkedModifierGroup
+                                                ? `Vinculado a grupo: ${line.linkedModifierGroup.name}`
+                                                : 'Ingrediente variable'}
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
+                                      )}
+                                      {!line.isOptional && !line.isVariable && (
+                                        <span className="text-[10px] text-muted-foreground">—</span>
+                                      )}
+                                    </div>
+                                  </td>
+                                )}
                               </tr>
                             )
                           })}
@@ -491,7 +520,7 @@ export function RecipeDetailDialog({ open, onOpenChange, product, onEdit }: Reci
                           <td className="px-3 pt-3 pb-1 text-right tabular-nums text-base font-semibold border-t border-border/40">
                             {Currency(totalCost)}
                           </td>
-                          <td className="border-t border-border/40" />
+                          {showTypeColumn && <td className="border-t border-border/40" />}
                         </tr>
                       </tfoot>
                     </table>
