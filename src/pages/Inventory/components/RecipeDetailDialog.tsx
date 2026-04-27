@@ -1,8 +1,6 @@
-import { useTranslation } from 'react-i18next'
 import {
   AlertCircle,
   ChefHat,
-  Clock,
   DollarSign,
   Edit,
   Hash,
@@ -11,7 +9,6 @@ import {
   Lightbulb,
   Package,
   Percent,
-  Settings,
   Sparkles,
   Tag,
   Timer,
@@ -20,7 +17,7 @@ import {
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -97,8 +94,6 @@ function fmtRelative(iso?: string) {
 }
 
 export function RecipeDetailDialog({ open, onOpenChange, product, onEdit }: RecipeDetailDialogProps) {
-  const { t } = useTranslation('inventory')
-
   if (!product) return null
 
   const recipe = product.recipe
@@ -147,39 +142,42 @@ export function RecipeDetailDialog({ open, onOpenChange, product, onEdit }: Reci
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <DialogTitle className="text-xl flex items-center gap-2 flex-wrap">
-                <ChefHat className="h-5 w-5 shrink-0 text-muted-foreground" />
-                <span className="truncate">{product.name}</span>
-                {!product.active && (
-                  <Badge variant="secondary" className="ml-1">
-                    Inactivo
-                  </Badge>
-                )}
-                {!hasRecipe && (
-                  <Badge variant="outline" className="ml-1 text-orange-600 border-orange-300">
-                    Sin receta
-                  </Badge>
-                )}
-              </DialogTitle>
-              <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
-                <span className="flex items-center gap-1">
-                  <Tag className="h-3 w-3" />
-                  {product.category.name}
+        <DialogHeader className="px-6 pt-6 pb-5 border-b space-y-2">
+          <DialogTitle className="text-xl leading-tight flex items-start gap-2.5 min-w-0">
+            <ChefHat className="h-5 w-5 shrink-0 text-muted-foreground mt-0.5" />
+            <span className="truncate">{product.name}</span>
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            Detalle de la receta de {product.name}: capacidad de producción, ingredientes, costos y notas.
+          </DialogDescription>
+          <div className="flex items-center gap-2 flex-wrap pl-7">
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <Tag className="h-3 w-3" />
+              {product.category.name}
+            </span>
+            <span className="text-muted-foreground/40" aria-hidden>·</span>
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
+              <DollarSign className="h-3 w-3" />
+              Precio {Currency(product.price)}
+            </span>
+            {product.inventoryMethod && (
+              <>
+                <span className="text-muted-foreground/40" aria-hidden>·</span>
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <Package className="h-3 w-3" />
+                  {product.inventoryMethod === 'RECIPE' ? 'por receta' : 'por cantidad'}
                 </span>
-                <span className="flex items-center gap-1">
-                  <DollarSign className="h-3 w-3" />
-                  Precio venta: {Currency(product.price)}
-                </span>
-                {product.inventoryMethod && (
-                  <span className="flex items-center gap-1">
-                    <Package className="h-3 w-3" />
-                    Inventario: {product.inventoryMethod === 'RECIPE' ? 'por receta' : 'por cantidad'}
-                  </span>
-                )}
-              </div>
+              </>
+            )}
+            <div className="flex items-center gap-1.5 ml-auto">
+              {!product.active && (
+                <Badge variant="secondary">Inactivo</Badge>
+              )}
+              {!hasRecipe && (
+                <Badge variant="outline" className="text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800/60">
+                  Sin receta
+                </Badge>
+              )}
             </div>
           </div>
         </DialogHeader>
@@ -199,69 +197,93 @@ export function RecipeDetailDialog({ open, onOpenChange, product, onEdit }: Reci
               </div>
             ) : (
               <>
-                {/* Production capacity banner — the headline answer to "can I sell this right now?" */}
+                {/* Production capacity — the headline answer to "can I sell this right now?" */}
                 <section
-                  className={`rounded-md border p-4 flex items-center gap-4 ${
+                  className={`rounded-md border p-4 flex items-start gap-3.5 ${
                     maxProducible > 0
-                      ? 'border-green-300 dark:border-green-900/50 bg-green-50/50 dark:bg-green-950/20'
+                      ? 'border-emerald-300/70 dark:border-emerald-900/50 bg-emerald-50/60 dark:bg-emerald-950/20'
                       : 'border-destructive/40 bg-destructive/5'
                   }`}
                 >
-                  {maxProducible > 0 ? (
-                    <Sparkles className="h-7 w-7 text-green-600 dark:text-green-400 shrink-0" />
-                  ) : (
-                    <AlertCircle className="h-7 w-7 text-destructive shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold">
+                  <div
+                    className={`shrink-0 rounded-md p-1.5 ${
+                      maxProducible > 0
+                        ? 'bg-emerald-100 dark:bg-emerald-900/40'
+                        : 'bg-destructive/10'
+                    }`}
+                  >
+                    {maxProducible > 0 ? (
+                      <Sparkles className="h-5 w-5 text-emerald-700 dark:text-emerald-300" />
+                    ) : (
+                      <AlertCircle className="h-5 w-5 text-destructive" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-0.5">
+                    <p
+                      className={`text-sm font-semibold ${
+                        maxProducible > 0 ? 'text-emerald-900 dark:text-emerald-100' : 'text-destructive'
+                      }`}
+                    >
                       {maxProducible > 0
                         ? `Puedes producir ${maxProducible} ${maxProducible === 1 ? 'porción' : 'porciones'} con el inventario actual`
-                        : 'No se puede producir esta receta — falta inventario'}
+                        : 'No puedes producir esta receta ahora mismo'}
                     </p>
                     {bottleneckLineId && (
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Limitado por:{' '}
-                        <strong>{recipe.lines.find(l => l.id === bottleneckLineId)?.rawMaterial?.name}</strong>
-                        {outOfStockLineIds.has(bottleneckLineId) && ' (sin stock)'}
+                      <p
+                        className={`text-xs ${
+                          maxProducible > 0
+                            ? 'text-emerald-800/80 dark:text-emerald-200/70'
+                            : 'text-destructive/80'
+                        }`}
+                      >
+                        Limitado por{' '}
+                        <strong className="font-semibold">
+                          {recipe.lines.find(l => l.id === bottleneckLineId)?.rawMaterial?.name}
+                        </strong>
+                        {outOfStockLineIds.has(bottleneckLineId) && ' — en cero'}
                       </p>
                     )}
                   </div>
                 </section>
 
-                {/* Out-of-stock ingredients — the SPECIFIC audit case (Hazelnut treat / Dátiles) */}
+                {/* Out-of-stock ingredients — the SPECIFIC audit case (the user's "missing X" scenario) */}
                 {outOfStockLineIds.size > 0 && (
-                  <section className="rounded-md border border-destructive/40 bg-destructive/5 p-3">
-                    <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 text-destructive">
+                  <section className="rounded-md border border-destructive/40 bg-destructive/5 p-3 space-y-1">
+                    <h3 className="text-sm font-semibold flex items-center gap-2 text-destructive">
                       <AlertCircle className="h-4 w-4" />
-                      Ingredientes sin stock ({outOfStockLineIds.size})
+                      Ingredientes en cero ({outOfStockLineIds.size})
                     </h3>
-                    <p className="text-xs text-destructive">
-                      Estos ingredientes están en cero y bloquean toda la receta:{' '}
-                      <strong>
-                        {recipe.lines.filter(l => outOfStockLineIds.has(l.id)).map(l => l.rawMaterial?.name).join(', ')}
-                      </strong>
+                    <p className="text-xs text-destructive/85">
+                      <strong className="font-semibold">
+                        {recipe.lines.filter(l => outOfStockLineIds.has(l.id)).map(l => l.rawMaterial?.name).filter(Boolean).join(', ')}
+                      </strong>{' '}
+                      bloquean la producción.
                     </p>
                   </section>
                 )}
 
                 {/* Audit alerts (inactive / low stock — non-blocking warnings) */}
                 {(missingLines.length > 0 || lowStockLines.length > 0) && (
-                  <section className="rounded-md border border-orange-300 dark:border-orange-900/50 bg-orange-50/50 dark:bg-orange-950/20 p-3">
-                    <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 text-orange-800 dark:text-orange-300">
+                  <section className="rounded-md border border-amber-300/70 dark:border-amber-900/50 bg-amber-50/60 dark:bg-amber-950/20 p-3 space-y-1.5">
+                    <h3 className="text-sm font-semibold flex items-center gap-2 text-amber-900 dark:text-amber-200">
                       <AlertCircle className="h-4 w-4" />
                       Atención
                     </h3>
                     {missingLines.length > 0 && (
-                      <p className="text-xs text-orange-800 dark:text-orange-300">
-                        {missingLines.length} ingrediente{missingLines.length > 1 ? 's' : ''} de esta receta{' '}
-                        {missingLines.length > 1 ? 'están' : 'está'} marcado{missingLines.length > 1 ? 's' : ''} como
-                        inactivo: <strong>{missingLines.map(l => l.rawMaterial?.name).join(', ')}</strong>
+                      <p className="text-xs text-amber-900/85 dark:text-amber-200/85">
+                        {missingLines.length} ingrediente{missingLines.length > 1 ? 's' : ''} inactivo
+                        {missingLines.length > 1 ? 's' : ''}:{' '}
+                        <strong className="font-semibold">
+                          {missingLines.map(l => l.rawMaterial?.name).filter(Boolean).join(', ')}
+                        </strong>
                       </p>
                     )}
                     {lowStockLines.length > 0 && (
-                      <p className="text-xs text-orange-800 dark:text-orange-300 mt-1">
-                        {lowStockLines.length} ingrediente{lowStockLines.length > 1 ? 's' : ''} con stock bajo:{' '}
-                        <strong>{lowStockLines.map(l => l.rawMaterial?.name).join(', ')}</strong>
+                      <p className="text-xs text-amber-900/85 dark:text-amber-200/85">
+                        {lowStockLines.length} con stock bajo:{' '}
+                        <strong className="font-semibold">
+                          {lowStockLines.map(l => l.rawMaterial?.name).filter(Boolean).join(', ')}
+                        </strong>
                       </p>
                     )}
                   </section>
@@ -331,7 +353,6 @@ export function RecipeDetailDialog({ open, onOpenChange, product, onEdit }: Reci
                             const rm = line.rawMaterial
                             const rmCurrent = rm ? Number(rm.currentStock) : 0
                             const rmMin = rm ? Number(rm.minimumStock) : 0
-                            const stockOk = rm?.active && rmCurrent > rmMin
                             const stockLow = rm?.active && rmCurrent <= rmMin
                             const stockMissing = !rm?.active
                             const isOutOfStock = outOfStockLineIds.has(line.id)
@@ -340,7 +361,7 @@ export function RecipeDetailDialog({ open, onOpenChange, product, onEdit }: Reci
                             const rowClass = isOutOfStock
                               ? 'bg-destructive/5'
                               : isBottleneck
-                                ? 'bg-yellow-50/40 dark:bg-yellow-950/10'
+                                ? 'bg-amber-50/50 dark:bg-amber-950/15'
                                 : 'hover:bg-muted/20'
                             return (
                               <tr key={line.id} className={rowClass}>
@@ -363,17 +384,17 @@ export function RecipeDetailDialog({ open, onOpenChange, product, onEdit }: Reci
                                       <TooltipProvider>
                                         <Tooltip>
                                           <TooltipTrigger>
-                                            <AlertCircle className="h-3.5 w-3.5 text-orange-500" />
+                                            <AlertCircle className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
                                           </TooltipTrigger>
                                           <TooltipContent>
-                                            Stock bajo ({Number(rm.currentStock).toFixed(2)} {rm.unit} / mín {Number(rm.minimumStock).toFixed(2)})
+                                            Stock bajo: {rmCurrent.toFixed(2)} {rm.unit} (mín {rmMin.toFixed(2)})
                                           </TooltipContent>
                                         </Tooltip>
                                       </TooltipProvider>
                                     )}
                                   </div>
                                   {rm && (
-                                    <div className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5">
+                                    <div className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5 tabular-nums">
                                       <span className="flex items-center gap-1">
                                         <Hash className="h-2.5 w-2.5" />
                                         {rm.sku}
@@ -381,10 +402,10 @@ export function RecipeDetailDialog({ open, onOpenChange, product, onEdit }: Reci
                                       {!stockMissing && (
                                         <span
                                           className={
-                                            stockLow ? 'text-orange-600' : stockOk ? 'text-muted-foreground' : ''
+                                            stockLow ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'
                                           }
                                         >
-                                          en stock: {Number(rm.currentStock).toFixed(2)} {rm.unit}
+                                          en stock {rmCurrent.toFixed(2)} {rm.unit}
                                         </span>
                                       )}
                                     </div>
@@ -407,14 +428,14 @@ export function RecipeDetailDialog({ open, onOpenChange, product, onEdit }: Reci
                                           isOutOfStock
                                             ? 'text-destructive font-semibold'
                                             : isBottleneck
-                                              ? 'text-yellow-700 dark:text-yellow-400 font-semibold'
+                                              ? 'text-amber-700 dark:text-amber-400 font-semibold'
                                               : ''
                                         }
                                       >
                                         {portions}
                                       </span>
                                       {isBottleneck && portions > 0 && (
-                                        <Badge variant="outline" className="text-[9px] py-0 px-1 border-yellow-400 text-yellow-700 dark:text-yellow-400">
+                                        <Badge variant="outline" className="text-[9px] py-0 px-1 border-amber-400 text-amber-700 dark:text-amber-400">
                                           mín
                                         </Badge>
                                       )}
@@ -440,7 +461,7 @@ export function RecipeDetailDialog({ open, onOpenChange, product, onEdit }: Reci
                                           <TooltipTrigger>
                                             <Badge
                                               variant="outline"
-                                              className="text-[10px] py-0 gap-1 border-blue-300 text-blue-700"
+                                              className="text-[10px] py-0 gap-1 border-sky-300 dark:border-sky-800 text-sky-700 dark:text-sky-300"
                                             >
                                               <Sparkles className="h-2.5 w-2.5" />
                                               Variable
@@ -531,9 +552,9 @@ export function RecipeDetailDialog({ open, onOpenChange, product, onEdit }: Reci
           </div>
         </ScrollArea>
 
-        {/* Footer actions */}
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t bg-muted/20">
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+        {/* Footer actions — ghost dismiss on the left, primary action on the right */}
+        <div className="flex flex-wrap items-center justify-end gap-2 px-6 py-4 border-t bg-muted/30">
+          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
             Cerrar
           </Button>
           {onEdit && (
@@ -571,12 +592,12 @@ function Stat({
     highlight === 'danger'
       ? 'text-destructive font-semibold'
       : highlight === 'warning'
-        ? 'text-orange-600 dark:text-orange-400 font-semibold'
-        : 'font-semibold'
+        ? 'text-amber-600 dark:text-amber-400 font-semibold'
+        : 'font-semibold text-foreground'
   return (
-    <div className="rounded-md border bg-muted/20 px-3 py-2.5">
-      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className={`text-sm mt-0.5 ${valueClass}`}>{value}</div>
+    <div className="rounded-md border bg-card px-3 py-2.5">
+      <div className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">{label}</div>
+      <div className={`text-sm mt-1 tabular-nums ${valueClass}`}>{value}</div>
       {hint && (
         <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
           {hintIcon}
@@ -589,11 +610,11 @@ function Stat({
 
 function KV({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string | null }) {
   return (
-    <div>
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="text-sm">
-        {value}
-        {hint && <span className="text-xs text-muted-foreground ml-1.5">({hint})</span>}
+    <div className="space-y-0.5">
+      <dt className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">{label}</dt>
+      <dd className="text-sm text-foreground flex items-baseline gap-1.5">
+        <span>{value}</span>
+        {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
       </dd>
     </div>
   )

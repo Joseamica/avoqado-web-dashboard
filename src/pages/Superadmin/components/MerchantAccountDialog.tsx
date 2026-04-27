@@ -68,6 +68,14 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
     providerConfig: '',
   })
 
+  // 💳 MSI months currently selected. Source of truth is the providerConfig JSON,
+  // but we keep a parallel array so the checkboxes can render and stay in sync.
+  const [msiMonths, setMsiMonths] = useState<number[]>([])
+
+  // Common MSI options for retail in Mexico. Add more if a merchant negotiates
+  // exotic terms with Blumon — they'd live in the JSON textarea even if not here.
+  const COMMON_MSI_OPTIONS = [3, 6, 9, 12, 18, 24]
+
   // Fetch providers for dropdown
   const { data: providers = [] } = useQuery({
     queryKey: ['payment-providers-list'],
@@ -89,6 +97,7 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
         terminalId: '',
         providerConfig: account.providerConfig ? JSON.stringify(account.providerConfig, null, 2) : '',
       })
+      setMsiMonths(extractMsiFromConfig(account.providerConfig))
     } else {
       setFormData({
         providerId: '',
@@ -103,8 +112,52 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
         terminalId: '',
         providerConfig: '',
       })
+      setMsiMonths([])
     }
   }, [account, open])
+
+  /**
+   * Pulls MSI months out of the providerConfig in any of the three shapes the
+   * TPV mapper accepts (`promotions.msi`, `dataResponse.promotions.msi`, top-level `msi`).
+   */
+  function extractMsiFromConfig(config: any): number[] {
+    if (!config || typeof config !== 'object') return []
+    const fromTopLevel = config.promotions?.msi
+    const fromNested = config.dataResponse?.promotions?.msi
+    const fromFlat = config.msi
+    const raw = fromTopLevel ?? fromNested ?? fromFlat ?? []
+    if (!Array.isArray(raw)) return []
+    return raw
+      .map(n => (typeof n === 'number' ? n : parseInt(String(n), 10)))
+      .filter(n => Number.isFinite(n) && n > 0)
+      .sort((a, b) => a - b)
+  }
+
+  /**
+   * Toggles a single MSI option and re-serializes the JSON textarea so the
+   * checkboxes and the raw JSON stay in sync. Preserves any other fields the
+   * user has set inside providerConfig.
+   */
+  function toggleMsiMonth(months: number, checked: boolean) {
+    const nextMonths = checked
+      ? [...msiMonths, months].filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b)
+      : msiMonths.filter(m => m !== months)
+    setMsiMonths(nextMonths)
+
+    // Merge into existing JSON instead of overwriting — the textarea may already
+    // have other operational fields (webhookSecret, environment, etc.).
+    let parsed: Record<string, any> = {}
+    if (formData.providerConfig.trim()) {
+      try {
+        parsed = JSON.parse(formData.providerConfig)
+        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) parsed = {}
+      } catch {
+        parsed = {}
+      }
+    }
+    parsed.promotions = { ...(parsed.promotions ?? {}), msi: nextMonths }
+    setFormData(prev => ({ ...prev, providerConfig: JSON.stringify(parsed, null, 2) }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -302,13 +355,64 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
               </div>
             </div>
 
-            {/* Provider Config (JSON) */}
+            {/* Promotions: Meses sin intereses (MSI) */}
+            <div className="grid gap-2 border border-border rounded-lg p-4 bg-muted/30">
+              <Label className="text-base font-semibold">Meses sin intereses (MSI)</Label>
+              <p className="text-sm text-muted-foreground">
+                Selecciona los meses que se ofrecerán al cobrar con tarjeta. Los meses deben estar
+                activados también en Matter (Blumon) — si no, el cobro fallará con{' '}
+                <code className="text-xs bg-background px-1 py-0.5 rounded">TX_005 - PROMOCIONES NO ACTIVAS</code>.
+              </p>
+              <div className="grid grid-cols-3 gap-3 pt-2">
+                {COMMON_MSI_OPTIONS.map(months => (
+                  <div key={months} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`msi-${months}`}
+                      checked={msiMonths.includes(months)}
+                      onCheckedChange={(checked: boolean) => toggleMsiMonth(months, checked)}
+                    />
+                    <label
+                      htmlFor={`msi-${months}`}
+                      className="text-sm font-medium leading-none cursor-pointer"
+                    >
+                      {months} MSI
+                    </label>
+                  </div>
+                ))}
+              </div>
+              {msiMonths.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic pt-1">
+                  Sin meses seleccionados — el TPV no mostrará el selector de promociones.
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground pt-1">
+                  TPV mostrará: <span className="font-mono">[{msiMonths.join(', ')}]</span>
+                </p>
+              )}
+            </div>
+
+            {/* Provider Config (JSON) — advanced editing, source of truth on save */}
             <div className="grid gap-2">
-              <Label htmlFor="providerConfig">{t('merchantDialog.providerConfig')}</Label>
+              <Label htmlFor="providerConfig">
+                {t('merchantDialog.providerConfig')}
+                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                  (avanzado — los checkboxes de arriba sobreescriben <code>promotions.msi</code>)
+                </span>
+              </Label>
               <Textarea
                 id="providerConfig"
                 value={formData.providerConfig}
-                onChange={e => setFormData({ ...formData, providerConfig: e.target.value })}
+                onChange={e => {
+                  const next = e.target.value
+                  setFormData({ ...formData, providerConfig: next })
+                  // Re-sync checkboxes if the user manually edits the JSON
+                  try {
+                    const parsed = next.trim() ? JSON.parse(next) : null
+                    setMsiMonths(extractMsiFromConfig(parsed))
+                  } catch {
+                    // Invalid JSON — leave checkboxes alone, user is mid-edit
+                  }
+                }}
                 placeholder='{"webhookSecret": "whsec_...", "mode": "live"}'
                 rows={4}
                 className="bg-background border-input font-mono text-xs"

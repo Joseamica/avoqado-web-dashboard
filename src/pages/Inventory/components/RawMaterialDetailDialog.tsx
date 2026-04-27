@@ -21,7 +21,7 @@ import {
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -114,36 +114,41 @@ export function RawMaterialDetailDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <DialogTitle className="text-xl flex items-center gap-2 flex-wrap">
-                <Package className="h-5 w-5 shrink-0 text-muted-foreground" />
-                <span className="truncate">{rawMaterial.name}</span>
-                {!rawMaterial.active && (
-                  <Badge variant="secondary" className="ml-1">
-                    {t('rawMaterials.inactive', { defaultValue: 'Inactivo' })}
-                  </Badge>
-                )}
-                {isLow && (
-                  <Badge variant="destructive" className="gap-1">
-                    <AlertTriangle className="h-3 w-3" />
-                    Stock bajo
-                  </Badge>
-                )}
-              </DialogTitle>
-              <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
-                <span className="flex items-center gap-1">
-                  <Hash className="h-3 w-3" />
-                  {rawMaterial.sku}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Tag className="h-3 w-3" />
-                  {rawMaterial.category}
-                </span>
-                {rawMaterial.gtin && <span>GTIN: {rawMaterial.gtin}</span>}
-              </div>
-            </div>
+        <DialogHeader className="px-6 pt-6 pb-5 border-b space-y-2">
+          <DialogTitle className="text-xl leading-tight flex items-start gap-2.5 min-w-0">
+            <Package className="h-5 w-5 shrink-0 text-muted-foreground mt-0.5" />
+            <span className="truncate">{rawMaterial.name}</span>
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            Detalle del ingrediente {rawMaterial.name}: stock, costos, recetas que lo usan e historial.
+          </DialogDescription>
+          <div className="flex items-center gap-2 flex-wrap pl-7">
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
+              <Hash className="h-3 w-3" />
+              {rawMaterial.sku}
+            </span>
+            <span className="text-muted-foreground/40" aria-hidden>·</span>
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <Tag className="h-3 w-3" />
+              {rawMaterial.category}
+            </span>
+            {rawMaterial.gtin && (
+              <>
+                <span className="text-muted-foreground/40" aria-hidden>·</span>
+                <span className="text-xs text-muted-foreground tabular-nums">GTIN {rawMaterial.gtin}</span>
+              </>
+            )}
+            {!rawMaterial.active && (
+              <Badge variant="secondary" className="ml-auto">
+                {t('rawMaterials.inactive', { defaultValue: 'Inactivo' })}
+              </Badge>
+            )}
+            {isLow && (
+              <Badge variant="destructive" className={`gap-1 ${!rawMaterial.active ? '' : 'ml-auto'}`}>
+                <AlertTriangle className="h-3 w-3" />
+                Stock bajo
+              </Badge>
+            )}
           </div>
         </DialogHeader>
 
@@ -163,25 +168,40 @@ export function RawMaterialDetailDialog({
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <Stat
                   label="Actual"
-                  value={`${Number(rawMaterial.currentStock).toFixed(2)} ${rawMaterial.unit}`}
+                  value={`${currentStock.toFixed(2)} ${rawMaterial.unit}`}
                   highlight={isLow ? 'danger' : isBelowReorder ? 'warning' : undefined}
                 />
-                <Stat label="Mínimo" value={`${Number(rawMaterial.minimumStock).toFixed(2)} ${rawMaterial.unit}`} />
-                <Stat label="Punto de reorden" value={`${Number(rawMaterial.reorderPoint).toFixed(2)} ${rawMaterial.unit}`} />
+                <Stat label="Mínimo" value={`${minimumStock.toFixed(2)} ${rawMaterial.unit}`} />
+                <Stat label="Punto de reorden" value={`${reorderPoint.toFixed(2)} ${rawMaterial.unit}`} />
                 <Stat
                   label="Máximo"
-                  value={rawMaterial.maximumStock ? `${Number(rawMaterial.maximumStock).toFixed(2)} ${rawMaterial.unit}` : '—'}
+                  value={maximumStock != null ? `${maximumStock.toFixed(2)} ${rawMaterial.unit}` : '—'}
                   hint={stockPctOfMax !== null ? `${stockPctOfMax}% del máx.` : undefined}
                 />
               </div>
+
+              {/* Stock relative to min/reorder/max — visual anchor that reads at a glance */}
+              {maximumStock != null && maximumStock > 0 && (
+                <StockBar
+                  current={currentStock}
+                  minimum={minimumStock}
+                  reorder={reorderPoint}
+                  maximum={maximumStock}
+                  unit={rawMaterial.unit}
+                />
+              )}
+
               {isLow && (
-                <div className="mt-3 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm">
+                <div className="mt-3 flex items-start gap-2.5 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm">
                   <AlertTriangle className="h-4 w-4 shrink-0 text-destructive mt-0.5" />
-                  <div>
-                    <p className="font-medium text-destructive">Stock por debajo del mínimo</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Faltan {(rawMaterial.minimumStock - rawMaterial.currentStock).toFixed(2)} {rawMaterial.unit} para llegar al mínimo. Se
-                      recomienda hacer un pedido pronto.
+                  <div className="space-y-0.5">
+                    <p className="font-medium text-destructive">
+                      {currentStock <= 0 ? 'Sin stock' : 'Stock por debajo del mínimo'}
+                    </p>
+                    <p className="text-xs text-destructive/80 tabular-nums">
+                      {currentStock <= 0
+                        ? `Necesitas reponer al menos ${minimumStock.toFixed(2)} ${rawMaterial.unit} para alcanzar el mínimo.`
+                        : `Faltan ${(minimumStock - currentStock).toFixed(2)} ${rawMaterial.unit} para llegar al mínimo.`}
                     </p>
                   </div>
                 </div>
@@ -197,29 +217,29 @@ export function RawMaterialDetailDialog({
                 Costos
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <Stat label="Costo unitario" value={Currency(rawMaterial.costPerUnit) + ` / ${rawMaterial.unit}`} />
+                <Stat label="Costo unitario" value={`${Currency(costPerUnit)} / ${rawMaterial.unit}`} />
                 <Stat
                   label="Costo promedio"
-                  value={Currency(rawMaterial.avgCostPerUnit) + ` / ${rawMaterial.unit}`}
+                  value={`${Currency(avgCostPerUnit)} / ${rawMaterial.unit}`}
                   hint={
-                    Math.abs(rawMaterial.avgCostPerUnit - rawMaterial.costPerUnit) > 0.01
-                      ? rawMaterial.avgCostPerUnit > rawMaterial.costPerUnit
-                        ? 'Promedio mayor al actual (compras a mejor precio recientemente)'
-                        : 'Promedio menor al actual (precios subieron)'
-                      : 'Igual al costo actual'
+                    Math.abs(avgCostPerUnit - costPerUnit) > 0.01
+                      ? avgCostPerUnit > costPerUnit
+                        ? 'Promedio mayor al actual (compras recientes a mejor precio)'
+                        : 'Promedio menor al actual (precios al alza)'
+                      : 'Sin cambios respecto al costo actual'
                   }
                   hintIcon={
-                    rawMaterial.avgCostPerUnit > rawMaterial.costPerUnit ? (
-                      <TrendingDown className="h-3 w-3 text-green-600" />
-                    ) : rawMaterial.avgCostPerUnit < rawMaterial.costPerUnit ? (
-                      <TrendingUp className="h-3 w-3 text-orange-600" />
+                    avgCostPerUnit > costPerUnit ? (
+                      <TrendingDown className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                    ) : avgCostPerUnit < costPerUnit ? (
+                      <TrendingUp className="h-3 w-3 text-amber-600 dark:text-amber-400" />
                     ) : null
                   }
                 />
                 <Stat
                   label="Inversión actual"
                   value={Currency(totalInvested)}
-                  hint={`${Number(rawMaterial.currentStock).toFixed(2)} × ${Currency(rawMaterial.avgCostPerUnit)}`}
+                  hint={`${currentStock.toFixed(2)} × ${Currency(avgCostPerUnit)}`}
                   hintIcon={<PiggyBank className="h-3 w-3" />}
                 />
               </div>
@@ -277,26 +297,32 @@ export function RawMaterialDetailDialog({
                 )}
               </div>
               {loadingRecipes ? (
-                <p className="text-sm text-muted-foreground">Cargando recetas...</p>
+                <p className="text-sm text-muted-foreground">Cargando recetas…</p>
               ) : recipes.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic">No se usa en ninguna receta todavía.</p>
+                <p className="text-sm text-muted-foreground">
+                  Este ingrediente aún no se usa en ninguna receta.
+                </p>
               ) : (
-                <ul className="space-y-1.5">
+                <ul className="rounded-md border divide-y divide-border overflow-hidden">
                   {recipes.slice(0, 5).map(p => (
-                    <li
-                      key={p.id}
-                      className="flex items-center justify-between text-sm rounded-md border bg-muted/20 px-3 py-2 hover:bg-muted/40 transition-colors cursor-pointer"
-                      onClick={() => {
-                        onOpenChange(false)
-                        navigate(`${fullBasePath}/inventory/recipes?productId=${p.id}`)
-                      }}
-                    >
-                      <span className="truncate">{p.name}</span>
-                      <span className="text-xs text-muted-foreground shrink-0 ml-3">{Currency(p.price)}</span>
+                    <li key={p.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onOpenChange(false)
+                          navigate(`${fullBasePath}/inventory/recipes?productId=${p.id}`)
+                        }}
+                        className="flex w-full items-center justify-between gap-3 text-sm px-3 py-2.5 text-left hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none transition-colors"
+                      >
+                        <span className="truncate">{p.name}</span>
+                        <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{Currency(p.price)}</span>
+                      </button>
                     </li>
                   ))}
                   {recipes.length > 5 && (
-                    <li className="text-xs text-muted-foreground italic">y {recipes.length - 5} más...</li>
+                    <li className="px-3 py-2 text-xs text-muted-foreground bg-muted/20">
+                      y {recipes.length - 5} {recipes.length - 5 === 1 ? 'receta más' : 'recetas más'}
+                    </li>
                   )}
                 </ul>
               )}
@@ -344,9 +370,9 @@ export function RawMaterialDetailDialog({
           </div>
         </ScrollArea>
 
-        {/* Footer actions */}
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t bg-muted/20">
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+        {/* Footer actions — hierarchy ramps left to right: dismiss → secondary → secondary → primary */}
+        <div className="flex flex-wrap items-center justify-end gap-2 px-6 py-4 border-t bg-muted/30">
+          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
             Cerrar
           </Button>
           {onViewMovements && (
@@ -410,12 +436,12 @@ function Stat({
     highlight === 'danger'
       ? 'text-destructive font-semibold'
       : highlight === 'warning'
-        ? 'text-orange-600 dark:text-orange-400 font-semibold'
-        : 'font-semibold'
+        ? 'text-amber-600 dark:text-amber-400 font-semibold'
+        : 'font-semibold text-foreground'
   return (
-    <div className="rounded-md border bg-muted/20 px-3 py-2.5">
-      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className={`text-sm mt-0.5 ${valueClass}`}>{value}</div>
+    <div className="rounded-md border bg-card px-3 py-2.5">
+      <div className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">{label}</div>
+      <div className={`text-sm mt-1 tabular-nums ${valueClass}`}>{value}</div>
       {hint && (
         <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
           {hintIcon}
@@ -439,12 +465,75 @@ function Stat({
 
 function KV({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string | null }) {
   return (
-    <div>
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="text-sm">
-        {value}
-        {hint && <span className="text-xs text-muted-foreground ml-1.5">({hint})</span>}
+    <div className="space-y-0.5">
+      <dt className="text-[11px] uppercase tracking-wider font-medium text-muted-foreground">{label}</dt>
+      <dd className="text-sm text-foreground flex items-baseline gap-1.5">
+        <span>{value}</span>
+        {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
       </dd>
+    </div>
+  )
+}
+
+/**
+ * Visual stock indicator: a single bar with markers for minimum and reorder thresholds.
+ * Reads at a glance — no labels needed, color carries the state.
+ */
+function StockBar({
+  current,
+  minimum,
+  reorder,
+  maximum,
+  unit,
+}: {
+  current: number
+  minimum: number
+  reorder: number
+  maximum: number
+  unit: string
+}) {
+  // Clamp percentages so over-stocked items still render sanely
+  const pct = (v: number) => Math.max(0, Math.min(100, (v / maximum) * 100))
+  const currentPct = pct(current)
+  const minPct = pct(minimum)
+  const reorderPct = pct(reorder)
+  const tone =
+    current <= minimum
+      ? 'bg-destructive'
+      : current <= reorder
+        ? 'bg-amber-500 dark:bg-amber-400'
+        : 'bg-emerald-500 dark:bg-emerald-400'
+
+  return (
+    <div className="mt-4 space-y-1.5">
+      <div className="relative h-2 rounded-full bg-muted overflow-hidden">
+        <div className={`h-full rounded-full transition-all duration-300 ${tone}`} style={{ width: `${currentPct}%` }} />
+        {/* Threshold markers — vertical hairlines on top of the bar */}
+        <div
+          className="absolute top-0 bottom-0 w-px bg-foreground/40"
+          style={{ left: `${minPct}%` }}
+          aria-hidden
+        />
+        <div
+          className="absolute top-0 bottom-0 w-px bg-foreground/25"
+          style={{ left: `${reorderPct}%` }}
+          aria-hidden
+        />
+      </div>
+      <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground tabular-nums">
+        <span>0 {unit}</span>
+        <span className="flex items-center gap-3">
+          <span title="Mínimo" className="flex items-center gap-1">
+            <span className="inline-block h-2 w-px bg-foreground/40" />
+            mín {minimum.toFixed(0)}
+          </span>
+          <span title="Reorden" className="flex items-center gap-1">
+            <span className="inline-block h-2 w-px bg-foreground/25" />
+            reorden {reorder.toFixed(0)}
+          </span>
+        </span>
+        <span>{maximum.toFixed(0)} {unit}</span>
+      </div>
     </div>
   )
 }
