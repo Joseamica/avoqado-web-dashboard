@@ -441,7 +441,8 @@ export default function InventoryHistory() {
         header: t('history.adjustment', { defaultValue: 'Ajuste' }),
         cell: ({ row }) => {
           const type = row.original.type
-          const qty = Math.abs(row.original.previousStock - row.original.newStock) // Or use quantity field
+          const rawQty = Math.abs(row.original.previousStock - row.original.newStock)
+          const qty = Number(rawQty.toFixed(3))
 
           // Determine arrow direction based on type and stock change
           let isPositive: boolean
