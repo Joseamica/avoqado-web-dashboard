@@ -127,17 +127,45 @@ export function RecipeDetailDialog({ open, onOpenChange, product, onEdit }: Reci
 
   // Per-ingredient yield: how many portions of THIS recipe each ingredient can support today.
   // The minimum (excluding optional/variable lines) determines the production ceiling.
+  // CRITICAL: must convert RecipeLine.unit → RawMaterial.unit before dividing —
+  // otherwise "9209.75 GRAM stock / 0.062 KILOGRAM per portion" displays
+  // "148,544 portions" instead of the real ~148. Same bug class as the
+  // backend deductStockForRecipe issue we fixed on 2026-04-27.
   const yieldsByLineId = new Map<string, number>()
   let bottleneckLineId: string | null = null
   const outOfStockLineIds = new Set<string>()
   let maxProducible = 0
+
+  // Inline conversion table for the units we actually use. Keeps this component
+  // standalone (no import from server-side utils). If the recipe declares a
+  // unit the table doesn't know, we fall back to "no conversion" which is the
+  // pre-fix behavior — safe degradation, never worse than before.
+  const toBase: Record<string, number> = {
+    KILOGRAM: 1000, GRAM: 1, MILLIGRAM: 0.001,
+    LITER: 1000, MILLILITER: 1,
+    UNIT: 1, PIECE: 1, DOZEN: 12, CASE: 1, BOX: 1, BAG: 1, BOTTLE: 1, CAN: 1, JAR: 1,
+  }
+  const sameDimension = (a: string, b: string): boolean => {
+    const mass = ['KILOGRAM', 'GRAM', 'MILLIGRAM']
+    const volume = ['LITER', 'MILLILITER']
+    const count = ['UNIT', 'PIECE', 'DOZEN', 'CASE', 'BOX', 'BAG', 'BOTTLE', 'CAN', 'JAR']
+    return (mass.includes(a) && mass.includes(b)) || (volume.includes(a) && volume.includes(b)) || (count.includes(a) && count.includes(b))
+  }
+  const convertToRmUnit = (qty: number, fromUnit: string, toUnit: string): number => {
+    if (fromUnit === toUnit) return qty
+    if (!sameDimension(fromUnit, toUnit) || toBase[fromUnit] === undefined || toBase[toUnit] === undefined) return qty
+    return (qty * toBase[fromUnit]) / toBase[toUnit]
+  }
 
   if (hasRecipe) {
     const evaluated = recipe.lines
       .filter(l => !l.isOptional && !l.isVariable)
       .map(l => {
         const stock = Number(l.rawMaterial?.currentStock ?? 0)
-        const needed = Number(l.quantity ?? 0)
+        const rawNeeded = Number(l.quantity ?? 0)
+        // Convert recipe line quantity to the raw material's storage unit
+        // before computing how many portions the stock supports.
+        const needed = convertToRmUnit(rawNeeded, l.unit, l.rawMaterial?.unit ?? l.unit)
         const portions = needed > 0 ? Math.floor(stock / needed) : Number.POSITIVE_INFINITY
         if (stock === 0 && needed > 0) outOfStockLineIds.add(l.id)
         yieldsByLineId.set(l.id, portions)
