@@ -11,7 +11,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { recipesApi, rawMaterialsApi, type Recipe, type CreateRecipeDto } from '@/services/inventory.service'
-import { Loader2, Plus, Trash2, Package, Info, RefreshCw } from 'lucide-react'
+import { Loader2, Plus, Trash2, Package, Info, RefreshCw, Pencil, Check, X } from 'lucide-react'
 import { Currency } from '@/utils/currency'
 import { AddIngredientDialog } from './AddIngredientDialog'
 
@@ -40,6 +40,10 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
   const queryClient = useQueryClient()
   const [addIngredientOpen, setAddIngredientOpen] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  // Inline-edit state for an existing recipe line. Only one line edits at a
+  // time. Cancelling restores the original values without an API call.
+  const [editingLineId, setEditingLineId] = useState<string | null>(null)
+  const [editQuantity, setEditQuantity] = useState<string>('')
   // Track ingredients for create mode
   const [tempIngredients, setTempIngredients] = useState<
     Array<{
@@ -220,6 +224,30 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
       toast({
         title: 'Error',
         description: error.response?.data?.message || 'Failed to delete recipe',
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Inline edit ingredient mutation
+  const updateLineMutation = useMutation({
+    mutationFn: ({ recipeLineId, quantity }: { recipeLineId: string; quantity: number }) =>
+      recipesApi.updateLine(venueId, product!.id, recipeLineId, { quantity }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products-with-recipes'], refetchType: 'active' })
+      queryClient.invalidateQueries({ queryKey: ['recipe', venueId, product?.id] })
+      queryClient.invalidateQueries({ queryKey: ['rawMaterials', venueId] })
+      setEditingLineId(null)
+      setEditQuantity('')
+      toast({
+        title: t('recipes.messages.ingredientUpdated', { defaultValue: 'Ingrediente actualizado' }),
+        variant: 'default',
+      })
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to update ingredient',
         variant: 'destructive',
       })
     },
@@ -492,6 +520,7 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
                           })
                         : ingredients.map(line => {
                             const lineCost = Number(line.costPerServing) * portionYield
+                            const isEditing = editingLineId === line.id
                             return (
                               <div
                                 key={line.id}
@@ -537,21 +566,104 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
                                       </TooltipProvider>
                                     )}
                                   </div>
-                                  <p className="text-xs text-muted-foreground">
-                                    {Number(line.quantity).toFixed(2)} {line.unit} × {Currency(Number(line.rawMaterial.costPerUnit))} ={' '}
-                                    {Currency(lineCost)}
-                                  </p>
+                                  {isEditing ? (
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <Input
+                                        type="number"
+                                        step="0.001"
+                                        min="0.001"
+                                        value={editQuantity}
+                                        onChange={e => setEditQuantity(e.target.value)}
+                                        className="h-8 w-28 text-sm"
+                                        autoFocus
+                                        onKeyDown={e => {
+                                          if (e.key === 'Enter') {
+                                            e.preventDefault()
+                                            const qty = parseFloat(editQuantity)
+                                            if (qty > 0) updateLineMutation.mutate({ recipeLineId: line.id, quantity: qty })
+                                          }
+                                          if (e.key === 'Escape') {
+                                            setEditingLineId(null)
+                                            setEditQuantity('')
+                                          }
+                                        }}
+                                      />
+                                      <span className="text-xs text-muted-foreground">{line.unit}</span>
+                                    </div>
+                                  ) : (
+                                    <p className="text-xs text-muted-foreground">
+                                      {Number(line.quantity).toFixed(2)} {line.unit}
+                                      {line.unit !== line.rawMaterial.unit && (
+                                        <span className="ml-1 text-muted-foreground/70">
+                                          (= {(Number(line.quantity) * (line.unit === 'KILOGRAM' || line.unit === 'LITER' ? 1000 : 1)).toFixed(2)}{' '}
+                                          {line.rawMaterial.unit})
+                                        </span>
+                                      )}
+                                      {' × '}
+                                      {Currency(Number(line.rawMaterial.costPerUnit))}/{line.rawMaterial.unit.toLowerCase()} ={' '}
+                                      {Currency(lineCost)}
+                                    </p>
+                                  )}
                                 </div>
 
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removeIngredientMutation.mutate(line.id)}
-                                  disabled={removeIngredientMutation.isPending}
-                                >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
+                                {isEditing ? (
+                                  <>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        const qty = parseFloat(editQuantity)
+                                        if (qty > 0) updateLineMutation.mutate({ recipeLineId: line.id, quantity: qty })
+                                      }}
+                                      disabled={updateLineMutation.isPending || !editQuantity || parseFloat(editQuantity) <= 0}
+                                      title={tCommon('save', { defaultValue: 'Guardar' })}
+                                    >
+                                      {updateLineMutation.isPending ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <Check className="h-4 w-4 text-green-600" />
+                                      )}
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setEditingLineId(null)
+                                        setEditQuantity('')
+                                      }}
+                                      disabled={updateLineMutation.isPending}
+                                      title={tCommon('cancel', { defaultValue: 'Cancelar' })}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setEditingLineId(line.id)
+                                        setEditQuantity(Number(line.quantity).toString())
+                                      }}
+                                      title={tCommon('edit', { defaultValue: 'Editar' })}
+                                    >
+                                      <Pencil className="h-4 w-4 text-muted-foreground" />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => removeIngredientMutation.mutate(line.id)}
+                                      disabled={removeIngredientMutation.isPending}
+                                    >
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </>
+                                )}
                               </div>
                             )
                           })}

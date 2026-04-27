@@ -25,9 +25,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { rawMaterialsApi, type RawMaterial } from '@/services/inventory.service'
 import { Currency } from '@/utils/currency'
 
@@ -72,6 +72,7 @@ export function RawMaterialDetailDialog({
 }: RawMaterialDetailDialogProps) {
   const { t } = useTranslation('inventory')
   const { venueId, fullBasePath } = useCurrentVenue()
+  const { getShortLabel } = useUnitTranslation()
   const navigate = useNavigate()
 
   // Lazy-fetch the recipes that use this material (for the "Used in" section)
@@ -101,6 +102,7 @@ export function RawMaterialDetailDialog({
   const maximumStock = rawMaterial.maximumStock != null ? num(rawMaterial.maximumStock) : null
   const costPerUnit = num(rawMaterial.costPerUnit)
   const avgCostPerUnit = num(rawMaterial.avgCostPerUnit)
+  const unitLabel = getShortLabel(rawMaterial.unit)
 
   const totalInvested = currentStock * avgCostPerUnit
   const isLow = currentStock <= minimumStock
@@ -153,7 +155,7 @@ export function RawMaterialDetailDialog({
         </DialogHeader>
 
         <ScrollArea className="max-h-[calc(90vh-180px)]">
-          <div className="p-6 space-y-6">
+          <div className="p-6 space-y-8">
             {/* Description */}
             {rawMaterial.description && (
               <p className="text-sm text-muted-foreground italic border-l-2 pl-3 py-1">{rawMaterial.description}</p>
@@ -168,14 +170,14 @@ export function RawMaterialDetailDialog({
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <Stat
                   label="Actual"
-                  value={`${currentStock.toFixed(2)} ${rawMaterial.unit}`}
+                  value={`${currentStock.toFixed(2)} ${unitLabel}`}
                   highlight={isLow ? 'danger' : isBelowReorder ? 'warning' : undefined}
                 />
-                <Stat label="Mínimo" value={`${minimumStock.toFixed(2)} ${rawMaterial.unit}`} />
-                <Stat label="Punto de reorden" value={`${reorderPoint.toFixed(2)} ${rawMaterial.unit}`} />
+                <Stat label="Mínimo" value={`${minimumStock.toFixed(2)} ${unitLabel}`} />
+                <Stat label="Punto de reorden" value={`${reorderPoint.toFixed(2)} ${unitLabel}`} />
                 <Stat
                   label="Máximo"
-                  value={maximumStock != null ? `${maximumStock.toFixed(2)} ${rawMaterial.unit}` : '—'}
+                  value={maximumStock != null ? `${maximumStock.toFixed(2)} ${unitLabel}` : '—'}
                   hint={stockPctOfMax !== null ? `${stockPctOfMax}% del máx.` : undefined}
                 />
               </div>
@@ -187,7 +189,7 @@ export function RawMaterialDetailDialog({
                   minimum={minimumStock}
                   reorder={reorderPoint}
                   maximum={maximumStock}
-                  unit={rawMaterial.unit}
+                  unit={unitLabel}
                 />
               )}
 
@@ -200,15 +202,13 @@ export function RawMaterialDetailDialog({
                     </p>
                     <p className="text-xs text-destructive/80 tabular-nums">
                       {currentStock <= 0
-                        ? `Necesitas reponer al menos ${minimumStock.toFixed(2)} ${rawMaterial.unit} para alcanzar el mínimo.`
-                        : `Faltan ${(minimumStock - currentStock).toFixed(2)} ${rawMaterial.unit} para llegar al mínimo.`}
+                        ? `Necesitas reponer al menos ${minimumStock.toFixed(2)} ${unitLabel} para alcanzar el mínimo.`
+                        : `Faltan ${(minimumStock - currentStock).toFixed(2)} ${unitLabel} para llegar al mínimo.`}
                     </p>
                   </div>
                 </div>
               )}
             </section>
-
-            <Separator />
 
             {/* Cost section */}
             <section>
@@ -217,10 +217,10 @@ export function RawMaterialDetailDialog({
                 Costos
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <Stat label="Costo unitario" value={`${Currency(costPerUnit)} / ${rawMaterial.unit}`} />
+                <Stat label="Costo unitario" value={`${Currency(costPerUnit)} / ${unitLabel}`} />
                 <Stat
                   label="Costo promedio"
-                  value={`${Currency(avgCostPerUnit)} / ${rawMaterial.unit}`}
+                  value={`${Currency(avgCostPerUnit)} / ${unitLabel}`}
                   hint={
                     Math.abs(avgCostPerUnit - costPerUnit) > 0.01
                       ? avgCostPerUnit > costPerUnit
@@ -245,8 +245,6 @@ export function RawMaterialDetailDialog({
               </div>
             </section>
 
-            <Separator />
-
             {/* Perishable section */}
             {rawMaterial.perishable && (
               <>
@@ -267,7 +265,6 @@ export function RawMaterialDetailDialog({
                     )}
                   </div>
                 </section>
-                <Separator />
               </>
             )}
 
@@ -327,8 +324,6 @@ export function RawMaterialDetailDialog({
                 </ul>
               )}
             </section>
-
-            <Separator />
 
             {/* Audit / timestamps */}
             <section>

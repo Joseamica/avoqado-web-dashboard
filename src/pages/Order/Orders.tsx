@@ -168,7 +168,8 @@ export default function Orders() {
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [orderToEdit, setOrderToEdit] = useState<Order | null>(null)
-  const [manualPayOrder, setManualPayOrder] = useState<{ id: string; code?: string } | null>(null)
+  // Manual payment is standalone — no order context — so just track open/closed.
+  const [manualPaymentOpen, setManualPaymentOpen] = useState(false)
   const { can } = useAccess()
   const canCreateManualPayment = can('payment:create-manual')
   const [editValues, setEditValues] = useState<{
@@ -778,38 +779,8 @@ export default function Orders() {
           return <span className="text-sm font-medium">{Currency(value)}</span>
         },
       },
-      // Row actions column (non-superadmin): manual payment, etc.
-      ...(canCreateManualPayment
-        ? [
-            {
-              id: 'row-actions',
-              header: () => <span className="sr-only">Acciones</span>,
-              cell: ({ row }: { row: { original: Order } }) => (
-                <div className="flex items-center justify-end">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" className="h-7 w-7">
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" onClick={e => e.stopPropagation()}>
-                      <DropdownMenuItem
-                        onClick={e => {
-                          e.stopPropagation()
-                          setManualPayOrder({ id: row.original.id, code: row.original.orderNumber ?? undefined })
-                        }}
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Registrar pago manual
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              ),
-              size: 60,
-            },
-          ]
-        : []),
+      // Manual payment is always standalone (external service, no related Avoqado order),
+      // so we expose ONE entry point in the page header — no per-row shortcut.
       // Superadmin actions column
       ...(isSuperAdmin
         ? [
@@ -1681,15 +1652,11 @@ export default function Orders() {
         </SheetContent>
       </Sheet>
 
-      {manualPayOrder && (
-        <ManualPaymentDialog
-          open={!!manualPayOrder}
-          onClose={() => setManualPayOrder(null)}
-          venueId={venueId}
-          orderId={manualPayOrder.id}
-          orderCode={manualPayOrder.code}
-        />
-      )}
+      <ManualPaymentDialog
+        open={manualPaymentOpen}
+        onClose={() => setManualPaymentOpen(false)}
+        venueId={venueId}
+      />
     </div>
   )
 }

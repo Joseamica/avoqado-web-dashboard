@@ -784,6 +784,27 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
                   )}
                 </div>
                 {errors.costPerUnit && <p className="text-xs text-destructive mt-1">{t('validation.required')}</p>}
+                {/* Sanity check for unit confusion: $X/g > $1 almost always means
+                    the user meant $X/kg. Same for ml vs liter. Surfaces the bug
+                    that took us all day to track down (Dátiles $224.20/g). */}
+                {(() => {
+                  const cost = Number(watch('costPerUnit') || 0)
+                  if (cost <= 1) return null
+                  const isPerGram = selectedUnit === 'GRAM'
+                  const isPerMl = selectedUnit === 'MILLILITER'
+                  if (!isPerGram && !isPerMl) return null
+                  const bigUnit = isPerGram ? 'kilogramo' : 'litro'
+                  const bigUnitTotal = (cost * 1000).toLocaleString(undefined, { maximumFractionDigits: 2 })
+                  const smallUnit = isPerGram ? 'gramo' : 'mililitro'
+                  return (
+                    <div className="mt-2 rounded-md border border-amber-300 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 px-3 py-2">
+                      <p className="text-xs text-amber-800 dark:text-amber-300">
+                        <strong>¿Estás seguro?</strong> ${cost.toFixed(2)} por {smallUnit} = ${bigUnitTotal} por {bigUnit}.
+                        Si lo compras por {bigUnit}, divide entre 1000 (ej: ${cost.toFixed(2)}/kg → ${(cost / 1000).toFixed(4)}/g).
+                      </p>
+                    </div>
+                  )
+                })()}
               </div>
             )
           })()}

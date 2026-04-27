@@ -191,6 +191,17 @@ export const recipesApi = {
 
   removeLine: (venueId: string, productId: string, recipeLineId: string) =>
     api.delete(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/recipe/lines/${recipeLineId}`),
+
+  updateLine: (
+    venueId: string,
+    productId: string,
+    recipeLineId: string,
+    data: { quantity?: number; unit?: string; isOptional?: boolean; substituteNotes?: string | null },
+  ) =>
+    api.patch(
+      `/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/recipe/lines/${recipeLineId}`,
+      data,
+    ),
 }
 
 // ===========================================
