@@ -85,6 +85,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'tpv:read', // Can view TPV terminals (but not create/edit/command)
     'customers:read',
     'loyalty:read',
+    'discounts:read',
+    'discounts:apply',
     'commissions:view_own', // Can view their own commissions
   ],
 
@@ -106,6 +108,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'customers:read',
     'loyalty:read',
     'loyalty:redeem', // Can redeem points at POS
+    'discounts:read',
+    'discounts:apply',
     'coupons:read', // Can validate coupons at POS
     'commissions:view_own', // Can view their own commissions
   ],
@@ -176,6 +180,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'discounts:create',
     'discounts:update',
     'discounts:delete',
+    'discounts:apply',
     'coupons:read',
     'coupons:create',
     'coupons:update',
@@ -335,7 +340,7 @@ export const PERMISSION_CATEGORIES = {
   },
   DISCOUNTS: {
     label: 'Discounts',
-    permissions: ['discounts:read', 'discounts:create', 'discounts:update', 'discounts:delete'],
+    permissions: ['discounts:read', 'discounts:create', 'discounts:update', 'discounts:delete', 'discounts:apply'],
   },
   COUPONS: {
     label: 'Coupons',
