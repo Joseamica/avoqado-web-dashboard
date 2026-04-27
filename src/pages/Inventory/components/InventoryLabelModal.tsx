@@ -19,6 +19,7 @@ import { purchaseOrderService, type PurchaseOrder } from '@/services/purchaseOrd
 import { labelService, LABEL_TYPES, type BarcodeFormat } from '@/services/label.service'
 import type { Product, MenuCategory } from '@/types'
 import { CheckCircle2, Download, Loader2, Printer, Search, Star, Trash2, FolderOpen } from 'lucide-react'
+import { includesNormalized } from '@/lib/utils'
 
 interface InventoryLabelModalProps {
   open: boolean
@@ -100,15 +101,14 @@ export function InventoryLabelModal({ open, onClose, venueId }: InventoryLabelMo
   // Product search suggestions
   const suggestions = useMemo(() => {
     if (!productSearch.trim()) return []
-    const term = productSearch.toLowerCase()
     const existingIds = new Set(items.map(i => i.productId))
     return products
       .filter(
         p =>
           !existingIds.has(p.id) &&
-          (p.name.toLowerCase().includes(term) ||
-            p.sku?.toLowerCase().includes(term) ||
-            p.gtin?.toLowerCase().includes(term)),
+          (includesNormalized(p.name ?? '', productSearch) ||
+            includesNormalized(p.sku ?? '', productSearch) ||
+            includesNormalized(p.gtin ?? '', productSearch)),
       )
       .slice(0, 8)
   }, [productSearch, products, items])
@@ -116,8 +116,7 @@ export function InventoryLabelModal({ open, onClose, venueId }: InventoryLabelMo
   // Filtered categories for dialog
   const filteredCategories = useMemo(() => {
     if (!categorySearch.trim()) return categories
-    const term = categorySearch.toLowerCase()
-    return categories.filter(c => c.name.toLowerCase().includes(term))
+    return categories.filter(c => includesNormalized(c.name ?? '', categorySearch))
   }, [categorySearch, categories])
 
   const toggleDetail = (key: keyof typeof details) => {
@@ -161,11 +160,10 @@ export function InventoryLabelModal({ open, onClose, venueId }: InventoryLabelMo
 
   const filteredPurchaseOrders = useMemo(() => {
     if (!poSearch.trim()) return purchaseOrders
-    const term = poSearch.toLowerCase()
     return purchaseOrders.filter(
       po =>
-        po.orderNumber.toLowerCase().includes(term) ||
-        po.supplier?.name?.toLowerCase().includes(term),
+        includesNormalized(po.orderNumber ?? '', poSearch) ||
+        includesNormalized(po.supplier?.name ?? '', poSearch),
     )
   }, [poSearch, purchaseOrders])
 

@@ -33,7 +33,7 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import {
   Table,
   TableBody,
@@ -81,12 +81,11 @@ const TiendasList: React.FC = () => {
   const filteredVenues = useMemo(() => {
     if (!debouncedSearch) return venues
 
-    const search = debouncedSearch.toLowerCase()
     return venues.filter(
       (venue) =>
-        venue.name.toLowerCase().includes(search) ||
-        venue.city?.toLowerCase().includes(search) ||
-        venue.slug.toLowerCase().includes(search)
+        includesNormalized(venue.name ?? '', debouncedSearch) ||
+        includesNormalized(venue.city ?? '', debouncedSearch) ||
+        includesNormalized(venue.slug ?? '', debouncedSearch)
     )
   }, [venues, debouncedSearch])
 

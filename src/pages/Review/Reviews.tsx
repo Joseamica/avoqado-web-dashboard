@@ -28,6 +28,7 @@ import { ArrowLeft, ArrowRight, Settings } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { includesNormalized } from '@/lib/utils'
 
 type SortOption = 'newest' | 'oldest' | 'highestRated' | 'lowestRated' | 'unresponded'
 
@@ -150,9 +151,8 @@ export default function ReviewSummary() {
 
     // Search filter
     if (filters.searchQuery.trim()) {
-      const query = filters.searchQuery.toLowerCase()
       result = result.filter(
-        review => review.comment?.toLowerCase().includes(query) || review.customerName?.toLowerCase().includes(query),
+        review => includesNormalized(review.comment ?? '', filters.searchQuery) || includesNormalized(review.customerName ?? '', filters.searchQuery),
       )
     }
 

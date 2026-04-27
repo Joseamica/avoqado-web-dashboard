@@ -28,6 +28,7 @@ import { useNavigate } from 'react-router-dom'
 import { useToast } from '@/hooks/use-toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import { InventoryLabelModal } from './components/InventoryLabelModal'
+import { includesNormalized } from '@/lib/utils'
 
 // Type for product data
 interface InventoryProduct {
@@ -177,8 +178,8 @@ export default function InventorySummary() {
       products?.filter((product: InventoryProduct) => {
         // 1. Search Filter (debounced)
         const matchesSearch =
-          product.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-          (product.sku?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ?? false)
+          includesNormalized(product.name ?? '', debouncedSearchTerm) ||
+          includesNormalized(product.sku ?? '', debouncedSearchTerm)
 
         // 2. Stock Status Filter (array-based)
         let matchesStockFilter = true

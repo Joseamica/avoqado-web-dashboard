@@ -21,6 +21,7 @@ import { useQuery } from '@tanstack/react-query'
 import { superadminAPI } from '@/services/superadmin.service'
 import { Badge } from '@/components/ui/badge'
 import { VenueStatus } from '@/types'
+import { includesNormalized } from '@/lib/utils'
 
 // Helper function to format notification timestamps (i18n-aware)
 const formatNotificationTime = (t: (key: string, opts?: any) => string, timestamp: string) => {
@@ -104,27 +105,25 @@ const SuperadminHeader: React.FC = () => {
   const searchResults = React.useMemo(() => {
     if (!searchTerm.trim()) return { venues: [], activities: [], alerts: [] }
 
-    const term = searchTerm.toLowerCase()
-
     // Search venues
     const venues = allVenuesData
       .filter(
         venue =>
-          venue.name.toLowerCase().includes(term) ||
-          venue.owner.email.toLowerCase().includes(term) ||
-          venue.organization.name.toLowerCase().includes(term) ||
-          venue.slug.toLowerCase().includes(term),
+          includesNormalized(venue.name ?? '', searchTerm) ||
+          includesNormalized(venue.owner.email ?? '', searchTerm) ||
+          includesNormalized(venue.organization.name ?? '', searchTerm) ||
+          includesNormalized(venue.slug ?? '', searchTerm),
       )
       .slice(0, 5) // Limit to 5 results
 
     // Search recent activities
     const activities = (dashboardData?.recentActivity || [])
-      .filter(activity => activity.description.toLowerCase().includes(term) || activity.venueName?.toLowerCase().includes(term))
+      .filter(activity => includesNormalized(activity.description ?? '', searchTerm) || includesNormalized(activity.venueName ?? '', searchTerm))
       .slice(0, 5)
 
     // Search alerts
     const alerts = (dashboardData?.alerts || [])
-      .filter(alert => alert.title.toLowerCase().includes(term) || alert.message.toLowerCase().includes(term))
+      .filter(alert => includesNormalized(alert.title ?? '', searchTerm) || includesNormalized(alert.message ?? '', searchTerm))
       .slice(0, 5)
 
     return { venues, activities, alerts }

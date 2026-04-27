@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Search, Users, UserCheck, UserX, UserPlus, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { getRoleBadgeColor } from '@/utils/role-permissions'
 import { type StaffRole } from '@/types'
@@ -76,8 +76,7 @@ export const UserSidebar: React.FC<UserSidebarProps> = ({ users, selectedUserId,
     return users.filter(user => {
       if (statusFilter !== 'all' && user.status !== statusFilter) return false
       if (searchTerm) {
-        const term = searchTerm.toLowerCase()
-        return user.name.toLowerCase().includes(term) || user.email.toLowerCase().includes(term)
+        return includesNormalized(user.name ?? '', searchTerm) || includesNormalized(user.email ?? '', searchTerm)
       }
       return true
     })

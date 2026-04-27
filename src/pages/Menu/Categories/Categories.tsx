@@ -20,6 +20,7 @@ import { Sparkles, HelpCircle } from 'lucide-react'
 import { useMenuMakerHeader } from '../MenuMakerLayout'
 import { useCategoryCreationTour } from '@/hooks/useCategoryCreationTour'
 import { TourDiscoveryBanner } from '@/components/onboarding/TourDiscoveryBanner'
+import { includesNormalized } from '@/lib/utils'
 
 export default function Categories() {
   const { t } = useTranslation('menu')
@@ -180,11 +181,9 @@ export default function Categories() {
   const handleSearch = useCallback((searchTerm: string, categories: any[]) => {
     if (!searchTerm) return categories
 
-    const lowerSearchTerm = searchTerm.toLowerCase()
-
     return categories.filter(category => {
-      const nameMatches = category.name.toLowerCase().includes(lowerSearchTerm)
-      const menuMatches = category.menus?.some(menuAssignment => menuAssignment.menu?.name.toLowerCase().includes(lowerSearchTerm)) || false
+      const nameMatches = includesNormalized(category.name ?? '', searchTerm)
+      const menuMatches = category.menus?.some(menuAssignment => includesNormalized(menuAssignment.menu?.name ?? '', searchTerm)) || false
       return nameMatches || menuMatches
     })
   }, [])

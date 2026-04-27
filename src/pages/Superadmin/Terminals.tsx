@@ -17,6 +17,7 @@ import { TerminalDialog } from './components/TerminalDialog'
 import { DateTime } from 'luxon'
 import { useVenueDateTime } from '@/utils/datetime'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { includesNormalized } from '@/lib/utils'
 
 const Terminals: React.FC = () => {
   const { t, i18n } = useTranslation('terminals')
@@ -191,9 +192,9 @@ const Terminals: React.FC = () => {
   }, [])
 
   const filteredTerminals = useMemo(() => terminals.filter(terminal =>
-    (terminal.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
-    (terminal.serialNumber?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
-    (terminal.venue?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
+    includesNormalized(terminal.name ?? '', searchTerm) ||
+    includesNormalized(terminal.serialNumber ?? '', searchTerm) ||
+    includesNormalized(terminal.venue?.name ?? '', searchTerm)
   ), [terminals, searchTerm])
 
   const columns: ColumnDef<Terminal>[] = useMemo(() => [

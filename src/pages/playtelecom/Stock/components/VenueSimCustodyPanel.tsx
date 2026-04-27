@@ -28,6 +28,7 @@ import { CustodyStateBadge } from '../../Organization/StockControl/components/Cu
 import { SimTimelineDrawer } from '../../Organization/StockControl/components/SimTimelineDrawer'
 import { CollectSimDialog, type CollectFrom } from '../../Organization/StockControl/components/CollectSimDialog'
 import { AssignToPromoterDialog } from '../../Organization/StockControl/components/AssignToPromoterDialog'
+import { includesNormalized } from '@/lib/utils'
 import { collectFromPromoter, type SimCustodyState } from '@/services/simCustody.service'
 import type { OrgStockOverviewItem } from '@/services/stockDashboard.service'
 
@@ -139,7 +140,7 @@ export function VenueSimCustodyPanel({ orgId, dateRange }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
+    const q = search.trim()
     return mySims.filter(s => {
       const st = s.custodyState ?? 'ADMIN_HELD'
       if (filter === 'almacen' && st !== 'SUPERVISOR_HELD') return false
@@ -147,7 +148,7 @@ export function VenueSimCustodyPanel({ orgId, dateRange }: Props) {
       if (filter === 'aceptados' && st !== 'PROMOTER_HELD') return false
       if (filter === 'rechazados' && st !== 'PROMOTER_REJECTED') return false
       if (filter === 'vendidos' && s.status !== 'SOLD') return false
-      if (q && !s.serialNumber.toLowerCase().includes(q)) return false
+      if (q && !includesNormalized(s.serialNumber ?? '', q)) return false
       return true
     })
   }, [mySims, filter, search])

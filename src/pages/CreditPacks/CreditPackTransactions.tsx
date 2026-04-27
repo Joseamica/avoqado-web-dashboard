@@ -14,6 +14,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import creditPackService from '@/services/creditPack.service'
 import type { CreditTransaction, CreditTransactionType } from '@/types/creditPack'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { includesNormalized } from '@/lib/utils'
 
 export default function CreditPackTransactionsTab() {
   const { venueId } = useCurrentVenue()
@@ -39,10 +40,9 @@ export default function CreditPackTransactionsTab() {
   const transactions = useMemo(() => {
     let result = transactionsData?.data || []
     if (debouncedSearch) {
-      const q = debouncedSearch.toLowerCase()
       result = result.filter((tx: CreditTransaction) => {
-        const name = [tx.customer.firstName, tx.customer.lastName].filter(Boolean).join(' ').toLowerCase()
-        return name.includes(q) || tx.customer.email?.toLowerCase().includes(q) || tx.customer.phone?.includes(q)
+        const name = [tx.customer.firstName, tx.customer.lastName].filter(Boolean).join(' ')
+        return includesNormalized(name, debouncedSearch) || includesNormalized(tx.customer.email ?? '', debouncedSearch) || (tx.customer.phone ?? '').includes(debouncedSearch)
       })
     }
     return result

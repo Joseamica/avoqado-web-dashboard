@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import type { OrgStockOverview, OrgStockBulkGroup } from '@/services/stockDashboard.service'
 import { CategoryChip } from '../components/CategoryChip'
+import { includesNormalized } from '@/lib/utils'
 
 const PAGE_SIZE = 20
 
@@ -44,11 +45,10 @@ export function OrgCargasTab({ data }: OrgCargasTabProps) {
       if (sucursalFilter !== 'all' && g.registeredFromVenueId !== sucursalFilter) return false
       if (categoriaFilter !== 'all' && g.categoryId !== categoriaFilter) return false
       if (search.trim()) {
-        const q = search.trim().toLowerCase()
         const hit =
-          g.serialNumberFirst.toLowerCase().includes(q) ||
-          g.serialNumberLast.toLowerCase().includes(q) ||
-          g.serialNumbers.some(s => s.toLowerCase().includes(q))
+          includesNormalized(g.serialNumberFirst ?? '', search) ||
+          includesNormalized(g.serialNumberLast ?? '', search) ||
+          g.serialNumbers.some(s => includesNormalized(s ?? '', search))
         if (!hit) return false
       }
       return true

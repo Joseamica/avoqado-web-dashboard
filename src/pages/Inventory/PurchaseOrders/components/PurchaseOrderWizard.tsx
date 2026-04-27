@@ -23,7 +23,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 
 // Validation schema
 const orderItemSchema = z.object({
@@ -436,7 +436,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
     if (!supplierSearchValue) return suppliers?.data || []
     return (
       suppliers?.data?.filter((supplier) =>
-        supplier.name.toLowerCase().includes(supplierSearchValue.toLowerCase())
+        includesNormalized(supplier.name ?? '', supplierSearchValue)
       ) || []
     )
   }, [suppliers, supplierSearchValue])
@@ -1411,7 +1411,7 @@ function MaterialCombobox({ materials, value, onChange }: MaterialComboboxProps)
   const filteredMaterials = useMemo(() => {
     if (!searchValue) return materials
     return materials.filter((m) =>
-      m.name.toLowerCase().includes(searchValue.toLowerCase())
+      includesNormalized(m.name ?? '', searchValue)
     )
   }, [materials, searchValue])
 

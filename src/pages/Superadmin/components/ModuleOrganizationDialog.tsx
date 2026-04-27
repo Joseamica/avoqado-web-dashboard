@@ -15,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import { moduleAPI, type Module, type OrganizationModuleGroup, type VenueModuleInOrg } from '@/services/superadmin-modules.service'
 import {
   enableModuleForOrganization,
@@ -258,11 +258,10 @@ const ModuleOrganizationDialog: React.FC<ModuleOrganizationDialogProps> = ({
     if (!data?.organizations) return []
     if (!searchTerm.trim()) return data.organizations
 
-    const term = searchTerm.toLowerCase()
     return data.organizations
       .map(org => {
-        const orgMatches = org.name.toLowerCase().includes(term) || org.slug?.toLowerCase().includes(term)
-        const matchingVenues = org.venues.filter(v => v.name.toLowerCase().includes(term) || v.slug.toLowerCase().includes(term))
+        const orgMatches = includesNormalized(org.name ?? '', searchTerm) || includesNormalized(org.slug ?? '', searchTerm)
+        const matchingVenues = org.venues.filter(v => includesNormalized(v.name ?? '', searchTerm) || includesNormalized(v.slug ?? '', searchTerm))
 
         // Show org if org name matches or any venue matches
         if (orgMatches) return org

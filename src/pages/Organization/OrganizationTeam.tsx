@@ -39,7 +39,7 @@ import { getRoleBadgeColor } from '@/utils/role-permissions'
 import { useToast } from '@/hooks/use-toast'
 import { StaffRole } from '@/types'
 import { canModifyRole, getModifiableRoles } from '@/lib/permissions/roleHierarchy'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 
 /** Max venue badges visible in the table before showing "+N" */
 const MAX_VISIBLE_VENUES = 2
@@ -314,10 +314,9 @@ const OrganizationTeam: React.FC = () => {
 
   const handleSearch = useCallback((search: string, data: TeamRow[]) => {
     if (!search) return data
-    const q = search.toLowerCase()
     return data.filter(
       r =>
-        r.name.toLowerCase().includes(q) || r.email.toLowerCase().includes(q) || r.venues.some(v => v.venueName.toLowerCase().includes(q)),
+        includesNormalized(r.name ?? '', search) || includesNormalized(r.email ?? '', search) || r.venues.some(v => includesNormalized(v.venueName ?? '', search)),
     )
   }, [])
 

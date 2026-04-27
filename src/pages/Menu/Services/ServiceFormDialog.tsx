@@ -20,6 +20,7 @@ import { createMenuCategory, getMenuCategories, getProduct, updateProduct } from
 import { productWizardApi, type ProductType } from '@/services/inventory.service'
 import { Currency } from '@/utils/currency'
 import { ClassLayoutEditor, type LayoutConfig } from './ClassLayoutEditor'
+import { includesNormalized } from '@/lib/utils'
 
 interface ServiceFormData {
   name: string
@@ -74,7 +75,7 @@ export function ServiceFormDialog({ open, onOpenChange, onSuccess, mode, product
   const [categorySearch, setCategorySearch] = useState('')
   const filteredCategoryItems = useMemo(
     () => categorySearch.trim()
-      ? categoryItems.filter(c => c.label.toLowerCase().includes(categorySearch.toLowerCase()))
+      ? categoryItems.filter(c => includesNormalized(c.label ?? '', categorySearch))
       : categoryItems,
     [categoryItems, categorySearch]
   )

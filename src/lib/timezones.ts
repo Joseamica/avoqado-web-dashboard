@@ -8,6 +8,8 @@
  * https://www.iana.org/time-zones
  */
 
+import { includesNormalized } from '@/lib/utils'
+
 export interface TimezoneOption {
   /** IANA timezone identifier (e.g., "America/Mexico_City") */
   value: string
@@ -612,12 +614,11 @@ export function getTimezoneLabel(value: string): string {
  * @returns Matching timezones
  */
 export function searchTimezones(query: string): TimezoneOption[] {
-  const lowerQuery = query.toLowerCase()
   return TIMEZONES.filter(
     tz =>
-      tz.label.toLowerCase().includes(lowerQuery) ||
-      tz.value.toLowerCase().includes(lowerQuery) ||
-      tz.country.toLowerCase().includes(lowerQuery),
+      includesNormalized(tz.label ?? '', query) ||
+      includesNormalized(tz.value ?? '', query) ||
+      includesNormalized(tz.country ?? '', query),
   )
 }
 

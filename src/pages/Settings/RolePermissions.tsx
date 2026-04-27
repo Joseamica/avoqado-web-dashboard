@@ -21,6 +21,7 @@ import { DASHBOARD_SUPER_CATEGORIES, TPV_SUPER_CATEGORIES } from '@/lib/permissi
 
 import PermissionEditorModal from './components/PermissionEditorModal'
 import PermissionSetEditorModal from './components/PermissionSetEditorModal'
+import { includesNormalized } from '@/lib/utils'
 
 /** Compute a short access summary from permissions list */
 function getAccessSummary(permissions: string[], t: any): string {
@@ -80,8 +81,7 @@ export default function RolePermissions() {
     return modifiableRoles
       .filter(role => {
         if (!filterTerm) return true
-        const label = getRoleDisplayName(role).toLowerCase()
-        return label.includes(filterTerm.toLowerCase())
+        return includesNormalized(getRoleDisplayName(role) ?? '', filterTerm)
       })
       .map(role => {
         const roleData = rolePermissionsData?.data.find(rp => rp.role === role)
@@ -103,7 +103,7 @@ export default function RolePermissions() {
   const permissionSetRows = useMemo(() => {
     const sets = permissionSetsData?.data ?? []
     if (!filterTerm) return sets
-    return sets.filter(s => s.name.toLowerCase().includes(filterTerm.toLowerCase()))
+    return sets.filter(s => includesNormalized(s.name ?? '', filterTerm))
   }, [permissionSetsData, filterTerm])
 
   const tableIsLoading = isLoading || isLoadingPermSets

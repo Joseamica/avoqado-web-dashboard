@@ -22,6 +22,7 @@ import { useCallback, useEffect, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDebounce } from '@/hooks/useDebounce'
 import { FilterPill, CheckboxFilterContent, ColumnCustomizer } from '@/components/filters'
+import { includesNormalized } from '@/lib/utils'
 import { useVenueDateTime } from '@/utils/datetime'
 import { Link } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -336,12 +337,11 @@ export default function Products() {
 
     // Filter by search term
     if (debouncedSearchTerm) {
-      const lowerSearch = debouncedSearchTerm.toLowerCase()
       result = result.filter(product => {
-        const nameMatches = product.name.toLowerCase().includes(lowerSearch)
-        const categoryMatches = product.category?.name.toLowerCase().includes(lowerSearch) || false
+        const nameMatches = includesNormalized(product.name ?? '', debouncedSearchTerm)
+        const categoryMatches = includesNormalized(product.category?.name ?? '', debouncedSearchTerm)
         const modifierMatches =
-          product.modifierGroups?.some(mg => mg.group?.name.toLowerCase().includes(lowerSearch)) || false
+          product.modifierGroups?.some(mg => includesNormalized(mg.group?.name ?? '', debouncedSearchTerm)) || false
         return nameMatches || categoryMatches || modifierMatches
       })
     }

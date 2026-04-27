@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import { moduleAPI, type Module, type CreateModuleData, type UpdateModuleData } from '@/services/superadmin-modules.service'
 import { updateOrganizationModuleConfig } from '@/services/superadmin-organizations.service'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -132,9 +132,9 @@ const ModuleManagement: React.FC = () => {
   const filteredModules = useMemo(() => {
     return modules.filter(module => {
       const matchesSearch =
-        module.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        module.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (module.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
+        includesNormalized(module.name ?? '', searchTerm) ||
+        includesNormalized(module.code ?? '', searchTerm) ||
+        includesNormalized(module.description ?? '', searchTerm)
       return matchesSearch
     })
   }, [modules, searchTerm])

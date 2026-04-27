@@ -51,7 +51,7 @@ import { useCreateSalesGoal, useUpdateSalesGoal } from '@/hooks/useCommissions'
 import { teamService } from '@/services/team.service'
 import { useToast } from '@/hooks/use-toast'
 import type { SalesGoal, SalesGoalPeriod } from '@/types/commission'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 
 const goalSchema = z.object({
 	goal: z.number().min(1, 'La meta debe ser mayor a 0'),
@@ -96,11 +96,10 @@ export default function CreateGoalDialog({
 
 	const filteredStaff = useMemo(() => {
 		if (!staffSearch) return staffList
-		const search = staffSearch.toLowerCase()
 		return staffList.filter(
 			(s) =>
-				`${s.firstName} ${s.lastName}`.toLowerCase().includes(search) ||
-				(s.email && s.email.toLowerCase().includes(search))
+				includesNormalized(`${s.firstName} ${s.lastName}`, staffSearch) ||
+				(s.email != null && includesNormalized(s.email, staffSearch))
 		)
 	}, [staffList, staffSearch])
 

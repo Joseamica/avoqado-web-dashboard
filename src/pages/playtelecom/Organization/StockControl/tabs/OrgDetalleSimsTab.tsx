@@ -16,6 +16,7 @@ import { AssignToPromoterDialog } from '../components/AssignToPromoterDialog'
 import { collectFromPromoter, collectFromSupervisor, type SimCustodyState } from '@/services/simCustody.service'
 import { useAccess } from '@/hooks/use-access'
 import { useAuth } from '@/context/AuthContext'
+import { includesNormalized } from '@/lib/utils'
 
 interface OrgDetalleSimsTabProps {
   data: OrgStockOverview
@@ -73,7 +74,7 @@ export function OrgDetalleSimsTab({ data }: OrgDetalleSimsTabProps) {
       if (statusFilter !== 'all' && item.status !== statusFilter) return false
       if (categoriaFilter !== 'all' && item.categoryId !== categoriaFilter) return false
       if (sucursalFilter !== 'all' && item.registeredFromVenueId !== sucursalFilter) return false
-      if (search.trim() && !item.serialNumber.toLowerCase().includes(search.trim().toLowerCase())) return false
+      if (search.trim() && !includesNormalized(item.serialNumber ?? '', search)) return false
       return true
     })
   }, [data.items, statusFilter, categoriaFilter, sucursalFilter, search])

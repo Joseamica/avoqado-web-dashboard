@@ -13,7 +13,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Check, Loader2, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import type { OrgStockOverviewItem } from '@/services/stockDashboard.service'
 
 interface Props {
@@ -46,9 +46,9 @@ export function SimMultiSelect({ items, categoryId, value, onChange, placeholder
   )
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
+    const q = search.trim()
     if (!q) return assignable
-    return assignable.filter(i => i.serialNumber.toLowerCase().includes(q))
+    return assignable.filter(i => includesNormalized(i.serialNumber ?? '', q))
   }, [assignable, search])
 
   const selectedSet = useMemo(() => new Set(value), [value])

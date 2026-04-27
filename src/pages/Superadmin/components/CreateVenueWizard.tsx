@@ -51,7 +51,7 @@ import {
   HelpCircle,
   Zap,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 
 // ══════════════════════════════════════════════════════════════════════
 // Business type categories (superadmin = hardcoded Spanish)
@@ -332,7 +332,7 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
 
   const filteredOrgs = useMemo(() => {
     if (!orgSearch) return organizations
-    return organizations.filter(o => o.name.toLowerCase().includes(orgSearch.toLowerCase()))
+    return organizations.filter(o => includesNormalized(o.name ?? '', orgSearch))
   }, [organizations, orgSearch])
 
   const selectedBusinessLabel = useMemo(

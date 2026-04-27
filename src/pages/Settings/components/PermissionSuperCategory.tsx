@@ -16,7 +16,7 @@ import { useTranslation } from 'react-i18next'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import { PERMISSION_CATEGORIES, CRITICAL_PERMISSIONS } from '@/lib/permissions/roleHierarchy'
 import type { SuperCategory, AccentColor } from '@/lib/permissions/permissionGroups'
 import PermissionToggle from './PermissionToggle'
@@ -103,7 +103,7 @@ function PermissionCategoryGroup({
   // Filter permissions by search term
   const filteredPermissions = useMemo(() => {
     if (!searchTerm) return category.permissions
-    return category.permissions.filter(p => p.toLowerCase().includes(searchTerm.toLowerCase()))
+    return category.permissions.filter(p => includesNormalized(p ?? '', searchTerm))
   }, [category.permissions, searchTerm])
 
   // Check selection state for this category
@@ -171,7 +171,7 @@ function PermissionCategoryGroup({
             isCritical={isOwnRole && CRITICAL_PERMISSIONS.includes(permission)}
             onChange={enabled => onChange(permission, enabled)}
             disabled={disabled}
-            highlighted={!!searchTerm && permission.toLowerCase().includes(searchTerm.toLowerCase())}
+            highlighted={!!searchTerm && includesNormalized(permission ?? '', searchTerm)}
           />
         ))}
       </div>
@@ -234,7 +234,7 @@ export function PermissionSuperCategory({
   // Filter categories based on search
   const filteredCategories = useMemo(() => {
     if (!searchTerm) return categories
-    return categories.filter(cat => cat.permissions.some(p => p.toLowerCase().includes(searchTerm.toLowerCase())))
+    return categories.filter(cat => cat.permissions.some(p => includesNormalized(p ?? '', searchTerm)))
   }, [categories, searchTerm])
 
   // Auto-expand if search matches

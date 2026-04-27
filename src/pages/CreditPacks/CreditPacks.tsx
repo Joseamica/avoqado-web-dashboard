@@ -36,6 +36,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import creditPackService from '@/services/creditPack.service'
 import type { CreditPack } from '@/types/creditPack'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { includesNormalized } from '@/lib/utils'
 
 import CreditPackFormModal from './CreditPackForm'
 import CreditPackPurchasesTab from './CreditPackPurchases'
@@ -129,8 +130,7 @@ export default function CreditPacks() {
       })
     }
     if (debouncedSearch) {
-      const q = debouncedSearch.toLowerCase()
-      result = result.filter(p => p.name.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q))
+      result = result.filter(p => includesNormalized(p.name ?? '', debouncedSearch) || includesNormalized(p.description ?? '', debouncedSearch))
     }
     return result
   }, [packsData, statusFilter, debouncedSearch])

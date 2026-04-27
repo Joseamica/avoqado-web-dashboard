@@ -42,6 +42,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import creditPackService from '@/services/creditPack.service'
 import type { CreditPackPurchase, CreditItemBalance, CreditPurchaseStatus } from '@/types/creditPack'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { includesNormalized } from '@/lib/utils'
 
 export default function CreditPackPurchasesTab() {
   const { venueId } = useCurrentVenue()
@@ -79,10 +80,9 @@ export default function CreditPackPurchasesTab() {
   const purchases = useMemo(() => {
     let result = purchasesData?.data || []
     if (debouncedSearch) {
-      const q = debouncedSearch.toLowerCase()
       result = result.filter((p: CreditPackPurchase) => {
-        const name = [p.customer.firstName, p.customer.lastName].filter(Boolean).join(' ').toLowerCase()
-        return name.includes(q) || p.customer.email?.toLowerCase().includes(q) || p.customer.phone?.includes(q)
+        const name = [p.customer.firstName, p.customer.lastName].filter(Boolean).join(' ')
+        return includesNormalized(name, debouncedSearch) || includesNormalized(p.customer.email ?? '', debouncedSearch) || (p.customer.phone ?? '').includes(debouncedSearch)
       })
     }
     return result

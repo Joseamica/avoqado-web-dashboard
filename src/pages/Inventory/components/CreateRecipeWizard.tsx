@@ -34,7 +34,7 @@ import { useToast } from '@/hooks/use-toast'
 import { recipesApi, rawMaterialsApi, type RawMaterial, type CreateRecipeDto } from '@/services/inventory.service'
 import api from '@/api'
 import { Currency } from '@/utils/currency'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import { QuickCreateRawMaterialSheet } from './QuickCreateRawMaterialSheet'
 import { ProductWizardDialog } from './ProductWizardDialog'
 
@@ -130,13 +130,12 @@ export function CreateRecipeWizard({ open, onClose }: CreateRecipeWizardProps) {
 
       // Apply search filter
       if (debouncedSearchTerm) {
-        const lowerSearch = debouncedSearchTerm.toLowerCase()
         productsData = productsData.filter(
           p =>
-            p.name.toLowerCase().includes(lowerSearch) ||
-            p.category.name.toLowerCase().includes(lowerSearch) ||
-            (p.sku && p.sku.toLowerCase().includes(lowerSearch)) ||
-            (p.gtin && p.gtin.toLowerCase().includes(lowerSearch)),
+            includesNormalized(p.name ?? '', debouncedSearchTerm) ||
+            includesNormalized(p.category.name ?? '', debouncedSearchTerm) ||
+            (p.sku != null && includesNormalized(p.sku, debouncedSearchTerm)) ||
+            (p.gtin != null && includesNormalized(p.gtin, debouncedSearchTerm)),
         )
       }
 
@@ -207,9 +206,8 @@ export function CreateRecipeWizard({ open, onClose }: CreateRecipeWizardProps) {
   // Map raw materials to combobox items for ingredient search
   const ingredientComboboxItems = useMemo<SearchComboboxItem[]>(() => {
     if (!rawMaterialsData) return []
-    const lowerSearch = ingredientSearchTerm.toLowerCase()
     return rawMaterialsData
-      .filter(rm => !ingredientSearchTerm || rm.name.toLowerCase().includes(lowerSearch))
+      .filter(rm => !ingredientSearchTerm || includesNormalized(rm.name ?? '', ingredientSearchTerm))
       .map(rm => {
         const isAdded = ingredients.some(ing => ing.rawMaterialId === rm.id)
         return {

@@ -1,0 +1,600 @@
+import { useTranslation } from 'react-i18next'
+import {
+  AlertCircle,
+  ChefHat,
+  Clock,
+  DollarSign,
+  Edit,
+  Hash,
+  History,
+  Layers,
+  Lightbulb,
+  Package,
+  Percent,
+  Settings,
+  Sparkles,
+  Tag,
+  Timer,
+  Utensils,
+} from 'lucide-react'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
+
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Currency } from '@/utils/currency'
+
+interface RecipeDetailDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  product: {
+    id: string
+    name: string
+    price: number
+    active?: boolean
+    type?: string
+    trackInventory?: boolean
+    inventoryMethod?: 'QUANTITY' | 'RECIPE' | null
+    category: { id: string; name: string }
+    recipe?: {
+      id: string
+      portionYield: number
+      totalCost: number
+      prepTime?: number
+      cookTime?: number
+      notes?: string
+      createdAt: string
+      updatedAt: string
+      lines: Array<{
+        id: string
+        rawMaterialId: string
+        rawMaterial: {
+          id: string
+          name: string
+          sku: string
+          unit: string
+          currentStock: number
+          minimumStock: number
+          avgCostPerUnit: number
+          active: boolean
+        }
+        quantity: number
+        unit: string
+        costPerServing: number
+        displayOrder: number
+        isOptional: boolean
+        substituteNotes?: string
+        isVariable?: boolean
+        linkedModifierGroup?: { id: string; name: string } | null
+      }>
+    }
+  } | null
+  onEdit?: () => void
+}
+
+function fmtDate(iso?: string) {
+  if (!iso) return '—'
+  try {
+    return format(new Date(iso), "d 'de' MMM 'de' yyyy, HH:mm", { locale: es })
+  } catch {
+    return iso
+  }
+}
+
+function fmtRelative(iso?: string) {
+  if (!iso) return null
+  const diff = Date.now() - new Date(iso).getTime()
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  if (days === 0) return 'hoy'
+  if (days === 1) return 'hace 1 día'
+  if (days < 30) return `hace ${days} días`
+  if (days < 365) return `hace ${Math.floor(days / 30)} meses`
+  return `hace ${Math.floor(days / 365)} años`
+}
+
+export function RecipeDetailDialog({ open, onOpenChange, product, onEdit }: RecipeDetailDialogProps) {
+  const { t } = useTranslation('inventory')
+
+  if (!product) return null
+
+  const recipe = product.recipe
+  const hasRecipe = !!recipe && recipe.lines.length > 0
+
+  const totalCost = recipe?.totalCost ?? 0
+  const portionYield = recipe?.portionYield ?? 1
+  const costPerPortion = totalCost / Math.max(1, portionYield)
+  const margin = product.price > 0 ? ((product.price - costPerPortion) / product.price) * 100 : 0
+  const totalTime = (recipe?.prepTime ?? 0) + (recipe?.cookTime ?? 0)
+
+  // Detect missing or low-stock ingredients (the audit case the user mentioned).
+  // Prisma Decimals deserialize as strings — `"203" <= "40"` is true via lexicographic
+  // comparison, so coerce to Number before comparing.
+  const missingLines = recipe?.lines.filter(l => !l.rawMaterial?.active) ?? []
+  const lowStockLines =
+    recipe?.lines.filter(
+      l => l.rawMaterial?.active && Number(l.rawMaterial.currentStock) <= Number(l.rawMaterial.minimumStock),
+    ) ?? []
+
+  // Per-ingredient yield: how many portions of THIS recipe each ingredient can support today.
+  // The minimum (excluding optional/variable lines) determines the production ceiling.
+  const yieldsByLineId = new Map<string, number>()
+  let bottleneckLineId: string | null = null
+  let outOfStockLineIds = new Set<string>()
+  let maxProducible = 0
+
+  if (hasRecipe) {
+    const evaluated = recipe.lines
+      .filter(l => !l.isOptional && !l.isVariable)
+      .map(l => {
+        const stock = Number(l.rawMaterial?.currentStock ?? 0)
+        const needed = Number(l.quantity ?? 0)
+        const portions = needed > 0 ? Math.floor(stock / needed) : Number.POSITIVE_INFINITY
+        if (stock === 0 && needed > 0) outOfStockLineIds.add(l.id)
+        yieldsByLineId.set(l.id, portions)
+        return { id: l.id, portions }
+      })
+    if (evaluated.length > 0) {
+      const min = Math.min(...evaluated.map(e => e.portions))
+      maxProducible = Number.isFinite(min) ? min : 0
+      bottleneckLineId = evaluated.find(e => e.portions === min)?.id ?? null
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] p-0 gap-0 overflow-hidden">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="text-xl flex items-center gap-2 flex-wrap">
+                <ChefHat className="h-5 w-5 shrink-0 text-muted-foreground" />
+                <span className="truncate">{product.name}</span>
+                {!product.active && (
+                  <Badge variant="secondary" className="ml-1">
+                    Inactivo
+                  </Badge>
+                )}
+                {!hasRecipe && (
+                  <Badge variant="outline" className="ml-1 text-orange-600 border-orange-300">
+                    Sin receta
+                  </Badge>
+                )}
+              </DialogTitle>
+              <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
+                <span className="flex items-center gap-1">
+                  <Tag className="h-3 w-3" />
+                  {product.category.name}
+                </span>
+                <span className="flex items-center gap-1">
+                  <DollarSign className="h-3 w-3" />
+                  Precio venta: {Currency(product.price)}
+                </span>
+                {product.inventoryMethod && (
+                  <span className="flex items-center gap-1">
+                    <Package className="h-3 w-3" />
+                    Inventario: {product.inventoryMethod === 'RECIPE' ? 'por receta' : 'por cantidad'}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <ScrollArea className="max-h-[calc(90vh-180px)]">
+          <div className="p-6 space-y-6">
+            {!hasRecipe ? (
+              <div className="flex flex-col items-center justify-center text-center py-8 gap-3">
+                <ChefHat className="h-12 w-12 text-muted-foreground/40" />
+                <div>
+                  <h3 className="font-medium">Este producto no tiene receta configurada</h3>
+                  <p className="text-sm text-muted-foreground mt-1 max-w-md">
+                    Agrega una receta para rastrear costos por porción, descontar inventario automáticamente y obtener
+                    métricas de margen.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Production capacity banner — the headline answer to "can I sell this right now?" */}
+                <section
+                  className={`rounded-md border p-4 flex items-center gap-4 ${
+                    maxProducible > 0
+                      ? 'border-green-300 dark:border-green-900/50 bg-green-50/50 dark:bg-green-950/20'
+                      : 'border-destructive/40 bg-destructive/5'
+                  }`}
+                >
+                  {maxProducible > 0 ? (
+                    <Sparkles className="h-7 w-7 text-green-600 dark:text-green-400 shrink-0" />
+                  ) : (
+                    <AlertCircle className="h-7 w-7 text-destructive shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold">
+                      {maxProducible > 0
+                        ? `Puedes producir ${maxProducible} ${maxProducible === 1 ? 'porción' : 'porciones'} con el inventario actual`
+                        : 'No se puede producir esta receta — falta inventario'}
+                    </p>
+                    {bottleneckLineId && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Limitado por:{' '}
+                        <strong>{recipe.lines.find(l => l.id === bottleneckLineId)?.rawMaterial?.name}</strong>
+                        {outOfStockLineIds.has(bottleneckLineId) && ' (sin stock)'}
+                      </p>
+                    )}
+                  </div>
+                </section>
+
+                {/* Out-of-stock ingredients — the SPECIFIC audit case (Hazelnut treat / Dátiles) */}
+                {outOfStockLineIds.size > 0 && (
+                  <section className="rounded-md border border-destructive/40 bg-destructive/5 p-3">
+                    <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 text-destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      Ingredientes sin stock ({outOfStockLineIds.size})
+                    </h3>
+                    <p className="text-xs text-destructive">
+                      Estos ingredientes están en cero y bloquean toda la receta:{' '}
+                      <strong>
+                        {recipe.lines.filter(l => outOfStockLineIds.has(l.id)).map(l => l.rawMaterial?.name).join(', ')}
+                      </strong>
+                    </p>
+                  </section>
+                )}
+
+                {/* Audit alerts (inactive / low stock — non-blocking warnings) */}
+                {(missingLines.length > 0 || lowStockLines.length > 0) && (
+                  <section className="rounded-md border border-orange-300 dark:border-orange-900/50 bg-orange-50/50 dark:bg-orange-950/20 p-3">
+                    <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 text-orange-800 dark:text-orange-300">
+                      <AlertCircle className="h-4 w-4" />
+                      Atención
+                    </h3>
+                    {missingLines.length > 0 && (
+                      <p className="text-xs text-orange-800 dark:text-orange-300">
+                        {missingLines.length} ingrediente{missingLines.length > 1 ? 's' : ''} de esta receta{' '}
+                        {missingLines.length > 1 ? 'están' : 'está'} marcado{missingLines.length > 1 ? 's' : ''} como
+                        inactivo: <strong>{missingLines.map(l => l.rawMaterial?.name).join(', ')}</strong>
+                      </p>
+                    )}
+                    {lowStockLines.length > 0 && (
+                      <p className="text-xs text-orange-800 dark:text-orange-300 mt-1">
+                        {lowStockLines.length} ingrediente{lowStockLines.length > 1 ? 's' : ''} con stock bajo:{' '}
+                        <strong>{lowStockLines.map(l => l.rawMaterial?.name).join(', ')}</strong>
+                      </p>
+                    )}
+                  </section>
+                )}
+
+                {/* KPI strip */}
+                <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <Stat
+                    label="Costo total"
+                    value={Currency(totalCost)}
+                    hint={`${recipe.lines.length} ingrediente${recipe.lines.length === 1 ? '' : 's'}`}
+                    hintIcon={<Layers className="h-3 w-3" />}
+                  />
+                  <Stat
+                    label="Porciones"
+                    value={portionYield.toString()}
+                    hint={portionYield === 1 ? 'una porción' : `${portionYield} porciones`}
+                    hintIcon={<Utensils className="h-3 w-3" />}
+                  />
+                  <Stat
+                    label="Costo por porción"
+                    value={Currency(costPerPortion)}
+                    hint={
+                      product.price > 0
+                        ? `${(((product.price - costPerPortion) / product.price) * 100).toFixed(1)}% de margen`
+                        : 'sin precio de venta'
+                    }
+                    hintIcon={<Percent className="h-3 w-3" />}
+                    highlight={margin < 30 && product.price > 0 ? 'warning' : undefined}
+                  />
+                  <Stat
+                    label="Tiempo total"
+                    value={totalTime > 0 ? `${totalTime} min` : '—'}
+                    hint={
+                      recipe.prepTime || recipe.cookTime
+                        ? `prep ${recipe.prepTime ?? 0}m + coc ${recipe.cookTime ?? 0}m`
+                        : undefined
+                    }
+                    hintIcon={<Timer className="h-3 w-3" />}
+                  />
+                </section>
+
+                <Separator />
+
+                {/* Ingredients table */}
+                <section>
+                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <Layers className="h-4 w-4" />
+                    Ingredientes
+                  </h3>
+                  <div className="rounded-md border overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/40 text-xs">
+                        <tr>
+                          <th className="text-left px-3 py-2 font-medium">Ingrediente</th>
+                          <th className="text-right px-3 py-2 font-medium">Cantidad</th>
+                          <th className="text-right px-3 py-2 font-medium">Aporta</th>
+                          <th className="text-right px-3 py-2 font-medium">Costo / porción</th>
+                          <th className="text-center px-3 py-2 font-medium">Tipo</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {recipe.lines
+                          .slice()
+                          .sort((a, b) => a.displayOrder - b.displayOrder)
+                          .map(line => {
+                            const rm = line.rawMaterial
+                            const rmCurrent = rm ? Number(rm.currentStock) : 0
+                            const rmMin = rm ? Number(rm.minimumStock) : 0
+                            const stockOk = rm?.active && rmCurrent > rmMin
+                            const stockLow = rm?.active && rmCurrent <= rmMin
+                            const stockMissing = !rm?.active
+                            const isOutOfStock = outOfStockLineIds.has(line.id)
+                            const isBottleneck = bottleneckLineId === line.id && !line.isOptional && !line.isVariable
+                            const portions = yieldsByLineId.get(line.id)
+                            const rowClass = isOutOfStock
+                              ? 'bg-destructive/5'
+                              : isBottleneck
+                                ? 'bg-yellow-50/40 dark:bg-yellow-950/10'
+                                : 'hover:bg-muted/20'
+                            return (
+                              <tr key={line.id} className={rowClass}>
+                                <td className="px-3 py-2.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className={stockMissing ? 'text-muted-foreground line-through' : ''}>
+                                      {rm?.name ?? 'Ingrediente eliminado'}
+                                    </span>
+                                    {stockMissing && (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger>
+                                            <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+                                          </TooltipTrigger>
+                                          <TooltipContent>Ingrediente inactivo o eliminado</TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    )}
+                                    {stockLow && (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger>
+                                            <AlertCircle className="h-3.5 w-3.5 text-orange-500" />
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            Stock bajo ({Number(rm.currentStock).toFixed(2)} {rm.unit} / mín {Number(rm.minimumStock).toFixed(2)})
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    )}
+                                  </div>
+                                  {rm && (
+                                    <div className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5">
+                                      <span className="flex items-center gap-1">
+                                        <Hash className="h-2.5 w-2.5" />
+                                        {rm.sku}
+                                      </span>
+                                      {!stockMissing && (
+                                        <span
+                                          className={
+                                            stockLow ? 'text-orange-600' : stockOk ? 'text-muted-foreground' : ''
+                                          }
+                                        >
+                                          en stock: {Number(rm.currentStock).toFixed(2)} {rm.unit}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="px-3 py-2.5 text-right tabular-nums">
+                                  {Number(line.quantity).toFixed(2)} {line.unit}
+                                </td>
+                                <td className="px-3 py-2.5 text-right tabular-nums">
+                                  {line.isOptional || line.isVariable ? (
+                                    <span className="text-muted-foreground">—</span>
+                                  ) : portions === undefined ? (
+                                    <span className="text-muted-foreground">—</span>
+                                  ) : !Number.isFinite(portions) ? (
+                                    <span className="text-muted-foreground">∞</span>
+                                  ) : (
+                                    <div className="flex items-center justify-end gap-1.5">
+                                      <span
+                                        className={
+                                          isOutOfStock
+                                            ? 'text-destructive font-semibold'
+                                            : isBottleneck
+                                              ? 'text-yellow-700 dark:text-yellow-400 font-semibold'
+                                              : ''
+                                        }
+                                      >
+                                        {portions}
+                                      </span>
+                                      {isBottleneck && portions > 0 && (
+                                        <Badge variant="outline" className="text-[9px] py-0 px-1 border-yellow-400 text-yellow-700 dark:text-yellow-400">
+                                          mín
+                                        </Badge>
+                                      )}
+                                      {isOutOfStock && (
+                                        <Badge variant="destructive" className="text-[9px] py-0 px-1">
+                                          0
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="px-3 py-2.5 text-right tabular-nums">{Currency(line.costPerServing)}</td>
+                                <td className="px-3 py-2.5 text-center">
+                                  <div className="flex flex-col items-center gap-1">
+                                    {line.isOptional && (
+                                      <Badge variant="outline" className="text-[10px] py-0">
+                                        Opcional
+                                      </Badge>
+                                    )}
+                                    {line.isVariable && (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger>
+                                            <Badge
+                                              variant="outline"
+                                              className="text-[10px] py-0 gap-1 border-blue-300 text-blue-700"
+                                            >
+                                              <Sparkles className="h-2.5 w-2.5" />
+                                              Variable
+                                            </Badge>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            {line.linkedModifierGroup
+                                              ? `Vinculado a grupo: ${line.linkedModifierGroup.name}`
+                                              : 'Ingrediente variable'}
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    )}
+                                    {!line.isOptional && !line.isVariable && (
+                                      <span className="text-[10px] text-muted-foreground">—</span>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                      </tbody>
+                      <tfoot className="bg-muted/40 text-sm font-medium">
+                        <tr>
+                          <td className="px-3 py-2" colSpan={3}>
+                            Total
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">{Currency(totalCost)}</td>
+                          <td />
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+
+                  {/* Substitute notes per line */}
+                  {recipe.lines.some(l => l.substituteNotes) && (
+                    <div className="mt-3 space-y-1.5">
+                      <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                        <Lightbulb className="h-3 w-3" />
+                        Notas de sustitución
+                      </p>
+                      {recipe.lines
+                        .filter(l => l.substituteNotes)
+                        .map(l => (
+                          <p key={l.id} className="text-xs text-muted-foreground italic pl-4">
+                            <span className="font-medium not-italic">{l.rawMaterial?.name}:</span> {l.substituteNotes}
+                          </p>
+                        ))}
+                    </div>
+                  )}
+                </section>
+
+                {/* Notes */}
+                {recipe.notes && (
+                  <>
+                    <Separator />
+                    <section>
+                      <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                        <Lightbulb className="h-4 w-4" />
+                        Notas de preparación
+                      </h3>
+                      <p className="text-sm whitespace-pre-wrap text-muted-foreground border-l-2 pl-3 py-1">
+                        {recipe.notes}
+                      </p>
+                    </section>
+                  </>
+                )}
+
+                <Separator />
+
+                {/* Audit timestamps */}
+                <section>
+                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <History className="h-4 w-4" />
+                    Historial
+                  </h3>
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                    <KV label="Receta creada" value={fmtDate(recipe.createdAt)} hint={fmtRelative(recipe.createdAt)} />
+                    <KV
+                      label="Última actualización"
+                      value={fmtDate(recipe.updatedAt)}
+                      hint={fmtRelative(recipe.updatedAt)}
+                    />
+                  </dl>
+                </section>
+              </>
+            )}
+          </div>
+        </ScrollArea>
+
+        {/* Footer actions */}
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t bg-muted/20">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+            Cerrar
+          </Button>
+          {onEdit && (
+            <Button
+              size="sm"
+              onClick={() => {
+                onOpenChange(false)
+                onEdit()
+              }}
+            >
+              <Edit className="h-4 w-4 mr-1.5" />
+              {hasRecipe ? 'Editar receta' : 'Crear receta'}
+            </Button>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function Stat({
+  label,
+  value,
+  hint,
+  hintIcon,
+  highlight,
+}: {
+  label: string
+  value: React.ReactNode
+  hint?: string
+  hintIcon?: React.ReactNode
+  highlight?: 'danger' | 'warning'
+}) {
+  const valueClass =
+    highlight === 'danger'
+      ? 'text-destructive font-semibold'
+      : highlight === 'warning'
+        ? 'text-orange-600 dark:text-orange-400 font-semibold'
+        : 'font-semibold'
+  return (
+    <div className="rounded-md border bg-muted/20 px-3 py-2.5">
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className={`text-sm mt-0.5 ${valueClass}`}>{value}</div>
+      {hint && (
+        <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
+          {hintIcon}
+          <span>{hint}</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function KV({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string | null }) {
+  return (
+    <div>
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="text-sm">
+        {value}
+        {hint && <span className="text-xs text-muted-foreground ml-1.5">({hint})</span>}
+      </dd>
+    </div>
+  )
+}

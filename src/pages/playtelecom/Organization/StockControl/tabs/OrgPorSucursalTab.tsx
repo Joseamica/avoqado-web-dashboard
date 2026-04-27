@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { OrgStockOverview, OrgStockSucursalAggregate } from '@/services/stockDashboard.service'
 import { Sparkline } from '../components/Sparkline'
+import { includesNormalized } from '@/lib/utils'
 
 interface OrgPorSucursalTabProps {
   data: OrgStockOverview
@@ -29,8 +30,7 @@ export function OrgPorSucursalTab({ data }: OrgPorSucursalTabProps) {
   const filtered = useMemo(() => {
     let result = [...data.aggregatesBySucursal]
     if (search.trim()) {
-      const q = search.trim().toLowerCase()
-      result = result.filter(a => a.venueName.toLowerCase().includes(q))
+      result = result.filter(a => includesNormalized(a.venueName ?? '', search))
     }
     result.sort((a, b) => {
       if (sortBy === 'lastActivity') return (b.lastActivity ?? '').localeCompare(a.lastActivity ?? '')

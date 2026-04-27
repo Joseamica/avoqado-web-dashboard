@@ -17,6 +17,7 @@ import {
   deactivatePartnerKey,
   type PartnerAPIKey,
 } from '@/services/superadmin-partner-keys.service'
+import { includesNormalized } from '@/lib/utils'
 
 // ─── Main Page ──────────────────────────────────────────────
 const PartnerKeys: React.FC = () => {
@@ -78,8 +79,8 @@ const PartnerKeys: React.FC = () => {
     return keys.filter((k) => {
       const matchesSearch =
         !searchTerm ||
-        k.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        k.organization.name.toLowerCase().includes(searchTerm.toLowerCase())
+        includesNormalized(k.name ?? '', searchTerm) ||
+        includesNormalized(k.organization.name ?? '', searchTerm)
       const matchesOrg = orgFilter === 'all' || k.organizationId === orgFilter
       return matchesSearch && matchesOrg
     })

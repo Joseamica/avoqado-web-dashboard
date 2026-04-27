@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next'
 import { ProviderCostStructureDialog } from './components/ProviderCostStructureDialog'
 import { useToast } from '@/hooks/use-toast'
 import { useVenueDateTime } from '@/utils/datetime'
+import { includesNormalized } from '@/lib/utils'
 
 const CostStructures: React.FC = () => {
   const { t } = useTranslation('superadmin')
@@ -160,12 +161,11 @@ const CostStructures: React.FC = () => {
 
       // Search filter
       if (searchTerm) {
-        const searchLower = searchTerm.toLowerCase()
         return (
-          cs.merchantAccount?.provider?.name?.toLowerCase().includes(searchLower) ||
-          cs.merchantAccount?.alias?.toLowerCase().includes(searchLower) ||
-          cs.merchantAccount?.displayName?.toLowerCase().includes(searchLower) ||
-          cs.proposalReference?.toLowerCase().includes(searchLower)
+          includesNormalized(cs.merchantAccount?.provider?.name ?? '', searchTerm) ||
+          includesNormalized(cs.merchantAccount?.alias ?? '', searchTerm) ||
+          includesNormalized(cs.merchantAccount?.displayName ?? '', searchTerm) ||
+          includesNormalized(cs.proposalReference ?? '', searchTerm)
         )
       }
 

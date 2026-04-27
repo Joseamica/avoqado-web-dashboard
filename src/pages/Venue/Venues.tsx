@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { VenueStatus } from '@/types'
+import { includesNormalized } from '@/lib/utils'
 
 /**
  * Get badge variant and label for venue status
@@ -48,9 +49,9 @@ const Venues = () => {
   // Filter venues based on search
   const filteredVenues = allVenues.filter(venue => {
     return (
-      venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (venue.address && venue.address.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      venue.id.toLowerCase().includes(searchTerm.toLowerCase())
+      includesNormalized(venue.name ?? '', searchTerm) ||
+      (venue.address != null && includesNormalized(venue.address, searchTerm)) ||
+      includesNormalized(venue.id ?? '', searchTerm)
     )
   })
 

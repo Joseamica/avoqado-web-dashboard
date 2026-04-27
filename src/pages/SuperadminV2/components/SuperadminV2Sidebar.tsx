@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { NavLink } from 'react-router-dom'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import { Shield, Search, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
@@ -23,14 +23,13 @@ const SuperadminV2Sidebar: React.FC<SuperadminV2SidebarProps> = ({ onOpenCommand
   const filteredSections = useMemo(() => {
     if (!searchTerm.trim()) return sections
 
-    const term = searchTerm.toLowerCase()
     return sections
       .map(section => ({
         ...section,
         items: section.items.filter(
           item =>
-            item.name.toLowerCase().includes(term) ||
-            item.keywords.some(kw => kw.includes(term)),
+            includesNormalized(item.name ?? '', searchTerm) ||
+            item.keywords.some(kw => includesNormalized(kw ?? '', searchTerm)),
         ),
       }))
       .filter(section => section.items.length > 0)

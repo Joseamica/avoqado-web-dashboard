@@ -43,6 +43,7 @@ import { AdjustStockDialog } from './components/AdjustStockDialog'
 import { StockMovementsDialog } from './components/StockMovementsDialog'
 import { RecipeUsageDialog } from './components/RecipeUsageDialog'
 import { RecipeDialog } from './components/RecipeDialog'
+import { RawMaterialDetailDialog } from './components/RawMaterialDetailDialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -81,6 +82,7 @@ export default function RawMaterials() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [recipeUsageDialogOpen, setRecipeUsageDialogOpen] = useState(false)
   const [recipeEditDialogOpen, setRecipeEditDialogOpen] = useState(false)
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false)
   const [selectedMaterial, setSelectedMaterial] = useState<RawMaterial | null>(null)
   const [selectedProductForRecipe, setSelectedProductForRecipe] = useState<{ id: string; name: string; price: number } | null>(null)
 
@@ -1132,6 +1134,10 @@ export default function RawMaterials() {
         showColumnCustomizer={false} // Using our custom ColumnCustomizer
         pagination={pagination}
         setPagination={setPagination}
+        onRowClick={row => {
+          setSelectedMaterial(row)
+          setDetailDialogOpen(true)
+        }}
       />
 
       {/* Dialogs */}
@@ -1167,6 +1173,29 @@ export default function RawMaterials() {
       {selectedProductForRecipe && (
         <RecipeDialog open={recipeEditDialogOpen} onOpenChange={setRecipeEditDialogOpen} mode="edit" product={selectedProductForRecipe} />
       )}
+
+      {/* Detail Dialog — opens on row click, audit-friendly extended info */}
+      <RawMaterialDetailDialog
+        open={detailDialogOpen}
+        onOpenChange={setDetailDialogOpen}
+        rawMaterial={selectedMaterial}
+        onEdit={material => {
+          setSelectedMaterial(material)
+          setEditDialogOpen(true)
+        }}
+        onAdjustStock={material => {
+          setSelectedMaterial(material)
+          setAdjustStockDialogOpen(true)
+        }}
+        onViewMovements={material => {
+          setSelectedMaterial(material)
+          setMovementsDialogOpen(true)
+        }}
+        onViewRecipes={material => {
+          setSelectedMaterial(material)
+          setRecipeUsageDialogOpen(true)
+        }}
+      />
     </div>
   )
 }

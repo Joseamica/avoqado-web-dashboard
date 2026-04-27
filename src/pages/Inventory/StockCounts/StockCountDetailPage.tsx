@@ -24,6 +24,7 @@ import {
   getStockCountTypeLabel,
   stockCountService,
 } from '@/services/stockCount.service'
+import { includesNormalized } from '@/lib/utils'
 
 /**
  * Stock Count Detail — READ-ONLY.
@@ -47,12 +48,11 @@ export default function StockCountDetailPage() {
   const filteredItems = useMemo(() => {
     if (!count) return []
     if (!search) return count.items
-    const term = search.toLowerCase()
     return count.items.filter(
       item =>
-        item.productName.toLowerCase().includes(term) ||
-        (item.sku ?? '').toLowerCase().includes(term) ||
-        (item.gtin ?? '').toLowerCase().includes(term),
+        includesNormalized(item.productName ?? '', search) ||
+        includesNormalized(item.sku ?? '', search) ||
+        includesNormalized(item.gtin ?? '', search),
     )
   }, [count, search])
 

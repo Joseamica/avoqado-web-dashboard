@@ -22,7 +22,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import {
   getOrganizationsList,
   getOrganizationById,
@@ -173,8 +173,8 @@ const TrainingManagement: React.FC = () => {
   const filteredTrainings = useMemo(() => {
     return trainings.filter(t => {
       const matchesSearch =
-        t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.description.toLowerCase().includes(searchTerm.toLowerCase())
+        includesNormalized(t.title ?? '', searchTerm) ||
+        includesNormalized(t.description ?? '', searchTerm)
       const matchesStatus = statusFilter === 'ALL' || t.status === statusFilter
       return matchesSearch && matchesStatus
     })

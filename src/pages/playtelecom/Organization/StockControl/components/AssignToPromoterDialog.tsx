@@ -14,6 +14,7 @@ import { SearchCombobox, type SearchComboboxItem } from '@/components/search-com
 import { toast } from '@/hooks/use-toast'
 import { useOrgPromoters } from '@/hooks/use-org-staff-by-role'
 import { assignSimsToPromoter, type BulkResponse } from '@/services/simCustody.service'
+import { includesNormalized } from '@/lib/utils'
 
 interface Props {
   open: boolean
@@ -35,11 +36,11 @@ export function AssignToPromoterDialog({ open, onOpenChange, orgId, serialNumber
   // filtering by name/email so the list stays snappy for ~30 promoters.
   const items = useMemo<SearchComboboxItem[]>(() => {
     const all = promoters.data ?? []
-    const term = search.trim().toLowerCase()
+    const term = search.trim()
     const isInternalEmail = (email: string) => /@internal\.avoqado\.io$/i.test(email)
     const filtered = term
       ? all.filter(
-          p => p.fullName.toLowerCase().includes(term) || (!isInternalEmail(p.email) && p.email.toLowerCase().includes(term)),
+          p => includesNormalized(p.fullName ?? '', term) || (!isInternalEmail(p.email) && includesNormalized(p.email ?? '', term)),
         )
       : all
     return filtered.map(p => ({

@@ -68,7 +68,7 @@ import { useNavigate } from 'react-router-dom'
 import VenueModuleManagementDialog from './components/VenueModuleManagementDialog'
 import BulkVenueCreationDialog from './components/BulkVenueCreationDialog'
 import CreateVenueWizard from './components/CreateVenueWizard'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 
 // ============================================================================
 // MODERN UI COMPONENTS (2025/2026 Design System)
@@ -333,9 +333,9 @@ const VenueManagement: React.FC = () => {
   const filteredVenues = useMemo(() => {
     return venues.filter(venue => {
       const matchesSearch =
-        venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        venue.owner.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        venue.organization.name.toLowerCase().includes(searchTerm.toLowerCase())
+        includesNormalized(venue.name ?? '', searchTerm) ||
+        includesNormalized(venue.owner.email ?? '', searchTerm) ||
+        includesNormalized(venue.organization.name ?? '', searchTerm)
       const matchesStatus = statusFilter === 'all' || venue.status === statusFilter
       const matchesOrg = orgFilter === 'all' || venue.organizationId === orgFilter
       return matchesSearch && matchesStatus && matchesOrg

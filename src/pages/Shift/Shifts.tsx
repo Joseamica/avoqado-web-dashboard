@@ -35,6 +35,7 @@ import { AddToAIButton } from '@/components/AddToAIButton'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { Pencil, Trash2 } from 'lucide-react'
 import type { ShiftReference } from '@/types/chat-references'
+import { includesNormalized } from '@/lib/utils'
 
 export default function Shifts() {
   const { t, i18n } = useTranslation('shifts')
@@ -459,15 +460,13 @@ export default function Shifts() {
   const handleSearch = useCallback((searchTerm: string, shifts: any[]) => {
     if (!searchTerm) return shifts
 
-    const lowerSearchTerm = searchTerm.toLowerCase()
-
     return shifts.filter(shift => {
       // Search by shift ID or staff name
-      const shiftIdMatch = shift.id.toString().includes(lowerSearchTerm)
+      const shiftIdMatch = includesNormalized(shift.id.toString(), searchTerm)
       const staffNameMatch = shift.staff
-        ? `${shift.staff.firstName} ${shift.staff.lastName}`.toLowerCase().includes(lowerSearchTerm)
+        ? includesNormalized(`${shift.staff.firstName} ${shift.staff.lastName}`, searchTerm)
         : false
-      const totalSalesMatch = shift.totalSales.toString().includes(lowerSearchTerm)
+      const totalSalesMatch = shift.totalSales.toString().includes(searchTerm)
 
       return shiftIdMatch || staffNameMatch || totalSalesMatch
     })

@@ -27,6 +27,7 @@ import { paymentProviderAPI } from '@/services/paymentProvider.service'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '@/hooks/use-toast'
 import { useVenueDateTime } from '@/utils/datetime'
+import { includesNormalized } from '@/lib/utils'
 
 const SettlementConfigurations: React.FC = () => {
   const { t } = useTranslation('superadmin')
@@ -246,10 +247,9 @@ const SettlementConfigurations: React.FC = () => {
         return false
       }
       if (searchTerm) {
-        const searchLower = searchTerm.toLowerCase()
         return (
-          config.merchantAccount?.displayName?.toLowerCase().includes(searchLower) ||
-          config.merchantAccount?.accountId?.toLowerCase().includes(searchLower)
+          includesNormalized(config.merchantAccount?.displayName ?? '', searchTerm) ||
+          includesNormalized(config.merchantAccount?.accountId ?? '', searchTerm)
         )
       }
       return true

@@ -47,6 +47,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { PurchaseOrderWizard } from './components/PurchaseOrderWizard'
 import { usePurchaseOrderTour } from '@/hooks/usePurchaseOrderTour'
 import { TourDiscoveryBanner } from '@/components/onboarding/TourDiscoveryBanner'
+import { includesNormalized } from '@/lib/utils'
 
 export default function PurchaseOrdersPage() {
   const { t } = useTranslation(['purchaseOrders', 'common'])
@@ -131,14 +132,13 @@ export default function PurchaseOrdersPage() {
 
     // General search filter (searches across multiple fields)
     if (debouncedSearchTerm) {
-      const searchLower = debouncedSearchTerm.toLowerCase()
       orders = orders.filter((po) => {
         return (
-          po.orderNumber.toLowerCase().includes(searchLower) ||
-          po.supplier?.name?.toLowerCase().includes(searchLower) ||
-          po.total.toString().includes(searchLower) ||
-          po.status.toLowerCase().includes(searchLower) ||
-          po.notes?.toLowerCase().includes(searchLower)
+          includesNormalized(po.orderNumber ?? '', debouncedSearchTerm) ||
+          includesNormalized(po.supplier?.name ?? '', debouncedSearchTerm) ||
+          po.total.toString().includes(debouncedSearchTerm) ||
+          includesNormalized(po.status ?? '', debouncedSearchTerm) ||
+          includesNormalized(po.notes ?? '', debouncedSearchTerm)
         )
       })
     }
@@ -146,7 +146,7 @@ export default function PurchaseOrdersPage() {
     // Order number filter
     if (debouncedOrderNumber) {
       orders = orders.filter((po) =>
-        po.orderNumber.toLowerCase().includes(debouncedOrderNumber.toLowerCase())
+        includesNormalized(po.orderNumber ?? '', debouncedOrderNumber)
       )
     }
 

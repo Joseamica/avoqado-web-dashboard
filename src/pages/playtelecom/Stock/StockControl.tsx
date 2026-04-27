@@ -29,6 +29,7 @@ import { lazyWithRetry } from '@/lib/lazyWithRetry'
 import { useTranslation } from 'react-i18next'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { BulkUploadDialog, CategoryManagement, LowStockAlerts, StockVsSalesChart } from './components'
+import { includesNormalized } from '@/lib/utils'
 
 // Default window: last 30 days ending today. Matches OrgStockControlPage so
 // the Supervisor sees the same timeframe across the platform.
@@ -171,13 +172,12 @@ export function StockControl() {
   const filteredMovements = useMemo(() => {
     let result = movements
     if (movementSearch.trim()) {
-      const q = movementSearch.toLowerCase()
       result = result.filter(
         m =>
-          m.serialNumber.toLowerCase().includes(q) ||
-          m.categoryName.toLowerCase().includes(q) ||
-          (m.userName && m.userName.toLowerCase().includes(q)) ||
-          (m.venueName && m.venueName.toLowerCase().includes(q)),
+          includesNormalized(m.serialNumber ?? '', movementSearch) ||
+          includesNormalized(m.categoryName ?? '', movementSearch) ||
+          (m.userName != null && includesNormalized(m.userName, movementSearch)) ||
+          (m.venueName != null && includesNormalized(m.venueName, movementSearch)),
       )
     }
     if (movementTypeFilter !== 'all') {

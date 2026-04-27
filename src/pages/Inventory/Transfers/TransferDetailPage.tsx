@@ -23,6 +23,7 @@ import {
   getTransferStatusBadge,
   inventoryTransferService,
 } from '@/services/inventoryTransfer.service'
+import { includesNormalized } from '@/lib/utils'
 
 /**
  * Transfer Detail — READ-ONLY.
@@ -45,8 +46,7 @@ export default function TransferDetailPage() {
   const filteredItems = useMemo(() => {
     if (!transfer) return []
     if (!search) return transfer.items
-    const term = search.toLowerCase()
-    return transfer.items.filter(item => item.productName.toLowerCase().includes(term))
+    return transfer.items.filter(item => includesNormalized(item.productName ?? '', search))
   }, [transfer, search])
 
   const totalQuantity = useMemo(() => {

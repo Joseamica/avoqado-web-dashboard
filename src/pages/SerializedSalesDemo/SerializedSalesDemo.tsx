@@ -34,7 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import {
   getSerializedInventorySummary,
@@ -205,11 +205,10 @@ export default function SerializedSalesDemo() {
   const filteredSales = useMemo(() => {
     const sales = recentSalesData?.sales || []
     if (!searchTerm) return sales
-    const term = searchTerm.toLowerCase()
     return sales.filter(
       sale =>
-        sale.serialNumber.toLowerCase().includes(term) ||
-        sale.category.name.toLowerCase().includes(term)
+        includesNormalized(sale.serialNumber ?? '', searchTerm) ||
+        includesNormalized(sale.category.name ?? '', searchTerm)
     )
   }, [recentSalesData, searchTerm])
 

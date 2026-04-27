@@ -16,6 +16,7 @@ import { useMenuMakerHeader } from '../MenuMakerLayout'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Menu, MenuCategory } from '@/types'
 import { formatDateInTimeZone } from '@/utils/luxon'
+import { includesNormalized } from '@/lib/utils'
 
 export default function Menus() {
   const { t } = useTranslation('menu')
@@ -108,11 +109,9 @@ export default function Menus() {
   const handleSearch = useCallback((searchTerm: string, menus: any[]) => {
     if (!searchTerm) return menus
 
-    const lowerSearchTerm = searchTerm.toLowerCase()
-
     return menus.filter(menu => {
-      const nameMatches = menu.name.toLowerCase().includes(lowerSearchTerm)
-      const categoryMatches = menu.categories?.some(category => category.category.name.toLowerCase().includes(lowerSearchTerm))
+      const nameMatches = includesNormalized(menu.name ?? '', searchTerm)
+      const categoryMatches = menu.categories?.some(category => includesNormalized(category.category.name ?? '', searchTerm))
       return nameMatches || categoryMatches
     })
   }, [])

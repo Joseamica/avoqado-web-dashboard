@@ -17,6 +17,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AdjustInventoryStockDialog } from './components/AdjustInventoryStockDialog'
 import { InventoryMovementsDialog } from './components/InventoryMovementsDialog'
+import { includesNormalized } from '@/lib/utils'
 
 /**
  * ProductStock Page
@@ -137,7 +138,7 @@ export default function ProductStock() {
   // Apply filters
   const filteredItems = productStockItems.filter(item => {
     const matchesSearch =
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.sku.toLowerCase().includes(searchQuery.toLowerCase())
+      includesNormalized(item.name ?? '', searchQuery) || includesNormalized(item.sku ?? '', searchQuery)
     const matchesLowStock = !filterLowStock || item.currentStock <= item.reorderPoint
 
     return matchesSearch && matchesLowStock

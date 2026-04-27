@@ -20,6 +20,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useMenuMakerHeader } from './MenuMakerLayout'
+import { includesNormalized } from '@/lib/utils'
 
 // Skeleton Components
 function SkeletonProduct() {
@@ -390,10 +391,9 @@ export default function Overview() {
 
     if (!searchTerm) return sortedMenus
 
-    const lowercasedFilter = searchTerm.toLowerCase()
     return sortedMenus.filter(menu => {
-      const menuNameMatch = menu.name.toLowerCase().includes(lowercasedFilter)
-      const categoryMatch = menu.categories?.some(c => c.category.name.toLowerCase().includes(lowercasedFilter))
+      const menuNameMatch = includesNormalized(menu.name ?? '', searchTerm)
+      const categoryMatch = menu.categories?.some(c => includesNormalized(c.category.name ?? '', searchTerm))
       return menuNameMatch || categoryMatch
     })
   }, [menusData, searchTerm, menuOrder])
@@ -518,8 +518,7 @@ export default function Overview() {
 
   const filteredCenterItems = useMemo(() => {
     if (!searchTerm) return centerItems
-    const q = searchTerm.toLowerCase()
-    return centerItems.filter((item: any) => (item?.name || '').toLowerCase().includes(q))
+    return centerItems.filter((item: any) => includesNormalized(item?.name ?? '', searchTerm))
   }, [centerItems, searchTerm])
 
   if (menusLoading || productsLoading) return <OverviewSkeleton />

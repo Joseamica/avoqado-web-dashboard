@@ -17,6 +17,7 @@ import { AlertCircle, Download, ExternalLink, Filter, Search, X, Zap, CreditCard
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVenueDateTime } from '@/utils/datetime'
+import { includesNormalized } from '@/lib/utils'
 
 // Unified billing item type
 type BillingItem = {
@@ -116,8 +117,7 @@ export default function History() {
   const filteredBillingItems = useMemo(() => {
     const filtered = allBillingItems.filter(item => {
       if (invoiceSearch) {
-        const searchLower = invoiceSearch.toLowerCase()
-        const matchesConcept = item.concept.toLowerCase().includes(searchLower)
+        const matchesConcept = includesNormalized(item.concept ?? '', invoiceSearch)
         if (!matchesConcept) return false
       }
 

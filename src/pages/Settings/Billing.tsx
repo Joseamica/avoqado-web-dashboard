@@ -38,6 +38,7 @@ import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PaymentMethodsSection } from './components/PaymentMethodsSection'
+import { includesNormalized } from '@/lib/utils'
 
 export default function Billing() {
   const { t, i18n } = useTranslation('billing')
@@ -166,9 +167,8 @@ export default function Billing() {
     const filtered = invoices.filter(invoice => {
       // Search filter (invoice number or description)
       if (invoiceSearch) {
-        const searchLower = invoiceSearch.toLowerCase()
-        const matchesNumber = invoice.number?.toLowerCase().includes(searchLower)
-        const matchesDescription = invoice.description?.toLowerCase().includes(searchLower)
+        const matchesNumber = includesNormalized(invoice.number ?? '', invoiceSearch)
+        const matchesDescription = includesNormalized(invoice.description ?? '', invoiceSearch)
         if (!matchesNumber && !matchesDescription) return false
       }
 

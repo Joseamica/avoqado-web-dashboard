@@ -35,6 +35,7 @@ import {
 } from 'lucide-react'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { includesNormalized } from '@/lib/utils'
 
 // Data now fetched from API via React Query
 
@@ -51,7 +52,7 @@ const FeatureManagement: React.FC = () => {
   // Filter features based on search and category
   const filteredFeatures = features.filter(feature => {
     const matchesSearch =
-      feature.name.toLowerCase().includes(searchTerm.toLowerCase()) || feature.description.toLowerCase().includes(searchTerm.toLowerCase())
+      includesNormalized(feature.name ?? '', searchTerm) || includesNormalized(feature.description ?? '', searchTerm)
     const matchesCategory = selectedCategory === 'all' || feature.category === selectedCategory
     return matchesSearch && matchesCategory
   })

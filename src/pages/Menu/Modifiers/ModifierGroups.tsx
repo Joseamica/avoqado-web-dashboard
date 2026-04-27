@@ -38,6 +38,7 @@ import { PermissionGate } from '@/components/PermissionGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { CreateModifierGroupWizard } from './components/CreateModifierGroupWizard'
 import { useMenuMakerHeader } from '../MenuMakerLayout'
+import { includesNormalized } from '@/lib/utils'
 
 export default function ModifierGroups() {
   const { t } = useTranslation('menu')
@@ -257,11 +258,9 @@ export default function ModifierGroups() {
   const handleSearch = useCallback((searchTerm: string, modifierGroups: any[]) => {
     if (!searchTerm) return modifierGroups
 
-    const lowerSearchTerm = searchTerm.toLowerCase()
-
     return modifierGroups.filter(modifierGroup => {
-      const nameMatches = modifierGroup.name.toLowerCase().includes(lowerSearchTerm)
-      const modifiersMatches = modifierGroup.modifiers?.some(menu => menu.name.toLowerCase().includes(lowerSearchTerm)) ?? false
+      const nameMatches = includesNormalized(modifierGroup.name ?? '', searchTerm)
+      const modifiersMatches = modifierGroup.modifiers?.some(menu => includesNormalized(menu.name ?? '', searchTerm)) ?? false
       return nameMatches || modifiersMatches
     })
   }, [])

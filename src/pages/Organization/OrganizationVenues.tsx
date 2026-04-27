@@ -32,6 +32,7 @@ import {
 import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
+import { includesNormalized } from '@/lib/utils'
 
 // ── Status Helpers ──
 
@@ -80,12 +81,11 @@ const OrganizationVenues: React.FC = () => {
   const filteredVenues = useMemo(() => {
     if (!venues) return []
     if (!debouncedSearch) return venues
-    const search = debouncedSearch.toLowerCase()
     return venues.filter(
       venue =>
-        venue.name.toLowerCase().includes(search) ||
-        venue.city?.toLowerCase().includes(search) ||
-        venue.slug.toLowerCase().includes(search),
+        includesNormalized(venue.name ?? '', debouncedSearch) ||
+        includesNormalized(venue.city ?? '', debouncedSearch) ||
+        includesNormalized(venue.slug ?? '', debouncedSearch),
     )
   }, [venues, debouncedSearch])
 

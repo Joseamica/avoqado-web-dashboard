@@ -4,7 +4,7 @@ import { AlertTriangle, ChevronDown } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import { PERMISSION_CATEGORIES, CRITICAL_PERMISSIONS } from '@/lib/permissions/roleHierarchy'
 
 interface PermissionDetailPanelProps {
@@ -328,7 +328,7 @@ export function PermissionDetailPanel({
 
   const filteredPermissions = useMemo(() => {
     if (!searchTerm) return categoryPermissions
-    return categoryPermissions.filter(p => p.toLowerCase().includes(searchTerm.toLowerCase()))
+    return categoryPermissions.filter(p => includesNormalized(p ?? '', searchTerm))
   }, [categoryPermissions, searchTerm])
 
   // Build hierarchy

@@ -1,5 +1,6 @@
 import { StaffRole } from '@/types'
 import { PERMISSION_CATEGORIES, DEFAULT_PERMISSIONS } from './defaultPermissions'
+import { includesNormalized } from '@/lib/utils'
 
 /**
  * Permission Groups - Super-category definitions for the redesigned RolePermissions UI
@@ -339,15 +340,13 @@ export function filterPermissionsBySearch(
 ): SuperCategory[] {
   if (!searchTerm.trim()) return superCategories
 
-  const term = searchTerm.toLowerCase()
-
   return superCategories
     .map(superCat => ({
       ...superCat,
       categoryKeys: superCat.categoryKeys.filter(key => {
         const category = PERMISSION_CATEGORIES[key]
         // Check if any permission in this category matches
-        return category.permissions.some(p => p.toLowerCase().includes(term))
+        return category.permissions.some(p => includesNormalized(p ?? '', searchTerm))
       }),
     }))
     .filter(superCat => superCat.categoryKeys.length > 0) as SuperCategory[]

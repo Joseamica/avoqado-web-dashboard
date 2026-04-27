@@ -40,3 +40,7 @@ docs/square-research/
 # Claude Code / MCP tools internal data
 .claude-flow/
 .serena/
+.playwright-mcp/
+
+# Ad-hoc screenshots from Playwright MCP smoke tests
+/*.png

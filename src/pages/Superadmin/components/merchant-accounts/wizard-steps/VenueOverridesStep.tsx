@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import { Store, ChevronDown, ChevronRight, Building2, Search, X, Info } from 'lucide-react'
 import { getOrganizationById } from '@/services/superadmin-organizations.service'
@@ -52,9 +52,8 @@ export const VenueOverridesStep: React.FC<VenueOverridesStepProps> = ({ state, d
 
   const filteredVenues = useMemo(() => {
     if (!search) return venues
-    const q = search.toLowerCase()
     return venues.filter(
-      v => v.venueName.toLowerCase().includes(q) || v.venueSlug.toLowerCase().includes(q),
+      v => includesNormalized(v.venueName ?? '', search) || includesNormalized(v.venueSlug ?? '', search),
     )
   }, [venues, search])
 

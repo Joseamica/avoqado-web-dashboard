@@ -25,7 +25,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { useToast } from '@/hooks/use-toast'
 import { canModifyRole, getModifiableRoles } from '@/lib/permissions/roleHierarchy'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import InviteTeamMemberForm, { type InviteTeamMemberFormRef } from '@/pages/Team/components/InviteTeamMemberForm'
 import { adminResetPassword, getStaffActivityLog, getTeam, getZones, syncStaffVenues } from '@/services/storesAnalysis.service'
 import { teamService } from '@/services/team.service'
@@ -415,8 +415,7 @@ export function UsersManagement() {
   // Client-side search for DataTable
   const handleSearch = useCallback((search: string, rows: UserRow[]) => {
     if (!search) return rows
-    const q = search.toLowerCase()
-    return rows.filter(u => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
+    return rows.filter(u => includesNormalized(u.name ?? '', search) || includesNormalized(u.email ?? '', search))
   }, [])
 
   const isSaving = updateRoleMutation.isPending || updateStatusMutation.isPending || syncVenuesMutation.isPending

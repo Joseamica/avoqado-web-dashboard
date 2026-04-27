@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import { VenuePricingStructureDialog } from './components/VenuePricingStructureDialog'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 
 interface Venue {
   id: string
@@ -81,11 +81,10 @@ const VenuePricing: React.FC = () => {
   // Filter venues by search
   const filteredVenues = useMemo(() => {
     if (!searchQuery.trim()) return venues
-    const query = searchQuery.toLowerCase()
     return venues.filter(
       (venue) =>
-        venue.name.toLowerCase().includes(query) ||
-        venue.slug.toLowerCase().includes(query)
+        includesNormalized(venue.name ?? '', searchQuery) ||
+        includesNormalized(venue.slug ?? '', searchQuery)
     )
   }, [venues, searchQuery])
 

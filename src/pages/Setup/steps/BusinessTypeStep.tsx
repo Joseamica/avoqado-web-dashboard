@@ -4,7 +4,7 @@ import { Search, Check } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { ALL_BUSINESS_TYPES } from '@/config/business-types'
 import type { StepProps } from '../types'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 
 export function BusinessTypeStep({ data, onNext }: StepProps) {
   const { t } = useTranslation('setup')
@@ -18,11 +18,10 @@ export function BusinessTypeStep({ data, onNext }: StepProps) {
 
   const filteredTypes = useMemo(() => {
     if (!search.trim()) return ALL_BUSINESS_TYPES
-    const lower = search.toLowerCase()
     return ALL_BUSINESS_TYPES.filter(
       (type) =>
-        t(type.labelKey).toLowerCase().includes(lower) ||
-        t(type.categoryLabelKey).toLowerCase().includes(lower),
+        includesNormalized(t(type.labelKey) ?? '', search) ||
+        includesNormalized(t(type.categoryLabelKey) ?? '', search),
     )
   }, [search, t])
 

@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState, type MutableRefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/date-picker'
 import {
@@ -162,9 +162,8 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
 
   // Product combobox items (filtered by search)
   const productComboboxItems = useMemo<SearchComboboxItem[]>(() => {
-    const lowerSearch = productSearch.toLowerCase()
     return bookableProducts
-      .filter(p => !productSearch || p.name.toLowerCase().includes(lowerSearch))
+      .filter(p => !productSearch || includesNormalized(p.name ?? '', productSearch))
       .map(p => ({
         id: p.id,
         label: p.name,

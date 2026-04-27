@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import { Smartphone, Ban, CheckCircle2, Search, X, AlertTriangle } from 'lucide-react'
 import type { WizardState } from '../PaymentSetupWizard'
@@ -36,13 +36,12 @@ export const TerminalStep: React.FC<TerminalStepProps> = ({ state, dispatch }) =
   const filteredTerminals = useMemo(() => {
     let result = terminals as Terminal[]
     if (search) {
-      const q = search.toLowerCase()
       result = result.filter(
         t =>
-          (t.name?.toLowerCase().includes(q)) ||
-          (t.serialNumber?.toLowerCase().includes(q)) ||
-          (t.brand?.toLowerCase().includes(q)) ||
-          (t.model?.toLowerCase().includes(q)),
+          includesNormalized(t.name ?? '', search) ||
+          includesNormalized(t.serialNumber ?? '', search) ||
+          includesNormalized(t.brand ?? '', search) ||
+          includesNormalized(t.model ?? '', search),
       )
     }
     if (typeFilter) {

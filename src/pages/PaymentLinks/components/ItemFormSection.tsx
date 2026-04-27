@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next'
 import type { Product } from '@/types'
 import type { CustomFieldDefinition, TippingConfig } from '@/services/paymentLink.service'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { includesNormalized } from '@/lib/utils'
 
 interface ItemFormSectionProps {
   selectedProduct: Product | null
@@ -58,9 +59,8 @@ export function ItemFormSection({
   const formatPrice = (price: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(price)
 
   const productItems: SearchComboboxItem[] = useMemo(() => {
-    const q = productSearch.toLowerCase()
     return products
-      .filter(p => !q || p.name.toLowerCase().includes(q))
+      .filter(p => !productSearch || includesNormalized(p.name ?? '', productSearch))
       .map(p => ({
         id: p.id,
         label: p.name,

@@ -37,7 +37,7 @@ import {
 import { paymentProviderAPI, type PaymentProvider } from '@/services/paymentProvider.service'
 import { PaymentProviderDialog } from './components/PaymentProviderDialog'
 import { useToast } from '@/hooks/use-toast'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 
 // ===========================================
 // GLASS CARD COMPONENT
@@ -394,8 +394,8 @@ const PaymentProviders: React.FC = () => {
   const filteredProviders = useMemo(() => {
     return providers.filter(
       provider =>
-        provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        provider.code.toLowerCase().includes(searchTerm.toLowerCase())
+        includesNormalized(provider.name ?? '', searchTerm) ||
+        includesNormalized(provider.code ?? '', searchTerm)
     )
   }, [providers, searchTerm])
 

@@ -21,6 +21,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { includesNormalized } from '@/lib/utils'
 
 interface NotificationsPageProps {
   className?: string
@@ -51,8 +52,8 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
   // Filter notifications based on search query
   const filteredNotifications = notifications.filter(
     notification =>
-      notification.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      notification.message.toLowerCase().includes(searchQuery.toLowerCase()),
+      includesNormalized(notification.title ?? '', searchQuery) ||
+      includesNormalized(notification.message ?? '', searchQuery),
   )
 
   const groupedNotifications = groupNotificationsByDate(filteredNotifications)

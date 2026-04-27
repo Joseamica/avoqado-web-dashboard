@@ -30,6 +30,7 @@ import { type Recipe, productInventoryApi, pricingApi, type PricingPolicy } from
 import { Currency } from '@/utils/currency'
 import { RecipeDialog } from './components/RecipeDialog'
 import { CreateRecipeWizard } from './components/CreateRecipeWizard'
+import { RecipeDetailDialog } from './components/RecipeDetailDialog'
 import { YieldStatusHoverCard } from './components/YieldStatusHoverCard'
 import { SimpleConfirmDialog } from './components/SimpleConfirmDialog'
 import { PricingPolicyDialog } from './components/PricingPolicyDialog'
@@ -43,6 +44,7 @@ import { FilterPill } from '@/components/filters/FilterPill'
 import { CheckboxFilterContent } from '@/components/filters/CheckboxFilterContent'
 import { RangeFilterContent } from '@/components/filters/RangeFilterContent'
 import { ColumnCustomizer } from '@/components/filters/ColumnCustomizer'
+import { includesNormalized } from '@/lib/utils'
 
 // Product types that can have recipes (excludes services, classes, digital, donations)
 const NO_RECIPE_PRODUCT_TYPES = ['APPOINTMENTS_SERVICE', 'SERVICE', 'CLASS', 'DIGITAL', 'DONATION']
@@ -78,6 +80,7 @@ export default function Recipes() {
   // Dialog states — Recipes tab
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<ProductWithRecipe | null>(null)
   const [conversionDialogOpen, setConversionDialogOpen] = useState(false)
   const [wizardOpen, setWizardOpen] = useState(false)
@@ -167,13 +170,18 @@ export default function Recipes() {
 
     // Apply search filter
     if (debouncedSearchTerm) {
-      const lowerSearch = debouncedSearchTerm.toLowerCase()
       filtered = filtered.filter(
-        p => p.name.toLowerCase().includes(lowerSearch) || p.category.name.toLowerCase().includes(lowerSearch),
+        p => includesNormalized(p.name ?? '', debouncedSearchTerm) || includesNormalized(p.category.name ?? '', debouncedSearchTerm),
       )
     }
 
-    return filtered
+    // Default sort: products WITH recipe first, then alphabetical by name within each group
+    return [...filtered].sort((a, b) => {
+      const aHasRecipe = a.recipe ? 0 : 1
+      const bHasRecipe = b.recipe ? 0 : 1
+      if (aHasRecipe !== bHasRecipe) return aHasRecipe - bHasRecipe
+      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    })
   }, [productsData, categoryFilter, recipeFilter, debouncedSearchTerm])
 
   // ─── Pricing tab: client-side filtering (only products WITH recipes) ───
@@ -215,8 +223,7 @@ export default function Recipes() {
 
         // Search filter
         if (debouncedSearchTerm) {
-          const lowerSearch = debouncedSearchTerm.toLowerCase()
-          if (!p.name.toLowerCase().includes(lowerSearch) && !p.category.name.toLowerCase().includes(lowerSearch)) return false
+          if (!includesNormalized(p.name ?? '', debouncedSearchTerm) && !includesNormalized(p.category.name ?? '', debouncedSearchTerm)) return false
         }
 
         return true
@@ -1099,6 +1106,10 @@ export default function Recipes() {
           showColumnCustomizer={false}
           pagination={pagination}
           setPagination={setPagination}
+          onRowClick={row => {
+            setSelectedProduct(row)
+            setDetailDialogOpen(true)
+          }}
         />
       )}
 
@@ -1137,6 +1148,17 @@ export default function Recipes() {
       />
 
       <CreateRecipeWizard open={wizardOpen} onClose={() => setWizardOpen(false)} />
+
+      {/* Detail Dialog — opens on row click in Recipes tab, audit-friendly */}
+      <RecipeDetailDialog
+        open={detailDialogOpen}
+        onOpenChange={setDetailDialogOpen}
+        product={selectedProduct}
+        onEdit={() => {
+          if (selectedProduct?.recipe) setEditDialogOpen(true)
+          else setCreateDialogOpen(true)
+        }}
+      />
 
       {/* Dialogs — Pricing Tab */}
       <PricingPolicyDialog open={policyDialogOpen} onOpenChange={setPolicyDialogOpen} product={selectedPricingProduct} />

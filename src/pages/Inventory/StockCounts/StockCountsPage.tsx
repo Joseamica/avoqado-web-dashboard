@@ -24,6 +24,7 @@ import {
   type StockCountStatus,
   type StockCountType,
 } from '@/services/stockCount.service'
+import { includesNormalized } from '@/lib/utils'
 
 /**
  * Stock Count History — READ-ONLY audit view.
@@ -70,12 +71,11 @@ export default function StockCountsPage() {
     }
 
     if (debouncedSearch) {
-      const term = debouncedSearch.toLowerCase()
       result = result.filter(
         c =>
-          c.id.toLowerCase().includes(term) ||
-          (c.createdBy ?? '').toLowerCase().includes(term) ||
-          (c.note ?? '').toLowerCase().includes(term),
+          includesNormalized(c.id ?? '', debouncedSearch) ||
+          includesNormalized(c.createdBy ?? '', debouncedSearch) ||
+          includesNormalized(c.note ?? '', debouncedSearch),
       )
     }
 

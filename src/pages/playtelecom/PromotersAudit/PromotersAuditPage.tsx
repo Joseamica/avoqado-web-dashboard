@@ -20,7 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useDebounce } from '@/hooks/useDebounce'
 import { Search, X, Download, CheckCircle2, XCircle, Clock } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import type { ColumnDef } from '@tanstack/react-table'
 import { PromoterLocationModal } from './components/PromoterLocationModal'
 import { PromoterCharts } from './components/PromoterCharts'
@@ -400,8 +400,7 @@ export default function PromotersAuditPage() {
 
       // Search
       if (debouncedSearchTerm) {
-        const searchLower = debouncedSearchTerm.toLowerCase()
-        return promoter.name.toLowerCase().includes(searchLower)
+        return includesNormalized(promoter.name ?? '', debouncedSearchTerm)
       }
 
       return true

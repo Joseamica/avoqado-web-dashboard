@@ -23,7 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useToast } from '@/hooks/use-toast'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import {
   createCreditOffer,
   getCreditAssessments,
@@ -825,9 +825,8 @@ const CreditAssessment: React.FC = () => {
     if (!assessmentsData?.data) return []
     if (!searchTerm) return assessmentsData.data
 
-    const term = searchTerm.toLowerCase()
     return assessmentsData.data.filter(
-      a => a.venue.name.toLowerCase().includes(term) || a.venue.organization.name.toLowerCase().includes(term),
+      a => includesNormalized(a.venue.name ?? '', searchTerm) || includesNormalized(a.venue.organization.name ?? '', searchTerm),
     )
   }, [assessmentsData?.data, searchTerm])
 

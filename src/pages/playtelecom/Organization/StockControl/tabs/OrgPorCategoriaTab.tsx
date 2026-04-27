@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { OrgStockOverview, OrgStockCategoriaAggregate } from '@/services/stockDashboard.service'
 import { CategoryChip } from '../components/CategoryChip'
+import { includesNormalized } from '@/lib/utils'
 
 interface OrgPorCategoriaTabProps {
   data: OrgStockOverview
@@ -17,8 +18,7 @@ export function OrgPorCategoriaTab({ data }: OrgPorCategoriaTabProps) {
   const filtered = useMemo(() => {
     let result = [...data.aggregatesByCategoria]
     if (search.trim()) {
-      const q = search.trim().toLowerCase()
-      result = result.filter(c => c.categoryName.toLowerCase().includes(q))
+      result = result.filter(c => includesNormalized(c.categoryName ?? '', search))
     }
     if (stockFilter === 'with') result = result.filter(c => c.available > 0)
     if (stockFilter === 'without') result = result.filter(c => c.available === 0)

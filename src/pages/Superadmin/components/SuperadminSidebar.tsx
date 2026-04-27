@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { NavLink } from 'react-router-dom'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import { Shield, Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getSuperadminNavigation } from '../constants/navigation'
@@ -19,14 +19,13 @@ const SuperadminSidebar: React.FC<SuperadminSidebarProps> = ({ onOpenCommandPale
   const filteredSections = useMemo(() => {
     if (!filterTerm.trim()) return navigationItems
 
-    const term = filterTerm.toLowerCase()
     return navigationItems
       .map(section => ({
         ...section,
         items: section.items.filter(
           item =>
-            item.name.toLowerCase().includes(term) ||
-            item.keywords.some(kw => kw.includes(term)),
+            includesNormalized(item.name ?? '', filterTerm) ||
+            item.keywords.some(kw => includesNormalized(kw ?? '', filterTerm)),
         ),
       }))
       .filter(section => section.items.length > 0)

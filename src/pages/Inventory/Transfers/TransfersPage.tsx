@@ -22,6 +22,7 @@ import {
   type InventoryTransferRow,
   type TransferStatus,
 } from '@/services/inventoryTransfer.service'
+import { includesNormalized } from '@/lib/utils'
 
 /**
  * Inventory Transfer History — READ-ONLY audit view.
@@ -59,13 +60,12 @@ export default function TransfersPage() {
     }
 
     if (debouncedSearch) {
-      const term = debouncedSearch.toLowerCase()
       result = result.filter(
         t =>
-          t.fromLocationName.toLowerCase().includes(term) ||
-          t.toLocationName.toLowerCase().includes(term) ||
-          (t.createdByName ?? '').toLowerCase().includes(term) ||
-          (t.notes ?? '').toLowerCase().includes(term),
+          includesNormalized(t.fromLocationName ?? '', debouncedSearch) ||
+          includesNormalized(t.toLocationName ?? '', debouncedSearch) ||
+          includesNormalized(t.createdByName ?? '', debouncedSearch) ||
+          includesNormalized(t.notes ?? '', debouncedSearch),
       )
     }
 

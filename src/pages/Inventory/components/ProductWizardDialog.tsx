@@ -25,7 +25,7 @@ import Cropper from 'react-easy-crop'
 import { AddIngredientDialog } from './AddIngredientDialog'
 import { SimpleConfirmDialog } from './SimpleConfirmDialog'
 import api from '@/api'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 
 // Icon mapping for product types
 const PRODUCT_TYPE_ICONS: Record<ProductType, React.ElementType> = {
@@ -364,7 +364,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // Filtered category options based on search
   const filteredCategoryOptions = useMemo(
     () => categorySearch.trim()
-      ? categoryOptions.filter(opt => opt.label.toLowerCase().includes(categorySearch.toLowerCase()))
+      ? categoryOptions.filter(opt => includesNormalized(opt.label ?? '', categorySearch))
       : categoryOptions,
     [categoryOptions, categorySearch]
   )
@@ -1800,7 +1800,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                       const selectedIds = new Set(selectedModifierGroups.map(g => g.value))
                       const availableOptions: SearchComboboxItem[] = (modifierGroups ?? [])
                         .filter(mg => !selectedIds.has(mg.id))
-                        .filter(mg => !modifierGroupSearch.trim() || mg.name.toLowerCase().includes(modifierGroupSearch.toLowerCase()))
+                        .filter(mg => !modifierGroupSearch.trim() || includesNormalized(mg.name ?? '', modifierGroupSearch))
                         .map(mg => ({ id: mg.id, label: mg.name }))
                       const hasModifierGroups = (modifierGroups ?? []).length > 0
 

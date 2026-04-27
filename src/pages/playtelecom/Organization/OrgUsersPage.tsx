@@ -27,7 +27,7 @@ import { useRoleConfig } from '@/hooks/use-role-config'
 import { useToast } from '@/hooks/use-toast'
 import { useOrgTeam, useOrgZones } from '@/hooks/useOrganizationConfig'
 import { canModifyRole, getModifiableRoles } from '@/lib/permissions/roleHierarchy'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import {
   getOrgTeamMemberActivity,
   resetOrgTeamMemberPassword,
@@ -446,8 +446,7 @@ export default function OrgUsersPage() {
 
   const handleSearch = useCallback((search: string, rows: OrgUserRow[]) => {
     if (!search) return rows
-    const q = search.toLowerCase()
-    return rows.filter(u => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
+    return rows.filter(u => includesNormalized(u.name ?? '', search) || includesNormalized(u.email ?? '', search))
   }, [])
 
   const handleVenueToggle = useCallback((venueId: string) => {

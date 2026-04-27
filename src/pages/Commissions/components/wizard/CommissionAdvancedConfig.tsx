@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useRoleConfig } from '@/hooks/use-role-config'
@@ -51,7 +51,7 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange 
 
 	// Filter staff by search query
 	const filteredStaff = availableStaff.filter((staff) =>
-		`${staff.firstName} ${staff.lastName}`.toLowerCase().includes(staffSearchQuery.toLowerCase())
+		includesNormalized(`${staff.firstName} ${staff.lastName}`, staffSearchQuery)
 	)
 
 	const formatCurrency = (amount: number) => {

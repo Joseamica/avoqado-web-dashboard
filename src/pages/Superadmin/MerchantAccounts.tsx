@@ -8,7 +8,7 @@ import { AlertTriangle, Building2, CheckCircle2, CreditCard, Layers, Loader2, Pl
 import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
 import { getAllVenues } from '@/services/superadmin.service'
 import { useTranslation } from 'react-i18next'
-import { cn } from '@/lib/utils'
+import { cn, includesNormalized } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import {
@@ -80,13 +80,12 @@ const MerchantAccounts: React.FC = () => {
 
     // Search filter
     if (debouncedSearchTerm) {
-      const search = debouncedSearchTerm.toLowerCase()
       result = result.filter(
         account =>
-          account.displayName?.toLowerCase().includes(search) ||
-          account.alias?.toLowerCase().includes(search) ||
-          account.externalMerchantId.toLowerCase().includes(search) ||
-          account.blumonSerialNumber?.toLowerCase().includes(search),
+          includesNormalized(account.displayName ?? '', debouncedSearchTerm) ||
+          includesNormalized(account.alias ?? '', debouncedSearchTerm) ||
+          includesNormalized(account.externalMerchantId ?? '', debouncedSearchTerm) ||
+          includesNormalized(account.blumonSerialNumber ?? '', debouncedSearchTerm),
       )
     }
 

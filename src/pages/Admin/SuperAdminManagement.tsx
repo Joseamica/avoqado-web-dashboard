@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { includesNormalized } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -165,7 +166,7 @@ export default function SuperAdminManagement() {
 
   // Filter superadmins based on search
   const filteredSuperAdmins = superAdmins.filter(admin => {
-    return admin.name.toLowerCase().includes(searchTerm.toLowerCase()) || admin.email.toLowerCase().includes(searchTerm.toLowerCase())
+    return includesNormalized(admin.name ?? '', searchTerm) || includesNormalized(admin.email ?? '', searchTerm)
   })
 
   // Filter audit logs based on action type

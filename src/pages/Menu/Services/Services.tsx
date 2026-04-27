@@ -19,6 +19,7 @@ import { useCallback, useEffect, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDebounce } from '@/hooks/useDebounce'
 import { FilterPill, CheckboxFilterContent } from '@/components/filters'
+import { includesNormalized } from '@/lib/utils'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
@@ -178,8 +179,7 @@ export default function Services() {
     let result = services
 
     if (debouncedSearchTerm) {
-      const lowerSearch = debouncedSearchTerm.toLowerCase()
-      result = result.filter(s => s.name.toLowerCase().includes(lowerSearch))
+      result = result.filter(s => includesNormalized(s.name ?? '', debouncedSearchTerm))
     }
 
     if (typeFilter.length > 0) {
