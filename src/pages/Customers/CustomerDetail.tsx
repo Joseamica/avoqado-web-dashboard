@@ -14,7 +14,6 @@ import {
 	Plus,
 	Minus,
 	TrendingUp,
-	Users,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
@@ -39,6 +38,7 @@ import {
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PermissionGate } from '@/components/PermissionGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
@@ -53,7 +53,7 @@ import type { CreditPackPurchase } from '@/types/creditPack'
 import CustomerForm from './components/CustomerForm'
 
 export default function CustomerDetail() {
-	const { venueId } = useCurrentVenue()
+	const { venueId, fullBasePath } = useCurrentVenue()
 	const { customerId } = useParams<{ customerId: string }>()
 	const navigate = useNavigate()
 	const { toast } = useToast()
@@ -264,22 +264,22 @@ export default function CustomerDetail() {
 	return (
 		<div className="p-6 bg-background text-foreground">
 			{/* Header */}
-			<div className="flex items-center justify-between mb-6">
-				<div className="flex items-center space-x-4">
-					<Button variant="ghost" onClick={handleGoBack} className="p-2">
+			<div className="flex flex-col gap-3 mb-6 md:flex-row md:items-center md:justify-between">
+				<div className="flex items-center gap-3 min-w-0">
+					<Button variant="ghost" onClick={handleGoBack} className="p-2 shrink-0">
 						<ArrowLeft className="h-4 w-4" />
 					</Button>
-					<div>
-						<h1 className="text-2xl font-bold">
+					<div className="min-w-0">
+						<h1 className="text-2xl font-bold truncate">
 							{customer.firstName} {customer.lastName}
 						</h1>
-						<p className="text-muted-foreground">
+						<p className="text-sm text-muted-foreground truncate">
 							{t('detail.memberSince', { date: formatDate(customer.createdAt) })}
 						</p>
 					</div>
 				</div>
 
-				<div className="flex items-center space-x-2">
+				<div className="flex flex-wrap items-center gap-2">
 					<PermissionGate permission="loyalty:adjust">
 						<Button variant="outline" onClick={handleOpenAdjustDialog}>
 							<Award className="h-4 w-4 mr-2" />
@@ -308,24 +308,22 @@ export default function CustomerDetail() {
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 				{/* Customer Profile Card */}
 				<div className="lg:col-span-1">
-					<Card>
+					<Card className="border-input">
 						<CardHeader>
-							<div className="flex items-center space-x-3">
-								<div className="w-12 h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-primary-foreground font-bold text-lg">
+							<div className="flex items-center gap-3">
+								<div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center text-foreground font-semibold text-lg uppercase shrink-0">
 									{customer.firstName?.[0] || ''}
 									{customer.lastName?.[0] || ''}
 								</div>
-								<div className="flex-1">
-									<CardTitle className="text-lg">
+								<div className="flex-1 min-w-0">
+									<CardTitle className="text-lg truncate">
 										{customer.firstName} {customer.lastName}
 									</CardTitle>
 									{customer.customerGroup && (
 										<Badge
 											variant="outline"
-											style={{
-												borderColor: customer.customerGroup.color,
-												color: customer.customerGroup.color,
-											}}
+											className="mt-1"
+											style={{ borderColor: customer.customerGroup.color }}
 										>
 											{customer.customerGroup.name}
 										</Badge>
@@ -334,35 +332,35 @@ export default function CustomerDetail() {
 							</div>
 						</CardHeader>
 						<CardContent className="space-y-4">
-							<div className="flex items-center space-x-3">
-								<Mail className="h-4 w-4 text-muted-foreground" />
-								<span className="text-sm">{customer.email}</span>
-							</div>
+							{customer.email ? (
+								<div className="flex items-center gap-3">
+									<Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+									<span className="text-sm truncate">{customer.email}</span>
+								</div>
+							) : null}
 
-							<div className="flex items-center space-x-3">
-								<Phone className="h-4 w-4 text-muted-foreground" />
-								<span className="text-sm">{customer.phone}</span>
-							</div>
+							{customer.phone ? (
+								<div className="flex items-center gap-3">
+									<Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+									<span className="text-sm">{customer.phone}</span>
+								</div>
+							) : null}
 
-							<div className="flex items-center space-x-3">
-								<Calendar className="h-4 w-4 text-muted-foreground" />
-								<div>
+							{!customer.email && !customer.phone && (
+								<p className="text-sm text-muted-foreground italic">
+									{t('detail.noContactInfo', { defaultValue: 'Sin información de contacto' })}
+								</p>
+							)}
+
+							<div className="flex items-center gap-3">
+								<Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+								<div className="min-w-0">
 									<div className="text-sm">{t('list.columns.lastVisit')}</div>
-									<div className="text-xs text-muted-foreground">
+									<div className="text-xs text-muted-foreground truncate">
 										{customer.lastVisit ? formatDate(customer.lastVisit) : t('detail.noLastVisit')}
 									</div>
 								</div>
 							</div>
-
-							{customer.customerGroup && (
-								<div className="flex items-center space-x-3">
-									<Users className="h-4 w-4 text-muted-foreground" />
-									<div>
-										<div className="text-sm">{t('list.columns.group')}</div>
-										<div className="text-xs text-muted-foreground">{customer.customerGroup.name}</div>
-									</div>
-								</div>
-							)}
 						</CardContent>
 					</Card>
 				</div>
@@ -370,57 +368,61 @@ export default function CustomerDetail() {
 				{/* Stats and Content */}
 				<div className="lg:col-span-2 space-y-6">
 					{/* Stats Cards */}
-					<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-						<Card>
+					<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+						<Card className="border-input">
 							<CardContent className="p-4">
-								<div className="flex items-center justify-between">
-									<div>
-										<p className="text-xs font-medium text-muted-foreground">{t('detail.stats.totalSpent')}</p>
-										<p className="text-xl font-bold text-green-600 dark:text-green-400">
+								<div className="flex items-center justify-between gap-2">
+									<div className="min-w-0">
+										<p className="text-xs font-medium text-muted-foreground truncate">{t('detail.stats.totalSpent')}</p>
+										<p className="text-xl font-semibold text-foreground tabular-nums">
 											{formatCurrency(customer.totalSpent)}
 										</p>
 									</div>
-									<DollarSign className="h-6 w-6 text-green-500 dark:text-green-400" />
+									<DollarSign className="h-5 w-5 text-muted-foreground shrink-0" />
 								</div>
 							</CardContent>
 						</Card>
 
-						<Card>
+						<Card className="border-input">
 							<CardContent className="p-4">
-								<div className="flex items-center justify-between">
-									<div>
-										<p className="text-xs font-medium text-muted-foreground">{t('detail.stats.visits')}</p>
-										<p className="text-xl font-bold text-blue-600 dark:text-blue-400">{customer.visitCount ?? 0}</p>
+								<div className="flex items-center justify-between gap-2">
+									<div className="min-w-0">
+										<p className="text-xs font-medium text-muted-foreground truncate">{t('detail.stats.visits')}</p>
+										<p className="text-xl font-semibold text-foreground tabular-nums">
+											{customer.visitCount && customer.visitCount > 0
+												? customer.visitCount
+												: customer.orders?.length ?? 0}
+										</p>
 									</div>
-									<ShoppingCart className="h-6 w-6 text-blue-500 dark:text-blue-400" />
+									<ShoppingCart className="h-5 w-5 text-muted-foreground shrink-0" />
 								</div>
 							</CardContent>
 						</Card>
 
-						<Card>
+						<Card className="border-input">
 							<CardContent className="p-4">
-								<div className="flex items-center justify-between">
-									<div>
-										<p className="text-xs font-medium text-muted-foreground">{t('detail.stats.avgOrder')}</p>
-										<p className="text-xl font-bold text-purple-600 dark:text-purple-400">
+								<div className="flex items-center justify-between gap-2">
+									<div className="min-w-0">
+										<p className="text-xs font-medium text-muted-foreground truncate">{t('detail.stats.avgOrder')}</p>
+										<p className="text-xl font-semibold text-foreground tabular-nums">
 											{formatCurrency(customer.averageOrderValue)}
 										</p>
 									</div>
-									<TrendingUp className="h-6 w-6 text-purple-500 dark:text-purple-400" />
+									<TrendingUp className="h-5 w-5 text-muted-foreground shrink-0" />
 								</div>
 							</CardContent>
 						</Card>
 
-						<Card>
+						<Card className="border-input">
 							<CardContent className="p-4">
-								<div className="flex items-center justify-between">
-									<div>
-										<p className="text-xs font-medium text-muted-foreground">{t('detail.stats.points')}</p>
-										<p className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
+								<div className="flex items-center justify-between gap-2">
+									<div className="min-w-0">
+										<p className="text-xs font-medium text-muted-foreground truncate">{t('detail.stats.points')}</p>
+										<p className="text-xl font-semibold text-foreground tabular-nums">
 											{customer.loyaltyPoints.toLocaleString()}
 										</p>
 									</div>
-									<Award className="h-6 w-6 text-yellow-500 dark:text-yellow-400" />
+									<Award className="h-5 w-5 text-muted-foreground shrink-0" />
 								</div>
 							</CardContent>
 						</Card>
@@ -465,23 +467,25 @@ export default function CustomerDetail() {
 								</CardHeader>
 								<CardContent>
 									{customer.orders && customer.orders.length > 0 ? (
-										<div className="space-y-3">
+										<div className="-mx-2 divide-y divide-input">
 											{customer.orders.map((order) => (
-												<div
+												<button
 													key={order.id}
-													className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+													type="button"
+													onClick={() => navigate(`${fullBasePath}/orders/${order.id}`)}
+													className="flex w-full items-center justify-between gap-3 px-2 py-3 text-left rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
 												>
-													<div>
-														<div className="font-medium">
+													<div className="min-w-0">
+														<div className="font-medium truncate">
 															{t('detail.orders.orderNumber', { number: order.orderNumber })}
 														</div>
 														<div className="text-sm text-muted-foreground">{formatDate(order.createdAt)}</div>
 													</div>
-													<div className="flex items-center gap-3">
+													<div className="flex items-center gap-3 shrink-0">
 														<Badge variant="outline">{order.status}</Badge>
-														<span className="font-medium">{formatCurrency(order.total)}</span>
+														<span className="font-medium tabular-nums">{formatCurrency(order.total)}</span>
 													</div>
-												</div>
+												</button>
 											))}
 										</div>
 									) : (
@@ -502,17 +506,21 @@ export default function CustomerDetail() {
 												{pointValue > 0 && `(${t('detail.loyalty.pointsValue', { value: formatCurrency(pointValue) })})`}
 											</CardDescription>
 										</div>
-										<select
-											value={loyaltyTypeFilter}
-											onChange={(e) => setLoyaltyTypeFilter(e.target.value)}
-											className="border rounded-md px-3 py-1.5 text-sm bg-background"
+										<Select
+											value={loyaltyTypeFilter || 'all'}
+											onValueChange={(v) => setLoyaltyTypeFilter(v === 'all' ? '' : v)}
 										>
-											<option value="">{t('detail.loyalty.allTypes')}</option>
-											<option value="EARN">{t('detail.loyalty.types.EARN')}</option>
-											<option value="REDEEM">{t('detail.loyalty.types.REDEEM')}</option>
-											<option value="EXPIRE">{t('detail.loyalty.types.EXPIRE')}</option>
-											<option value="ADJUST">{t('detail.loyalty.types.ADJUST')}</option>
-										</select>
+											<SelectTrigger className="w-[180px]" aria-label={t('detail.loyalty.allTypes')}>
+												<SelectValue placeholder={t('detail.loyalty.allTypes')} />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="all">{t('detail.loyalty.allTypes')}</SelectItem>
+												<SelectItem value="EARN">{t('detail.loyalty.types.EARN')}</SelectItem>
+												<SelectItem value="REDEEM">{t('detail.loyalty.types.REDEEM')}</SelectItem>
+												<SelectItem value="EXPIRE">{t('detail.loyalty.types.EXPIRE')}</SelectItem>
+												<SelectItem value="ADJUST">{t('detail.loyalty.types.ADJUST')}</SelectItem>
+											</SelectContent>
+										</Select>
 									</div>
 								</CardHeader>
 								<CardContent>

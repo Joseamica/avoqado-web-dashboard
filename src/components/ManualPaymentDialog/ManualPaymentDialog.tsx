@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -10,13 +10,11 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 import { LoadingButton } from '@/components/ui/loading-button'
 import { useToast } from '@/hooks/use-toast'
 
 import { manualPaymentService, type PaymentMethod, type PaymentSource } from '@/services/manualPayment.service'
 import { ExternalSourceCombobox } from './ExternalSourceCombobox'
-import { OrderSelector, type OrderOption } from './OrderSelector'
 
 /**
  * Local Zod schema — mirrors backend validation.
@@ -102,24 +100,17 @@ interface ManualPaymentDialogProps {
   open: boolean
   onClose: () => void
   venueId: string
-  /**
-   * Optional pre-selected order. When omitted, the dialog renders an
-   * inline OrderSelector so the admin can search & pick without knowing
-   * the order ID by heart.
-   */
-  orderId?: string
-  orderCode?: string
 }
 
-export function ManualPaymentDialog({ open, onClose, venueId, orderId, orderCode }: ManualPaymentDialogProps) {
+/**
+ * Manual payments are ALWAYS standalone bookkeeping entries — money received
+ * via an external provider (BUQ, Clip, etc.) that never passed through
+ * Avoqado. The backend creates a shadow Order automatically. We never attach
+ * to an existing order, so there is no order picker.
+ */
+export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDialogProps) {
   const { toast } = useToast()
   const queryClient = useQueryClient()
-
-  // When the caller pre-selects an order (e.g., from Orders row actions),
-  // use that. Otherwise let the user pick via the embedded selector.
-  const [pickedOrder, setPickedOrder] = useState<OrderOption | null>(null)
-  const effectiveOrderId = orderId ?? pickedOrder?.id ?? ''
-  const effectiveOrderLabel = orderCode ?? pickedOrder?.orderNumber
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -141,12 +132,9 @@ export function ManualPaymentDialog({ open, onClose, venueId, orderId, orderCode
 
   const source = form.watch('source')
 
-  // Reset form + internal picked order when dialog closes
+  // Reset form when dialog closes
   useEffect(() => {
-    if (!open) {
-      form.reset()
-      setPickedOrder(null)
-    }
+    if (!open) form.reset()
   }, [open, form])
 
   // Fetch suggestions for the external source combobox
@@ -169,9 +157,8 @@ export function ManualPaymentDialog({ open, onClose, venueId, orderId, orderCode
   const mutation = useMutation({
     mutationFn: (values: FormValues) =>
       manualPaymentService.create(venueId, {
-        // Send undefined (not '') so the backend Zod's .transform() doesn't
-        // trip on empty strings when we're creating a standalone entry.
-        orderId: effectiveOrderId ? effectiveOrderId : undefined,
+        // No orderId: manual payments are always standalone — backend
+        // creates a shadow order automatically.
         amount: values.amount,
         tipAmount: values.tipAmount && values.tipAmount.trim().length > 0 ? values.tipAmount : undefined,
         taxAmount: values.taxAmount && values.taxAmount.trim().length > 0 ? values.taxAmount : undefined,
@@ -193,7 +180,6 @@ export function ManualPaymentDialog({ open, onClose, venueId, orderId, orderCode
       })
       queryClient.invalidateQueries({ queryKey: ['orders', venueId] })
       queryClient.invalidateQueries({ queryKey: ['payments', venueId] })
-      queryClient.invalidateQueries({ queryKey: ['order', effectiveOrderId] })
       queryClient.invalidateQueries({ queryKey: ['external-sources', venueId] })
       onClose()
     },
@@ -212,14 +198,8 @@ export function ManualPaymentDialog({ open, onClose, venueId, orderId, orderCode
   })
 
   const onSubmit = (values: FormValues) => {
-    // effectiveOrderId MAY be empty — backend creates a shadow order for
-    // standalone bookkeeping entries that never passed through Avoqado.
     mutation.mutate(values)
   }
-
-  // Whether the parent already pinned the order (row-action path). If not,
-  // we show the selector inline.
-  const orderFromProps = Boolean(orderId)
 
   return (
     <Dialog
@@ -232,26 +212,12 @@ export function ManualPaymentDialog({ open, onClose, venueId, orderId, orderCode
         <DialogHeader>
           <DialogTitle>Registrar pago manual</DialogTitle>
           <DialogDescription>
-            {orderFromProps && effectiveOrderLabel
-              ? `Orden ${effectiveOrderLabel}`
-              : 'Registra un pago hecho fuera del sistema (efectivo, BUQ, Clip, transferencia, etc.).'}
+            Registra un pago hecho fuera del sistema (BUQ, Clip, transferencia, efectivo, etc.).
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {!orderFromProps && (
-              <div className="space-y-1.5">
-                <Label>Orden (opcional)</Label>
-                <OrderSelector venueId={venueId} value={pickedOrder} onChange={setPickedOrder} />
-                <p className="text-xs text-muted-foreground">
-                  {pickedOrder
-                    ? `Saldo pendiente: $${Number(pickedOrder.remainingBalance).toFixed(2)} · Total: $${Number(pickedOrder.total).toFixed(2)}`
-                    : 'Déjalo vacío si el pago no corresponde a una orden en Avoqado (asiento contable).'}
-                </p>
-              </div>
-            )}
-
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -281,39 +247,35 @@ export function ManualPaymentDialog({ open, onClose, venueId, orderId, orderCode
               />
             </div>
 
-            {/* IVA & descuento — solo aplican al crear la orden fantasma
-                (standalone). Cuando hay orden pre-seleccionada, la orden ya
-                tiene sus propios impuestos/descuentos y estos se ignoran. */}
-            {!effectiveOrderId && (
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="taxAmount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>IVA (opcional)</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="discountAmount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Descuento (opcional)</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
+            {/* IVA + descuento del asiento contable */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="taxAmount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>IVA (opcional)</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="discountAmount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Descuento (opcional)</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField

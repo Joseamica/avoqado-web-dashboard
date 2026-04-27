@@ -629,18 +629,35 @@ export default function Orders() {
         meta: { label: t('columns.customer', { defaultValue: 'Cliente' }) },
         header: t('columns.customer', { defaultValue: 'Cliente' }),
         cell: ({ row }) => {
-          // Show "Por Cobrar" badge only for UNPAID orders with customers
-          if (
-            row.original.orderCustomers &&
-            row.original.orderCustomers.length > 0 &&
+          if (!row.original.orderCustomers || row.original.orderCustomers.length === 0) {
+            return <span className="text-sm text-muted-foreground">—</span>
+          }
+
+          const customer = row.original.orderCustomers[0].customer
+          const customerName = getCustomerDisplayName(customer)
+          const isPayLater =
             (row.original.paymentStatus === 'PENDING' || row.original.paymentStatus === 'PARTIAL') &&
             Number(row.original.remainingBalance ?? 0) > 0
-          ) {
-            const customer = row.original.orderCustomers[0].customer
-            const customerName = getCustomerDisplayName(customer)
+
+          const nameButton = (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-auto p-0 text-sm font-medium text-foreground underline decoration-dotted decoration-muted-foreground underline-offset-4 hover:bg-transparent hover:text-primary hover:decoration-primary"
+              onClick={e => {
+                e.stopPropagation()
+                e.preventDefault()
+                navigate(`${fullBasePath}/customers/${customer.id}`)
+              }}
+            >
+              {customerName}
+            </Button>
+          )
+
+          if (isPayLater) {
             return (
               <div className="flex items-center gap-1.5">
-                <span className="text-sm font-medium">{customerName}</span>
+                {nameButton}
                 <Badge
                   variant="outline"
                   className="text-xs px-1.5 py-0.5 bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
@@ -652,14 +669,7 @@ export default function Orders() {
             )
           }
 
-          // Show customer name without badge for PAID orders
-          if (row.original.orderCustomers && row.original.orderCustomers.length > 0) {
-            const customer = row.original.orderCustomers[0].customer
-            const customerName = getCustomerDisplayName(customer)
-            return <span className="text-sm font-medium">{customerName}</span>
-          }
-
-          return <span className="text-sm text-muted-foreground">—</span>
+          return nameButton
         },
       },
       {
@@ -818,7 +828,7 @@ export default function Orders() {
     ],
     // formatDate/formatTime/venueTimezoneShort/sortField/sortOrder are captured transitively
     // through renderSortableHeader, so they are not direct deps of this useMemo.
-    [t, tCommon, isSuperAdmin, hasChatbot, renderSortableHeader, canCreateManualPayment],
+    [t, tCommon, isSuperAdmin, hasChatbot, renderSortableHeader, canCreateManualPayment, navigate, fullBasePath],
   )
 
   // Filter columns based on visibility settings
@@ -1341,6 +1351,13 @@ export default function Orders() {
 
           {/* Action buttons - pushed right with ml-auto, wrap left when needed */}
           <div className="ml-auto flex flex-wrap items-center gap-2">
+            {canCreateManualPayment && (
+              <Button size="sm" className="h-8 gap-1.5" onClick={() => setManualPaymentOpen(true)}>
+                <Plus className="h-3.5 w-3.5" />
+                Nuevo pago manual
+              </Button>
+            )}
+
             {/* Pay Later - Navigate to dedicated report */}
             <Button variant="outline" size="sm" className="h-8 gap-2" onClick={() => navigate('../reports/pay-later-aging')}>
               <Clock className="h-3.5 w-3.5" />
