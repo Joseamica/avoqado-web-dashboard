@@ -152,7 +152,7 @@ export function TpvSettingsFields({
     onUpdate({ kioskDefaultMerchantId: merchantId })
   }
 
-  const tipOptions = settings.tipSuggestions || [15, 18, 20, 25]
+  const tipOptions = settings.tipSuggestions || [10, 15, 20]
 
   return (
     <div className="space-y-6">
