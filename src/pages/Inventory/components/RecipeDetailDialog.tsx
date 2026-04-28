@@ -376,7 +376,21 @@ export function RecipeDetailDialog({ open, onOpenChange, product, onEdit }: Reci
                         <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
                           <th className="text-left px-3 pb-2 font-medium border-b border-border/40">Ingrediente</th>
                           <th className="text-right px-3 pb-2 font-medium border-b border-border/40">Cantidad</th>
-                          <th className="text-right px-3 pb-2 font-medium border-b border-border/40">Aporta</th>
+                          <th className="text-right px-3 pb-2 font-medium border-b border-border/40">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="cursor-help underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">
+                                    Alcanza para
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-[260px] text-xs leading-relaxed">
+                                  Cuántas porciones de esta receta podrías hacer si éste fuera el único ingrediente que limita.
+                                  El menor de la columna determina la capacidad real de producción.
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </th>
                           <th className="text-right px-3 pb-2 font-medium border-b border-border/40">Costo / porción</th>
                           {showTypeColumn && (
                             <th className="text-center px-3 pb-2 font-medium border-b border-border/40">Tipo</th>
@@ -412,7 +426,7 @@ export function RecipeDetailDialog({ open, onOpenChange, product, onEdit }: Reci
                                       <button
                                         type="button"
                                         onClick={() => openIngredient(rm.id)}
-                                        className="text-left underline-offset-4 decoration-muted-foreground/40 hover:underline hover:text-foreground focus-visible:underline focus-visible:outline-none transition-colors"
+                                        className="text-left cursor-pointer underline decoration-dotted decoration-muted-foreground/50 underline-offset-4 hover:decoration-foreground/80 hover:text-foreground focus-visible:decoration-foreground focus-visible:outline-none transition-colors"
                                         title="Ver detalle del ingrediente"
                                       >
                                         {rm.name}

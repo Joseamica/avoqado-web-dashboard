@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { recipesApi, rawMaterialsApi, type Recipe, type CreateRecipeDto } from '@/services/inventory.service'
 import { Loader2, Plus, Trash2, Package, Info, RefreshCw, Pencil, Check, X } from 'lucide-react'
 import { Currency } from '@/utils/currency'
@@ -35,6 +36,7 @@ interface RecipeDialogProps {
 export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialogProps) {
   const { t } = useTranslation('inventory')
   const { t: tCommon } = useTranslation('common')
+  const { getShortLabel } = useUnitTranslation()
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -588,19 +590,19 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
                                           }
                                         }}
                                       />
-                                      <span className="text-xs text-muted-foreground">{line.unit}</span>
+                                      <span className="text-xs text-muted-foreground">{getShortLabel(line.unit)}</span>
                                     </div>
                                   ) : (
                                     <p className="text-xs text-muted-foreground">
-                                      {Number(line.quantity).toFixed(2)} {line.unit}
+                                      {Number(line.quantity).toFixed(2)} {getShortLabel(line.unit)}
                                       {line.unit !== line.rawMaterial.unit && (
                                         <span className="ml-1 text-muted-foreground/70">
                                           (= {(Number(line.quantity) * (line.unit === 'KILOGRAM' || line.unit === 'LITER' ? 1000 : 1)).toFixed(2)}{' '}
-                                          {line.rawMaterial.unit})
+                                          {getShortLabel(line.rawMaterial.unit)})
                                         </span>
                                       )}
                                       {' × '}
-                                      {Currency(Number(line.rawMaterial.costPerUnit))}/{line.rawMaterial.unit.toLowerCase()} ={' '}
+                                      {Currency(Number(line.rawMaterial.costPerUnit))}/{getShortLabel(line.rawMaterial.unit)} ={' '}
                                       {Currency(lineCost)}
                                     </p>
                                   )}

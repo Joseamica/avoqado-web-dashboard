@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Loader2, RefreshCw, Package, AlertTriangle, TrendingUp, ChevronRight, ExternalLink } from 'lucide-react'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { modifierInventoryApi, type ModifierLowStockItem, type ModifierUsageStats } from '@/services/inventory.service'
 import { Currency } from '@/utils/currency'
 import { Link } from 'react-router-dom'
@@ -18,6 +19,7 @@ export function ModifierInventoryAnalytics() {
   const { t } = useTranslation('inventory')
   const { t: tCommon } = useTranslation('common')
   const { venueId } = useCurrentVenue()
+  const { getShortLabel } = useUnitTranslation()
   const [dateRange, setDateRange] = useState<DateRange>('30d')
 
   const getDateRange = (range: DateRange) => {
@@ -183,7 +185,7 @@ export function ModifierInventoryAnalytics() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-medium">
-                      {item.currentStock.toFixed(1)} / {item.reorderPoint.toFixed(1)} {item.unit}
+                      {item.currentStock.toFixed(1)} / {item.reorderPoint.toFixed(1)} {getShortLabel(item.unit)}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       ~{item.estimatedUsesRemaining} {t('modifierAnalytics.usesRemaining', 'uses remaining')}
