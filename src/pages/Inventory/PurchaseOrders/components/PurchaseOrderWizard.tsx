@@ -5,6 +5,7 @@ import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { supplierService, CreateSupplierDto } from '@/services/supplier.service'
 import { purchaseOrderService, Unit, CreatePurchaseOrderDto, PurchaseOrderStatus } from '@/services/purchaseOrder.service'
 import { rawMaterialsApi } from '@/services/inventory.service'
@@ -1405,6 +1406,7 @@ interface MaterialComboboxProps {
 
 function MaterialCombobox({ materials, value, onChange }: MaterialComboboxProps) {
   const { t } = useTranslation('purchaseOrders')
+  const { getShortLabel } = useUnitTranslation()
   const [open, setOpen] = useState(false)
   const [searchValue, setSearchValue] = useState('')
 
@@ -1463,7 +1465,7 @@ function MaterialCombobox({ materials, value, onChange }: MaterialComboboxProps)
                     />
                     <div className="flex-1">
                       <p className="font-medium">{material.name}</p>
-                      <p className="text-xs text-muted-foreground">{material.unit}</p>
+                      <p className="text-xs text-muted-foreground">{getShortLabel(material.unit)}</p>
                     </div>
                   </CommandItem>
                 ))}
