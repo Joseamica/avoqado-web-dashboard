@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Line, LineChart, CartesianGrid, XAxis } from 'recharts'
+import { Receipt } from 'lucide-react'
 import { Currency } from '@/utils/currency'
+import { EmptyChart } from './EmptyChart'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { useVenueDateTime } from '@/utils/datetime'
 import { DateTime } from 'luxon'
@@ -64,11 +66,11 @@ export const AOVTrendsChart = ({ data }: { data: any }) => {
       </CardHeader>
       <CardContent className="px-2 sm:p-6">
         {!aovData || aovData.length === 0 ? (
-          <div className="flex items-center justify-center h-[250px]">
-            <p className="text-muted-foreground">{t('noData')}</p>
+          <div className="h-[15.625rem]">
+            <EmptyChart icon={Receipt} messageKey="emptyChart.aov" />
           </div>
         ) : (
-          <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
+          <ChartContainer config={chartConfig} className="aspect-auto h-[15.625rem] w-full">
             <LineChart
               accessibilityLayer
               data={aovData}
@@ -113,7 +115,13 @@ export const AOVTrendsChart = ({ data }: { data: any }) => {
                   />
                 }
               />
-              <Line dataKey={activeMetric} type="monotone" stroke={`var(--color-${activeMetric})`} strokeWidth={2} dot={false} />
+              <Line
+                dataKey={activeMetric}
+                type="monotone"
+                stroke={`var(--color-${activeMetric})`}
+                strokeWidth={2}
+                dot={aovData.length === 1 ? { r: 4 } : false}
+              />
             </LineChart>
           </ChartContainer>
         )}

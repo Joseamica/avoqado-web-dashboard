@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell } from 'recharts'
+import { CalendarCheck } from 'lucide-react'
+
+import { EmptyChart } from './EmptyChart'
 
 const STATUS_COLORS: Record<string, string> = {
   CONFIRMED: 'var(--chart-1)',   // blue
@@ -48,8 +51,8 @@ export const ReservationOverviewChart = ({ data }: { data: any }) => {
       </CardHeader>
       <CardContent className="pt-6">
         {!hasData ? (
-          <div className="flex items-center justify-center h-48">
-            <p className="text-muted-foreground">{t('noData')}</p>
+          <div className="h-48">
+            <EmptyChart icon={CalendarCheck} messageKey="emptyChart.reservations" />
           </div>
         ) : (
           <div className="space-y-6">
@@ -61,14 +64,14 @@ export const ReservationOverviewChart = ({ data }: { data: any }) => {
               </div>
               {data.noShowRate != null && (
                 <div className="rounded-md border border-input px-3 py-2">
-                  <p className="text-lg font-semibold text-foreground">{data.noShowRate}%</p>
-                  <p className="text-xs text-muted-foreground">No Show</p>
+                  <p className="text-lg font-semibold text-foreground">{Number(data.noShowRate).toFixed(1)}%</p>
+                  <p className="text-xs text-muted-foreground">{t('reservationStatus.NO_SHOW')}</p>
                 </div>
               )}
             </div>
 
             {/* Bar chart */}
-            <div style={{ height: '240px' }}>
+            <div className="h-60">
               <ChartContainer
                 className="h-full"
                 config={chartConfig}

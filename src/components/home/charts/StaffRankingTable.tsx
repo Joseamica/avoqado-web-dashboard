@@ -1,8 +1,12 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Users } from 'lucide-react'
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Currency } from '@/utils/currency'
+
+import { EmptyChart } from './EmptyChart'
 
 export const StaffRankingTable = ({ data }: { data: any }) => {
   const { t } = useTranslation('home')
@@ -10,7 +14,7 @@ export const StaffRankingTable = ({ data }: { data: any }) => {
   const sortedStaff = useMemo(() => {
     if (!data || !Array.isArray(data) || data.length === 0) return []
     return [...data]
-      .sort((a: any, b: any) => (b.totalSales || 0) - (a.totalSales || 0))
+      .sort((a: any, b: any) => (b.revenue || 0) - (a.revenue || 0))
       .slice(0, 10)
   }, [data])
 
@@ -22,8 +26,8 @@ export const StaffRankingTable = ({ data }: { data: any }) => {
       </CardHeader>
       <CardContent className="pt-4">
         {sortedStaff.length === 0 ? (
-          <div className="flex items-center justify-center h-32">
-            <p className="text-muted-foreground">{t('noData')}</p>
+          <div className="h-32">
+            <EmptyChart icon={Users} messageKey="emptyChart.staffRanking" />
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -62,21 +66,25 @@ export const StaffRankingTable = ({ data }: { data: any }) => {
                       </div>
                     </td>
                     <td className="py-3 px-2 font-medium text-foreground">
-                      {staff.staffName}
+                      {staff.name || staff.staffName || '—'}
                     </td>
                     <td className="py-3 px-2">
-                      <Badge variant="secondary" className="text-xs">
-                        {staff.role}
-                      </Badge>
+                      {staff.role ? (
+                        <Badge variant="secondary" className="text-xs">
+                          {staff.role}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </td>
                     <td className="py-3 px-2 text-right font-medium text-foreground tabular-nums">
-                      {Currency(staff.totalSales || 0, false)}
+                      {Currency(staff.revenue ?? staff.totalSales ?? 0, false)}
                     </td>
                     <td className="py-3 px-2 text-right text-muted-foreground tabular-nums">
-                      {staff.totalOrders || 0}
+                      {(staff.orders ?? staff.totalOrders ?? 0).toLocaleString()}
                     </td>
                     <td className="py-3 px-2 text-right text-muted-foreground tabular-nums">
-                      {Currency(staff.totalTips || 0, false)}
+                      {Currency(staff.tips ?? staff.totalTips ?? 0, false)}
                     </td>
                   </tr>
                 ))}

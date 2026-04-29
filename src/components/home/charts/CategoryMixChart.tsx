@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Pie, PieChart, Label, Cell } from 'recharts'
+import { PieChart as PieChartIcon } from 'lucide-react'
 import { Currency } from '@/utils/currency'
+import { EmptyChart } from './EmptyChart'
 
 export const CategoryMixChart = ({ data }: { data: any }) => {
   const { t } = useTranslation('home')
@@ -20,12 +22,12 @@ export const CategoryMixChart = ({ data }: { data: any }) => {
     if (!data || !Array.isArray(data)) return {}
     return data.reduce((acc: any, item: any, index: number) => {
       acc[item.category] = {
-        label: item.categoryLabel || t(`categories.${item.category}`),
+        label: item.categoryLabel || item.category,
         color: `var(--chart-${(index % 5) + 1})`,
       }
       return acc
     }, {} as Record<string, { label: string; color: string }>)
-  }, [data, t])
+  }, [data])
 
   const totalRevenue = useMemo(() => {
     if (!chartData || chartData.length === 0) return 0
@@ -38,11 +40,9 @@ export const CategoryMixChart = ({ data }: { data: any }) => {
         <CardTitle>{t('categoryMix.title')}</CardTitle>
         <CardDescription>{t('categoryMix.desc')}</CardDescription>
       </CardHeader>
-      <CardContent className="pt-6" style={{ height: '360px' }}>
+      <CardContent className="pt-6 h-90">
         {chartData.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">{t('noData')}</p>
-          </div>
+          <EmptyChart icon={PieChartIcon} messageKey="emptyChart.categoryMix" />
         ) : (
           <ChartContainer
             config={chartConfig}
@@ -57,7 +57,7 @@ export const CategoryMixChart = ({ data }: { data: any }) => {
                     formatter={(value, _name, item: any) => {
                       const payload = item?.payload
                       const color = payload?.fill
-                      const label = payload?.categoryLabel || t(`categories.${payload?.category}`)
+                      const label = payload?.categoryLabel || payload?.category
                       const percentage = payload?.percentage
                       return (
                         <div className="flex w-full items-center justify-between gap-3">
@@ -73,7 +73,7 @@ export const CategoryMixChart = ({ data }: { data: any }) => {
                               {Currency(Number(value), false)}
                             </span>
                             {percentage != null && (
-                              <span className="text-xs text-muted-foreground">{percentage}%</span>
+                              <span className="text-xs text-muted-foreground">{Number(percentage).toFixed(1)}%</span>
                             )}
                           </div>
                         </div>

@@ -198,5 +198,15 @@
     "totalReservations": "Reservations",
     "noShowRate": "No-show %",
     "cancellationRate": "Cancellation %"
+  },
+  "emptyChart": {
+    "weekdaySales": "Aucune vente enregistrée pour cette période",
+    "categoryMix": "Aucune catégorie avec ventes dans cette plage",
+    "revenue": "Aucun revenu à afficher pour la tendance",
+    "aov": "Aucune commande pour calculer le ticket moyen",
+    "tips": "Aucun pourboire enregistré pour cette période",
+    "orderFrequency": "Aucune commande pour afficher la fréquence",
+    "reservations": "Aucune réservation pour cette période",
+    "staffRanking": "Aucune activité du personnel pour cette période"
   }
 }

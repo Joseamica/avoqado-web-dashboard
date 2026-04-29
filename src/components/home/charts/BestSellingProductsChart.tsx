@@ -51,7 +51,7 @@ export const BestSellingProductsChart = ({ data }: { data: any }) => {
                   {products.map((product: any, idx: number) => (
                     <li key={idx} className="flex justify-between items-center text-sm py-1">
                       <span>{product.name}</span>
-                      <span className="font-medium">{product.quantity}</span>
+                      <span className="font-medium">{Number(product.quantity).toLocaleString()}</span>
                     </li>
                   ))}
                 </ul>

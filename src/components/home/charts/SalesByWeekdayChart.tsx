@@ -3,17 +3,28 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import { BarChart3 } from 'lucide-react'
 import { Currency } from '@/utils/currency'
+import { EmptyChart } from './EmptyChart'
 
-const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const
+// Compact currency formatter for axis ticks: $1.2M, $45K, $300
+const formatAxisCurrency = (value: number): string => {
+  const abs = Math.abs(value)
+  if (abs >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`
+  if (abs >= 1_000) return `$${(value / 1_000).toFixed(0)}K`
+  return `$${value}`
+}
+
+// Backend contract (generalStats.dashboard.service.ts:913): array always ordered Mon→Sun
+const WEEKDAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const
 
 export const SalesByWeekdayChart = ({ data }: { data: any }) => {
   const { t } = useTranslation('home')
   const chartData = useMemo(() => {
     if (!data || !Array.isArray(data) || data.length === 0) return []
-    return data.map((item: any) => ({
+    return data.map((item: any, index: number) => ({
       ...item,
-      weekdayName: t(`weekdays.${WEEKDAY_KEYS[item.weekday] ?? 'mon'}`),
+      weekdayName: t(`weekdays.${WEEKDAY_KEYS[index] ?? 'mon'}`),
     }))
   }, [data, t])
 
@@ -23,11 +34,9 @@ export const SalesByWeekdayChart = ({ data }: { data: any }) => {
         <CardTitle>{t('salesByWeekday.title')}</CardTitle>
         <CardDescription>{t('salesByWeekday.desc')}</CardDescription>
       </CardHeader>
-      <CardContent className="pt-6 px-2 sm:px-4" style={{ height: '360px' }}>
+      <CardContent className="pt-6 px-2 sm:px-4 h-90">
         {chartData.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">{t('noData')}</p>
-          </div>
+          <EmptyChart icon={BarChart3} messageKey="emptyChart.weekdaySales" />
         ) : (
           <ChartContainer
             className="h-full"
@@ -53,8 +62,8 @@ export const SalesByWeekdayChart = ({ data }: { data: any }) => {
               <YAxis
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={(value) => Currency(Number(value), false)}
-                width={80}
+                tickFormatter={(value) => formatAxisCurrency(Number(value))}
+                width={56}
               />
               <ChartTooltip
                 content={

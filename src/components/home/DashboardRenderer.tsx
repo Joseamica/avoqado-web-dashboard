@@ -269,12 +269,12 @@ const PaymentMethodsPieSection = ({
           <div className="flex items-center gap-2 font-medium leading-none">
             {amountChangePercentage > 0 ? (
               <>
-                {t('comparison.trending')} {amountChangePercentage}% {t('comparison.thisMonth')}{' '}
+                {t('comparison.trending')} {amountChangePercentage}%{' '}
                 <TrendingUp className="h-4 w-4" />
               </>
             ) : amountChangePercentage < 0 ? (
               <>
-                {t('comparison.trending')} {Math.abs(amountChangePercentage)}% {t('comparison.thisMonth')}{' '}
+                {t('comparison.trending')} {Math.abs(amountChangePercentage)}%{' '}
                 <TrendingUp className="h-4 w-4 rotate-180" />
               </>
             ) : (
