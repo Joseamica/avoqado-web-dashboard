@@ -81,6 +81,7 @@ import {
   isChatFeatureLockedError,
   type ChatResponseMetadata,
   type CreateProductActionMetadata,
+  type GenericAssistantActionMetadata,
   type VisualizationResult,
 } from '../../services/chatService'
 
@@ -137,6 +138,18 @@ interface ChatFeatureLockNotice {
   trialExpired?: boolean
   suspended?: boolean
 }
+
+const generateIdempotencyKey = () =>
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, char => {
+        const randomNibble = Math.floor(Math.random() * 16)
+        const value = char === 'x' ? randomNibble : (randomNibble & 0x3) | 0x8
+        return value.toString(16)
+      })
+
+const isGenericAssistantAction = (action: ChatResponseMetadata['action'] | undefined): action is GenericAssistantActionMetadata =>
+  Boolean(action && action.type !== 'create_product')
 
 // Helper function to convert conversation history to chat messages
 function convertHistoryToMessages(history: any[], welcomeText: string): ChatMessage[] {
@@ -267,6 +280,8 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   const [includeVisualization, setIncludeVisualization] = useState(false) // Toggle for chart generation
   const [productActionForms, setProductActionForms] = useState<Record<string, CreateProductFormState>>({})
   const [isCreateProductSubmitting, setIsCreateProductSubmitting] = useState(false)
+  const [confirmingActionId, setConfirmingActionId] = useState<string | null>(null)
+  const actionIdempotencyKeysRef = useRef<Record<string, string>>({})
   const [showCreateProductConfirm, setShowCreateProductConfirm] = useState(false)
   const [pendingCreateProductConfirmation, setPendingCreateProductConfirmation] = useState<PendingCreateProductConfirmation | null>(
     null,
@@ -1020,14 +1035,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         return labels[field] || field
       }
 
-      const idempotencyKey =
-        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-          ? crypto.randomUUID()
-          : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, char => {
-              const randomNibble = Math.floor(Math.random() * 16)
-              const value = char === 'x' ? randomNibble : (randomNibble & 0x3) | 0x8
-              return value.toString(16)
-            })
+      const idempotencyKey = generateIdempotencyKey()
 
       setIsCreateProductSubmitting(true)
       try {
@@ -1151,6 +1159,91 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
       setIsCreateProductSubmitting(false)
     }
   }, [pendingCreateProductConfirmation, t, tCommon, toast, userId, venueSlug])
+
+  const confirmGenericAssistantAction = useCallback(
+    async (action: GenericAssistantActionMetadata, doubleConfirmed = false) => {
+      if (!action.actionId) {
+        toast({
+          variant: 'destructive',
+          title: tCommon('error'),
+          description: 'No se pudo confirmar la acción: falta el identificador de la vista previa.',
+        })
+        return
+      }
+
+      const actionId = action.actionId
+      const idempotencyKey = actionIdempotencyKeysRef.current[actionId] ?? generateIdempotencyKey()
+      actionIdempotencyKeysRef.current[actionId] = idempotencyKey
+      setConfirmingActionId(actionId)
+
+      const userConfirmationText = doubleConfirmed ? 'Confirmo definitivamente esta acción.' : 'Confirmo esta acción.'
+
+      try {
+        const confirmationMessage: ChatMessage = {
+          id: `user-confirm-${Date.now()}`,
+          text: userConfirmationText,
+          isUser: true,
+          timestamp: new Date(),
+          feedbackGiven: null,
+        }
+
+        setMessages(prev => [...prev, confirmationMessage])
+        addMessageToHistory('user', userConfirmationText, venueSlug, undefined, userId)
+
+        const confirmResult = await confirmAssistantAction(actionId, idempotencyKey, doubleConfirmed)
+        const resultAction: GenericAssistantActionMetadata = {
+          type: confirmResult.status as GenericAssistantActionMetadata['type'],
+          actionId,
+          entityId: confirmResult.entityId,
+        }
+
+        const botMessage: ChatMessage = {
+          id: `bot-${Date.now()}`,
+          text: confirmResult.response,
+          isUser: false,
+          timestamp: new Date(),
+          feedbackGiven: null,
+          metadata: {
+            ...confirmResult.metadata,
+            action: confirmResult.metadata?.action ?? resultAction,
+          },
+          trainingDataId: confirmResult.auditId,
+        }
+
+        setMessages(prev => [...prev, botMessage])
+        addMessageToHistory('assistant', confirmResult.response, venueSlug, confirmResult.auditId, userId)
+
+        if (confirmResult.status === 'confirmed') {
+          delete actionIdempotencyKeysRef.current[actionId]
+          toast({
+            title: 'Acción ejecutada',
+            description: confirmResult.response,
+          })
+        } else if (confirmResult.status === 'double_confirm') {
+          toast({
+            title: 'Confirmación adicional requerida',
+            description: confirmResult.response,
+          })
+        } else if (confirmResult.status === 'expired' || confirmResult.status === 'error' || confirmResult.status === 'permission_denied') {
+          delete actionIdempotencyKeysRef.current[actionId]
+          toast({
+            variant: 'destructive',
+            title: tCommon('error'),
+            description: confirmResult.response,
+          })
+        }
+      } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: tCommon('error'),
+          description: error instanceof Error ? error.message : 'No se pudo confirmar la acción',
+        })
+      } finally {
+        setConfirmingActionId(null)
+      }
+    },
+    [tCommon, toast, userId, venueSlug],
+  )
 
   // Calcular ancho basado en estado
   const cardWidth = useMemo(() => {
@@ -1599,7 +1692,8 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                                       needsModifiers: checked === true,
                                       modifierGroupIds:
                                         checked === true
-                                          ? (productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action))
+                                          ? (productActionForms[message.id] ||
+                                              getCreateProductFormFromAction(message.metadata.action as CreateProductActionMetadata))
                                               .modifierGroupIds
                                           : [],
                                     })
@@ -1611,7 +1705,8 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                                 </label>
                               </div>
 
-                              {(productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action))
+                              {(productActionForms[message.id] ||
+                                getCreateProductFormFromAction(message.metadata.action as CreateProductActionMetadata))
                                 .needsModifiers && (
                                 <div className="space-y-1.5 max-h-24 overflow-y-auto rounded border border-border p-2">
                                   {message.metadata.action.modifierGroups.map(group => (
@@ -1619,7 +1714,8 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                                       <Checkbox
                                         id={`modifier-group-${message.id}-${group.id}`}
                                         checked={(
-                                          productActionForms[message.id] || getCreateProductFormFromAction(message.metadata.action)
+                                          productActionForms[message.id] ||
+                                            getCreateProductFormFromAction(message.metadata.action as CreateProductActionMetadata)
                                         ).modifierGroupIds.includes(group.id)}
                                         onCheckedChange={checked => handleToggleModifierGroup(message.id, group.id, checked === true)}
                                         disabled={chatMutation.isPending || isCreateProductSubmitting}
@@ -1642,7 +1738,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                             type="button"
                             size="sm"
                             className="w-full h-8 text-xs"
-                            onClick={() => submitCreateProductAction(message.id, message.metadata.action)}
+                            onClick={() => submitCreateProductAction(message.id, message.metadata.action as CreateProductActionMetadata)}
                             disabled={chatMutation.isPending || isCreateProductSubmitting || message.metadata.action.categories.length === 0}
                           >
                             {chatMutation.isPending || isCreateProductSubmitting ? (
@@ -1661,6 +1757,61 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                           <p className="text-xs text-green-700 dark:text-green-400">
                             {message.metadata.action.createdProduct.name} • {message.metadata.action.createdProduct.sku}
                           </p>
+                        </div>
+                      )}
+                    {!message.isUser &&
+                      isGenericAssistantAction(message.metadata?.action) &&
+                      message.metadata.action.actionId &&
+                      (message.metadata.action.type === 'preview' || message.metadata.action.type === 'double_confirm') && (
+                        <div
+                          className={`mt-3 p-3 rounded-md border space-y-2 ${
+                            message.metadata.action.type === 'double_confirm'
+                              ? 'border-destructive/40 bg-destructive/10'
+                              : 'border-border bg-muted/30'
+                          }`}
+                        >
+                          <p className="text-xs font-medium">
+                            {message.metadata.action.type === 'double_confirm' ? 'Confirmación final requerida' : 'Vista previa de acción'}
+                          </p>
+                          {message.metadata.action.preview?.expiresAt && (
+                            <p className="text-[11px] text-muted-foreground">
+                              Expira: {new Date(message.metadata.action.preview.expiresAt).toLocaleTimeString()}
+                            </p>
+                          )}
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={message.metadata.action.type === 'double_confirm' ? 'destructive' : 'default'}
+                              className="h-8 text-xs"
+                              onClick={() =>
+                                confirmGenericAssistantAction(
+                                  message.metadata!.action as GenericAssistantActionMetadata,
+                                  message.metadata!.action!.type === 'double_confirm',
+                                )
+                              }
+                              disabled={confirmingActionId === message.metadata.action.actionId}
+                            >
+                              {confirmingActionId === message.metadata.action.actionId ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                              ) : null}
+                              {message.metadata.action.type === 'double_confirm' ? 'Sí, ejecutar' : 'Confirmar'}
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-8 text-xs"
+                              onClick={() => {
+                                const action = message.metadata!.action as GenericAssistantActionMetadata
+                                delete actionIdempotencyKeysRef.current[action.actionId!]
+                                toast({ title: 'Acción cancelada' })
+                              }}
+                              disabled={confirmingActionId === message.metadata.action.actionId}
+                            >
+                              Cancelar
+                            </Button>
+                          </div>
                         </div>
                       )}
                     {/* Chart visualization or skip message */}

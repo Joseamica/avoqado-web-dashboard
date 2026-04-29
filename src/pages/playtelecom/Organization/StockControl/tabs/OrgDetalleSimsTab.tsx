@@ -129,9 +129,12 @@ export function OrgDetalleSimsTab({ data }: OrgDetalleSimsTabProps) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => setSearch(e.target.value.replace(/[^A-Za-z0-9]/g, ''))}
             placeholder="Buscar por ICCID..."
             className="pl-9 h-9 font-mono text-sm"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>

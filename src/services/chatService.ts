@@ -48,6 +48,34 @@ export interface CreateProductActionMetadata {
   }
 }
 
+export interface GenericAssistantActionMetadata {
+  type:
+    | 'preview'
+    | 'double_confirm'
+    | 'confirmed'
+    | 'requires_input'
+    | 'expired'
+    | 'noop'
+    | 'error'
+    | 'permission_denied'
+    | 'disambiguate'
+    | 'not_found'
+  actionId?: string
+  preview?: {
+    actionId?: string
+    actionType?: string
+    title?: string
+    summary?: string
+    dangerLevel?: 'low' | 'medium' | 'high' | 'blocked'
+    expiresAt?: string
+    changes?: Array<Record<string, unknown>>
+    warnings?: string[]
+  }
+  missingFields?: string[]
+  candidates?: Array<Record<string, unknown>>
+  entityId?: string
+}
+
 export interface ChatResponseMetadata {
   confidence?: number
   queryGenerated?: boolean
@@ -66,7 +94,7 @@ export interface ChatResponseMetadata {
     key: string
     replayed: boolean
   }
-  action?: CreateProductActionMetadata
+  action?: CreateProductActionMetadata | GenericAssistantActionMetadata
 }
 
 // Tipos para el chat
@@ -204,7 +232,7 @@ export interface AssistantActionPreviewResponse {
 
 export interface AssistantActionConfirmResponse {
   actionId: string
-  status: 'confirmed' | 'requires_input' | 'expired' | 'noop'
+  status: 'confirmed' | 'requires_input' | 'expired' | 'noop' | 'double_confirm' | 'error' | 'permission_denied'
   response: string
   entityId?: string
   auditId?: string
@@ -729,18 +757,42 @@ export const previewAssistantAction = async (
 export const confirmAssistantAction = async (
   actionId: string,
   idempotencyKey: string,
+  doubleConfirmed = false,
 ): Promise<AssistantActionConfirmResponse> => {
   const response = await api.post('/api/v1/dashboard/assistant/actions/confirm', {
     actionId,
     idempotencyKey,
     confirmed: true,
+    doubleConfirmed,
   })
 
   if (!response.data?.success || !response.data?.data) {
     throw new Error(response.data?.message || 'No se pudo confirmar la acción.')
   }
 
-  return response.data.data as AssistantActionConfirmResponse
+  const data = response.data.data as Record<string, unknown>
+
+  if (typeof data.type === 'string' && typeof data.message === 'string' && typeof data.status !== 'string') {
+    return {
+      actionId,
+      status: data.type as AssistantActionConfirmResponse['status'],
+      response: data.message,
+      entityId: typeof data.entityId === 'string' ? data.entityId : undefined,
+      auditId: typeof data.auditId === 'string' ? data.auditId : undefined,
+      metadata: {
+        routedTo: 'ActionConfirm',
+        riskLevel: data.type === 'confirmed' ? 'medium' : 'high',
+        reasonCode: `action_${data.type}`,
+        action: {
+          type: data.type as GenericAssistantActionMetadata['type'],
+          actionId,
+          entityId: typeof data.entityId === 'string' ? data.entityId : undefined,
+        },
+      },
+    }
+  }
+
+  return data as unknown as AssistantActionConfirmResponse
 }
 
 // Función para obtener sugerencias

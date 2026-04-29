@@ -8,7 +8,7 @@
  * - Upload results with errors
  */
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
@@ -78,7 +78,15 @@ export function BulkUploadDialog({ open, onOpenChange, preselectedCategoryId }: 
   const [isDragging, setIsDragging] = useState(false)
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null)
   const [isOrgLevel, setIsOrgLevel] = useState(false)
+  const [invalidCharFlash, setInvalidCharFlash] = useState(false)
   const canOrgManage = can('inventory:org-manage')
+
+  // Clear invalid-char flash after 2 seconds
+  useEffect(() => {
+    if (!invalidCharFlash) return
+    const t = setTimeout(() => setInvalidCharFlash(false), 2000)
+    return () => clearTimeout(t)
+  }, [invalidCharFlash])
 
   // Fetch categories
   const { data: categoriesData } = useQuery({
@@ -114,6 +122,14 @@ export function BulkUploadDialog({ open, onOpenChange, preselectedCategoryId }: 
           .split(/[\n,;\t]+/)
           .map((s) => s.trim())
           .filter((s) => s.length > 0)
+        // Backstop: reject any serial with non-alphanumeric chars
+        const invalid = serialNumbers.filter((s) => !/^[A-Za-z0-9]+$/.test(s))
+        if (invalid.length > 0) {
+          const sample = invalid.slice(0, 3).join(', ')
+          throw new Error(
+            `${invalid.length} código${invalid.length === 1 ? '' : 's'} con caracteres inválidos: ${sample}${invalid.length > 3 ? '…' : ''}`,
+          )
+        }
         data = { serialNumbers }
       } else {
         throw new Error('Proporciona números de serie')
@@ -333,7 +349,12 @@ export function BulkUploadDialog({ open, onOpenChange, preselectedCategoryId }: 
                 <Textarea
                   value={manualSerials}
                   onChange={(e) => {
-                    setManualSerials(e.target.value)
+                    // Allow alphanumerics + separators (newline, comma, semicolon, tab, space)
+                    const filtered = e.target.value.replace(/[^A-Za-z0-9\n,;\t ]/g, '')
+                    if (filtered.length !== e.target.value.length) {
+                      setInvalidCharFlash(true)
+                    }
+                    setManualSerials(filtered)
                     setUploadResult(null)
                   }}
                   placeholder={`8952140063000001234
@@ -342,11 +363,13 @@ export function BulkUploadDialog({ open, onOpenChange, preselectedCategoryId }: 
                   rows={6}
                   className="font-mono text-sm"
                 />
-                <p className="text-xs text-muted-foreground">
-                  {t('playtelecom:bulkUpload.onePerLine', {
-                    defaultValue: 'Un número de serie por línea, coma o tab (compatible con scanner)',
-                  })}
-                  {serialCount > 0 && (
+                <p className={`text-xs ${invalidCharFlash ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  {invalidCharFlash
+                    ? '⚠ Símbolo eliminado — solo letras, números y separadores'
+                    : t('playtelecom:bulkUpload.onePerLine', {
+                        defaultValue: 'Solo letras y números. Un código por línea, coma o tab (compatible con scanner)',
+                      })}
+                  {serialCount > 0 && !invalidCharFlash && (
                     <span className="ml-2 font-medium text-foreground">
                       ({serialCount} {serialCount === 1 ? 'item' : 'items'})
                     </span>

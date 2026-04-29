@@ -54,6 +54,14 @@ export function OrgBulkUploadDialog({ open, onOpenChange }: Props) {
   const [manualSerials, setManualSerials] = useState('')
   const [csvFile, setCsvFile] = useState<File | null>(null)
   const [result, setResult] = useState<UploadResult | null>(null)
+  const [invalidCharFlash, setInvalidCharFlash] = useState(false)
+
+  // Clear invalid-char flash after 2 seconds
+  useEffect(() => {
+    if (!invalidCharFlash) return
+    const t = setTimeout(() => setInvalidCharFlash(false), 2000)
+    return () => clearTimeout(t)
+  }, [invalidCharFlash])
 
   // Default to first venue so the user can just hit upload in the common case.
   const effectiveVenueId = originVenueId || venues[0]?.id || ''
@@ -90,10 +98,20 @@ export function OrgBulkUploadDialog({ open, onOpenChange }: Props) {
       if (mode === 'csv' && csvFile) {
         payload.csvContent = await csvFile.text()
       } else if (mode === 'manual' && manualSerials.trim()) {
-        payload.serialNumbers = manualSerials
+        const serials = manualSerials
           .split(/[\n,;\t]+/)
           .map(s => s.trim())
           .filter(Boolean)
+        // Backstop: reject any ICCID with non-alphanumeric chars (defense-in-depth
+        // behind the onChange filter, in case state was hydrated from elsewhere)
+        const invalid = serials.filter(s => !/^[A-Za-z0-9]+$/.test(s))
+        if (invalid.length > 0) {
+          const sample = invalid.slice(0, 3).join(', ')
+          throw new Error(
+            `${invalid.length} ICCID${invalid.length === 1 ? '' : 's'} con caracteres inválidos: ${sample}${invalid.length > 3 ? '…' : ''}`,
+          )
+        }
+        payload.serialNumbers = serials
       } else {
         throw new Error('Agrega al menos un ICCID')
       }
@@ -188,11 +206,24 @@ export function OrgBulkUploadDialog({ open, onOpenChange }: Props) {
                   placeholder="8952140063000001111&#10;8952140063000002222"
                   rows={6}
                   value={manualSerials}
-                  onChange={e => setManualSerials(e.target.value)}
+                  onChange={e => {
+                    // Allow alphanumerics + separators (newline, comma, semicolon, tab, space)
+                    const filtered = e.target.value.replace(/[^A-Za-z0-9\n,;\t ]/g, '')
+                    if (filtered.length !== e.target.value.length) {
+                      setInvalidCharFlash(true)
+                    }
+                    setManualSerials(filtered)
+                  }}
                   className="font-mono text-sm"
                 />
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Un ICCID por línea, coma o tab. Compatible con escáner.
+                <p
+                  className={`mt-2 text-xs ${
+                    invalidCharFlash ? 'text-destructive' : 'text-muted-foreground'
+                  }`}
+                >
+                  {invalidCharFlash
+                    ? '⚠ Símbolo eliminado — solo letras, números y separadores (línea, coma, tab)'
+                    : 'Solo letras y números. Un ICCID por línea, coma o tab. Compatible con escáner.'}
                 </p>
               </TabsContent>
               <TabsContent value="csv" className="mt-3">
