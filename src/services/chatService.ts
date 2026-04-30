@@ -72,8 +72,18 @@ export interface GenericAssistantActionMetadata {
     warnings?: string[]
   }
   missingFields?: string[]
+  formFields?: AssistantActionFormField[]
   candidates?: Array<Record<string, unknown>>
   entityId?: string
+}
+
+export interface AssistantActionFormField {
+  name: string
+  label: string
+  type: 'string' | 'decimal' | 'integer' | 'boolean' | 'enum' | 'date' | 'reference'
+  required: boolean
+  value?: unknown
+  options?: string[]
 }
 
 export interface ChatResponseMetadata {
