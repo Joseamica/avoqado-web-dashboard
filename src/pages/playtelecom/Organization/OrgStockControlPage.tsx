@@ -179,7 +179,7 @@ export default function OrgStockControlPage() {
             initialDateTo={selectedRange.to}
             onUpdate={handleDateRangeUpdate}
           />
-          <ExportButton orgId={orgId!} params={queryParams} items={data.items} />
+          <ExportButton orgId={orgId!} params={queryParams} items={data.items} bulkGroups={data.bulkGroups ?? []} />
           {/* If the user already reached /stock-control they're implicitly on a
               PlayTelecom-style org; keep this button gated by permissions +
               org venues only. */}
