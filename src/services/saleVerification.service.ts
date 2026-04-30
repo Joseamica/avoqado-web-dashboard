@@ -13,6 +13,18 @@ import api from '@/api'
 
 export type SaleVerificationStatus = 'PENDING' | 'COMPLETED' | 'FAILED'
 
+// Back-office rejection reasons (PlayTelecom / Walmart documentation flow)
+export type SaleVerificationRejectionReason =
+  | 'REVIEW_PORTABILIDAD'
+  | 'REVIEW_DUPLICATE_VINCULACION'
+  | 'OTHER'
+
+export const SALE_VERIFICATION_REJECTION_REASON_LABELS: Record<SaleVerificationRejectionReason, string> = {
+  REVIEW_PORTABILIDAD: 'Revisar portabilidad',
+  REVIEW_DUPLICATE_VINCULACION: 'Revisar número duplicado de vinculación',
+  OTHER: 'Otro motivo',
+}
+
 export interface ScannedProduct {
   barcode: string
   format: string
@@ -28,6 +40,12 @@ export interface SaleVerificationStaff {
   lastName: string
   email: string
   photoUrl?: string | null
+}
+
+export interface SaleVerificationReviewer {
+  id: string
+  firstName: string
+  lastName: string
 }
 
 export interface SaleVerificationPayment {
@@ -58,6 +76,12 @@ export interface SaleVerification {
   updatedAt: string
   /** True if this payment has an associated sale verification record */
   hasVerification: boolean
+  // Back-office review metadata (PlayTelecom / Walmart documentation flow)
+  reviewedById: string | null
+  reviewedAt: string | null
+  reviewNotes: string | null
+  rejectionReasons: SaleVerificationRejectionReason[]
+  reviewedBy: SaleVerificationReviewer | null
   staff: SaleVerificationStaff | null
   payment: SaleVerificationPayment | null
 }
@@ -198,5 +222,31 @@ export async function getStaffWithVerifications(venueId: string): Promise<StaffW
   const url = `/api/v1/dashboard/venues/${venueId}/sale-verifications/staff`
   const response = await api.get(url)
 
+  return response.data.data
+}
+
+// ============================================================
+// Back-Office Review (PlayTelecom / Walmart documentation flow)
+// ============================================================
+
+export interface ReviewSaleVerificationParams {
+  decision: 'APPROVE' | 'REJECT'
+  /** Required when decision = REJECT (or provide reviewNotes). */
+  rejectionReasons?: SaleVerificationRejectionReason[]
+  /** Free-text feedback shown to the promoter on TPV. */
+  reviewNotes?: string
+}
+
+/**
+ * Approve or reject a sale verification (back-office).
+ * Backend emits `sale-verification.reviewed` socket event to the promoter so the TPV refreshes.
+ */
+export async function reviewSaleVerification(
+  venueId: string,
+  saleVerificationId: string,
+  params: ReviewSaleVerificationParams,
+): Promise<SaleVerification> {
+  const url = `/api/v1/dashboard/venues/${venueId}/sale-verifications/${saleVerificationId}/review`
+  const response = await api.patch(url, params)
   return response.data.data
 }

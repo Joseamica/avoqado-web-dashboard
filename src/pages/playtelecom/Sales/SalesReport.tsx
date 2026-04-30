@@ -57,10 +57,14 @@ import {
   ImageIcon,
   BarChart3,
   AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  MessageSquare,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { useDebounce } from '@/hooks/useDebounce'
+import { useAccess } from '@/hooks/use-access'
 import { getLast30Days, useVenueDateTime } from '@/utils/datetime'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import * as saleVerificationService from '@/services/saleVerification.service'
@@ -68,6 +72,8 @@ import type {
   SaleVerification,
   SaleVerificationStatus,
 } from '@/services/saleVerification.service'
+import { SALE_VERIFICATION_REJECTION_REASON_LABELS } from '@/services/saleVerification.service'
+import { ReviewSaleDialog, type ReviewMode } from './components/ReviewSaleDialog'
 
 // Status colors and labels
 const STATUS_CONFIG: Record<SaleVerificationStatus, { label: string; className: string }> = {
@@ -230,6 +236,23 @@ export function SalesReport() {
   const { activeVenue } = useAuth()
   const { venueTimezone } = useVenueDateTime()
   const venueId = activeVenue?.id ?? ''
+  const { can } = useAccess()
+  const canReview = can('sale-verifications:review')
+
+  // Back-office review dialog state
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false)
+  const [reviewMode, setReviewMode] = useState<ReviewMode>('approve')
+  const [reviewTarget, setReviewTarget] = useState<SaleVerification | null>(null)
+
+  const openReview = (verification: SaleVerification, mode: ReviewMode) => {
+    setReviewTarget(verification)
+    setReviewMode(mode)
+    setReviewDialogOpen(true)
+  }
+  const closeReview = () => {
+    setReviewDialogOpen(false)
+    setReviewTarget(null)
+  }
 
   // Filters
   const [selectedStaff, setSelectedStaff] = useState('all')
@@ -778,12 +801,17 @@ export function SalesReport() {
                 <th className="px-6 py-4 font-black text-[10px] uppercase text-muted-foreground text-center">
                   {t('playtelecom:sales.status', { defaultValue: 'Estado' })}
                 </th>
+                {canReview && (
+                  <th className="px-6 py-4 font-black text-[10px] uppercase text-muted-foreground text-center">
+                    {t('playtelecom:sales.actions', { defaultValue: 'Acciones' })}
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
               {isLoadingVerifications ? (
                 <tr>
-                  <td colSpan={5} className="p-0">
+                  <td colSpan={canReview ? 6 : 5} className="p-0">
                     <div className="space-y-0 divide-y divide-border/30">
                       {Array.from({ length: 5 }).map((_, i) => (
                         <div key={i} className="flex items-center gap-4 px-6 py-4">
@@ -799,7 +827,7 @@ export function SalesReport() {
                 </tr>
               ) : verifications.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center">
+                  <td colSpan={canReview ? 6 : 5} className="px-6 py-12 text-center">
                     <Receipt className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
                     <p className="text-sm text-muted-foreground">
                       {t('playtelecom:sales.noVerifications', { defaultValue: 'No hay verificaciones de venta' })}
@@ -898,17 +926,89 @@ export function SalesReport() {
                       </div>
                     </td>
 
-                    {/* Status */}
+                    {/* Status (with reviewer + reasons when reviewed) */}
                     <td className="px-6 py-4 text-center">
-                      <span
-                        className={cn(
-                          'px-2 py-0.5 rounded text-[9px] font-black border',
-                          STATUS_CONFIG[verification.status]?.className ?? STATUS_CONFIG.PENDING.className
+                      <div className="flex flex-col items-center gap-1">
+                        <span
+                          className={cn(
+                            'px-2 py-0.5 rounded text-[9px] font-black border',
+                            STATUS_CONFIG[verification.status]?.className ?? STATUS_CONFIG.PENDING.className
+                          )}
+                        >
+                          {STATUS_CONFIG[verification.status]?.label ?? verification.status}
+                        </span>
+                        {verification.reviewedBy && verification.status !== 'PENDING' && (
+                          <p className="text-[9px] text-muted-foreground">
+                            {`${verification.reviewedBy.firstName} ${verification.reviewedBy.lastName}`.trim()}
+                            {verification.reviewedAt && (
+                              <>
+                                {' · '}
+                                {formatDate(verification.reviewedAt)}
+                              </>
+                            )}
+                          </p>
                         )}
-                      >
-                        {STATUS_CONFIG[verification.status]?.label ?? verification.status}
-                      </span>
+                        {verification.status === 'FAILED' && verification.rejectionReasons.length > 0 && (
+                          <div className="flex flex-wrap gap-1 justify-center max-w-[180px]">
+                            {verification.rejectionReasons.map(reason => (
+                              <span
+                                key={reason}
+                                className="px-1.5 py-0.5 rounded text-[8px] font-bold border bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700/50"
+                              >
+                                {SALE_VERIFICATION_REJECTION_REASON_LABELS[reason]}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {verification.status === 'FAILED' && verification.reviewNotes && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button className="inline-flex items-center gap-1 text-[9px] text-muted-foreground hover:text-foreground">
+                                  <MessageSquare className="w-3 h-3" />
+                                  Observaciones
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p className="text-xs">{verification.reviewNotes}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
                     </td>
+
+                    {/* Actions: only PENDING + permission */}
+                    {canReview && (
+                      <td className="px-6 py-4 text-center">
+                        {verification.status === 'PENDING' && verification.hasVerification ? (
+                          <div className="flex items-center justify-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700/50 dark:text-green-300 dark:hover:bg-green-900/20"
+                              onClick={() => openReview(verification, 'approve')}
+                              data-testid={`btn-approve-${verification.id}`}
+                            >
+                              <CheckCircle2 className="w-3 h-3 mr-1" />
+                              Confirmar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 border-red-300 text-red-700 hover:bg-red-50 dark:border-red-700/50 dark:text-red-300 dark:hover:bg-red-900/20"
+                              onClick={() => openReview(verification, 'reject')}
+                              data-testid={`btn-reject-${verification.id}`}
+                            >
+                              <XCircle className="w-3 h-3 mr-1" />
+                              Revisar
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground">—</span>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -949,6 +1049,15 @@ export function SalesReport() {
           </div>
         </div>
       </GlassCard>
+
+      {/* Back-office Review Dialog (PlayTelecom / Walmart documentation) */}
+      <ReviewSaleDialog
+        open={reviewDialogOpen}
+        mode={reviewMode}
+        verification={reviewTarget}
+        venueId={venueId}
+        onClose={closeReview}
+      />
 
       {/* Image Preview Modal */}
       <Dialog open={!!previewImages} onOpenChange={() => setPreviewImages(null)}>
