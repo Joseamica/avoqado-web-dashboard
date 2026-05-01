@@ -74,6 +74,20 @@ export function ReportePage() {
     return 'bg-blue-900/40 text-blue-300 border-blue-800'
   }
 
+  const saleStatusColor = (status?: string) => {
+    switch (status) {
+      case 'Venta correcta':
+        return 'bg-green-900/40 text-green-300 border-green-800'
+      case 'En revisión':
+        return 'bg-yellow-900/40 text-yellow-300 border-yellow-800'
+      case 'Venta sin documentación completa':
+        return 'bg-red-900/40 text-red-300 border-red-800'
+      case 'Sin verificación':
+      default:
+        return 'bg-muted/40 text-muted-foreground border-border'
+    }
+  }
+
   return (
     <div className="flex flex-col h-full -m-6">
       {/* Header */}
@@ -107,13 +121,14 @@ export function ReportePage() {
                 <th className="w-10 text-center border border-border/50 px-3 py-2 text-xs font-semibold uppercase text-muted-foreground bg-muted/50">
                   #
                 </th>
-                {['Ciudad', 'Tienda', 'ICCID', 'Tipo Venta', 'Promotor', 'Fecha', 'Monto Cobrado'].map(h => (
+                {['Ciudad', 'Tienda', 'ICCID', 'Tipo Venta', 'Es Portabilidad', 'Status de Venta', 'Promotor', 'Fecha', 'Monto Cobrado'].map(h => (
                   <th
                     key={h}
                     className={cn(
                       'border border-green-900/50 px-3 py-2 text-xs font-semibold uppercase',
                       'bg-green-900/60 text-green-100',
-                      h === 'Monto Cobrado' && 'text-right'
+                      h === 'Monto Cobrado' && 'text-right',
+                      (h === 'Es Portabilidad' || h === 'Status de Venta') && 'text-center'
                     )}
                   >
                     {h}
@@ -124,7 +139,7 @@ export function ReportePage() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="p-0">
+                  <td colSpan={10} className="p-0">
                     <div className="space-y-0">
                       {Array.from({ length: 8 }).map((_, i) => (
                         <div key={i} className="flex items-center gap-3 px-3 py-2 border-b border-border/30">
@@ -143,7 +158,7 @@ export function ReportePage() {
                 </tr>
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-muted-foreground text-sm">
+                  <td colSpan={10} className="px-6 py-12 text-center text-muted-foreground text-sm">
                     {t('playtelecom:reporte.noData', { defaultValue: 'No hay datos para mostrar' })}
                   </td>
                 </tr>
@@ -160,6 +175,20 @@ export function ReportePage() {
                       {row.saleType}
                     </Badge>
                   </td>
+                  {/* Es Portabilidad — back-office filter for Walmart payout requirement */}
+                  <td className="border border-border/30 px-3 py-2 text-center text-sm font-semibold">
+                    {row.isPortabilidad ? (
+                      <span className="text-purple-400">Si</span>
+                    ) : (
+                      <span className="text-muted-foreground">No</span>
+                    )}
+                  </td>
+                  {/* Status de Venta — back-office documentation review status */}
+                  <td className="border border-border/30 px-3 py-2 text-center">
+                    <Badge className={cn('text-xs whitespace-normal text-center', saleStatusColor(row.saleStatus))}>
+                      {row.saleStatus ?? 'Sin verificación'}
+                    </Badge>
+                  </td>
                   <td className="border border-border/30 px-3 py-2 text-sm">{row.promoter}</td>
                   <td className="border border-border/30 px-3 py-2 text-sm">{row.date}</td>
                   <td className="border border-border/30 px-3 py-2 text-right font-mono text-sm">
@@ -170,7 +199,7 @@ export function ReportePage() {
             </tbody>
             <tfoot>
               <tr className="bg-muted/50 font-bold">
-                <td colSpan={7} className="border border-border/30 px-3 py-3 text-right text-sm uppercase">
+                <td colSpan={9} className="border border-border/30 px-3 py-3 text-right text-sm uppercase">
                   {t('playtelecom:reporte.total', { defaultValue: 'Total' })}
                 </td>
                 <td className="border border-border/30 px-3 py-3 text-right font-mono text-lg text-green-400">

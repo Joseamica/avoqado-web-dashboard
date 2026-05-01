@@ -32,11 +32,13 @@ import { Button } from '@/components/ui/button'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Textarea } from '@/components/ui/textarea'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useVenueDateTime } from '@/utils/datetime'
 import reservationService from '@/services/reservation.service'
+import type { RescheduleNotificationChannel } from '@/types/reservation'
 
 import { ReservationStatusBadge } from './components/ReservationStatusBadge'
 
@@ -56,6 +58,8 @@ export default function ReservationDetail() {
 	const [cancelReason, setCancelReason] = useState('')
 	const [rescheduleStart, setRescheduleStart] = useState('')
 	const [rescheduleEnd, setRescheduleEnd] = useState('')
+	const [rescheduleChannel, setRescheduleChannel] = useState<RescheduleNotificationChannel>('push')
+	const [rescheduleCustomMessage, setRescheduleCustomMessage] = useState('')
 
 	// Fetch reservation
 	const { data: reservation, isLoading } = useQuery({
@@ -133,6 +137,8 @@ export default function ReservationDetail() {
 			reservationService.reschedule(venueId, reservationId!, {
 				startsAt: rescheduleStart,
 				endsAt: rescheduleEnd,
+				notificationChannel: rescheduleChannel,
+				customMessage: rescheduleCustomMessage.trim() || undefined,
 			}),
 		onSuccess: () => {
 			toast({ title: t('toasts.rescheduleSuccess') })
@@ -508,6 +514,36 @@ export default function ReservationDetail() {
 							onChange={e => setRescheduleEnd(e.target.value)}
 						/>
 					</div>
+					<div className="space-y-3">
+						<Label>{t('detail.reschedule.notificationLabel')}</Label>
+						<RadioGroup
+							value={rescheduleChannel}
+							onValueChange={(v) => setRescheduleChannel(v as RescheduleNotificationChannel)}
+							className="grid grid-cols-1 sm:grid-cols-2 gap-2"
+						>
+							{(['push', 'whatsapp', 'email', 'none'] as const).map((channel) => (
+								<label
+									key={channel}
+									htmlFor={`reschedule-channel-${channel}`}
+									className="flex items-center gap-3 rounded-lg border border-border/60 p-3 cursor-pointer hover:bg-muted/40"
+								>
+									<RadioGroupItem value={channel} id={`reschedule-channel-${channel}`} />
+									<span className="text-sm">{t(`detail.reschedule.channels.${channel}`)}</span>
+								</label>
+							))}
+						</RadioGroup>
+					</div>
+					{rescheduleChannel !== 'none' && (
+						<div className="space-y-2">
+							<Label>{t('detail.reschedule.customMessageLabel')}</Label>
+							<Textarea
+								value={rescheduleCustomMessage}
+								onChange={e => setRescheduleCustomMessage(e.target.value)}
+								placeholder={t('detail.reschedule.customMessagePlaceholder')}
+								rows={3}
+							/>
+						</div>
+					)}
 				</div>
 			</FullScreenModal>
 		</div>

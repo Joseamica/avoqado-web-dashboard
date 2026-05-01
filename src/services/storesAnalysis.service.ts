@@ -364,6 +364,11 @@ export interface ClosingReportRow {
   promoter: string
   date: string
   amount: number
+  // Back-office review columns (PlayTelecom / Walmart documentation flow).
+  // Optional for backwards compat with older backends that don't return these fields.
+  isPortabilidad?: boolean
+  /** "Venta correcta" | "En revisión" | "Venta sin documentación completa" | "Sin verificación" */
+  saleStatus?: string
 }
 
 export interface ClosingReportResponse {

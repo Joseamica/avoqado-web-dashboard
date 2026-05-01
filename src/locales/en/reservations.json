@@ -161,7 +161,16 @@
 			"newDate": "New date",
 			"newStartTime": "New start time",
 			"newEndTime": "New end time",
-			"confirm": "Confirm Reschedule"
+			"confirm": "Confirm Reschedule",
+			"notificationLabel": "Notify customer",
+			"channels": {
+				"push": "Push notification",
+				"whatsapp": "WhatsApp",
+				"email": "Email",
+				"none": "No notification"
+			},
+			"customMessageLabel": "Custom message (optional)",
+			"customMessagePlaceholder": "e.g. Sorry for the change, see you soon."
 		},
 		"cancel": {
 			"title": "Cancel Reservation",

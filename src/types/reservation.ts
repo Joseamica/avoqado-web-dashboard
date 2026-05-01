@@ -223,7 +223,11 @@ export interface UpdateReservationRequest {
 	tags?: string[]
 }
 
+export type RescheduleNotificationChannel = 'push' | 'whatsapp' | 'email' | 'none'
+
 export interface RescheduleRequest {
 	startsAt: string
 	endsAt: string
+	notificationChannel?: RescheduleNotificationChannel
+	customMessage?: string
 }

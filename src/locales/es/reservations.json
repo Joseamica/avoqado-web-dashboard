@@ -161,7 +161,16 @@
 			"newDate": "Nueva fecha",
 			"newStartTime": "Nueva hora de inicio",
 			"newEndTime": "Nueva hora de fin",
-			"confirm": "Confirmar Reagenda"
+			"confirm": "Confirmar Reagenda",
+			"notificationLabel": "Notificar al cliente",
+			"channels": {
+				"push": "Notificación push",
+				"whatsapp": "WhatsApp",
+				"email": "Correo electrónico",
+				"none": "Sin notificación"
+			},
+			"customMessageLabel": "Mensaje personalizado (opcional)",
+			"customMessagePlaceholder": "Ej. Disculpa el cambio, te esperamos."
 		},
 		"cancel": {
 			"title": "Cancelar Reservación",
