@@ -383,10 +383,10 @@ export function AppSidebar({
       { title: t('sidebar:reservationsMenu.calendar'), url: 'reservations/calendar', permission: 'reservations:read' },
       { title: t('sidebar:reservationsMenu.waitlist'), url: 'reservations/waitlist', permission: 'reservations:read', keywords: ['lista de espera', 'fila'] },
       {
-        title: t('sidebar:reservationsMenu.onlineBooking', { defaultValue: 'Insertar widget' }),
+        title: t('sidebar:reservationsMenu.onlineBooking', { defaultValue: 'Canales de reserva' }),
         url: 'reservations/online-booking',
         permission: 'reservations:read',
-        keywords: ['embed', 'widget', 'wordpress', 'sitio web', 'codigo', 'snippet'],
+        keywords: ['link', 'reservar', 'booking', 'embed', 'widget', 'wordpress', 'sitio web', 'codigo', 'snippet'],
       },
       {
         title: t('sidebar:reservationsMenu.settingsGroup', { defaultValue: 'Ajustes' }),

@@ -320,8 +320,8 @@
 		}
 	},
 	"onlineBooking": {
-		"title": "Widget de Reservaciones Online",
-		"subtitle": "Incrusta el formulario de reservaciones en tu sitio web. Los clientes pueden reservar sin salir de tu página.",
+		"title": "Canales de reserva online",
+		"subtitle": "Comparte tu link público o inserta el formulario de reservas en tu sitio web.",
 		"publicLinkTitle": "Link público de reservaciones",
 		"publicLinkDescription": "Comparte este link con tus clientes por WhatsApp, Instagram, Google Business Profile o en el botón principal de tu sitio. No requiere login.",
 		"openPublicLink": "Abrir link",

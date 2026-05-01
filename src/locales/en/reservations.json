@@ -320,8 +320,8 @@
 		}
 	},
 	"onlineBooking": {
-		"title": "Online Booking Widget",
-		"subtitle": "Embed the booking form on your website. Customers can book without leaving your site.",
+		"title": "Online booking channels",
+		"subtitle": "Share your public booking link or embed the reservation form on your website.",
 		"publicLinkTitle": "Public booking link",
 		"publicLinkDescription": "Share this link with customers on WhatsApp, Instagram, Google Business Profile, or your website's primary booking button. No login required.",
 		"openPublicLink": "Open link",
