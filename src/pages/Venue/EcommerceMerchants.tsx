@@ -39,6 +39,8 @@ import {
   Loader2,
   Globe,
   Power,
+  ExternalLink,
+  RefreshCcw,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -174,6 +176,40 @@ const EcommerceMerchants: React.FC = () => {
     },
   })
 
+  const stripeOnboardingMutation = useMutation({
+    mutationFn: (merchant: EcommerceMerchant) =>
+      ecommerceMerchantAPI.createStripeOnboardingLink(venue!.id, merchant.id, 'company'),
+    onSuccess: (link) => {
+      queryClient.invalidateQueries({ queryKey: ['ecommerce-merchants', venue?.id] })
+      window.location.assign(link.url)
+    },
+    onError: (error: any) => {
+      toast({
+        title: t('common:error'),
+        description: error.response?.data?.error || 'No se pudo iniciar onboarding de Stripe',
+        variant: 'destructive',
+      })
+    },
+  })
+
+  const syncStripeStatusMutation = useMutation({
+    mutationFn: (merchant: EcommerceMerchant) => ecommerceMerchantAPI.getStripeOnboardingStatus(venue!.id, merchant.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ecommerce-merchants', venue?.id] })
+      toast({
+        title: t('common:success'),
+        description: 'Estado de Stripe actualizado',
+      })
+    },
+    onError: (error: any) => {
+      toast({
+        title: t('common:error'),
+        description: error.response?.data?.error || 'No se pudo actualizar el estado de Stripe',
+        variant: 'destructive',
+      })
+    },
+  })
+
   // Handlers
   const handleCreate = () => {
     setSelectedMerchant(null)
@@ -206,6 +242,14 @@ const EcommerceMerchants: React.FC = () => {
     if (merchantToDelete) {
       deleteMutation.mutate(merchantToDelete.id)
     }
+  }
+
+  const renderStripeStatus = (merchant: EcommerceMerchant) => {
+    if (merchant.provider?.code !== 'STRIPE_CONNECT') return null
+    if (merchant.chargesEnabled) return <Badge variant="default">Stripe listo</Badge>
+    if (merchant.onboardingStatus === 'RESTRICTED') return <Badge variant="destructive">Stripe restringido</Badge>
+    if (merchant.onboardingStatus === 'IN_PROGRESS') return <Badge variant="secondary">Stripe pendiente</Badge>
+    return <Badge variant="outline">Stripe sin alta</Badge>
   }
 
   const copyToClipboard = (text: string, label: string) => {
@@ -327,9 +371,32 @@ const EcommerceMerchants: React.FC = () => {
                       <Badge variant={merchant.active ? 'default' : 'secondary'}>
                         {merchant.active ? 'Activo' : 'Inactivo'}
                       </Badge>
+                      <div className="mt-1">{renderStripeStatus(merchant)}</div>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
+                        {merchant.provider?.code === 'STRIPE_CONNECT' && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => stripeOnboardingMutation.mutate(merchant)}
+                              disabled={stripeOnboardingMutation.isPending}
+                              title="Abrir onboarding de Stripe"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => syncStripeStatusMutation.mutate(merchant)}
+                              disabled={syncStripeStatusMutation.isPending}
+                              title="Actualizar estado de Stripe"
+                            >
+                              <RefreshCcw className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"

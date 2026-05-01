@@ -1,4 +1,4 @@
-import api from '@/api'
+import { publicApi } from '@/api'
 import type { OperatingHours } from '@/types/reservation'
 
 // ==========================================
@@ -30,6 +30,23 @@ export interface PublicVenueInfo {
 	}
 	operatingHours?: OperatingHours
 }
+
+const parseNullableNumber = (value: unknown): number | null => {
+	if (value === null || value === undefined) return null
+	const parsed = typeof value === 'number' ? value : Number(value)
+	return Number.isFinite(parsed) ? parsed : null
+}
+
+const normalizeVenueInfo = (venue: PublicVenueInfo): PublicVenueInfo => ({
+	...venue,
+	products: venue.products.map(product => ({
+		...product,
+		price: parseNullableNumber(product.price),
+		duration: parseNullableNumber(product.duration),
+		eventCapacity: parseNullableNumber(product.eventCapacity),
+		maxParticipants: parseNullableNumber(product.maxParticipants),
+	})),
+})
 
 export interface PublicSlot {
 	startsAt: string
@@ -67,6 +84,7 @@ export interface PublicBookingResult {
 	status: string
 	depositRequired: boolean
 	depositAmount: number | null
+	checkoutUrl?: string | null
 }
 
 export interface PublicReservationDetail {
@@ -101,8 +119,8 @@ export interface PublicAvailabilityParams {
 
 export const publicBookingService = {
 	async getVenueInfo(venueSlug: string): Promise<PublicVenueInfo> {
-		const response = await api.get(`/api/v1/public/venues/${venueSlug}/info`)
-		return response.data
+		const response = await publicApi.get(`/api/v1/public/venues/${venueSlug}/info`)
+		return normalizeVenueInfo(response.data)
 	},
 
 	async getAvailability(venueSlug: string, params: PublicAvailabilityParams): Promise<PublicAvailabilityResponse> {
@@ -112,22 +130,22 @@ export const publicBookingService = {
 		if (params.partySize) searchParams.append('partySize', params.partySize.toString())
 		if (params.productId) searchParams.append('productId', params.productId)
 
-		const response = await api.get(`/api/v1/public/venues/${venueSlug}/availability?${searchParams.toString()}`)
+		const response = await publicApi.get(`/api/v1/public/venues/${venueSlug}/availability?${searchParams.toString()}`)
 		return response.data
 	},
 
 	async createReservation(venueSlug: string, data: PublicCreateReservationRequest): Promise<PublicBookingResult> {
-		const response = await api.post(`/api/v1/public/venues/${venueSlug}/reservations`, data)
+		const response = await publicApi.post(`/api/v1/public/venues/${venueSlug}/reservations`, data)
 		return response.data
 	},
 
 	async getReservation(venueSlug: string, cancelSecret: string): Promise<PublicReservationDetail> {
-		const response = await api.get(`/api/v1/public/venues/${venueSlug}/reservations/${cancelSecret}`)
+		const response = await publicApi.get(`/api/v1/public/venues/${venueSlug}/reservations/${cancelSecret}`)
 		return response.data
 	},
 
 	async cancelReservation(venueSlug: string, cancelSecret: string, reason?: string): Promise<PublicCancelResult> {
-		const response = await api.post(`/api/v1/public/venues/${venueSlug}/reservations/${cancelSecret}/cancel`, { reason })
+		const response = await publicApi.post(`/api/v1/public/venues/${venueSlug}/reservations/${cancelSecret}/cancel`, { reason })
 		return response.data
 	},
 }

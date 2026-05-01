@@ -64,6 +64,8 @@ export const EcommerceMerchantDialog: React.FC<EcommerceMerchantDialogProps> = (
     queryKey: ['payment-providers'],
     queryFn: () => paymentProviderAPI.getAllPaymentProviders({ active: true }),
   })
+  const selectedProvider = providers.find(provider => provider.id === providerId)
+  const isStripeConnect = selectedProvider?.code === 'STRIPE_CONNECT'
 
   // Populate form when merchant is provided (edit mode)
   useEffect(() => {
@@ -110,6 +112,8 @@ export const EcommerceMerchantDialog: React.FC<EcommerceMerchantDialogProps> = (
         setJsonError('Las credenciales deben ser un JSON válido')
         return
       }
+    } else if (!merchant && isStripeConnect) {
+      parsedCredentials = { businessType: 'company' }
     } else if (!merchant) {
       // Creating new merchant requires credentials
       setJsonError('Las credenciales del proveedor son requeridas')
@@ -266,7 +270,7 @@ export const EcommerceMerchantDialog: React.FC<EcommerceMerchantDialogProps> = (
             {/* Provider Credentials (JSON) */}
             <div className="space-y-2">
               <Label htmlFor="credentials">
-                Credenciales del Proveedor {!merchant && <span className="text-destructive">*</span>}
+                Credenciales del Proveedor {!merchant && !isStripeConnect && <span className="text-destructive">*</span>}
               </Label>
               <Textarea
                 id="credentials"
@@ -275,10 +279,14 @@ export const EcommerceMerchantDialog: React.FC<EcommerceMerchantDialogProps> = (
                   setProviderCredentials(e.target.value)
                   setJsonError('')
                 }}
-                placeholder={`{\n  "merchantId": "123456",\n  "apiKey": "sk_live_...",\n  "posId": "789"\n}`}
+                placeholder={
+                  isStripeConnect
+                    ? `{\n  "businessType": "company"\n}`
+                    : `{\n  "merchantId": "123456",\n  "apiKey": "sk_live_...",\n  "posId": "789"\n}`
+                }
                 rows={6}
                 className="font-mono text-sm"
-                required={!merchant}
+                required={!merchant && !isStripeConnect}
               />
               {jsonError && (
                 <Alert variant="destructive">
@@ -289,6 +297,8 @@ export const EcommerceMerchantDialog: React.FC<EcommerceMerchantDialogProps> = (
               <p className="text-sm text-muted-foreground">
                 {merchant
                   ? 'Deja vacío para mantener las credenciales actuales. Solo llena si quieres actualizarlas.'
+                  : isStripeConnect
+                    ? 'Para Stripe puedes dejarlo vacío; se usará businessType=company y luego se abrirá el onboarding hospedado.'
                   : 'Formato JSON con las credenciales de tu proveedor de pagos'}
               </p>
             </div>

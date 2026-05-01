@@ -27,6 +27,12 @@ export interface EcommerceMerchant {
   providerId: string
   active: boolean
   sandboxMode: boolean
+  onboardingStatus?: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'RESTRICTED'
+  chargesEnabled?: boolean
+  payoutsEnabled?: boolean
+  requirementsDue?: string[]
+  onboardingLinkUrl?: string | null
+  onboardingLinkExpiry?: string | null
   createdAt: string
   updatedAt: string
 
@@ -133,6 +139,18 @@ export interface RegenerateKeysResponse {
   warning: string
 }
 
+export interface StripeOnboardingLinkResponse {
+  url: string
+  expiresAt: string
+}
+
+export interface StripeOnboardingStatusResponse {
+  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'RESTRICTED'
+  chargesEnabled: boolean
+  payoutsEnabled: boolean
+  requirementsDue: string[]
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // API CLIENT
 // ═══════════════════════════════════════════════════════════════════════════
@@ -235,5 +253,24 @@ export const ecommerceMerchantAPI = {
    */
   async delete(venueId: string, merchantId: string): Promise<void> {
     await api.delete(`/api/v1/dashboard/venues/${venueId}/ecommerce-merchants/${merchantId}`)
+  },
+
+  async createStripeOnboardingLink(
+    venueId: string,
+    merchantId: string,
+    businessType: 'company' | 'individual' = 'company',
+  ): Promise<StripeOnboardingLinkResponse> {
+    const response = await api.post<{ success: boolean; data: StripeOnboardingLinkResponse }>(
+      `/api/v1/dashboard/venues/${venueId}/ecommerce-merchants/${merchantId}/stripe-onboard`,
+      { businessType },
+    )
+    return response.data.data
+  },
+
+  async getStripeOnboardingStatus(venueId: string, merchantId: string): Promise<StripeOnboardingStatusResponse> {
+    const response = await api.get<{ success: boolean; data: StripeOnboardingStatusResponse }>(
+      `/api/v1/dashboard/venues/${venueId}/ecommerce-merchants/${merchantId}/onboarding-status`,
+    )
+    return response.data.data
   },
 }

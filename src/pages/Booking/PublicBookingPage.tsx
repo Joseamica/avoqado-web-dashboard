@@ -97,6 +97,10 @@ export default function PublicBookingPage() {
 			})
 		},
 		onSuccess: (result) => {
+			if (result.checkoutUrl) {
+				window.location.assign(result.checkoutUrl)
+				return
+			}
 			setBookingResult(result)
 			setStep(config.confirmStep)
 		},

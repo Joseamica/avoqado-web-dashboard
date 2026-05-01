@@ -50,6 +50,11 @@ const api = axios.create({
   withCredentials: true,
 })
 
+export const publicApi = axios.create({
+  baseURL: resolveApiBaseUrl(),
+  withCredentials: false,
+})
+
 export const getUnauthorizedLoginRedirectUrl = (location: Pick<Location, 'pathname' | 'search' | 'hash'>): string | null => {
   const isLoginRoute = location.pathname.startsWith('/login')
   const isGoogleCallbackRoute = location.pathname.startsWith('/auth/google/callback')

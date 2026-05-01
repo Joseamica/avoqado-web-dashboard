@@ -1,22 +1,23 @@
 # Avoqado — Landing Page Brief
 
-> Documento exhaustivo para el LLM responsable del landing page.
-> Extraido directamente del codebase de produccion (avoqado-web-dashboard + avoqado-server).
-> Fecha: 2026-03-17
+> Documento exhaustivo para el LLM responsable del landing page. Extraido directamente del codebase de produccion (avoqado-web-dashboard +
+> avoqado-server). Fecha: 2026-03-17
 
 ---
 
 ## 1. Identidad del Producto
 
-**Nombre:** Avoqado
-**Tipo:** Plataforma SaaS multi-tenant de gestion empresarial todo-en-uno
-**Mercado:** Negocios fisicos en Mexico y LATAM
-**Propuesta de valor:** POS, pagos, inventario, CRM, analytics, reservaciones, e-commerce — todo en un solo ecosistema
+**Nombre:** Avoqado **Tipo:** Plataforma SaaS multi-tenant de gestion empresarial todo-en-uno **Mercado:** Negocios fisicos en Mexico y
+LATAM **Propuesta de valor:** POS, pagos, inventario, CRM, analytics, reservaciones, e-commerce — todo en un solo ecosistema
 
 ### Filosofia de Diseno UX
-> "Disenado para el usuario menos tecnico. Cada pantalla, componente e interaccion debe ser inmediatamente comprensible sin un manual. Menos opciones visibles a la vez, jerarquia visual clara. Cuando haya duda, simplificar — menos opciones siempre ganan sobre mas flexibilidad. Bonito, limpio y obvio siempre gana sobre denso y complejo."
+
+> "Disenado para el usuario menos tecnico. Cada pantalla, componente e interaccion debe ser inmediatamente comprensible sin un manual. Menos
+> opciones visibles a la vez, jerarquia visual clara. Cuando haya duda, simplificar — menos opciones siempre ganan sobre mas flexibilidad.
+> Bonito, limpio y obvio siempre gana sobre denso y complejo."
 
 ### Stack Tecnologico
+
 - **Frontend:** React 18 + TypeScript + Vite + Tailwind CSS + Radix UI
 - **Backend:** Express + TypeScript + Prisma ORM + PostgreSQL
 - **Auth:** Firebase Authentication (email, Google OAuth, passkeys/biometricos)
@@ -29,25 +30,26 @@
 
 ## 2. Plataformas (11 total)
 
-| Plataforma | Descripcion | Estado |
-|---|---|---|
-| **Dashboard Web** | Panel de control principal para gestion del negocio | Produccion |
-| **TPV Android (AvoqadoPOS)** | App punto de venta para terminales PAX y dispositivos Android | Produccion |
-| **App Android** | App movil separada del TPV para staff y clientes | Produccion |
-| **App iOS** | App movil para iOS con 114 archivos Swift, rutas completas | Produccion |
-| **Modo Kiosko** | Self-service para pedidos sin mesero (UI completa con screens dedicados) | Produccion |
-| **SDK de Checkout** | SDK para integrar pagos en sitios web de terceros (API keys, tokenizacion, webhooks) | Produccion |
-| **Dashboard White-Label** | Dashboards personalizados con marca del cliente, rutas independientes | Produccion |
-| **Pagina de Booking Publica** | Reservaciones online sin login (/book/:venueSlug) | Produccion |
-| **Viewer de Recibos** | Recibos digitales accesibles via link publico | Produccion |
-| **Portal de Clientes** | Registro, login, historial de ordenes, credit packs para clientes finales | Produccion |
-| **Menu QR** | Menu digital accesible via QR (en desarrollo) | Beta |
+| Plataforma                    | Descripcion                                                                          | Estado     |
+| ----------------------------- | ------------------------------------------------------------------------------------ | ---------- |
+| **Dashboard Web**             | Panel de control principal para gestion del negocio                                  | Produccion |
+| **TPV Android (AvoqadoPOS)**  | App punto de venta para terminales PAX y dispositivos Android                        | Produccion |
+| **App Android**               | App movil separada del TPV para staff y clientes                                     | Produccion |
+| **App iOS**                   | App movil para iOS con 114 archivos Swift, rutas completas                           | Produccion |
+| **Modo Kiosko**               | Self-service para pedidos sin mesero (UI completa con screens dedicados)             | Produccion |
+| **SDK de Checkout**           | SDK para integrar pagos en sitios web de terceros (API keys, tokenizacion, webhooks) | Produccion |
+| **Dashboard White-Label**     | Dashboards personalizados con marca del cliente, rutas independientes                | Produccion |
+| **Pagina de Booking Publica** | Reservaciones online sin login (/book/:venueSlug)                                    | Produccion |
+| **Viewer de Recibos**         | Recibos digitales accesibles via link publico                                        | Produccion |
+| **Portal de Clientes**        | Registro, login, historial de ordenes, credit packs para clientes finales            | Produccion |
+| **Menu QR**                   | Menu digital accesible via QR (en desarrollo)                                        | Beta       |
 
 ---
 
 ## 3. Industrias y Verticales (35+ tipos de negocio)
 
 ### Alimentos y Bebidas
+
 - Restaurantes (full-service)
 - Comida rapida (quick-service)
 - Bares / Antros / Pubs
@@ -58,6 +60,7 @@
 - Cocinas ocultas / Dark kitchens
 
 ### Comercio / Retail
+
 - Tiendas generales
 - Tiendas de conveniencia (estilo OXXO)
 - Ropa y boutiques
@@ -68,6 +71,7 @@
 - Librerias, Ferreterias, Licorerias, Mueblerias, Tiendas de mascotas
 
 ### Servicios
+
 - Salones de belleza / Esteticas / Barberias
 - Spas / Centros de bienestar
 - Gimnasios / Fitness studios
@@ -78,11 +82,13 @@
 - Talleres de reparacion
 
 ### Hospedaje
+
 - Hoteles
 - Hostales
 - Resorts
 
 ### Entretenimiento
+
 - Cines
 - Antros / Clubs nocturnos
 - Salones de eventos
@@ -96,6 +102,7 @@
 ### 4.1 Sistema de Pagos y Finanzas
 
 **Multi-procesador:**
+
 - **Menta** — procesador principal con smart caching de terminal IDs
 - **Blumon** — hosted checkout con reconciliacion de 4 capas (Android SDK → Blumon → Backend → Webhook)
 - **Clip** — procesador de pagos wallet
@@ -104,6 +111,7 @@
 - **Bank Direct** — transferencias bancarias directas
 
 **Metodos de pago soportados:**
+
 - Efectivo
 - Tarjeta de credito
 - Tarjeta de debito
@@ -112,6 +120,7 @@
 - Criptomonedas (BTC, ETH, USDT)
 
 **Payment Links (Ligas de Pago):**
+
 - Links compartibles con shortCode de 8 caracteres
 - Montos fijos o abiertos
 - Links reusables o de un solo uso
@@ -123,6 +132,7 @@
 - Tracking de monto total recolectado
 
 **Balance y Finanzas:**
+
 - Balance disponible con desglose por tipo de tarjeta
 - Timeline historico de balance
 - Calendario de liquidaciones
@@ -135,6 +145,7 @@
 - Billing portal (Stripe integrado)
 
 **Cortes de Caja:**
+
 - Tracking efectivo esperado vs real
 - Deteccion de varianza (sobrante/faltante)
 - Metodos de deposito: banco, caja fuerte, retiro del dueno
@@ -147,6 +158,7 @@
 ### 4.2 Punto de Venta (TPV / POS)
 
 **Hardware soportado:**
+
 - Terminales PAX (A910S, etc.)
 - Terminales Ingenico (D220, etc.)
 - Terminales Verifone (VX520, etc.)
@@ -154,6 +166,7 @@
 - Kitchen Display System (KDS)
 
 **Funcionalidades:**
+
 - Login por PIN (rapido, por venue) o biometricos/passkey
 - Multi-merchant: una terminal puede usar multiples cuentas
 - Procesador preferido configurable por terminal
@@ -161,6 +174,7 @@
 - Operacion offline con sincronizacion posterior
 
 **Gestion Remota de Terminales:**
+
 - Comandos remotos: Lock/Unlock, Restart, Shutdown, Modo mantenimiento
 - Actualizaciones OTA: Force update, Request update, Install version (rollback)
 - Gestion de datos: Sync forzado, Factory reset, Export de logs, Clear cache
@@ -171,6 +185,7 @@
 - Auditoria completa: historial inmutable de todos los comandos
 
 **Monitoreo y Observabilidad:**
+
 - Health metrics: Heartbeat cada 5 min (bateria, memoria, CPU, uptime)
 - Logs en tiempo real via Socket.IO
 - Alertas proactivas
@@ -178,6 +193,7 @@
 - Estado online/offline, version de app
 
 **Sistema de Activacion:**
+
 - Codigo de activacion de 6 caracteres (expira en 7 dias)
 - Anti-brute force (max 5 intentos)
 - Activacion remota por superadmin
@@ -191,6 +207,7 @@
 **Fuentes de orden:** TPV, Kiosko, QR, Web, App iOS, App Android, Telefono, POS, Payment Link
 
 **Funcionalidades:**
+
 - Ciclo de vida completo (creacion → preparacion → entrega → cierre)
 - Kitchen status tracking (KDS)
 - Historial de acciones por orden
@@ -201,6 +218,7 @@
 - Split de pagos
 
 **Floor Plan y Mesas:**
+
 - CRUD de mesas con posicionamiento visual (x, y)
 - Formas: cuadrada, redonda, rectangular
 - Estados: disponible, ocupada, reservada
@@ -212,6 +230,7 @@
 ### 4.4 MenuMaker (Gestion de Menu y Productos)
 
 **7 tipos de producto:**
+
 1. **Regular** — Productos fisicos (retail, mercancia)
 2. **Food & Beverage** — Comida y bebida (con flag de alcoholico)
 3. **Appointments/Service** — Servicios con cita (cortes, masajes)
@@ -221,6 +240,7 @@
 7. **Donation** — Donaciones (propinas, causas, redondeo)
 
 **Funcionalidades:**
+
 - Menus multiples por venue
 - Categorias y subcategorias
 - Grupos de modificadores (extras, opciones)
@@ -233,6 +253,7 @@
 ### 4.5 Inventario
 
 **General:**
+
 - Tracking de stock con metodo FIFO
 - Materias primas con categorias (lacteos, carnes, vegetales, frutas, granos, condimentos, bebidas, empaque, limpieza)
 - Recetas con lineas de receta (conversion de unidades)
@@ -243,6 +264,7 @@
 - Metodos de costeo: FIFO, LIFO, Weighted Average
 
 **Cadena de Suministro:**
+
 - Gestion de proveedores completa
 - Ordenes de compra (draft → submitted → received → cancelled)
 - Pricing por proveedor por materia prima
@@ -250,6 +272,7 @@
 - Conversion de unidades entre categorias
 
 **Inventario Serializado (Modulo PlayTelecom):**
+
 - Tracking por numero de serie / IMEI
 - Estados: available, reserved, sold, returned, defective, warranty_claim, lost, write_off, in_transit
 - Registro masivo de items
@@ -261,6 +284,7 @@
 ### 4.6 Gestion de Personal y Equipos
 
 **9 niveles jerarquicos:**
+
 1. VIEWER — Solo lectura
 2. HOST — Operaciones con clientes (reservaciones, asientos)
 3. WAITER — Gestion de pedidos
@@ -272,6 +296,7 @@
 9. SUPERADMIN — Acceso total al sistema
 
 **Funcionalidades:**
+
 - Asignacion multi-venue por staff
 - Soporte multi-organizacion
 - Invitaciones por email (con flujo de aceptacion)
@@ -321,6 +346,7 @@
 ### 4.10 Analytics y Reportes
 
 **Dashboards:**
+
 - Home Dashboard: metricas clave con rango de fechas
 - Command Center (multi-sucursal): resumen, actividad, insights, top sellers, breakdown por categoria
 - Organization Dashboard: anomalias, managers, staff online, zones, goals, revenue trends, venue benchmarks
@@ -328,6 +354,7 @@
 - Store Analysis: overview, venues, stock, anomalias, closing report
 
 **Reportes:**
+
 - Sales Summary (resumen de ventas)
 - Sales by Item (ventas por producto)
 - Pay Later Aging (cuentas por cobrar)
@@ -352,13 +379,15 @@
 ### 4.12 Notificaciones Multi-Canal (30+ tipos)
 
 **Canales activos:**
+
 - In-App (dashboard)
 - Email (via Resend con tracking: sent, delivered, opened, clicked, bounced)
 - WhatsApp Business (via Meta Cloud API): recibos, confirmaciones, recordatorios, status updates
 - Push Notifications (via FCM)
 - Proximamente: SMS, Webhooks
 
-**Tipos incluyen:** Nueva orden, pago recibido/fallido/reembolso, review negativa, turno terminado, POS desconectado, inventario bajo, KYC status changes, trial terminando, resumen diario de ventas, etc.
+**Tipos incluyen:** Nueva orden, pago recibido/fallido/reembolso, review negativa, turno terminado, POS desconectado, inventario bajo, KYC
+status changes, trial terminando, resumen diario de ventas, etc.
 
 ---
 
@@ -452,9 +481,10 @@ Organizacion
 **Herencia de configuracion:** Org → Venue (payment config, pricing, sales goals, attendance, commissions, trainings)
 
 **White-Label:**
+
 - Logo y colores personalizados por venue
-- Rutas independientes (/wl/venues/:slug/*)
-- Dashboards de organizacion (/wl/organizations/:orgSlug/*)
+- Rutas independientes (/wl/venues/:slug/\*)
+- Dashboards de organizacion (/wl/organizations/:orgSlug/\*)
 - Feature codes para control de acceso por modulo
 - Presets: Telecom, Jewelry, Retail
 
@@ -463,6 +493,7 @@ Organizacion
 ### 4.20 KYC y Compliance (Mexico)
 
 **Documentos requeridos:**
+
 - RFC (constancia de situacion fiscal)
 - INE/IFE (identificacion oficial)
 - Acta Constitutiva (solo Persona Moral)
@@ -479,6 +510,7 @@ Organizacion
 ### 4.21 Superadmin (Control Plane)
 
 Panel global para gestionar TODA la plataforma:
+
 - Venues: ver todos, aprobar, suspender, activar
 - KYC Review: revisar documentos, aprobar/rechazar
 - Features y Modules: gestionar por venue u org
@@ -506,6 +538,7 @@ Panel global para gestionar TODA la plataforma:
 ### 4.22 Modulos Especializados
 
 **PlayTelecom (Retail de Telecomunicaciones):**
+
 - Command Center: dashboard global multi-sucursal en tiempo real
 - Stock Serializado: tracking por IMEI/serial, registro masivo
 - Promoters Audit: auditoria de fuerza de ventas, depositos, GPS
@@ -518,6 +551,7 @@ Panel global para gestionar TODA la plataforma:
 - Users Management: usuarios, zonas, permisos
 
 **Jewelry (Joyerias):**
+
 - Appraisals: sistema de avaluos con certificados y precio del oro
 - Consignment: tracking de consignacion con comisiones y renovacion
 
@@ -556,24 +590,25 @@ Panel global para gestionar TODA la plataforma:
 
 ## 5. Integraciones de Terceros (14 funcionales)
 
-| Servicio | Uso |
-|---|---|
-| **Firebase Auth** | Autenticacion (email, Google, passkeys) |
-| **Firebase Storage** | Almacenamiento de archivos (KYC docs, imagenes) |
-| **Stripe** | Billing, suscripciones, deposits (SetupIntent) |
-| **Blumon** | Procesamiento de pagos (hosted checkout), reconciliacion 4 capas |
-| **Menta** | Procesamiento de pagos (smart caching de terminal IDs) |
-| **Clip** | Procesamiento de pagos (wallet) |
-| **B4Bit** | Pagos en criptomonedas (BTC, ETH, USDT) con HMAC-SHA256 |
-| **WhatsApp Business API** | Recibos, confirmaciones, recordatorios, status updates |
-| **Resend** | Email transaccional (tracking: sent, delivered, opened, clicked, bounced) |
-| **Google Business Profile** | Sync de reviews, OAuth |
-| **Google Places / Maps** | Autocompletado de direcciones, geocoding |
-| **FCM (Firebase Cloud Messaging)** | Push notifications |
-| **Svix** | Verificacion de firmas de webhooks |
-| **Google / Unwired Labs** | Geolocalizacion de terminales |
+| Servicio                           | Uso                                                                       |
+| ---------------------------------- | ------------------------------------------------------------------------- |
+| **Firebase Auth**                  | Autenticacion (email, Google, passkeys)                                   |
+| **Firebase Storage**               | Almacenamiento de archivos (KYC docs, imagenes)                           |
+| **Stripe**                         | Billing, suscripciones, deposits (SetupIntent)                            |
+| **Blumon**                         | Procesamiento de pagos (hosted checkout), reconciliacion 4 capas          |
+| **Menta**                          | Procesamiento de pagos (smart caching de terminal IDs)                    |
+| **Clip**                           | Procesamiento de pagos (wallet)                                           |
+| **B4Bit**                          | Pagos en criptomonedas (BTC, ETH, USDT) con HMAC-SHA256                   |
+| **WhatsApp Business API**          | Recibos, confirmaciones, recordatorios, status updates                    |
+| **Resend**                         | Email transaccional (tracking: sent, delivered, opened, clicked, bounced) |
+| **Google Business Profile**        | Sync de reviews, OAuth                                                    |
+| **Google Places / Maps**           | Autocompletado de direcciones, geocoding                                  |
+| **FCM (Firebase Cloud Messaging)** | Push notifications                                                        |
+| **Svix**                           | Verificacion de firmas de webhooks                                        |
+| **Google / Unwired Labs**          | Geolocalizacion de terminales                                             |
 
 **Integraciones POS:**
+
 - SoftRestaurant (~40% implementado, event handlers + RabbitMQ)
 - Planeadas: Square, Toast, Clover, Aloha, Micros, NCR
 
@@ -582,32 +617,36 @@ Panel global para gestionar TODA la plataforma:
 ## 6. Feature Registry (31 features en el dashboard)
 
 ### 19 Avoqado Core Features
-| Feature | Descripcion |
-|---|---|
-| Dashboard | Panel principal con metricas de ventas, ordenes y rendimiento |
-| Ordenes | Gestion de ordenes, historial y detalles de transacciones |
-| Pagos | Historial de pagos, metodos y detalles de transacciones |
-| Menu | Gestion de productos, categorias, modificadores y precios |
-| Inventario | Control de stock, ingredientes, recetas y alertas |
-| Equipo | Gestion del personal, roles, permisos y horarios |
-| Clientes | Base de datos de clientes, historial de compras y contacto |
-| Terminales | Gestion de terminales de punto de venta y dispositivos |
-| Balance | Balance disponible, historial de depositos y retiros |
-| Promociones | Descuentos, cupones, promociones especiales y ofertas |
-| Analitica | Analisis avanzado de ventas, tendencias y metricas |
-| Turnos | Control de turnos, apertura y cierre de caja |
-| Comisiones | Sistema de comisiones con configuracion, aprobaciones y pagos |
-| Lealtad | Sistema de puntos y recompensas para clientes frecuentes |
-| Resenas | Gestion de resenas de clientes y Google Reviews |
-| Reportes | Reportes de ventas, ingresos y analisis del negocio |
-| Reservaciones | Gestion de reservaciones, calendario, lista de espera |
-| Ligas de Pago | Ligas de pago para cobrar via WhatsApp, QR o link directo |
-| Ajustes | Configuracion del venue, roles y facturacion |
+
+| Feature       | Descripcion                                                   |
+| ------------- | ------------------------------------------------------------- |
+| Dashboard     | Panel principal con metricas de ventas, ordenes y rendimiento |
+| Ordenes       | Gestion de ordenes, historial y detalles de transacciones     |
+| Pagos         | Historial de pagos, metodos y detalles de transacciones       |
+| Menu          | Gestion de productos, categorias, modificadores y precios     |
+| Inventario    | Control de stock, ingredientes, recetas y alertas             |
+| Equipo        | Gestion del personal, roles, permisos y horarios              |
+| Clientes      | Base de datos de clientes, historial de compras y contacto    |
+| Terminales    | Gestion de terminales de punto de venta y dispositivos        |
+| Balance       | Balance disponible, historial de depositos y retiros          |
+| Promociones   | Descuentos, cupones, promociones especiales y ofertas         |
+| Analitica     | Analisis avanzado de ventas, tendencias y metricas            |
+| Turnos        | Control de turnos, apertura y cierre de caja                  |
+| Comisiones    | Sistema de comisiones con configuracion, aprobaciones y pagos |
+| Lealtad       | Sistema de puntos y recompensas para clientes frecuentes      |
+| Resenas       | Gestion de resenas de clientes y Google Reviews               |
+| Reportes      | Reportes de ventas, ingresos y analisis del negocio           |
+| Reservaciones | Gestion de reservaciones, calendario, lista de espera         |
+| Ligas de Pago | Ligas de pago para cobrar via WhatsApp, QR o link directo     |
+| Ajustes       | Configuracion del venue, roles y facturacion                  |
 
 ### 10 PlayTelecom Features
-Centro de Comando, Inventario Serializado, Auditoria de Promotores, Analisis de Tiendas, Dashboard Gerentes, Reporte de Ventas, Dashboard Supervisor, Configuracion White Label, Reporte de Cierre, Gestion de Usuarios
+
+Centro de Comando, Inventario Serializado, Auditoria de Promotores, Analisis de Tiendas, Dashboard Gerentes, Reporte de Ventas, Dashboard
+Supervisor, Configuracion White Label, Reporte de Cierre, Gestion de Usuarios
 
 ### 2 Jewelry Features
+
 Avaluos, Consignacion
 
 ---
@@ -644,10 +683,10 @@ Avaluos, Consignacion
 
 ## 9. Localizacion
 
-| Idioma | Estado |
-|---|---|
-| Espanol (es) | Completo — idioma principal |
-| Ingles (en) | Completo |
+| Idioma       | Estado                                |
+| ------------ | ------------------------------------- |
+| Espanol (es) | Completo — idioma principal           |
+| Ingles (en)  | Completo                              |
 | Frances (fr) | Parcial (sidebar + areas principales) |
 
 - Timezone configurable por venue (default: America/Mexico_City)
@@ -658,45 +697,49 @@ Avaluos, Consignacion
 
 ## 10. Ambientes y Deploy
 
-| Ambiente | Dashboard URL | API URL | Trigger |
-|---|---|---|---|
-| Demo | demo.dashboard.avoqado.io | demo.api.avoqado.io | Push a `develop` |
-| Staging | staging.dashboard.avoqado.io | Render staging | Push a `develop` |
-| Production | dashboardv2.avoqado.io | api.avoqado.io | Push a `main` |
+| Ambiente   | Dashboard URL                | API URL             | Trigger          |
+| ---------- | ---------------------------- | ------------------- | ---------------- |
+| Demo       | demo.dashboard.avoqado.io    | demo.api.avoqado.io | Push a `develop` |
+| Staging    | staging.dashboard.avoqado.io | Render staging      | Push a `develop` |
+| Production | dashboard.avoqado.io         | api.avoqado.io      | Push a `main`    |
 
 ---
 
 ## 11. Numeros Clave (para landing page)
 
-| Metrica | Cantidad |
-|---|---|
-| Modelos de base de datos | 130+ |
-| Endpoints API | 600+ |
-| Archivos de servicio | 74 |
-| Tipos de negocio soportados | 35+ |
-| Roles de usuario | 9 |
-| Permisos granulares | 50+ |
-| Features en registry | 31 |
-| Guards de ruta | 9 tipos |
-| Tipos de notificacion | 30+ |
-| Tipos de producto | 7 |
-| Procesadores de pago | 6 |
-| Plataformas | 11 |
-| Integraciones terceros | 14 funcionales |
-| Idiomas | 3 |
-| Features publicas (sin login) | 7 |
+| Metrica                       | Cantidad       |
+| ----------------------------- | -------------- |
+| Modelos de base de datos      | 130+           |
+| Endpoints API                 | 600+           |
+| Archivos de servicio          | 74             |
+| Tipos de negocio soportados   | 35+            |
+| Roles de usuario              | 9              |
+| Permisos granulares           | 50+            |
+| Features en registry          | 31             |
+| Guards de ruta                | 9 tipos        |
+| Tipos de notificacion         | 30+            |
+| Tipos de producto             | 7              |
+| Procesadores de pago          | 6              |
+| Plataformas                   | 11             |
+| Integraciones terceros        | 14 funcionales |
+| Idiomas                       | 3              |
+| Features publicas (sin login) | 7              |
 
 ---
 
 ## 12. Diferenciadores Clave (messaging para landing)
 
-1. **Todo-en-uno real** — No es solo POS o solo pagos. Es POS + pagos + inventario + CRM + analytics + reservaciones + e-commerce + comisiones + training + AI + white-label en un solo lugar.
+1. **Todo-en-uno real** — No es solo POS o solo pagos. Es POS + pagos + inventario + CRM + analytics + reservaciones + e-commerce +
+   comisiones + training + AI + white-label en un solo lugar.
 
-2. **Multi-plataforma nativo** — Dashboard web, app Android POS, app iOS, modo kiosko, SDK de checkout, booking publico, recibos digitales — todo conectado en tiempo real.
+2. **Multi-plataforma nativo** — Dashboard web, app Android POS, app iOS, modo kiosko, SDK de checkout, booking publico, recibos digitales —
+   todo conectado en tiempo real.
 
-3. **Disenado para Mexico y LATAM** — KYC mexicano (RFC, INE, CLABE), timezone por venue (America/Mexico_City), moneda MXN, compliance con leyes de retencion de datos, soporte Persona Fisica y Moral.
+3. **Disenado para Mexico y LATAM** — KYC mexicano (RFC, INE, CLABE), timezone por venue (America/Mexico_City), moneda MXN, compliance con
+   leyes de retencion de datos, soporte Persona Fisica y Moral.
 
-4. **White-label listo** — Organizaciones pueden tener su propia marca, colores, features seleccionados. Presets para Telecom, Joyeria, Retail.
+4. **White-label listo** — Organizaciones pueden tener su propia marca, colores, features seleccionados. Presets para Telecom, Joyeria,
+   Retail.
 
 5. **Crypto-ready** — Acepta BTC, ETH, USDT via B4Bit con verificacion criptografica.
 
@@ -704,9 +747,11 @@ Avaluos, Consignacion
 
 7. **Gestion remota de terminales** — Comandos remotos, OTA updates, geofencing, comandos programados, monitoreo de salud en tiempo real.
 
-8. **Multi-tenant real** — Organizacion → Zonas → Venues → Staff. Herencia de configuracion. Un staff puede tener diferentes roles en diferentes venues.
+8. **Multi-tenant real** — Organizacion → Zonas → Venues → Staff. Herencia de configuracion. Un staff puede tener diferentes roles en
+   diferentes venues.
 
-9. **Verticales especializados** — Modulos especificos para Telecomunicaciones (PlayTelecom) y Joyerias. No es generico — tiene features profundos por industria.
+9. **Verticales especializados** — Modulos especificos para Telecomunicaciones (PlayTelecom) y Joyerias. No es generico — tiene features
+   profundos por industria.
 
 10. **Trial sin friccion** — Live demo anonima + trial de 30 dias + conversion suave a produccion.
 
@@ -714,7 +759,13 @@ Avaluos, Consignacion
 
 ## 13. Servicios del Backend (74 archivos de servicio)
 
-Los servicios cubren: access control, analytics, auth, available balance, cash closeout, chat, class sessions, command center, commissions, cost management, coupons, credit offers, credit packs, crypto config, customers, dashboard progressive loading, discounts, e-commerce merchants, features, inventory, item categories, labels, live demo, loyalty, menus, menu import, notifications, onboarding, orders, organizations, organization dashboard, org item categories, payment links, payment providers, permission sets, promoters, public booking, purchase orders, reservations, review responses, role config, role permissions, sale verification, serialized inventory, settlement configuration, settlement incidents, setup, stock dashboard, stores analysis, superadmin (activity log, marketing, modules, organizations, staff, terminals, training, general), suppliers, team, TPV (messages, settings, general), webhooks.
+Los servicios cubren: access control, analytics, auth, available balance, cash closeout, chat, class sessions, command center, commissions,
+cost management, coupons, credit offers, credit packs, crypto config, customers, dashboard progressive loading, discounts, e-commerce
+merchants, features, inventory, item categories, labels, live demo, loyalty, menus, menu import, notifications, onboarding, orders,
+organizations, organization dashboard, org item categories, payment links, payment providers, permission sets, promoters, public booking,
+purchase orders, reservations, review responses, role config, role permissions, sale verification, serialized inventory, settlement
+configuration, settlement incidents, setup, stock dashboard, stores analysis, superadmin (activity log, marketing, modules, organizations,
+staff, terminals, training, general), suppliers, team, TPV (messages, settings, general), webhooks.
 
 ---
 
@@ -730,4 +781,5 @@ Los servicios cubren: access control, analytics, auth, available balance, cash c
 
 ---
 
-*Este documento contiene toda la informacion extraida del codebase de produccion de Avoqado necesaria para disenar un landing page completo y preciso.*
+_Este documento contiene toda la informacion extraida del codebase de produccion de Avoqado necesaria para disenar un landing page completo
+y preciso._

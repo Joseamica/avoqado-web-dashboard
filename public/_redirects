@@ -1,13 +1,17 @@
 # SPA fallback for React Router
-/* /index.html 200
+
+/\* /index.html 200
 
 # Force HTTPS redirect for production
-http://dashboardv2.avoqado.io/* https://dashboardv2.avoqado.io/:splat 301!
-http://dashboard.avoqado.io/* https://dashboardv2.avoqado.io/:splat 301!
+
+http://dashboard.avoqado.io/_ https://dashboard.avoqado.io/:splat 301! http://dashboard.avoqado.io/_ https://dashboard.avoqado.io/:splat
+301!
 
 # Force HTTPS redirect for staging
+
 http://staging.dashboard.avoqado.io/* https://staging.dashboard.avoqado.io/:splat 301!
 
 # Default Pages redirect to production
-http://avoqado-web-dashboard.pages.dev/* https://dashboardv2.avoqado.io/:splat 301!
-http://*.avoqado-web-dashboard.pages.dev/* https://dashboardv2.avoqado.io/:splat 301!
+
+http://avoqado-web-dashboard.pages.dev/_ https://dashboard.avoqado.io/:splat 301! http://_.avoqado-web-dashboard.pages.dev/\*
+https://dashboard.avoqado.io/:splat 301!
