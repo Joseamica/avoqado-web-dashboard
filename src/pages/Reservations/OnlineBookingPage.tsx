@@ -56,11 +56,12 @@ export default function OnlineBookingPage() {
 	const [mode, setMode] = useState<Mode>('inline')
 
 	const slug = venueSlug ?? 'your-venue-slug'
+	const publicBookingUrl = typeof window !== 'undefined'
+		? `${window.location.origin}/book/${slug}`
+		: `/book/${slug}`
 	const cdnUrl = 'https://cdn.avoqado.io/widget.js'
 	const embedUrl = `https://cdn.avoqado.io/embed?venue=${slug}&locale=${locale}&theme=${theme}&mode=inline`
-	const previewUrl = venueSlug
-		? `https://cdn.avoqado.io/embed?venue=${slug}&locale=${locale}&theme=${theme}&mode=inline&venueName=${encodeURIComponent(venue?.name ?? '')}`
-		: null
+	const previewUrl = venueSlug ? publicBookingUrl : null
 	const venueName = venue?.name ?? 'tu negocio'
 
 	const htmlSnippet = `<!-- Avoqado Booking Widget -->
@@ -81,13 +82,15 @@ export default function OnlineBookingPage() {
 	const linkSnippet = `<div style="text-align:center;padding:48px 16px;background:#f7f7f8;border-radius:12px;margin:24px 0">
   <p style="color:#6b7280;margin:0 0 8px;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase">Reserva tu visita</p>
   <h3 style="color:#0f0f10;font-family:inherit;margin:0 0 20px;font-size:22px;font-weight:600;letter-spacing:-0.01em">Agenda en línea en menos de 1 minuto</h3>
-  <a href="${embedUrl}&venueName=${encodeURIComponent(venueName)}"
+  <a href="${publicBookingUrl}"
      target="_blank"
      rel="noopener"
      style="display:inline-block;background:#0f0f10;color:#fff;padding:16px 48px;border-radius:999px;text-decoration:none;font-weight:600;font-size:16px;letter-spacing:0.2px">
     Reservar ahora →
   </a>
 </div>`
+
+	const directLinkSnippet = `<a href="${publicBookingUrl}" target="_blank" rel="noopener">Reservar en ${venueName}</a>`
 
 	const wordpressShortcode = `[avoqado_booking venue="${slug}" locale="${locale}" theme="${theme}" mode="${mode}"]`
 
@@ -107,6 +110,48 @@ import '@avoqado/booking-widget'
 				className="text-2xl font-bold"
 			/>
 			<p className="text-muted-foreground">{t('onlineBooking.subtitle')}</p>
+
+			{/* Public booking URL */}
+			<Card className="border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+				<CardHeader>
+					<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+						<div className="space-y-1">
+							<CardTitle className="flex items-center gap-2 text-lg">
+								<Globe className="h-5 w-5 text-emerald-600" />
+								{t('onlineBooking.publicLinkTitle')}
+							</CardTitle>
+							<CardDescription>{t('onlineBooking.publicLinkDescription')}</CardDescription>
+						</div>
+						<Button variant="outline" size="sm" asChild>
+							<a href={publicBookingUrl} target="_blank" rel="noopener noreferrer">
+								{t('onlineBooking.openPublicLink')}
+								<ExternalLink className="ml-2 h-3.5 w-3.5" />
+							</a>
+						</Button>
+					</div>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					<CodeBlock code={publicBookingUrl} />
+					<div className="grid gap-3 text-sm md:grid-cols-3">
+						<div className="rounded-md border bg-background/70 p-3">
+							<p className="font-medium">{t('onlineBooking.shareStep1Title')}</p>
+							<p className="mt-1 text-muted-foreground">{t('onlineBooking.shareStep1Description')}</p>
+						</div>
+						<div className="rounded-md border bg-background/70 p-3">
+							<p className="font-medium">{t('onlineBooking.shareStep2Title')}</p>
+							<p className="mt-1 text-muted-foreground">{t('onlineBooking.shareStep2Description')}</p>
+						</div>
+						<div className="rounded-md border bg-background/70 p-3">
+							<p className="font-medium">{t('onlineBooking.shareStep3Title')}</p>
+							<p className="mt-1 text-muted-foreground">{t('onlineBooking.shareStep3Description')}</p>
+						</div>
+					</div>
+					<div className="space-y-2">
+						<p className="text-sm font-medium">{t('onlineBooking.directHtmlLink')}</p>
+						<CodeBlock code={directLinkSnippet} />
+					</div>
+				</CardContent>
+			</Card>
 
 			{/* Settings link */}
 			<Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/20">
