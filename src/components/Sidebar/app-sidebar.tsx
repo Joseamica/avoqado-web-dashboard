@@ -383,10 +383,36 @@ export function AppSidebar({
       { title: t('sidebar:reservationsMenu.calendar'), url: 'reservations/calendar', permission: 'reservations:read' },
       { title: t('sidebar:reservationsMenu.waitlist'), url: 'reservations/waitlist', permission: 'reservations:read', keywords: ['lista de espera', 'fila'] },
       {
-        title: t('sidebar:reservationsMenu.onlineBooking', { defaultValue: 'Canales de reserva' }),
-        url: 'reservations/online-booking',
-        permission: 'reservations:read',
-        keywords: ['link', 'reservar', 'booking', 'embed', 'widget', 'wordpress', 'sitio web', 'codigo', 'snippet'],
+        title: t('sidebar:reservationsMenu.onlineBookingGroup', { defaultValue: 'Reservas en línea' }),
+        url: '#reservations-online',
+        items: [
+          {
+            title: t('sidebar:reservationsMenu.channels', { defaultValue: 'Canales' }),
+            url: 'reservations/online-booking',
+            permission: 'reservations:read',
+            keywords: ['link', 'reservar', 'booking', 'embed', 'widget', 'wordpress', 'sitio web', 'codigo', 'snippet'],
+          },
+          {
+            title: t('sidebar:reservationsMenu.onlineSettings', { defaultValue: 'Ajustes' }),
+            url: 'reservations/settings',
+            permission: 'reservations:read',
+            keywords: ['reservas online', 'public booking', 'depositos', 'horarios'],
+          },
+          {
+            title: t('sidebar:reservationsMenu.advancedWidget', { defaultValue: 'Widget avanzado' }),
+            url: 'reservations/widget-advanced',
+            permission: 'reservations:read',
+            comingSoon: true,
+            keywords: ['widget avanzado', 'personalizar widget'],
+          },
+          {
+            title: t('sidebar:reservationsMenu.inviteClients', { defaultValue: 'Invitar clientes' }),
+            url: 'reservations/invite-clients',
+            permission: 'reservations:read',
+            comingSoon: true,
+            keywords: ['invitar clientes', 'whatsapp', 'campaña'],
+          },
+        ],
       },
       {
         title: t('sidebar:reservationsMenu.settingsGroup', { defaultValue: 'Ajustes' }),
