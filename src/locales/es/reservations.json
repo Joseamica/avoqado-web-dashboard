@@ -461,7 +461,21 @@
 			"minHoursBeforeHelp": "Horas antes del inicio para poder cancelar",
 			"forfeitDeposit": "Perder depósito al cancelar",
 			"noShowFee": "Cargo por No Show",
-			"noShowFeeHelp": "Porcentaje del depósito que se cobra"
+			"noShowFeeHelp": "Porcentaje del depósito que se cobra",
+			"allowReschedule": "Permitir cambio de horario",
+			"allowRescheduleHelp": "El cliente puede mover su reserva a otro horario de la misma clase, dentro de la ventana de cancelación.",
+			"creditRefundTitle": "Reembolso de créditos al cancelar",
+			"creditRefundHelp": "Decide cuántos créditos recuperan los clientes cuando cancelan una clase pagada con paquete.",
+			"creditRefundMode": "Política de reembolso",
+			"creditRefundAlways": "Siempre devolver 100%",
+			"creditRefundTimeBased": "Según anticipación",
+			"creditRefundNever": "Nunca devolver",
+			"creditFreeRefundHoursBefore": "Reembolso 100% si cancela con (horas)",
+			"creditFreeRefundHoursHelp": "Cancelar al menos N horas antes del inicio devuelve todos los créditos.",
+			"creditLateRefundPercent": "% de reembolso si cancela tarde",
+			"creditLateRefundHelp": "Aplica cuando se cancela dentro de la ventana de arriba. 0 = pierde todo, 100 = devuelve todo.",
+			"creditNoShowRefund": "Devolver créditos en no-show",
+			"creditNoShowRefundHelp": "Si el cliente no se presentó, ¿se devuelve igualmente el crédito? (Default: no)"
 		},
 		"waitlist": {
 			"enabled": "Habilitar lista de espera",

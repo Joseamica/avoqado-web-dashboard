@@ -141,7 +141,7 @@
     "NEW_STAFF_JOINED": "Información cuando nuevos miembros se unen al equipo",
     "POS_DISCONNECTED": "Alertas críticas cuando el terminal POS se desconecta",
     "POS_RECONNECTED": "Confirmación cuando el terminal POS se reconecta",
-    "LOW_INVENTORY": "Alertas cuando los niveles de inventario caen por debajo del mínimo",
+    "LOW_INVENTORY": "Alertas cuando los niveles de inventario o stock caen por debajo del mínimo",
     "SYSTEM_MAINTENANCE": "Notificaciones importantes de mantenimiento del sistema",
     "FEATURE_UPDATED": "Actualizaciones sobre nuevas funciones y mejoras",
     "VENUE_APPROVAL_NEEDED": "Solicitudes de aprobación para operaciones del venue",

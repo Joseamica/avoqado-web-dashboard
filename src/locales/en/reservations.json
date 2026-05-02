@@ -461,7 +461,21 @@
 			"minHoursBeforeHelp": "Hours before start to allow cancellation",
 			"forfeitDeposit": "Forfeit deposit on cancel",
 			"noShowFee": "No Show fee",
-			"noShowFeeHelp": "Percentage of deposit charged"
+			"noShowFeeHelp": "Percentage of deposit charged",
+			"allowReschedule": "Allow rescheduling",
+			"allowRescheduleHelp": "Customer can move their booking to another time slot of the same class, within the cancellation window.",
+			"creditRefundTitle": "Credit refunds on cancellation",
+			"creditRefundHelp": "Decide how many credits customers recover when they cancel a class paid with a package.",
+			"creditRefundMode": "Refund policy",
+			"creditRefundAlways": "Always refund 100%",
+			"creditRefundTimeBased": "Based on notice",
+			"creditRefundNever": "Never refund",
+			"creditFreeRefundHoursBefore": "Full refund if canceled (hours before)",
+			"creditFreeRefundHoursHelp": "Cancelling at least N hours before start returns all credits.",
+			"creditLateRefundPercent": "% refunded for late cancellation",
+			"creditLateRefundHelp": "Applies when cancelled within the window above. 0 = forfeit all, 100 = full refund.",
+			"creditNoShowRefund": "Refund credits on no-show",
+			"creditNoShowRefundHelp": "If the customer didn't show up, are credits still refunded? (Default: no)"
 		},
 		"waitlist": {
 			"enabled": "Enable waitlist",

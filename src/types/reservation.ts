@@ -159,6 +159,11 @@ export interface ReservationSettings {
 		minHoursBeforeStart: number | null
 		forfeitDeposit: boolean
 		noShowFeePercent: number | null
+		allowCustomerReschedule?: boolean
+		creditRefundMode?: 'NEVER' | 'ALWAYS' | 'TIME_BASED'
+		creditFreeRefundHoursBefore?: number
+		creditLateRefundPercent?: number
+		creditNoShowRefund?: boolean
 	}
 	waitlist: {
 		enabled: boolean

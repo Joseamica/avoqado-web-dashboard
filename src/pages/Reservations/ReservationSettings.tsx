@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { CalendarDays, Clock, CreditCard, Globe, Shield, Users, Bell } from 'lucide-react'
+import { CalendarDays, Clock, CreditCard, Globe, Shield, Users, Bell, Wallet } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,6 +18,9 @@ import { useToast } from '@/hooks/use-toast'
 import reservationService from '@/services/reservation.service'
 import type { OperatingHours } from '@/types/reservation'
 
+const nullableNumber = (validator: z.ZodNumber) =>
+	z.preprocess(v => (v === '' || v === null || v === undefined ? null : Number(v)), validator.nullable())
+
 const settingsSchema = z.object({
 	// Scheduling
 	slotIntervalMin: z.coerce.number().min(5).max(120),
@@ -27,22 +30,22 @@ const settingsSchema = z.object({
 	minNoticeMin: z.coerce.number().min(0).max(10080),
 	noShowGraceMin: z.coerce.number().min(0).max(120),
 	// Pacing
-	pacingMaxPerSlot: z.coerce.number().min(0).nullable(),
+	pacingMaxPerSlot: nullableNumber(z.number().min(0)),
 	onlineCapacityPercent: z.coerce.number().min(0).max(100),
 	// Deposits
 	depositMode: z.enum(['none', 'card_hold', 'deposit', 'prepaid']),
-	depositFixedAmount: z.coerce.number().min(0).nullable(),
-	depositPercentage: z.coerce.number().min(0).max(100).nullable(),
-	depositPartySizeGte: z.coerce.number().min(1).nullable(),
+	depositFixedAmount: nullableNumber(z.number().min(0)),
+	depositPercentage: nullableNumber(z.number().min(0).max(100)),
+	depositPartySizeGte: nullableNumber(z.number().min(1)),
 	// Public booking
 	publicBookingEnabled: z.boolean(),
 	requirePhone: z.boolean(),
 	requireEmail: z.boolean(),
 	// Cancellation
 	allowCustomerCancel: z.boolean(),
-	minHoursBeforeCancel: z.coerce.number().min(0).nullable(),
+	minHoursBeforeCancel: nullableNumber(z.number().min(0)),
 	forfeitDeposit: z.boolean(),
-	noShowFeePercent: z.coerce.number().min(0).max(100).nullable(),
+	noShowFeePercent: nullableNumber(z.number().min(0).max(100)),
 	// Credit refund policy on cancellation
 	creditRefundMode: z.enum(['NEVER', 'ALWAYS', 'TIME_BASED']),
 	creditFreeRefundHoursBefore: z.coerce.number().min(0).max(720),
@@ -60,6 +63,13 @@ const settingsSchema = z.object({
 })
 
 type SettingsFormData = z.infer<typeof settingsSchema>
+
+const FieldError = ({ message }: { message?: string }) =>
+	message ? (
+		<p role="alert" className="text-xs text-destructive mt-1">
+			{message}
+		</p>
+	) : null
 
 export default function ReservationSettings() {
 	const { venueId } = useCurrentVenue()
@@ -115,6 +125,9 @@ export default function ReservationSettings() {
 		},
 	})
 
+	// Single watch() call — one subscription instead of 14 inline calls
+	const formValues = watch()
+
 	// Operating hours managed separately in calendar
 	const [operatingHours, setOperatingHours] = useState<OperatingHours | null>(null)
 
@@ -141,11 +154,11 @@ export default function ReservationSettings() {
 				minHoursBeforeCancel: settings.cancellation.minHoursBeforeStart,
 				forfeitDeposit: settings.cancellation.forfeitDeposit,
 				noShowFeePercent: settings.cancellation.noShowFeePercent,
-				creditRefundMode: (settings.cancellation as any).creditRefundMode ?? 'TIME_BASED',
-				creditFreeRefundHoursBefore: (settings.cancellation as any).creditFreeRefundHoursBefore ?? 12,
-				creditLateRefundPercent: (settings.cancellation as any).creditLateRefundPercent ?? 0,
-				creditNoShowRefund: (settings.cancellation as any).creditNoShowRefund ?? false,
-				allowCustomerReschedule: (settings.cancellation as any).allowCustomerReschedule ?? true,
+				creditRefundMode: settings.cancellation.creditRefundMode ?? 'TIME_BASED',
+				creditFreeRefundHoursBefore: settings.cancellation.creditFreeRefundHoursBefore ?? 12,
+				creditLateRefundPercent: settings.cancellation.creditLateRefundPercent ?? 0,
+				creditNoShowRefund: settings.cancellation.creditNoShowRefund ?? false,
+				allowCustomerReschedule: settings.cancellation.allowCustomerReschedule ?? true,
 				waitlistEnabled: settings.waitlist.enabled,
 				waitlistMaxSize: settings.waitlist.maxSize,
 				waitlistPriorityMode: settings.waitlist.priorityMode,
@@ -192,7 +205,7 @@ export default function ReservationSettings() {
 					creditLateRefundPercent: data.creditLateRefundPercent,
 					creditNoShowRefund: data.creditNoShowRefund,
 					allowCustomerReschedule: data.allowCustomerReschedule,
-				} as any,
+				},
 				waitlist: {
 					enabled: data.waitlistEnabled,
 					maxSize: data.waitlistMaxSize,
@@ -201,8 +214,8 @@ export default function ReservationSettings() {
 				},
 				reminders: {
 					enabled: data.remindersEnabled,
-					channels: settings?.reminders.channels || ['EMAIL'],
-					minutesBefore: settings?.reminders.minutesBefore || [1440, 120],
+					channels: settings?.reminders.channels ?? ['EMAIL'],
+					minutesBefore: settings?.reminders.minutesBefore ?? [1440, 120],
 				},
 				...(operatingHours ? { operatingHours } : {}),
 			})
@@ -220,383 +233,470 @@ export default function ReservationSettings() {
 		},
 	})
 
-	const depositMode = watch('depositMode')
-	const waitlistEnabled = watch('waitlistEnabled')
+	const isPending = updateMutation.isPending
+	const canSave = isDirty && !isPending
+	const handleSave = handleSubmit(data => updateMutation.mutate(data))
 
 	if (isLoading) {
 		return (
 			<div className="p-4 bg-background text-foreground">
 				<div className="animate-pulse space-y-4">
-					<div className="h-8 w-64 bg-muted rounded" />
-					<div className="h-48 bg-muted rounded-xl" />
-					<div className="h-48 bg-muted rounded-xl" />
+					<div className="h-8 w-64 rounded bg-muted" />
+					<div className="h-48 rounded-lg bg-muted" />
+					<div className="h-48 rounded-lg bg-muted" />
 				</div>
 			</div>
 		)
 	}
 
 	return (
-		<div className="p-4 bg-background text-foreground max-w-4xl">
+		<div className="p-4 bg-background text-foreground max-w-4xl pb-24">
 			{/* Header */}
 			<div className="flex items-center justify-between mb-6">
 				<div>
 					<PageTitleWithInfo title={t('settings.title')} className="text-2xl font-bold" />
 					<p className="text-muted-foreground">{t('settings.subtitle')}</p>
 				</div>
-				<Button
-					onClick={handleSubmit(data => updateMutation.mutate(data))}
-					disabled={!isDirty || updateMutation.isPending}
-				>
-					{updateMutation.isPending ? tCommon('loading') : t('actions.saveChanges')}
+				<Button onClick={handleSave} disabled={!canSave} data-tour="reservation-settings-save">
+					{isPending ? tCommon('loading') : t('actions.saveChanges')}
 				</Button>
 			</div>
 
-			<form className="space-y-6">
-				{/* Scheduling */}
-				<Card className="border-input">
-					<CardHeader>
-						<CardTitle className="flex items-center gap-2">
-							<CalendarDays className="h-5 w-5" />
-							{t('settings.sections.scheduling')}
-						</CardTitle>
-					</CardHeader>
-					<CardContent className="grid grid-cols-2 gap-6">
-						<div className="space-y-2">
-							<Label>{t('settings.scheduling.slotInterval')}</Label>
-							<Input type="number" {...register('slotIntervalMin')} />
-							<p className="text-xs text-muted-foreground">{t('settings.scheduling.slotIntervalHelp')}</p>
-						</div>
-						<div className="space-y-2">
-							<Label>{t('settings.scheduling.defaultDuration')}</Label>
-							<Input type="number" {...register('defaultDurationMin')} />
-							<p className="text-xs text-muted-foreground">{t('settings.scheduling.defaultDurationHelp')}</p>
-						</div>
-						<div className="space-y-2">
-							<Label>{t('settings.scheduling.maxAdvanceDays')}</Label>
-							<Input type="number" {...register('maxAdvanceDays')} />
-							<p className="text-xs text-muted-foreground">{t('settings.scheduling.maxAdvanceDaysHelp')}</p>
-						</div>
-						<div className="space-y-2">
-							<Label>{t('settings.scheduling.minNotice')}</Label>
-							<Input type="number" {...register('minNoticeMin')} />
-							<p className="text-xs text-muted-foreground">{t('settings.scheduling.minNoticeHelp')}</p>
-						</div>
-						<div className="space-y-2">
-							<Label>{t('settings.scheduling.noShowGrace')}</Label>
-							<Input type="number" {...register('noShowGraceMin')} />
-							<p className="text-xs text-muted-foreground">{t('settings.scheduling.noShowGraceHelp')}</p>
-						</div>
-						<div className="flex items-center justify-between rounded-lg border border-input p-4">
-							<div>
-								<Label>{t('settings.scheduling.autoConfirm')}</Label>
-								<p className="text-xs text-muted-foreground">{t('settings.scheduling.autoConfirmHelp')}</p>
-							</div>
-							<Switch
-								checked={watch('autoConfirm')}
-								onCheckedChange={v => setValue('autoConfirm', v, { shouldDirty: true })}
-							/>
-						</div>
-					</CardContent>
-				</Card>
-
-				{/* Pacing */}
-				<Card className="border-input">
-					<CardHeader>
-						<CardTitle className="flex items-center gap-2">
-							<Clock className="h-5 w-5" />
-							{t('settings.sections.pacing')}
-						</CardTitle>
-					</CardHeader>
-					<CardContent className="grid grid-cols-2 gap-6">
-						<div className="space-y-2">
-							<Label>{t('settings.pacing.maxPerSlot')}</Label>
-							<Input type="number" {...register('pacingMaxPerSlot')} placeholder="—" />
-							<p className="text-xs text-muted-foreground">{t('settings.pacing.maxPerSlotHelp')}</p>
-						</div>
-						<div className="space-y-2">
-							<Label>{t('settings.pacing.onlineCapacity')}</Label>
-							<div className="flex items-center gap-2">
-								<Input type="number" {...register('onlineCapacityPercent')} className="flex-1" />
-								<span className="text-muted-foreground">%</span>
-							</div>
-							<p className="text-xs text-muted-foreground">{t('settings.pacing.onlineCapacityHelp')}</p>
-						</div>
-					</CardContent>
-				</Card>
-
-				{/* Deposits */}
-				<Card className="border-input">
-					<CardHeader>
-						<CardTitle className="flex items-center gap-2">
-							<CreditCard className="h-5 w-5" />
-							{t('settings.sections.deposits')}
-						</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-6">
-						<div className="space-y-2">
-							<Label>{t('settings.deposits.mode')}</Label>
-							<Select
-								value={depositMode}
-								onValueChange={v => setValue('depositMode', v as any, { shouldDirty: true })}
-							>
-								<SelectTrigger>
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="none">{t('settings.deposits.modes.none')}</SelectItem>
-									<SelectItem value="card_hold">{t('settings.deposits.modes.card_hold')}</SelectItem>
-									<SelectItem value="deposit">{t('settings.deposits.modes.deposit')}</SelectItem>
-									<SelectItem value="prepaid">{t('settings.deposits.modes.prepaid')}</SelectItem>
-								</SelectContent>
-							</Select>
-						</div>
-						{depositMode !== 'none' && (
-							<div className="grid grid-cols-2 gap-6">
-								<div className="space-y-2">
-									<Label>{t('settings.deposits.fixedAmount')}</Label>
-									<Input type="number" step="0.01" {...register('depositFixedAmount')} />
-								</div>
-								<div className="space-y-2">
-									<Label>{t('settings.deposits.percentage')}</Label>
-									<div className="flex items-center gap-2">
-										<Input type="number" {...register('depositPercentage')} className="flex-1" />
-										<span className="text-muted-foreground">%</span>
-									</div>
-								</div>
-								<div className="space-y-2">
-									<Label>{t('settings.deposits.partySizeGte')}</Label>
-									<div className="flex items-center gap-2">
-										<Input type="number" {...register('depositPartySizeGte')} className="flex-1" />
-										<span className="text-sm text-muted-foreground">{t('settings.deposits.partySizeGteHelp')}</span>
-									</div>
-								</div>
-							</div>
-						)}
-					</CardContent>
-				</Card>
-
-				{/* Public Booking */}
-				<Card className="border-input">
-					<CardHeader>
-						<CardTitle className="flex items-center gap-2">
-							<Globe className="h-5 w-5" />
-							{t('settings.sections.publicBooking')}
-						</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-4">
-						<div className="flex items-center justify-between rounded-lg border border-input p-4">
-							<div>
-								<Label>{t('settings.publicBooking.enabled')}</Label>
-								<p className="text-xs text-muted-foreground">{t('settings.publicBooking.enabledHelp')}</p>
-							</div>
-							<Switch
-								checked={watch('publicBookingEnabled')}
-								onCheckedChange={v => setValue('publicBookingEnabled', v, { shouldDirty: true })}
-							/>
-						</div>
-						<div className="flex items-center justify-between rounded-lg border border-input p-4">
-							<Label>{t('settings.publicBooking.requirePhone')}</Label>
-							<Switch
-								checked={watch('requirePhone')}
-								onCheckedChange={v => setValue('requirePhone', v, { shouldDirty: true })}
-							/>
-						</div>
-						<div className="flex items-center justify-between rounded-lg border border-input p-4">
-							<Label>{t('settings.publicBooking.requireEmail')}</Label>
-							<Switch
-								checked={watch('requireEmail')}
-								onCheckedChange={v => setValue('requireEmail', v, { shouldDirty: true })}
-							/>
-						</div>
-					</CardContent>
-				</Card>
-
-				{/* Cancellation */}
-				<Card className="border-input">
-					<CardHeader>
-						<CardTitle className="flex items-center gap-2">
-							<Shield className="h-5 w-5" />
-							{t('settings.sections.cancellation')}
-						</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-4">
-						<div className="flex items-center justify-between rounded-lg border border-input p-4">
-							<Label>{t('settings.cancellation.allowCustomerCancel')}</Label>
-							<Switch
-								checked={watch('allowCustomerCancel')}
-								onCheckedChange={v => setValue('allowCustomerCancel', v, { shouldDirty: true })}
-							/>
-						</div>
-						<div className="flex items-center justify-between rounded-lg border border-input p-4">
-							<div>
-								<Label>{t('settings.cancellation.allowReschedule', { defaultValue: 'Permitir cambio de horario' })}</Label>
-								<p className="text-xs text-muted-foreground mt-1">
-									{t('settings.cancellation.allowRescheduleHelp', {
-										defaultValue: 'El cliente puede mover su reserva a otro horario de la misma clase, dentro de la ventana de cancelación.',
-									})}
-								</p>
-							</div>
-							<Switch
-								checked={watch('allowCustomerReschedule')}
-								onCheckedChange={v => setValue('allowCustomerReschedule', v, { shouldDirty: true })}
-							/>
-						</div>
-						<div className="grid grid-cols-2 gap-6">
+			<form onSubmit={handleSave}>
+				<fieldset disabled={isPending} className="space-y-6">
+					{/* Scheduling */}
+					<Card className="border-input" data-tour="reservation-settings-scheduling">
+						<CardHeader>
+							<CardTitle className="flex items-center gap-2">
+								<CalendarDays className="h-5 w-5" />
+								{t('settings.sections.scheduling')}
+							</CardTitle>
+						</CardHeader>
+						<CardContent className="grid grid-cols-2 gap-6">
 							<div className="space-y-2">
-								<Label>{t('settings.cancellation.minHoursBefore')}</Label>
-								<Input type="number" {...register('minHoursBeforeCancel')} />
-								<p className="text-xs text-muted-foreground">{t('settings.cancellation.minHoursBeforeHelp')}</p>
+								<Label htmlFor="slot-interval">{t('settings.scheduling.slotInterval')}</Label>
+								<Input id="slot-interval" type="number" className="h-12 text-base" {...register('slotIntervalMin')} />
+								<p className="text-xs text-muted-foreground">{t('settings.scheduling.slotIntervalHelp')}</p>
+								<FieldError message={errors.slotIntervalMin?.message} />
 							</div>
 							<div className="space-y-2">
-								<Label>{t('settings.cancellation.noShowFee')}</Label>
+								<Label htmlFor="default-duration">{t('settings.scheduling.defaultDuration')}</Label>
+								<Input id="default-duration" type="number" className="h-12 text-base" {...register('defaultDurationMin')} />
+								<p className="text-xs text-muted-foreground">{t('settings.scheduling.defaultDurationHelp')}</p>
+								<FieldError message={errors.defaultDurationMin?.message} />
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor="max-advance-days">{t('settings.scheduling.maxAdvanceDays')}</Label>
+								<Input id="max-advance-days" type="number" className="h-12 text-base" {...register('maxAdvanceDays')} />
+								<p className="text-xs text-muted-foreground">{t('settings.scheduling.maxAdvanceDaysHelp')}</p>
+								<FieldError message={errors.maxAdvanceDays?.message} />
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor="min-notice">{t('settings.scheduling.minNotice')}</Label>
+								<Input id="min-notice" type="number" className="h-12 text-base" {...register('minNoticeMin')} />
+								<p className="text-xs text-muted-foreground">{t('settings.scheduling.minNoticeHelp')}</p>
+								<FieldError message={errors.minNoticeMin?.message} />
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor="no-show-grace">{t('settings.scheduling.noShowGrace')}</Label>
+								<Input id="no-show-grace" type="number" className="h-12 text-base" {...register('noShowGraceMin')} />
+								<p className="text-xs text-muted-foreground">{t('settings.scheduling.noShowGraceHelp')}</p>
+								<FieldError message={errors.noShowGraceMin?.message} />
+							</div>
+							<div className="flex items-center justify-between rounded-lg border border-input p-4">
+								<div>
+									<Label htmlFor="auto-confirm">{t('settings.scheduling.autoConfirm')}</Label>
+									<p className="text-xs text-muted-foreground">{t('settings.scheduling.autoConfirmHelp')}</p>
+								</div>
+								<Switch
+									id="auto-confirm"
+									checked={formValues.autoConfirm}
+									onCheckedChange={v => setValue('autoConfirm', v, { shouldDirty: true })}
+									data-tour="reservation-auto-confirm"
+								/>
+							</div>
+						</CardContent>
+					</Card>
+
+					{/* Pacing */}
+					<Card className="border-input" data-tour="reservation-settings-pacing">
+						<CardHeader>
+							<CardTitle className="flex items-center gap-2">
+								<Clock className="h-5 w-5" />
+								{t('settings.sections.pacing')}
+							</CardTitle>
+						</CardHeader>
+						<CardContent className="grid grid-cols-2 gap-6">
+							<div className="space-y-2">
+								<Label htmlFor="pacing-max-per-slot">{t('settings.pacing.maxPerSlot')}</Label>
+								<Input
+									id="pacing-max-per-slot"
+									type="number"
+									className="h-12 text-base"
+									placeholder="—"
+									{...register('pacingMaxPerSlot')}
+								/>
+								<p className="text-xs text-muted-foreground">{t('settings.pacing.maxPerSlotHelp')}</p>
+								<FieldError message={errors.pacingMaxPerSlot?.message} />
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor="online-capacity">{t('settings.pacing.onlineCapacity')}</Label>
 								<div className="flex items-center gap-2">
-									<Input type="number" {...register('noShowFeePercent')} className="flex-1" />
+									<Input
+										id="online-capacity"
+										type="number"
+										className="h-12 flex-1 text-base"
+										{...register('onlineCapacityPercent')}
+									/>
 									<span className="text-muted-foreground">%</span>
 								</div>
-								<p className="text-xs text-muted-foreground">{t('settings.cancellation.noShowFeeHelp')}</p>
+								<p className="text-xs text-muted-foreground">{t('settings.pacing.onlineCapacityHelp')}</p>
+								<FieldError message={errors.onlineCapacityPercent?.message} />
 							</div>
-						</div>
-						<div className="flex items-center justify-between rounded-lg border border-input p-4">
-							<Label>{t('settings.cancellation.forfeitDeposit')}</Label>
-							<Switch
-								checked={watch('forfeitDeposit')}
-								onCheckedChange={v => setValue('forfeitDeposit', v, { shouldDirty: true })}
-							/>
-						</div>
+						</CardContent>
+					</Card>
 
-						{/* Credit Refund Policy */}
-						<div className="border-t border-input pt-4 mt-4 space-y-4">
-							<div>
-								<h3 className="text-sm font-semibold">{t('settings.cancellation.creditRefundTitle', { defaultValue: 'Reembolso de créditos al cancelar' })}</h3>
-								<p className="text-xs text-muted-foreground mt-1">
-									{t('settings.cancellation.creditRefundHelp', {
-										defaultValue: 'Decide cuántos créditos recuperan los clientes cuando cancelan una clase pagada con paquete.',
-									})}
-								</p>
-							</div>
-
+					{/* Deposits */}
+					<Card className="border-input" data-tour="reservation-settings-deposits">
+						<CardHeader>
+							<CardTitle className="flex items-center gap-2">
+								<CreditCard className="h-5 w-5" />
+								{t('settings.sections.deposits')}
+							</CardTitle>
+						</CardHeader>
+						<CardContent className="space-y-6">
 							<div className="space-y-2">
-								<Label>{t('settings.cancellation.creditRefundMode', { defaultValue: 'Política de reembolso' })}</Label>
-								<Select value={watch('creditRefundMode')} onValueChange={v => setValue('creditRefundMode', v as any, { shouldDirty: true })}>
-									<SelectTrigger><SelectValue /></SelectTrigger>
+								<Label htmlFor="deposit-mode">{t('settings.deposits.mode')}</Label>
+								<Select
+									value={formValues.depositMode}
+									onValueChange={v => setValue('depositMode', v as SettingsFormData['depositMode'], { shouldDirty: true })}
+								>
+									<SelectTrigger id="deposit-mode" className="h-12 text-base">
+										<SelectValue />
+									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value="ALWAYS">{t('settings.cancellation.creditRefundAlways', { defaultValue: 'Siempre devolver 100%' })}</SelectItem>
-										<SelectItem value="TIME_BASED">{t('settings.cancellation.creditRefundTimeBased', { defaultValue: 'Según anticipación' })}</SelectItem>
-										<SelectItem value="NEVER">{t('settings.cancellation.creditRefundNever', { defaultValue: 'Nunca devolver' })}</SelectItem>
+										<SelectItem value="none">{t('settings.deposits.modes.none')}</SelectItem>
+										<SelectItem value="card_hold">{t('settings.deposits.modes.card_hold')}</SelectItem>
+										<SelectItem value="deposit">{t('settings.deposits.modes.deposit')}</SelectItem>
+										<SelectItem value="prepaid">{t('settings.deposits.modes.prepaid')}</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+							{formValues.depositMode !== 'none' && (
+								<div className="grid grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2 duration-200">
+									<div className="space-y-2">
+										<Label htmlFor="deposit-fixed-amount">{t('settings.deposits.fixedAmount')}</Label>
+										<Input
+											id="deposit-fixed-amount"
+											type="number"
+											step="0.01"
+											className="h-12 text-base"
+											{...register('depositFixedAmount')}
+										/>
+										<FieldError message={errors.depositFixedAmount?.message} />
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="deposit-percentage">{t('settings.deposits.percentage')}</Label>
+										<div className="flex items-center gap-2">
+											<Input
+												id="deposit-percentage"
+												type="number"
+												className="h-12 flex-1 text-base"
+												{...register('depositPercentage')}
+											/>
+											<span className="text-muted-foreground">%</span>
+										</div>
+										<FieldError message={errors.depositPercentage?.message} />
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="deposit-party-size-gte">{t('settings.deposits.partySizeGte')}</Label>
+										<div className="flex items-center gap-2">
+											<Input
+												id="deposit-party-size-gte"
+												type="number"
+												className="h-12 flex-1 text-base"
+												{...register('depositPartySizeGte')}
+											/>
+											<span className="text-sm text-muted-foreground">{t('settings.deposits.partySizeGteHelp')}</span>
+										</div>
+										<FieldError message={errors.depositPartySizeGte?.message} />
+									</div>
+								</div>
+							)}
+						</CardContent>
+					</Card>
+
+					{/* Public Booking */}
+					<Card className="border-input" data-tour="reservation-settings-public-booking">
+						<CardHeader>
+							<CardTitle className="flex items-center gap-2">
+								<Globe className="h-5 w-5" />
+								{t('settings.sections.publicBooking')}
+							</CardTitle>
+						</CardHeader>
+						<CardContent className="space-y-4">
+							<div className="flex items-center justify-between rounded-lg border border-input p-4">
+								<div>
+									<Label htmlFor="public-booking-enabled">{t('settings.publicBooking.enabled')}</Label>
+									<p className="text-xs text-muted-foreground">{t('settings.publicBooking.enabledHelp')}</p>
+								</div>
+								<Switch
+									id="public-booking-enabled"
+									checked={formValues.publicBookingEnabled}
+									onCheckedChange={v => setValue('publicBookingEnabled', v, { shouldDirty: true })}
+									data-tour="reservation-public-booking-enabled"
+								/>
+							</div>
+							<div className="flex items-center justify-between rounded-lg border border-input p-4">
+								<Label htmlFor="require-phone">{t('settings.publicBooking.requirePhone')}</Label>
+								<Switch
+									id="require-phone"
+									checked={formValues.requirePhone}
+									onCheckedChange={v => setValue('requirePhone', v, { shouldDirty: true })}
+								/>
+							</div>
+							<div className="flex items-center justify-between rounded-lg border border-input p-4">
+								<Label htmlFor="require-email">{t('settings.publicBooking.requireEmail')}</Label>
+								<Switch
+									id="require-email"
+									checked={formValues.requireEmail}
+									onCheckedChange={v => setValue('requireEmail', v, { shouldDirty: true })}
+								/>
+							</div>
+						</CardContent>
+					</Card>
+
+					{/* Cancellation */}
+					<Card className="border-input" data-tour="reservation-settings-cancellation">
+						<CardHeader>
+							<CardTitle className="flex items-center gap-2">
+								<Shield className="h-5 w-5" />
+								{t('settings.sections.cancellation')}
+							</CardTitle>
+						</CardHeader>
+						<CardContent className="space-y-4">
+							<div className="flex items-center justify-between rounded-lg border border-input p-4">
+								<Label htmlFor="allow-customer-cancel">{t('settings.cancellation.allowCustomerCancel')}</Label>
+								<Switch
+									id="allow-customer-cancel"
+									checked={formValues.allowCustomerCancel}
+									onCheckedChange={v => setValue('allowCustomerCancel', v, { shouldDirty: true })}
+								/>
+							</div>
+							<div className="flex items-center justify-between rounded-lg border border-input p-4">
+								<div>
+									<Label htmlFor="allow-customer-reschedule">{t('settings.cancellation.allowReschedule')}</Label>
+									<p className="text-xs text-muted-foreground mt-1">{t('settings.cancellation.allowRescheduleHelp')}</p>
+								</div>
+								<Switch
+									id="allow-customer-reschedule"
+									checked={formValues.allowCustomerReschedule}
+									onCheckedChange={v => setValue('allowCustomerReschedule', v, { shouldDirty: true })}
+								/>
+							</div>
+							<div className="grid grid-cols-2 gap-6">
+								<div className="space-y-2">
+									<Label htmlFor="min-hours-before-cancel">{t('settings.cancellation.minHoursBefore')}</Label>
+									<Input
+										id="min-hours-before-cancel"
+										type="number"
+										className="h-12 text-base"
+										{...register('minHoursBeforeCancel')}
+									/>
+									<p className="text-xs text-muted-foreground">{t('settings.cancellation.minHoursBeforeHelp')}</p>
+									<FieldError message={errors.minHoursBeforeCancel?.message} />
+								</div>
+								<div className="space-y-2">
+									<Label htmlFor="no-show-fee">{t('settings.cancellation.noShowFee')}</Label>
+									<div className="flex items-center gap-2">
+										<Input id="no-show-fee" type="number" className="h-12 flex-1 text-base" {...register('noShowFeePercent')} />
+										<span className="text-muted-foreground">%</span>
+									</div>
+									<p className="text-xs text-muted-foreground">{t('settings.cancellation.noShowFeeHelp')}</p>
+									<FieldError message={errors.noShowFeePercent?.message} />
+								</div>
+							</div>
+							<div className="flex items-center justify-between rounded-lg border border-input p-4">
+								<Label htmlFor="forfeit-deposit">{t('settings.cancellation.forfeitDeposit')}</Label>
+								<Switch
+									id="forfeit-deposit"
+									checked={formValues.forfeitDeposit}
+									onCheckedChange={v => setValue('forfeitDeposit', v, { shouldDirty: true })}
+								/>
+							</div>
+						</CardContent>
+					</Card>
+
+					{/* Credit Refund Policy — separate Card for visual + structural consistency */}
+					<Card className="border-input" data-tour="reservation-settings-credit-refund">
+						<CardHeader>
+							<CardTitle className="flex items-center gap-2">
+								<Wallet className="h-5 w-5" />
+								{t('settings.cancellation.creditRefundTitle')}
+							</CardTitle>
+							<p className="text-xs text-muted-foreground">{t('settings.cancellation.creditRefundHelp')}</p>
+						</CardHeader>
+						<CardContent className="space-y-4">
+							<div className="space-y-2">
+								<Label htmlFor="credit-refund-mode">{t('settings.cancellation.creditRefundMode')}</Label>
+								<Select
+									value={formValues.creditRefundMode}
+									onValueChange={v =>
+										setValue('creditRefundMode', v as SettingsFormData['creditRefundMode'], { shouldDirty: true })
+									}
+								>
+									<SelectTrigger id="credit-refund-mode" className="h-12 text-base">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="ALWAYS">{t('settings.cancellation.creditRefundAlways')}</SelectItem>
+										<SelectItem value="TIME_BASED">{t('settings.cancellation.creditRefundTimeBased')}</SelectItem>
+										<SelectItem value="NEVER">{t('settings.cancellation.creditRefundNever')}</SelectItem>
 									</SelectContent>
 								</Select>
 							</div>
 
-							{watch('creditRefundMode') === 'TIME_BASED' && (
-								<div className="grid grid-cols-2 gap-6">
+							{formValues.creditRefundMode === 'TIME_BASED' && (
+								<div className="grid grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2 duration-200">
 									<div className="space-y-2">
-										<Label>{t('settings.cancellation.creditFreeRefundHoursBefore', { defaultValue: 'Reembolso 100% si cancela con (horas)' })}</Label>
-										<Input type="number" min={0} max={720} {...register('creditFreeRefundHoursBefore')} />
-										<p className="text-xs text-muted-foreground">
-											{t('settings.cancellation.creditFreeRefundHoursHelp', {
-												defaultValue: 'Cancelar al menos N horas antes del inicio devuelve todos los créditos.',
-											})}
-										</p>
+										<Label htmlFor="credit-free-refund-hours">{t('settings.cancellation.creditFreeRefundHoursBefore')}</Label>
+										<Input
+											id="credit-free-refund-hours"
+											type="number"
+											min={0}
+											max={720}
+											className="h-12 text-base"
+											{...register('creditFreeRefundHoursBefore')}
+										/>
+										<p className="text-xs text-muted-foreground">{t('settings.cancellation.creditFreeRefundHoursHelp')}</p>
+										<FieldError message={errors.creditFreeRefundHoursBefore?.message} />
 									</div>
 									<div className="space-y-2">
-										<Label>{t('settings.cancellation.creditLateRefundPercent', { defaultValue: '% de reembolso si cancela tarde' })}</Label>
+										<Label htmlFor="credit-late-refund-percent">{t('settings.cancellation.creditLateRefundPercent')}</Label>
 										<div className="flex items-center gap-2">
-											<Input type="number" min={0} max={100} {...register('creditLateRefundPercent')} className="flex-1" />
+											<Input
+												id="credit-late-refund-percent"
+												type="number"
+												min={0}
+												max={100}
+												className="h-12 flex-1 text-base"
+												{...register('creditLateRefundPercent')}
+											/>
 											<span className="text-muted-foreground">%</span>
 										</div>
-										<p className="text-xs text-muted-foreground">
-											{t('settings.cancellation.creditLateRefundHelp', {
-												defaultValue: 'Aplica cuando se cancela dentro de la ventana de arriba. 0 = pierde todo, 100 = devuelve todo.',
-											})}
-										</p>
+										<p className="text-xs text-muted-foreground">{t('settings.cancellation.creditLateRefundHelp')}</p>
+										<FieldError message={errors.creditLateRefundPercent?.message} />
 									</div>
 								</div>
 							)}
 
 							<div className="flex items-center justify-between rounded-lg border border-input p-4">
 								<div>
-									<Label>{t('settings.cancellation.creditNoShowRefund', { defaultValue: 'Devolver créditos en no-show' })}</Label>
-									<p className="text-xs text-muted-foreground mt-1">
-										{t('settings.cancellation.creditNoShowRefundHelp', {
-											defaultValue: 'Si el cliente no se presentó, ¿se devuelve igualmente el crédito? (Default: no)',
-										})}
-									</p>
+									<Label htmlFor="credit-no-show-refund">{t('settings.cancellation.creditNoShowRefund')}</Label>
+									<p className="text-xs text-muted-foreground mt-1">{t('settings.cancellation.creditNoShowRefundHelp')}</p>
 								</div>
-								<Switch checked={watch('creditNoShowRefund')} onCheckedChange={v => setValue('creditNoShowRefund', v, { shouldDirty: true })} />
+								<Switch
+									id="credit-no-show-refund"
+									checked={formValues.creditNoShowRefund}
+									onCheckedChange={v => setValue('creditNoShowRefund', v, { shouldDirty: true })}
+								/>
 							</div>
-						</div>
-					</CardContent>
-				</Card>
+						</CardContent>
+					</Card>
 
-				{/* Waitlist */}
-				<Card className="border-input">
-					<CardHeader>
-						<CardTitle className="flex items-center gap-2">
-							<Users className="h-5 w-5" />
-							{t('settings.sections.waitlist')}
-						</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-4">
-						<div className="flex items-center justify-between rounded-lg border border-input p-4">
-							<Label>{t('settings.waitlist.enabled')}</Label>
-							<Switch
-								checked={waitlistEnabled}
-								onCheckedChange={v => setValue('waitlistEnabled', v, { shouldDirty: true })}
-							/>
-						</div>
-						{waitlistEnabled && (
-							<div className="grid grid-cols-2 gap-6">
-								<div className="space-y-2">
-									<Label>{t('settings.waitlist.maxSize')}</Label>
-									<Input type="number" {...register('waitlistMaxSize')} />
-								</div>
-								<div className="space-y-2">
-									<Label>{t('settings.waitlist.priorityMode')}</Label>
-									<Select
-										value={watch('waitlistPriorityMode')}
-										onValueChange={v => setValue('waitlistPriorityMode', v as any, { shouldDirty: true })}
-									>
-										<SelectTrigger>
-											<SelectValue />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="fifo">{t('waitlist.priorityMode.fifo')}</SelectItem>
-											<SelectItem value="party_size">{t('waitlist.priorityMode.party_size')}</SelectItem>
-											<SelectItem value="broadcast">{t('waitlist.priorityMode.broadcast')}</SelectItem>
-										</SelectContent>
-									</Select>
-								</div>
-								<div className="space-y-2">
-									<Label>{t('settings.waitlist.notifyWindow')}</Label>
-									<div className="flex items-center gap-2">
-										<Input type="number" {...register('waitlistNotifyWindow')} className="flex-1" />
-										<span className="text-muted-foreground">{t('minutes')}</span>
+					{/* Waitlist */}
+					<Card className="border-input" data-tour="reservation-settings-waitlist">
+						<CardHeader>
+							<CardTitle className="flex items-center gap-2">
+								<Users className="h-5 w-5" />
+								{t('settings.sections.waitlist')}
+							</CardTitle>
+						</CardHeader>
+						<CardContent className="space-y-4">
+							<div className="flex items-center justify-between rounded-lg border border-input p-4">
+								<Label htmlFor="waitlist-enabled">{t('settings.waitlist.enabled')}</Label>
+								<Switch
+									id="waitlist-enabled"
+									checked={formValues.waitlistEnabled}
+									onCheckedChange={v => setValue('waitlistEnabled', v, { shouldDirty: true })}
+								/>
+							</div>
+							{formValues.waitlistEnabled && (
+								<div className="grid grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2 duration-200">
+									<div className="space-y-2">
+										<Label htmlFor="waitlist-max-size">{t('settings.waitlist.maxSize')}</Label>
+										<Input
+											id="waitlist-max-size"
+											type="number"
+											className="h-12 text-base"
+											{...register('waitlistMaxSize')}
+										/>
+										<FieldError message={errors.waitlistMaxSize?.message} />
 									</div>
-									<p className="text-xs text-muted-foreground">{t('settings.waitlist.notifyWindowHelp')}</p>
+									<div className="space-y-2">
+										<Label htmlFor="waitlist-priority-mode">{t('settings.waitlist.priorityMode')}</Label>
+										<Select
+											value={formValues.waitlistPriorityMode}
+											onValueChange={v =>
+												setValue('waitlistPriorityMode', v as SettingsFormData['waitlistPriorityMode'], { shouldDirty: true })
+											}
+										>
+											<SelectTrigger id="waitlist-priority-mode" className="h-12 text-base">
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="fifo">{t('waitlist.priorityMode.fifo')}</SelectItem>
+												<SelectItem value="party_size">{t('waitlist.priorityMode.party_size')}</SelectItem>
+												<SelectItem value="broadcast">{t('waitlist.priorityMode.broadcast')}</SelectItem>
+											</SelectContent>
+										</Select>
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="waitlist-notify-window">{t('settings.waitlist.notifyWindow')}</Label>
+										<div className="flex items-center gap-2">
+											<Input
+												id="waitlist-notify-window"
+												type="number"
+												className="h-12 flex-1 text-base"
+												{...register('waitlistNotifyWindow')}
+											/>
+											<span className="text-muted-foreground">{t('minutes')}</span>
+										</div>
+										<p className="text-xs text-muted-foreground">{t('settings.waitlist.notifyWindowHelp')}</p>
+										<FieldError message={errors.waitlistNotifyWindow?.message} />
+									</div>
 								</div>
-							</div>
-						)}
-					</CardContent>
-				</Card>
+							)}
+						</CardContent>
+					</Card>
 
-				{/* Reminders */}
-				<Card className="border-input">
-					<CardHeader>
-						<CardTitle className="flex items-center gap-2">
-							<Bell className="h-5 w-5" />
-							{t('settings.sections.reminders')}
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<div className="flex items-center justify-between rounded-lg border border-input p-4">
-							<Label>{t('settings.reminders.enabled')}</Label>
-							<Switch
-								checked={watch('remindersEnabled')}
-								onCheckedChange={v => setValue('remindersEnabled', v, { shouldDirty: true })}
-							/>
-						</div>
-					</CardContent>
-				</Card>
+					{/* Reminders */}
+					<Card className="border-input" data-tour="reservation-settings-reminders">
+						<CardHeader>
+							<CardTitle className="flex items-center gap-2">
+								<Bell className="h-5 w-5" />
+								{t('settings.sections.reminders')}
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<div className="flex items-center justify-between rounded-lg border border-input p-4">
+								<Label htmlFor="reminders-enabled">{t('settings.reminders.enabled')}</Label>
+								<Switch
+									id="reminders-enabled"
+									checked={formValues.remindersEnabled}
+									onCheckedChange={v => setValue('remindersEnabled', v, { shouldDirty: true })}
+								/>
+							</div>
+						</CardContent>
+					</Card>
+				</fieldset>
+
+				{/* Sticky bottom action bar — keeps Save reachable on long forms */}
+				<div className="sticky bottom-0 z-10 -mx-4 mt-6 flex items-center justify-end gap-3 border-t border-input bg-background/95 px-4 py-3 backdrop-blur-sm">
+					<Button type="submit" disabled={!canSave} data-tour="reservation-settings-save-bottom">
+						{isPending ? tCommon('loading') : t('actions.saveChanges')}
+					</Button>
+				</div>
 			</form>
 		</div>
 	)

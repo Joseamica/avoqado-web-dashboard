@@ -3,13 +3,29 @@
  * Master channel toggles at top with confirmation dialog.
  */
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { BarChart3, Bell, Check, ChevronDown, CreditCard, Loader2, Mail, Settings, Shield, ShoppingBag, Star, Users } from 'lucide-react'
+import {
+  BarChart3,
+  Bell,
+  Check,
+  ChevronDown,
+  CreditCard,
+  Loader2,
+  Mail,
+  Search,
+  Settings,
+  Shield,
+  ShoppingBag,
+  Star,
+  Users,
+  X,
+} from 'lucide-react'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
@@ -45,6 +61,7 @@ export default function NotificationPreferences5() {
   const { venueId } = useCurrentVenue()
 
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
+  const [searchTerm, setSearchTerm] = useState('')
   const [browserPermission, setBrowserPermission] = useState<NotificationPermission>(
     typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default',
   )
@@ -183,6 +200,35 @@ export default function NotificationPreferences5() {
     toast({ title: t('saved'), description: t('preferencesSaved') })
   }
 
+  const normalizedSearch = searchTerm.trim().toLowerCase()
+  const isSearching = normalizedSearch.length > 0
+
+  const filteredCategories = useMemo(() => {
+    if (!isSearching) {
+      return notificationCategories.map(category => ({ category, visibleTypes: category.types }))
+    }
+
+    const result: { category: (typeof notificationCategories)[number]; visibleTypes: (typeof notificationCategories)[number]['types'] }[] = []
+    for (const category of notificationCategories) {
+      const categoryName = t(`categories.${category.id}`, { defaultValue: '' }).toLowerCase()
+      const categoryDesc = t(`categoryDescriptions.${category.id}`, { defaultValue: '' }).toLowerCase()
+      const categoryMatches = categoryName.includes(normalizedSearch) || categoryDesc.includes(normalizedSearch)
+
+      const matchedTypes = category.types.filter(td => {
+        const name = t(`types.${td.type}`, { defaultValue: '' }).toLowerCase()
+        const desc = t(`typeDescriptions.${td.type}`, { defaultValue: '' }).toLowerCase()
+        return name.includes(normalizedSearch) || desc.includes(normalizedSearch)
+      })
+
+      if (categoryMatches) {
+        result.push({ category, visibleTypes: category.types })
+      } else if (matchedTypes.length > 0) {
+        result.push({ category, visibleTypes: matchedTypes })
+      }
+    }
+    return result
+  }, [isSearching, normalizedSearch, t])
+
   function toggleCategory(id: string): void {
     setExpandedCategories(prev => {
       const next = new Set(prev)
@@ -278,18 +324,52 @@ export default function NotificationPreferences5() {
         </div>
       )}
 
+      {/* Search bar */}
+      <div className="relative mb-3">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <Input
+          type="search"
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          placeholder={t('searchPlaceholder')}
+          aria-label={t('searchPlaceholder')}
+          className="h-11 pl-10 pr-10 rounded-full"
+          data-tour="notifications-preferences-search"
+        />
+        {isSearching && (
+          <button
+            type="button"
+            onClick={() => setSearchTerm('')}
+            aria-label={t('cancel')}
+            className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 inline-flex items-center justify-center rounded-full hover:bg-muted text-muted-foreground cursor-pointer"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
       {/* Category cards */}
       <div className="space-y-2">
-        {notificationCategories.map(category => {
+        {filteredCategories.length === 0 && (
+          <div className="rounded-xl border border-input bg-card px-4 py-10 text-center">
+            <p className="text-sm font-medium text-foreground">{t('noneFound')}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t('adjustFilters')}</p>
+          </div>
+        )}
+        {filteredCategories.map(({ category, visibleTypes }) => {
           const Icon = iconMap[category.icon] || Bell
-          const isExpanded = expandedCategories.has(category.id)
+          const isExpanded = isSearching || expandedCategories.has(category.id)
           const enabledCount = category.types.filter(td => getPreference(td.type).enabled).length
 
           return (
             <div key={category.id} className="rounded-xl border border-input bg-card overflow-hidden">
               <button
                 onClick={() => toggleCategory(category.id)}
-                className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors cursor-pointer"
+                disabled={isSearching}
+                className={cn(
+                  'w-full flex items-center gap-3 px-4 py-3.5 transition-colors',
+                  isSearching ? 'cursor-default' : 'hover:bg-muted/30 cursor-pointer',
+                )}
               >
                 <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-muted shrink-0">
                   <Icon className="h-4 w-4 text-muted-foreground" />
@@ -301,17 +381,19 @@ export default function NotificationPreferences5() {
                 <Badge variant="secondary" className="text-xs tabular-nums shrink-0">
                   {enabledCount}/{category.types.length}
                 </Badge>
-                <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform shrink-0', isExpanded && 'rotate-180')} />
+                {!isSearching && (
+                  <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform shrink-0', isExpanded && 'rotate-180')} />
+                )}
               </button>
 
               {isExpanded && (
                 <div className="border-t border-input/60">
-                  {category.types.map((typeData, i) => {
+                  {visibleTypes.map((typeData, i) => {
                     const pref = getPreference(typeData.type)
                     return (
                       <div
                         key={typeData.type}
-                        className={cn('px-4 py-3 pl-16', i < category.types.length - 1 && 'border-b border-input/40')}
+                        className={cn('px-4 py-3 pl-16', i < visibleTypes.length - 1 && 'border-b border-input/40')}
                       >
                         <div className="flex items-center justify-between">
                           <div className="min-w-0 flex-1">
