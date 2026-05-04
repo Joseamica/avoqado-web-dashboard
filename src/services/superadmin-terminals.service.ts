@@ -60,6 +60,8 @@ export interface CreateTerminalRequest {
   model?: string
   assignedMerchantIds?: string[]
   generateActivationCode?: boolean
+  /** Optional pre-configured TPV settings (toggles, tip percentages, etc). */
+  configOverrides?: Partial<import('./tpv-settings.service').TpvSettings>
 }
 
 export interface UpdateTerminalRequest {

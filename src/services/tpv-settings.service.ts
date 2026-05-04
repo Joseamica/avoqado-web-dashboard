@@ -55,7 +55,7 @@ export type CellularFailoverMode = TpvSettings['cellularFailoverMode']
 /**
  * Default TPV settings - used as fallback when backend doesn't return all fields
  */
-const DEFAULT_TPV_SETTINGS: TpvSettings = {
+export const DEFAULT_TPV_SETTINGS: TpvSettings = {
   showReviewScreen: true,
   showTipScreen: true,
   showReceiptScreen: true,
