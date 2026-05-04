@@ -463,31 +463,30 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
               </div>
             )}
 
-            {/* External Merchant ID */}
-            <div className="grid gap-2">
-              <Label>
-                External Merchant ID <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                value={formData.externalMerchantId}
-                onChange={e => setFormData({ ...formData, externalMerchantId: e.target.value })}
-                placeholder={
-                  isBlumon
-                    ? 'Se auto-genera con el serial'
-                    : isAngelPay
-                      ? 'Se auto-genera con la afiliación'
-                      : 'ID único del comercio en el procesador'
-                }
-                className="bg-background border-input font-mono text-sm"
-                disabled={(isBlumon && !!formData.blumonSerialNumber) || (isAngelPay && !!formData.angelPayAffiliation)}
-              />
-              {isBlumon && (
-                <p className="text-xs text-muted-foreground">
-                  Se genera automáticamente como <code className="bg-muted px-1 rounded">blumon_SERIAL</code>
-                </p>
-              )}
-              {isAngelPay && <p className="text-xs text-muted-foreground">Se usa el número de afiliación como ID externo</p>}
-            </div>
+            {/* External Merchant ID
+                Hidden in the main form when it's auto-derivable (Blumon serial,
+                AngelPay afiliación, AngelPay email). For those cases the user
+                gets a read-only summary instead and the editable input only
+                appears in "Configuración avanzada" below for power-user override. */}
+            {!isAutoDerivedExternalId && (
+              <div className="grid gap-2">
+                <Label>
+                  External Merchant ID <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  value={formData.externalMerchantId}
+                  onChange={e => setFormData({ ...formData, externalMerchantId: e.target.value })}
+                  placeholder="ID único del comercio en el procesador"
+                  className="bg-background border-input font-mono text-sm"
+                />
+              </div>
+            )}
+            {isAutoDerivedExternalId && formData.externalMerchantId && (
+              <div className="text-xs text-muted-foreground">
+                ID externo: <code className="bg-muted px-1 py-0.5 rounded font-mono">{formData.externalMerchantId}</code>{' '}
+                <span className="opacity-60">(auto)</span>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               {/* Alias */}
