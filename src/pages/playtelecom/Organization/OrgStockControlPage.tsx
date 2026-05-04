@@ -41,9 +41,14 @@ const TABS = [
 
 type TabValue = (typeof TABS)[number]['value']
 
-function thirtyDaysAgo(): Date {
+// Default range covers a full year so SIMs registered before the rolling 30-day
+// window (e.g. PlayTelecom's bulk uploads from semanas atrás) remain visible
+// when the OWNER lands on Control de Stock. The user can still narrow the
+// range via the DateRangePicker. Filtering by createdAt would otherwise hide
+// items currently in custody whose registration is older than the window.
+function defaultRangeStart(): Date {
   const d = new Date()
-  d.setDate(d.getDate() - 30)
+  d.setFullYear(d.getFullYear() - 1)
   d.setHours(0, 0, 0, 0)
   return d
 }
@@ -68,10 +73,9 @@ export default function OrgStockControlPage() {
   // user.role (global highest role) to gate the button for SUPERADMIN/OWNER.
   const currentUserRole = staffInfo?.role ?? user?.role
   const isSuperOrOwner = currentUserRole === 'SUPERADMIN' || currentUserRole === 'OWNER'
-  const canAssignToSupervisor =
-    can('sim-custody:assign-to-supervisor') || can('inventory:org-manage') || isSuperOrOwner
+  const canAssignToSupervisor = can('sim-custody:assign-to-supervisor') || can('inventory:org-manage') || isSuperOrOwner
   const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date }>(() => ({
-    from: thirtyDaysAgo(),
+    from: defaultRangeStart(),
     to: todayEndOfDay(),
   }))
 
@@ -80,21 +84,18 @@ export default function OrgStockControlPage() {
   // side arrives as `new Date()` (current instant) each time. Comparing by
   // ms always differs. Compare by DAY so only real user-selected range
   // changes update state.
-  const handleDateRangeUpdate = useCallback(
-    ({ range }: { range: { from: Date; to?: Date } }) => {
-      const nextFrom = range.from
-      const nextTo = range.to ?? range.from
-      const sameDay = (a: Date, b: Date) =>
-        a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
-      setSelectedRange(prev => {
-        if (sameDay(prev.from, nextFrom) && sameDay(prev.to, nextTo)) {
-          return prev
-        }
-        return { from: nextFrom, to: nextTo }
-      })
-    },
-    [],
-  )
+  const handleDateRangeUpdate = useCallback(({ range }: { range: { from: Date; to?: Date } }) => {
+    const nextFrom = range.from
+    const nextTo = range.to ?? range.from
+    const sameDay = (a: Date, b: Date) =>
+      a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+    setSelectedRange(prev => {
+      if (sameDay(prev.from, nextFrom) && sameDay(prev.to, nextTo)) {
+        return prev
+      }
+      return { from: nextFrom, to: nextTo }
+    })
+  }, [])
 
   const queryParams = useMemo(
     () => ({
@@ -193,19 +194,13 @@ export default function OrgStockControlPage() {
               Cargar Items
             </Button>
           )}
-          {canAssignToSupervisor && (
-            <Button onClick={() => setAssignOpen(true)}>Asignar SIMs</Button>
-          )}
+          {canAssignToSupervisor && <Button onClick={() => setAssignOpen(true)}>Asignar SIMs</Button>}
         </div>
       </div>
 
-      {orgId && canAssignToSupervisor && (
-        <AssignToSupervisorDialog open={assignOpen} onOpenChange={setAssignOpen} orgId={orgId} />
-      )}
+      {orgId && canAssignToSupervisor && <AssignToSupervisorDialog open={assignOpen} onOpenChange={setAssignOpen} orgId={orgId} />}
 
-      {canAssignToSupervisor && venues.length > 0 && (
-        <OrgBulkUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} />
-      )}
+      {canAssignToSupervisor && venues.length > 0 && <OrgBulkUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} />}
 
       {/* Summary Bar — matches StockControl.tsx pattern */}
       <GlassCard className="p-4">
