@@ -68,6 +68,12 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
     providerConfig: '',
   })
 
+  // Dynamic credentials for providers that declare `configSchema.credentialFields`
+  // (e.g. AngelPay needs email + PIN + afiliacion + commerceToken instead of
+  // merchantId + apiKey). Keeping this separate from `formData` avoids polluting
+  // the legacy state shape and keeps the schema-driven path opt-in per provider.
+  const [dynamicCredentials, setDynamicCredentials] = useState<Record<string, string>>({})
+
   // 💳 MSI months currently selected. Source of truth is the providerConfig JSON,
   // but we keep a parallel array so the checkboxes can render and stay in sync.
   const [msiMonths, setMsiMonths] = useState<number[]>([])
@@ -98,6 +104,7 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
         providerConfig: account.providerConfig ? JSON.stringify(account.providerConfig, null, 2) : '',
       })
       setMsiMonths(extractMsiFromConfig(account.providerConfig))
+      setDynamicCredentials({})
     } else {
       setFormData({
         providerId: '',
@@ -113,8 +120,28 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
         providerConfig: '',
       })
       setMsiMonths([])
+      setDynamicCredentials({})
     }
   }, [account, open])
+
+  // Resolved provider for the current `providerId` selection.
+  // When this provider declares `configSchema.credentialFields`, the dialog
+  // renders those inputs instead of the legacy 4-field block (merchantId,
+  // apiKey, customerId, terminalId). This is what unlocks AngelPay
+  // (email + PIN + afiliacion + commerceToken) without hardcoding it here.
+  const selectedProvider = providers.find(p => p.id === formData.providerId)
+  const credentialFields: Array<{
+    key: string
+    label?: string
+    type?: string
+    placeholder?: string
+    required?: boolean
+    helperText?: string
+    pattern?: string
+    minLength?: number
+    maxLength?: number
+  }> = selectedProvider?.configSchema?.credentialFields ?? []
+  const useDynamicForm = credentialFields.length > 0
 
   /**
    * Pulls MSI months out of the providerConfig in any of the three shapes the
@@ -163,12 +190,18 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
     e.preventDefault()
     setLoading(true)
     try {
-      const credentials: MerchantAccountCredentials = {
-        merchantId: formData.merchantId,
-        apiKey: formData.apiKey,
-        customerId: formData.customerId || undefined,
-        terminalId: formData.terminalId || undefined,
-      }
+      // Schema-driven providers (AngelPay, etc.) submit only the dynamic
+      // fields they declared. Backend validation in
+      // merchantAccount.service.ts -> createMerchantAccount() drives off the
+      // same schema, so this stays consistent end-to-end.
+      const credentials: MerchantAccountCredentials = useDynamicForm
+        ? ({ ...dynamicCredentials } as MerchantAccountCredentials)
+        : {
+            merchantId: formData.merchantId,
+            apiKey: formData.apiKey,
+            customerId: formData.customerId || undefined,
+            terminalId: formData.terminalId || undefined,
+          }
 
       let providerConfig: any = undefined
       if (formData.providerConfig) {
@@ -299,59 +332,105 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
               )}
 
               <div className="grid gap-3">
-                <div className="grid gap-2">
-                  <Label htmlFor="merchantId">
-                    Merchant ID <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="merchantId"
-                    type={showCredentials ? 'text' : 'password'}
-                    value={formData.merchantId}
-                    onChange={e => setFormData({ ...formData, merchantId: e.target.value })}
-                    required={!account}
-                    placeholder={t('merchantDialog.merchantIdPlaceholder')}
-                    className="bg-background border-input font-mono text-sm"
-                  />
-                </div>
+                {useDynamicForm ? (
+                  // Schema-driven render for providers that declare their
+                  // own credential fields (e.g. AngelPay: email + PIN +
+                  // afiliacion + commerceToken). The keys / labels /
+                  // validation hints come from the backend's
+                  // PaymentProvider.configSchema.credentialFields, so adding
+                  // a new processor only requires updating the row in the DB.
+                  <>
+                    {credentialFields.map(field => {
+                      const fieldId = `cred-${field.key}`
+                      const isSensitive =
+                        field.type === 'password' || field.type === 'email' || /token|secret|pin/i.test(field.key)
+                      return (
+                        <div key={field.key} className="grid gap-2">
+                          <Label htmlFor={fieldId}>
+                            {field.label || field.key}
+                            {field.required && <span className="text-destructive"> *</span>}
+                          </Label>
+                          <Input
+                            id={fieldId}
+                            type={isSensitive && !showCredentials ? 'password' : field.type === 'email' ? 'email' : 'text'}
+                            value={dynamicCredentials[field.key] ?? ''}
+                            onChange={e =>
+                              setDynamicCredentials(prev => ({ ...prev, [field.key]: e.target.value }))
+                            }
+                            required={field.required && !account}
+                            placeholder={field.placeholder}
+                            minLength={field.minLength}
+                            maxLength={field.maxLength}
+                            pattern={field.pattern}
+                            className="bg-background border-input font-mono text-sm"
+                          />
+                          {field.helperText && (
+                            <p className="text-xs text-muted-foreground">{field.helperText}</p>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </>
+                ) : (
+                  // Legacy fixed form for providers without a configSchema
+                  // (Menta, Stripe Connect today). Kept as-is so existing
+                  // integrations don't change behavior.
+                  <>
+                    <div className="grid gap-2">
+                      <Label htmlFor="merchantId">
+                        Merchant ID <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="merchantId"
+                        type={showCredentials ? 'text' : 'password'}
+                        value={formData.merchantId}
+                        onChange={e => setFormData({ ...formData, merchantId: e.target.value })}
+                        required={!account}
+                        placeholder={t('merchantDialog.merchantIdPlaceholder')}
+                        className="bg-background border-input font-mono text-sm"
+                      />
+                    </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="apiKey">
-                    API Key <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="apiKey"
-                    type={showCredentials ? 'text' : 'password'}
-                    value={formData.apiKey}
-                    onChange={e => setFormData({ ...formData, apiKey: e.target.value })}
-                    required={!account}
-                    placeholder={t('merchantDialog.apiKeyPlaceholder')}
-                    className="bg-background border-input font-mono text-sm"
-                  />
-                </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="apiKey">
+                        API Key <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="apiKey"
+                        type={showCredentials ? 'text' : 'password'}
+                        value={formData.apiKey}
+                        onChange={e => setFormData({ ...formData, apiKey: e.target.value })}
+                        required={!account}
+                        placeholder={t('merchantDialog.apiKeyPlaceholder')}
+                        className="bg-background border-input font-mono text-sm"
+                      />
+                    </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="customerId">{t('merchantDialog.customerId')}</Label>
-                  <Input
-                    id="customerId"
-                    type={showCredentials ? 'text' : 'password'}
-                    value={formData.customerId}
-                    onChange={e => setFormData({ ...formData, customerId: e.target.value })}
-                    placeholder={t('merchantDialog.customerIdPlaceholder')}
-                    className="bg-background border-input font-mono text-sm"
-                  />
-                </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="customerId">{t('merchantDialog.customerId')}</Label>
+                      <Input
+                        id="customerId"
+                        type={showCredentials ? 'text' : 'password'}
+                        value={formData.customerId}
+                        onChange={e => setFormData({ ...formData, customerId: e.target.value })}
+                        placeholder={t('merchantDialog.customerIdPlaceholder')}
+                        className="bg-background border-input font-mono text-sm"
+                      />
+                    </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="terminalId">{t('merchantDialog.terminalId')}</Label>
-                  <Input
-                    id="terminalId"
-                    type={showCredentials ? 'text' : 'password'}
-                    value={formData.terminalId}
-                    onChange={e => setFormData({ ...formData, terminalId: e.target.value })}
-                    placeholder={t('merchantDialog.terminalIdPlaceholder')}
-                    className="bg-background border-input font-mono text-sm"
-                  />
-                </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="terminalId">{t('merchantDialog.terminalId')}</Label>
+                      <Input
+                        id="terminalId"
+                        type={showCredentials ? 'text' : 'password'}
+                        value={formData.terminalId}
+                        onChange={e => setFormData({ ...formData, terminalId: e.target.value })}
+                        placeholder={t('merchantDialog.terminalIdPlaceholder')}
+                        className="bg-background border-input font-mono text-sm"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 

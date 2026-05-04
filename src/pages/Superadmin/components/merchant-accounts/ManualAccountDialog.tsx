@@ -113,7 +113,10 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
     // Provider-specific validation
     if (!account) {
       if (isBlumon && !formData.blumonSerialNumber) return
-      if (isAngelPay && (!formData.angelPayEmail || !formData.angelPayAffiliation || !formData.angelPayCommerceToken)) return
+      // simpleLogin (AngelPay SDK 1.0.3+): only email + PIN are required.
+      // Afiliación and Commerce Token are optional — they only matter for
+      // multi-merchant selection or the legacy app-to-app flow.
+      if (isAngelPay && (!formData.angelPayEmail || !formData.angelPayPassword)) return
       if (isGenericProvider && (!formData.merchantId || !formData.apiKey)) return
     }
 
@@ -210,7 +213,8 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
     if (loading || !formData.providerId || !formData.externalMerchantId) return true
     if (account) return false // Editing — credentials already exist
     if (isBlumon) return !formData.blumonSerialNumber
-    if (isAngelPay) return !formData.angelPayEmail || !formData.angelPayAffiliation || !formData.angelPayCommerceToken
+    // simpleLogin: email + PIN suffice. Afiliación + token become optional.
+    if (isAngelPay) return !formData.angelPayEmail || !formData.angelPayPassword
     return !formData.merchantId || !formData.apiKey
   }
 
@@ -355,33 +359,12 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
                   <span className="text-sm font-medium">Configuración AngelPay</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Estos datos se obtienen del{' '}
-                  <span className="font-medium text-orange-600 dark:text-orange-400">Portal de Comercio AngelPay</span> → Información de
-                  Cuenta. Una cuenta por comercio — se comparte entre todas las terminales Nexgo del mismo venue.
+                  Con <span className="font-medium text-orange-600 dark:text-orange-400">simpleLogin</span> (SDK 1.0.3+), AngelPay solo
+                  necesita correo y PIN. Afiliación y Commerce Token son opcionales — solo se usan para multi-comercio o flow
+                  app-to-app legacy.
                 </p>
 
                 <div className="grid gap-3">
-                  <div className="grid gap-2">
-                    <Label>
-                      No. Afiliación <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      value={formData.angelPayAffiliation}
-                      onChange={e => {
-                        const affiliation = e.target.value
-                        setFormData({
-                          ...formData,
-                          angelPayAffiliation: affiliation,
-                          externalMerchantId: affiliation || formData.externalMerchantId,
-                          displayName: affiliation ? `AngelPay - ${affiliation}` : formData.displayName,
-                        })
-                      }}
-                      placeholder="Ej: 9814275"
-                      className="bg-background border-input font-mono text-sm"
-                    />
-                    <p className="text-xs text-muted-foreground">Portal AngelPay → Información de Cuenta → "Afiliación"</p>
-                  </div>
-
                   <div className="grid grid-cols-2 gap-3">
                     <div className="grid gap-2">
                       <Label>
@@ -390,7 +373,19 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
                       <Input
                         type={showCredentials ? 'text' : 'email'}
                         value={formData.angelPayEmail}
-                        onChange={e => setFormData({ ...formData, angelPayEmail: e.target.value })}
+                        onChange={e => {
+                          const email = e.target.value
+                          setFormData({
+                            ...formData,
+                            angelPayEmail: email,
+                            // Use email as the externalMerchantId fallback when
+                            // afiliación is empty — the DB unique key is
+                            // (providerId, externalMerchantId), so this keeps
+                            // single-merchant accounts uniquely identified
+                            // without forcing AngelPay to give us afiliación.
+                            externalMerchantId: formData.angelPayAffiliation || email || formData.externalMerchantId,
+                          })
+                        }}
                         placeholder="comercio@ejemplo.com"
                         className="bg-background border-input text-sm"
                       />
@@ -399,7 +394,7 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
 
                     <div className="grid gap-2">
                       <Label>
-                        PIN <span className="text-muted-foreground text-xs">(6 dígitos)</span>
+                        PIN <span className="text-destructive">*</span> <span className="text-muted-foreground text-xs">(6 dígitos)</span>
                       </Label>
                       <Input
                         type={showCredentials ? 'text' : 'password'}
@@ -415,7 +410,30 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
 
                   <div className="grid gap-2">
                     <Label>
-                      Commerce Token <span className="text-destructive">*</span>
+                      No. Afiliación <span className="text-muted-foreground text-xs">(opcional)</span>
+                    </Label>
+                    <Input
+                      value={formData.angelPayAffiliation}
+                      onChange={e => {
+                        const affiliation = e.target.value
+                        setFormData({
+                          ...formData,
+                          angelPayAffiliation: affiliation,
+                          externalMerchantId: affiliation || formData.angelPayEmail || formData.externalMerchantId,
+                          displayName: affiliation ? `AngelPay - ${affiliation}` : formData.displayName,
+                        })
+                      }}
+                      placeholder="Ej: 9814275"
+                      className="bg-background border-input font-mono text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Solo si el comercio tiene varias afiliaciones — el SDK lo usa para autoseleccionar la correcta.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label>
+                      Commerce Token <span className="text-muted-foreground text-xs">(opcional)</span>
                     </Label>
                     <Input
                       type={showCredentials ? 'text' : 'password'}
@@ -424,7 +442,9 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
                       placeholder="Token del portal AngelPay"
                       className="bg-background border-input font-mono text-sm"
                     />
-                    <p className="text-xs text-muted-foreground">Lo proporciona AngelPay al dar de alta el comercio</p>
+                    <p className="text-xs text-muted-foreground">
+                      Solo necesario para el flow app-to-app legacy (Intent a la app externa de AngelPay).
+                    </p>
                   </div>
 
                   <div className="flex items-center justify-end">
