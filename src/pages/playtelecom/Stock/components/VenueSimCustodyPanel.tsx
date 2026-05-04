@@ -47,7 +47,7 @@ interface Props {
 const STUCK_DAYS_THRESHOLD = 7
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 
-type FilterKey = 'todos' | 'almacen' | 'pendientes' | 'aceptados' | 'rechazados' | 'vendidos'
+type FilterKey = 'todos' | 'almacen' | 'pendientes' | 'aceptados' | 'rechazados' | 'vendidos' | 'estancados'
 
 export function VenueSimCustodyPanel({ orgId, dateRange }: Props) {
   const { user } = useAuth()
@@ -63,9 +63,12 @@ export function VenueSimCustodyPanel({ orgId, dateRange }: Props) {
     if (fromMs != null && toMs != null) {
       return { dateFrom: new Date(fromMs).toISOString(), dateTo: new Date(toMs).toISOString() }
     }
+    // Fallback to a 1-year window so SIMs registered earlier than 30 days but
+    // still in Supervisor/Promoter custody remain visible. Matches the parent
+    // page default — see custody data drift report 2026-05-04.
     const end = new Date()
     const start = new Date(end)
-    start.setDate(start.getDate() - 30)
+    start.setFullYear(start.getFullYear() - 1)
     return { dateFrom: start.toISOString(), dateTo: end.toISOString() }
   }, [fromMs, toMs])
   const { data, isLoading, error } = useOrgStockControl(orgId, stockParams)
@@ -111,7 +114,11 @@ export function VenueSimCustodyPanel({ orgId, dateRange }: Props) {
   }, [mySims])
 
   // ============================================================
-  // Promoter ranking (top 5 by SIMs actively in hand)
+  // Promoter ranking — every Promotor this Supervisor has touched in the
+  // window. Customers reported the previous "top 5" cap hid teammates whenever
+  // someone had >5 active Promotores or whenever a Promotor with only sold
+  // SIMs sorted below the cutoff (see field report 2026-05-04). Show the full
+  // list and let the operator scan; the parent card scrolls if needed.
   // ============================================================
   const promoterRanking = useMemo(() => {
     const byPromoter = new Map<string, { id: string; name: string; pending: number; held: number; sold: number }>()
@@ -124,9 +131,7 @@ export function VenueSimCustodyPanel({ orgId, dateRange }: Props) {
       else if (s.custodyState === 'PROMOTER_HELD') entry.held++
       byPromoter.set(key, entry)
     }
-    return Array.from(byPromoter.values())
-      .sort((a, b) => b.pending + b.held - (a.pending + a.held))
-      .slice(0, 5)
+    return Array.from(byPromoter.values()).sort((a, b) => b.pending + b.held + b.sold - (a.pending + a.held + a.sold))
   }, [mySims])
 
   // ============================================================
@@ -139,6 +144,8 @@ export function VenueSimCustodyPanel({ orgId, dateRange }: Props) {
   const [assignSerials, setAssignSerials] = useState<string[] | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
+  const stuckIds = useMemo(() => new Set(alerts.stuck.map(s => s.id)), [alerts.stuck])
+
   const filtered = useMemo(() => {
     const q = search.trim()
     return mySims.filter(s => {
@@ -148,10 +155,11 @@ export function VenueSimCustodyPanel({ orgId, dateRange }: Props) {
       if (filter === 'aceptados' && st !== 'PROMOTER_HELD') return false
       if (filter === 'rechazados' && st !== 'PROMOTER_REJECTED') return false
       if (filter === 'vendidos' && s.status !== 'SOLD') return false
+      if (filter === 'estancados' && !stuckIds.has(s.id)) return false
       if (q && !includesNormalized(s.serialNumber ?? '', q)) return false
       return true
     })
-  }, [mySims, filter, search])
+  }, [mySims, filter, search, stuckIds])
 
   const assignableSelection = useMemo(
     () =>
@@ -239,7 +247,7 @@ export function VenueSimCustodyPanel({ orgId, dateRange }: Props) {
                   <span className="font-semibold">{alerts.stuck.length}</span>{' '}
                   {alerts.stuck.length === 1 ? 'SIM estancado' : 'SIMs estancados'} (&gt;{STUCK_DAYS_THRESHOLD} días sin movimiento)
                 </span>
-                <Button size="sm" variant="outline" onClick={() => setFilter('pendientes')}>
+                <Button size="sm" variant="outline" onClick={() => setFilter('estancados')}>
                   Revisar <ArrowRight className="ml-1 h-3 w-3" />
                 </Button>
               </div>
@@ -253,12 +261,13 @@ export function VenueSimCustodyPanel({ orgId, dateRange }: Props) {
         <GlassCard className="p-4 lg:col-span-1">
           <div className="flex items-center gap-2 mb-3">
             <Users className="h-4 w-4 text-foreground" />
-            <h3 className="text-sm font-semibold">Top promotores</h3>
+            <h3 className="text-sm font-semibold">Mi equipo</h3>
+            {promoterRanking.length > 0 && <span className="ml-auto text-xs text-muted-foreground">{promoterRanking.length}</span>}
           </div>
           {promoterRanking.length === 0 ? (
             <p className="text-sm text-muted-foreground">Aún no has asignado SIMs a tus Promotores.</p>
           ) : (
-            <ul className="space-y-2">
+            <ul className="space-y-2 max-h-80 overflow-y-auto pr-1">
               {promoterRanking.map((p, idx) => (
                 <li key={p.id} className="flex items-center gap-3 text-sm">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-semibold">{idx + 1}</span>
@@ -455,6 +464,8 @@ function filterLabel(key: FilterKey): string {
       return 'Rechazados'
     case 'vendidos':
       return 'Vendidos'
+    case 'estancados':
+      return 'Estancados'
   }
 }
 

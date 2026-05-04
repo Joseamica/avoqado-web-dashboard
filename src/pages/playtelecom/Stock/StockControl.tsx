@@ -31,11 +31,13 @@ import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { BulkUploadDialog, CategoryManagement, LowStockAlerts, StockVsSalesChart } from './components'
 import { includesNormalized } from '@/lib/utils'
 
-// Default window: last 30 days ending today. Matches OrgStockControlPage so
-// the Supervisor sees the same timeframe across the platform.
-function thirtyDaysAgo(): Date {
+// Default window: last 365 days ending today. Matches OrgStockControlPage so
+// the Supervisor sees the same timeframe across the platform. A 30-day default
+// hides SIMs registered before that window even when they are still in
+// Supervisor/Promoter custody — see custody data drift report 2026-05-04.
+function defaultRangeStart(): Date {
   const d = new Date()
-  d.setDate(d.getDate() - 30)
+  d.setFullYear(d.getFullYear() - 1)
   d.setHours(0, 0, 0, 0)
   return d
 }
@@ -113,7 +115,7 @@ export function StockControl() {
   // Shared date range — drives BOTH the Movimientos query and the Custodia
   // panel so Supervisor sees one consistent window across the page.
   const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date }>(() => ({
-    from: thirtyDaysAgo(),
+    from: defaultRangeStart(),
     to: todayEndOfDay(),
   }))
 
