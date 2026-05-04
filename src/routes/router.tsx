@@ -565,7 +565,16 @@ const router = createBrowserRouter(
                       children: [
                         { index: true, element: <PlayTelecomCommandCenter /> },
                         { path: 'stock', element: <PlayTelecomStock /> },
-                        { path: 'sales', element: <PlayTelecomSales /> },
+                        {
+                          path: 'sales',
+                          element: (
+                            <ModuleProtectedRoute
+                              requiredModule="SERIALIZED_INVENTORY"
+                              allowedRoles={[StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                            />
+                          ),
+                          children: [{ index: true, element: <PlayTelecomSales /> }],
+                        },
                         {
                           path: 'stores',
                           element: (
@@ -729,7 +738,17 @@ const router = createBrowserRouter(
                     // Parent already requires WHITE_LABEL_DASHBOARD module
                     { path: 'command-center', element: <PlayTelecomCommandCenter /> },
                     { path: 'stock', element: <PlayTelecomStock /> },
-                    { path: 'sales', element: <PlayTelecomSales /> },
+                    {
+                      path: 'sales',
+                      element: (
+                        <ModuleProtectedRoute
+                          requiredModule="WHITE_LABEL_DASHBOARD"
+                          featureCode="SALES_REPORT"
+                          allowedRoles={[StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                        />
+                      ),
+                      children: [{ index: true, element: <PlayTelecomSales /> }],
+                    },
                     {
                       path: 'promoters',
                       element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" featureCode="PROMOTERS_AUDIT" />,
