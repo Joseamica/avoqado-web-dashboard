@@ -58,6 +58,12 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
   const isBlumon = selectedProvider?.code?.toLowerCase().includes('blumon')
   const isAngelPay = selectedProvider?.code?.toUpperCase() === 'ANGELPAY'
   const isGenericProvider = !isBlumon && !isAngelPay
+  // True when the External Merchant ID is auto-derived from another field
+  // (Blumon serial, AngelPay afiliación or email). The user shouldn't see
+  // the raw input in the main form — it's noise. The advanced section still
+  // exposes it for power-user override.
+  const isAutoDerivedExternalId =
+    (isBlumon && !!formData.blumonSerialNumber) || (isAngelPay && (!!formData.angelPayAffiliation || !!formData.angelPayEmail))
 
   useEffect(() => {
     if (account) {
@@ -360,8 +366,8 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Con <span className="font-medium text-orange-600 dark:text-orange-400">simpleLogin</span> (SDK 1.0.3+), AngelPay solo
-                  necesita correo y PIN. Afiliación y Commerce Token son opcionales — solo se usan para multi-comercio o flow
-                  app-to-app legacy.
+                  necesita correo y PIN. Afiliación y Commerce Token son opcionales — solo se usan para multi-comercio o flow app-to-app
+                  legacy.
                 </p>
 
                 <div className="grid gap-3">
@@ -610,6 +616,26 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
                 </button>
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-3 space-y-3">
+                {/* External Merchant ID override — shown in advanced for the
+                    rare case where the user needs to override the auto-derived
+                    value (e.g. afiliación changed but the legacy account in
+                    the processor's portal kept a different ID). For Blumon
+                    and AngelPay the field is hidden from the main form. */}
+                {isAutoDerivedExternalId && (
+                  <div className="grid gap-2">
+                    <Label>External Merchant ID (override)</Label>
+                    <Input
+                      value={formData.externalMerchantId}
+                      onChange={e => setFormData({ ...formData, externalMerchantId: e.target.value })}
+                      placeholder={isBlumon ? 'blumon_SERIAL' : 'auto-generado'}
+                      className="bg-background border-input font-mono text-xs"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Solo modifica esto si el ID auto-generado no coincide con el comercio registrado en el procesador.
+                    </p>
+                  </div>
+                )}
+
                 <div className="grid gap-2">
                   <Label>Provider Config (JSON)</Label>
                   <Textarea
