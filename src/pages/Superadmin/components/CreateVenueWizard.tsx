@@ -4,30 +4,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AddressAutocomplete } from '@/components/address-autocomplete'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  getOrganizationsList,
-  type OrganizationSimple,
-} from '@/services/superadmin-organizations.service'
+import { getOrganizationsList, type OrganizationSimple } from '@/services/superadmin-organizations.service'
 import { superadminAPI } from '@/services/superadmin.service'
-import {
-  paymentProviderAPI,
-  type MccLookupResult,
-  type FullSetupRequest,
-} from '@/services/paymentProvider.service'
-import {
-  DEFAULT_SETTLEMENT_DAYS,
-  type SettlementDayType,
-} from '@/services/settlementConfiguration.service'
+import { paymentProviderAPI, type MccLookupResult, type FullSetupRequest } from '@/services/paymentProvider.service'
+import { DEFAULT_SETTLEMENT_DAYS, type SettlementDayType } from '@/services/settlementConfiguration.service'
 import {
   ArrowLeft,
   ArrowRight,
@@ -37,10 +21,13 @@ import {
   CheckCircle2,
   Copy,
   CreditCard,
+  Gift,
   Info,
   Loader2,
   MapPin,
   Phone,
+  ShieldCheck,
+  Sliders,
   Sparkles,
   Store,
   Utensils,
@@ -202,6 +189,30 @@ interface VenueFormData {
   timezone: string
 }
 
+// Per-feature activation choice in the new "Configuración" step.
+// 'enable'  = activate indefinitely (no Stripe charge — superadmin gift)
+// 'trial'   = grant DB-only trial for trialDays days
+type FeatureGrantMode = 'enable' | 'trial'
+interface FeatureGrant {
+  mode: FeatureGrantMode
+  trialDays: number // only used when mode === 'trial'
+}
+
+interface ConfigData {
+  enableShifts: boolean
+  currency: string
+  kycApproved: boolean
+  /** Map of featureCode → grant choice. Absent = not activated. */
+  featureGrants: Record<string, FeatureGrant>
+}
+
+const INITIAL_CONFIG: ConfigData = {
+  enableShifts: true,
+  currency: 'MXN',
+  kycApproved: false,
+  featureGrants: {},
+}
+
 const INITIAL_FORM: VenueFormData = {
   organizationId: '',
   name: '',
@@ -256,14 +267,24 @@ const INITIAL_MERCHANT: MerchantData = {
   venuePricingAutoCalculated: false,
 }
 
-const RATE_FIELDS: { key: keyof Pick<RateData, 'debitRate' | 'creditRate' | 'amexRate' | 'internationalRate'>; label: string; color: string; bgColor: string }[] = [
+const RATE_FIELDS: {
+  key: keyof Pick<RateData, 'debitRate' | 'creditRate' | 'amexRate' | 'internationalRate'>
+  label: string
+  color: string
+  bgColor: string
+}[] = [
   { key: 'debitRate', label: 'Débito', color: 'text-blue-600', bgColor: 'bg-blue-50 dark:bg-blue-950/20' },
   { key: 'creditRate', label: 'Crédito', color: 'text-green-600', bgColor: 'bg-green-50 dark:bg-green-950/20' },
   { key: 'amexRate', label: 'AMEX', color: 'text-purple-600', bgColor: 'bg-purple-50 dark:bg-purple-950/20' },
   { key: 'internationalRate', label: 'Internacional', color: 'text-orange-600', bgColor: 'bg-orange-50 dark:bg-orange-950/20' },
 ]
 
-const SETTLEMENT_CARD_TYPES: { key: keyof Pick<SettlementData, 'debitDays' | 'creditDays' | 'amexDays' | 'internationalDays' | 'otherDays'>; label: string; color: string; bgColor: string }[] = [
+const SETTLEMENT_CARD_TYPES: {
+  key: keyof Pick<SettlementData, 'debitDays' | 'creditDays' | 'amexDays' | 'internationalDays' | 'otherDays'>
+  label: string
+  color: string
+  bgColor: string
+}[] = [
   { key: 'debitDays', label: 'Débito', color: 'text-blue-600', bgColor: 'bg-blue-50 dark:bg-blue-950/20' },
   { key: 'creditDays', label: 'Crédito', color: 'text-green-600', bgColor: 'bg-green-50 dark:bg-green-950/20' },
   { key: 'amexDays', label: 'AMEX', color: 'text-purple-600', bgColor: 'bg-purple-50 dark:bg-purple-950/20' },
@@ -279,6 +300,7 @@ const STEPS = [
   { id: 'org', label: 'Organización', icon: Building2 },
   { id: 'business', label: 'Negocio', icon: Store },
   { id: 'location', label: 'Ubicación', icon: MapPin },
+  { id: 'config', label: 'Configuración', icon: Sliders },
   { id: 'payments', label: 'Cobros', icon: CreditCard },
   { id: 'review', label: 'Resumen', icon: CheckCircle2 },
 ] as const
@@ -305,11 +327,23 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
   const [currentStep, setCurrentStep] = useState(0)
   const [form, setForm] = useState<VenueFormData>(INITIAL_FORM)
   const [merchant, setMerchant] = useState<MerchantData>(INITIAL_MERCHANT)
+  const [config, setConfig] = useState<ConfigData>(INITIAL_CONFIG)
   const [autofetchLoading, setAutofetchLoading] = useState(false)
   const [copyLoading, setCopyLoading] = useState(false)
   const [copiedFromVenueName, setCopiedFromVenueName] = useState('')
   const [orgSearch, setOrgSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+
+  // Available platform features for the optional "Funciones" panel in the
+  // Configuración step. Loaded lazily; only superadmin uses this wizard.
+  const { data: availableFeatures = [] } = useQuery({
+    queryKey: ['superadmin-features-for-create-venue'],
+    queryFn: async () => {
+      const svc = await import('@/services/superadmin.service')
+      return svc.getAllFeatures()
+    },
+    enabled: open,
+  })
 
   // ── Queries ──
 
@@ -325,10 +359,7 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
     enabled: open && merchant.enabled,
   })
 
-  const selectedOrg = useMemo(
-    () => organizations.find(o => o.id === form.organizationId),
-    [organizations, form.organizationId],
-  )
+  const selectedOrg = useMemo(() => organizations.find(o => o.id === form.organizationId), [organizations, form.organizationId])
 
   const filteredOrgs = useMemo(() => {
     if (!orgSearch) return organizations
@@ -343,7 +374,7 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
   // ── Mutation ──
 
   const createMutation = useMutation({
-    mutationFn: async (data: { form: VenueFormData; merchant: MerchantData }) => {
+    mutationFn: async (data: { form: VenueFormData; merchant: MerchantData; config: ConfigData }) => {
       const venueResponse = await superadminAPI.bulkCreateVenues({
         organizationId: data.form.organizationId,
         venues: [
@@ -359,6 +390,9 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
             latitude: data.form.latitude,
             longitude: data.form.longitude,
             timezone: data.form.timezone || undefined,
+            currency: data.config.currency,
+            settings: { enableShifts: data.config.enableShifts },
+            kycApproved: data.config.kycApproved,
           },
         ],
       })
@@ -368,6 +402,34 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
       }
 
       const venueId = venueResponse.venues[0].venueId
+
+      // Apply optional feature grants from the Configuración step. Failures
+      // here don't roll back the venue (it's already created); we surface
+      // them as a non-blocking toast so the superadmin can retry from
+      // /settings/billing/subscriptions.
+      const grantEntries = Object.entries(data.config.featureGrants)
+      if (grantEntries.length > 0) {
+        const svc = await import('@/services/superadmin.service')
+        const failed: { code: string; reason: string }[] = []
+        for (const [featureCode, grant] of grantEntries) {
+          try {
+            if (grant.mode === 'enable') {
+              await svc.enableFeatureForVenue(venueId, featureCode)
+            } else {
+              await svc.grantTrialForVenue(venueId, featureCode, grant.trialDays)
+            }
+          } catch (err: any) {
+            failed.push({ code: featureCode, reason: err?.response?.data?.message ?? err?.message ?? 'error' })
+          }
+        }
+        if (failed.length > 0) {
+          toast({
+            title: 'Algunas funciones no se activaron',
+            description: failed.map(f => `${f.code}: ${f.reason}`).join('\n'),
+            variant: 'destructive',
+          })
+        }
+      }
 
       if (data.merchant.enabled && data.merchant.mode === 'new' && data.merchant.autofetchResult) {
         const setupPayload: FullSetupRequest = {
@@ -439,6 +501,7 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
   const handleClose = useCallback(() => {
     setForm(INITIAL_FORM)
     setMerchant(INITIAL_MERCHANT)
+    setConfig(INITIAL_CONFIG)
     setCurrentStep(0)
     setOrgSearch('')
     setSelectedCategory(null)
@@ -594,7 +657,9 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
             if (settlements.length > 0) {
               const base = settlements[0]
               const byType: Partial<Record<string, number>> = {}
-              settlements.forEach(s => { byType[s.cardType] = s.settlementDays })
+              settlements.forEach(s => {
+                byType[s.cardType] = s.settlementDays
+              })
               setMerchant(prev => ({
                 ...prev,
                 settlement: {
@@ -610,7 +675,9 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
                 },
               }))
             }
-          } catch { /* settlement copy optional */ }
+          } catch {
+            /* settlement copy optional */
+          }
         }
         toast({ title: 'Configuración copiada', description: 'Costos, tarifas y plazos pre-llenados.' })
       } catch {
@@ -645,17 +712,25 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
 
   const stepValid = useMemo(() => {
     switch (currentStep) {
-      case 0: return !!form.organizationId
-      case 1: return !!form.type && !!form.name.trim()
-      case 2: return !!form.address.trim()
-      case 3: {
+      case 0:
+        return !!form.organizationId
+      case 1:
+        return !!form.type && !!form.name.trim()
+      case 2:
+        return !!form.address.trim()
+      case 3:
+        return true // Configuración step is always optional/valid
+      case 4: {
         if (!merchant.enabled) return true
-        if (merchant.mode === 'new') return merchant.autofetchDone && merchant.providerCosts.debitRate > 0 && merchant.venuePricing.debitRate > 0
+        if (merchant.mode === 'new')
+          return merchant.autofetchDone && merchant.providerCosts.debitRate > 0 && merchant.venuePricing.debitRate > 0
         if (merchant.mode === 'copy') return merchant.copyFromVenueId !== '' && merchant.providerCosts.debitRate > 0
         return false
       }
-      case 4: return true
-      default: return false
+      case 5:
+        return true
+      default:
+        return false
     }
   }, [currentStep, form, merchant])
 
@@ -681,8 +756,8 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
   }, [currentStep])
 
   const handleSave = useCallback(() => {
-    createMutation.mutate({ form, merchant })
-  }, [form, merchant, createMutation])
+    createMutation.mutate({ form, merchant, config })
+  }, [form, merchant, config, createMutation])
 
   // ── Render ──
 
@@ -710,10 +785,7 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
                   <React.Fragment key={step.id}>
                     {i > 0 && (
                       <div className="flex-1 mx-2">
-                        <div className={cn(
-                          'h-0.5 rounded-full transition-colors duration-500',
-                          isDone ? 'bg-primary' : 'bg-border',
-                        )} />
+                        <div className={cn('h-0.5 rounded-full transition-colors duration-500', isDone ? 'bg-primary' : 'bg-border')} />
                       </div>
                     )}
                     <button
@@ -724,18 +796,22 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
                         i <= currentStep ? 'cursor-pointer' : 'cursor-default opacity-40',
                       )}
                     >
-                      <div className={cn(
-                        'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300',
-                        isActive && 'bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-110',
-                        isDone && 'bg-primary/15 text-primary',
-                        !isActive && !isDone && 'bg-muted text-muted-foreground',
-                      )}>
+                      <div
+                        className={cn(
+                          'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300',
+                          isActive && 'bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-110',
+                          isDone && 'bg-primary/15 text-primary',
+                          !isActive && !isDone && 'bg-muted text-muted-foreground',
+                        )}
+                      >
                         {isDone ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
                       </div>
-                      <span className={cn(
-                        'text-[11px] font-medium transition-colors hidden sm:block',
-                        isActive ? 'text-foreground' : 'text-muted-foreground',
-                      )}>
+                      <span
+                        className={cn(
+                          'text-[11px] font-medium transition-colors hidden sm:block',
+                          isActive ? 'text-foreground' : 'text-muted-foreground',
+                        )}
+                      >
                         {step.label}
                       </span>
                     </button>
@@ -753,7 +829,7 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
               <StepOrganization
                 organizations={filteredOrgs}
                 selectedId={form.organizationId}
-                onSelect={(id) => updateField('organizationId', id)}
+                onSelect={id => updateField('organizationId', id)}
                 search={orgSearch}
                 onSearchChange={setOrgSearch}
                 showSearch={organizations.length > 6}
@@ -770,14 +846,11 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
               />
             )}
 
-            {currentStep === 2 && (
-              <StepLocation
-                form={form}
-                onAddressSelect={handleAddressSelect}
-              />
-            )}
+            {currentStep === 2 && <StepLocation form={form} onAddressSelect={handleAddressSelect} />}
 
-            {currentStep === 3 && (
+            {currentStep === 3 && <StepConfig config={config} setConfig={setConfig} availableFeatures={availableFeatures} />}
+
+            {currentStep === 4 && (
               <StepPayments
                 form={form}
                 merchant={merchant}
@@ -795,10 +868,11 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
               />
             )}
 
-            {currentStep === 4 && (
+            {currentStep === 5 && (
               <StepReview
                 form={form}
                 merchant={merchant}
+                config={config}
                 selectedOrg={selectedOrg}
                 selectedBusinessLabel={selectedBusinessLabel}
                 copiedFromVenueName={copiedFromVenueName}
@@ -810,12 +884,7 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
         {/* ═══ Bottom Navigation ═══ */}
         <div className="border-t border-border/50 bg-card/80 backdrop-blur-sm">
           <div className="mx-auto max-w-2xl px-6 py-4 flex items-center justify-between">
-            <Button
-              variant="ghost"
-              onClick={handleBack}
-              disabled={currentStep === 0}
-              className="gap-2 cursor-pointer"
-            >
+            <Button variant="ghost" onClick={handleBack} disabled={currentStep === 0} className="gap-2 cursor-pointer">
               <ArrowLeft className="w-4 h-4" />
               Anterior
             </Button>
@@ -833,11 +902,7 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
             </div>
 
             {isLastStep ? (
-              <Button
-                onClick={handleSave}
-                disabled={createMutation.isPending}
-                className="gap-2 cursor-pointer"
-              >
+              <Button onClick={handleSave} disabled={createMutation.isPending} className="gap-2 cursor-pointer">
                 {createMutation.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -851,11 +916,7 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
                 )}
               </Button>
             ) : (
-              <Button
-                onClick={handleNext}
-                disabled={!stepValid}
-                className="gap-2 cursor-pointer"
-              >
+              <Button onClick={handleNext} disabled={!stepValid} className="gap-2 cursor-pointer">
                 Siguiente
                 <ArrowRight className="w-4 h-4" />
               </Button>
@@ -897,7 +958,7 @@ function StepOrganization({
         <Input
           placeholder="Buscar organización..."
           value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
+          onChange={e => onSearchChange(e.target.value)}
           className="h-11 cursor-text"
         />
       )}
@@ -917,10 +978,12 @@ function StepOrganization({
                 : 'border-border/50 hover:border-foreground/20 hover:bg-muted/30',
             )}
           >
-            <div className={cn(
-              'flex items-center justify-center w-11 h-11 rounded-xl shrink-0',
-              selectedId === org.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
-            )}>
+            <div
+              className={cn(
+                'flex items-center justify-center w-11 h-11 rounded-xl shrink-0',
+                selectedId === org.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
+              )}
+            >
               <Building2 className="w-5 h-5" />
             </div>
             <div className="min-w-0 flex-1">
@@ -936,9 +999,7 @@ function StepOrganization({
             )}
           </button>
         ))}
-        {organizations.length === 0 && (
-          <p className="text-center py-8 text-sm text-muted-foreground">No se encontraron organizaciones</p>
-        )}
+        {organizations.length === 0 && <p className="text-center py-8 text-sm text-muted-foreground">No se encontraron organizaciones</p>}
       </div>
     </div>
   )
@@ -982,20 +1043,22 @@ function StepBusiness({
             id="venue-name"
             placeholder="Ej: Restaurante La Parroquia"
             value={form.name}
-            onChange={(e) => updateField('name', e.target.value)}
+            onChange={e => updateField('name', e.target.value)}
             className="h-12 text-base"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="venue-phone" className="text-sm font-medium">Teléfono</Label>
+          <Label htmlFor="venue-phone" className="text-sm font-medium">
+            Teléfono
+          </Label>
           <div className="relative">
             <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               id="venue-phone"
               placeholder="Ej: +52 55 1234 5678"
               value={form.phone}
-              onChange={(e) => updateField('phone', e.target.value)}
+              onChange={e => updateField('phone', e.target.value)}
               className="h-12 text-base pl-10"
             />
           </div>
@@ -1013,7 +1076,10 @@ function StepBusiness({
               <Store className="w-3 h-3" />
               {selectedBusinessLabel}
               <button
-                onClick={() => { updateField('type', ''); onCategoryChange(null) }}
+                onClick={() => {
+                  updateField('type', '')
+                  onCategoryChange(null)
+                }}
                 className="ml-0.5 hover:text-primary/70 cursor-pointer"
               >
                 ×
@@ -1038,16 +1104,20 @@ function StepBusiness({
                     : 'border-border/50 hover:border-foreground/20 hover:bg-muted/30',
                 )}
               >
-                <div className={cn(
-                  'w-9 h-9 rounded-lg flex items-center justify-center',
-                  isActive ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground',
-                )}>
+                <div
+                  className={cn(
+                    'w-9 h-9 rounded-lg flex items-center justify-center',
+                    isActive ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground',
+                  )}
+                >
                   {icon}
                 </div>
-                <span className={cn(
-                  'text-[11px] font-medium leading-tight text-center',
-                  isActive ? 'text-foreground' : 'text-muted-foreground',
-                )}>
+                <span
+                  className={cn(
+                    'text-[11px] font-medium leading-tight text-center',
+                    isActive ? 'text-foreground' : 'text-muted-foreground',
+                  )}
+                >
                   {cat.label}
                 </span>
               </button>
@@ -1065,9 +1135,7 @@ function StepBusiness({
                   onClick={() => updateField('type', type.value)}
                   className={cn(
                     'text-left px-4 py-3 rounded-lg text-sm font-medium transition-all cursor-pointer',
-                    form.type === type.value
-                      ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-muted/50 text-foreground/80',
+                    form.type === type.value ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/50 text-foreground/80',
                   )}
                 >
                   {type.label}
@@ -1091,8 +1159,14 @@ function StepLocation({
 }: {
   form: VenueFormData
   onAddressSelect: (place: {
-    address: string; city: string; state: string; country: string
-    zipCode: string; latitude: number; longitude: number; timezone?: string
+    address: string
+    city: string
+    state: string
+    country: string
+    zipCode: string
+    latitude: number
+    longitude: number
+    timezone?: string
   }) => void
 }) {
   return (
@@ -1208,7 +1282,7 @@ function StepPayments({
         </div>
         <Switch
           checked={merchant.enabled}
-          onCheckedChange={(val) => setMerchant(prev => ({ ...prev, enabled: val, mode: val ? 'new' : null }))}
+          onCheckedChange={val => setMerchant(prev => ({ ...prev, enabled: val, mode: val ? 'new' : null }))}
           className="cursor-pointer"
         />
       </div>
@@ -1246,7 +1320,7 @@ function StepPayments({
                 <Label className="text-sm font-medium">Copiar configuración de:</Label>
                 <Select
                   value={merchant.copyFromVenueId}
-                  onValueChange={(venueId) => {
+                  onValueChange={venueId => {
                     const venue = allVenues.find(v => v.id === venueId)
                     setMerchant(prev => ({ ...prev, copyFromVenueId: venueId }))
                     handleCopyFromVenue(venueId, venue?.name || '')
@@ -1288,10 +1362,7 @@ function StepPayments({
                     rates={merchant.providerCosts}
                     onRateChange={(field, value) => handleRateChange('providerCosts', field, value)}
                   />
-                  <SettlementSection
-                    settlement={merchant.settlement}
-                    onChange={handleSettlementChange}
-                  />
+                  <SettlementSection settlement={merchant.settlement} onChange={handleSettlementChange} />
                   <VenuePricingSection
                     providerCosts={merchant.providerCosts}
                     venuePricing={merchant.venuePricing}
@@ -1317,11 +1388,13 @@ function StepPayments({
               {/* Terminal fields */}
               <div className="rounded-xl border border-input bg-card p-5 space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Número de serie <span className="text-destructive">*</span></Label>
+                  <Label className="text-sm font-medium">
+                    Número de serie <span className="text-destructive">*</span>
+                  </Label>
                   <Input
                     placeholder="Ej: 0821142850"
                     value={merchant.serialNumber}
-                    onChange={(e) => setMerchant(prev => ({ ...prev, serialNumber: e.target.value }))}
+                    onChange={e => setMerchant(prev => ({ ...prev, serialNumber: e.target.value }))}
                     className="h-12 text-base font-mono"
                   />
                 </div>
@@ -1329,24 +1402,42 @@ function StepPayments({
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label className="text-sm">Marca</Label>
-                    <Select value={merchant.brand} onValueChange={(v) => setMerchant(prev => ({ ...prev, brand: v }))}>
-                      <SelectTrigger className="h-12 cursor-pointer"><SelectValue /></SelectTrigger>
+                    <Select value={merchant.brand} onValueChange={v => setMerchant(prev => ({ ...prev, brand: v }))}>
+                      <SelectTrigger className="h-12 cursor-pointer">
+                        <SelectValue />
+                      </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="PAX" className="cursor-pointer">PAX</SelectItem>
-                        <SelectItem value="INGENICO" className="cursor-pointer">Ingenico</SelectItem>
-                        <SelectItem value="VERIFONE" className="cursor-pointer">Verifone</SelectItem>
+                        <SelectItem value="PAX" className="cursor-pointer">
+                          PAX
+                        </SelectItem>
+                        <SelectItem value="INGENICO" className="cursor-pointer">
+                          Ingenico
+                        </SelectItem>
+                        <SelectItem value="VERIFONE" className="cursor-pointer">
+                          Verifone
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm">Modelo</Label>
-                    <Select value={merchant.model} onValueChange={(v) => setMerchant(prev => ({ ...prev, model: v }))}>
-                      <SelectTrigger className="h-12 cursor-pointer"><SelectValue /></SelectTrigger>
+                    <Select value={merchant.model} onValueChange={v => setMerchant(prev => ({ ...prev, model: v }))}>
+                      <SelectTrigger className="h-12 cursor-pointer">
+                        <SelectValue />
+                      </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="A910S" className="cursor-pointer">A910S</SelectItem>
-                        <SelectItem value="A920" className="cursor-pointer">A920</SelectItem>
-                        <SelectItem value="A77" className="cursor-pointer">A77</SelectItem>
-                        <SelectItem value="D210" className="cursor-pointer">D210</SelectItem>
+                        <SelectItem value="A910S" className="cursor-pointer">
+                          A910S
+                        </SelectItem>
+                        <SelectItem value="A920" className="cursor-pointer">
+                          A920
+                        </SelectItem>
+                        <SelectItem value="A77" className="cursor-pointer">
+                          A77
+                        </SelectItem>
+                        <SelectItem value="D210" className="cursor-pointer">
+                          D210
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1358,7 +1449,7 @@ function StepPayments({
                     <Input
                       placeholder={form.name || 'Terminal principal'}
                       value={merchant.displayName}
-                      onChange={(e) => setMerchant(prev => ({ ...prev, displayName: e.target.value }))}
+                      onChange={e => setMerchant(prev => ({ ...prev, displayName: e.target.value }))}
                       className="h-12"
                     />
                   </div>
@@ -1368,10 +1459,16 @@ function StepPayments({
                       value={merchant.environment}
                       onValueChange={(v: 'SANDBOX' | 'PRODUCTION') => setMerchant(prev => ({ ...prev, environment: v }))}
                     >
-                      <SelectTrigger className="h-12 cursor-pointer"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-12 cursor-pointer">
+                        <SelectValue />
+                      </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="SANDBOX" className="cursor-pointer">Sandbox</SelectItem>
-                        <SelectItem value="PRODUCTION" className="cursor-pointer">Producción</SelectItem>
+                        <SelectItem value="SANDBOX" className="cursor-pointer">
+                          Sandbox
+                        </SelectItem>
+                        <SelectItem value="PRODUCTION" className="cursor-pointer">
+                          Producción
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1391,11 +1488,20 @@ function StepPayments({
                   className="w-full h-12 cursor-pointer gap-2 text-base"
                 >
                   {autofetchLoading ? (
-                    <><Loader2 className="w-5 h-5 animate-spin" />Obteniendo credenciales...</>
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Obteniendo credenciales...
+                    </>
                   ) : merchant.autofetchDone ? (
-                    <><CheckCircle2 className="w-5 h-5" />Re-ejecutar Auto-Fetch</>
+                    <>
+                      <CheckCircle2 className="w-5 h-5" />
+                      Re-ejecutar Auto-Fetch
+                    </>
                   ) : (
-                    <><Zap className="w-5 h-5" />Ejecutar Auto-Fetch</>
+                    <>
+                      <Zap className="w-5 h-5" />
+                      Ejecutar Auto-Fetch
+                    </>
                   )}
                 </Button>
               </div>
@@ -1407,7 +1513,8 @@ function StepPayments({
                     <div className="flex items-start gap-2 p-3 rounded-lg border border-green-500/30 bg-green-500/5">
                       <Calculator className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
                       <p className="text-xs text-green-600">
-                        Calculado automáticamente (MCC: {merchant.mccResult.mcc}, confianza: {Math.round((merchant.mccResult.confidence ?? 0) * 100)}%)
+                        Calculado automáticamente (MCC: {merchant.mccResult.mcc}, confianza:{' '}
+                        {Math.round((merchant.mccResult.confidence ?? 0) * 100)}%)
                       </p>
                     </div>
                   )}
@@ -1418,10 +1525,7 @@ function StepPayments({
                     rates={merchant.providerCosts}
                     onRateChange={(field, value) => handleRateChange('providerCosts', field, value)}
                   />
-                  <SettlementSection
-                    settlement={merchant.settlement}
-                    onChange={handleSettlementChange}
-                  />
+                  <SettlementSection settlement={merchant.settlement} onChange={handleSettlementChange} />
                   <VenuePricingSection
                     providerCosts={merchant.providerCosts}
                     venuePricing={merchant.venuePricing}
@@ -1482,14 +1586,28 @@ function RatesSection({
             <Label className="text-xs">Cuota fija / txn</Label>
             <div className="relative">
               <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-              <Input type="number" step="0.01" min="0" value={rates.fixedCost || ''} onChange={e => onRateChange('fixedCost', e.target.value)} className="h-9 pl-6 text-sm cursor-text" />
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={rates.fixedCost || ''}
+                onChange={e => onRateChange('fixedCost', e.target.value)}
+                className="h-9 pl-6 text-sm cursor-text"
+              />
             </div>
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Cuota mensual</Label>
             <div className="relative">
               <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-              <Input type="number" step="0.01" min="0" value={rates.monthlyFee || ''} onChange={e => onRateChange('monthlyFee', e.target.value)} className="h-9 pl-6 text-sm cursor-text" />
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={rates.monthlyFee || ''}
+                onChange={e => onRateChange('monthlyFee', e.target.value)}
+                className="h-9 pl-6 text-sm cursor-text"
+              />
             </div>
           </div>
         </div>
@@ -1528,15 +1646,26 @@ function SettlementSection({
         </div>
         <div className="flex items-center gap-3">
           <Label className="text-xs shrink-0">Hora de corte</Label>
-          <Input type="time" value={settlement.cutoffTime} onChange={e => onChange('cutoffTime', e.target.value)} className="h-9 text-sm w-32" />
+          <Input
+            type="time"
+            value={settlement.cutoffTime}
+            onChange={e => onChange('cutoffTime', e.target.value)}
+            className="h-9 text-sm w-32"
+          />
           <span className="text-xs text-muted-foreground">{settlement.cutoffTimezone.replace('America/', '')}</span>
         </div>
         {SETTLEMENT_CARD_TYPES.map(card => (
           <div key={card.key} className={cn('flex items-center gap-3 p-2.5 rounded-lg', card.bgColor)}>
             <span className={cn('text-sm font-medium w-24', card.color)}>{card.label}</span>
             <Input
-              type="number" min={1} max={30} value={settlement[card.key]}
-              onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 0 && v <= 30) onChange(card.key, v) }}
+              type="number"
+              min={1}
+              max={30}
+              value={settlement[card.key]}
+              onChange={e => {
+                const v = parseInt(e.target.value)
+                if (!isNaN(v) && v >= 0 && v <= 30) onChange(card.key, v)
+              }}
               className="h-9 w-16 text-center font-bold cursor-text"
             />
             <span className="text-xs text-muted-foreground">{settlement.dayType === 'BUSINESS_DAYS' ? 'háb.' : 'cal.'}</span>
@@ -1577,7 +1706,10 @@ function VenuePricingSection({
 
       <div className="rounded-xl border border-input bg-card p-4 space-y-2">
         <div className="grid grid-cols-4 gap-2 text-xs font-medium text-muted-foreground px-2.5 pb-1">
-          <span>Tipo</span><span>Costo</span><span>Tu tarifa</span><span>Margen</span>
+          <span>Tipo</span>
+          <span>Costo</span>
+          <span>Tu tarifa</span>
+          <span>Margen</span>
         </div>
         {RATE_FIELDS.map(field => {
           const cost = providerCosts[field.key] || 0
@@ -1587,11 +1719,20 @@ function VenuePricingSection({
               <span className={cn('text-sm font-medium', field.color)}>{field.label}</span>
               <span className="text-xs text-muted-foreground">{cost.toFixed(2)}%</span>
               <div className="relative">
-                <Input type="number" step="0.01" min="0" max="100" value={venuePricing[field.key] || ''} onChange={e => onRateChange(field.key, e.target.value)} className="h-9 text-sm pr-5 cursor-text" />
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  value={venuePricing[field.key] || ''}
+                  onChange={e => onRateChange(field.key, e.target.value)}
+                  className="h-9 text-sm pr-5 cursor-text"
+                />
                 <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">%</span>
               </div>
               <span className={cn('text-xs font-medium', getMarginColor(margin))}>
-                {margin >= 0 ? '+' : ''}{margin.toFixed(2)}%
+                {margin >= 0 ? '+' : ''}
+                {margin.toFixed(2)}%
               </span>
             </div>
           )
@@ -1601,14 +1742,28 @@ function VenuePricingSection({
             <Label className="text-xs">Cuota fija / txn</Label>
             <div className="relative">
               <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-              <Input type="number" step="0.01" min="0" value={venuePricing.fixedCost || ''} onChange={e => onRateChange('fixedCost', e.target.value)} className="h-9 pl-6 text-sm cursor-text" />
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={venuePricing.fixedCost || ''}
+                onChange={e => onRateChange('fixedCost', e.target.value)}
+                className="h-9 pl-6 text-sm cursor-text"
+              />
             </div>
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Cuota mensual</Label>
             <div className="relative">
               <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-              <Input type="number" step="0.01" min="0" value={venuePricing.monthlyFee || ''} onChange={e => onRateChange('monthlyFee', e.target.value)} className="h-9 pl-6 text-sm cursor-text" />
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={venuePricing.monthlyFee || ''}
+                onChange={e => onRateChange('monthlyFee', e.target.value)}
+                className="h-9 pl-6 text-sm cursor-text"
+              />
             </div>
           </div>
         </div>
@@ -1645,19 +1800,223 @@ function VenuePricingSection({
 // Step 5: Review
 // ══════════════════════════════════════════════════════════════════════
 
+// ──────────────────────────────────────────────────────────────────────
+// Step 4: Configuración (turnos, moneda, KYC, features)
+// ──────────────────────────────────────────────────────────────────────
+
+function StepConfig({
+  config,
+  setConfig,
+  availableFeatures,
+}: {
+  config: ConfigData
+  setConfig: React.Dispatch<React.SetStateAction<ConfigData>>
+  availableFeatures: {
+    id: string
+    name: string
+    code: string
+    description: string
+    isCore: boolean
+    /** Backend ships either `active: boolean` (legacy) or `status: 'ACTIVE' | 'INACTIVE'`. */
+    active?: boolean
+    status?: string
+  }[]
+}) {
+  const grantedCount = Object.keys(config.featureGrants).length
+  // Hide non-active or core (always-on) features from the grant list. Tolerate
+  // both response shapes the platform-features endpoint has shipped.
+  const grantableFeatures = availableFeatures.filter(f => {
+    const isActive = f.status === 'ACTIVE' || f.active === true
+    return isActive && !f.isCore
+  })
+
+  const setShifts = (enableShifts: boolean) => setConfig(prev => ({ ...prev, enableShifts }))
+  const setCurrency = (currency: string) => setConfig(prev => ({ ...prev, currency }))
+  const setKyc = (kycApproved: boolean) => setConfig(prev => ({ ...prev, kycApproved }))
+
+  const toggleGrant = (code: string, mode: FeatureGrantMode) => {
+    setConfig(prev => {
+      const current = prev.featureGrants[code]
+      const next = { ...prev.featureGrants }
+      // If clicking the active mode again → remove the grant
+      if (current && current.mode === mode) {
+        delete next[code]
+      } else {
+        next[code] = { mode, trialDays: mode === 'trial' ? (current?.trialDays ?? 30) : 0 }
+      }
+      return { ...prev, featureGrants: next }
+    })
+  }
+
+  const setTrialDays = (code: string, days: number) => {
+    setConfig(prev => {
+      const current = prev.featureGrants[code]
+      if (!current || current.mode !== 'trial') return prev
+      return { ...prev, featureGrants: { ...prev.featureGrants, [code]: { ...current, trialDays: days } } }
+    })
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">Configuración</h2>
+        <p className="text-muted-foreground mt-1">
+          Ajusta operativa, KYC y funciones. Todo es opcional — si lo dejas como está, se usa la configuración por defecto.
+        </p>
+      </div>
+
+      {/* Operativa: turnos + moneda */}
+      <div className="rounded-2xl border border-input bg-card p-6 space-y-5">
+        <div className="flex items-center gap-2">
+          <Sliders className="w-4 h-4 text-muted-foreground" />
+          <h3 className="text-sm font-semibold">Operativa</h3>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label className="text-sm font-medium" htmlFor="cfg-shifts">
+              Sistema de turnos
+            </Label>
+            <p className="text-xs text-muted-foreground">Habilita el control de caja y turnos para el personal.</p>
+          </div>
+          <Switch id="cfg-shifts" checked={config.enableShifts} onCheckedChange={setShifts} />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="cfg-currency" className="text-sm font-medium">
+            Moneda
+          </Label>
+          <Select value={config.currency} onValueChange={setCurrency}>
+            <SelectTrigger id="cfg-currency" className="h-11">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="MXN">Peso mexicano (MXN)</SelectItem>
+              <SelectItem value="USD">Dólar estadounidense (USD)</SelectItem>
+              <SelectItem value="EUR">Euro (EUR)</SelectItem>
+              <SelectItem value="CAD">Dólar canadiense (CAD)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">Moneda en la que opera el venue. Aplica a precios, reportes y settlements.</p>
+        </div>
+      </div>
+
+      {/* KYC superadmin override */}
+      <div className="rounded-2xl border border-input bg-card p-6 space-y-3">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-muted-foreground" />
+          <h3 className="text-sm font-semibold">KYC (Superadmin)</h3>
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5 pr-4">
+            <Label className="text-sm font-medium" htmlFor="cfg-kyc">
+              Aprobar KYC al crear
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              El venue se crea como verificado: <code className="text-[11px] bg-muted px-1 py-0.5 rounded">kycStatus = VERIFIED</code>.
+              Salta el candado de operación y permite usar TPV / órdenes / pagos de inmediato.
+            </p>
+          </div>
+          <Switch id="cfg-kyc" checked={config.kycApproved} onCheckedChange={setKyc} />
+        </div>
+      </div>
+
+      {/* Features grant panel */}
+      <div className="rounded-2xl border border-input bg-card p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-muted-foreground" />
+            <h3 className="text-sm font-semibold">Funciones (Superadmin)</h3>
+          </div>
+          {grantedCount > 0 && <span className="text-xs text-muted-foreground">{grantedCount} seleccionada(s)</span>}
+        </div>
+        <p className="text-xs text-muted-foreground -mt-1">
+          Activa funciones premium al crear el venue. Sin selección, las funciones se pueden activar después en{' '}
+          <span className="font-medium">Facturación → Suscripciones</span>.
+        </p>
+
+        {grantableFeatures.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-input p-4 text-center">
+            <p className="text-xs text-muted-foreground">No hay funciones disponibles para activar.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {grantableFeatures.map(feature => {
+              const grant = config.featureGrants[feature.code]
+              const isEnable = grant?.mode === 'enable'
+              const isTrial = grant?.mode === 'trial'
+              return (
+                <div key={feature.id} className="rounded-lg border border-input p-3 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{feature.name}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{feature.description}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={isTrial ? 'default' : 'outline'}
+                        className="h-8 px-2.5 text-xs"
+                        onClick={() => toggleGrant(feature.code, 'trial')}
+                      >
+                        <Gift className="w-3 h-3 mr-1" />
+                        {isTrial ? 'Prueba activa' : 'Otorgar prueba'}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={isEnable ? 'default' : 'outline'}
+                        className="h-8 px-2.5 text-xs"
+                        onClick={() => toggleGrant(feature.code, 'enable')}
+                      >
+                        <Zap className="w-3 h-3 mr-1" />
+                        {isEnable ? 'Activada' : 'Activar'}
+                      </Button>
+                    </div>
+                  </div>
+                  {isTrial && (
+                    <div className="flex items-center gap-2 pl-1">
+                      <Label htmlFor={`trial-days-${feature.code}`} className="text-xs text-muted-foreground">
+                        Días de prueba:
+                      </Label>
+                      <Input
+                        id={`trial-days-${feature.code}`}
+                        type="number"
+                        min={1}
+                        max={365}
+                        value={grant.trialDays}
+                        onChange={e => setTrialDays(feature.code, Math.max(1, Number(e.target.value) || 1))}
+                        className="h-8 w-20 text-sm"
+                      />
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function StepReview({
   form,
   merchant,
+  config,
   selectedOrg,
   selectedBusinessLabel,
   copiedFromVenueName,
 }: {
   form: VenueFormData
   merchant: MerchantData
+  config: ConfigData
   selectedOrg?: OrganizationSimple
   selectedBusinessLabel?: string
   copiedFromVenueName?: string
 }) {
+  const grantCount = Object.keys(config.featureGrants).length
   return (
     <div className="space-y-6">
       <div>
@@ -1684,7 +2043,12 @@ function StepReview({
           <div className="grid grid-cols-1 gap-4">
             {/* Business Type */}
             {selectedBusinessLabel && (
-              <ReviewRow icon={<Store className="w-4 h-4" />} iconBg="bg-primary/10 text-primary" label="Tipo" value={selectedBusinessLabel} />
+              <ReviewRow
+                icon={<Store className="w-4 h-4" />}
+                iconBg="bg-primary/10 text-primary"
+                label="Tipo"
+                value={selectedBusinessLabel}
+              />
             )}
 
             {/* Address */}
@@ -1711,7 +2075,12 @@ function StepReview({
 
             {/* Timezone */}
             {form.timezone && (
-              <ReviewRow icon={<Info className="w-4 h-4" />} iconBg="bg-amber-500/10 text-amber-500" label="Zona horaria" value={form.timezone} />
+              <ReviewRow
+                icon={<Info className="w-4 h-4" />}
+                iconBg="bg-amber-500/10 text-amber-500"
+                label="Zona horaria"
+                value={form.timezone}
+              />
             )}
           </div>
 
@@ -1758,6 +2127,35 @@ function StepReview({
               </div>
             </>
           )}
+
+          {/* Configuración avanzada summary */}
+          <hr className="border-border" />
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 text-foreground">
+              <Sliders className="w-4 h-4" />
+              <span className="text-sm font-medium">Configuración</span>
+            </div>
+            <div className="space-y-1.5 pl-6 text-xs text-muted-foreground">
+              <p>
+                Moneda: <span className="text-foreground font-medium">{config.currency}</span>
+              </p>
+              <p>
+                Sistema de turnos:{' '}
+                <span className="text-foreground font-medium">{config.enableShifts ? 'habilitado' : 'deshabilitado'}</span>
+              </p>
+              <p>
+                KYC al crear:{' '}
+                <span className={config.kycApproved ? 'text-green-600 font-medium' : 'text-foreground'}>
+                  {config.kycApproved ? 'aprobado (sin candado)' : 'pendiente (flujo normal)'}
+                </span>
+              </p>
+              {grantCount > 0 && (
+                <p>
+                  Funciones a activar: <span className="text-foreground font-medium">{grantCount}</span>
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

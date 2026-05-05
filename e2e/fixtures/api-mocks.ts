@@ -156,6 +156,24 @@ export async function setupApiMocks(page: Page, options: SetupApiMocksOptions = 
     }),
   )
 
+  // Keep dashboard setup widgets from covering buttons under test.
+  await page.route('**/api/v1/dashboard/venues/*/onboarding-state', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: {
+          'inventory-checklist': {
+            dismissed: true,
+            collapsed: true,
+            steps: {},
+          },
+        },
+      }),
+    }),
+  )
+
   // Auth status (HIGHEST priority — registered last)
   await page.route('**/api/v1/dashboard/auth/status', (route) =>
     route.fulfill({

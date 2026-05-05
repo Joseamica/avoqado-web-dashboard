@@ -897,6 +897,8 @@ export interface BulkVenueInput {
   merchantAccountId?: string
   pricing?: BulkVenuePricingInput
   settlement?: BulkVenueSettlementInput
+  /** Superadmin override: mark the venue as KYC-verified at creation. */
+  kycApproved?: boolean
 }
 
 export interface BulkCreateVenuesPayload {

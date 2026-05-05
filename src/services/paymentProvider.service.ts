@@ -55,8 +55,11 @@ export interface MerchantAccount {
 }
 
 export interface MerchantAccountCredentials {
-  merchantId: string
-  apiKey: string
+  // merchantId / apiKey are the legacy generic credential shape (Menta, Stripe).
+  // Optional now because schema-driven providers (AngelPay) use other keys
+  // declared in PaymentProvider.configSchema.credentialFields.
+  merchantId?: string
+  apiKey?: string
   customerId?: string
   terminalId?: string
   [key: string]: any

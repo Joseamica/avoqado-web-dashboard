@@ -142,22 +142,21 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
       }
 
       if (isAngelPay) {
-        // AngelPay credentials map to the generic credential fields
+        // AngelPay uses canonical schema keys that match
+        // PaymentProvider.configSchema.credentialFields on the backend
+        // (email + password required for simpleLogin; afiliacion +
+        // commerceToken optional for multi-merchant / app-to-app legacy).
+        // Empty optionals are dropped so backend validation doesn't trip
+        // on length / pattern constraints.
         credentials = {
-          merchantId: formData.angelPayAffiliation,
-          apiKey: formData.angelPayCommerceToken,
-          customerId: formData.angelPayEmail,
-          terminalId: formData.angelPayPassword,
+          email: formData.angelPayEmail,
+          password: formData.angelPayPassword,
+          ...(formData.angelPayAffiliation ? { afiliacion: formData.angelPayAffiliation } : {}),
+          ...(formData.angelPayCommerceToken ? { commerceToken: formData.angelPayCommerceToken } : {}),
         }
         providerConfig = {
           ...providerConfig,
           processor: 'ANGELPAY',
-          credentialMapping: {
-            merchantId: 'affiliation',
-            apiKey: 'commerceToken',
-            customerId: 'email',
-            terminalId: 'password',
-          },
         }
       } else if (isBlumon) {
         credentials =
