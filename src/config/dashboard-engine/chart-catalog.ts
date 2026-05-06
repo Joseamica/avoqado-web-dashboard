@@ -34,6 +34,7 @@ export const CHART_CATALOG: Record<string, ChartDefinition> = {
     dataSource: { type: 'chart', endpoint: 'revenue-trends' },
     componentId: 'RevenueTrendsChart',
     skeletonType: 'chart',
+    hidesOnSingleDay: true,
   },
   aov_trends: {
     id: 'aov_trends',

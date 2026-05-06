@@ -17,29 +17,15 @@ window.addEventListener('vite:preloadError', () => {
   }
 })
 
-// ── book.avoqado.io subdomain rewrite ─────────────────────────────────────
-// Customers reserve via clean URLs like book.avoqado.io/<venueSlug>, but the
-// SPA's existing public routes are under /book/<venueSlug>. Rewriting the path
-// in window.history BEFORE React Router mounts lets both work without
-// duplicating route definitions: the address bar stays clean, but React Router
-// reads /book/<venueSlug> and matches the existing PublicBookingPage.
-//
-// Runs only on the dedicated booking subdomain — dashboard.avoqado.io users
-// never enter this branch. The replaceState call is synchronous and finishes
-// before React Router reads window.location on first render, so there is no
-// flash of a wrong route.
-if (window.location.hostname === 'book.avoqado.io') {
-  const path = window.location.pathname
-  if (path === '/' || path === '/book' || path === '/book/') {
-    // Visitor with no slug — send them to marketing rather than show 404.
-    window.location.replace('https://avoqado.io')
-  } else if (!path.startsWith('/book/')) {
-    window.history.replaceState(
-      null,
-      '',
-      `/book${path}${window.location.search}${window.location.hash}`,
-    )
-  }
+// ── book.avoqado.io: redirect bare root to marketing ──────────────────────
+// The dedicated booking subdomain is for /<venueSlug> URLs only. If a visitor
+// lands on the bare root (no slug), send them to the marketing site instead
+// of showing 404. Runs before React mounts.
+if (
+  window.location.hostname === 'book.avoqado.io' &&
+  (window.location.pathname === '/' || window.location.pathname === '')
+) {
+  window.location.replace('https://avoqado.io')
 }
 
 const queryClient = new QueryClient()

@@ -24,6 +24,9 @@ export type DataModule =
 export interface MetricDefinition {
   id: string
   nameKey: string // i18n key (e.g., 'cards.totalSales')
+  // Optional sector-aware label override. If set, takes precedence over nameKey
+  // for the matching BusinessCategory (e.g., RETAIL: 'cards.avgItemsPerOrderRetail').
+  nameKeyByCategory?: Partial<Record<BusinessCategory, string>>
   format: 'currency' | 'number' | 'percentage'
   iconName: string // lucide icon name
   requiredDataModules: DataModule[]
@@ -44,6 +47,9 @@ export interface ChartDefinition {
   }
   componentId: string // key for lazy component lookup
   skeletonType: 'chart' | 'product-list' | 'staff' | 'table-perf' | 'table'
+  // Hide this chart when the selected range covers a single day (a line chart
+  // with one data point is noise). Filtered in DashboardRenderer.
+  hidesOnSingleDay?: boolean
 }
 
 // Layout for a row of charts

@@ -88,6 +88,9 @@ export const METRIC_CATALOG: Record<string, MetricDefinition> = {
   avg_items_per_order: {
     id: 'avg_items_per_order',
     nameKey: 'cards.avgItemsPerOrder',
+    nameKeyByCategory: {
+      RETAIL: 'cards.avgItemsPerOrderRetail',
+    },
     format: 'number',
     iconName: 'Package',
     requiredDataModules: ['orders'],

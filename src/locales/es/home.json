@@ -191,6 +191,7 @@
     "avgTicket": "Ticket promedio",
     "totalOrders": "Órdenes totales",
     "avgItemsPerOrder": "Artículos por orden",
+    "avgItemsPerOrderRetail": "Productos por venta",
     "uniqueCustomers": "Clientes únicos",
     "totalDiscounts": "Total descuentos",
     "avgCovers": "Comensales promedio",

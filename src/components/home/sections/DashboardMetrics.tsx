@@ -23,6 +23,7 @@ import { MetricCard } from '@/components/home/metrics'
 import { Card, CardContent } from '@/components/ui/card'
 import { Currency } from '@/utils/currency'
 import { cn } from '@/lib/utils'
+import { useDashboardPack } from '@/hooks/use-dashboard-pack'
 import type { MetricDefinition } from '@/config/dashboard-engine'
 
 // Icon map — maps iconName string to React element
@@ -93,15 +94,17 @@ export const DashboardMetrics = ({
   isCompareLoading,
 }: DashboardMetricsProps) => {
   const { t } = useTranslation('home')
+  const { category } = useDashboardPack()
 
   const cards = useMemo(() => {
     return metricDefinitions.map(metric => {
       const rawValue = resolvePath(dashboardData, metric.valueKey)
       const changeValue = resolvePath(dashboardData, metric.changeKey)
+      const labelKey = metric.nameKeyByCategory?.[category] ?? metric.nameKey
 
       return {
         id: metric.id,
-        title: t(metric.nameKey),
+        title: t(labelKey),
         value: isBasicLoading ? null : formatMetricValue(rawValue, metric.format),
         icon: ICON_MAP[metric.iconName] || <DollarSign className="h-5 w-5 text-muted-foreground" />,
         heroIcon: HERO_ICON_MAP[metric.iconName],
@@ -109,7 +112,7 @@ export const DashboardMetrics = ({
         format: metric.format,
       }
     })
-  }, [metricDefinitions, dashboardData, isBasicLoading, compareType, t])
+  }, [metricDefinitions, dashboardData, isBasicLoading, compareType, t, category])
 
   if (cards.length === 0) return null
 

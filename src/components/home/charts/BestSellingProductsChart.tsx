@@ -1,12 +1,19 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useDashboardPack } from '@/hooks/use-dashboard-pack'
 
 export const BestSellingProductsChart = ({ data }: { data: any }) => {
   const { t } = useTranslation('home')
-  // Process products data for best sellers by category
+  const { category } = useDashboardPack()
+  // Retail products don't carry FOOD/BEVERAGE type — render a flat top-N list
+  // instead of empty Comida/Bebida buckets.
+  const isFlat = category === 'RETAIL'
+
+  // Process products data for best sellers by category (food service / hospitality / etc.)
   const bestSellingProducts = useMemo(() => {
     const productsData = data?.products || []
+    if (isFlat) return null
     if (!productsData) return { FOOD: [], BEVERAGE: [], OTHER: [] }
 
     const categories: Record<string, any[]> = { FOOD: [], BEVERAGE: [], OTHER: [] }
@@ -32,7 +39,26 @@ export const BestSellingProductsChart = ({ data }: { data: any }) => {
     })
 
     return categories
-  }, [data?.products])
+  }, [data?.products, isFlat])
+
+  // Flat top-N list for retail — collapses duplicates by name and ignores type
+  const flatBestSellers = useMemo(() => {
+    if (!isFlat) return []
+    const productsData = data?.products || []
+    const merged = new Map<string, { name: string; quantity: number }>()
+    productsData.forEach((product: any) => {
+      const key = product.name
+      const existing = merged.get(key)
+      if (existing) {
+        existing.quantity = Number(existing.quantity) + Number(product.quantity)
+      } else {
+        merged.set(key, { name: product.name, quantity: Number(product.quantity) })
+      }
+    })
+    return [...merged.values()]
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 10)
+  }, [data?.products, isFlat])
 
   return (
     <Card>
@@ -40,25 +66,40 @@ export const BestSellingProductsChart = ({ data }: { data: any }) => {
         <CardTitle>{t('sections.bestSellers')}</CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
-        <div className="space-y-5">
-          {Object.entries(bestSellingProducts).map(([category, products]) => (
-            <div key={category} className="space-y-2">
-              <h3 className="font-medium text-sm text-muted-foreground">{t(`categories.${String(category)}`)}</h3>
-              {products.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t('noData')}</p>
-              ) : (
-                <ul className="space-y-1">
-                  {products.map((product: any, idx: number) => (
-                    <li key={idx} className="flex justify-between items-center text-sm py-1">
-                      <span>{product.name}</span>
-                      <span className="font-medium">{Number(product.quantity).toLocaleString()}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ))}
-        </div>
+        {isFlat ? (
+          flatBestSellers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t('noData')}</p>
+          ) : (
+            <ul className="space-y-1">
+              {flatBestSellers.map((product, idx) => (
+                <li key={idx} className="flex justify-between items-center text-sm py-1">
+                  <span>{product.name}</span>
+                  <span className="font-medium">{Number(product.quantity).toLocaleString()}</span>
+                </li>
+              ))}
+            </ul>
+          )
+        ) : (
+          <div className="space-y-5">
+            {Object.entries(bestSellingProducts ?? {}).map(([cat, products]) => (
+              <div key={cat} className="space-y-2">
+                <h3 className="font-medium text-sm text-muted-foreground">{t(`categories.${String(cat)}`)}</h3>
+                {products.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t('noData')}</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {products.map((product: any, idx: number) => (
+                      <li key={idx} className="flex justify-between items-center text-sm py-1">
+                        <span>{product.name}</span>
+                        <span className="font-medium">{Number(product.quantity).toLocaleString()}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   )

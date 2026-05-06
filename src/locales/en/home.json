@@ -191,6 +191,7 @@
     "avgTicket": "Average ticket",
     "totalOrders": "Total orders",
     "avgItemsPerOrder": "Items per order",
+    "avgItemsPerOrderRetail": "Items per sale",
     "uniqueCustomers": "Unique customers",
     "totalDiscounts": "Total discounts",
     "avgCovers": "Avg. covers",

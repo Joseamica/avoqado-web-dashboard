@@ -376,6 +376,28 @@ export const DashboardRenderer = ({
 }: DashboardRendererProps) => {
   const { venueId, selectedRange } = dashboardData
 
+  // Single-day ranges turn time-series charts into one lonely point.
+  // Drop charts marked hidesOnSingleDay; collapse split/weighted rows that
+  // lose an item to keep the layout intact (mirrors resolveRows behavior).
+  const visibleRows = useMemo(() => {
+    const isSingleDay =
+      !!selectedRange?.from &&
+      !!selectedRange?.to &&
+      selectedRange.from.toDateString() === selectedRange.to.toDateString()
+    if (!isSingleDay) return resolvedDashboard.rows
+
+    return resolvedDashboard.rows.reduce<typeof resolvedDashboard.rows>((acc, row) => {
+      const items = row.items.filter(chart => !chart.hidesOnSingleDay)
+      if (items.length === 0) return acc
+      const layout =
+        items.length === 1 && (row.layout === 'split' || row.layout === 'weighted')
+          ? 'full'
+          : row.layout
+      acc.push({ ...row, layout, items })
+      return acc
+    }, [])
+  }, [resolvedDashboard.rows, selectedRange])
+
   return (
     <>
       {/* Hero KPI Cards — driven by engine metric definitions */}
@@ -389,7 +411,7 @@ export const DashboardRenderer = ({
       />
 
       {/* Dashboard Rows */}
-      {resolvedDashboard.rows.map(row => (
+      {visibleRows.map(row => (
         <DashboardRowRenderer
           key={row.id}
           row={row}

@@ -5,11 +5,14 @@ import { Users } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Currency } from '@/utils/currency'
+import { useDashboardPack } from '@/hooks/use-dashboard-pack'
 
 import { EmptyChart } from './EmptyChart'
 
 export const StaffRankingTable = ({ data }: { data: any }) => {
   const { t } = useTranslation('home')
+  const { category } = useDashboardPack()
+  const showTips = category !== 'RETAIL'
 
   const sortedStaff = useMemo(() => {
     if (!data || !Array.isArray(data) || data.length === 0) return []
@@ -49,9 +52,11 @@ export const StaffRankingTable = ({ data }: { data: any }) => {
                   <th className="text-right py-2 px-2 font-medium text-muted-foreground">
                     {t('staffRankingCols.orders')}
                   </th>
-                  <th className="text-right py-2 px-2 font-medium text-muted-foreground">
-                    {t('staffRankingCols.tips')}
-                  </th>
+                  {showTips && (
+                    <th className="text-right py-2 px-2 font-medium text-muted-foreground">
+                      {t('staffRankingCols.tips')}
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -83,9 +88,11 @@ export const StaffRankingTable = ({ data }: { data: any }) => {
                     <td className="py-3 px-2 text-right text-muted-foreground tabular-nums">
                       {(staff.orders ?? staff.totalOrders ?? 0).toLocaleString()}
                     </td>
-                    <td className="py-3 px-2 text-right text-muted-foreground tabular-nums">
-                      {Currency(staff.tips ?? staff.totalTips ?? 0, false)}
-                    </td>
+                    {showTips && (
+                      <td className="py-3 px-2 text-right text-muted-foreground tabular-nums">
+                        {Currency(staff.tips ?? staff.totalTips ?? 0, false)}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

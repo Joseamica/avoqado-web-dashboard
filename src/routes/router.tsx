@@ -818,6 +818,23 @@ const router = createBrowserRouter(
           element: <BookingManagePage />,
           errorElement: <ErrorPage />,
         },
+        // book.avoqado.io alias routes — same components, no /book prefix.
+        // Conditionally registered so they only exist on the booking subdomain;
+        // on dashboard.avoqado.io they would shadow the catch-all and break /login etc.
+        ...(typeof window !== 'undefined' && window.location.hostname === 'book.avoqado.io'
+          ? [
+              {
+                path: '/:venueSlug',
+                element: <PublicBookingPage />,
+                errorElement: <ErrorPage />,
+              },
+              {
+                path: '/:venueSlug/manage/:cancelSecret',
+                element: <BookingManagePage />,
+                errorElement: <ErrorPage />,
+              },
+            ]
+          : []),
         {
           path: '*',
           element: <ErrorPage />,
