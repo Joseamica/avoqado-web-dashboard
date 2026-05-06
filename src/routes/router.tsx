@@ -821,10 +821,26 @@ const router = createBrowserRouter(
         // book.avoqado.io alias routes — same components, no /book prefix.
         // Conditionally registered so they only exist on the booking subdomain;
         // on dashboard.avoqado.io they would shadow the catch-all and break /login etc.
+        //
+        // URL pattern mirrors Square's separation: /<slug> = unified, /<slug>/citas =
+        // appointments-only, /<slug>/clases = classes-only. Today all three render
+        // the same PublicBookingPage; the flow split per type is planned in the
+        // public-booking-redesign spec — these stable URLs let venues share them now
+        // without future migration.
         ...(typeof window !== 'undefined' && window.location.hostname === 'book.avoqado.io'
           ? [
               {
                 path: '/:venueSlug',
+                element: <PublicBookingPage />,
+                errorElement: <ErrorPage />,
+              },
+              {
+                path: '/:venueSlug/citas',
+                element: <PublicBookingPage />,
+                errorElement: <ErrorPage />,
+              },
+              {
+                path: '/:venueSlug/clases',
                 element: <PublicBookingPage />,
                 errorElement: <ErrorPage />,
               },

@@ -1,13 +1,27 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { Copy, Check, ExternalLink, Code2, Globe, Settings, Frame, MousePointerClick, ShieldAlert } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import {
+  Copy,
+  Check,
+  ExternalLink,
+  Code2,
+  Globe,
+  Settings,
+  Frame,
+  MousePointerClick,
+  ShieldAlert,
+  Calendar as CalendarIcon,
+  Users as UsersIcon,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { getProducts } from '@/services/menu.service'
 
 type Locale = 'es' | 'en'
 type Theme = 'auto' | 'light' | 'dark'
@@ -56,13 +70,42 @@ export default function OnlineBookingPage() {
 	const [mode, setMode] = useState<Mode>('inline')
 
 	const slug = venueSlug ?? 'your-venue-slug'
-	const publicBookingUrl = typeof window !== 'undefined'
-		? `${window.location.origin}/book/${slug}`
-		: `/book/${slug}`
+
+	// Public booking URLs — canonical host is book.avoqado.io.
+	// Three "channels" mirror Square's pattern:
+	//   - /<slug>          unified flow (default, for venues that don't differentiate)
+	//   - /<slug>/citas    appointments-only flow
+	//   - /<slug>/clases   classes-only flow
+	// Today all three render the same PublicBookingPage; the per-type filter is
+	// planned in the public-booking-redesign spec — these stable URLs let venues
+	// share them now without future migration.
+	const BOOK_HOST = 'https://book.avoqado.io'
+	const publicBookingUrl = `${BOOK_HOST}/${slug}`
+	const appointmentsUrl = `${BOOK_HOST}/${slug}/citas`
+	const classesUrl = `${BOOK_HOST}/${slug}/clases`
+
 	const cdnUrl = 'https://cdn.avoqado.io/widget.js'
 	const embedUrl = `https://cdn.avoqado.io/embed?venue=${slug}&locale=${locale}&theme=${theme}&mode=inline`
 	const previewUrl = venueSlug ? publicBookingUrl : null
 	const venueName = venue?.name ?? 'tu negocio'
+
+	// Fetch products to compute per-channel counts (services vs classes).
+	// Cheap because it's the same endpoint used elsewhere in the dashboard.
+	const venueId = venue?.id
+	const { data: products } = useQuery({
+		queryKey: ['products', venueId, 'all'],
+		queryFn: () => getProducts(venueId!),
+		enabled: !!venueId,
+		staleTime: 60_000,
+	})
+
+	const { appointmentCount, classCount } = useMemo(() => {
+		const list = products ?? []
+		const isActive = (p: { active?: boolean }) => p.active !== false
+		const appt = list.filter(p => isActive(p) && (p.type === 'APPOINTMENTS_SERVICE' || p.type === 'SERVICE')).length
+		const klass = list.filter(p => isActive(p) && p.type === 'CLASS').length
+		return { appointmentCount: appt, classCount: klass }
+	}, [products])
 
 	const htmlSnippet = `<!-- Avoqado Booking Widget -->
 <script src="${cdnUrl}" defer></script>
@@ -111,47 +154,113 @@ import '@avoqado/booking-widget'
 			/>
 			<p className="text-muted-foreground">{t('onlineBooking.subtitle')}</p>
 
-			{/* Public booking URL */}
-			<Card className="border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/50 dark:bg-emerald-950/20">
-				<CardHeader>
-					<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-						<div className="space-y-1">
-							<CardTitle className="flex items-center gap-2 text-lg">
-								<Globe className="h-5 w-5 text-emerald-600" />
-								{t('onlineBooking.publicLinkTitle')}
-							</CardTitle>
-							<CardDescription>{t('onlineBooking.publicLinkDescription')}</CardDescription>
+			{/* Booking channels — Square-style separation. Each channel is a shareable URL. */}
+			<div className="space-y-4">
+				<h2 className="text-base font-semibold">Páginas de reserva públicas</h2>
+				<p className="-mt-2 text-sm text-muted-foreground">
+					Comparte estos enlaces con tus clientes. Cada uno abre un flujo distinto de reserva.
+				</p>
+
+				{/* Citas channel */}
+				<Card>
+					<CardHeader>
+						<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+							<div className="flex items-start gap-3">
+								<div className="rounded-md bg-emerald-100 p-2 dark:bg-emerald-900/40">
+									<CalendarIcon className="h-5 w-5 text-emerald-700 dark:text-emerald-300" />
+								</div>
+								<div className="space-y-0.5">
+									<CardTitle className="text-base">Página de reserva de citas</CardTitle>
+									<CardDescription>
+										{appointmentCount === 0
+											? 'No tienes servicios configurados todavía.'
+											: appointmentCount === 1
+												? '1 servicio'
+												: `${appointmentCount} servicios`}
+									</CardDescription>
+								</div>
+							</div>
+							<div className="flex items-center gap-2">
+								<Button variant="ghost" size="sm" asChild>
+									<Link to={`${fullBasePath}/menu`}>Editar servicios</Link>
+								</Button>
+								<Button variant="outline" size="sm" asChild>
+									<a href={appointmentsUrl} target="_blank" rel="noopener noreferrer">
+										Mostrar
+										<ExternalLink className="ml-2 h-3.5 w-3.5" />
+									</a>
+								</Button>
+							</div>
 						</div>
-						<Button variant="outline" size="sm" asChild>
-							<a href={publicBookingUrl} target="_blank" rel="noopener noreferrer">
-								{t('onlineBooking.openPublicLink')}
-								<ExternalLink className="ml-2 h-3.5 w-3.5" />
-							</a>
-						</Button>
-					</div>
-				</CardHeader>
-				<CardContent className="space-y-4">
-					<CodeBlock code={publicBookingUrl} />
-					<div className="grid gap-3 text-sm md:grid-cols-3">
-						<div className="rounded-md border bg-background/70 p-3">
-							<p className="font-medium">{t('onlineBooking.shareStep1Title')}</p>
-							<p className="mt-1 text-muted-foreground">{t('onlineBooking.shareStep1Description')}</p>
+					</CardHeader>
+					<CardContent>
+						<CodeBlock code={appointmentsUrl} />
+					</CardContent>
+				</Card>
+
+				{/* Clases channel */}
+				<Card>
+					<CardHeader>
+						<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+							<div className="flex items-start gap-3">
+								<div className="rounded-md bg-violet-100 p-2 dark:bg-violet-900/40">
+									<UsersIcon className="h-5 w-5 text-violet-700 dark:text-violet-300" />
+								</div>
+								<div className="space-y-0.5">
+									<CardTitle className="text-base">Página de reserva de clases</CardTitle>
+									<CardDescription>
+										{classCount === 0
+											? 'No tienes clases configuradas todavía.'
+											: classCount === 1
+												? '1 clase'
+												: `${classCount} clases`}
+									</CardDescription>
+								</div>
+							</div>
+							<div className="flex items-center gap-2">
+								<Button variant="ghost" size="sm" asChild>
+									<Link to={`${fullBasePath}/reservations/calendar`}>Ver calendario</Link>
+								</Button>
+								<Button variant="outline" size="sm" asChild>
+									<a href={classesUrl} target="_blank" rel="noopener noreferrer">
+										Mostrar
+										<ExternalLink className="ml-2 h-3.5 w-3.5" />
+									</a>
+								</Button>
+							</div>
 						</div>
-						<div className="rounded-md border bg-background/70 p-3">
-							<p className="font-medium">{t('onlineBooking.shareStep2Title')}</p>
-							<p className="mt-1 text-muted-foreground">{t('onlineBooking.shareStep2Description')}</p>
+					</CardHeader>
+					<CardContent>
+						<CodeBlock code={classesUrl} />
+					</CardContent>
+				</Card>
+
+				{/* Unified channel — fallback for venues that don't differentiate */}
+				<Card className="border-dashed">
+					<CardHeader>
+						<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+							<div className="flex items-start gap-3">
+								<div className="rounded-md bg-muted p-2">
+									<Globe className="h-5 w-5 text-muted-foreground" />
+								</div>
+								<div className="space-y-0.5">
+									<CardTitle className="text-base">Página unificada</CardTitle>
+									<CardDescription>Todos los servicios y clases en un solo enlace.</CardDescription>
+								</div>
+							</div>
+							<Button variant="outline" size="sm" asChild>
+								<a href={publicBookingUrl} target="_blank" rel="noopener noreferrer">
+									Mostrar
+									<ExternalLink className="ml-2 h-3.5 w-3.5" />
+								</a>
+							</Button>
 						</div>
-						<div className="rounded-md border bg-background/70 p-3">
-							<p className="font-medium">{t('onlineBooking.shareStep3Title')}</p>
-							<p className="mt-1 text-muted-foreground">{t('onlineBooking.shareStep3Description')}</p>
-						</div>
-					</div>
-					<div className="space-y-2">
-						<p className="text-sm font-medium">{t('onlineBooking.directHtmlLink')}</p>
-						<CodeBlock code={directLinkSnippet} />
-					</div>
-				</CardContent>
-			</Card>
+					</CardHeader>
+					<CardContent>
+						<CodeBlock code={publicBookingUrl} />
+					</CardContent>
+				</Card>
+			</div>
 
 			{/* Settings link */}
 			<Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/20">
