@@ -34,6 +34,8 @@ interface ServiceFormData {
   layoutConfig: LayoutConfig | null
   allowCreditRedemption: boolean
   requireCreditForBooking: boolean
+  creditCost: number | string
+  upfrontPolicy: 'inherit' | 'required' | 'at_venue' | 'optional'
 }
 
 interface ServiceFormDialogProps {
@@ -126,6 +128,8 @@ export function ServiceFormDialog({ open, onOpenChange, onSuccess, mode, product
       layoutConfig: null,
       allowCreditRedemption: true,
       requireCreditForBooking: false,
+      creditCost: '',
+      upfrontPolicy: 'inherit',
     },
   })
 
@@ -154,6 +158,8 @@ export function ServiceFormDialog({ open, onOpenChange, onSuccess, mode, product
         layoutConfig: (existingProduct as any).layoutConfig ?? null,
         allowCreditRedemption: (existingProduct as any).allowCreditRedemption ?? true,
         requireCreditForBooking: (existingProduct as any).requireCreditForBooking ?? false,
+        creditCost: (existingProduct as any).creditCost ?? '',
+        upfrontPolicy: (existingProduct as any).upfrontPolicy ?? 'inherit',
       })
       initializeWithExistingUrl(existingProduct.imageUrl)
     }
@@ -174,6 +180,8 @@ export function ServiceFormDialog({ open, onOpenChange, onSuccess, mode, product
         layoutConfig: null,
         allowCreditRedemption: true,
         requireCreditForBooking: false,
+        creditCost: '',
+        upfrontPolicy: 'inherit',
       })
       setUploaderImageUrl(null)
     }
@@ -195,6 +203,8 @@ export function ServiceFormDialog({ open, onOpenChange, onSuccess, mode, product
           layoutConfig: isClass ? data.layoutConfig : undefined,
           allowCreditRedemption: data.allowCreditRedemption,
           requireCreditForBooking: data.requireCreditForBooking,
+          creditCost: data.creditCost === '' ? undefined : Number(data.creditCost),
+          upfrontPolicy: data.upfrontPolicy === 'inherit' ? undefined : data.upfrontPolicy,
         },
         inventory: { useInventory: false },
       }
@@ -240,6 +250,8 @@ export function ServiceFormDialog({ open, onOpenChange, onSuccess, mode, product
       }
       payload.allowCreditRedemption = data.allowCreditRedemption
       payload.requireCreditForBooking = data.requireCreditForBooking
+      payload.creditCost = data.creditCost === '' ? null : Number(data.creditCost)
+      payload.upfrontPolicy = data.upfrontPolicy
       return updateProduct(venueId!, productId!, payload)
     },
     onSuccess: () => {
@@ -560,6 +572,66 @@ export function ServiceFormDialog({ open, onOpenChange, onSuccess, mode, product
                     </div>
                   )}
                 />
+
+                {/* Credit cost — how many credits this service consumes per booking */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="creditCost">
+                    {t('services.form.creditCostLabel', { defaultValue: 'Costo en créditos por reserva' })}
+                  </Label>
+                  <Input
+                    id="creditCost"
+                    type="number"
+                    min={0}
+                    step={1}
+                    placeholder="1"
+                    {...register('creditCost', {
+                      validate: v => v === '' || Number(v) >= 0 || t('services.form.creditCostInvalid', { defaultValue: 'Debe ser ≥ 0' }),
+                    })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {t('services.form.creditCostHelp', {
+                      defaultValue: 'Cuántos créditos descuenta cada reserva. Vacío = 1 por defecto.',
+                    })}
+                  </p>
+                  {errors.creditCost && <p className="text-xs text-destructive">{errors.creditCost.message as string}</p>}
+                </div>
+
+                {/* Upfront payment policy — overrides venue default */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="upfrontPolicy">
+                    {t('services.form.upfrontPolicyLabel', { defaultValue: 'Política de pago anticipado' })}
+                  </Label>
+                  <Controller
+                    name="upfrontPolicy"
+                    control={control}
+                    render={({ field }) => (
+                      <select
+                        id="upfrontPolicy"
+                        value={field.value}
+                        onChange={e => field.onChange(e.target.value as ServiceFormData['upfrontPolicy'])}
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      >
+                        <option value="inherit">
+                          {t('services.form.upfrontPolicy.inherit', { defaultValue: 'Heredar del venue' })}
+                        </option>
+                        <option value="required">
+                          {t('services.form.upfrontPolicy.required', { defaultValue: 'Pago obligatorio al reservar' })}
+                        </option>
+                        <option value="at_venue">
+                          {t('services.form.upfrontPolicy.at_venue', { defaultValue: 'Pago en el establecimiento' })}
+                        </option>
+                        <option value="optional">
+                          {t('services.form.upfrontPolicy.optional', { defaultValue: 'Opcional (cliente elige)' })}
+                        </option>
+                      </select>
+                    )}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {t('services.form.upfrontPolicyHelp', {
+                      defaultValue: 'Heredar usa el default del venue (clases requieren pago, citas pagan en el local).',
+                    })}
+                  </p>
+                </div>
               </div>
             </div>
 

@@ -13,6 +13,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useAccess } from '@/hooks/use-access'
+import { useTeamInvitationTour } from '@/hooks/useTeamInvitationTour'
 import { useToast } from '@/hooks/use-toast'
 import teamService, { type Invitation, type PaginatedTeamResponse } from '@/services/team.service'
 import { TeamMember, StaffRole } from '@/types'
@@ -50,6 +51,12 @@ import { PermissionGate } from '@/components/PermissionGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 
+// ⚠️ COHERENCIA con tours interactivos:
+// Esta página tiene un tour driver.js (`useTeamInvitationTour`) que guía al
+// usuario a invitar a su primer miembro. Si modificas la UI/UX (botón de
+// invitar, dialog de invitación, columnas de la tabla, formulario), revisa
+// `src/hooks/useTeamInvitationTour.ts` y actualiza los selectores
+// `data-tour="team-*"` y los textos de los steps en paralelo.
 export default function Teams() {
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
@@ -59,6 +66,10 @@ export default function Teams() {
   const { t, i18n } = useTranslation('team')
   const { t: tCommon } = useTranslation()
   const { formatDate } = useVenueDateTime()
+
+  // Tour driver.js — auto-arranca cuando `requestAtomicTour('team-invitation')`
+  // se dispara desde HomeSetupChecklist. Ver `useTeamInvitationTour.ts`.
+  useTeamInvitationTour()
 
   // Custom role display names from venue config
   const { getDisplayName: getCustomRoleDisplayName, getColor: getCustomRoleColor } = useRoleConfig()
@@ -715,7 +726,7 @@ export default function Teams() {
         </div>
 
         <PermissionGate permission="teams:invite">
-          <Button id="invite-member-button" onClick={() => setShowInviteDialog(true)}>
+          <Button id="invite-member-button" data-tour="team-invite-btn" onClick={() => setShowInviteDialog(true)}>
             <UserPlus className="h-4 w-4 mr-2" />
             {t('header.inviteButton')}
           </Button>
@@ -726,6 +737,7 @@ export default function Teams() {
             contentClassName="bg-muted/30"
             actions={
               <Button
+                data-tour="team-invite-submit"
                 onClick={() => inviteFormRef.current?.submit()}
                 disabled={!isInviteFormValid || isInviteSubmitting}
               >
@@ -787,7 +799,7 @@ export default function Teams() {
           </nav>
         </div>
 
-        <TabsContent value="members" className="space-y-4">
+        <TabsContent value="members" data-tour="team-members-table" className="space-y-4">
           {/* Stripe-style Filter Bar */}
           <div className="flex flex-wrap items-center gap-2">
             {/* Expandable Search */}

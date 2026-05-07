@@ -48,6 +48,7 @@ import {
   Discounts,
   GoogleIntegration,
   Home,
+  HomeDashboardCharts,
   InventoryLayout,
   InventorySummary,
   InventoryHistory,
@@ -245,6 +246,11 @@ export function createVenueRoutes(): RouteObject[] {
       path: 'reports/sales-by-item',
       element: <KYCProtectedRoute />,
       children: [{ index: true, element: <SalesByItem /> }],
+    },
+    {
+      path: 'reports/home-charts',
+      element: <KYCProtectedRoute />,
+      children: [{ index: true, element: <HomeDashboardCharts /> }],
     },
 
     // Available Balance (requires settlements:read permission + KYC verification)

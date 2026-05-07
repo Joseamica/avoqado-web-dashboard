@@ -1,0 +1,330 @@
+import { useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { ArrowRight, Check, Compass } from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useOnboardingKey } from '@/hooks/useOnboardingState'
+import { usePlatformWelcomeTour } from '@/hooks/usePlatformWelcomeTour'
+import {
+  requestAtomicTour,
+  useAtomicTourCompletionListener,
+  type AtomicTourName,
+} from '@/hooks/useAtomicTourListener'
+import { cn } from '@/lib/utils'
+
+type StepId = 'catalog' | 'inventory' | 'team' | 'tpv' | 'reservations'
+
+interface StepState {
+  done: boolean
+  doneAt?: string
+}
+
+interface ChecklistState {
+  dismissed: boolean
+  steps: Partial<Record<StepId, StepState>>
+}
+
+const STORAGE_KEY = 'home-checklist'
+
+const DEFAULT_STATE: ChecklistState = {
+  dismissed: false,
+  steps: {},
+}
+
+interface StepConfig {
+  id: StepId
+  titleKey: string
+  descriptionKey: string
+  /** Path appended to fullBasePath when user clicks "Empezar" */
+  path: string
+  /** Optional atomic tour to auto-start on the destination page */
+  atomicTour?: AtomicTourName
+  /** Allow user to skip this step manually */
+  canSkip?: boolean
+}
+
+const STEPS: StepConfig[] = [
+  {
+    id: 'catalog',
+    titleKey: 'newHome.setup.steps.catalog.title',
+    descriptionKey: 'newHome.setup.steps.catalog.description',
+    path: 'menumaker/products',
+    atomicTour: 'product',
+  },
+  {
+    id: 'inventory',
+    titleKey: 'newHome.setup.steps.inventory.title',
+    descriptionKey: 'newHome.setup.steps.inventory.description',
+    path: 'inventory',
+    atomicTour: 'ingredient',
+    canSkip: true,
+  },
+  {
+    id: 'team',
+    titleKey: 'newHome.setup.steps.team.title',
+    descriptionKey: 'newHome.setup.steps.team.description',
+    path: 'team',
+    atomicTour: 'team-invitation',
+    canSkip: true,
+  },
+  {
+    id: 'tpv',
+    titleKey: 'newHome.setup.steps.tpv.title',
+    descriptionKey: 'newHome.setup.steps.tpv.description',
+    path: 'tpv',
+    atomicTour: 'tpv-onboarding',
+    canSkip: true,
+  },
+  {
+    id: 'reservations',
+    titleKey: 'newHome.setup.steps.reservations.title',
+    descriptionKey: 'newHome.setup.steps.reservations.description',
+    path: 'reservations',
+    atomicTour: 'reservations-onboarding',
+    canSkip: true,
+  },
+]
+
+function normalize(raw: unknown): ChecklistState {
+  if (!raw || typeof raw !== 'object') return { ...DEFAULT_STATE }
+  const r = raw as Partial<ChecklistState>
+  return {
+    dismissed: !!r.dismissed,
+    steps: r.steps ?? {},
+  }
+}
+
+export function HomeSetupChecklist() {
+  const { t } = useTranslation('home')
+  const { fullBasePath } = useCurrentVenue()
+  const navigate = useNavigate()
+  const { start: startPlatformTour } = usePlatformWelcomeTour()
+
+  const { value: rawState, isLoaded, setValue } = useOnboardingKey<ChecklistState>(STORAGE_KEY, DEFAULT_STATE)
+  const state = useMemo(() => normalize(rawState), [rawState])
+
+  // Tour de plataforma — su completion vive en backend bajo otra key, así
+  // sobrevive a clear del checklist y se respeta la primera vez del usuario.
+  const { value: platformTourCompleted } = useOnboardingKey<boolean>('platform-welcome-completed', false)
+
+  const doneCount = useMemo(() => STEPS.filter(s => state.steps[s.id]?.done).length, [state.steps])
+  const allDone = doneCount === STEPS.length
+
+  const patch = (next: Partial<ChecklistState>) => {
+    setValue({ ...state, ...next })
+  }
+
+  const markDone = (id: StepId) => {
+    patch({
+      steps: {
+        ...state.steps,
+        [id]: { done: true, doneAt: new Date().toISOString() },
+      },
+    })
+  }
+
+  const handleStart = (step: StepConfig) => {
+    if (step.atomicTour) requestAtomicTour(step.atomicTour)
+    if (fullBasePath) navigate(`${fullBasePath}/${step.path}`)
+  }
+
+  // Auto-mark steps done when their atomic tour completes
+  useAtomicTourCompletionListener(name => {
+    const step = STEPS.find(s => s.atomicTour === name)
+    if (!step) return
+    if (state.steps[step.id]?.done) return
+    markDone(step.id)
+  })
+
+  if (!isLoaded || state.dismissed || allDone) return null
+
+  const activeIndex = STEPS.findIndex(s => !state.steps[s.id]?.done)
+
+  // Square-style "set up your business" card. The card uses high-contrast
+  // tokens that flip per theme:
+  //  - Light mode: dark card with white text (Square's signature look)
+  //  - Dark mode: themed card surface with subtle border so it doesn't blast
+  //    a stark-white panel into the user's eyes.
+  return (
+    <div
+      className={cn(
+        'rounded-2xl p-8',
+        // Light mode: inverted (dark card / light text)
+        'bg-foreground text-background',
+        // Dark mode: themed card surface with subtle elevation
+        'dark:bg-card dark:text-card-foreground dark:border dark:border-input',
+      )}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <h2 className="text-2xl font-semibold tracking-tight">{t('newHome.setup.title')}</h2>
+        <button
+          type="button"
+          onClick={() => patch({ dismissed: true })}
+          className={cn(
+            'cursor-pointer text-sm underline-offset-4 hover:underline',
+            'text-background/60 hover:text-background',
+            'dark:text-muted-foreground dark:hover:text-foreground',
+          )}
+        >
+          {t('newHome.setup.dismiss')}
+        </button>
+      </div>
+
+      {/* Hero row: platform tour. Visualmente distinto al resto — usa un
+          fondo con tinte primary para destacarse y posición prominente. */}
+      <button
+        type="button"
+        onClick={() => startPlatformTour()}
+        className={cn(
+          'mt-6 flex w-full items-center gap-4 rounded-xl p-4 text-left transition-colors cursor-pointer',
+          'bg-background/10 hover:bg-background/15',
+          'dark:bg-primary/10 dark:hover:bg-primary/15 dark:border dark:border-primary/20',
+        )}
+      >
+        <div
+          className={cn(
+            'flex h-11 w-11 shrink-0 items-center justify-center rounded-full',
+            'bg-background/20 text-background',
+            'dark:bg-primary/20 dark:text-primary',
+          )}
+        >
+          <Compass className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="text-base font-semibold">{t('newHome.setup.platformTour.title')}</p>
+            {platformTourCompleted && (
+              <span
+                className={cn(
+                  'rounded-full px-2 py-0.5 text-[10px] font-medium',
+                  'bg-background/15 text-background',
+                  'dark:bg-emerald-500/15 dark:text-emerald-400',
+                )}
+              >
+                {t('newHome.setup.platformTour.completedBadge')}
+              </span>
+            )}
+          </div>
+          <p className="mt-0.5 text-sm text-background/70 dark:text-muted-foreground">
+            {t('newHome.setup.platformTour.description')}
+          </p>
+        </div>
+        <ArrowRight className="h-5 w-5 shrink-0 opacity-60" />
+      </button>
+
+      <div className="mt-6 divide-y divide-background/10 dark:divide-border">
+        {STEPS.map((step, index) => {
+          const done = !!state.steps[step.id]?.done
+          const isActive = !done && index === activeIndex
+          const isNext = !done && index === activeIndex + 1
+          const isLocked = !done && !isActive && !isNext
+
+          // Toda la row es clickable — re-dispara el tour de esa sección
+          // sin importar el estado (active, next, locked o done). El usuario
+          // puede repasar cualquier paso cuando quiera.
+          return (
+            <div
+              key={step.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => handleStart(step)}
+              onKeyDown={event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  handleStart(step)
+                }
+              }}
+              className="group/row flex cursor-pointer items-start gap-4 py-5 first:pt-0 last:pb-0"
+            >
+              <div className="min-w-0 flex-1">
+                <p
+                  className={cn(
+                    'text-base font-semibold transition-colors',
+                    done && 'line-through text-background/40 dark:text-muted-foreground',
+                    isLocked && 'text-background/60 dark:text-muted-foreground',
+                    'group-hover/row:underline group-hover/row:underline-offset-4',
+                  )}
+                >
+                  {t(step.titleKey)}
+                </p>
+                {(isActive || isNext) && (
+                  <p className="mt-1 text-sm text-background/70 dark:text-muted-foreground">{t(step.descriptionKey)}</p>
+                )}
+              </div>
+
+              <div className="flex shrink-0 items-center gap-3">
+                {done && (
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-background/15 text-background dark:bg-muted dark:text-foreground">
+                    <Check className="h-4 w-4" />
+                  </span>
+                )}
+
+                {isActive && (
+                  <>
+                    <span className="rounded-full bg-blue-500/15 px-2.5 py-1 text-xs font-medium text-blue-600 dark:text-blue-300">
+                      {t('newHome.setup.inProgress')}
+                    </span>
+                    <Button
+                      type="button"
+                      onClick={() => handleStart(step)}
+                      className={cn(
+                        'h-9 cursor-pointer rounded-full px-5 text-sm font-semibold',
+                        'bg-background text-foreground hover:bg-background/90',
+                        'dark:bg-foreground dark:text-background dark:hover:bg-foreground/90',
+                      )}
+                    >
+                      {t('newHome.setup.start')}
+                    </Button>
+                  </>
+                )}
+
+                {isNext && (
+                  <>
+                    {step.canSkip && (
+                      <button
+                        type="button"
+                        onClick={event => {
+                          // Detén la propagación: el click en "Omitir" no
+                          // debe disparar el tour del row que lo contiene.
+                          event.stopPropagation()
+                          markDone(step.id)
+                        }}
+                        className={cn(
+                          'cursor-pointer text-sm underline underline-offset-4',
+                          'text-background/70 hover:text-background',
+                          'dark:text-muted-foreground dark:hover:text-foreground',
+                        )}
+                      >
+                        {t('newHome.setup.skip')}
+                      </button>
+                    )}
+                    <Button
+                      type="button"
+                      onClick={() => handleStart(step)}
+                      variant="secondary"
+                      className={cn(
+                        'h-9 cursor-pointer rounded-full px-5 text-sm font-semibold',
+                        'bg-background/15 text-background hover:bg-background/25',
+                        'dark:bg-muted dark:text-foreground dark:hover:bg-muted/70',
+                      )}
+                    >
+                      {t('newHome.setup.start')}
+                    </Button>
+                  </>
+                )}
+
+                {isLocked && (
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full border border-background/30 text-background/40 dark:border-border dark:text-muted-foreground">
+                    <Check className="h-3.5 w-3.5" />
+                  </span>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}

@@ -366,6 +366,7 @@ export const useDashboardData = () => {
     compareAmount,
     compareFiveStarReviews,
     compareTipStats,
+    comparePayments,
     totalTransactions,
     avgTicket,
     transactionsChangePercentage,

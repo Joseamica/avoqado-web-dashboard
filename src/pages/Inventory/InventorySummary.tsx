@@ -21,7 +21,6 @@ import { type ColumnDef } from '@tanstack/react-table'
 import { AlertTriangle, ChevronDown, Download, HelpCircle, MoreHorizontal, Printer, Search, Star, Upload, X } from 'lucide-react'
 import { useStockAdjustmentTour } from '@/hooks/useStockAdjustmentTour'
 import { useInventoryWelcomeTour } from '@/hooks/useInventoryWelcomeTour'
-import { TourDiscoveryBanner } from '@/components/onboarding/TourDiscoveryBanner'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -443,36 +442,6 @@ export default function InventorySummary() {
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
       <div className="px-4 sm:px-6">
-        {/* Welcome tour banner — master walkthrough for first-time admins */}
-        <TourDiscoveryBanner
-          storageKey="inventory-welcome"
-          className="mt-4"
-          title={tInventory('tourWelcome.discoveryBanner.title', {
-            defaultValue: '🎓 ¿Nuevo en Avoqado? Haz el recorrido completo',
-          })}
-          description={tInventory('tourWelcome.discoveryBanner.description', {
-            defaultValue:
-              'Un paseo de 3 minutos por todo el sistema de inventario: categorías, ingredientes, productos, órdenes, existencias e historial.',
-          })}
-          ctaLabel={tInventory('tour.discoveryBanner.cta', { defaultValue: 'Ver tour guiado' })}
-          onStart={startWelcomeTour}
-        />
-
-        {/* Contextual stock-adjustment banner — for daily ops */}
-        <TourDiscoveryBanner
-          storageKey="inventory-stock-overview"
-          className="mt-2"
-          title={tInventory('tourStockAdjustment.discoveryBanner.title', {
-            defaultValue: '🎓 ¿Cómo ajustar existencias cuando llega mercancía o hay una merma?',
-          })}
-          description={tInventory('tourStockAdjustment.discoveryBanner.description', {
-            defaultValue:
-              'Te guiamos paso a paso — es la operación que más vas a hacer en el día a día.',
-          })}
-          ctaLabel={tInventory('tour.discoveryBanner.cta', { defaultValue: 'Ver tour guiado' })}
-          onStart={startStockAdjustmentTour}
-        />
-
         {/* Title + Actions */}
         <div className="flex items-center justify-between pt-6 pb-5">
           <h1 className="text-2xl font-bold text-foreground">Resumen de Existencias</h1>

@@ -8,6 +8,7 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
+import { DateTime } from 'luxon'
 import { TrendingUp } from 'lucide-react'
 import { Pie, PieChart, Label } from 'recharts'
 
@@ -100,11 +101,13 @@ function getSkeletonForType(skeletonType: string) {
 
 const ProgressiveChartSection = ({
   venueId,
+  venueTimezone,
   chartDef,
   selectedRange,
   className = '',
 }: {
   venueId: string
+  venueTimezone: string
   chartDef: ChartDefinition
   selectedRange: { from: Date; to: Date }
   className?: string
@@ -114,14 +117,27 @@ const ProgressiveChartSection = ({
   const { t } = useTranslation('home')
 
   const endpoint = chartDef.dataSource.endpoint
+  const effectiveRange = useMemo(() => {
+    const policy = chartDef.rangePolicy
+    if (!policy || policy.mode === 'selected') return selectedRange
+
+    const windowDays = Math.max(2, policy.days || 30)
+    const to = DateTime.fromJSDate(selectedRange.to).setZone(venueTimezone).endOf('day')
+    const from = to.minus({ days: windowDays - 1 }).startOf('day')
+
+    return {
+      from: from.toJSDate(),
+      to: to.toJSDate(),
+    }
+  }, [chartDef.rangePolicy, selectedRange, venueTimezone])
 
   const { data, isLoading } = useQuery({
-    queryKey: [chartDef.dataSource.type, endpoint, venueId, selectedRange.from.toISOString(), selectedRange.to.toISOString()],
+    queryKey: [chartDef.dataSource.type, endpoint, venueId, effectiveRange.from.toISOString(), effectiveRange.to.toISOString()],
     queryFn: async () => {
       if (chartDef.dataSource.type === 'metric') {
-        return await dashboardService.getExtendedMetrics(endpoint as any, selectedRange)
+        return await dashboardService.getExtendedMetrics(endpoint as any, effectiveRange)
       }
-      return await dashboardService.getChartData(endpoint as any, selectedRange)
+      return await dashboardService.getChartData(endpoint as any, effectiveRange)
     },
     enabled: isVisible,
     staleTime: 5 * 60 * 1000,
@@ -311,11 +327,13 @@ function normalizePaymentMethod(method: unknown, t: (key: string) => string): st
 const DashboardRowRenderer = ({
   row,
   venueId,
+  venueTimezone,
   selectedRange,
   dashboardData,
 }: {
   row: ResolvedRow
   venueId: string
+  venueTimezone: string
   selectedRange: { from: Date; to: Date }
   dashboardData: ReturnType<typeof useDashboardData>
 }) => {
@@ -351,6 +369,7 @@ const DashboardRowRenderer = ({
           <ProgressiveChartSection
             key={chartDef.id}
             venueId={venueId}
+            venueTimezone={venueTimezone}
             chartDef={chartDef}
             selectedRange={selectedRange}
             className={colSpan}
@@ -374,7 +393,8 @@ export const DashboardRenderer = ({
   resolvedDashboard,
   dashboardData,
 }: DashboardRendererProps) => {
-  const { venueId, selectedRange } = dashboardData
+  const { venueId, selectedRange, activeVenue } = dashboardData
+  const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
 
   // Single-day ranges turn time-series charts into one lonely point.
   // Drop charts marked hidesOnSingleDay; collapse split/weighted rows that
@@ -396,7 +416,7 @@ export const DashboardRenderer = ({
       acc.push({ ...row, layout, items })
       return acc
     }, [])
-  }, [resolvedDashboard.rows, selectedRange])
+  }, [resolvedDashboard, selectedRange])
 
   return (
     <>
@@ -416,6 +436,7 @@ export const DashboardRenderer = ({
           key={row.id}
           row={row}
           venueId={venueId}
+          venueTimezone={venueTimezone}
           selectedRange={selectedRange}
           dashboardData={dashboardData}
         />

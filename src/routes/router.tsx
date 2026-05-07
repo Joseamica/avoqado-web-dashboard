@@ -807,7 +807,12 @@ const router = createBrowserRouter(
           element: <SettlementReport />,
           errorElement: <ErrorPage />,
         },
-        // Rutas públicas para reservaciones online
+        // Rutas públicas para reservaciones online (legacy fallback).
+        // Production customer-facing booking lives at book.avoqado.io and is
+        // served by the avoqado-booking-widget Cloudflare Pages project, NOT
+        // the dashboard SPA. These routes remain so existing links pointing to
+        // dashboard.avoqado.io/book/<slug> keep working until they're rotated.
+        // New venues should always share book.avoqado.io URLs.
         {
           path: '/book/:venueSlug',
           element: <PublicBookingPage />,
@@ -818,39 +823,6 @@ const router = createBrowserRouter(
           element: <BookingManagePage />,
           errorElement: <ErrorPage />,
         },
-        // book.avoqado.io alias routes — same components, no /book prefix.
-        // Conditionally registered so they only exist on the booking subdomain;
-        // on dashboard.avoqado.io they would shadow the catch-all and break /login etc.
-        //
-        // URL pattern mirrors Square's separation: /<slug> = unified, /<slug>/citas =
-        // appointments-only, /<slug>/clases = classes-only. Today all three render
-        // the same PublicBookingPage; the flow split per type is planned in the
-        // public-booking-redesign spec — these stable URLs let venues share them now
-        // without future migration.
-        ...(typeof window !== 'undefined' && window.location.hostname === 'book.avoqado.io'
-          ? [
-              {
-                path: '/:venueSlug',
-                element: <PublicBookingPage />,
-                errorElement: <ErrorPage />,
-              },
-              {
-                path: '/:venueSlug/citas',
-                element: <PublicBookingPage />,
-                errorElement: <ErrorPage />,
-              },
-              {
-                path: '/:venueSlug/clases',
-                element: <PublicBookingPage />,
-                errorElement: <ErrorPage />,
-              },
-              {
-                path: '/:venueSlug/manage/:cancelSecret',
-                element: <BookingManagePage />,
-                errorElement: <ErrorPage />,
-              },
-            ]
-          : []),
         {
           path: '*',
           element: <ErrorPage />,

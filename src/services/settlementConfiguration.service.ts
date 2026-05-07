@@ -153,9 +153,10 @@ export const CARD_TYPE_LABELS: Record<TransactionCardType, string> = {
 
 export const CARD_TYPES: TransactionCardType[] = ['DEBIT', 'CREDIT', 'AMEX', 'INTERNATIONAL', 'OTHER']
 
+// Blumon defaults: DEBIT/CREDIT 1d, AMEX 3d, INTERNATIONAL 5d, OTHER 2d (BUSINESS_DAYS)
 export const DEFAULT_SETTLEMENT_DAYS: Record<TransactionCardType, number> = {
   DEBIT: 1,
-  CREDIT: 2,
+  CREDIT: 1,
   AMEX: 3,
   INTERNATIONAL: 5,
   OTHER: 2,

@@ -483,6 +483,7 @@ export function AppSidebar({
       { title: t('sidebar:reportsMenu.payLaterAging', { defaultValue: 'Cuentas por Cobrar' }), url: 'reports/pay-later-aging', icon: HandCoins, permission: 'tpv-reports:pay-later-aging', keywords: ['pay later', 'fiado', 'deudas'] },
       { title: t('sidebar:reportsMenu.salesSummary'), url: 'reports/sales-summary', icon: BarChart3, permission: 'reports:read', keywords: ['reporte', 'ventas diarias', 'ganancias', 'ingresos'] },
       { title: t('sidebar:reportsMenu.salesByItem'), url: 'reports/sales-by-item', icon: Receipt, permission: 'reports:read', keywords: ['reporte de productos', 'items vendidos'] },
+      { title: t('sidebar:reportsMenu.homeCharts', { defaultValue: 'Gráficas (Home)' }), url: 'reports/home-charts', icon: TrendingUp, permission: 'reports:read', keywords: ['dashboard', 'graficas', 'home legacy'] },
       { title: t('sidebar:reportsMenu.salesByCategory'), url: 'reports/sales-by-category', icon: Receipt, permission: 'reports:read', comingSoon: true },
       { title: t('sidebar:reportsMenu.paymentMethods'), url: 'reports/payment-methods', icon: CreditCard, permission: 'reports:read', comingSoon: true },
       { title: t('sidebar:reportsMenu.taxes'), url: 'reports/taxes', icon: FileSpreadsheet, permission: 'reports:read', comingSoon: true },

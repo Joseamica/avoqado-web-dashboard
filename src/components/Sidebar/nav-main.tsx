@@ -259,6 +259,8 @@ export function NavMain({
     groupedItems['other'] = ungroupedItems
   }
 
+  const tourKey = (url: string) => `sidebar-${url.replace(/^#/, '').replace(/\//g, '-')}`
+
   const renderItem = (item: NavItem) => {
     const isSuperadminItem = isSuperadminPath(item.url) || !!item.superadminOnly
     const itemHidden = isHidden(item.url)
@@ -274,7 +276,7 @@ export function NavMain({
         return si.items?.some(sub => isSubItemActive(sub.url))
       })
       return (
-        <SidebarMenuItem key={item.url} className={cn('group/sidebar-item', itemHidden && isSuperadmin && 'opacity-40')}>
+        <SidebarMenuItem key={item.url} data-tour={tourKey(item.url)} className={cn('group/sidebar-item', itemHidden && isSuperadmin && 'opacity-40')}>
           <SidebarMenuButton tooltip={item.title} isActive={hasActiveChild} onClick={() => setActiveSubSidebar(item.subSidebar!)}>
             {item.isAvoqadoCore && <AvoqadoBadge />}
             {item.icon && <item.icon />}
@@ -306,7 +308,7 @@ export function NavMain({
         }
       }
       return (
-        <SidebarMenuItem key={item.url} className={cn(itemHidden && isSuperadmin && 'opacity-40')}>
+        <SidebarMenuItem key={item.url} data-tour={tourKey(item.url)} className={cn(itemHidden && isSuperadmin && 'opacity-40')}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <SidebarMenuButton tooltip={item.title} isActive={hasActiveChild} className="relative">
@@ -364,7 +366,7 @@ export function NavMain({
       if (isCollapsed) {
         const hasActiveChild = visibleSubItems?.some(s => isSubItemActive(s.url))
         return (
-          <SidebarMenuItem key={item.url} className={cn(itemHidden && isSuperadmin && 'opacity-40')}>
+          <SidebarMenuItem key={item.url} data-tour={tourKey(item.url)} className={cn(itemHidden && isSuperadmin && 'opacity-40')}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton
@@ -507,7 +509,7 @@ export function NavMain({
     // Coming soon items — disabled with badge
     if (item.comingSoon) {
       return (
-        <SidebarMenuItem key={item.url} className={cn('group/sidebar-item', itemHidden && isSuperadmin && 'opacity-40')}>
+        <SidebarMenuItem key={item.url} data-tour={tourKey(item.url)} className={cn('group/sidebar-item', itemHidden && isSuperadmin && 'opacity-40')}>
           <SidebarMenuButton tooltip={item.title} className="opacity-50 cursor-not-allowed pointer-events-none">
             {item.icon && <item.icon />}
             <span className="flex items-center gap-2">
@@ -523,7 +525,7 @@ export function NavMain({
 
     return (
       // Render direct link for items without sub-items
-      <SidebarMenuItem key={item.url} className={cn('group/sidebar-item', itemHidden && isSuperadmin && 'opacity-40')}>
+      <SidebarMenuItem key={item.url} data-tour={tourKey(item.url)} className={cn('group/sidebar-item', itemHidden && isSuperadmin && 'opacity-40')}>
         <SidebarMenuButton
           asChild
           tooltip={item.title}

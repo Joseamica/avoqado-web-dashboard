@@ -47,6 +47,13 @@ export interface ChartDefinition {
   }
   componentId: string // key for lazy component lookup
   skeletonType: 'chart' | 'product-list' | 'staff' | 'table-perf' | 'table'
+  // Optional per-chart range policy. By default charts follow selectedRange.
+  // Use rollingWindowDays for distribution charts that need historical context
+  // (e.g. weekday mix) even when global filter is a single day.
+  rangePolicy?: {
+    mode: 'selected' | 'rollingWindowDays'
+    days?: number
+  }
   // Hide this chart when the selected range covers a single day (a line chart
   // with one data point is noise). Filtered in DashboardRenderer.
   hidesOnSingleDay?: boolean

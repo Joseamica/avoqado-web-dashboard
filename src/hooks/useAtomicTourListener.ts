@@ -45,6 +45,9 @@ export type AtomicTourName =
   | 'purchase-order'
   | 'stock-adjustment'
   | 'history'
+  | 'team-invitation'
+  | 'tpv-onboarding'
+  | 'reservations-onboarding'
 
 /**
  * Call from launcher code (checklist, welcome tour) to queue an atomic tour.

@@ -210,5 +210,232 @@
     "orderFrequency": "No hay órdenes para mostrar frecuencia",
     "reservations": "No hay reservaciones en este período",
     "staffRanking": "No hay actividad de personal en este período"
+  },
+  "newHome": {
+    "tabs": {
+      "overview": "Vista general",
+      "configuration": "Centro de negocios"
+    },
+    "welcomeTour": {
+      "replay": "Ver tour de plataforma",
+      "next": "Siguiente →",
+      "nextSection": "Siguiente sección →",
+      "prev": "← Anterior",
+      "done": "¡Listo!",
+      "progress": "Paso {{current}} de {{total}}",
+      "pages": {
+        "home": {
+          "steps": {
+            "intro": {
+              "title": "👋 ¡Bienvenido a Avoqado!",
+              "description": "Te haré un tour rápido para que conozcas la plataforma. Iremos por las secciones principales — toma alrededor de 2 minutos. Puedes cerrar el tour en cualquier momento con la tecla ESC."
+            },
+            "kpis": {
+              "title": "Tu dashboard",
+              "description": "Aquí ves tus métricas del día: ventas netas, transacciones, propinas y comparativas con periodos anteriores. Es el pulso de tu negocio."
+            },
+            "chatbot": {
+              "title": "Pregunta a Avoqado AI",
+              "description": "Haz preguntas en lenguaje natural sobre tu operación: ventas, productos, clientes. La IA conoce tus datos y te responde al instante."
+            }
+          }
+        },
+        "menu": {
+          "steps": {
+            "newProduct": {
+              "title": "Crea productos y servicios",
+              "description": "Aquí construyes tu catálogo: categorías, productos o servicios, modificadores y paquetes. Todo lo que vendes vive en esta sección."
+            },
+            "overview": {
+              "title": "Catálogo",
+              "description": "Organiza tu menú con categorías, sub-categorías y modificadores. Define precios, descripciones e imágenes desde un solo lugar."
+            }
+          }
+        },
+        "inventory": {
+          "steps": {
+            "overview": {
+              "title": "Inventario",
+              "description": "Controla materias primas, recetas, proveedores y órdenes de compra. Mantén el stock al día y conoce tus costos reales por producto."
+            }
+          }
+        },
+        "sales": {
+          "steps": {
+            "overview": {
+              "title": "Pagos y pedidos",
+              "description": "Aquí ves cada transacción: pagos, pedidos, ligas de pago y terminal virtual. Filtra por método, mesero o fecha."
+            }
+          }
+        },
+        "reservations": {
+          "steps": {
+            "overview": {
+              "title": "Reservaciones",
+              "description": "Calendario, lista de espera y widget de reservas en línea para tu sitio web. Gestiona el flujo de comensales."
+            }
+          }
+        },
+        "team": {
+          "steps": {
+            "overview": {
+              "title": "Equipo",
+              "description": "Invita meseros, cocineros o gerentes. Asigna roles, controla turnos y comisiones por persona."
+            }
+          }
+        },
+        "customers": {
+          "steps": {
+            "overview": {
+              "title": "Clientes",
+              "description": "Tu base de clientes, programa de lealtad, reseñas y promociones (descuentos y cupones). Conoce y fideliza."
+            }
+          }
+        },
+        "reports": {
+          "steps": {
+            "overview": {
+              "title": "Reportes",
+              "description": "Resumen de ventas, ventas por artículo, balance disponible y más. Insights detallados de tu operación día con día."
+            }
+          }
+        },
+        "settings": {
+          "steps": {
+            "overview": {
+              "title": "Configuración",
+              "description": "Ajustes del negocio: datos del local, notificaciones, facturación e integraciones. Aquí termina tu tour — ¡a operar!"
+            }
+          }
+        }
+      }
+    },
+    "setup": {
+      "title": "Configura tu negocio para empezar a vender",
+      "inProgress": "En curso",
+      "start": "Empezar",
+      "skip": "Omitir",
+      "dismiss": "No mostrar de nuevo",
+      "platformTour": {
+        "title": "Tour interactivo de la plataforma",
+        "description": "Conoce todo lo que puedes hacer en Avoqado en un recorrido guiado de 2 minutos.",
+        "completedBadge": "Completado"
+      },
+      "steps": {
+        "catalog": {
+          "title": "Crea tu catálogo de artículos",
+          "description": "Agrega categorías y productos o servicios para empezar a cobrar a tus clientes."
+        },
+        "inventory": {
+          "title": "Configura tu inventario",
+          "description": "Registra materias primas, recetas y stock inicial para llevar control de costos."
+        },
+        "team": {
+          "title": "Invita a tu equipo",
+          "description": "Agrega meseros, cocineros o gerentes y asigna permisos por rol."
+        },
+        "tpv": {
+          "title": "Registra tus terminales (TPV)",
+          "description": "Conecta los dispositivos donde tu equipo cobra: PAX, tablets o cualquier Android compatible."
+        },
+        "reservations": {
+          "title": "Activa reservaciones",
+          "description": "Configura el calendario y el widget de reservas en línea para tu sitio web."
+        }
+      }
+    },
+    "chatbot": {
+      "title": "¿Cómo me comunico con Avoqado AI?",
+      "desc": "Tu asistente AI sigue disponible desde el botón lateral.",
+      "pinned": "Chinchetas",
+      "placeholder": "Pregunta a Avoqado AI",
+      "send": "Enviar",
+      "suggestionsLabel": "Sugerencias",
+      "q1": "¿Cómo me comunico con Avoqado?",
+      "q2": "¿Cuándo recibo más clientes nuevos?",
+      "q3": "¿Cómo agrego a alguien a mi equipo?",
+      "q4": "Configurar las notificaciones por correo electrónico"
+    },
+    "trend": {
+      "noCompare": "Sin datos del periodo anterior para comparar"
+    },
+    "performance": {
+      "title": "Rendimiento",
+      "netSales": "Ventas netas",
+      "noData": "No hay datos disponibles para el período seleccionado",
+      "today": "Hoy",
+      "ndLabel": "N/D",
+      "details": {
+        "grossSales": "Ventas brutas",
+        "transactions": "Transacciones",
+        "laborShare": "% de mano de obra de ventas netas",
+        "avgSale": "Venta media",
+        "discounts": "Artículos de cortesía y descuentos",
+        "tips": "Propinas"
+      }
+    },
+    "datePicker": {
+      "label": "Fecha",
+      "today": "Hoy",
+      "yesterday": "Ayer",
+      "thisWeek": "Esta semana",
+      "lastWeek": "Semana pasada",
+      "thisMonth": "Este mes",
+      "lastMonth": "Mes pasado",
+      "thisYear": "Este año",
+      "lastYear": "Año pasado",
+      "custom": "Otra"
+    },
+    "compareOptions": {
+      "day": "día anterior",
+      "weekday": "{{weekday}} anterior",
+      "week": "semana anterior",
+      "weeks4": "4 semanas antes",
+      "weeks52": "52 semanas antes",
+      "month": "mes anterior",
+      "year": "año anterior",
+      "years2": "2 años antes",
+      "years3": "3 años antes",
+      "period": "período anterior"
+    },
+    "filters": {
+      "compare": {
+        "label": "en comparación con"
+      },
+      "accounts": {
+        "label": "Cuentas",
+        "all": "Todas",
+        "closed": "Cerradas"
+      }
+    },
+    "side": {
+      "bank": "Banca",
+      "balance": "Saldo",
+      "quickActions": "Acciones rápidas",
+      "actions": {
+        "addItem": "Añadir artículo",
+        "viewPayments": "Ver pagos",
+        "inventory": "Inventario",
+        "reports": "Reportes de ventas"
+      },
+      "context": "Contexto",
+      "contextDescription": "Datos para {{date}} y comparación seleccionada."
+    },
+    "businessCenter": {
+      "title": "Explora y configura funciones para hacer crecer tu negocio",
+      "pendingSteps": "2 pasos pendientes",
+      "start": "Comenzar",
+      "nextStep": "Siguiente: Verificar identidad",
+      "profile": "Perfil",
+      "profileSub": "Healthy boutique",
+      "staff": "Personal",
+      "staffSub": "Solo tú",
+      "payments": "Pagos",
+      "paymentsSub": "8 completados",
+      "items": "Artículos",
+      "itemsSub": "2 artículos",
+      "devices": "Dispositivos",
+      "devicesSub": "2 dispositivos"
+    }
   }
 }

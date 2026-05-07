@@ -614,7 +614,7 @@ const SalesSummarySkeleton = () => (
 // ============================================
 export default function SalesSummary() {
   const { t, i18n } = useTranslation('reports')
-  const { venueId: _venueId } = useCurrentVenue() // Will be used for API calls
+  const { venueId } = useCurrentVenue()
   const { activeVenue } = useAuth()
   const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
 
@@ -818,11 +818,12 @@ export default function SalesSummary() {
   // Build API filters
   // Always request paymentMethod grouping for the top chart visualization
   const apiFilters = useMemo(() => ({
+    venueId,
     startDate: dateRange.from.toISOString(),
     endDate: dateRange.to.toISOString(),
     groupBy: 'paymentMethod' as ApiGroupBy, // Always get payment breakdown for visualization
     reportType: reportType as ReportType,
-  }), [dateRange.from, dateRange.to, reportType])
+  }), [venueId, dateRange.from, dateRange.to, reportType])
 
   // Fetch sales summary data from API
   const {

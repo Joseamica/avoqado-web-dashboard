@@ -1,4 +1,5 @@
 import { useToast } from '@/hooks/use-toast'
+import { useTpvTour } from '@/hooks/useTpvTour'
 import { deleteTpv, getTpvs, sendTpvCommand as sendTpvCommandApi } from '@/services/tpv.service'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
@@ -56,6 +57,12 @@ import { ActivateTerminalModal } from './components/ActivateTerminalModal'
 import { TerminalPurchaseWizard } from './components/purchase-wizard/TerminalPurchaseWizard'
 import { SuperadminTerminalDialog } from './components/SuperadminTerminalDialog'
 
+// ⚠️ COHERENCIA con tours interactivos:
+// Esta página tiene un tour driver.js (`useTpvTour`) que enseña al usuario
+// cómo registrar y administrar terminales. Si modificas la UI/UX (lista de
+// TPVs, botón de crear, wizard de registro), revisa
+// `src/hooks/useTpvTour.ts` y actualiza los selectores `data-tour="tpv-*"`
+// y los textos de los steps en paralelo.
 export default function Tpvs() {
   const { venueId, venue } = useCurrentVenue()
   const { user } = useAuth()
@@ -64,6 +71,11 @@ export default function Tpvs() {
   const { t: tCommon } = useTranslation('common')
   const { toast } = useToast()
   const queryClient = useQueryClient()
+
+  // Tour driver.js — auto-arranca cuando `requestAtomicTour('tpv-onboarding')`
+  // se dispara externamente. Ver `useTpvTour.ts`.
+  useTpvTour()
+
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 20,
@@ -1006,7 +1018,7 @@ export default function Tpvs() {
 
             {/* Regular "Create" button - purchase wizard flow */}
             <PermissionGate permission="tpv:create">
-              <Button size="sm" variant={isSuperadmin ? 'outline' : 'default'} className="h-8" onClick={() => setWizardOpen(true)}>
+              <Button data-tour="tpv-new-btn" size="sm" variant={isSuperadmin ? 'outline' : 'default'} className="h-8" onClick={() => setWizardOpen(true)}>
                 <Plus className="w-3.5 h-3.5 mr-1.5" />
                 <span>{t('tpv.actions.createNew', { defaultValue: 'Nuevo dispositivo' })}</span>
               </Button>
@@ -1015,7 +1027,7 @@ export default function Tpvs() {
         </div>
 
         {/* Data Table in GlassCard */}
-        <GlassCard className="p-0 overflow-hidden">
+        <GlassCard data-tour="tpv-list" className="p-0 overflow-hidden">
           <DataTable
             data={filteredData}
             rowCount={filteredData.length}

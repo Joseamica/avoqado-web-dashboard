@@ -574,6 +574,7 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
                   <Label htmlFor="email">{t('invite.emailLabel')} *</Label>
                   <Input
                     id="email"
+                    data-tour="team-invite-email"
                     type={allowFakeEmailForSuperadmin ? 'text' : 'email'}
                     placeholder={t('invite.emailPlaceholder')}
                     className="h-12 text-base"
@@ -619,7 +620,7 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
               <div className="space-y-2">
                 <Label>{t('invite.roleLabel')} *</Label>
                 <Select onValueChange={handleRoleChange} value={selectedRole}>
-                  <SelectTrigger className="h-12 text-base">
+                  <SelectTrigger data-tour="team-invite-role" className="h-12 text-base">
                     <SelectValue placeholder={t('invite.roleSelectPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent className="max-w-[90vw] sm:max-w-md">

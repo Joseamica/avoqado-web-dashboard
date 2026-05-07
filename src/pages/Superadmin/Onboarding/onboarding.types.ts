@@ -141,12 +141,13 @@ export interface WizardResponse {
   steps: StepResult[]
 }
 
+// Blumon defaults: DEBIT/CREDIT 1d, AMEX 3d, INTERNATIONAL 5d, OTHER 2d
 export const DEFAULT_SETTLEMENT: SettlementData = {
   debitDays: 1,
-  creditDays: 3,
-  amexDays: 5,
+  creditDays: 1,
+  amexDays: 3,
   internationalDays: 5,
-  otherDays: 3,
+  otherDays: 2,
   dayType: 'BUSINESS_DAYS',
   cutoffTime: '23:00',
   cutoffTimezone: 'America/Mexico_City',

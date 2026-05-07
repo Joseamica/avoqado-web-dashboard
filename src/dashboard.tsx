@@ -26,6 +26,7 @@ import { ImpersonationShortcut } from './components/impersonation/ImpersonationS
 import { ImpersonationScreenRing } from './components/impersonation/ImpersonationScreenRing'
 import { ImpersonationErrorListener } from './components/impersonation/ImpersonationErrorListener'
 import { useInventoryWelcomeTourOrchestrator } from './hooks/useInventoryWelcomeTour'
+import { useAutoLaunchPlatformWelcomeTour } from './hooks/useAutoLaunchPlatformWelcomeTour'
 import { useTranslation } from 'react-i18next'
 import { BreadcrumbProvider, useBreadcrumb } from './context/BreadcrumbContext'
 import { ChatReferencesProvider } from './context/ChatReferencesContext'
@@ -65,6 +66,12 @@ function DashboardContent() {
   // venue sub-routes like /menumaker/* and /inventory/*), so the tour can
   // navigate between sections without losing state.
   useInventoryWelcomeTourOrchestrator()
+
+  // Mount the platform-wide welcome tour orchestrator. Mounting it here
+  // (instead of in Home.tsx) keeps it alive while the tour navigates
+  // between pages, so the resume effect inside the hook can re-create
+  // driver.js on each matching page.
+  useAutoLaunchPlatformWelcomeTour()
 
   // Command palette state
   const [commandOpen, setCommandOpen] = useState(false)

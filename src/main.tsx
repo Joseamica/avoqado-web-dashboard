@@ -17,17 +17,6 @@ window.addEventListener('vite:preloadError', () => {
   }
 })
 
-// ── book.avoqado.io: redirect bare root to marketing ──────────────────────
-// The dedicated booking subdomain is for /<venueSlug> URLs only. If a visitor
-// lands on the bare root (no slug), send them to the marketing site instead
-// of showing 404. Runs before React mounts.
-if (
-  window.location.hostname === 'book.avoqado.io' &&
-  (window.location.pathname === '/' || window.location.pathname === '')
-) {
-  window.location.replace('https://avoqado.io')
-}
-
 const queryClient = new QueryClient()
 
 const rootElement = document.getElementById('root')

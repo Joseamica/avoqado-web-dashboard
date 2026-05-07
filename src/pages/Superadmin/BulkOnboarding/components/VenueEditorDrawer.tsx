@@ -101,10 +101,10 @@ export const VenueEditorDrawer: React.FC<Props> = ({ venue, open, onOpenChange, 
     } else if (!updates.settlementOverride && !venue.settlementOverride) {
       updates.settlementOverride = {
         debitDays: 1,
-        creditDays: 3,
-        amexDays: 5,
-        internationalDays: 7,
-        otherDays: 3,
+        creditDays: 1,
+        amexDays: 3,
+        internationalDays: 5,
+        otherDays: 2,
         dayType: 'BUSINESS_DAYS',
       }
     }
@@ -122,10 +122,10 @@ export const VenueEditorDrawer: React.FC<Props> = ({ venue, open, onOpenChange, 
 
   const currentSettlement: SettlementConfig = merged.settlementOverride || {
     debitDays: 1,
-    creditDays: 3,
-    amexDays: 5,
-    internationalDays: 7,
-    otherDays: 3,
+    creditDays: 1,
+    amexDays: 3,
+    internationalDays: 5,
+    otherDays: 2,
     dayType: 'BUSINESS_DAYS',
   }
 

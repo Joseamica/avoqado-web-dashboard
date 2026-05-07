@@ -59,6 +59,9 @@ export interface SalesSummaryResponse {
 }
 
 export interface SalesSummaryFilters {
+  // Included only to scope the query cache per venue. The backend resolves
+  // venueId from auth, so it is not sent on the request.
+  venueId?: string
   startDate: string
   endDate: string
   groupBy?: GroupBy

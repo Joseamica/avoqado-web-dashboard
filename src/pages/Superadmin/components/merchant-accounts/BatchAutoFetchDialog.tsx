@@ -51,12 +51,12 @@ interface BatchAutoFetchDialogProps {
   onSuccess: () => void
 }
 
-// Default settlement days
+// Default settlement days (Blumon: DEBIT/CREDIT 1d, AMEX 3d, INTERNATIONAL 5d, OTHER 2d)
 const DEFAULT_SETTLEMENT_DAYS = {
   DEBIT: 1,
-  CREDIT: 2,
+  CREDIT: 1,
   AMEX: 3,
-  INTERNATIONAL: 3,
+  INTERNATIONAL: 5,
   OTHER: 2,
 }
 

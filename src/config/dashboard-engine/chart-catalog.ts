@@ -119,6 +119,10 @@ export const CHART_CATALOG: Record<string, ChartDefinition> = {
     dataSource: { type: 'chart', endpoint: 'sales-by-weekday' },
     componentId: 'SalesByWeekdayChart',
     skeletonType: 'chart',
+    rangePolicy: {
+      mode: 'rollingWindowDays',
+      days: 30,
+    },
   },
   category_mix: {
     id: 'category_mix',

@@ -210,5 +210,232 @@
     "orderFrequency": "No orders to show frequency",
     "reservations": "No reservations in this period",
     "staffRanking": "No staff activity in this period"
+  },
+  "newHome": {
+    "tabs": {
+      "overview": "Overview",
+      "configuration": "Business Center"
+    },
+    "welcomeTour": {
+      "replay": "Platform tour",
+      "next": "Next →",
+      "nextSection": "Next section →",
+      "prev": "← Back",
+      "done": "Done!",
+      "progress": "Step {{current}} of {{total}}",
+      "pages": {
+        "home": {
+          "steps": {
+            "intro": {
+              "title": "👋 Welcome to Avoqado!",
+              "description": "I'll give you a quick tour of the platform. We'll walk through the main sections — about 2 minutes. Press ESC any time to exit."
+            },
+            "kpis": {
+              "title": "Your dashboard",
+              "description": "Daily metrics: net sales, transactions, tips, and comparisons. The pulse of your business."
+            },
+            "chatbot": {
+              "title": "Ask Avoqado AI",
+              "description": "Ask in plain English about your operation: sales, products, customers. The AI knows your data and answers instantly."
+            }
+          }
+        },
+        "menu": {
+          "steps": {
+            "newProduct": {
+              "title": "Create products & services",
+              "description": "Build your catalog: categories, products, modifiers and bundles. Everything you sell lives here."
+            },
+            "overview": {
+              "title": "Catalog",
+              "description": "Organize your menu with categories, modifiers and pricing — all from one place."
+            }
+          }
+        },
+        "inventory": {
+          "steps": {
+            "overview": {
+              "title": "Inventory",
+              "description": "Manage raw materials, recipes, suppliers and purchase orders. Keep stock current and know your true costs."
+            }
+          }
+        },
+        "sales": {
+          "steps": {
+            "overview": {
+              "title": "Payments & orders",
+              "description": "Every transaction: payments, orders, links and virtual terminal. Filter by method, server, or date."
+            }
+          }
+        },
+        "reservations": {
+          "steps": {
+            "overview": {
+              "title": "Reservations",
+              "description": "Calendar, waitlist and online booking widget. Manage your guest flow."
+            }
+          }
+        },
+        "team": {
+          "steps": {
+            "overview": {
+              "title": "Team",
+              "description": "Invite servers, cooks, or managers. Assign roles, manage shifts and commissions."
+            }
+          }
+        },
+        "customers": {
+          "steps": {
+            "overview": {
+              "title": "Customers",
+              "description": "Customer base, loyalty, reviews and promotions. Know and retain them."
+            }
+          }
+        },
+        "reports": {
+          "steps": {
+            "overview": {
+              "title": "Reports",
+              "description": "Sales summary, by-item, available balance and more. Detailed insights, day after day."
+            }
+          }
+        },
+        "settings": {
+          "steps": {
+            "overview": {
+              "title": "Settings",
+              "description": "Venue info, notifications, billing and integrations. Tour ends here — let's get to work!"
+            }
+          }
+        }
+      }
+    },
+    "setup": {
+      "title": "Set up your business to start selling",
+      "inProgress": "In progress",
+      "start": "Start",
+      "skip": "Skip",
+      "dismiss": "Don't show again",
+      "platformTour": {
+        "title": "Interactive platform tour",
+        "description": "See everything you can do in Avoqado in a 2-minute guided walkthrough.",
+        "completedBadge": "Completed"
+      },
+      "steps": {
+        "catalog": {
+          "title": "Create your item catalog",
+          "description": "Add categories and products or services to start charging customers."
+        },
+        "inventory": {
+          "title": "Set up inventory",
+          "description": "Register raw materials, recipes, and initial stock to track costs."
+        },
+        "team": {
+          "title": "Invite your team",
+          "description": "Add waiters, cooks, or managers and assign role-based permissions."
+        },
+        "tpv": {
+          "title": "Register your terminals (POS)",
+          "description": "Connect the devices where your team takes payments: PAX, tablets, or any compatible Android."
+        },
+        "reservations": {
+          "title": "Activate reservations",
+          "description": "Configure the calendar and online booking widget for your website."
+        }
+      }
+    },
+    "chatbot": {
+      "title": "How do I communicate with Avoqado AI?",
+      "desc": "Your AI assistant remains available from the sidebar button.",
+      "pinned": "Pins",
+      "placeholder": "Ask Avoqado AI",
+      "send": "Send",
+      "suggestionsLabel": "Suggestions",
+      "q1": "How do I contact Avoqado?",
+      "q2": "When do I get the most new customers?",
+      "q3": "How do I add someone to my team?",
+      "q4": "Set up email notifications"
+    },
+    "trend": {
+      "noCompare": "No data from the previous period to compare"
+    },
+    "performance": {
+      "title": "Performance",
+      "netSales": "Net sales",
+      "noData": "No data available for the selected period",
+      "today": "Today",
+      "ndLabel": "N/A",
+      "details": {
+        "grossSales": "Gross sales",
+        "transactions": "Transactions",
+        "laborShare": "% labor of net sales",
+        "avgSale": "Average sale",
+        "discounts": "Complimentary items and discounts",
+        "tips": "Tips"
+      }
+    },
+    "datePicker": {
+      "label": "Date",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "thisWeek": "This week",
+      "lastWeek": "Last week",
+      "thisMonth": "This month",
+      "lastMonth": "Last month",
+      "thisYear": "This year",
+      "lastYear": "Last year",
+      "custom": "Custom"
+    },
+    "compareOptions": {
+      "day": "previous day",
+      "weekday": "previous {{weekday}}",
+      "week": "previous week",
+      "weeks4": "4 weeks ago",
+      "weeks52": "52 weeks ago",
+      "month": "previous month",
+      "year": "previous year",
+      "years2": "2 years ago",
+      "years3": "3 years ago",
+      "period": "previous period"
+    },
+    "filters": {
+      "compare": {
+        "label": "compared to"
+      },
+      "accounts": {
+        "label": "Accounts",
+        "all": "All",
+        "closed": "Closed"
+      }
+    },
+    "side": {
+      "bank": "Banking",
+      "balance": "Balance",
+      "quickActions": "Quick actions",
+      "actions": {
+        "addItem": "Add item",
+        "viewPayments": "View payments",
+        "inventory": "Inventory",
+        "reports": "Sales reports"
+      },
+      "context": "Context",
+      "contextDescription": "Data for {{date}} with the selected comparison."
+    },
+    "businessCenter": {
+      "title": "Explore and configure features to grow your business",
+      "pendingSteps": "2 steps pending",
+      "start": "Get started",
+      "nextStep": "Next: Verify identity",
+      "profile": "Profile",
+      "profileSub": "Healthy boutique",
+      "staff": "Staff",
+      "staffSub": "Only you",
+      "payments": "Payments",
+      "paymentsSub": "8 completed",
+      "items": "Items",
+      "itemsSub": "2 items",
+      "devices": "Devices",
+      "devicesSub": "2 devices"
+    }
   }
 }

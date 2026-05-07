@@ -15,6 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useReservationsTour } from '@/hooks/useReservationsTour'
 import { useDebounce } from '@/hooks/useDebounce'
 import reservationService from '@/services/reservation.service'
 import type { Reservation } from '@/types/reservation'
@@ -34,6 +35,13 @@ const TAB_TO_STATUS: Record<TabValue, string | undefined> = {
   noShow: 'NO_SHOW',
 }
 
+// ⚠️ COHERENCIA con tours interactivos:
+// Esta página tiene un tour driver.js (`useReservationsTour`) que enseña al
+// usuario el módulo de reservaciones. Si modificas la UI/UX (botón crear,
+// tabla de reservas del día, sub-items del sidebar como calendario o widget
+// de reservas en línea), revisa `src/hooks/useReservationsTour.ts` y
+// actualiza los selectores `data-tour="reservations-*"` y los textos de los
+// steps en paralelo.
 export default function Reservations() {
   const { t } = useTranslation('reservations')
   const { t: _tCommon } = useTranslation()
@@ -42,6 +50,10 @@ export default function Reservations() {
   const location = useLocation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+
+  // Tour driver.js — auto-arranca cuando `requestAtomicTour('reservations-onboarding')`
+  // se dispara externamente. Ver `useReservationsTour.ts`.
+  useReservationsTour()
 
   // FullScreenModal state for creating reservations (Cita)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -238,7 +250,7 @@ export default function Reservations() {
         <PermissionGate permission="reservations:create">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button>
+              <Button data-tour="reservations-new-btn">
                 <Plus className="h-4 w-4 mr-2" />
                 {t('actions.create', { defaultValue: 'Crear' })}
               </Button>
@@ -360,6 +372,7 @@ export default function Reservations() {
       </div>
 
       {/* Data Table */}
+      <div data-tour="reservations-overview-table">
       <DataTable
         data={reservations}
         columns={columns}
@@ -372,6 +385,7 @@ export default function Reservations() {
         clickableRow={row => ({ to: row.id })}
         stickyFirstColumn={true}
       />
+      </div>
 
       {/* Create Reservation Modal */}
       <FullScreenModal

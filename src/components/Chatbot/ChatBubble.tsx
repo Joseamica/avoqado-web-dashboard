@@ -252,7 +252,13 @@ const getGenericActionFormDefaults = (fields?: AssistantActionFormField[]): Gene
 }
 
 // Chat interface component inside the same file to avoid TypeScript module errors
-function ChatInterface({ onClose }: { onClose: () => void }) {
+function ChatInterface({
+  onClose,
+  initialMessage,
+}: {
+  onClose: () => void
+  initialMessage?: { id: number; text: string } | null
+}) {
   const { t, i18n } = useTranslation()
   const { t: tCommon } = useTranslation('common')
   const { slug } = useParams<{ slug: string }>()
@@ -924,6 +930,16 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
     },
     [chatMutation, includeVisualization, queryClient, toast, venueSlug, referenceCount, getContextPrompt],
   )
+
+  const lastDispatchedInitialIdRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (!initialMessage) return
+    if (lastDispatchedInitialIdRef.current === initialMessage.id) return
+    const trimmed = initialMessage.text.trim()
+    if (!trimmed) return
+    lastDispatchedInitialIdRef.current = initialMessage.id
+    sendMessage(trimmed)
+  }, [initialMessage, sendMessage])
 
   // Handle confirmation to send despite token warning
   const handleConfirmSendWithWarning = useCallback(() => {
@@ -2256,6 +2272,7 @@ export function ChatBubble({ variant = 'fab' }: { variant?: 'fab' | 'sidebar' } 
   const [isOpen, setIsOpen] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
+  const [externalMessage, setExternalMessage] = useState<{ id: number; text: string } | null>(null)
   const { venueId } = useParams()
   const { t, i18n } = useTranslation()
   const { referenceCount } = useChatReferences()
@@ -2296,6 +2313,22 @@ export function ChatBubble({ variant = 'fab' }: { variant?: 'fab' | 'sidebar' } 
     }
   }, [isOpen])
 
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ message?: string }>).detail
+      const message = detail?.message?.trim()
+      if (!message) return
+      setExternalMessage({ id: Date.now(), text: message })
+      if (!isOpen) {
+        setIsOpen(true)
+        setIsMounted(true)
+        requestAnimationFrame(() => requestAnimationFrame(() => setIsVisible(true)))
+      }
+    }
+    window.addEventListener('chatbot:openWithMessage', handler)
+    return () => window.removeEventListener('chatbot:openWithMessage', handler)
+  }, [isOpen])
+
   const handleClose = useCallback(() => {
     setIsVisible(false)
     setTimeout(() => {
@@ -2320,7 +2353,7 @@ export function ChatBubble({ variant = 'fab' }: { variant?: 'fab' | 'sidebar' } 
         filter: 'drop-shadow(0 25px 50px rgba(0,0,0,0.18)) drop-shadow(0 6px 16px rgba(0,0,0,0.1))',
       }}
     >
-      <ChatInterface key={`chat-${venueId}`} onClose={handleClose} />
+      <ChatInterface key={`chat-${venueId}`} onClose={handleClose} initialMessage={externalMessage} />
     </div>
   ) : null
 
