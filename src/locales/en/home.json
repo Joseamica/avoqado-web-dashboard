@@ -351,6 +351,23 @@
       "placeholder": "Ask Avoqado AI",
       "send": "Send",
       "suggestionsLabel": "Suggestions",
+      "placeholders": [
+        "How much did I sell yesterday?",
+        "How are my sales going this month?",
+        "What's my best-selling product this week?",
+        "How many tips have I made today?",
+        "Who's my top-performing server?",
+        "How many reservations do I have today?",
+        "How do I create a discount?",
+        "What's my average ticket this month?",
+        "Can I temporarily pause online orders?",
+        "How do I add a product to the menu?",
+        "What were my peak hours this week?",
+        "How many new customers did I get this month?",
+        "What's my net profit this week?",
+        "How do I invite a new server?",
+        "How much do I owe in purchase orders?"
+      ],
       "q1": "How do I contact Avoqado?",
       "q2": "When do I get the most new customers?",
       "q3": "How do I add someone to my team?",
@@ -409,6 +426,9 @@
       }
     },
     "side": {
+      "todaySettlement": "Today's settlement",
+      "todaySettlementInfo": "About today's settlement",
+      "todaySettlementTooltip": "Total charged today via card and digital payments. Excludes cash (already in your hand). Final amount may vary due to fees and bank processing times.",
       "bank": "Banking",
       "balance": "Balance",
       "quickActions": "Quick actions",

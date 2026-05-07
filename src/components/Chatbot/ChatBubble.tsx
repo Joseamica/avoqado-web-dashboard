@@ -954,8 +954,14 @@ function ChatInterface({
     if (lastDispatchedInitialIdRef.current === initialMessage.id) return
     const trimmed = initialMessage.text.trim()
     if (!trimmed) return
-    lastDispatchedInitialIdRef.current = initialMessage.id
+    // Snapshot the id locally — only commit it to the ref *after* the timer
+    // has fired the dispatch. That way StrictMode's mount→cleanup→mount
+    // double-invoke can't leave the ref marked as "dispatched" while having
+    // canceled the only scheduled dispatch (which is what made the message
+    // never fire).
+    const idForThisRun = initialMessage.id
     const timer = setTimeout(() => {
+      lastDispatchedInitialIdRef.current = idForThisRun
       sendMessageRef.current(trimmed)
     }, 0)
     return () => clearTimeout(timer)

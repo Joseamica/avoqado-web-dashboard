@@ -87,6 +87,9 @@ import { PendingIncidentsAlert } from '@/components/SettlementIncident/PendingIn
 import { CreditOfferBanner } from '@/components/CreditOffer/CreditOfferBanner'
 import { CashCloseoutDialog } from '@/components/CashCloseout/CashCloseoutDialog'
 import { CashCloseoutHistory } from '@/components/CashCloseout/CashCloseoutHistory'
+import { SettlementCalendarWeek } from './SettlementCalendarWeek'
+import { CardTypeBreakdownStrip } from './CardTypeBreakdownStrip'
+import { SettlementTimelineTable } from './SettlementTimelineTable'
 import { useToast } from '@/hooks/use-toast'
 
 // Tab filter type
@@ -98,7 +101,7 @@ export default function AvailableBalance() {
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const { formatDate } = useVenueDateTime()
+  const { formatDate, venueTimezone } = useVenueDateTime()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -618,9 +621,8 @@ export default function AvailableBalance() {
         </div>
       )}
 
-      {/* ===== HERO KPI SECTION — Bento Grid (varies by tab) ===== */}
-      {activeTab === 'cash' ? (
-        /* Cash Tab: Hero with closeout info integrated */
+      {/* ===== CASH TAB HERO — Closeout button + summary (only on cash tab) ===== */}
+      {activeTab === 'cash' && (
         <GlassCard className="p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-start gap-4">
@@ -651,272 +653,37 @@ export default function AvailableBalance() {
             </Button>
           </div>
         </GlassCard>
-      ) : activeTab === 'all' ? (
-        /* All Tab: Bento 8/4 — Hero total + side metrics */
-        <div className="grid grid-cols-12 gap-4">
-          {/* Hero - col 1-8 */}
-          <GlassCard className="col-span-12 lg:col-span-8 p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
-                <Wallet className="w-7 h-7 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t('kpi.availableNow')}</p>
-                <p className="text-4xl font-bold tracking-tight">
-                  {Currency(separateAmounts.cardsAvailable + separateAmounts.cashAvailable)}
-                </p>
-                <div className="flex flex-wrap items-center gap-3 mt-2">
-                  <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <CreditCard className="w-3.5 h-3.5" />
-                    {Currency(separateAmounts.cardsAvailable)}
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <Banknote className="w-3.5 h-3.5" />
-                    {Currency(separateAmounts.cashAvailable)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </GlassCard>
-
-          {/* Side metrics - col 9-12 */}
-          <div className="col-span-12 lg:col-span-4 grid grid-cols-2 lg:grid-cols-1 gap-4">
-            <MetricCard
-              label={t('kpi.pending')}
-              value={Currency(separateAmounts.cardsPending)}
-              subValue={t('kpi.pendingDescription')}
-              icon={<Clock className="w-4 h-4" />}
-              accent="yellow"
-            />
-            <MetricCard
-              label={t('kpi.nextSettlement')}
-              value={Currency(summary?.estimatedNextSettlement.amount || 0)}
-              subValue={
-                summary?.estimatedNextSettlement.date
-                  ? t('kpi.nextSettlementDate', { date: formatDate(summary.estimatedNextSettlement.date) })
-                  : undefined
-              }
-              icon={<TrendingUp className="w-4 h-4" />}
-              accent="green"
-            />
-            <MetricCard
-              label={t('kpi.cashAvailable')}
-              value={Currency(separateAmounts.cashAvailable)}
-              subValue={`${t('instant')} · ${tabCounts.cashCount} txns`}
-              icon={<Banknote className="w-4 h-4" />}
-              accent="green"
-              className="col-span-2 lg:col-span-1"
-            />
-          </div>
-        </div>
-      ) : (
-        /* Cards Tab: Bento 8/4 — Hero cards available + side metrics */
-        <div className="grid grid-cols-12 gap-4">
-          {/* Hero - col 1-8 */}
-          <GlassCard className="col-span-12 lg:col-span-8 p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
-                <CreditCard className="w-7 h-7 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t('kpi.availableNow')}</p>
-                <p className="text-4xl font-bold tracking-tight">{Currency(filteredSummary.availableNow)}</p>
-                <p className="text-sm text-muted-foreground mt-1">{t('kpi.availableNowDescription')}</p>
-              </div>
-            </div>
-          </GlassCard>
-
-          {/* Side metrics - col 9-12 */}
-          <div className="col-span-12 lg:col-span-4 grid grid-cols-2 lg:grid-cols-1 gap-4">
-            <MetricCard
-              label={t('kpi.pending')}
-              value={Currency(filteredSummary.pendingSettlement)}
-              subValue={t('kpi.pendingDescription')}
-              icon={<Clock className="w-4 h-4" />}
-              accent="yellow"
-            />
-            <MetricCard
-              label={t('kpi.nextSettlement')}
-              value={Currency(filteredSummary.estimatedNextSettlement.amount)}
-              subValue={
-                filteredSummary.estimatedNextSettlement.date
-                  ? t('kpi.nextSettlementDate', { date: formatDate(filteredSummary.estimatedNextSettlement.date) })
-                  : undefined
-              }
-              icon={<TrendingUp className="w-4 h-4" />}
-              accent="green"
-            />
-          </div>
-        </div>
       )}
 
-      {/* Cash Closeout History - only on cash tab (moved up, right after hero) */}
+      {/* Cash Closeout History - only on cash tab */}
       {activeTab === 'cash' && <CashCloseoutHistory venueId={venueId!} />}
 
-      {/* ===== CARD TYPE BREAKDOWN — Tile Cards (replaces 8-col table) ===== */}
-      {activeTab !== 'cash' && filteredCardBreakdown.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 px-1">
-            <CreditCard className="h-5 w-5 text-muted-foreground" />
-            <h3 className="font-semibold">{t('breakdown.title')}</h3>
-            <span className="text-sm text-muted-foreground">— {t('breakdown.description')}</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {filteredCardBreakdown.map((card) => {
-              const settledPercent = card.netAmount > 0
-                ? Math.round((card.settledAmount / card.netAmount) * 100)
-                : 0
-
-              return (
-                <GlassCard key={card.cardType} hover className="p-4 space-y-3">
-                  {/* Header: icon + type */}
-                  <div className="flex items-center gap-2">
-                    <div className={cn(
-                      'p-1.5 rounded-lg bg-gradient-to-br',
-                      getCardTypeAccent(card.cardType) === 'blue' && 'from-blue-500/20 to-blue-500/5',
-                      getCardTypeAccent(card.cardType) === 'purple' && 'from-purple-500/20 to-purple-500/5',
-                      getCardTypeAccent(card.cardType) === 'green' && 'from-green-500/20 to-green-500/5',
-                      getCardTypeAccent(card.cardType) === 'orange' && 'from-orange-500/20 to-orange-500/5',
-                    )}>
-                      {getCardTypeIcon(card.cardType)}
-                    </div>
-                    <span className="font-medium text-sm">{t(`cardType.${card.cardType.toLowerCase()}`)}</span>
-                  </div>
-
-                  {/* Main amount */}
-                  <p className="text-2xl font-bold tracking-tight">{Currency(card.netAmount)}</p>
-
-                  {/* Details */}
-                  <div className="space-y-1 text-xs text-muted-foreground">
-                    <div className="flex justify-between">
-                      <span>{card.transactionCount} {t('breakdown.table.transactions').toLowerCase()}</span>
-                      <span>
-                        {card.cardType === TransactionCardType.CASH
-                          ? t('instant')
-                          : card.settlementDays !== null
-                            ? t('breakdown.table.days', { count: card.settlementDays })
-                            : '-'
-                        }
-                      </span>
-                    </div>
-                    {card.cardType !== TransactionCardType.CASH && (
-                      <div className="flex justify-between">
-                        <span>{t('breakdown.table.fees')}</span>
-                        <span>-{Currency(card.fees)}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Progress bar: settled vs pending */}
-                  <div className="space-y-1">
-                    <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-green-500 dark:bg-green-400 rounded-full transition-all"
-                        style={{ width: `${settledPercent}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>{settledPercent}% {t('status.settled', 'liquidado').toLowerCase()}</span>
-                      <span>{Currency(card.pendingAmount)} {t('status.pending', 'pend.').toLowerCase()}</span>
-                    </div>
-                  </div>
-                </GlassCard>
-              )
-            })}
-          </div>
-        </div>
+      {/* ===== SETTLEMENT CALENDAR — moved to top, primary view ===== */}
+      {activeTab !== 'cash' && (
+        <SettlementCalendarWeek
+          entries={filteredCalendar}
+          timezone={venueTimezone}
+          formatCurrency={Currency}
+          cardTypeLabel={key => t(`cardType.${key.toLowerCase()}`, key)}
+        />
       )}
 
-      {/* ===== SETTLEMENT CALENDAR — Simplified 3 cols + expandable rows ===== */}
-      {activeTab !== 'cash' && (
-        <GlassCard className="overflow-hidden">
-          <div className="p-4 sm:p-6 pb-0">
-            <div className="flex items-center gap-2 mb-1">
-              <Calendar className="h-5 w-5 text-muted-foreground" />
-              <h3 className="font-semibold">{t('calendar.title', 'Calendario de Liquidaciones')}</h3>
-            </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              {t('calendar.description', 'Cuánto dinero recibirás cada día según las fechas de liquidación')}
-            </p>
-          </div>
-          <div className="px-4 sm:px-6 pb-4 sm:pb-6">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('calendar.table.date', 'Fecha')}</TableHead>
-                  <TableHead className="text-right">{t('calendar.table.totalAmount', 'Monto')}</TableHead>
-                  <TableHead className="text-center">{t('calendar.table.status', 'Estado')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCalendar.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
-                      {t('calendar.table.noData', 'No hay liquidaciones programadas en los próximos 30 días')}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredCalendar.map((entry, idx) => {
-                    const isExpanded = expandedCalendarRows.has(idx)
-                    return (
-                      <TableRow
-                        key={idx}
-                        className={cn(
-                          'cursor-pointer transition-colors hover:bg-muted/50',
-                          entry.status === 'SETTLED' && 'bg-muted/30',
-                        )}
-                        onClick={() => toggleCalendarRow(idx)}
-                      >
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <ChevronRight
-                                className={cn(
-                                  'h-4 w-4 text-muted-foreground transition-transform',
-                                  isExpanded && 'rotate-90',
-                                )}
-                              />
-                              <Calendar className="h-4 w-4 text-muted-foreground" />
-                              <span className="font-medium">{formatDate(entry.settlementDate)}</span>
-                            </div>
-                            {/* Expanded: card type breakdown */}
-                            {isExpanded && (
-                              <div className="ml-10 mt-2 space-y-1.5">
-                                {entry.byCardType.map((cardTypeEntry) => (
-                                  <div key={cardTypeEntry.cardType} className="flex items-center justify-between text-sm">
-                                    <div className="flex items-center gap-2">
-                                      {getCardTypeIcon(cardTypeEntry.cardType)}
-                                      <Badge className={getCardTypeColor(cardTypeEntry.cardType)} variant="secondary">
-                                        {t(`cardType.${cardTypeEntry.cardType.toLowerCase()}`, cardTypeEntry.cardType)}
-                                      </Badge>
-                                      <span className="text-xs text-muted-foreground">
-                                        ({cardTypeEntry.transactionCount} txns)
-                                      </span>
-                                    </div>
-                                    <span className="font-semibold">{Currency(cardTypeEntry.netAmount)}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className="text-lg font-bold">{Currency(entry.totalNetAmount)}</span>
-                          <p className="text-xs text-muted-foreground">
-                            {entry.transactionCount} txns
-                          </p>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {getCalendarStatusBadge(entry.status)}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </GlassCard>
+      {/* ===== CARD TYPE BREAKDOWN — under the calendar ===== */}
+      {activeTab !== 'cash' && filteredCardBreakdown.length > 0 && (
+        <CardTypeBreakdownStrip
+          items={filteredCardBreakdown.map(c => ({
+            cardType: c.cardType,
+            netAmount: c.netAmount,
+            fees: c.fees,
+            transactionCount: c.transactionCount,
+            settlementDays: c.settlementDays,
+          }))}
+          formatCurrency={Currency}
+          cardTypeLabel={key => t(`cardType.${key.toLowerCase()}`, key)}
+          cashKey={TransactionCardType.CASH}
+          title={t('breakdown.title')}
+          description={t('breakdown.description')}
+        />
       )}
 
       {/* ===== SETTLEMENT TIMELINE — Collapsible (closed by default) ===== */}
@@ -946,44 +713,11 @@ export default function AvailableBalance() {
             <CollapsibleContent>
               <div className="px-4 sm:px-6 pb-4 sm:pb-6 space-y-4">
                 <div className="h-px bg-border/50" />
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t('timeline.table.date')}</TableHead>
-                      <TableHead>{t('timeline.table.status')}</TableHead>
-                      <TableHead className="text-right">{t('timeline.table.transactions')}</TableHead>
-                      <TableHead className="text-right">{t('timeline.table.net')}</TableHead>
-                      <TableHead className="text-right">{t('timeline.table.settlementDate')}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {timeline.slice(0, 10).map((entry, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell className="font-medium">
-                          {formatDate(entry.date)}
-                        </TableCell>
-                        <TableCell>{getStatusBadge(entry.settlementStatus)}</TableCell>
-                        <TableCell className="text-right">{entry.transactionCount}</TableCell>
-                        <TableCell className="text-right font-bold">{Currency(entry.netAmount)}</TableCell>
-                        <TableCell className="text-right">
-                          {entry.estimatedSettlementDate
-                            ? formatDate(entry.estimatedSettlementDate)
-                            : '-'
-                          }
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-
-                {timeline.length > 10 && (
-                  <div className="flex justify-center">
-                    <Button variant="outline" size="sm">
-                      <ArrowUpRight className="mr-2 h-4 w-4" />
-                      {t('timeline.viewAll', { count: timeline.length })}
-                    </Button>
-                  </div>
-                )}
+                <SettlementTimelineTable
+                  data={timeline}
+                  formatCurrency={Currency}
+                  cardTypeLabel={key => t(`cardType.${key.toLowerCase()}`, key)}
+                />
               </div>
             </CollapsibleContent>
           </GlassCard>

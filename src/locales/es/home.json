@@ -351,6 +351,23 @@
       "placeholder": "Pregunta a Avoqado AI",
       "send": "Enviar",
       "suggestionsLabel": "Sugerencias",
+      "placeholders": [
+        "¿Cuánto vendí ayer?",
+        "¿Cómo van mis ventas del mes pasado?",
+        "¿Cuál es mi producto más vendido esta semana?",
+        "¿Cuántas propinas llevo hoy?",
+        "¿Cuál es mi mesero con más ventas?",
+        "¿Cuántas reservas tengo para hoy?",
+        "¿Cómo creo un descuento?",
+        "¿Cuál es mi ticket promedio del mes?",
+        "¿Puedo pausar los pedidos en línea temporalmente?",
+        "¿Cómo agrego un producto al menú?",
+        "¿Qué horarios pico tuve esta semana?",
+        "¿Cuántos clientes nuevos recibí este mes?",
+        "¿Cuál es mi ganancia neta de la semana?",
+        "¿Cómo invito a un nuevo mesero?",
+        "¿Cuánto debo en órdenes de compra?"
+      ],
       "q1": "¿Cómo me comunico con Avoqado?",
       "q2": "¿Cuándo recibo más clientes nuevos?",
       "q3": "¿Cómo agrego a alguien a mi equipo?",
@@ -409,6 +426,9 @@
       }
     },
     "side": {
+      "todaySettlement": "Liquidación de hoy",
+      "todaySettlementInfo": "Información sobre la liquidación de hoy",
+      "todaySettlementTooltip": "Total cobrado hoy por tarjeta y digital. Excluye efectivo (ya lo tienes en mano). El monto final puede variar por comisiones y tiempos del banco.",
       "bank": "Banca",
       "balance": "Saldo",
       "quickActions": "Acciones rápidas",

@@ -14,10 +14,10 @@
     "cardsAvailable": "Cards Available",
     "cardsAvailableDescription": "Settled from card payments",
     "cashAvailable": "Cash Available",
-    "pending": "Pending Settlement",
-    "pendingDescription": "Awaiting settlement from payment processor",
-    "nextSettlement": "Next Settlement",
-    "nextSettlementDate": "Expected on {{date}}"
+    "pending": "Scheduled balance",
+    "pendingDescription": "Computed from your processor's settlement rules",
+    "nextSettlement": "Next scheduled date",
+    "nextSettlementDate": "Scheduled for {{date}}"
   },
 
   "breakdown": {

@@ -39,11 +39,12 @@ export interface CardTypeBreakdown {
 
 export interface TimelineEntry {
   date: string
+  cardType: TransactionCardType | 'CASH'
   transactionCount: number
   grossAmount: number
-  feesAmount: number
+  fees: number
   netAmount: number
-  settlementStatus: 'SETTLED' | 'PENDING' | 'PROJECTED'
+  status: 'SETTLED' | 'PENDING' | 'PROJECTED'
   estimatedSettlementDate: string | null
 }
 

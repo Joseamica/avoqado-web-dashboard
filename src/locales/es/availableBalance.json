@@ -9,15 +9,18 @@
   },
 
   "kpi": {
-    "availableNow": "Disponible Ahora",
+    "availableNow": "Efectivo + acreditado",
     "availableNowDescription": "Ya liquidado y disponible para retiro",
+    "availableNowDisclaimer": "Suma de efectivo en caja + lo acreditado a tu cuenta bancaria. No considera retiros ni gastos que hayas hecho desde el banco.",
+    "cardsCredited": "Acreditado a banco",
+    "cashOnHand": "Efectivo en caja",
     "cardsAvailable": "Tarjetas Disponible",
     "cardsAvailableDescription": "Liquidado de pagos con tarjeta",
     "cashAvailable": "Efectivo Disponible",
-    "pending": "Pendiente de Liquidación",
-    "pendingDescription": "En espera de liquidación del procesador de pagos",
-    "nextSettlement": "Próxima Liquidación",
-    "nextSettlementDate": "Esperada para {{date}}"
+    "pending": "Saldo programado",
+    "pendingDescription": "Calculado con las reglas de liquidación de tu procesador",
+    "nextSettlement": "Próxima fecha programada",
+    "nextSettlementDate": "Programada para {{date}}"
   },
 
   "breakdown": {

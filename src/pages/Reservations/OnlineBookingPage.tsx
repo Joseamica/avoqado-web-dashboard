@@ -73,16 +73,13 @@ export default function OnlineBookingPage() {
 
 	// Public booking URLs — canonical host is book.avoqado.io.
 	// Three "channels" mirror Square's pattern:
-	//   - /<slug>          unified flow (default, for venues that don't differentiate)
-	//   - /<slug>/citas    appointments-only flow
-	//   - /<slug>/clases   classes-only flow
-	// Today all three render the same PublicBookingPage; the per-type filter is
-	// planned in the public-booking-redesign spec — these stable URLs let venues
-	// share them now without future migration.
+	//   - /<slug>                unified landing (two-CTA picker + everything filterable)
+	//   - /<slug>/appointments   appointments-only flow
+	//   - /<slug>/classes        classes-only flow (date-first listing)
 	const BOOK_HOST = 'https://book.avoqado.io'
 	const publicBookingUrl = `${BOOK_HOST}/${slug}`
-	const appointmentsUrl = `${BOOK_HOST}/${slug}/citas`
-	const classesUrl = `${BOOK_HOST}/${slug}/clases`
+	const appointmentsUrl = `${BOOK_HOST}/${slug}/appointments`
+	const classesUrl = `${BOOK_HOST}/${slug}/classes`
 
 	const cdnUrl = 'https://cdn.avoqado.io/widget.js'
 	const embedUrl = `https://cdn.avoqado.io/embed?venue=${slug}&locale=${locale}&theme=${theme}&mode=inline`

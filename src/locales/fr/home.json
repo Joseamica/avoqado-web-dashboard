@@ -350,6 +350,23 @@
       "placeholder": "Demander à Avoqado AI",
       "send": "Envoyer",
       "suggestionsLabel": "Suggestions",
+      "placeholders": [
+        "Combien ai-je vendu hier ?",
+        "Comment vont mes ventes ce mois-ci ?",
+        "Quel est mon produit le plus vendu cette semaine ?",
+        "Combien de pourboires ai-je aujourd'hui ?",
+        "Qui est mon meilleur serveur ?",
+        "Combien de réservations ai-je aujourd'hui ?",
+        "Comment créer une remise ?",
+        "Quel est mon ticket moyen ce mois-ci ?",
+        "Puis-je suspendre temporairement les commandes en ligne ?",
+        "Comment ajouter un produit au menu ?",
+        "Quelles ont été mes heures de pointe cette semaine ?",
+        "Combien de nouveaux clients ce mois-ci ?",
+        "Quel est mon bénéfice net cette semaine ?",
+        "Comment inviter un nouveau serveur ?",
+        "Combien dois-je en bons de commande ?"
+      ],
       "q1": "Comment contacter Avoqado ?",
       "q2": "Quand est-ce que je reçois le plus de nouveaux clients ?",
       "q3": "Comment ajouter quelqu'un à mon équipe ?",
@@ -408,6 +425,9 @@
       }
     },
     "side": {
+      "todaySettlement": "Liquidation du jour",
+      "todaySettlementInfo": "À propos de la liquidation du jour",
+      "todaySettlementTooltip": "Total encaissé aujourd'hui par carte et paiements numériques. Hors espèces (déjà en main). Le montant final peut varier selon les frais et délais bancaires.",
       "bank": "Banque",
       "balance": "Solde",
       "quickActions": "Actions rapides",

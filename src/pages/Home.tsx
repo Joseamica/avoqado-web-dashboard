@@ -7,6 +7,7 @@ import {
   BarChart3,
   Boxes,
   CreditCard,
+  Info,
   Package,
   Plus,
   Smartphone,
@@ -64,6 +65,28 @@ export default function Home() {
   const [compareOptionId, setCompareOptionId] = useState<string>('day')
   const [chatInput, setChatInput] = useState('')
   const [chatFocused, setChatFocused] = useState(false)
+  const [placeholderIndex, setPlaceholderIndex] = useState(0)
+
+  // Pool de placeholders rotativos para el input del chatbot. Se obtiene del
+  // bundle de i18n con `returnObjects: true` y caemos a un default sano si la
+  // clave no es un array (p. ej. durante hot reload).
+  const placeholderPool = useMemo<string[]>(() => {
+    const raw = t('newHome.chatbot.placeholders', { returnObjects: true })
+    return Array.isArray(raw) && raw.length > 0 ? (raw as string[]) : [t('newHome.chatbot.placeholder')]
+  }, [t])
+
+  // Rotación cada 3.5s mientras el usuario NO esté escribiendo / focused.
+  // Cuando el input recupera foco o tiene texto, congelamos para no
+  // distraer al usuario.
+  useEffect(() => {
+    if (chatFocused || chatInput.length > 0 || placeholderPool.length <= 1) return
+    const interval = window.setInterval(() => {
+      setPlaceholderIndex(prev => (prev + 1) % placeholderPool.length)
+    }, 3500)
+    return () => window.clearInterval(interval)
+  }, [chatFocused, chatInput, placeholderPool.length])
+
+  const currentPlaceholder = placeholderPool[placeholderIndex % placeholderPool.length]
 
   const compareOptions = useMemo(
     () => buildCompareOptions(selectedRange, venueTimezone, localeCode),
@@ -117,6 +140,28 @@ export default function Home() {
     () => dashboardData.comparePayments.reduce((acc: number, payment: any) => acc + Number(payment.amount || 0), 0),
     [dashboardData.comparePayments],
   )
+
+  // "Liquidación de hoy": suma de pagos completados HOY excluyendo efectivo
+  // (porque el cash ya está en mano del comerciante; la liquidación bancaria
+  // solo refleja lo que cobró por tarjeta/digital). Se calcula filtrando los
+  // payments por createdAt dentro del rango de hoy en venue tz.
+  // Si el usuario cambió el rango y today no está incluido, devuelve 0 — eso
+  // es correcto porque solo tenemos los payments del rango cargado.
+  const todaySettlement = useMemo(() => {
+    const now = DateTime.now().setZone(venueTimezone)
+    const startOfDay = now.startOf('day')
+    const endOfDay = now.endOf('day')
+    return dashboardData.filteredPayments.reduce((sum: number, payment: any) => {
+      const method = String(payment?.method ?? '').toUpperCase()
+      if (method === 'CASH') return sum
+      const createdAt = payment?.createdAt
+      if (!createdAt) return sum
+      const dt = DateTime.fromISO(String(createdAt), { zone: 'utc' }).setZone(venueTimezone)
+      if (!dt.isValid) return sum
+      if (dt < startOfDay || dt > endOfDay) return sum
+      return sum + Number(payment.amount || 0)
+    }, 0)
+  }, [dashboardData.filteredPayments, venueTimezone])
   const compareTransactions = dashboardData.comparePayments.length
   const compareTips = useMemo(
     () =>
@@ -282,18 +327,33 @@ export default function Home() {
               <Card className="rounded-2xl border-input" data-tour="home-chatbot-overview">
                 <CardContent className="relative p-0">
                   <form onSubmit={handleChatSubmit} className="flex items-center gap-3 px-5 py-5">
-                    <input
-                      type="text"
-                      value={chatInput}
-                      onChange={event => setChatInput(event.target.value)}
-                      onFocus={() => setChatFocused(true)}
-                      onBlur={() => window.setTimeout(() => setChatFocused(false), 150)}
-                      onKeyDown={handleChatKeyDown}
-                      placeholder={t('newHome.chatbot.placeholder')}
-                      aria-label={t('newHome.chatbot.placeholder')}
-                      className="flex-1 bg-transparent text-base text-foreground placeholder:text-muted-foreground/80 outline-none"
-                      data-tour="home-chatbot-input"
-                    />
+                    {/* Wrapper relativo para superponer el placeholder
+                        animado encima del input. El input mantiene su
+                        placeholder vacío y nosotros pintamos el texto
+                        rotativo en una capa absoluta con transición fade. */}
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        value={chatInput}
+                        onChange={event => setChatInput(event.target.value)}
+                        onFocus={() => setChatFocused(true)}
+                        onBlur={() => window.setTimeout(() => setChatFocused(false), 150)}
+                        onKeyDown={handleChatKeyDown}
+                        placeholder={chatFocused ? t('newHome.chatbot.placeholder') : ' '}
+                        aria-label={t('newHome.chatbot.placeholder')}
+                        className="w-full bg-transparent text-base text-foreground placeholder:text-muted-foreground/80 outline-none"
+                        data-tour="home-chatbot-input"
+                      />
+                      {!chatFocused && chatInput.length === 0 && (
+                        <div
+                          key={currentPlaceholder}
+                          aria-hidden="true"
+                          className="pointer-events-none absolute inset-0 flex items-center text-base text-muted-foreground/80 animate-in fade-in slide-in-from-bottom-1 duration-500"
+                        >
+                          <span className="truncate">{currentPlaceholder}</span>
+                        </div>
+                      )}
+                    </div>
                     <Button
                       type="submit"
                       size="icon"
@@ -430,13 +490,38 @@ export default function Home() {
             </div>
 
             <div className="space-y-4 xl:col-span-3">
-              <Card className="rounded-2xl border-input">
+              <Card
+                className="cursor-pointer rounded-2xl border-input transition-colors hover:bg-muted/30"
+                onClick={() => navigate(`${fullBasePath}/available-balance`)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    navigate(`${fullBasePath}/available-balance`)
+                  }
+                }}
+              >
                 <CardContent className="space-y-2 p-5">
-                  <p className="text-sm text-muted-foreground">{t('newHome.side.bank')}</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">{t('newHome.side.balance')}</span>
-                    <span className="text-base font-semibold">$0.00</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm text-muted-foreground">{t('newHome.side.todaySettlement')}</p>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          aria-label={t('newHome.side.todaySettlementInfo')}
+                          onClick={event => event.stopPropagation()}
+                          className="flex h-5 w-5 cursor-help items-center justify-center rounded-full text-muted-foreground/60 hover:text-muted-foreground"
+                        >
+                          <Info className="h-3.5 w-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[260px] text-center">
+                        {t('newHome.side.todaySettlementTooltip')}
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
+                  <p className="text-2xl font-bold tracking-tight">{Currency(todaySettlement, false)}</p>
                 </CardContent>
               </Card>
 
