@@ -1,96 +1,47 @@
-import { useEffect, useState, useMemo } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useForm } from 'react-hook-form'
-import { DateTime } from 'luxon'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { CashCloseoutDialog } from '@/components/CashCloseout/CashCloseoutDialog'
+import { CashCloseoutHistory } from '@/components/CashCloseout/CashCloseoutHistory'
+import { CreditOfferBanner } from '@/components/CreditOffer/CreditOfferBanner'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
+import { PendingIncidentsAlert } from '@/components/SettlementIncident/PendingIncidentsAlert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { GlassCard } from '@/components/ui/glass-card'
-import { MetricCard } from '@/components/ui/metric-card'
-import { StatusPulse } from '@/components/ui/status-pulse'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 import {
   getAvailableBalance,
   getBalanceByCardType,
-  getSettlementTimeline,
   getSettlementCalendar,
+  getSettlementTimeline,
   simulateTransaction,
+  TransactionCardType,
   type AvailableBalanceSummary,
   type CardTypeBreakdown,
-  type TimelineEntry,
   type SettlementCalendarEntry,
   type SimulationParams,
   type SimulationResult,
-  TransactionCardType,
+  type TimelineEntry,
 } from '@/services/availableBalance.service'
 import { getExpectedCash } from '@/services/cashCloseout.service'
-import {
-  Wallet,
-  TrendingUp,
-  Clock,
-  CreditCard,
-  Calculator,
-  ArrowUpRight,
-  Calendar,
-  Banknote,
-  AlertCircle,
-  ChevronRight,
-  Globe,
-  BadgeDollarSign,
-  Landmark,
-  Coins,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
-import { Skeleton } from '@/components/ui/skeleton'
-import { PendingIncidentsAlert } from '@/components/SettlementIncident/PendingIncidentsAlert'
-import { CreditOfferBanner } from '@/components/CreditOffer/CreditOfferBanner'
-import { CashCloseoutDialog } from '@/components/CashCloseout/CashCloseoutDialog'
-import { CashCloseoutHistory } from '@/components/CashCloseout/CashCloseoutHistory'
-import { SettlementCalendarWeek } from './SettlementCalendarWeek'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { AlertCircle, Banknote, Calculator, ChevronRight, Clock, CreditCard } from 'lucide-react'
+import { DateTime } from 'luxon'
+import { useEffect, useMemo, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { CardTypeBreakdownStrip } from './CardTypeBreakdownStrip'
+import { SettlementCalendarWeek } from './SettlementCalendarWeek'
 import { SettlementTimelineTable } from './SettlementTimelineTable'
-import { useToast } from '@/hooks/use-toast'
 
 // Tab filter type
 type TabValue = 'all' | 'cards' | 'cash'
@@ -121,9 +72,6 @@ export default function AvailableBalance() {
 
   // Timeline collapsible state
   const [timelineOpen, setTimelineOpen] = useState(false)
-
-  // Calendar expanded rows
-  const [expandedCalendarRows, setExpandedCalendarRows] = useState<Set<number>>(new Set())
 
   // Query for expected cash info (for alert banner and metadata)
   const { data: expectedCashData } = useQuery({
@@ -158,18 +106,23 @@ export default function AvailableBalance() {
   // Filter settlement calendar based on active tab
   const filteredCalendar = useMemo(() => {
     if (activeTab === 'all') return settlementCalendar
-    return settlementCalendar.map(entry => ({
-      ...entry,
-      byCardType: activeTab === 'cash'
-        ? entry.byCardType.filter(c => c.cardType === TransactionCardType.CASH)
-        : entry.byCardType.filter(c => c.cardType !== TransactionCardType.CASH),
-      totalNetAmount: activeTab === 'cash'
-        ? entry.byCardType.filter(c => c.cardType === TransactionCardType.CASH).reduce((sum, c) => sum + c.netAmount, 0)
-        : entry.byCardType.filter(c => c.cardType !== TransactionCardType.CASH).reduce((sum, c) => sum + c.netAmount, 0),
-      transactionCount: activeTab === 'cash'
-        ? entry.byCardType.filter(c => c.cardType === TransactionCardType.CASH).reduce((sum, c) => sum + c.transactionCount, 0)
-        : entry.byCardType.filter(c => c.cardType !== TransactionCardType.CASH).reduce((sum, c) => sum + c.transactionCount, 0),
-    })).filter(entry => entry.byCardType.length > 0)
+    return settlementCalendar
+      .map(entry => ({
+        ...entry,
+        byCardType:
+          activeTab === 'cash'
+            ? entry.byCardType.filter(c => c.cardType === TransactionCardType.CASH)
+            : entry.byCardType.filter(c => c.cardType !== TransactionCardType.CASH),
+        totalNetAmount:
+          activeTab === 'cash'
+            ? entry.byCardType.filter(c => c.cardType === TransactionCardType.CASH).reduce((sum, c) => sum + c.netAmount, 0)
+            : entry.byCardType.filter(c => c.cardType !== TransactionCardType.CASH).reduce((sum, c) => sum + c.netAmount, 0),
+        transactionCount:
+          activeTab === 'cash'
+            ? entry.byCardType.filter(c => c.cardType === TransactionCardType.CASH).reduce((sum, c) => sum + c.transactionCount, 0)
+            : entry.byCardType.filter(c => c.cardType !== TransactionCardType.CASH).reduce((sum, c) => sum + c.transactionCount, 0),
+      }))
+      .filter(entry => entry.byCardType.length > 0)
   }, [settlementCalendar, activeTab])
 
   // Compute filtered summary based on tab
@@ -183,9 +136,10 @@ export default function AvailableBalance() {
       totalFees: breakdown.reduce((sum, c) => sum + c.fees, 0),
       availableNow: breakdown.reduce((sum, c) => sum + c.settledAmount, 0),
       pendingSettlement: breakdown.reduce((sum, c) => sum + c.pendingAmount, 0),
-      estimatedNextSettlement: activeTab === 'cash'
-        ? { date: null, amount: 0 } // Cash has no pending settlement
-        : summary.estimatedNextSettlement,
+      estimatedNextSettlement:
+        activeTab === 'cash'
+          ? { date: null, amount: 0 } // Cash has no pending settlement
+          : summary.estimatedNextSettlement,
     }
   }, [summary, filteredCardBreakdown, activeTab])
 
@@ -195,17 +149,6 @@ export default function AvailableBalance() {
     const cashCount = cardBreakdown.filter(c => isCash(c.cardType)).reduce((sum, c) => sum + c.transactionCount, 0)
     const cardsCount = total - cashCount
     return { total, cashCount, cardsCount }
-  }, [cardBreakdown])
-
-  // Separate amounts for "All" tab display
-  const separateAmounts = useMemo(() => {
-    const cashItems = cardBreakdown.filter(c => isCash(c.cardType))
-    const cardItems = cardBreakdown.filter(c => !isCash(c.cardType))
-    return {
-      cashAvailable: cashItems.reduce((sum, c) => sum + c.settledAmount, 0),
-      cardsAvailable: cardItems.reduce((sum, c) => sum + c.settledAmount, 0),
-      cardsPending: cardItems.reduce((sum, c) => sum + c.pendingAmount, 0),
-    }
   }, [cardBreakdown])
 
   // Fetch data
@@ -360,120 +303,6 @@ export default function AvailableBalance() {
     }
   }
 
-  // Card type icon mapping
-  const getCardTypeIcon = (cardType: TransactionCardType) => {
-    const iconClass = 'w-4.5 h-4.5'
-    switch (cardType) {
-      case TransactionCardType.DEBIT:
-        return <Landmark className={cn(iconClass, 'text-blue-500')} />
-      case TransactionCardType.CREDIT:
-        return <CreditCard className={cn(iconClass, 'text-purple-500')} />
-      case TransactionCardType.AMEX:
-        return <BadgeDollarSign className={cn(iconClass, 'text-green-500')} />
-      case TransactionCardType.INTERNATIONAL:
-        return <Globe className={cn(iconClass, 'text-orange-500')} />
-      case TransactionCardType.CASH:
-        return <Coins className={cn(iconClass, 'text-emerald-500')} />
-      default:
-        return <CreditCard className={cn(iconClass, 'text-blue-500')} />
-    }
-  }
-
-  // Card type accent color for MetricCard-style tiles
-  const getCardTypeAccent = (cardType: TransactionCardType): 'blue' | 'purple' | 'green' | 'orange' | 'yellow' => {
-    switch (cardType) {
-      case TransactionCardType.DEBIT:
-        return 'blue'
-      case TransactionCardType.CREDIT:
-        return 'purple'
-      case TransactionCardType.AMEX:
-        return 'green'
-      case TransactionCardType.INTERNATIONAL:
-        return 'orange'
-      case TransactionCardType.CASH:
-        return 'green'
-      default:
-        return 'blue'
-    }
-  }
-
-  // Card type color mapping
-  const getCardTypeColor = (cardType: TransactionCardType): string => {
-    switch (cardType) {
-      case TransactionCardType.DEBIT:
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-      case TransactionCardType.CREDIT:
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
-      case TransactionCardType.AMEX:
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-      case TransactionCardType.INTERNATIONAL:
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
-      case TransactionCardType.CASH:
-        return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200'
-      default:
-        return 'bg-muted text-muted-foreground'
-    }
-  }
-
-  // Settlement status badge
-  const getStatusBadge = (status: TimelineEntry['settlementStatus']) => {
-    switch (status) {
-      case 'SETTLED':
-        return (
-          <div className="flex items-center gap-1.5">
-            <StatusPulse status="success" size="sm" />
-            <span className="text-sm font-medium text-green-700 dark:text-green-400">{t('status.settled')}</span>
-          </div>
-        )
-      case 'PENDING':
-        return (
-          <div className="flex items-center gap-1.5">
-            <StatusPulse status="warning" size="sm" />
-            <span className="text-sm font-medium text-yellow-700 dark:text-yellow-400">{t('status.pending')}</span>
-          </div>
-        )
-      case 'PROJECTED':
-        return (
-          <div className="flex items-center gap-1.5">
-            <StatusPulse status="info" size="sm" />
-            <span className="text-sm font-medium text-blue-700 dark:text-blue-400">{t('status.projected')}</span>
-          </div>
-        )
-      default:
-        return null
-    }
-  }
-
-  // Calendar status with StatusPulse
-  const getCalendarStatusBadge = (status: string) => {
-    if (status === 'SETTLED') {
-      return (
-        <div className="flex items-center gap-1.5">
-          <StatusPulse status="success" size="sm" />
-          <span className="text-sm font-medium text-green-700 dark:text-green-400">{t('status.settled', 'Liquidado')}</span>
-        </div>
-      )
-    }
-    return (
-      <div className="flex items-center gap-1.5">
-        <StatusPulse status="warning" size="sm" />
-        <span className="text-sm font-medium text-yellow-700 dark:text-yellow-400">{t('status.pending', 'Pendiente')}</span>
-      </div>
-    )
-  }
-
-  // Toggle calendar row expansion
-  const toggleCalendarRow = (idx: number) => {
-    setExpandedCalendarRows(prev => {
-      const next = new Set(prev)
-      if (next.has(idx)) {
-        next.delete(idx)
-      } else {
-        next.add(idx)
-      }
-      return next
-    })
-  }
 
   if (loading) {
     return (
@@ -513,7 +342,9 @@ export default function AvailableBalance() {
       <div className="p-6">
         <Card className="border-destructive">
           <CardContent className="pt-6">
-            <p className="text-destructive">{t('error.prefix')}: {error}</p>
+            <p className="text-destructive">
+              {t('error.prefix')}: {error}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -555,9 +386,7 @@ export default function AvailableBalance() {
             <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs bg-muted text-muted-foreground">
               {tabCounts.total}
             </span>
-            {activeTab === 'all' && (
-              <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-            )}
+            {activeTab === 'all' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
           </button>
           <button
             onClick={() => setActiveTab('cards')}
@@ -570,9 +399,7 @@ export default function AvailableBalance() {
             <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs bg-muted text-muted-foreground">
               {tabCounts.cardsCount}
             </span>
-            {activeTab === 'cards' && (
-              <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-            )}
+            {activeTab === 'cards' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
           </button>
           <button
             onClick={() => setActiveTab('cash')}
@@ -585,9 +412,7 @@ export default function AvailableBalance() {
             <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs bg-muted text-muted-foreground">
               {tabCounts.cashCount}
             </span>
-            {activeTab === 'cash' && (
-              <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-            )}
+            {activeTab === 'cash' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
           </button>
         </nav>
       </div>
@@ -603,9 +428,7 @@ export default function AvailableBalance() {
         <div className="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
           <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-              {tCashCloseout('alert.title')}
-            </p>
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">{tCashCloseout('alert.title')}</p>
             <p className="text-sm text-amber-700 dark:text-amber-300">
               {tCashCloseout('alert.message', { days: expectedCashData.daysSinceLastCloseout })}
             </p>
@@ -641,8 +464,7 @@ export default function AvailableBalance() {
                       ? expectedCashData.daysSinceLastCloseout === 0
                         ? tCashCloseout('lastCloseoutToday')
                         : tCashCloseout('lastCloseout', { days: expectedCashData.daysSinceLastCloseout })
-                      : tCashCloseout('noCloseouts')
-                    }
+                      : tCashCloseout('noCloseouts')}
                   </p>
                 )}
               </div>
@@ -750,7 +572,7 @@ export default function AvailableBalance() {
                         step="0.01"
                         placeholder={t('simulate.form.amountPlaceholder')}
                         {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                        onChange={e => field.onChange(parseFloat(e.target.value))}
                       />
                     </FormControl>
                     <FormMessage />
@@ -777,18 +599,10 @@ export default function AvailableBalance() {
                             {t('cardType.cash')} ({t('instant')})
                           </div>
                         </SelectItem>
-                        <SelectItem value={TransactionCardType.DEBIT}>
-                          {t('cardType.debit')}
-                        </SelectItem>
-                        <SelectItem value={TransactionCardType.CREDIT}>
-                          {t('cardType.credit')}
-                        </SelectItem>
-                        <SelectItem value={TransactionCardType.AMEX}>
-                          {t('cardType.amex')}
-                        </SelectItem>
-                        <SelectItem value={TransactionCardType.INTERNATIONAL}>
-                          {t('cardType.international')}
-                        </SelectItem>
+                        <SelectItem value={TransactionCardType.DEBIT}>{t('cardType.debit')}</SelectItem>
+                        <SelectItem value={TransactionCardType.CREDIT}>{t('cardType.credit')}</SelectItem>
+                        <SelectItem value={TransactionCardType.AMEX}>{t('cardType.amex')}</SelectItem>
+                        <SelectItem value={TransactionCardType.INTERNATIONAL}>{t('cardType.international')}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -818,11 +632,7 @@ export default function AvailableBalance() {
                   <FormItem>
                     <FormLabel>{t('simulate.form.transactionTime')}</FormLabel>
                     <FormControl>
-                      <Input
-                        type="time"
-                        placeholder={t('simulate.form.transactionTimePlaceholder')}
-                        {...field}
-                      />
+                      <Input type="time" placeholder={t('simulate.form.transactionTimePlaceholder')} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -841,9 +651,7 @@ export default function AvailableBalance() {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                           <p className="text-xs text-muted-foreground">{t('simulate.result.settlementDate')}</p>
-                          <p className="text-lg font-bold">
-                            {formatDate(simulationResult.estimatedSettlementDate)}
-                          </p>
+                          <p className="text-lg font-bold">{formatDate(simulationResult.estimatedSettlementDate)}</p>
                           <p className="text-xs text-muted-foreground">
                             ({simulationResult.settlementDays} {t('simulate.result.settlementDays')})
                           </p>
@@ -851,9 +659,7 @@ export default function AvailableBalance() {
 
                         <div className="space-y-1">
                           <p className="text-xs text-muted-foreground">{t('simulate.result.netAmount')}</p>
-                          <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                            {Currency(simulationResult.netAmount)}
-                          </p>
+                          <p className="text-lg font-bold text-green-600 dark:text-green-400">{Currency(simulationResult.netAmount)}</p>
                         </div>
                       </div>
 
@@ -879,9 +685,10 @@ export default function AvailableBalance() {
                             <p>
                               {t('simulate.result.configDays', {
                                 count: simulationResult.configuration.settlementDays,
-                                type: simulationResult.configuration.settlementDayType === 'BUSINESS_DAYS'
-                                  ? t('simulate.result.businessDays', { count: simulationResult.configuration.settlementDays })
-                                  : t('simulate.result.calendarDays', { count: simulationResult.configuration.settlementDays })
+                                type:
+                                  simulationResult.configuration.settlementDayType === 'BUSINESS_DAYS'
+                                    ? t('simulate.result.businessDays', { count: simulationResult.configuration.settlementDays })
+                                    : t('simulate.result.calendarDays', { count: simulationResult.configuration.settlementDays }),
                               })}
                               {' · '}
                               {t('simulate.result.cutoffTime', { time: simulationResult.configuration.cutoffTime })}
@@ -893,9 +700,7 @@ export default function AvailableBalance() {
                   ) : (
                     <div className="p-6 text-center">
                       <AlertCircle className="h-5 w-5 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">
-                        {t('simulate.result.noConfig')}
-                      </p>
+                      <p className="text-sm text-muted-foreground">{t('simulate.result.noConfig')}</p>
                     </div>
                   )}
                 </div>
