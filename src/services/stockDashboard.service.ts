@@ -68,6 +68,13 @@ export interface BulkUploadResult {
   total: number
 }
 
+export type Responsible =
+  | { kind: 'promoter'; staffId: string; firstName: string; lastName: string }
+  | { kind: 'supervisor'; staffId: string; firstName: string; lastName: string }
+  | { kind: 'admin_held' }
+  | { kind: 'sold'; staffId: string; firstName: string; lastName: string; via: 'promoter' | 'supervisor' }
+  | null
+
 export interface StockMovement {
   id: string
   serialNumber: string
@@ -81,6 +88,7 @@ export interface StockMovement {
   serialNumbers?: string[]
   soldByName?: string | null
   soldAtVenueName?: string | null
+  responsible: Responsible
 }
 
 export interface StockMovementsResponse {
@@ -191,9 +199,31 @@ export const bulkUploadItems = async (
  */
 export const getStockMovements = async (
   venueId: string,
-  params?: { limit?: number; dateFrom?: string; dateTo?: string },
+  params?: { limit?: number; dateFrom?: string; dateTo?: string; responsibleStaffId?: string },
 ): Promise<StockMovementsResponse> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stock/movements`, { params })
+  return response.data.data
+}
+
+export interface StockResponsiblesResponse {
+  adminHeld: { simsCount: number }
+  supervisors: Array<{
+    staffId: string
+    firstName: string
+    lastName: string
+    ownSimsCount: number
+    teamSimsCount: number
+  }>
+  promoters: Array<{
+    staffId: string
+    firstName: string
+    lastName: string
+    simsCount: number
+  }>
+}
+
+export const getStockResponsibles = async (venueId: string): Promise<StockResponsiblesResponse> => {
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stock/responsibles`)
   return response.data.data
 }
 

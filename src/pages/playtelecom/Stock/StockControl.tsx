@@ -21,10 +21,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/context/AuthContext'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { getCategoryStock, getStockMetrics, getStockMovements, type StockMovement } from '@/services/stockDashboard.service'
+import { getCategoryStock, getStockMetrics, getStockMovements, getStockResponsibles, type Responsible, type StockMovement } from '@/services/stockDashboard.service'
 import { useQuery } from '@tanstack/react-query'
 import { Box, CheckCircle2, Download, FileSpreadsheet, FileText, Package, Plus, Search, Settings2, Upload } from 'lucide-react'
 import { Suspense, useCallback, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { lazyWithRetry } from '@/lib/lazyWithRetry'
 import { useTranslation } from 'react-i18next'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
@@ -65,6 +66,55 @@ const MOVEMENT_TYPE_CONFIG: Record<string, { label: string; className: string }>
 }
 const FALLBACK_TYPE_CONFIG = { label: 'Desconocido', className: 'bg-muted text-muted-foreground' }
 
+function getResponsibleText(value: Responsible): string {
+  if (!value) return ''
+  if (value.kind === 'admin_held') return 'En almacén'
+  return `${value.firstName} ${value.lastName}`.trim()
+}
+
+function ResponsibleCell({ value }: { value: Responsible }) {
+  if (!value) return <span className="text-muted-foreground">-</span>
+
+  switch (value.kind) {
+    case 'promoter':
+      return (
+        <span className="inline-flex items-center gap-2">
+          <Badge data-testid="responsible-badge-promoter" variant="outline" className="bg-blue-500/10 text-blue-700 border-blue-500/20">
+            P
+          </Badge>
+          <span>{value.firstName} {value.lastName}</span>
+        </span>
+      )
+    case 'supervisor':
+      return (
+        <span className="inline-flex items-center gap-2">
+          <Badge data-testid="responsible-badge-supervisor" variant="outline" className="bg-purple-500/10 text-purple-700 border-purple-500/20">
+            S
+          </Badge>
+          <span>{value.firstName} {value.lastName}</span>
+        </span>
+      )
+    case 'admin_held':
+      return (
+        <span className="inline-flex items-center gap-2">
+          <Badge data-testid="responsible-badge-admin" variant="outline" className="bg-muted text-muted-foreground border-border">
+            ADMIN
+          </Badge>
+          <span>En almacén</span>
+        </span>
+      )
+    case 'sold':
+      return (
+        <span className="inline-flex items-center gap-2" title="Último responsable antes de la venta">
+          <Badge data-testid="responsible-badge-sold" variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-500/20">
+            Vendido
+          </Badge>
+          <span>{value.firstName} {value.lastName}</span>
+        </span>
+      )
+  }
+}
+
 // ─── Export helpers ───
 function escapeCSV(val: string): string {
   if (val.includes(',') || val.includes('"') || val.includes('\n')) {
@@ -91,8 +141,10 @@ export function StockControl() {
   const { venueId } = useCurrentVenue()
   const { activeVenue } = useAuth()
   const { can } = useAccess()
+  const [searchParams, setSearchParams] = useSearchParams()
   const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
   const canUploadStock = can('serialized-inventory:create')
+  const responsibleStaffId = searchParams.get('responsibleStaffId') ?? undefined
 
   // Custody tab: visible to any role that can assign SIMs to a Promoter. The
   // tab itself filters to "my SIMs" so Supervisors see their own inventory
@@ -151,8 +203,14 @@ export function StockControl() {
   })
 
   const { data: movementsData, isLoading: isLoadingMovements } = useQuery({
-    queryKey: ['stock', 'movements', venueId, dateRangeIsoParams.dateFrom, dateRangeIsoParams.dateTo],
-    queryFn: () => getStockMovements(venueId!, { limit: 500, ...dateRangeIsoParams }),
+    queryKey: ['stock', 'movements', venueId, dateRangeIsoParams.dateFrom, dateRangeIsoParams.dateTo, responsibleStaffId],
+    queryFn: () => getStockMovements(venueId!, { limit: 500, ...dateRangeIsoParams, responsibleStaffId }),
+    enabled: !!venueId,
+  })
+
+  const { data: responsibles } = useQuery({
+    queryKey: ['stock', 'responsibles', venueId],
+    queryFn: () => getStockResponsibles(venueId!),
     enabled: !!venueId,
   })
 
@@ -179,6 +237,7 @@ export function StockControl() {
           includesNormalized(m.serialNumber ?? '', movementSearch) ||
           includesNormalized(m.categoryName ?? '', movementSearch) ||
           (m.userName != null && includesNormalized(m.userName, movementSearch)) ||
+          includesNormalized(getResponsibleText(m.responsible), movementSearch) ||
           (m.venueName != null && includesNormalized(m.venueName, movementSearch)),
       )
     }
@@ -513,10 +572,37 @@ ${dataRows}
                   </SelectContent>
                 </Select>
               )}
+              <Select
+                value={responsibleStaffId ?? 'all'}
+                onValueChange={value => {
+                  const next = new URLSearchParams(searchParams)
+                  if (value === 'all') next.delete('responsibleStaffId')
+                  else next.set('responsibleStaffId', value)
+                  setSearchParams(next)
+                }}
+              >
+                <SelectTrigger aria-label="Responsable" className="w-full sm:w-[220px] h-9">
+                  <SelectValue placeholder="Responsable" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="__admin_held__">En almacén (ADMIN) · {responsibles?.adminHeld.simsCount ?? 0}</SelectItem>
+                  {responsibles?.supervisors.map(supervisor => (
+                    <SelectItem key={supervisor.staffId} value={supervisor.staffId}>
+                      {supervisor.firstName} {supervisor.lastName} · {supervisor.ownSimsCount} (+ {supervisor.teamSimsCount} de su equipo)
+                    </SelectItem>
+                  ))}
+                  {responsibles?.promoters.map(promoter => (
+                    <SelectItem key={promoter.staffId} value={promoter.staffId}>
+                      {promoter.firstName} {promoter.lastName} · {promoter.simsCount}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Results count */}
-            {(movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all') && (
+            {(movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all' || responsibleStaffId) && (
               <p className="text-xs text-muted-foreground mb-3">
                 {filteredMovements.length} {filteredMovements.length === 1 ? 'resultado' : 'resultados'}
               </p>
@@ -540,6 +626,7 @@ ${dataRows}
                     <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       {t('playtelecom:stock.user', { defaultValue: 'Usuario' })}
                     </th>
+                    <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Responsable</th>
                     <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Registrado desde
                     </th>
@@ -575,6 +662,9 @@ ${dataRows}
                           <td className="py-3 px-2 text-sm text-muted-foreground whitespace-nowrap">{formatDate(movement.timestamp)}</td>
                           <td className="py-3 px-2 text-sm">{movement.userName || <span className="text-muted-foreground">-</span>}</td>
                           <td className="py-3 px-2 text-sm">
+                            <ResponsibleCell value={movement.responsible} />
+                          </td>
+                          <td className="py-3 px-2 text-sm">
                             {movement.registeredFromVenueName || <span className="text-muted-foreground">-</span>}
                           </td>
                           <td className="py-3 px-2 text-sm">{movement.soldByName || <span className="text-muted-foreground">-</span>}</td>
@@ -586,8 +676,8 @@ ${dataRows}
                     })
                   ) : (
                     <tr>
-                      <td colSpan={8} className="py-8 text-center text-muted-foreground">
-                        {movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all'
+                      <td colSpan={9} className="py-8 text-center text-muted-foreground">
+                        {movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all' || responsibleStaffId
                           ? t('playtelecom:stock.noResults', { defaultValue: 'No se encontraron movimientos con esos filtros' })
                           : t('playtelecom:stock.noMovements', { defaultValue: 'No hay movimientos recientes' })}
                       </td>
@@ -627,6 +717,10 @@ ${dataRows}
                         <span>{formatDate(movement.timestamp)}</span>
                         <span className="text-muted-foreground">Usuario</span>
                         <span>{movement.userName || '-'}</span>
+                        <span className="text-muted-foreground">Responsable</span>
+                        <span className="truncate">
+                          <ResponsibleCell value={movement.responsible} />
+                        </span>
                         {movement.registeredFromVenueName && (
                           <>
                             <span className="text-muted-foreground">Registrado desde</span>
@@ -651,7 +745,7 @@ ${dataRows}
                 })
               ) : (
                 <p className="py-8 text-center text-sm text-muted-foreground">
-                  {movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all'
+                  {movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all' || responsibleStaffId
                     ? t('playtelecom:stock.noResults', { defaultValue: 'No se encontraron movimientos con esos filtros' })
                     : t('playtelecom:stock.noMovements', { defaultValue: 'No hay movimientos recientes' })}
                 </p>
