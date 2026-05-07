@@ -18,6 +18,15 @@ const CARD_TYPE_KEYS = ['CASH', 'DEBIT', 'CREDIT', 'AMEX', 'INTERNATIONAL', 'OTH
 
 const SORT_BUTTON_CLASS = 'h-7 px-1 -ml-1 hover:bg-transparent text-xs font-medium uppercase tracking-wider text-muted-foreground'
 
+const COLUMN_LABELS = {
+  date: 'Fecha de transacción',
+  cardType: 'Tipo',
+  transactionCount: 'Transacciones',
+  netAmount: 'Monto neto',
+  fees: 'Comisiones',
+  estimatedSettlementDate: 'Fecha de liquidación',
+} as const
+
 export function SettlementTimelineTable({ data, formatCurrency, cardTypeLabel }: Props) {
   const { formatDate } = useVenueDateTime()
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
@@ -28,7 +37,6 @@ export function SettlementTimelineTable({ data, formatCurrency, cardTypeLabel }:
     return data.filter(d => d.cardType === cardTypeFilter)
   }, [data, cardTypeFilter])
 
-  // Card types actually present in the data — keeps the dropdown lean
   const presentCardTypes = useMemo(() => {
     const set = new Set<string>()
     for (const d of data) set.add(d.cardType)
@@ -39,9 +47,10 @@ export function SettlementTimelineTable({ data, formatCurrency, cardTypeLabel }:
     () => [
       {
         accessorKey: 'date',
+        meta: { label: COLUMN_LABELS.date },
         header: ({ column }) => (
           <Button variant="ghost" size="sm" className={SORT_BUTTON_CLASS} onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            Fecha de transacción
+            {COLUMN_LABELS.date}
             <ArrowUpDown className="ml-1.5 h-3 w-3" />
           </Button>
         ),
@@ -50,16 +59,16 @@ export function SettlementTimelineTable({ data, formatCurrency, cardTypeLabel }:
       },
       {
         accessorKey: 'cardType',
+        meta: { label: COLUMN_LABELS.cardType },
         header: () => (
-          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Tipo</span>
+          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{COLUMN_LABELS.cardType}</span>
         ),
-        cell: ({ row }) => (
-          <span className="text-sm">{cardTypeLabel(row.original.cardType)}</span>
-        ),
+        cell: ({ row }) => <span className="text-sm">{cardTypeLabel(row.original.cardType)}</span>,
         filterFn: (row, _id, value) => value === 'all' || row.original.cardType === value,
       },
       {
         accessorKey: 'transactionCount',
+        meta: { label: COLUMN_LABELS.transactionCount },
         header: ({ column }) => (
           <div className="flex justify-end">
             <Button variant="ghost" size="sm" className={SORT_BUTTON_CLASS} onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
@@ -72,30 +81,27 @@ export function SettlementTimelineTable({ data, formatCurrency, cardTypeLabel }:
       },
       {
         accessorKey: 'netAmount',
+        meta: { label: COLUMN_LABELS.netAmount },
         header: ({ column }) => (
           <div className="flex justify-end">
             <Button variant="ghost" size="sm" className={SORT_BUTTON_CLASS} onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-              Monto neto
+              {COLUMN_LABELS.netAmount}
               <ArrowUpDown className="ml-1.5 h-3 w-3" />
             </Button>
           </div>
         ),
         cell: ({ row }) => (
-          <div
-            className={cn(
-              'text-right font-semibold tabular-nums',
-              row.original.netAmount < 0 && 'text-destructive',
-            )}
-          >
+          <div className={cn('text-right font-semibold tabular-nums', row.original.netAmount < 0 && 'text-destructive')}>
             {formatCurrency(row.original.netAmount)}
           </div>
         ),
       },
       {
         accessorKey: 'fees',
+        meta: { label: COLUMN_LABELS.fees },
         header: () => (
           <div className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Comisiones
+            {COLUMN_LABELS.fees}
           </div>
         ),
         cell: ({ row }) => (
@@ -106,6 +112,7 @@ export function SettlementTimelineTable({ data, formatCurrency, cardTypeLabel }:
       },
       {
         accessorKey: 'estimatedSettlementDate',
+        meta: { label: COLUMN_LABELS.estimatedSettlementDate },
         header: ({ column }) => (
           <div className="flex justify-end">
             <Button variant="ghost" size="sm" className={SORT_BUTTON_CLASS} onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
@@ -129,36 +136,37 @@ export function SettlementTimelineTable({ data, formatCurrency, cardTypeLabel }:
     [formatDate, formatCurrency, cardTypeLabel],
   )
 
-  return (
-    <div className="space-y-3">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2 px-1">
-        <Select value={cardTypeFilter} onValueChange={setCardTypeFilter}>
-          <SelectTrigger className="h-8 w-[180px] text-xs">
-            <SelectValue placeholder="Filtrar por tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los métodos</SelectItem>
-            {presentCardTypes.map(k => (
-              <SelectItem key={k} value={k}>{cardTypeLabel(k)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <span className="ml-auto text-xs text-muted-foreground tabular-nums">
-          {filtered.length} {filtered.length === 1 ? 'fila' : 'filas'} ·{' '}
-          {formatCurrency(filtered.reduce((s, r) => s + r.netAmount, 0))} neto
-        </span>
-      </div>
+  const filteredTotal = useMemo(() => filtered.reduce((s, r) => s + r.netAmount, 0), [filtered])
 
-      <DataTable
-        data={filtered}
-        rowCount={filtered.length}
-        columns={columns}
-        pagination={pagination}
-        setPagination={setPagination}
-        tableId="settlement-timeline"
-        showColumnCustomizer
-      />
-    </div>
+  return (
+    <DataTable
+      data={filtered}
+      rowCount={filtered.length}
+      columns={columns}
+      pagination={pagination}
+      setPagination={setPagination}
+      tableId="settlement-timeline"
+      showColumnCustomizer
+      toolbarLeft={
+        <>
+          <Select value={cardTypeFilter} onValueChange={setCardTypeFilter}>
+            <SelectTrigger className="h-9 w-[180px] text-sm">
+              <SelectValue placeholder="Filtrar por tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los métodos</SelectItem>
+              {presentCardTypes.map(k => (
+                <SelectItem key={k} value={k}>
+                  {cardTypeLabel(k)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+            {filtered.length} {filtered.length === 1 ? 'fila' : 'filas'} · {formatCurrency(filteredTotal)} neto
+          </span>
+        </>
+      }
+    />
   )
 }

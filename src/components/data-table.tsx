@@ -56,6 +56,10 @@ type DataTableProps<TData> = {
   onRowSelectionChange?: (selectedRows: TData[]) => void
   /** Change this value to programmatically clear row selection (e.g., increment a counter) */
   clearSelectionTrigger?: number
+  /** Optional content rendered on the left side of the toolbar row (filters, badges, etc.) */
+  toolbarLeft?: ReactNode
+  /** Optional content rendered on the right side of the toolbar row (next to the column customizer) */
+  toolbarRight?: ReactNode
 }
 
 function DataTable<TData>({
@@ -81,6 +85,8 @@ function DataTable<TData>({
   enableRowSelection: enableRowSelectionProp = false,
   onRowSelectionChange: onRowSelectionChangeProp,
   clearSelectionTrigger,
+  toolbarLeft,
+  toolbarRight,
 }: DataTableProps<TData>) {
   // MUST call ALL hooks at the very top, before ANY conditional logic or returns
   const { t } = useTranslation()
@@ -330,37 +336,43 @@ function DataTable<TData>({
   return (
     <>
       {/* Toolbar - Only render if has content */}
-      {(enableSearch || showColumnCustomizer) && (
-        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          {/* Search Bar */}
-          {enableSearch && <SearchBar value={currentSearchTerm} onChange={handleSearchChange} placeholder={searchPlaceholder || t('search')} />}
+      {(enableSearch || showColumnCustomizer || toolbarLeft || toolbarRight) && (
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Search Bar */}
+            {enableSearch && <SearchBar value={currentSearchTerm} onChange={handleSearchChange} placeholder={searchPlaceholder || t('search')} />}
+            {toolbarLeft}
+          </div>
 
-          {/* Column Customizer */}
-          {showColumnCustomizer && (
-            <DropdownMenu modal={false}>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="default" className="gap-2">
-                  <Settings2 className="h-4 w-4" /> {t('customize_columns')}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56" sideOffset={5}>
-                {table
-                  .getAllLeafColumns()
-                  .filter(col => col.getCanHide())
-                  .map(col => (
-                    <DropdownMenuCheckboxItem
-                      key={col.id}
-                      className="capitalize"
-                      checked={col.getIsVisible()}
-                      onCheckedChange={val => col.toggleVisibility(!!val)}
-                    >
-                      {(col.columnDef as any)?.meta?.label ??
-                        (typeof col.columnDef.header === 'string' ? (col.columnDef.header as string) : col.id)}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {toolbarRight}
+            {/* Column Customizer */}
+            {showColumnCustomizer && (
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="default" className="gap-2">
+                    <Settings2 className="h-4 w-4" /> {t('customize_columns')}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56" sideOffset={5}>
+                  {table
+                    .getAllLeafColumns()
+                    .filter(col => col.getCanHide())
+                    .map(col => (
+                      <DropdownMenuCheckboxItem
+                        key={col.id}
+                        className="capitalize"
+                        checked={col.getIsVisible()}
+                        onCheckedChange={val => col.toggleVisibility(!!val)}
+                      >
+                        {(col.columnDef as any)?.meta?.label ??
+                          (typeof col.columnDef.header === 'string' ? (col.columnDef.header as string) : col.id)}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
       )}
       <Table

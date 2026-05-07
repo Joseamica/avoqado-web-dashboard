@@ -52,7 +52,8 @@
     "credit": "Crédito",
     "amex": "American Express",
     "international": "Internacional",
-    "cash": "Efectivo"
+    "cash": "Efectivo",
+    "other": "Otros"
   },
 
   "instant": "Inmediato",
