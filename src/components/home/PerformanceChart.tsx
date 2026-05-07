@@ -33,6 +33,8 @@ interface PerformanceChartProps {
   venueTimezone: string
   currentLabel: string
   compareLabel: string
+  /** Mensaje a mostrar como pill superpuesta cuando ambos periodos están vacíos */
+  emptyLabel: string
 }
 
 export function PerformanceChart({
@@ -41,6 +43,7 @@ export function PerformanceChart({
   venueTimezone,
   currentLabel,
   compareLabel,
+  emptyLabel,
 }: PerformanceChartProps) {
   const { t } = useTranslation('home')
 
@@ -54,7 +57,14 @@ export function PerformanceChart({
     }))
   }, [currentPayments, comparePayments, venueTimezone, t])
 
+  // Square pattern: cuando NO hay datos en ambos periodos, dejamos el chart
+  // con sus ejes y la grilla pero superponemos un pill central diciéndole al
+  // usuario que no hay datos. Si hay datos en cualquiera de los periodos, el
+  // pill se oculta.
+  const isEmpty = useMemo(() => data.every(row => row.current === 0 && row.compare === 0), [data])
+
   return (
+    <div className="relative">
     <ChartContainer
       className="h-44 w-full"
       config={{
@@ -89,5 +99,13 @@ export function PerformanceChart({
         <Bar dataKey="compare" fill="var(--color-compare)" radius={[4, 4, 0, 0]} maxBarSize={28} />
       </BarChart>
     </ChartContainer>
+    {isEmpty && (
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <span className="rounded-full bg-muted px-4 py-1.5 text-sm text-muted-foreground shadow-sm">
+          {emptyLabel}
+        </span>
+      </div>
+    )}
+    </div>
   )
 }

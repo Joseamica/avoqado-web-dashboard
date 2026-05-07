@@ -931,6 +931,23 @@ function ChatInterface({
     [chatMutation, includeVisualization, queryClient, toast, venueSlug, referenceCount, getContextPrompt],
   )
 
+  // Initial message handling for messages dispatched from outside the panel
+  // (e.g. the Home page chatbot input → `chatbot:openWithMessage` event).
+  //
+  // Why a ref + microtask defer instead of a plain `useEffect(() => sendMessage(...))`:
+  //   1. `sendMessage` depends on `chatMutation`, which TanStack Query
+  //      re-creates on every render. If we put `sendMessage` in deps, the
+  //      effect re-fires constantly. Using a ref keeps the latest function
+  //      reference without spurious re-runs.
+  //   2. We must fire AFTER the component is fully committed so the
+  //      mutation's `onSuccess` callback isn't lost to a render/cleanup
+  //      race. A `setTimeout(..., 0)` defers the dispatch to the next
+  //      macrotask, after React has painted the panel.
+  const sendMessageRef = useRef(sendMessage)
+  useEffect(() => {
+    sendMessageRef.current = sendMessage
+  }, [sendMessage])
+
   const lastDispatchedInitialIdRef = useRef<number | null>(null)
   useEffect(() => {
     if (!initialMessage) return
@@ -938,8 +955,11 @@ function ChatInterface({
     const trimmed = initialMessage.text.trim()
     if (!trimmed) return
     lastDispatchedInitialIdRef.current = initialMessage.id
-    sendMessage(trimmed)
-  }, [initialMessage, sendMessage])
+    const timer = setTimeout(() => {
+      sendMessageRef.current(trimmed)
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [initialMessage])
 
   // Handle confirmation to send despite token warning
   const handleConfirmSendWithWarning = useCallback(() => {

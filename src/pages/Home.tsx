@@ -29,7 +29,7 @@ import { useDashboardData } from '@/hooks/useDashboardData'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { PerformanceChart } from '@/components/home/PerformanceChart'
 import { Currency } from '@/utils/currency'
-import { buildCompareOptions, type CompareOption } from '@/utils/dashboard-comparison'
+import { buildCompareOptions, detectRangeKind, type CompareOption } from '@/utils/dashboard-comparison'
 import { useVenueDateTime } from '@/utils/datetime'
 import { getIntlLocale } from '@/utils/i18n-locale'
 
@@ -128,14 +128,46 @@ export default function Home() {
     [dashboardData.comparePayments],
   )
 
-  const selectedDateLabel = useMemo(
-    () => DateTime.fromJSDate(selectedRange.to).setZone(venueTimezone).setLocale(localeCode).toFormat('d LLL yyyy'),
-    [selectedRange.to, venueTimezone, localeCode],
+  // Square-style labels for the chart legend.
+  //  - Día único (rango = un solo día): "Hoy" / "Ayer" o "ccc, d LLL yyyy"
+  //  - Rango multi-día: "d LLL – d LLL yyyy" (omite año en el `from` si
+  //    coincide con el `to` para evitar redundancia visual)
+  //
+  // Aplicado tanto al periodo seleccionado como al de comparación. Todo en
+  // venue timezone.
+  const formatRangeLabel = useCallback(
+    (range: { from: Date; to: Date }, friendly?: string): string => {
+      const from = DateTime.fromJSDate(range.from).setZone(venueTimezone).setLocale(localeCode)
+      const to = DateTime.fromJSDate(range.to).setZone(venueTimezone).setLocale(localeCode)
+      if (from.hasSame(to, 'day')) {
+        return friendly ?? to.toFormat('ccc, d LLL yyyy')
+      }
+      if (friendly) return friendly
+      const fromFmt = from.hasSame(to, 'year') ? from.toFormat('d LLL') : from.toFormat('d LLL yyyy')
+      return `${fromFmt} - ${to.toFormat('d LLL yyyy')}`
+    },
+    [venueTimezone, localeCode],
   )
-  const compareDateLabel = useMemo(
-    () => DateTime.fromJSDate(compareRange.to).setZone(venueTimezone).setLocale(localeCode).toFormat('ccc, d LLL yyyy'),
-    [compareRange.to, venueTimezone, localeCode],
-  )
+
+  // Friendly current-period label — Square uses these when the range matches
+  // a known preset:
+  //   - "Hoy" / "Ayer" para day kind
+  //   - resto: el rango formateado completo (4 may - 7 may 2026)
+  const currentPeriodLabel = useMemo(() => {
+    const kind = detectRangeKind(selectedRange, venueTimezone)
+    const now = DateTime.now().setZone(venueTimezone)
+    const from = DateTime.fromJSDate(selectedRange.from).setZone(venueTimezone)
+
+    if (kind === 'day') {
+      if (from.hasSame(now, 'day')) return formatRangeLabel(selectedRange, t('newHome.performance.today'))
+      if (from.hasSame(now.minus({ days: 1 }), 'day'))
+        return formatRangeLabel(selectedRange, t('newHome.datePicker.yesterday'))
+    }
+    return formatRangeLabel(selectedRange)
+  }, [selectedRange, venueTimezone, formatRangeLabel, t])
+
+  const compareDateLabel = useMemo(() => formatRangeLabel(compareRange), [compareRange, formatRangeLabel])
+  const selectedDateLabel = useMemo(() => formatRangeLabel(selectedRange), [selectedRange, formatRangeLabel])
 
   const detailRows = useMemo(
     () => [
@@ -341,7 +373,7 @@ export default function Home() {
                   </div>
 
                   <div className="grid gap-6 md:grid-cols-[220px_1fr]">
-                    <div>
+                    <div className="flex flex-col">
                       <p className="text-sm text-muted-foreground">{t('newHome.performance.netSales')}</p>
                       <p className="mt-1 text-4xl font-bold tracking-tight">{Currency(dashboardData.totalAmount, false)}</p>
                       <div className="mt-3">
@@ -352,26 +384,28 @@ export default function Home() {
                           ndLabel={t('newHome.performance.ndLabel')}
                         />
                       </div>
+                      {/* Legend stacked vertically below the KPI — Square style */}
+                      <div className="mt-auto space-y-2 pt-6 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="h-3 w-3 rounded-sm bg-primary" />
+                          <span>{currentPeriodLabel}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="h-3 w-3 rounded-sm bg-primary/30" />
+                          <span className="text-muted-foreground">{compareDateLabel}</span>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="space-y-3">
+                    <div>
                       <PerformanceChart
                         currentPayments={dashboardData.filteredPayments}
                         comparePayments={dashboardData.comparePayments}
                         venueTimezone={venueTimezone}
-                        currentLabel={selectedDateLabel}
+                        currentLabel={currentPeriodLabel}
                         compareLabel={compareDateLabel}
+                        emptyLabel={t('newHome.performance.noData')}
                       />
-                      <div className="flex flex-wrap gap-5 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-2">
-                          <span className="h-3 w-3 rounded-sm bg-primary" />
-                          {selectedDateLabel}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="h-3 w-3 rounded-sm bg-muted-foreground/35" />
-                          {compareDateLabel}
-                        </div>
-                      </div>
                     </div>
                   </div>
 
