@@ -60,8 +60,8 @@ function DashboardContent() {
   const location = useLocation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { user, authorizeVenue, allVenues, checkFeatureAccess } = useAuth()
-  const { venue, venueSlug, isLoading, hasVenueAccess } = useCurrentVenue()
+  const { user, authorizeVenue, allVenues } = useAuth()
+  const { venue, venueSlug, fullBasePath, isLoading, hasVenueAccess } = useCurrentVenue()
   const { customSegments } = useBreadcrumb()
 
   // Mount the inventory welcome tour orchestrator here (stable across
@@ -99,14 +99,12 @@ function DashboardContent() {
   // hooks. La ruta cambia cuando el user cambia de venue.
   useEffect(() => {
     if (!venueSlug) return
-    const isWl = location.pathname.startsWith('/wl/')
-    const path = isWl ? `/wl/venues/${venueSlug}` : `/venues/${venueSlug}`
     try {
-      sessionStorage.setItem('avoqado-current-venue-base-path', path)
+      sessionStorage.setItem('avoqado-current-venue-base-path', fullBasePath)
     } catch {
       /* noop */
     }
-  }, [venueSlug, location.pathname])
+  }, [venueSlug, fullBasePath])
 
   // Command palette state
   const [commandOpen, setCommandOpen] = useState(false)

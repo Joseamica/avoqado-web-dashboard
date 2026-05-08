@@ -314,6 +314,7 @@
       "title": "Configura tu negocio para empezar a vender",
       "inProgress": "En curso",
       "start": "Empezar",
+      "repeat": "Repetir",
       "skip": "Omitir",
       "dismiss": "No mostrar de nuevo",
       "platformTour": {

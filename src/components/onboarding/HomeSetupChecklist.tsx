@@ -224,95 +224,89 @@ export function HomeSetupChecklist() {
           const done = !!state.steps[step.id]?.done
           const isActive = !done && index === activeIndex
 
-          // Visualmente solo distinguimos done vs not-done:
-          //  - done: tachado + check + NO clickable (evita relanzar el tour
-          //    accidentalmente; el usuario que quiera repasar puede ir al
-          //    módulo directamente).
-          //  - not-done: row clickable, texto en color foreground, descripción
-          //    visible y botón Empezar a la derecha (+ Omitir si aplica).
+          // Filas siempre clickeables — incluso completadas, para que el
+          // usuario pueda repetir el tour cuando quiera. El estado done se
+          // comunica con el check + tachado del título; la descripción y el
+          // CTA siguen presentes para reabrir el flujo.
           return (
             <div
               key={step.id}
-              role={done ? undefined : 'button'}
-              tabIndex={done ? undefined : 0}
-              onClick={done ? undefined : () => handleStart(step)}
-              onKeyDown={
-                done
-                  ? undefined
-                  : event => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault()
-                        handleStart(step)
-                      }
-                    }
-              }
-              className={cn(
-                'group/row flex items-start gap-4 py-5 first:pt-0 last:pb-0',
-                done ? 'cursor-default' : 'cursor-pointer',
-              )}
+              role="button"
+              tabIndex={0}
+              onClick={() => handleStart(step)}
+              onKeyDown={event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  handleStart(step)
+                }
+              }}
+              className="group/row flex items-start gap-4 py-5 first:pt-0 last:pb-0 cursor-pointer"
             >
               <div className="min-w-0 flex-1">
                 <p
                   className={cn(
-                    'text-base font-semibold transition-colors',
-                    done
-                      ? 'line-through text-background/40 dark:text-muted-foreground'
-                      : 'group-hover/row:underline group-hover/row:underline-offset-4',
+                    'text-base font-semibold transition-colors group-hover/row:underline group-hover/row:underline-offset-4',
+                    done && 'line-through text-background/40 dark:text-muted-foreground',
                   )}
                 >
                   {t(step.titleKey)}
                 </p>
-                {!done && (
-                  <p className="mt-1 text-sm text-background/70 dark:text-muted-foreground">{t(step.descriptionKey)}</p>
-                )}
+                <p
+                  className={cn(
+                    'mt-1 text-sm',
+                    done
+                      ? 'text-background/40 dark:text-muted-foreground/70'
+                      : 'text-background/70 dark:text-muted-foreground',
+                  )}
+                >
+                  {t(step.descriptionKey)}
+                </p>
               </div>
 
               <div className="flex shrink-0 items-center gap-3">
-                {done ? (
+                {done && (
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-background/15 text-background dark:bg-muted dark:text-foreground">
                     <Check className="h-4 w-4" />
                   </span>
-                ) : (
-                  <>
-                    {isActive && (
-                      <span className="rounded-full bg-blue-500/15 px-2.5 py-1 text-xs font-medium text-blue-600 dark:text-blue-300">
-                        {t('newHome.setup.inProgress')}
-                      </span>
-                    )}
-                    {step.canSkip && (
-                      <button
-                        type="button"
-                        onClick={event => {
-                          // Detén la propagación: el click en "Omitir" no
-                          // debe disparar el tour del row que lo contiene.
-                          event.stopPropagation()
-                          markDone(step.id)
-                        }}
-                        className={cn(
-                          'cursor-pointer text-sm underline underline-offset-4',
-                          'text-background/70 hover:text-background',
-                          'dark:text-muted-foreground dark:hover:text-foreground',
-                        )}
-                      >
-                        {t('newHome.setup.skip')}
-                      </button>
-                    )}
-                    <Button
-                      type="button"
-                      onClick={event => {
-                        event.stopPropagation()
-                        handleStart(step)
-                      }}
-                      className={cn(
-                        'h-9 cursor-pointer rounded-full px-5 text-sm font-semibold',
-                        'bg-background text-foreground hover:bg-background/90',
-                        'dark:bg-foreground dark:text-background dark:hover:bg-foreground/90',
-                      )}
-                    >
-                      {t('newHome.setup.start')}
-                    </Button>
-                  </>
                 )}
+                {!done && isActive && (
+                  <span className="rounded-full bg-blue-500/15 px-2.5 py-1 text-xs font-medium text-blue-600 dark:text-blue-300">
+                    {t('newHome.setup.inProgress')}
+                  </span>
+                )}
+                {!done && step.canSkip && (
+                  <button
+                    type="button"
+                    onClick={event => {
+                      // Detén la propagación: el click en "Omitir" no
+                      // debe disparar el tour del row que lo contiene.
+                      event.stopPropagation()
+                      markDone(step.id)
+                    }}
+                    className={cn(
+                      'cursor-pointer text-sm underline underline-offset-4',
+                      'text-background/70 hover:text-background',
+                      'dark:text-muted-foreground dark:hover:text-foreground',
+                    )}
+                  >
+                    {t('newHome.setup.skip')}
+                  </button>
+                )}
+                <Button
+                  type="button"
+                  onClick={event => {
+                    event.stopPropagation()
+                    handleStart(step)
+                  }}
+                  className={cn(
+                    'h-9 cursor-pointer rounded-full px-5 text-sm font-semibold',
+                    done
+                      ? 'bg-background/15 text-background hover:bg-background/25 dark:bg-muted dark:text-foreground dark:hover:bg-muted/80'
+                      : 'bg-background text-foreground hover:bg-background/90 dark:bg-foreground dark:text-background dark:hover:bg-foreground/90',
+                  )}
+                >
+                  {done ? t('newHome.setup.repeat') : t('newHome.setup.start')}
+                </Button>
               </div>
             </div>
           )

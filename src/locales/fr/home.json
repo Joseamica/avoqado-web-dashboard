@@ -313,6 +313,7 @@
       "title": "Configurez votre activité pour commencer à vendre",
       "inProgress": "En cours",
       "start": "Commencer",
+      "repeat": "Recommencer",
       "skip": "Passer",
       "dismiss": "Ne plus afficher",
       "platformTour": {

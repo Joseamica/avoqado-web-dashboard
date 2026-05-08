@@ -314,6 +314,7 @@
       "title": "Set up your business to start selling",
       "inProgress": "In progress",
       "start": "Start",
+      "repeat": "Repeat",
       "skip": "Skip",
       "dismiss": "Don't show again",
       "platformTour": {
