@@ -14,7 +14,12 @@ interface VenueOverridesStepProps {
   context: WizardContext
 }
 
-const RATE_FIELDS: Array<{ key: keyof PricingData; label: string }> = [
+// Restringir explícitamente a las claves numéricas — `keyof PricingData`
+// ahora incluye `includesTax` (boolean) / `taxRate` (number) y eso rompe
+// los `.toFixed()` y aritmética de abajo cuando el inferidor de TS expande
+// el union.
+type RateFieldKey = 'debitRate' | 'creditRate' | 'amexRate' | 'internationalRate'
+const RATE_FIELDS: Array<{ key: RateFieldKey; label: string }> = [
   { key: 'debitRate', label: 'Débito' },
   { key: 'creditRate', label: 'Crédito' },
   { key: 'amexRate', label: 'AMEX' },

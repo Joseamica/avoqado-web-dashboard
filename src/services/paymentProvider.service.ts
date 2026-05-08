@@ -1064,6 +1064,9 @@ export interface FullSetupRequest {
     creditRate: number
     amexRate: number
     internationalRate: number
+    /** Si las tasas YA incluyen IVA (true) o son base + IVA (false). null = legacy. */
+    includesTax?: boolean | null
+    taxRate?: number
     fixedCostPerTransaction?: number
     monthlyFee?: number
   }
@@ -1074,6 +1077,8 @@ export interface FullSetupRequest {
     creditRate: number
     amexRate: number
     internationalRate: number
+    includesTax?: boolean | null
+    taxRate?: number
     fixedFeePerTransaction?: number
     monthlyServiceFee?: number
   }

@@ -877,6 +877,7 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
                 copyLoading={copyLoading}
                 copiedFromVenueName={copiedFromVenueName}
                 handleRateChange={handleRateChange}
+                handleAddTaxToggle={handleAddTaxToggle}
                 handleSettlementChange={handleSettlementChange}
                 getMargin={getMargin}
                 getMarginColor={getMarginColor}
@@ -1262,6 +1263,7 @@ function StepPayments({
   copyLoading,
   copiedFromVenueName,
   handleRateChange,
+  handleAddTaxToggle,
   handleSettlementChange,
   getMargin,
   getMarginColor,
@@ -1276,6 +1278,7 @@ function StepPayments({
   copyLoading: boolean
   copiedFromVenueName: string
   handleRateChange: (target: 'providerCosts' | 'venuePricing', field: keyof RateData, value: string) => void
+  handleAddTaxToggle: (target: 'providerCosts' | 'venuePricing', addTax: boolean) => void
   handleSettlementChange: <K extends keyof SettlementData>(field: K, value: SettlementData[K]) => void
   getMargin: (field: keyof Pick<RateData, 'debitRate' | 'creditRate' | 'amexRate' | 'internationalRate'>) => number
   getMarginColor: (margin: number) => string
