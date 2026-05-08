@@ -2,7 +2,8 @@ import { driver, type Driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useAtomicTourListener, notifyAtomicTourCompleted } from '@/hooks/useAtomicTourListener'
+import { useAtomicTourListener } from '@/hooks/useAtomicTourListener'
+import { buildFinalStepFooter } from '@/lib/atomic-tour-final-step'
 
 /**
  * Interactive tour for inviting team members.
@@ -128,10 +129,12 @@ export function useTeamInvitationTour() {
             }),
             side: 'top',
             align: 'end',
-            onNextClick: () => {
-              notifyAtomicTourCompleted('team-invitation')
-              d.moveNext()
-            },
+            ...buildFinalStepFooter({
+              tourName: 'team-invitation',
+              cancelLabel: t('tour.cancel', { defaultValue: 'Cancelar' }),
+              doneLabel: t('tour.done', { defaultValue: '¡Listo!' }),
+              homeLabel: t('tour.backToHome', { defaultValue: 'Volver a inicio' }),
+            }),
           },
         },
       ],

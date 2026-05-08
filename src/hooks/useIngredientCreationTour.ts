@@ -2,7 +2,8 @@ import { driver, type Driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useAtomicTourListener, notifyAtomicTourCompleted } from '@/hooks/useAtomicTourListener'
+import { useAtomicTourListener } from '@/hooks/useAtomicTourListener'
+import { buildFinalStepFooter } from '@/lib/atomic-tour-final-step'
 
 /**
  * Interactive onboarding tour for ingredient (raw material) creation.
@@ -209,7 +210,8 @@ export function useIngredientCreationTour() {
           },
         },
 
-        // 10) Complete
+        // 10) Complete — 3 botones via helper compartido (Cancelar / Listo
+        //     / Volver a inicio). Ver lib/atomic-tour-final-step.ts.
         {
           popover: {
             title: t('tourIngredient.complete.title', {
@@ -219,10 +221,12 @@ export function useIngredientCreationTour() {
               defaultValue:
                 'Ahora que tienes un ingrediente, puedes ir a <b>Productos</b> y crear una bebida con receta que lo use. Cada venta descontará automáticamente la cantidad que definas en la receta.',
             }),
-            onNextClick: () => {
-              notifyAtomicTourCompleted('ingredient')
-              d.destroy()
-            },
+            ...buildFinalStepFooter({
+              tourName: 'ingredient',
+              cancelLabel: t('tour.cancel', { defaultValue: 'Cancelar' }),
+              doneLabel: t('tour.done', { defaultValue: '¡Listo!' }),
+              homeLabel: t('tour.backToHome', { defaultValue: 'Volver a inicio' }),
+            }),
           },
         },
       ],

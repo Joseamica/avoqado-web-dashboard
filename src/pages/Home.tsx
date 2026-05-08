@@ -31,8 +31,11 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { PerformanceChart } from '@/components/home/PerformanceChart'
 import { Currency } from '@/utils/currency'
 import { buildCompareOptions, detectRangeKind, type CompareOption } from '@/utils/dashboard-comparison'
-import { useVenueDateTime } from '@/utils/datetime'
+import { getToday, useVenueDateTime } from '@/utils/datetime'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { useQuery } from '@tanstack/react-query'
+import { getSettlementCalendar, TransactionCardType } from '@/services/availableBalance.service'
+import { cn } from '@/lib/utils'
 
 export default function Home() {
   const { t, i18n } = useTranslation('home')
@@ -48,7 +51,7 @@ export default function Home() {
   } = dashboardData
   const localeCode = getIntlLocale(i18n.language)
   const { venueTimezone } = useVenueDateTime()
-  const { fullBasePath } = useCurrentVenue()
+  const { fullBasePath, venueId } = useCurrentVenue()
   const navigate = useNavigate()
 
   const quickActions = useMemo(
@@ -66,6 +69,21 @@ export default function Home() {
   const [chatInput, setChatInput] = useState('')
   const [chatFocused, setChatFocused] = useState(false)
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
+  const [tourActive, setTourActive] = useState(
+    () => typeof document !== 'undefined' && document.body.classList.contains('tour-active'),
+  )
+
+  // Sigue el flag `tour-active` que los hooks de driver.js setean en <body>
+  // mientras hay un tour corriendo. Lo usamos para congelar la rotación de
+  // placeholders, porque el re-mount del span con `animate-in` provoca que
+  // el overlay del tour redibuje y se vea como un flash en toda la pantalla.
+  useEffect(() => {
+    const update = () => setTourActive(document.body.classList.contains('tour-active'))
+    update()
+    const observer = new MutationObserver(update)
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] })
+    return () => observer.disconnect()
+  }, [])
 
   // Pool de placeholders rotativos para el input del chatbot. Se obtiene del
   // bundle de i18n con `returnObjects: true` y caemos a un default sano si la
@@ -79,12 +97,12 @@ export default function Home() {
   // Cuando el input recupera foco o tiene texto, congelamos para no
   // distraer al usuario.
   useEffect(() => {
-    if (chatFocused || chatInput.length > 0 || placeholderPool.length <= 1) return
+    if (chatFocused || chatInput.length > 0 || placeholderPool.length <= 1 || tourActive) return
     const interval = window.setInterval(() => {
       setPlaceholderIndex(prev => (prev + 1) % placeholderPool.length)
     }, 3500)
     return () => window.clearInterval(interval)
-  }, [chatFocused, chatInput, placeholderPool.length])
+  }, [chatFocused, chatInput, placeholderPool.length, tourActive])
 
   const currentPlaceholder = placeholderPool[placeholderIndex % placeholderPool.length]
 
@@ -141,27 +159,52 @@ export default function Home() {
     [dashboardData.comparePayments],
   )
 
-  // "Liquidación de hoy": suma de pagos completados HOY excluyendo efectivo
-  // (porque el cash ya está en mano del comerciante; la liquidación bancaria
-  // solo refleja lo que cobró por tarjeta/digital). Se calcula filtrando los
-  // payments por createdAt dentro del rango de hoy en venue tz.
-  // Si el usuario cambió el rango y today no está incluido, devuelve 0 — eso
-  // es correcto porque solo tenemos los payments del rango cargado.
+  // "Liquidación de hoy": neto que cae HOY en la cuenta bancaria del venue.
+  // Usa el mismo endpoint que /available-balance (settlement-calendar) para
+  // que ambos pantallas siempre coincidan. El backend agrupa por fecha de
+  // liquidación (no por fecha de transacción), aplicando T+N por tipo de
+  // tarjeta y cutoff time configurado por venue.
+  //
+  // Se filtra el byCardType excluyendo CASH porque el efectivo ya está en
+  // mano del comerciante — la "liquidación" se refiere al depósito bancario.
+  // Esto matchea el toggle "Tarjetas" del AvailableBalance.
+  const todayIso = useMemo(
+    () => DateTime.now().setZone(venueTimezone).toISODate() ?? '',
+    [venueTimezone],
+  )
+
+  const todayRange = useMemo(() => {
+    const { from, to } = getToday(venueTimezone)
+    return {
+      from: from.toISOString(),
+      to: to.toISOString(),
+    }
+  }, [venueTimezone])
+
+  const { data: settlementCalendar = [] } = useQuery({
+    queryKey: ['settlement-calendar', 'today', venueId, todayIso],
+    queryFn: async () => {
+      const res = await getSettlementCalendar(venueId!, { from: todayRange.from, to: todayRange.to })
+      return res.data
+    },
+    enabled: !!venueId && !!todayIso,
+    staleTime: 60_000,
+  })
+
   const todaySettlement = useMemo(() => {
-    const now = DateTime.now().setZone(venueTimezone)
-    const startOfDay = now.startOf('day')
-    const endOfDay = now.endOf('day')
-    return dashboardData.filteredPayments.reduce((sum: number, payment: any) => {
-      const method = String(payment?.method ?? '').toUpperCase()
-      if (method === 'CASH') return sum
-      const createdAt = payment?.createdAt
-      if (!createdAt) return sum
-      const dt = DateTime.fromISO(String(createdAt), { zone: 'utc' }).setZone(venueTimezone)
-      if (!dt.isValid) return sum
-      if (dt < startOfDay || dt > endOfDay) return sum
-      return sum + Number(payment.amount || 0)
+    if (!settlementCalendar.length) return 0
+    return settlementCalendar.reduce((sum, entry) => {
+      // Normaliza la fecha del entry a venue tz y compara con today.
+      const dt = DateTime.fromISO(String(entry.settlementDate), { zone: 'utc' }).setZone(venueTimezone)
+      const iso = dt.toISODate()
+      if (iso !== todayIso) return sum
+      // Excluye CASH, igual que AvailableBalance al filtrar por "tarjetas".
+      const cardsTotal = entry.byCardType
+        .filter(c => c.cardType !== TransactionCardType.CASH)
+        .reduce((s, c) => s + Number(c.netAmount || 0), 0)
+      return sum + cardsTotal
     }, 0)
-  }, [dashboardData.filteredPayments, venueTimezone])
+  }, [settlementCalendar, todayIso, venueTimezone])
   const compareTransactions = dashboardData.comparePayments.length
   const compareTips = useMemo(
     () =>
@@ -320,11 +363,31 @@ export default function Home() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-            <div className="space-y-4 xl:col-span-9">
-              <HomeSetupChecklist />
+          <TabsContent value="overview" className="space-y-4">
+            {/* Setup checklist a ancho completo — ocupa toda la viewport
+                porque es un onboarding step prominente, no un widget lateral. */}
+            <HomeSetupChecklist />
 
-              <Card className="rounded-2xl border-input" data-tour="home-chatbot-overview">
+            {/* Fila 1: Chatbot (col-9) + Liquidación de hoy (col-3).
+                Al ser celdas hermanas de la misma grid se igualan en height
+                automáticamente (align-items: stretch por default). Esto
+                replica el patrón de Square: dos tarjetas chiquitas a la par. */}
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+              {/* Wrapper del chatbot: relative para que la Card se pueda
+                  volver `absolute` cuando se expande (mostrando suggestions)
+                  sin empujar el contenido de abajo (Performance). El wrapper
+                  conserva la altura "collapsed" del card, así Liquidación
+                  al lado mantiene su match de height. */}
+              <div className="relative xl:col-span-9">
+                <Card
+                  className={cn(
+                    'rounded-2xl border-input transition-shadow',
+                    showSuggestions
+                      ? 'absolute inset-x-0 top-0 z-30 shadow-2xl'
+                      : 'h-full',
+                  )}
+                  data-tour="home-chatbot-overview"
+                >
                 <CardContent className="relative p-0">
                   <form onSubmit={handleChatSubmit} className="flex items-center gap-3 px-5 py-5">
                     {/* Wrapper relativo para superponer el placeholder
@@ -383,9 +446,52 @@ export default function Home() {
                     </div>
                   )}
                 </CardContent>
-              </Card>
+                </Card>
+              </div>
 
-              <Card className="rounded-2xl border-input" data-tour="home-performance-section">
+              {/* Liquidación de hoy — celda hermana del chatbot. Mismo height
+                  por estar dentro del mismo row de la grid. */}
+              <Card
+                className="cursor-pointer rounded-2xl border-input transition-colors hover:bg-muted/30 xl:col-span-3"
+                onClick={() => navigate(`${fullBasePath}/available-balance`)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    navigate(`${fullBasePath}/available-balance`)
+                  }
+                }}
+              >
+                <CardContent className="space-y-2 p-5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm text-muted-foreground">{t('newHome.side.todaySettlement')}</p>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          aria-label={t('newHome.side.todaySettlementInfo')}
+                          onClick={event => event.stopPropagation()}
+                          className="flex h-5 w-5 cursor-help items-center justify-center rounded-full text-muted-foreground/60 hover:text-muted-foreground"
+                        >
+                          <Info className="h-3.5 w-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[260px] text-center">
+                        {t('newHome.side.todaySettlementTooltip')}
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <p className="text-2xl font-bold tracking-tight">{Currency(todaySettlement, false)}</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Fila 2: Performance (col-9) + Acciones rápidas (col-3).
+                Performance es naturalmente alto; usamos `self-start` en
+                Acciones para que no se estire artificialmente. */}
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+              <Card className="rounded-2xl border-input xl:col-span-9" data-tour="home-performance-section">
                 <CardContent className="space-y-5 p-6">
                   <h2 className="text-2xl font-semibold tracking-tight">{t('newHome.performance.title')}</h2>
 
@@ -487,71 +593,36 @@ export default function Home() {
                   </div>
                 </CardContent>
               </Card>
-            </div>
 
-            <div className="space-y-4 xl:col-span-3">
-              <Card
-                className="cursor-pointer rounded-2xl border-input transition-colors hover:bg-muted/30"
-                onClick={() => navigate(`${fullBasePath}/available-balance`)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={event => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault()
-                    navigate(`${fullBasePath}/available-balance`)
-                  }
-                }}
-              >
-                <CardContent className="space-y-2 p-5">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm text-muted-foreground">{t('newHome.side.todaySettlement')}</p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
+              <div className="space-y-4 self-start xl:col-span-3">
+                <Card className="rounded-2xl border-input">
+                  <CardContent className="space-y-3 p-5">
+                    <p className="text-sm text-muted-foreground">{t('newHome.side.quickActions')}</p>
+                    <div className="space-y-1">
+                      {quickActions.map(({ key, icon: Icon, path }) => (
                         <button
+                          key={key}
                           type="button"
-                          aria-label={t('newHome.side.todaySettlementInfo')}
-                          onClick={event => event.stopPropagation()}
-                          className="flex h-5 w-5 cursor-help items-center justify-center rounded-full text-muted-foreground/60 hover:text-muted-foreground"
+                          onClick={() => navigate(`${fullBasePath}${path}`)}
+                          className="-mx-2 flex w-[calc(100%+1rem)] cursor-pointer items-center gap-3 rounded-lg px-2 py-2 text-left text-sm font-semibold transition-colors hover:bg-muted"
                         >
-                          <Info className="h-3.5 w-3.5" />
+                          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                            <Icon className="h-4 w-4" />
+                          </span>
+                          <span className="truncate">{t(`newHome.side.actions.${key}`)}</span>
                         </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-[260px] text-center">
-                        {t('newHome.side.todaySettlementTooltip')}
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <p className="text-2xl font-bold tracking-tight">{Currency(todaySettlement, false)}</p>
-                </CardContent>
-              </Card>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
 
-              <Card className="rounded-2xl border-input">
-                <CardContent className="space-y-3 p-5">
-                  <p className="text-sm text-muted-foreground">{t('newHome.side.quickActions')}</p>
-                  <div className="space-y-1">
-                    {quickActions.map(({ key, icon: Icon, path }) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => navigate(`${fullBasePath}${path}`)}
-                        className="-mx-2 flex w-[calc(100%+1rem)] cursor-pointer items-center gap-3 rounded-lg px-2 py-2 text-left text-sm font-semibold transition-colors hover:bg-muted"
-                      >
-                        <span className="flex h-8 w-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                          <Icon className="h-4 w-4" />
-                        </span>
-                        <span className="truncate">{t(`newHome.side.actions.${key}`)}</span>
-                      </button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-2xl border-input">
-                <CardContent className="space-y-2 p-5">
-                  <p className="text-sm text-muted-foreground">{t('newHome.side.context')}</p>
-                  <p className="text-sm text-muted-foreground">{t('newHome.side.contextDescription', { date: selectedDateLabel })}</p>
-                </CardContent>
-              </Card>
+                <Card className="rounded-2xl border-input">
+                  <CardContent className="space-y-2 p-5">
+                    <p className="text-sm text-muted-foreground">{t('newHome.side.context')}</p>
+                    <p className="text-sm text-muted-foreground">{t('newHome.side.contextDescription', { date: selectedDateLabel })}</p>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </TabsContent>
 

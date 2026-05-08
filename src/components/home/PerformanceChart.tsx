@@ -82,19 +82,21 @@ export function PerformanceChart({
           width={40}
           className="text-xs"
         />
-        <ChartTooltip
-          cursor={{ fill: 'hsl(var(--muted) / 0.5)' }}
-          content={
-            <ChartTooltipContent
-              formatter={(value, _name, item) => (
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-xs text-muted-foreground">{item?.payload?.[`__label_${item?.dataKey}`] ?? item?.dataKey}</span>
-                  <span className="font-semibold">{Currency(Number(value), false)}</span>
-                </div>
-              )}
-            />
-          }
-        />
+        {!isEmpty && (
+          <ChartTooltip
+            cursor={{ fill: 'hsl(var(--muted) / 0.5)' }}
+            content={
+              <ChartTooltipContent
+                formatter={(value, _name, item) => (
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-xs text-muted-foreground">{item?.payload?.[`__label_${item?.dataKey}`] ?? item?.dataKey}</span>
+                    <span className="font-semibold">{Currency(Number(value), false)}</span>
+                  </div>
+                )}
+              />
+            }
+          />
+        )}
         <Bar dataKey="current" fill="var(--color-current)" radius={[4, 4, 0, 0]} maxBarSize={28} />
         <Bar dataKey="compare" fill="var(--color-compare)" radius={[4, 4, 0, 0]} maxBarSize={28} />
       </BarChart>

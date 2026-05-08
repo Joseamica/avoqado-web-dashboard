@@ -2,7 +2,8 @@ import { driver, type Driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useAtomicTourListener, notifyAtomicTourCompleted } from '@/hooks/useAtomicTourListener'
+import { useAtomicTourListener } from '@/hooks/useAtomicTourListener'
+import { buildFinalStepFooter } from '@/lib/atomic-tour-final-step'
 
 /**
  * Interactive tour for the Reservations module overview.
@@ -27,7 +28,7 @@ export function useReservationsTour() {
   const driverRef = useRef<Driver | null>(null)
 
   const buildDriver = useCallback((): Driver => {
-    return driver({
+    const d: Driver = driver({
       popoverClass: 'avoqado-tour-popover',
       showProgress: true,
       allowClose: true,
@@ -86,14 +87,17 @@ export function useReservationsTour() {
             }),
             side: 'right',
             align: 'start',
-            onNextClick: () => {
-              notifyAtomicTourCompleted('reservations-onboarding')
-              driverRef.current?.moveNext()
-            },
+            ...buildFinalStepFooter({
+              tourName: 'reservations-onboarding',
+              cancelLabel: t('tour.cancel', { defaultValue: 'Cancelar' }),
+              doneLabel: t('tour.done', { defaultValue: '¡Listo!' }),
+              homeLabel: t('tour.backToHome', { defaultValue: 'Volver a inicio' }),
+            }),
           },
         },
       ],
     })
+    return d
   }, [t])
 
   const start = useCallback(() => {

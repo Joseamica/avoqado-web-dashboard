@@ -686,6 +686,19 @@ button:focus-visible {
   background: var(--tour-primary-bg-hover);
   border-color: var(--tour-primary-bg-hover);
 }
+/* Custom "Volver a inicio" injectado por buildFinalStepFooter. NO podemos
+ * darle la clase `driver-popover-next-btn` porque driver.js delegate-clicks
+ * la interceptaría como "next" → ejecutaría el handler equivocado. Por eso
+ * inyectamos `.avoqado-tour-home-btn` y replicamos aquí el estilo primary. */
+.avoqado-tour-popover.driver-popover .driver-popover-footer .avoqado-tour-home-btn {
+  background: var(--tour-primary-bg);
+  color: var(--tour-primary-fg);
+  border: 1px solid var(--tour-primary-bg);
+}
+.avoqado-tour-popover.driver-popover .driver-popover-footer .avoqado-tour-home-btn:hover {
+  background: var(--tour-primary-bg-hover);
+  border-color: var(--tour-primary-bg-hover);
+}
 /* Close (circular icon ghost) — 28×28 meets WCAG 2.5.5 AA (24px minimum).
  * driver.js stamps `position: absolute; top: 0; right: 0` on this button via
  * its own rule, so keep that positioning intact and only restyle visuals. */

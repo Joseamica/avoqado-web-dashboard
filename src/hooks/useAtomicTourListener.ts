@@ -23,6 +23,36 @@ import { useEffect, useRef } from 'react'
 const STORAGE_KEY = 'avoqado-tour-autostart'
 const EVENT_NAME = 'avoqado-tour-autostart-check'
 const COMPLETED_EVENT = 'avoqado-tour-completed'
+// Cola de completions pendientes. Se persiste en sessionStorage porque el
+// listener (HomeSetupChecklist) puede no estar mounted cuando el atomic
+// tour completa — ej.: el user clickee "Empezar" en Home → navega a
+// /inventory/ingredients → completa el tour ahí → la Home ya no está
+// renderizada y el window event se dispara al vacío. Al volver a Home,
+// el listener drena esta cola y ejecuta el handler.
+const PENDING_COMPLETIONS_KEY = 'avoqado-tour-completions-pending'
+
+// Path al que regresar después de completar un atomic tour. Se setea
+// cuando el HomeSetupChecklist lanza un tour ("Empezar") y se consume
+// cuando el tour completa, navegando al usuario de vuelta a Home.
+const RETURN_PATH_KEY = 'avoqado-atomic-tour-return-path'
+
+export function setAtomicTourReturnPath(path: string): void {
+  try {
+    sessionStorage.setItem(RETURN_PATH_KEY, path)
+  } catch {
+    /* noop */
+  }
+}
+
+export function consumeAtomicTourReturnPath(): string | null {
+  try {
+    const value = sessionStorage.getItem(RETURN_PATH_KEY)
+    if (value) sessionStorage.removeItem(RETURN_PATH_KEY)
+    return value
+  } catch {
+    return null
+  }
+}
 
 /**
  * Module-level registry of atomic tour `start()` functions, keyed by name.
@@ -86,22 +116,107 @@ export function requestAtomicTour(name: AtomicTourName): void {
  * immediately does NOT mark the step complete.
  */
 export function notifyAtomicTourCompleted(name: AtomicTourName): void {
+  // Persistimos primero en sessionStorage para que un listener que se
+  // monte después (HomeSetupChecklist al regresar de /inventory) pueda
+  // drenar la cola.
+  try {
+    const raw = sessionStorage.getItem(PENDING_COMPLETIONS_KEY)
+    const list = raw ? (JSON.parse(raw) as unknown) : []
+    if (Array.isArray(list)) {
+      list.push(name)
+      sessionStorage.setItem(PENDING_COMPLETIONS_KEY, JSON.stringify(list))
+    }
+  } catch {
+    /* quota / private mode */
+  }
   window.dispatchEvent(new CustomEvent(COMPLETED_EVENT, { detail: { name } }))
 }
 
 /**
  * Subscribe to "atomic tour completed" events. Mount once (e.g. in the
  * welcome tour orchestrator) to react when any atomic tour finishes.
+ *
+ * Al montar también drena cualquier completion pendiente en sessionStorage
+ * — necesario porque el listener puede haber estado desmontado cuando el
+ * tour completó en otra página.
  */
-export function useAtomicTourCompletionListener(handler: (name: AtomicTourName) => void): void {
+export function useAtomicTourCompletionListener(
+  handler: (name: AtomicTourName) => void,
+  options: { enabled?: boolean } = {},
+): void {
+  const { enabled = true } = options
+  // Ref para que el cleanup del effect no dependa de la identidad del
+  // handler (que típicamente es una función inline que cambia cada render).
+  const handlerRef = useRef(handler)
+  handlerRef.current = handler
+
   useEffect(() => {
+    // Esperamos a que el caller esté listo (típicamente: state cargado del
+    // backend) antes de drenar. Si drenáramos antes de isLoaded, markDone()
+    // operaría sobre un state DEFAULT y luego la respuesta del backend lo
+    // sobrescribiría, perdiendo nuestra marca.
+    if (!enabled) return
+
+    // Drain la cola persistida — es donde aterrizan las completions hechas
+    // mientras este listener no estaba montado.
+    let pending: AtomicTourName[] = []
+    try {
+      const raw = sessionStorage.getItem(PENDING_COMPLETIONS_KEY)
+      if (raw) {
+        const list = JSON.parse(raw) as unknown
+        if (Array.isArray(list)) pending = list as AtomicTourName[]
+        sessionStorage.removeItem(PENDING_COMPLETIONS_KEY)
+      }
+    } catch {
+      /* noop */
+    }
+    pending.forEach(name => handlerRef.current(name))
+
     const wrapped = (event: Event) => {
       const detail = (event as CustomEvent<{ name: AtomicTourName }>).detail
-      if (detail?.name) handler(detail.name)
+      if (!detail?.name) return
+      // Si el listener YA está montado y procesa el event vivo, removemos
+      // la entry correspondiente de sessionStorage para que no se vuelva
+      // a procesar en el próximo mount.
+      try {
+        const raw = sessionStorage.getItem(PENDING_COMPLETIONS_KEY)
+        if (raw) {
+          const list = JSON.parse(raw) as unknown
+          if (Array.isArray(list)) {
+            const idx = list.indexOf(detail.name)
+            if (idx >= 0) list.splice(idx, 1)
+            if (list.length === 0) sessionStorage.removeItem(PENDING_COMPLETIONS_KEY)
+            else sessionStorage.setItem(PENDING_COMPLETIONS_KEY, JSON.stringify(list))
+          }
+        }
+      } catch {
+        /* noop */
+      }
+      handlerRef.current(detail.name)
     }
     window.addEventListener(COMPLETED_EVENT, wrapped)
     return () => window.removeEventListener(COMPLETED_EVENT, wrapped)
-  }, [handler])
+  }, [enabled])
+}
+
+/**
+ * Listener "peek": escucha eventos de atomic tour completed pero NO drena
+ * la cola persistida ni elimina del sessionStorage. Útil para componentes
+ * globales (ej.: el orquestador de "regresar a Home") que necesitan
+ * reaccionar sin robarle el evento al listener canónico que sí drena.
+ */
+export function usePeekAtomicTourCompletion(handler: (name: AtomicTourName) => void): void {
+  const handlerRef = useRef(handler)
+  handlerRef.current = handler
+
+  useEffect(() => {
+    const wrapped = (event: Event) => {
+      const detail = (event as CustomEvent<{ name: AtomicTourName }>).detail
+      if (detail?.name) handlerRef.current(detail.name)
+    }
+    window.addEventListener(COMPLETED_EVENT, wrapped)
+    return () => window.removeEventListener(COMPLETED_EVENT, wrapped)
+  }, [])
 }
 
 /**

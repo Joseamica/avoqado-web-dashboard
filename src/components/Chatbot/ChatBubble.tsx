@@ -61,21 +61,26 @@ import { Switch } from '../../components/ui/switch'
 import { Textarea } from '../../components/ui/textarea'
 import { useToast } from '../../hooks/use-toast'
 import { ChatChart } from './ChatChart'
+import { parseMessageText } from './messageText'
 import {
   addMessageToHistory,
   clearConversationHistory,
   confirmAssistantAction,
   createNewConversation,
   deleteConversation,
+  deleteRemoteConversation,
+  fetchSavedConversations,
   getConversationHistory,
   getCurrentConversationId,
   getSavedConversations,
   getUsageStats,
   isVisualizationSkipped,
   loadConversation,
+  loadRemoteConversation,
   previewAssistantAction,
   saveConversation,
   sendChatMessage,
+  setCurrentConversationIdLocal,
   submitFeedback,
   submitFeedbackWithCorrection,
   isChatFeatureLockedError,
@@ -205,30 +210,6 @@ function convertHistoryToMessages(history: any[], welcomeText: string): ChatMess
   return messages
 }
 
-// Helper function to parse markdown-style bold text (**text**) into Badge components
-function parseMessageText(text: string, isUserMessage: boolean): React.ReactNode {
-  // Split by **text** pattern, keeping the captured groups
-  const parts = text.split(/(\*\*[^*]+\*\*)/g)
-
-  if (parts.length === 1) {
-    // No bold text found, return as-is
-    return text
-  }
-
-  return parts.map((part, index) => {
-    // Check if this part is a bold text (surrounded by **)
-    if (part.startsWith('**') && part.endsWith('**')) {
-      const content = part.slice(2, -2)
-      return (
-        <Badge key={index} variant={isUserMessage ? 'secondary' : 'default'} className="mx-0.5 text-xs py-0.5 px-1.5">
-          {content}
-        </Badge>
-      )
-    }
-    return part
-  })
-}
-
 const getCreateProductFormFromAction = (action: CreateProductActionMetadata): CreateProductFormState => {
   return {
     name: action.draft.name || '',
@@ -252,13 +233,7 @@ const getGenericActionFormDefaults = (fields?: AssistantActionFormField[]): Gene
 }
 
 // Chat interface component inside the same file to avoid TypeScript module errors
-function ChatInterface({
-  onClose,
-  initialMessage,
-}: {
-  onClose: () => void
-  initialMessage?: { id: number; text: string } | null
-}) {
+function ChatInterface({ onClose, initialMessage }: { onClose: () => void; initialMessage?: { id: number; text: string } | null }) {
   const { t, i18n } = useTranslation()
   const { t: tCommon } = useTranslation('common')
   const { slug } = useParams<{ slug: string }>()
@@ -341,6 +316,24 @@ function ChatInterface({
     return getTokenWarningLevel(tokenBudget)
   }, [tokenBudget])
 
+  useEffect(() => {
+    let isMounted = true
+
+    fetchSavedConversations(venueSlug, userId)
+      .then(conversations => {
+        if (isMounted) {
+          setSavedConversations(conversations)
+        }
+      })
+      .catch(error => {
+        devLog('Could not load remote chat conversations, using local cache:', error)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [venueSlug, userId])
+
   // Check if there's something to save or clear
   const canSaveConversation = useMemo(() => {
     const hasUserMessages = messages.some(msg => msg.isUser)
@@ -380,10 +373,12 @@ function ChatInterface({
       message,
       withVisualization,
       referencesContext,
+      conversationId,
     }: {
       message: string
       withVisualization: boolean
       referencesContext?: string
+      conversationId?: string | null
     }) => {
       // Debug: verificar estado de autenticación antes de enviar
       devLog('Enviando mensaje al asistente:', message, {
@@ -391,7 +386,13 @@ function ChatInterface({
         includeVisualization: withVisualization,
         hasReferences: !!referencesContext,
       })
-      return await sendChatMessage(message, { venueSlug, userId, includeVisualization: withVisualization, referencesContext })
+      return await sendChatMessage(message, {
+        venueSlug,
+        userId,
+        conversationId,
+        includeVisualization: withVisualization,
+        referencesContext,
+      })
     },
     onError: (error: Error) => {
       console.error('Chat error:', error)
@@ -631,6 +632,7 @@ function ChatInterface({
     try {
       createNewConversation(venueSlug, userId)
       setCurrentConversationId(null)
+      setCurrentConversationIdLocal(null, venueSlug, userId)
       setSavedConversations(getSavedConversations(venueSlug, userId))
       setLastSavedMessageCount(0)
 
@@ -661,7 +663,7 @@ function ChatInterface({
         setIsCreatingNew(false)
       }, 1000)
     }
-  }, [toast, t, venueSlug])
+  }, [toast, t, venueSlug, userId])
 
   const handleNewConversation = useCallback(() => {
     if (isCreatingNew) return
@@ -688,26 +690,32 @@ function ChatInterface({
 
   // Función que ejecuta la carga de conversación
   const performLoadConversation = useCallback(
-    (conversationId: string) => {
-      if (loadConversation(conversationId, venueSlug, userId)) {
-        const history = getConversationHistory(venueSlug, userId)
+    async (conversationId: string) => {
+      const remoteConversation = await loadRemoteConversation(conversationId, venueSlug, userId).catch(error => {
+        devLog('Could not load remote conversation, trying local cache:', error)
+        return null
+      })
+
+      if (remoteConversation || loadConversation(conversationId, venueSlug, userId)) {
+        const history = remoteConversation?.history || getConversationHistory(venueSlug, userId)
         const convertedMessages = convertHistoryToMessages(history, t('chat.welcome'))
         setMessages(convertedMessages)
         setProductActionForms({})
         setGenericActionForms({})
         setCurrentConversationId(conversationId)
+        setCurrentConversationIdLocal(conversationId, venueSlug, userId)
 
         const currentMessageCount = convertedMessages.filter(msg => msg.id !== 'welcome').length
         setLastSavedMessageCount(currentMessageCount)
 
-        const conversation = savedConversations.find(conv => conv.id === conversationId)
+        const conversation = remoteConversation || savedConversations.find(conv => conv.id === conversationId)
         toast({
           title: t('chat.toast.conversationLoaded.title'),
           description: t('chat.toast.conversationLoaded.desc', { title: conversation?.title }),
         })
       }
     },
-    [savedConversations, toast, t, venueSlug],
+    [savedConversations, toast, t, venueSlug, userId],
   )
 
   const handleLoadConversation = useCallback(
@@ -730,10 +738,14 @@ function ChatInterface({
     setShowDeleteConfirm(true)
   }, [])
 
-  const confirmDeleteConversation = useCallback(() => {
+  const confirmDeleteConversation = useCallback(async () => {
     if (!conversationToDelete) return
 
     const conversation = savedConversations.find(conv => conv.id === conversationToDelete)
+
+    await deleteRemoteConversation(conversationToDelete).catch(error => {
+      devLog('Could not delete remote conversation, deleting local cache only:', error)
+    })
 
     if (deleteConversation(conversationToDelete, venueSlug, userId)) {
       setSavedConversations(getSavedConversations(venueSlug, userId))
@@ -751,6 +763,7 @@ function ChatInterface({
         setProductActionForms({})
         setGenericActionForms({})
         setCurrentConversationId(null)
+        setCurrentConversationIdLocal(null, venueSlug, userId)
       }
 
       toast({
@@ -760,7 +773,7 @@ function ChatInterface({
     }
 
     setConversationToDelete(null)
-  }, [conversationToDelete, savedConversations, currentConversationId, toast, t, venueSlug])
+  }, [conversationToDelete, savedConversations, currentConversationId, toast, t, venueSlug, userId])
 
   // Handle feedback dialog submission
   const handleFeedbackSubmit = useCallback(
@@ -868,10 +881,14 @@ function ChatInterface({
 
       // Use TanStack Query mutation to send the message
       chatMutation.mutate(
-        { message: backendMessage, withVisualization: includeVisualization, referencesContext },
+        { message: backendMessage, withVisualization: includeVisualization, referencesContext, conversationId: currentConversationId },
         {
           onSuccess: result => {
             setFeatureLockNotice(null)
+            if (result.conversationId && result.conversationId !== currentConversationId) {
+              setCurrentConversationId(result.conversationId)
+              setCurrentConversationIdLocal(result.conversationId, venueSlug, userId)
+            }
             const botMessage: ChatMessage = {
               id: `bot-${Date.now()}`,
               text: result.response,
@@ -891,6 +908,9 @@ function ChatInterface({
             // Add bot message to UI and localStorage
             setMessages(prev => [...prev, botMessage])
             addMessageToHistory('assistant', result.response, venueSlug, result.trainingDataId, userId)
+            fetchSavedConversations(venueSlug, userId)
+              .then(setSavedConversations)
+              .catch(error => devLog('Could not refresh remote conversations:', error))
 
             const action = result.metadata?.action
             if (action?.type === 'create_product' && action.stage === 'collect') {
@@ -928,7 +948,7 @@ function ChatInterface({
         },
       )
     },
-    [chatMutation, includeVisualization, queryClient, toast, venueSlug, referenceCount, getContextPrompt],
+    [chatMutation, includeVisualization, queryClient, toast, venueSlug, userId, referenceCount, getContextPrompt, currentConversationId],
   )
 
   // Initial message handling for messages dispatched from outside the panel

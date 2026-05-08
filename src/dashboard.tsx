@@ -27,6 +27,8 @@ import { ImpersonationScreenRing } from './components/impersonation/Impersonatio
 import { ImpersonationErrorListener } from './components/impersonation/ImpersonationErrorListener'
 import { useInventoryWelcomeTourOrchestrator } from './hooks/useInventoryWelcomeTour'
 import { useAutoLaunchPlatformWelcomeTour } from './hooks/useAutoLaunchPlatformWelcomeTour'
+import { consumeAtomicTourReturnPath, usePeekAtomicTourCompletion } from './hooks/useAtomicTourListener'
+import { useHomeChecklistAutoMark } from './hooks/useHomeChecklistAutoMark'
 import { useTranslation } from 'react-i18next'
 import { BreadcrumbProvider, useBreadcrumb } from './context/BreadcrumbContext'
 import { ChatReferencesProvider } from './context/ChatReferencesContext'
@@ -72,6 +74,39 @@ function DashboardContent() {
   // between pages, so the resume effect inside the hook can re-create
   // driver.js on each matching page.
   useAutoLaunchPlatformWelcomeTour()
+
+  // Marca pasos del HomeSetupChecklist como done apenas un atomic tour
+  // notifica completion. Listener cross-page (siempre vivo aquí en el
+  // dashboard shell) — así no dependemos de que la Home esté montada en
+  // el momento exacto del notify.
+  useHomeChecklistAutoMark()
+
+  // Cuando un atomic tour completa, si el HomeSetupChecklist había
+  // registrado un return path antes de lanzarlo, regresamos al usuario a
+  // esa ruta (típicamente Home). Pequeño delay para que el último popover
+  // del tour termine de cerrarse antes del navigate. Usamos peek (no
+  // drena la cola) para que HomeSetupChecklist al re-montar siga
+  // recibiendo la completion y pueda marcar el step como done.
+  usePeekAtomicTourCompletion(() => {
+    const returnPath = consumeAtomicTourReturnPath()
+    if (!returnPath) return
+    window.setTimeout(() => navigate(returnPath), 150)
+  })
+
+  // Persistimos el fullBasePath actual del venue en sessionStorage para
+  // que handlers DOM no-React (ej.: el botón "Volver a inicio" inyectado
+  // dentro de un popover de driver.js) puedan leerlo sin tener acceso a
+  // hooks. La ruta cambia cuando el user cambia de venue.
+  useEffect(() => {
+    if (!venueSlug) return
+    const isWl = location.pathname.startsWith('/wl/')
+    const path = isWl ? `/wl/venues/${venueSlug}` : `/venues/${venueSlug}`
+    try {
+      sessionStorage.setItem('avoqado-current-venue-base-path', path)
+    } catch {
+      /* noop */
+    }
+  }, [venueSlug, location.pathname])
 
   // Command palette state
   const [commandOpen, setCommandOpen] = useState(false)

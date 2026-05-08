@@ -9,7 +9,7 @@ import { useOnboardingKey } from '@/hooks/useOnboardingState'
 import { usePlatformWelcomeTour } from '@/hooks/usePlatformWelcomeTour'
 import {
   requestAtomicTour,
-  useAtomicTourCompletionListener,
+  setAtomicTourReturnPath,
   type AtomicTourName,
 } from '@/hooks/useAtomicTourListener'
 import { cn } from '@/lib/utils'
@@ -57,7 +57,11 @@ const STEPS: StepConfig[] = [
     id: 'inventory',
     titleKey: 'newHome.setup.steps.inventory.title',
     descriptionKey: 'newHome.setup.steps.inventory.description',
-    path: 'inventory',
+    // Navega a /ingredients (RawMaterials) — ahí está montado el listener
+    // de useAtomicTourListener('ingredient'). Si apuntáramos solo a
+    // /inventory caería en stock-overview que NO tiene el listener y el
+    // tour nunca se accionaría.
+    path: 'inventory/ingredients',
     atomicTour: 'ingredient',
     canSkip: true,
   },
@@ -126,17 +130,18 @@ export function HomeSetupChecklist() {
   }
 
   const handleStart = (step: StepConfig) => {
+    // Antes de salir de Home, recordamos a dónde regresar cuando el atomic
+    // tour complete. El orquestador (montado en dashboard.tsx) consume este
+    // valor y navega de vuelta automáticamente.
+    if (fullBasePath) setAtomicTourReturnPath(fullBasePath)
     if (step.atomicTour) requestAtomicTour(step.atomicTour)
     if (fullBasePath) navigate(`${fullBasePath}/${step.path}`)
   }
 
-  // Auto-mark steps done when their atomic tour completes
-  useAtomicTourCompletionListener(name => {
-    const step = STEPS.find(s => s.atomicTour === name)
-    if (!step) return
-    if (state.steps[step.id]?.done) return
-    markDone(step.id)
-  })
+  // El auto-marking de steps al completar un atomic tour ahora vive en
+  // dashboard.tsx (`useHomeChecklistAutoMark`) — listener siempre montado
+  // cross-page para no perderse el evento mientras el user está fuera de
+  // Home recorriendo el tour.
 
   if (!isLoaded || state.dismissed || allDone) return null
 
@@ -218,70 +223,62 @@ export function HomeSetupChecklist() {
         {STEPS.map((step, index) => {
           const done = !!state.steps[step.id]?.done
           const isActive = !done && index === activeIndex
-          const isNext = !done && index === activeIndex + 1
-          const isLocked = !done && !isActive && !isNext
 
-          // Toda la row es clickable — re-dispara el tour de esa sección
-          // sin importar el estado (active, next, locked o done). El usuario
-          // puede repasar cualquier paso cuando quiera.
+          // Visualmente solo distinguimos done vs not-done:
+          //  - done: tachado + check + NO clickable (evita relanzar el tour
+          //    accidentalmente; el usuario que quiera repasar puede ir al
+          //    módulo directamente).
+          //  - not-done: row clickable, texto en color foreground, descripción
+          //    visible y botón Empezar a la derecha (+ Omitir si aplica).
           return (
             <div
               key={step.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => handleStart(step)}
-              onKeyDown={event => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault()
-                  handleStart(step)
-                }
-              }}
-              className="group/row flex cursor-pointer items-start gap-4 py-5 first:pt-0 last:pb-0"
+              role={done ? undefined : 'button'}
+              tabIndex={done ? undefined : 0}
+              onClick={done ? undefined : () => handleStart(step)}
+              onKeyDown={
+                done
+                  ? undefined
+                  : event => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        handleStart(step)
+                      }
+                    }
+              }
+              className={cn(
+                'group/row flex items-start gap-4 py-5 first:pt-0 last:pb-0',
+                done ? 'cursor-default' : 'cursor-pointer',
+              )}
             >
               <div className="min-w-0 flex-1">
                 <p
                   className={cn(
                     'text-base font-semibold transition-colors',
-                    done && 'line-through text-background/40 dark:text-muted-foreground',
-                    isLocked && 'text-background/60 dark:text-muted-foreground',
-                    'group-hover/row:underline group-hover/row:underline-offset-4',
+                    done
+                      ? 'line-through text-background/40 dark:text-muted-foreground'
+                      : 'group-hover/row:underline group-hover/row:underline-offset-4',
                   )}
                 >
                   {t(step.titleKey)}
                 </p>
-                {(isActive || isNext) && (
+                {!done && (
                   <p className="mt-1 text-sm text-background/70 dark:text-muted-foreground">{t(step.descriptionKey)}</p>
                 )}
               </div>
 
               <div className="flex shrink-0 items-center gap-3">
-                {done && (
+                {done ? (
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-background/15 text-background dark:bg-muted dark:text-foreground">
                     <Check className="h-4 w-4" />
                   </span>
-                )}
-
-                {isActive && (
+                ) : (
                   <>
-                    <span className="rounded-full bg-blue-500/15 px-2.5 py-1 text-xs font-medium text-blue-600 dark:text-blue-300">
-                      {t('newHome.setup.inProgress')}
-                    </span>
-                    <Button
-                      type="button"
-                      onClick={() => handleStart(step)}
-                      className={cn(
-                        'h-9 cursor-pointer rounded-full px-5 text-sm font-semibold',
-                        'bg-background text-foreground hover:bg-background/90',
-                        'dark:bg-foreground dark:text-background dark:hover:bg-foreground/90',
-                      )}
-                    >
-                      {t('newHome.setup.start')}
-                    </Button>
-                  </>
-                )}
-
-                {isNext && (
-                  <>
+                    {isActive && (
+                      <span className="rounded-full bg-blue-500/15 px-2.5 py-1 text-xs font-medium text-blue-600 dark:text-blue-300">
+                        {t('newHome.setup.inProgress')}
+                      </span>
+                    )}
                     {step.canSkip && (
                       <button
                         type="button"
@@ -302,23 +299,19 @@ export function HomeSetupChecklist() {
                     )}
                     <Button
                       type="button"
-                      onClick={() => handleStart(step)}
-                      variant="secondary"
+                      onClick={event => {
+                        event.stopPropagation()
+                        handleStart(step)
+                      }}
                       className={cn(
                         'h-9 cursor-pointer rounded-full px-5 text-sm font-semibold',
-                        'bg-background/15 text-background hover:bg-background/25',
-                        'dark:bg-muted dark:text-foreground dark:hover:bg-muted/70',
+                        'bg-background text-foreground hover:bg-background/90',
+                        'dark:bg-foreground dark:text-background dark:hover:bg-foreground/90',
                       )}
                     >
                       {t('newHome.setup.start')}
                     </Button>
                   </>
-                )}
-
-                {isLocked && (
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full border border-background/30 text-background/40 dark:border-border dark:text-muted-foreground">
-                    <Check className="h-3.5 w-3.5" />
-                  </span>
                 )}
               </div>
             </div>

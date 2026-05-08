@@ -130,7 +130,7 @@ interface DailyUsage {
   count: number
 }
 
-interface SavedConversation {
+export interface SavedConversation {
   id: string
   title: string
   lastMessage: string
@@ -174,6 +174,8 @@ interface ChatResponse {
   response: string
   suggestions?: string[]
   cached?: boolean
+  conversationId?: string
+  messageId?: string
   trainingDataId?: string
   visualization?: VisualizationResult
   tokenUsage?: {
@@ -517,6 +519,7 @@ const generateVenueChangeContext = (previousVenue: string | null, currentVenue: 
 interface SendChatMessageOptions {
   venueSlug?: string | null
   userId?: string | null
+  conversationId?: string | null
   includeVisualization?: boolean
   referencesContext?: string // AI references context prompt
 }
@@ -640,6 +643,9 @@ export const sendChatMessage = async (message: string, options?: SendChatMessage
     if (targetUserId) {
       payload.userId = targetUserId
     }
+    if (options?.conversationId) {
+      payload.conversationId = options.conversationId
+    }
     if (options?.includeVisualization) {
       payload.includeVisualization = true
     }
@@ -694,6 +700,8 @@ export const sendChatMessage = async (message: string, options?: SendChatMessage
       response: aiResponse,
       suggestions,
       cached: false,
+      conversationId: result.conversationId,
+      messageId: result.messageId,
       metadata: safeMetadata,
       trainingDataId: result.trainingDataId,
       visualization: result.visualization,
@@ -1139,6 +1147,78 @@ export const getCurrentConversationId = (venueSlug?: string | null, userId?: str
   const currentUserId = userId ?? getCurrentUserId()
   const currentConversationKey = getUserVenueSpecificKey(STORAGE_KEYS.CURRENT_CONVERSATION, currentVenue, currentUserId)
   return localStorage.getItem(currentConversationKey)
+}
+
+export const setCurrentConversationIdLocal = (conversationId: string | null, venueSlug?: string | null, userId?: string | null): void => {
+  const currentVenue = venueSlug ?? getCurrentVenueSlug()
+  const currentUserId = userId ?? getCurrentUserId()
+  const currentConversationKey = getUserVenueSpecificKey(STORAGE_KEYS.CURRENT_CONVERSATION, currentVenue, currentUserId)
+
+  if (conversationId) {
+    localStorage.setItem(currentConversationKey, conversationId)
+  } else {
+    localStorage.removeItem(currentConversationKey)
+  }
+}
+
+export const fetchSavedConversations = async (venueSlug?: string | null, userId?: string | null): Promise<SavedConversation[]> => {
+  const response = await api.get('/api/v1/dashboard/assistant/conversations', { params: { limit: 20 } })
+  const conversations = response.data?.data?.conversations || []
+
+  const mapped = conversations.map((conversation: any) => ({
+    id: conversation.id,
+    title: conversation.title || 'Nueva conversación',
+    lastMessage: conversation.lastMessage || '',
+    timestamp: new Date(conversation.updatedAt),
+    history: [],
+  }))
+
+  try {
+    const conversationsKey = getUserVenueSpecificKey(
+      STORAGE_KEYS.CONVERSATIONS_LIST,
+      venueSlug ?? getCurrentVenueSlug(),
+      userId ?? getCurrentUserId(),
+    )
+    localStorage.setItem(conversationsKey, JSON.stringify(mapped))
+  } catch (error) {
+    console.warn('Error caching remote conversations:', error)
+  }
+
+  return mapped
+}
+
+export const loadRemoteConversation = async (
+  conversationId: string,
+  venueSlug?: string | null,
+  userId?: string | null,
+): Promise<SavedConversation | null> => {
+  const response = await api.get(`/api/v1/dashboard/assistant/conversations/${conversationId}`)
+  const conversation = response.data?.data
+  if (!conversation) return null
+
+  const history: ConversationEntry[] = (conversation.messages || [])
+    .filter((message: any) => message.role === 'user' || message.role === 'assistant')
+    .map((message: any) => ({
+      role: message.role,
+      content: message.content,
+      timestamp: new Date(message.createdAt),
+      trainingDataId: message.trainingDataId || undefined,
+    }))
+
+  saveConversationHistory(history, venueSlug, userId)
+  setCurrentConversationIdLocal(conversation.id, venueSlug, userId)
+
+  return {
+    id: conversation.id,
+    title: conversation.title || 'Nueva conversación',
+    lastMessage: conversation.lastMessage || '',
+    timestamp: new Date(conversation.updatedAt),
+    history,
+  }
+}
+
+export const deleteRemoteConversation = async (conversationId: string): Promise<void> => {
+  await api.delete(`/api/v1/dashboard/assistant/conversations/${conversationId}`)
 }
 
 // Submit feedback for AI assistant responses
