@@ -14,7 +14,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, ZoomIn, ZoomOut, RotateCcw, RotateCw } from 'lucide-react'
 import { useCallback, useEffect, useState, useRef } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -390,7 +390,7 @@ export default function ContactImages() {
             <fieldset disabled={!canEdit} className={!canEdit ? 'opacity-80' : undefined}>
               <div className="space-y-1 mb-6">
                 <h3 className="text-lg font-semibold">{t('edit.sections.contact')}</h3>
-                <p className="text-sm text-muted-foreground">Contacto, imágenes y personalización visual de tu establecimiento</p>
+                <p className="text-sm text-muted-foreground">{t('edit.subtitles.contact')}</p>
               </div>
               <Separator className="mb-6" />
 
@@ -456,7 +456,7 @@ export default function ContactImages() {
 
                       {field.value ? (
                         <div className="mt-2 space-y-2">
-                          <div className="rounded-lg overflow-hidden border border-border bg-muted">
+                          <div className="rounded-lg overflow-hidden bg-muted">
                             <img
                               src={field.value}
                               alt=""
@@ -552,6 +552,7 @@ export default function ContactImages() {
                           onChange={field.onChange}
                         />
                       </FormControl>
+                      <BookingBrandPreview control={form.control} venueName={venue?.name ?? 'Tu venue'} />
                       <FormMessage />
                     </FormItem>
                   )}
@@ -662,7 +663,7 @@ export default function ContactImages() {
                               {/* Zoom slider */}
                               <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-sm font-medium">Zoom</span>
+                                  <span className="text-sm font-medium">{t('edit.cropper.zoom', { defaultValue: 'Zoom' })}</span>
                                   <span className="text-xs text-muted-foreground">{Math.round(zoom * 100)}%</span>
                                 </div>
                                 <div className="flex items-center gap-3">
@@ -700,7 +701,7 @@ export default function ContactImages() {
                               {/* Rotation controls */}
                               <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-sm font-medium">Rotacion</span>
+                                  <span className="text-sm font-medium">{t('edit.cropper.rotation', { defaultValue: 'Rotación' })}</span>
                                   <span className="text-xs text-muted-foreground">{rotation}°</span>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -725,14 +726,16 @@ export default function ContactImages() {
                                     +90°
                                   </Button>
                                   <Button type="button" variant="ghost" size="sm" onClick={handleResetTransform} className="ml-auto">
-                                    Restablecer
+                                    {t('edit.cropper.reset', { defaultValue: 'Restablecer' })}
                                   </Button>
                                 </div>
                               </div>
 
                               {/* Info text */}
                               <p className="text-xs text-muted-foreground text-center">
-                                Arrastra para mover la imagen. Usa la rueda del mouse o el slider para hacer zoom.
+                                {t('edit.cropper.instructions', {
+                                  defaultValue: 'Arrastra para mover la imagen. Usa la rueda del mouse o el slider para hacer zoom.',
+                                })}
                               </p>
                             </div>
 
@@ -787,6 +790,93 @@ export default function ContactImages() {
             </fieldset>
           </form>
         </Form>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Phase 12: live preview of how the chosen brand color + hero photo will
+ * render on book.avoqado.io. Re-renders as the admin types/picks values via
+ * useWatch so they don't have to save + visit the public site to verify.
+ *
+ * The mini mockup is a faithful approximation of the widget's landing CTAs
+ * and a class session row — same proportions and spacing so the preview
+ * matches what the customer will actually see, without iframe-ing the live
+ * widget (which would need data + venue to exist).
+ */
+function BookingBrandPreview({
+  control,
+  venueName,
+}: {
+  control: any
+  venueName: string
+}) {
+  const primaryColor = useWatch({ control, name: 'primaryColor' }) as string | undefined
+  const heroImageUrl = useWatch({ control, name: 'heroImageUrl' }) as string | undefined
+  const accent = (primaryColor && primaryColor.trim()) || '#6366F1'
+  const isHexish = /^#?([0-9a-fA-F]{3,8})$/.test(accent)
+
+  return (
+    <div className="mt-3 rounded-xl border border-border bg-muted/40 overflow-hidden">
+      <div className="px-3 py-2 border-b border-border bg-muted/60 flex items-center justify-between">
+        <span className="text-xs font-medium text-muted-foreground tracking-wide uppercase">
+          Vista previa en book.avoqado.io
+        </span>
+        <span className="text-[10px] font-mono text-muted-foreground/80">
+          {isHexish ? accent : 'usando default'}
+        </span>
+      </div>
+
+      <div className="p-4 space-y-3">
+        {/* Hero strip */}
+        <div
+          className="relative w-full h-24 rounded-lg overflow-hidden flex items-end p-3"
+          style={{
+            backgroundImage: heroImageUrl
+              ? `linear-gradient(180deg, rgba(0,0,0,0) 50%, rgba(0,0,0,0.6) 100%), url('${heroImageUrl}')`
+              : `linear-gradient(135deg, ${accent}, color-mix(in srgb, ${accent} 65%, #000))`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        >
+          <span className="text-white font-semibold text-sm" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
+            {venueName}
+          </span>
+        </div>
+
+        {/* Sample class row */}
+        <div className="flex items-center gap-3 rounded-lg bg-background border border-border p-3">
+          <div
+            className="w-9 h-9 rounded-md flex items-center justify-center text-[11px] font-bold text-white shrink-0"
+            style={{ background: accent }}
+          >
+            09:00
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-foreground truncate">Yoga Vinyasa</div>
+            <div className="text-[11px] text-muted-foreground truncate">María G. · 60 min</div>
+          </div>
+          <span
+            className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+            style={{
+              background: `color-mix(in srgb, ${accent} 14%, transparent)`,
+              color: accent,
+            }}
+          >
+            8 disponibles
+          </span>
+        </div>
+
+        {/* Sample CTA */}
+        <button
+          type="button"
+          tabIndex={-1}
+          className="w-full text-center py-2.5 text-sm font-semibold text-white rounded-md cursor-default"
+          style={{ background: accent }}
+        >
+          Reservar lugar
+        </button>
       </div>
     </div>
   )
