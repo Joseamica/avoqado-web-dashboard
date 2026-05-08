@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAtomicTourListener } from '@/hooks/useAtomicTourListener'
 import { buildFinalStepFooter } from '@/lib/atomic-tour-final-step'
+import { getTourStepIndex, setTourStepIndex } from '@/lib/tour-progress'
 
 /**
  * Interactive tour for inviting team members.
@@ -65,6 +66,9 @@ export function useTeamInvitationTour() {
       progressText: t('tour.progress', { defaultValue: 'Paso {{current}} de {{total}}' }),
       onDestroyed: () => {
         document.body.classList.remove('tour-active')
+      },
+      onHighlightStarted: (_el, _step, opts) => {
+        setTourStepIndex('team-invitation', opts.state.activeIndex ?? 0)
       },
       steps: [
         {
@@ -146,7 +150,7 @@ export function useTeamInvitationTour() {
     document.body.classList.add('tour-active')
     driverRef.current?.destroy()
     driverRef.current = buildDriver()
-    driverRef.current.drive()
+    driverRef.current.drive(getTourStepIndex('team-invitation'))
   }, [buildDriver])
 
   useAtomicTourListener('team-invitation', start)

@@ -19,6 +19,8 @@ type StepId = 'catalog' | 'inventory' | 'team' | 'tpv' | 'reservations'
 interface StepState {
   done: boolean
   doneAt?: string
+  /** El usuario ya clickeó "Empezar" pero el tour aún no se completa. */
+  inProgress?: boolean
 }
 
 interface ChecklistState {
@@ -130,6 +132,19 @@ export function HomeSetupChecklist() {
   }
 
   const handleStart = (step: StepConfig) => {
+    // Marcamos el step como inProgress para que el badge "En curso"
+    // persista cross-navegación. El auto-mark al completar lo limpia.
+    if (!state.steps[step.id]?.done) {
+      patch({
+        steps: {
+          ...state.steps,
+          [step.id]: {
+            ...(state.steps[step.id] ?? { done: false }),
+            inProgress: true,
+          },
+        },
+      })
+    }
     // Antes de salir de Home, recordamos a dónde regresar cuando el atomic
     // tour complete. El orquestador (montado en dashboard.tsx) consume este
     // valor y navega de vuelta automáticamente.
@@ -144,8 +159,6 @@ export function HomeSetupChecklist() {
   // Home recorriendo el tour.
 
   if (!isLoaded || state.dismissed || allDone) return null
-
-  const activeIndex = STEPS.findIndex(s => !state.steps[s.id]?.done)
 
   // Square-style "set up your business" card. The card uses high-contrast
   // tokens that flip per theme:
@@ -220,9 +233,13 @@ export function HomeSetupChecklist() {
       </button>
 
       <div className="mt-6 divide-y divide-background/10 dark:divide-border">
-        {STEPS.map((step, index) => {
+        {STEPS.map(step => {
           const done = !!state.steps[step.id]?.done
-          const isActive = !done && index === activeIndex
+          // "En curso" persiste en el backend a partir del primer click en
+          // "Empezar" — cualquier step pendiente con inProgress muestra el
+          // badge, aunque el user salga del tour. Al re-clickear, el tour
+          // reanuda desde el step donde quedó (sessionStorage).
+          const isActive = !done && !!state.steps[step.id]?.inProgress
 
           // Filas siempre clickeables — incluso completadas, para que el
           // usuario pueda repetir el tour cuando quiera. El estado done se

@@ -5,6 +5,7 @@ import {
   setAtomicTourReturnPath,
   type AtomicTourName,
 } from '@/hooks/useAtomicTourListener'
+import { clearTourStepIndex, notifyAtomicTourCancelled } from '@/lib/tour-progress'
 
 /**
  * Helper para el último paso de cualquier atomic tour. Reemplaza el footer
@@ -60,12 +61,21 @@ export function buildFinalStepFooter(opts: Options): FinalStepFooterPopoverConfi
   const { tourName, cancelLabel, doneLabel, homeLabel } = opts
 
   const cancel = (driver: Driver) => {
+    // Cancelar = no completion notify, pero el user explícitamente
+    // abandona en el último step → limpiamos el progreso para que el
+    // checklist deje de mostrar "En curso" y el tour no reanude
+    // desde aquí en el próximo intento.
     consumeAtomicTourReturnPath()
+    clearTourStepIndex(tourName)
+    notifyAtomicTourCancelled(tourName)
     driver.destroy()
   }
 
   const done = (driver: Driver) => {
+    // Listo = completion notify pero el user se queda donde está.
+    // Limpiamos el step-index porque el tour quedó completo.
     consumeAtomicTourReturnPath()
+    clearTourStepIndex(tourName)
     notifyAtomicTourCompleted(tourName)
     driver.destroy()
   }
@@ -88,6 +98,7 @@ export function buildFinalStepFooter(opts: Options): FinalStepFooterPopoverConfi
         /* noop */
       }
     }
+    clearTourStepIndex(tourName)
     notifyAtomicTourCompleted(tourName)
     driver.destroy()
   }

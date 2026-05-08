@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAtomicTourListener } from '@/hooks/useAtomicTourListener'
 import { buildFinalStepFooter } from '@/lib/atomic-tour-final-step'
+import { getTourStepIndex, setTourStepIndex } from '@/lib/tour-progress'
 
 /**
  * Interactive onboarding tour for product creation flow.
@@ -75,6 +76,9 @@ export function useProductCreationTour() {
       progressText: t('tour.progress', {
         defaultValue: 'Paso {{current}} de {{total}}',
       }),
+      onHighlightStarted: (_el, _step, opts) => {
+        setTourStepIndex('product', opts.state.activeIndex ?? 0)
+      },
       steps: [
         // 1) Welcome
         {
@@ -328,7 +332,7 @@ export function useProductCreationTour() {
   const start = useCallback(() => {
     driverRef.current?.destroy()
     driverRef.current = buildDriver()
-    driverRef.current.drive()
+    driverRef.current.drive(getTourStepIndex('product'))
   }, [buildDriver])
 
   const stop = useCallback(() => {

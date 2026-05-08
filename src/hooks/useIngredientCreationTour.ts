@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAtomicTourListener } from '@/hooks/useAtomicTourListener'
 import { buildFinalStepFooter } from '@/lib/atomic-tour-final-step'
+import { getTourStepIndex, setTourStepIndex } from '@/lib/tour-progress'
 
 /**
  * Interactive onboarding tour for ingredient (raw material) creation.
@@ -68,6 +69,11 @@ export function useIngredientCreationTour() {
       progressText: t('tour.progress', {
         defaultValue: 'Paso {{current}} de {{total}}',
       }),
+      // Persistimos el step actual en sessionStorage para que el tour
+      // reanude desde aquí si el user lo cierra y lo vuelve a abrir.
+      onHighlightStarted: (_el, _step, opts) => {
+        setTourStepIndex('ingredient', opts.state.activeIndex ?? 0)
+      },
       steps: [
         // 1) Welcome
         {
@@ -238,7 +244,8 @@ export function useIngredientCreationTour() {
   const start = useCallback(() => {
     driverRef.current?.destroy()
     driverRef.current = buildDriver()
-    driverRef.current.drive()
+    // Reanuda desde el step donde el user quedó (sessionStorage).
+    driverRef.current.drive(getTourStepIndex('ingredient'))
   }, [buildDriver])
 
   const stop = useCallback(() => {

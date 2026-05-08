@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAtomicTourListener } from '@/hooks/useAtomicTourListener'
 import { buildFinalStepFooter } from '@/lib/atomic-tour-final-step'
+import { getTourStepIndex, setTourStepIndex } from '@/lib/tour-progress'
 
 /**
  * Interactive tour for the TPV (point-of-sale terminal) page.
@@ -38,6 +39,9 @@ export function useTpvTour() {
       progressText: t('tour.progress', { defaultValue: 'Paso {{current}} de {{total}}' }),
       onDestroyed: () => {
         document.body.classList.remove('tour-active')
+      },
+      onHighlightStarted: (_el, _step, opts) => {
+        setTourStepIndex('tpv-onboarding', opts.state.activeIndex ?? 0)
       },
       steps: [
         {
@@ -88,7 +92,7 @@ export function useTpvTour() {
     document.body.classList.add('tour-active')
     driverRef.current?.destroy()
     driverRef.current = buildDriver()
-    driverRef.current.drive()
+    driverRef.current.drive(getTourStepIndex('tpv-onboarding'))
   }, [buildDriver])
 
   useAtomicTourListener('tpv-onboarding', start)

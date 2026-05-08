@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAtomicTourListener } from '@/hooks/useAtomicTourListener'
 import { buildFinalStepFooter } from '@/lib/atomic-tour-final-step'
+import { getTourStepIndex, setTourStepIndex } from '@/lib/tour-progress'
 
 /**
  * Interactive tour for the Reservations module overview.
@@ -42,6 +43,9 @@ export function useReservationsTour() {
       progressText: t('tour.progress', { defaultValue: 'Paso {{current}} de {{total}}' }),
       onDestroyed: () => {
         document.body.classList.remove('tour-active')
+      },
+      onHighlightStarted: (_el, _step, opts) => {
+        setTourStepIndex('reservations-onboarding', opts.state.activeIndex ?? 0)
       },
       steps: [
         {
@@ -104,7 +108,7 @@ export function useReservationsTour() {
     document.body.classList.add('tour-active')
     driverRef.current?.destroy()
     driverRef.current = buildDriver()
-    driverRef.current.drive()
+    driverRef.current.drive(getTourStepIndex('reservations-onboarding'))
   }, [buildDriver])
 
   useAtomicTourListener('reservations-onboarding', start)
