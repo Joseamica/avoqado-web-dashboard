@@ -50,7 +50,7 @@
   "cardType": {
     "debit": "Débito",
     "credit": "Crédito",
-    "amex": "American Express",
+    "amex": "Amex",
     "international": "Internacional",
     "cash": "Efectivo",
     "other": "Otros"

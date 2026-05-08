@@ -44,3 +44,4 @@ docs/square-research/
 
 # Ad-hoc screenshots from Playwright MCP smoke tests
 /*.png
+.gstack/

@@ -47,7 +47,7 @@
   "cardType": {
     "debit": "Debit",
     "credit": "Credit",
-    "amex": "American Express",
+    "amex": "Amex",
     "international": "International",
     "cash": "Cash",
     "other": "Other"
