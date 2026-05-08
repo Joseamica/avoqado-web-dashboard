@@ -60,6 +60,8 @@ export const CostStructureDialog: React.FC<CostStructureDialogProps> = ({
     debitRate: '',
     amexRate: '',
     internationalRate: '',
+    /** Checkbox "+ IVA": tasas son base, backend agrega IVA al calc. */
+    addTax: false,
     fixedCostPerTransaction: '',
     monthlyFee: '',
     notes: '',
@@ -100,6 +102,7 @@ export const CostStructureDialog: React.FC<CostStructureDialogProps> = ({
         debitRate: '',
         amexRate: '',
         internationalRate: '',
+        addTax: false,
         fixedCostPerTransaction: '',
         monthlyFee: '',
         notes: '',
@@ -115,6 +118,7 @@ export const CostStructureDialog: React.FC<CostStructureDialogProps> = ({
         debitRate: (Number(selectedStructure.debitRate) * 100).toFixed(2),
         amexRate: (Number(selectedStructure.amexRate) * 100).toFixed(2),
         internationalRate: (Number(selectedStructure.internationalRate) * 100).toFixed(2),
+        addTax: (selectedStructure as any).includesTax === false,
         fixedCostPerTransaction: selectedStructure.fixedCostPerTransaction?.toString() || '',
         monthlyFee: selectedStructure.monthlyFee?.toString() || '',
         notes: selectedStructure.notes || '',
@@ -211,12 +215,14 @@ export const CostStructureDialog: React.FC<CostStructureDialogProps> = ({
           debitRate: debitRate / 100,
           amexRate: amexRate / 100,
           internationalRate: internationalRate / 100,
+          // addTax checked → backend agrega IVA (includesTax: false).
+          includesTax: !formData.addTax,
           fixedCostPerTransaction: formData.fixedCostPerTransaction
             ? parseFloat(formData.fixedCostPerTransaction)
             : null,
           monthlyFee: formData.monthlyFee ? parseFloat(formData.monthlyFee) : null,
           notes: formData.notes || null,
-        })
+        } as any)
         toast({
           title: 'Estructura actualizada',
           description: 'La estructura de costos ha sido actualizada exitosamente',
@@ -230,12 +236,13 @@ export const CostStructureDialog: React.FC<CostStructureDialogProps> = ({
           debitRate: debitRate / 100,
           amexRate: amexRate / 100,
           internationalRate: internationalRate / 100,
+          includesTax: !formData.addTax,
           fixedCostPerTransaction: formData.fixedCostPerTransaction
             ? parseFloat(formData.fixedCostPerTransaction)
             : undefined,
           monthlyFee: formData.monthlyFee ? parseFloat(formData.monthlyFee) : undefined,
           notes: formData.notes || undefined,
-        })
+        } as any)
         toast({
           title: 'Estructura creada',
           description: 'La estructura de costos ha sido creada exitosamente',
@@ -557,6 +564,29 @@ export const CostStructureDialog: React.FC<CostStructureDialogProps> = ({
                   </div>
                 </div>
               </GlassCard>
+
+              {/* Tax checkbox */}
+              <label className="flex items-start gap-3 rounded-xl border border-input bg-muted/20 p-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.addTax}
+                  onChange={e => setFormData({ ...formData, addTax: e.target.checked })}
+                  className="mt-0.5 h-4 w-4 cursor-pointer"
+                />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold">Las tasas de arriba NO incluyen IVA (sumar 16%)</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Marca cuando el contrato dice <strong>“X% + IVA”</strong>. El sistema multiplicará por 1.16 al calcular el costo
+                    final.
+                    {formData.addTax && parseFloat(formData.creditRate) > 0 && (
+                      <>
+                        {' '}
+                        Costo final crédito: <strong>{(parseFloat(formData.creditRate) * 1.16).toFixed(3)}%</strong>.
+                      </>
+                    )}
+                  </p>
+                </div>
+              </label>
 
               <Collapsible open={showAdditionalCosts} onOpenChange={setShowAdditionalCosts}>
                 <CollapsibleTrigger asChild>

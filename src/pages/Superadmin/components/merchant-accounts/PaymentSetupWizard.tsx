@@ -76,6 +76,10 @@ export interface CostStructureData {
   creditRate: number
   amexRate: number
   internationalRate: number
+  /** Si las tasas YA incluyen IVA (true) o son base y el backend agrega IVA
+   *  al calcular fees (false). null/undefined = legacy. */
+  includesTax?: boolean | null
+  taxRate?: number
   fixedCostPerTransaction: number
   monthlyFee: number
 }
@@ -85,6 +89,8 @@ export interface PricingData {
   creditRate: number
   amexRate: number
   internationalRate: number
+  includesTax?: boolean | null
+  taxRate?: number
   fixedFeePerTransaction: number
   monthlyServiceFee: number
 }
@@ -645,9 +651,11 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
               creditRate: costData.creditRate / 100,
               amexRate: costData.amexRate / 100,
               internationalRate: costData.internationalRate / 100,
+              includesTax: costData.includesTax ?? null,
+              ...(costData.taxRate !== undefined ? { taxRate: costData.taxRate } : {}),
               fixedCostPerTransaction: costData.fixedCostPerTransaction,
               monthlyFee: costData.monthlyFee,
-            })
+            } as any)
           } else {
             // Create new cost structure — capture ID for subsequent saves
             const createdCS = await paymentProviderAPI.createProviderCostStructure({
@@ -656,10 +664,12 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
               creditRate: costData.creditRate / 100,
               amexRate: costData.amexRate / 100,
               internationalRate: costData.internationalRate / 100,
+              includesTax: costData.includesTax ?? null,
+              ...(costData.taxRate !== undefined ? { taxRate: costData.taxRate } : {}),
               fixedCostPerTransaction: costData.fixedCostPerTransaction,
               monthlyFee: costData.monthlyFee,
               effectiveFrom: new Date().toISOString(),
-            })
+            } as any)
             // Update state so a second save uses update instead of create
             dispatch({
               type: 'SET_COST_STRUCTURE',
@@ -678,10 +688,15 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
             creditRate: pricingData.creditRate / 100,
             amexRate: pricingData.amexRate / 100,
             internationalRate: pricingData.internationalRate / 100,
+            // Propaga el flag de IVA: VenuePricingStep lo setea al togglear
+            // el checkbox "+ IVA". null/undefined → backend lo persiste como
+            // null (legacy) y no aplica tax al calcular fees.
+            includesTax: pricingData.includesTax ?? null,
+            ...(pricingData.taxRate !== undefined ? { taxRate: pricingData.taxRate } : {}),
             fixedFeePerTransaction: pricingData.fixedFeePerTransaction,
             monthlyServiceFee: pricingData.monthlyServiceFee,
             effectiveFrom: new Date().toISOString(),
-          })
+          } as any)
         }
 
         // 5. Create settlement configs
@@ -738,9 +753,11 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
                 creditRate: vP.creditRate / 100,
                 amexRate: vP.amexRate / 100,
                 internationalRate: vP.internationalRate / 100,
+                includesTax: vP.includesTax ?? null,
+                ...(vP.taxRate !== undefined ? { taxRate: vP.taxRate } : {}),
                 fixedFeePerTransaction: vP.fixedFeePerTransaction,
                 monthlyServiceFee: vP.monthlyServiceFee,
-              })
+              } as any)
             } else {
               // Create new — capture the returned ID for subsequent saves
               const created = await paymentProviderAPI.createVenuePricingStructure({
@@ -750,10 +767,12 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
                 creditRate: vP.creditRate / 100,
                 amexRate: vP.amexRate / 100,
                 internationalRate: vP.internationalRate / 100,
+                includesTax: vP.includesTax ?? null,
+                ...(vP.taxRate !== undefined ? { taxRate: vP.taxRate } : {}),
                 fixedFeePerTransaction: vP.fixedFeePerTransaction,
                 monthlyServiceFee: vP.monthlyServiceFee,
                 effectiveFrom: new Date().toISOString(),
-              })
+              } as any)
               // Store the new ID so a second save uses update instead of create
               dispatch({ type: 'SET_VENUE_EXISTING_PRICING_ID', venueId: override.venueId, existingPricingId: created.id })
             }

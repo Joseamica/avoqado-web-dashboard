@@ -180,6 +180,9 @@ const VenuePricing: React.FC = () => {
               <p className="font-semibold">{config.label}</p>
               <p>Débito: {formatRate(structure.debitRate)} · Crédito: {formatRate(structure.creditRate)}</p>
               <p>AMEX: {formatRate(structure.amexRate)} · Intl: {formatRate(structure.internationalRate)}</p>
+              {(structure as any).includesTax === false && (
+                <p className="text-amber-600 dark:text-amber-400">+ IVA al calcular fees (×1.16)</p>
+              )}
               <p className="text-muted-foreground mt-2">Click para editar</p>
             </div>
           </TooltipContent>

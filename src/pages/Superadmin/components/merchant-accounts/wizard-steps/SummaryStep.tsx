@@ -144,6 +144,13 @@ export const SummaryStep: React.FC<SummaryStepProps> = ({ state, context }) => {
                 </div>
               )
             })}
+            {(primaryCost.includesTax === false || primaryPricing.includesTax === false) && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 pt-2 border-t border-border/30">
+                <strong>+ IVA</strong> aplicado al calcular fees ({primaryCost.includesTax === false ? 'costo provider' : ''}
+                {primaryCost.includesTax === false && primaryPricing.includesTax === false ? ' + ' : ''}
+                {primaryPricing.includesTax === false ? 'pricing venue' : ''}).
+              </p>
+            )}
           </div>
         </div>
       )}

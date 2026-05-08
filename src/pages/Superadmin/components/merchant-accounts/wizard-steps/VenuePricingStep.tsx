@@ -66,6 +66,27 @@ export const VenuePricingStep: React.FC<VenuePricingStepProps> = ({ state, dispa
     })
   }
 
+  // Toggle del checkbox "+ IVA": marcado → tasas son base, backend agrega
+  // 16% al calcular fees (includesTax: false). Desmarcado → tasas finales
+  // (includesTax: true).
+  const handleAddTaxToggle = (slot: 'PRIMARY' | 'SECONDARY' | 'TERTIARY', addTax: boolean) => {
+    const current = state.pricing[slot] || {
+      debitRate: 0,
+      creditRate: 0,
+      amexRate: 0,
+      internationalRate: 0,
+      fixedFeePerTransaction: 0,
+      monthlyServiceFee: 0,
+    }
+    dispatch({
+      type: 'SET_PRICING',
+      slot,
+      data: { ...current, includesTax: !addTax },
+    })
+  }
+
+  const primaryAddTax = primaryPricing?.includesTax === false
+
   // Calculate simulator values
   const simCost = primaryCost ? (simAmount * (primaryCost[simCardType] || 0)) / 100 : 0
   const simCharge = primaryPricing ? (simAmount * (primaryPricing[simCardType] || 0)) / 100 : 0
@@ -139,6 +160,29 @@ export const VenuePricingStep: React.FC<VenuePricingStepProps> = ({ state, dispa
             )
           })}
         </div>
+
+        {/* Tax checkbox */}
+        <label className="mt-4 flex items-start gap-3 rounded-xl border border-input bg-muted/20 p-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={primaryAddTax}
+            onChange={e => handleAddTaxToggle('PRIMARY', e.target.checked)}
+            className="mt-0.5 h-4 w-4 cursor-pointer"
+          />
+          <div className="flex-1">
+            <p className="text-sm font-semibold">Las tarifas de arriba NO incluyen IVA (sumar 16%)</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Marca cuando el contrato dice <strong>“X% + IVA”</strong>. El sistema multiplicará por 1.16 al calcular cada fee.
+              {primaryAddTax && (primaryPricing?.creditRate ?? 0) > 0 && (
+                <>
+                  {' '}
+                  Tasa final crédito: <strong>{((primaryPricing?.creditRate ?? 0) * 1.16).toFixed(3)}%</strong> (
+                  {primaryPricing?.creditRate}% + 16%).
+                </>
+              )}
+            </p>
+          </div>
+        </label>
 
         {/* Fixed fees */}
         <div className="grid grid-cols-2 gap-4 mt-4">

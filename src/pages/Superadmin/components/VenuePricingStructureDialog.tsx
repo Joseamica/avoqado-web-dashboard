@@ -26,6 +26,11 @@ interface VenuePricingStructureDialogProps {
     creditRate: number
     amexRate: number
     internationalRate: number
+    /** Si las tasas de arriba ya incluyen IVA o no. true = tasa final;
+     *  false = tasa base (backend agrega IVA al calcular fees). */
+    includesTax?: boolean | null
+    /** Tasa de IVA cuando includesTax=false (default 0.16). */
+    taxRate?: number
     fixedFeePerTransaction?: number
     monthlyServiceFee?: number
     contractReference?: string
@@ -65,6 +70,10 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
     creditRate: '' as number | '',
     amexRate: '' as number | '',
     internationalRate: '' as number | '',
+    /** Checkbox "+ IVA": si está marcado, las tasas de arriba son BASE y
+     *  el backend agrega IVA al calcular fees (includesTax=false). Si no
+     *  está marcado, las tasas son finales (includesTax=true). */
+    addTax: false,
     fixedFeePerTransaction: '' as number | '',
     monthlyServiceFee: '' as number | '',
     contractReference: '',
@@ -134,6 +143,9 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
         creditRate: Number(pricingStructure.creditRate) * 100,
         amexRate: Number(pricingStructure.amexRate) * 100,
         internationalRate: Number(pricingStructure.internationalRate) * 100,
+        // Hidrata el checkbox desde el flag persistido. null/true → no
+        // marcado (tasas son finales). false → marcado (tasas son base + IVA).
+        addTax: (pricingStructure as any).includesTax === false,
         fixedFeePerTransaction: Number(pricingStructure.fixedFeePerTransaction) || 0,
         monthlyServiceFee: Number(pricingStructure.monthlyServiceFee) || 0,
         contractReference: pricingStructure.contractReference || '',
@@ -149,6 +161,7 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
         creditRate: '',
         amexRate: '',
         internationalRate: '',
+        addTax: false,
         fixedFeePerTransaction: '',
         monthlyServiceFee: '',
         contractReference: '',
@@ -170,6 +183,10 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
         creditRate: (Number(formData.creditRate) || 0) / 100,
         amexRate: (Number(formData.amexRate) || 0) / 100,
         internationalRate: (Number(formData.internationalRate) || 0) / 100,
+        // addTax checkbox → includesTax flag en backend.
+        // marcado = tasas son base, backend agregará IVA → includesTax: false
+        // no marcado = tasas son finales (no IVA al calcular) → includesTax: true
+        includesTax: !formData.addTax,
         fixedFeePerTransaction: Number(formData.fixedFeePerTransaction) || 0,
         monthlyServiceFee: Number(formData.monthlyServiceFee) || 0,
         contractReference: formData.contractReference || undefined,
@@ -516,6 +533,34 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
                     </div>
                   </div>
                 </div>
+
+                {/* Tax checkbox */}
+                <Card className="border-input bg-muted/20">
+                  <CardContent className="pt-5 pb-5">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.addTax}
+                        onChange={e => setFormData({ ...formData, addTax: e.target.checked })}
+                        className="mt-0.5 h-4 w-4 cursor-pointer"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold">Las tasas de arriba NO incluyen IVA (sumar 16%)</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Marca esta casilla cuando el contrato dice <strong>“X% + IVA”</strong>. El sistema multiplicará por 1.16 al
+                          calcular cada fee.
+                          {formData.addTax && Number(formData.creditRate) > 0 && (
+                            <>
+                              {' '}
+                              Tasa final crédito: <strong>{(Number(formData.creditRate) * 1.16).toFixed(3)}%</strong> ({formData.creditRate}%
+                              + 16%).
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    </label>
+                  </CardContent>
+                </Card>
 
                 {/* Explanation */}
                 <Card className="border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">

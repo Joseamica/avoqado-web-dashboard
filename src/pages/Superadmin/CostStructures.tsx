@@ -212,6 +212,16 @@ const CostStructures: React.FC = () => {
       cell: ({ row }) => `${(Number(row.original.internationalRate) * 100).toFixed(2)}%`,
     },
     {
+      accessorKey: 'includesTax',
+      header: 'IVA',
+      cell: ({ row }) => {
+        const flag = (row.original as any).includesTax
+        if (flag === false) return <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">+16%</span>
+        if (flag === true) return <span className="text-xs text-muted-foreground">incluido</span>
+        return <span className="text-xs text-muted-foreground">—</span>
+      },
+    },
+    {
       accessorKey: 'active',
       header: t('costStructures.columns.status'),
       cell: ({ row }) => (

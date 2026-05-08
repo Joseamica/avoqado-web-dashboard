@@ -128,6 +128,11 @@ export const Step4Review: React.FC<Props> = ({ state }) => {
             <span className="font-medium">{state.pricing.internationalRate.toFixed(2)}%</span>
           </div>
         </div>
+        {state.pricing.includesTax === false && (
+          <div className="text-xs text-muted-foreground pt-1">
+            <strong>+ IVA aplicado</strong> — el sistema multiplica las tasas por 1.16 al calcular fees (contrato “X% + IVA”).
+          </div>
+        )}
       </div>
 
       {/* Full Venue Table */}

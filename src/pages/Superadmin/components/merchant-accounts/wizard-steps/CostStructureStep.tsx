@@ -134,6 +134,9 @@ function MerchantCostCard({
           creditRate: round4(Number(existing.creditRate) * 100),
           amexRate: round4(Number(existing.amexRate) * 100),
           internationalRate: round4(Number(existing.internationalRate) * 100),
+          // Hidrata el flag desde la estructura cargada (null/true = no
+          // marcado; false = marcado).
+          includesTax: (existing as any).includesTax ?? null,
           fixedCostPerTransaction: Number(existing.fixedCostPerTransaction || 0),
           monthlyFee: Number(existing.monthlyFee || 0),
         },
@@ -149,6 +152,7 @@ function MerchantCostCard({
           creditRate: 0,
           amexRate: 0,
           internationalRate: 0,
+          includesTax: null,
           fixedCostPerTransaction: 0,
           monthlyFee: 0,
         },
@@ -175,6 +179,26 @@ function MerchantCostCard({
       data: { ...current, [field]: rounded },
     })
   }
+
+  const handleAddTaxToggle = (addTax: boolean) => {
+    const current = currentData || {
+      mode: 'new' as const,
+      debitRate: 0,
+      creditRate: 0,
+      amexRate: 0,
+      internationalRate: 0,
+      fixedCostPerTransaction: 0,
+      monthlyFee: 0,
+    }
+    dispatch({
+      type: 'SET_COST_STRUCTURE',
+      merchantId,
+      // marcado → tasas son base (includesTax: false). desmarcado → final (true).
+      data: { ...current, includesTax: !addTax },
+    })
+  }
+
+  const addTax = currentData?.includesTax === false
 
   return (
     <div className="rounded-2xl border border-border/50 bg-card p-6">
@@ -218,6 +242,28 @@ function MerchantCostCard({
               </div>
             ))}
           </div>
+
+          {/* Tax checkbox */}
+          <label className="flex items-start gap-3 rounded-xl border border-input bg-muted/20 p-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={addTax}
+              onChange={e => handleAddTaxToggle(e.target.checked)}
+              className="mt-0.5 h-4 w-4 cursor-pointer"
+            />
+            <div className="flex-1">
+              <p className="text-sm font-semibold">Las tasas de arriba NO incluyen IVA (sumar 16%)</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Marca cuando el contrato dice <strong>“X% + IVA”</strong>. El sistema multiplicará por 1.16 al calcular el costo final.
+                {addTax && (currentData?.creditRate ?? 0) > 0 && (
+                  <>
+                    {' '}
+                    Costo final crédito: <strong>{((currentData?.creditRate ?? 0) * 1.16).toFixed(3)}%</strong>.
+                  </>
+                )}
+              </p>
+            </div>
+          </label>
 
           {/* Fixed costs */}
           <div className="grid grid-cols-2 gap-4">

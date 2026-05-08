@@ -5,6 +5,9 @@ export interface PricingConfig {
   creditRate: number
   amexRate: number
   internationalRate: number
+  /** Si las tasas YA incluyen IVA (true) o son base (false). null = legacy. */
+  includesTax?: boolean | null
+  taxRate?: number
   fixedFeePerTransaction?: number
   monthlyServiceFee?: number
 }

@@ -123,6 +123,33 @@ export const Step2Pricing: React.FC<Props> = ({ state, dispatch }) => {
           />
         </div>
 
+        {/* Tax checkbox: aplica al default de pricing del bulk onboarding. */}
+        <label className="flex items-start gap-3 rounded-xl border border-input bg-muted/20 p-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={state.pricing.includesTax === false}
+            onChange={e =>
+              dispatch({
+                type: 'SET_PRICING',
+                pricing: { includesTax: e.target.checked ? false : true },
+              })
+            }
+            className="mt-0.5 h-4 w-4 cursor-pointer"
+          />
+          <div className="flex-1">
+            <p className="text-sm font-semibold">Las tasas de arriba NO incluyen IVA (sumar 16%)</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Marca cuando el contrato dice <strong>“X% + IVA”</strong>. Aplica a TODOS los venues creados en este lote.
+              {state.pricing.includesTax === false && state.pricing.creditRate > 0 && (
+                <>
+                  {' '}
+                  Crédito final: <strong>{(state.pricing.creditRate * 1.16).toFixed(3)}%</strong>.
+                </>
+              )}
+            </p>
+          </div>
+        </label>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-border/30">
           <RateInput
             label="Cuota fija por transacción"

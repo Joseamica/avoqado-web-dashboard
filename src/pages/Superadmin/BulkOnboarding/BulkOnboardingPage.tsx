@@ -39,6 +39,9 @@ function toDecimalRates(p: PricingConfig) {
     creditRate: p.creditRate / 100,
     amexRate: p.amexRate / 100,
     internationalRate: p.internationalRate / 100,
+    // Propaga el flag de IVA al payload bulk. null/undefined = legacy.
+    includesTax: p.includesTax ?? null,
+    ...(p.taxRate !== undefined ? { taxRate: p.taxRate } : {}),
     fixedFeePerTransaction: p.fixedFeePerTransaction,
     monthlyServiceFee: p.monthlyServiceFee,
   }

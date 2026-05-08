@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ComponentType, type FormEvent, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { DateTime } from 'luxon'
 import {
   ArrowUp,
@@ -24,6 +24,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useDashboardData } from '@/hooks/useDashboardData'
@@ -35,6 +36,9 @@ import { getToday, useVenueDateTime } from '@/utils/datetime'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { useQuery } from '@tanstack/react-query'
 import { getSettlementCalendar, TransactionCardType } from '@/services/availableBalance.service'
+import teamService from '@/services/team.service'
+import { getProducts } from '@/services/menu.service'
+import { getTpvs } from '@/services/tpv.service'
 import { cn } from '@/lib/utils'
 
 export default function Home() {
@@ -51,8 +55,9 @@ export default function Home() {
   } = dashboardData
   const localeCode = getIntlLocale(i18n.language)
   const { venueTimezone } = useVenueDateTime()
-  const { fullBasePath, venueId } = useCurrentVenue()
+  const { fullBasePath, venueId, venue } = useCurrentVenue()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const quickActions = useMemo(
     () => [
@@ -64,7 +69,32 @@ export default function Home() {
     [],
   )
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'business'>('overview')
+  // Tab state sincronizado con URL hash (#overview / #business). Persistir en
+  // hash hace que volver con el back del browser restaure el tab activo y que
+  // recargar la página mantenga la pestaña — patrón documentado en
+  // .claude/rules/ui-patterns.md ("URL Hash-Based Tabs").
+  const getTabFromHash = (): 'overview' | 'business' => {
+    const hash = location.hash.replace('#', '')
+    return hash === 'business' ? 'business' : 'overview'
+  }
+  const [activeTab, setActiveTab] = useState<'overview' | 'business'>(getTabFromHash)
+
+  useEffect(() => {
+    const tabFromHash = getTabFromHash()
+    if (tabFromHash !== activeTab) {
+      setActiveTab(tabFromHash)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.hash])
+
+  const handleTabChange = useCallback(
+    (value: string) => {
+      const tab = value === 'business' ? 'business' : 'overview'
+      setActiveTab(tab)
+      navigate(`${location.pathname}#${tab}`, { replace: true })
+    },
+    [navigate, location.pathname],
+  )
   const [compareOptionId, setCompareOptionId] = useState<string>('day')
   const [chatInput, setChatInput] = useState('')
   const [chatFocused, setChatFocused] = useState(false)
@@ -190,6 +220,34 @@ export default function Home() {
     enabled: !!venueId && !!todayIso,
     staleTime: 60_000,
   })
+
+  // Conteos para "Centro de negocios" — sólo se hidratan cuando el tab está
+  // activo, para no quemar requests si el usuario nunca lo abre.
+  const businessEnabled = activeTab === 'business' && !!venueId
+
+  const { data: teamCountData, isLoading: isTeamCountLoading } = useQuery({
+    queryKey: ['home-business-team-count', venueId],
+    queryFn: () => teamService.getTeamMembers(venueId!, 1, 1),
+    enabled: businessEnabled,
+    staleTime: 60_000,
+  })
+  const teamCount = teamCountData?.meta?.totalCount ?? 0
+
+  const { data: productsData, isLoading: isProductsLoading } = useQuery({
+    queryKey: ['home-business-products-count', venueId],
+    queryFn: () => getProducts(venueId!),
+    enabled: businessEnabled,
+    staleTime: 60_000,
+  })
+  const productsCount = productsData?.length ?? 0
+
+  const { data: tpvsData, isLoading: isTpvsLoading } = useQuery({
+    queryKey: ['home-business-tpvs-count', venueId],
+    queryFn: () => getTpvs(venueId!, { pageIndex: 0, pageSize: 1 }),
+    enabled: businessEnabled,
+    staleTime: 60_000,
+  })
+  const tpvCount = tpvsData?.meta?.total ?? tpvsData?.data?.length ?? 0
 
   const todaySettlement = useMemo(() => {
     if (!settlementCalendar.length) return 0
@@ -341,23 +399,23 @@ export default function Home() {
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="min-h-screen bg-background px-3 py-4 md:px-6 md:py-6">
+      <div className="min-h-screen bg-background px-3 pb-4 pt-2 md:px-6 md:pb-6 md:pt-2">
         <KYCStatusBanner />
 
-        <Tabs value={activeTab} onValueChange={value => setActiveTab(value as 'overview' | 'business')} className="mt-4 space-y-5">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-5">
           <TabsList
-            className="inline-flex h-10 items-center justify-start rounded-full border border-border bg-muted/60 px-1 py-1 text-muted-foreground"
+            className="inline-flex h-auto w-auto items-center justify-start gap-6 rounded-none bg-transparent p-0 text-muted-foreground"
             data-tour="home-tabs"
           >
             <TabsTrigger
               value="overview"
-              className="rounded-full px-4 py-1.5 text-sm font-medium transition-colors hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background"
+              className="rounded-none border-b-2 border-transparent bg-transparent px-0 pb-2 pt-1 text-lg font-medium transition-colors hover:text-foreground data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-none"
             >
               {t('newHome.tabs.overview')}
             </TabsTrigger>
             <TabsTrigger
               value="business"
-              className="rounded-full px-4 py-1.5 text-sm font-medium transition-colors hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background"
+              className="rounded-none border-b-2 border-transparent bg-transparent px-0 pb-2 pt-1 text-lg font-medium transition-colors hover:text-foreground data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-none"
             >
               {t('newHome.tabs.configuration')}
             </TabsTrigger>
@@ -644,19 +702,41 @@ export default function Home() {
               <BusinessCard
                 icon={UserRound}
                 title={t('newHome.businessCenter.profile')}
-                subtitle={t('newHome.businessCenter.profileSub')}
+                subtitle={venue?.name ?? t('newHome.businessCenter.profileSub')}
+                isLoading={!venue}
+                onClick={() => navigate(`${fullBasePath}/edit/basic-info`)}
               />
-              <BusinessCard icon={Users} title={t('newHome.businessCenter.staff')} subtitle={t('newHome.businessCenter.staffSub')} />
+              <BusinessCard
+                icon={Users}
+                title={t('newHome.businessCenter.staff')}
+                subtitle={
+                  teamCount <= 1
+                    ? t('newHome.businessCenter.staffSub')
+                    : t('newHome.businessCenter.staffSubCount', { count: teamCount })
+                }
+                isLoading={isTeamCountLoading}
+                onClick={() => navigate(`${fullBasePath}/team`)}
+              />
               <BusinessCard
                 icon={CreditCard}
                 title={t('newHome.businessCenter.payments')}
-                subtitle={t('newHome.businessCenter.paymentsSub')}
+                subtitle={t('newHome.businessCenter.paymentsSubCount', { count: dashboardData.totalTransactions })}
+                isLoading={dashboardData.isBasicLoading}
+                onClick={() => navigate(`${fullBasePath}/payments`)}
               />
-              <BusinessCard icon={Boxes} title={t('newHome.businessCenter.items')} subtitle={t('newHome.businessCenter.itemsSub')} />
+              <BusinessCard
+                icon={Boxes}
+                title={t('newHome.businessCenter.items')}
+                subtitle={t('newHome.businessCenter.itemsSubCount', { count: productsCount })}
+                isLoading={isProductsLoading}
+                onClick={() => navigate(`${fullBasePath}/menumaker/products`)}
+              />
               <BusinessCard
                 icon={Smartphone}
                 title={t('newHome.businessCenter.devices')}
-                subtitle={t('newHome.businessCenter.devicesSub')}
+                subtitle={t('newHome.businessCenter.devicesSubCount', { count: tpvCount })}
+                isLoading={isTpvsLoading}
+                onClick={() => navigate(`${fullBasePath}/tpv`)}
               />
               <Card className="min-h-56 rounded-2xl border-input">
                 <CardContent className="pt-6">
@@ -715,18 +795,45 @@ function BusinessCard({
   icon: Icon,
   title,
   subtitle,
+  onClick,
+  isLoading,
 }: {
   icon: ComponentType<{ className?: string }>
   title: string
   subtitle: string
+  onClick?: () => void
+  isLoading?: boolean
 }) {
+  const interactive = typeof onClick === 'function'
   return (
-    <Card className="min-h-56 rounded-2xl border-input">
+    <Card
+      className={cn(
+        'min-h-56 rounded-2xl border-input transition-colors',
+        interactive && 'cursor-pointer hover:bg-muted/30',
+      )}
+      onClick={onClick}
+      role={interactive ? 'button' : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      onKeyDown={
+        interactive
+          ? event => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                onClick?.()
+              }
+            }
+          : undefined
+      }
+    >
       <CardContent className="space-y-3 pt-6">
         <Icon className="h-10 w-10 text-foreground" />
         <div>
           <p className="text-2xl font-semibold">{title}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+          {isLoading ? (
+            <Skeleton className="mt-1 h-4 w-24" />
+          ) : (
+            <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+          )}
         </div>
       </CardContent>
     </Card>

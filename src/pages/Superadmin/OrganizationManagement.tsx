@@ -1144,6 +1144,29 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
                     </div>
                   </div>
 
+                  {/* Tax checkbox: marca cuando el contrato dice "X% + IVA". */}
+                  <label className="flex items-start gap-3 rounded-xl border border-input bg-muted/20 p-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={pricingForm.includesTax === false}
+                      onChange={e => setPricingForm(prev => ({ ...prev, includesTax: e.target.checked ? false : true }))}
+                      className="mt-0.5 h-4 w-4 cursor-pointer"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold">Las tasas de arriba NO incluyen IVA (sumar 16%)</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Marca cuando el contrato dice <strong>“X% + IVA”</strong>. El sistema multiplicará por 1.16 al calcular cada fee.
+                        {pricingForm.includesTax === false && pricingForm.creditRate > 0 && (
+                          <>
+                            {' '}
+                            Tasa final crédito: <strong>{(pricingForm.creditRate * 100 * 1.16).toFixed(3)}%</strong> (
+                            {(pricingForm.creditRate * 100).toFixed(2)}% + 16%).
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  </label>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Referencia de Contrato</Label>

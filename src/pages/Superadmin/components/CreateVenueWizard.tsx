@@ -136,6 +136,9 @@ interface RateData {
   creditRate: number
   amexRate: number
   internationalRate: number
+  /** Si las tasas YA incluyen IVA (true) o son base + IVA (false). null = legacy. */
+  includesTax?: boolean | null
+  taxRate?: number
   fixedCost: number
   monthlyFee: number
 }
@@ -451,6 +454,8 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
             creditRate: data.merchant.providerCosts.creditRate,
             amexRate: data.merchant.providerCosts.amexRate,
             internationalRate: data.merchant.providerCosts.internationalRate,
+            includesTax: data.merchant.providerCosts.includesTax ?? null,
+            ...(data.merchant.providerCosts.taxRate !== undefined ? { taxRate: data.merchant.providerCosts.taxRate } : {}),
             fixedCostPerTransaction: data.merchant.providerCosts.fixedCost,
             monthlyFee: data.merchant.providerCosts.monthlyFee,
           },
@@ -459,6 +464,8 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
             creditRate: data.merchant.venuePricing.creditRate,
             amexRate: data.merchant.venuePricing.amexRate,
             internationalRate: data.merchant.venuePricing.internationalRate,
+            includesTax: data.merchant.venuePricing.includesTax ?? null,
+            ...(data.merchant.venuePricing.taxRate !== undefined ? { taxRate: data.merchant.venuePricing.taxRate } : {}),
             fixedFeePerTransaction: data.merchant.venuePricing.fixedCost,
             monthlyServiceFee: data.merchant.venuePricing.monthlyFee,
           },
@@ -698,6 +705,14 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
       ...prev,
       [target]: { ...prev[target], [field]: rounded },
       ...(target === 'providerCosts' ? { providerCostsAutoCalculated: false } : { venuePricingAutoCalculated: false }),
+    }))
+  }, [])
+
+  const handleAddTaxToggle = useCallback((target: 'providerCosts' | 'venuePricing', addTax: boolean) => {
+    setMerchant(prev => ({
+      ...prev,
+      // marcado → tasas son base (includesTax: false). desmarcado → final (true).
+      [target]: { ...prev[target], includesTax: addTax ? false : true },
     }))
   }, [])
 
@@ -1361,6 +1376,7 @@ function StepPayments({
                     subtitle="Lo que nos cobra el procesador de pagos"
                     rates={merchant.providerCosts}
                     onRateChange={(field, value) => handleRateChange('providerCosts', field, value)}
+                    onAddTaxToggle={addTax => handleAddTaxToggle('providerCosts', addTax)}
                   />
                   <SettlementSection settlement={merchant.settlement} onChange={handleSettlementChange} />
                   <VenuePricingSection
@@ -1368,6 +1384,7 @@ function StepPayments({
                     venuePricing={merchant.venuePricing}
                     autoCalculated={merchant.venuePricingAutoCalculated}
                     onRateChange={(field, value) => handleRateChange('venuePricing', field, value)}
+                    onAddTaxToggle={addTax => handleAddTaxToggle('venuePricing', addTax)}
                     getMargin={getMargin}
                     getMarginColor={getMarginColor}
                   />
@@ -1524,6 +1541,7 @@ function StepPayments({
                     subtitle="Lo que nos cobra el procesador de pagos"
                     rates={merchant.providerCosts}
                     onRateChange={(field, value) => handleRateChange('providerCosts', field, value)}
+                    onAddTaxToggle={addTax => handleAddTaxToggle('providerCosts', addTax)}
                   />
                   <SettlementSection settlement={merchant.settlement} onChange={handleSettlementChange} />
                   <VenuePricingSection
@@ -1531,6 +1549,7 @@ function StepPayments({
                     venuePricing={merchant.venuePricing}
                     autoCalculated={merchant.venuePricingAutoCalculated}
                     onRateChange={(field, value) => handleRateChange('venuePricing', field, value)}
+                    onAddTaxToggle={addTax => handleAddTaxToggle('venuePricing', addTax)}
                     getMargin={getMargin}
                     getMarginColor={getMarginColor}
                   />
@@ -1551,12 +1570,15 @@ function RatesSection({
   subtitle,
   rates,
   onRateChange,
+  onAddTaxToggle,
 }: {
   title: string
   subtitle?: string
   rates: RateData
   onRateChange: (field: keyof RateData, value: string) => void
+  onAddTaxToggle?: (addTax: boolean) => void
 }) {
+  const addTax = rates.includesTax === false
   return (
     <div className="space-y-3">
       <div>
@@ -1581,6 +1603,28 @@ function RatesSection({
             </div>
           </div>
         ))}
+        {onAddTaxToggle && (
+          <label className="mt-2 flex items-start gap-2 rounded-lg border border-input bg-muted/20 p-2.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={addTax}
+              onChange={e => onAddTaxToggle(e.target.checked)}
+              className="mt-0.5 h-4 w-4 cursor-pointer"
+            />
+            <div className="flex-1">
+              <p className="text-xs font-semibold">+ IVA (sumar 16%)</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Marca cuando el contrato dice <strong>“X% + IVA”</strong>.
+                {addTax && rates.creditRate > 0 && (
+                  <>
+                    {' '}
+                    Crédito final: <strong>{(rates.creditRate * 1.16).toFixed(3)}%</strong>.
+                  </>
+                )}
+              </p>
+            </div>
+          </label>
+        )}
         <div className="grid grid-cols-2 gap-3 pt-2">
           <div className="space-y-1">
             <Label className="text-xs">Cuota fija / txn</Label>
@@ -1683,6 +1727,7 @@ function VenuePricingSection({
   venuePricing,
   autoCalculated,
   onRateChange,
+  onAddTaxToggle,
   getMargin,
   getMarginColor,
 }: {
@@ -1690,9 +1735,11 @@ function VenuePricingSection({
   venuePricing: RateData
   autoCalculated: boolean
   onRateChange: (field: keyof RateData, value: string) => void
+  onAddTaxToggle?: (addTax: boolean) => void
   getMargin: (field: keyof Pick<RateData, 'debitRate' | 'creditRate' | 'amexRate' | 'internationalRate'>) => number
   getMarginColor: (margin: number) => string
 }) {
+  const addTax = venuePricing.includesTax === false
   return (
     <div className="space-y-3">
       <h3 className="text-sm font-semibold">Tarifas al venue</h3>
@@ -1737,6 +1784,28 @@ function VenuePricingSection({
             </div>
           )
         })}
+        {onAddTaxToggle && (
+          <label className="mt-2 flex items-start gap-2 rounded-lg border border-input bg-muted/20 p-2.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={addTax}
+              onChange={e => onAddTaxToggle(e.target.checked)}
+              className="mt-0.5 h-4 w-4 cursor-pointer"
+            />
+            <div className="flex-1">
+              <p className="text-xs font-semibold">+ IVA al venue (sumar 16%)</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Marca cuando el contrato dice <strong>“X% + IVA”</strong>.
+                {addTax && venuePricing.creditRate > 0 && (
+                  <>
+                    {' '}
+                    Crédito final: <strong>{(venuePricing.creditRate * 1.16).toFixed(3)}%</strong>.
+                  </>
+                )}
+              </p>
+            </div>
+          </label>
+        )}
         <div className="grid grid-cols-2 gap-3 pt-2">
           <div className="space-y-1">
             <Label className="text-xs">Cuota fija / txn</Label>

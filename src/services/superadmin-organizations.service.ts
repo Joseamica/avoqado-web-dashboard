@@ -290,6 +290,10 @@ export interface SetOrgPricingData {
   creditRate: number
   amexRate: number
   internationalRate: number
+  /** Si las tasas YA incluyen IVA (true) o son base y el backend agrega
+   *  IVA al calcular fees (false). null/undefined = legacy. */
+  includesTax?: boolean | null
+  taxRate?: number
   fixedFeePerTransaction?: number | null
   monthlyServiceFee?: number | null
   minimumMonthlyVolume?: number | null

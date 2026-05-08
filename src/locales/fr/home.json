@@ -450,12 +450,20 @@
       "profileSub": "Healthy boutique",
       "staff": "Personnel",
       "staffSub": "Seulement vous",
+      "staffSubCount_one": "{{count}} membre",
+      "staffSubCount_other": "{{count}} membres",
       "payments": "Paiements",
       "paymentsSub": "8 terminés",
+      "paymentsSubCount_one": "{{count}} terminé",
+      "paymentsSubCount_other": "{{count}} terminés",
       "items": "Articles",
       "itemsSub": "2 articles",
+      "itemsSubCount_one": "{{count}} article",
+      "itemsSubCount_other": "{{count}} articles",
       "devices": "Appareils",
-      "devicesSub": "2 appareils"
+      "devicesSub": "2 appareils",
+      "devicesSubCount_one": "{{count}} appareil",
+      "devicesSubCount_other": "{{count}} appareils"
     }
   }
 }

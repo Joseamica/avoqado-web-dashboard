@@ -22,6 +22,10 @@ interface ProviderCostStructureDialogProps {
     creditRate: number
     amexRate: number
     internationalRate: number
+    /** Si las tasas YA incluyen IVA (true) o son base y el backend agrega
+     *  IVA al calcular fees (false). null = legacy (no aplica tax). */
+    includesTax?: boolean | null
+    taxRate?: number
     fixedCostPerTransaction?: number
     monthlyFee?: number
     proposalReference?: string
@@ -52,6 +56,8 @@ export const ProviderCostStructureDialog: React.FC<ProviderCostStructureDialogPr
     creditRate: 0,
     amexRate: 0,
     internationalRate: 0,
+    /** Checkbox "+ IVA": marcado → tasas son base (includesTax=false). */
+    addTax: false,
     fixedCostPerTransaction: 0,
     monthlyFee: 0,
     proposalReference: '',
@@ -67,6 +73,7 @@ export const ProviderCostStructureDialog: React.FC<ProviderCostStructureDialogPr
         creditRate: Number(costStructure.creditRate) * 100,
         amexRate: Number(costStructure.amexRate) * 100,
         internationalRate: Number(costStructure.internationalRate) * 100,
+        addTax: (costStructure as any).includesTax === false,
         fixedCostPerTransaction: Number(costStructure.fixedCostPerTransaction) || 0,
         monthlyFee: Number(costStructure.monthlyFee) || 0,
         proposalReference: costStructure.proposalReference || '',
@@ -80,6 +87,7 @@ export const ProviderCostStructureDialog: React.FC<ProviderCostStructureDialogPr
         creditRate: 0,
         amexRate: 0,
         internationalRate: 0,
+        addTax: false,
         fixedCostPerTransaction: 0,
         monthlyFee: 0,
         proposalReference: '',
@@ -99,6 +107,9 @@ export const ProviderCostStructureDialog: React.FC<ProviderCostStructureDialogPr
         creditRate: formData.creditRate / 100,
         amexRate: formData.amexRate / 100,
         internationalRate: formData.internationalRate / 100,
+        // addTax checked → includesTax: false (backend agrega IVA al calc).
+        // unchecked → includesTax: true (tasa final).
+        includesTax: !formData.addTax,
         fixedCostPerTransaction: formData.fixedCostPerTransaction,
         monthlyFee: formData.monthlyFee,
         proposalReference: formData.proposalReference || undefined,
@@ -241,6 +252,28 @@ export const ProviderCostStructureDialog: React.FC<ProviderCostStructureDialogPr
                 </div>
               </div>
             </div>
+
+            {/* Tax checkbox: contrato "X% + IVA" */}
+            <label className="flex items-start gap-3 rounded-xl border border-input bg-muted/20 p-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.addTax}
+                onChange={e => setFormData({ ...formData, addTax: e.target.checked })}
+                className="mt-0.5 h-4 w-4 cursor-pointer"
+              />
+              <div className="flex-1">
+                <p className="text-sm font-semibold">Las tasas de arriba NO incluyen IVA (sumar 16%)</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Marca cuando el contrato dice <strong>“X% + IVA”</strong>. El sistema multiplicará por 1.16 al calcular cada fee.
+                  {formData.addTax && formData.creditRate > 0 && (
+                    <>
+                      {' '}
+                      Costo final crédito: <strong>{(formData.creditRate * 1.16).toFixed(3)}%</strong> ({formData.creditRate}% + 16%).
+                    </>
+                  )}
+                </p>
+              </div>
+            </label>
 
             {/* Fixed Fees */}
             <div className="grid grid-cols-2 gap-3">

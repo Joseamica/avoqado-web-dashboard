@@ -59,6 +59,9 @@ interface VenueFormData {
   creditRate?: number
   amexRate?: number
   internationalRate?: number
+  /** Si las tasas YA incluyen IVA (true) o son base + IVA (false). */
+  includesTax?: boolean | null
+  taxRate?: number
   fixedFeePerTransaction?: number
   monthlyServiceFee?: number
   minimumMonthlyVolume?: number
@@ -887,6 +890,30 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                               )}
                             />
                           </div>
+
+                          {/* Tax checkbox: contrato "X% + IVA" */}
+                          <FormField
+                            control={form.control}
+                            name="includesTax"
+                            render={({ field }) => (
+                              <FormItem>
+                                <label className="flex items-start gap-3 rounded-xl border border-input bg-muted/20 p-3 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={field.value === false}
+                                    onChange={e => field.onChange(e.target.checked ? false : true)}
+                                    className="mt-0.5 h-4 w-4 cursor-pointer"
+                                  />
+                                  <div className="flex-1">
+                                    <p className="text-sm font-semibold">Las tasas de arriba NO incluyen IVA (sumar 16%)</p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                      Marca cuando el contrato dice <strong>“X% + IVA”</strong>. El sistema multiplicará por 1.16 al calcular cada fee.
+                                    </p>
+                                  </div>
+                                </label>
+                              </FormItem>
+                            )}
+                          />
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField

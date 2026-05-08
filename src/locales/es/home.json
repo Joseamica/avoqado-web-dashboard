@@ -451,12 +451,20 @@
       "profileSub": "Healthy boutique",
       "staff": "Personal",
       "staffSub": "Solo tú",
+      "staffSubCount_one": "{{count}} miembro",
+      "staffSubCount_other": "{{count}} miembros",
       "payments": "Pagos",
       "paymentsSub": "8 completados",
+      "paymentsSubCount_one": "{{count}} completado",
+      "paymentsSubCount_other": "{{count}} completados",
       "items": "Artículos",
       "itemsSub": "2 artículos",
+      "itemsSubCount_one": "{{count}} artículo",
+      "itemsSubCount_other": "{{count}} artículos",
       "devices": "Dispositivos",
-      "devicesSub": "2 dispositivos"
+      "devicesSub": "2 dispositivos",
+      "devicesSubCount_one": "{{count}} dispositivo",
+      "devicesSubCount_other": "{{count}} dispositivos"
     }
   }
 }
