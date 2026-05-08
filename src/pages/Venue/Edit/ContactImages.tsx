@@ -30,6 +30,12 @@ const contactImagesFormSchema = z.object({
   email: z.string().email({ message: 'Debe ser un email válido.' }),
   website: z.string().nullable().optional(),
   logo: z.string().nullable().optional(),
+  heroImageUrl: z
+    .string()
+    .url({ message: 'Debe ser una URL válida (https://…)' })
+    .or(z.literal(''))
+    .nullable()
+    .optional(),
   primaryColor: z.string().nullable().optional(),
   secondaryColor: z.string().nullable().optional(),
   latitude: z.number().nullable().optional(),
@@ -90,6 +96,7 @@ export default function ContactImages() {
       email: '',
       website: '',
       logo: '',
+      heroImageUrl: '',
       primaryColor: '',
       secondaryColor: '',
       latitude: null,
@@ -104,6 +111,7 @@ export default function ContactImages() {
         email: venue.email || '',
         website: venue.website || '',
         logo: venue.logo || '',
+        heroImageUrl: venue.heroImageUrl || '',
         primaryColor: venue.primaryColor || '',
         secondaryColor: venue.secondaryColor || '',
         latitude: venue.latitude ? Number(venue.latitude) : null,
@@ -157,6 +165,8 @@ export default function ContactImages() {
 
       if (data.website !== undefined && data.website !== null) venueData.website = data.website
       if (data.logo !== undefined) venueData.logo = data.logo
+      // Empty string clears the hero photo on save; undefined leaves it untouched.
+      if (data.heroImageUrl !== undefined) venueData.heroImageUrl = data.heroImageUrl || null
       if (data.primaryColor !== undefined && data.primaryColor !== null) venueData.primaryColor = data.primaryColor
       if (data.secondaryColor !== undefined && data.secondaryColor !== null) venueData.secondaryColor = data.secondaryColor
       if (data.latitude !== null && data.latitude !== undefined) venueData.latitude = data.latitude
@@ -381,6 +391,46 @@ export default function ContactImages() {
                           value={field.value || ''}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Phase 8: hero cover photo for the public booking page (book.avoqado.io). */}
+                <FormField
+                  control={form.control}
+                  name="heroImageUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {t('edit.labels.heroImageUrl', { defaultValue: 'Foto de portada (booking)' })}
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="url"
+                          placeholder="https://cdn.tu-marca.com/hero.jpg"
+                          {...field}
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {t('edit.helpers.heroImageUrl', {
+                          defaultValue:
+                            'URL pública (16:9 recomendado, mín. 1200px de ancho). Aparece como hero en book.avoqado.io. Deja vacío para ocultar.',
+                        })}
+                      </p>
+                      {field.value ? (
+                        <div className="mt-2 rounded-lg overflow-hidden border border-border">
+                          <img
+                            src={field.value}
+                            alt=""
+                            className="w-full max-h-48 object-cover"
+                            onError={(e) => {
+                              ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                            }}
+                          />
+                        </div>
+                      ) : null}
                       <FormMessage />
                     </FormItem>
                   )}
