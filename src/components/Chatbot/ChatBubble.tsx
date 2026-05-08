@@ -44,6 +44,7 @@ import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { Card, CardHeader, CardTitle } from '../../components/ui/card'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../components/ui/tooltip'
+import { useSidebar } from '../../components/ui/sidebar'
 import { ConfirmDialog } from '../../components/ui/confirm-dialog'
 import {
   DropdownMenu,
@@ -2412,30 +2413,12 @@ export function ChatBubble({ variant = 'fab' }: { variant?: 'fab' | 'sidebar' } 
           - 'sidebar': a compact row sized to fit inside the sidebar footer */}
       {(variant === 'sidebar' || !isOpen) &&
         (variant === 'sidebar' ? (
-          <button
-            type="button"
+          <SidebarChatTrigger
+            label={sidebarTriggerLabel}
             onClick={toggleChat}
-            aria-label={t('chat.a11y.open')}
-            className="group relative flex w-full items-center gap-3 px-4 py-3 border-b border-sidebar-border text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors cursor-pointer"
-          >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Sparkles className="h-4 w-4" />
-            </span>
-            <span className="flex-1 flex items-center gap-2 text-left font-medium">
-              <span>{sidebarTriggerLabel}</span>
-              <Badge
-                variant="outline"
-                className="h-5 rounded-full border-primary/30 bg-primary/5 px-2 text-[10px] font-semibold text-primary"
-              >
-                PRO
-              </Badge>
-            </span>
-            {referenceCount > 0 && (
-              <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-medium text-destructive-foreground">
-                {referenceCount}
-              </span>
-            )}
-          </button>
+            ariaLabel={t('chat.a11y.open')}
+            referenceCount={referenceCount}
+          />
         ) : (
           <Button
             onClick={toggleChat}
@@ -2452,5 +2435,61 @@ export function ChatBubble({ variant = 'fab' }: { variant?: 'fab' | 'sidebar' } 
           </Button>
         ))}
     </>
+  )
+}
+
+// Trigger especializado para el footer del sidebar. Cuando el sidebar está
+// colapsado escondemos el label + badge y el ícono se centra (Sparkles), así
+// no se sale el texto a media altura como pasaba antes.
+function SidebarChatTrigger({
+  label,
+  onClick,
+  ariaLabel,
+  referenceCount,
+}: {
+  label: string
+  onClick: () => void
+  ariaLabel: string
+  referenceCount: number
+}) {
+  const { state } = useSidebar()
+  const isCollapsed = state === 'collapsed'
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={ariaLabel}
+      title={isCollapsed ? label : undefined}
+      className={cn(
+        'group relative flex w-full items-center border-b border-sidebar-border text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors cursor-pointer',
+        isCollapsed ? 'justify-center px-0 py-3' : 'gap-3 px-4 py-3',
+      )}
+    >
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <Sparkles className="h-4 w-4" />
+      </span>
+      {!isCollapsed && (
+        <span className="flex-1 flex items-center gap-2 text-left font-medium">
+          <span>{label}</span>
+          <Badge
+            variant="outline"
+            className="h-5 rounded-full border-primary/30 bg-primary/5 px-2 text-[10px] font-semibold text-primary"
+          >
+            PRO
+          </Badge>
+        </span>
+      )}
+      {referenceCount > 0 &&
+        (isCollapsed ? (
+          <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-medium text-destructive-foreground">
+            {referenceCount}
+          </span>
+        ) : (
+          <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-medium text-destructive-foreground">
+            {referenceCount}
+          </span>
+        ))}
+    </button>
   )
 }

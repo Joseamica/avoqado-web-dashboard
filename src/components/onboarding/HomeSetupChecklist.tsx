@@ -21,6 +21,10 @@ interface StepState {
   doneAt?: string
   /** El usuario ya clickeó "Empezar" pero el tour aún no se completa. */
   inProgress?: boolean
+  /** Último step de driver.js donde el user quedó. Permite reanudar el
+   *  tour cross-device / cross-tab. Lo escribe `useTourProgressSync` con
+   *  debounce a partir de los `onHighlightStarted` de cada tour. */
+  lastStepIndex?: number
 }
 
 interface ChecklistState {
@@ -238,7 +242,8 @@ export function HomeSetupChecklist() {
           // "En curso" persiste en el backend a partir del primer click en
           // "Empezar" — cualquier step pendiente con inProgress muestra el
           // badge, aunque el user salga del tour. Al re-clickear, el tour
-          // reanuda desde el step donde quedó (sessionStorage).
+          // reanuda desde el step donde quedó (también en backend, via
+          // `lastStepIndex` + `useTourProgressSync`).
           const isActive = !done && !!state.steps[step.id]?.inProgress
 
           // Filas siempre clickeables — incluso completadas, para que el

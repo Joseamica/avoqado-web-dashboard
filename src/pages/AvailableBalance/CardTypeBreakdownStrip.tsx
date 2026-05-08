@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { GlassCard } from '@/components/ui/glass-card'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
 export interface CardTypeBreakdownItem {
@@ -59,20 +60,57 @@ export function CardTypeBreakdownStrip({
       </header>
 
       {/* Stacked proportion bar */}
-      <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
-        {sorted.map(card => {
-          const pct = total > 0 ? (card.netAmount / total) * 100 : 0
-          if (pct < 0.01) return null
-          return (
-            <div
-              key={card.cardType}
-              style={{ width: `${pct}%` }}
-              className={cn('h-full', PROPORTION_COLORS[card.cardType] ?? 'bg-foreground/30')}
-              aria-label={`${cardTypeLabel(card.cardType)}: ${pct.toFixed(1)}%`}
-            />
-          )
-        })}
-      </div>
+      <TooltipProvider delayDuration={100}>
+        <div className="flex h-7 w-full overflow-hidden rounded-full bg-muted">
+          {sorted.map(card => {
+            const pct = total > 0 ? (card.netAmount / total) * 100 : 0
+            if (pct < 0.01) return null
+            const isCash = card.cardType === cashKey
+            const label = cardTypeLabel(card.cardType)
+            return (
+              <Tooltip key={card.cardType}>
+                <TooltipTrigger asChild>
+                  <div
+                    style={{ width: `${pct}%` }}
+                    className={cn(
+                      'flex h-full cursor-default items-center justify-center overflow-hidden px-1.5 transition-opacity hover:opacity-90',
+                      PROPORTION_COLORS[card.cardType] ?? 'bg-foreground/30',
+                      isCash ? 'text-emerald-50' : 'text-background',
+                    )}
+                    aria-label={`${label}: ${pct.toFixed(1)}%`}
+                  >
+                    {pct >= 10 ? (
+                      <span className="truncate text-[10px] font-semibold uppercase tracking-wider">
+                        {label} · {pct.toFixed(1)}%
+                      </span>
+                    ) : pct >= 4 ? (
+                      <span className="truncate text-[10px] font-semibold uppercase tracking-wider">{pct.toFixed(0)}%</span>
+                    ) : null}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="space-y-1 px-3 py-2">
+                  <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider">
+                    <span
+                      aria-hidden
+                      className={cn('h-2 w-2 rounded-full', PROPORTION_COLORS[card.cardType] ?? 'bg-foreground/30')}
+                    />
+                    {label}
+                    <span className="text-background/70">· {pct.toFixed(1)}%</span>
+                  </div>
+                  <div className="flex justify-between gap-6 text-[11px] tabular-nums">
+                    <span className="text-background/70">Monto</span>
+                    <span className="font-semibold">{formatCurrency(card.netAmount)}</span>
+                  </div>
+                  <div className="flex justify-between gap-6 text-[11px] tabular-nums">
+                    <span className="text-background/70">Txns</span>
+                    <span className="font-semibold">{card.transactionCount}</span>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            )
+          })}
+        </div>
+      </TooltipProvider>
 
       {/* Tabular rows — info-only */}
       <table className="w-full text-sm">

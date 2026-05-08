@@ -29,6 +29,7 @@ import { useInventoryWelcomeTourOrchestrator } from './hooks/useInventoryWelcome
 import { useAutoLaunchPlatformWelcomeTour } from './hooks/useAutoLaunchPlatformWelcomeTour'
 import { consumeAtomicTourReturnPath, usePeekAtomicTourCompletion } from './hooks/useAtomicTourListener'
 import { useHomeChecklistAutoMark } from './hooks/useHomeChecklistAutoMark'
+import { useTourProgressSync } from './hooks/useTourProgressSync'
 import { useTranslation } from 'react-i18next'
 import { BreadcrumbProvider, useBreadcrumb } from './context/BreadcrumbContext'
 import { ChatReferencesProvider } from './context/ChatReferencesContext'
@@ -80,6 +81,11 @@ function DashboardContent() {
   // dashboard shell) — así no dependemos de que la Home esté montada en
   // el momento exacto del notify.
   useHomeChecklistAutoMark()
+
+  // Sync del cache de tour-progress con backend (lastStepIndex por step
+  // dentro de `home-checklist`). Hidrata el Map al boot, escribe writes
+  // del cache vía `setValue` con debounce de 500ms.
+  useTourProgressSync()
 
   // Cuando un atomic tour completa, si el HomeSetupChecklist había
   // registrado un return path antes de lanzarlo, regresamos al usuario a

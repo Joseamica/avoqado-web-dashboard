@@ -24,6 +24,7 @@ interface StepState {
   done: boolean
   doneAt?: string
   inProgress?: boolean
+  lastStepIndex?: number
 }
 
 interface ChecklistState {
@@ -70,11 +71,19 @@ export function useHomeChecklistAutoMark(): void {
       if (!stepId) return
       const current = buildCurrent(rawState)
       if (current.steps[stepId]?.done) return
+      // Atomic: marcamos done + limpiamos inProgress + reseteamos
+      // lastStepIndex en una sola PUT — evita race con el debounce de
+      // useTourProgressSync que podría escribir un index obsoleto.
       setValue({
         ...current,
         steps: {
           ...current.steps,
-          [stepId]: { done: true, doneAt: new Date().toISOString(), inProgress: false },
+          [stepId]: {
+            done: true,
+            doneAt: new Date().toISOString(),
+            inProgress: false,
+            lastStepIndex: 0,
+          },
         },
       })
     },
@@ -92,11 +101,14 @@ export function useHomeChecklistAutoMark(): void {
       const current = buildCurrent(rawStateRef.current)
       const prev = current.steps[stepId]
       if (!prev?.inProgress) return
+      // En cancelación también limpiamos lastStepIndex — el `cancel()` del
+      // helper ya llama clearTourStepIndex, pero hacerlo aquí garantiza
+      // atomicidad y evita que el debounce escriba un index posterior.
       setValueRef.current({
         ...current,
         steps: {
           ...current.steps,
-          [stepId]: { ...prev, inProgress: false },
+          [stepId]: { ...prev, inProgress: false, lastStepIndex: 0 },
         },
       })
     }

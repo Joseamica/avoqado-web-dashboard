@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { DateTime } from 'luxon'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Button } from '@/components/ui/button'
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { cn } from '@/lib/utils'
 
 export interface SettlementCalendarBreakdown {
@@ -195,11 +196,12 @@ function DayColumn({
 }) {
   const hasData = !!day.entry && day.entry.totalNetAmount > 0
 
-  return (
+  const column = (
     <div
       className={cn(
         'relative flex min-h-[180px] flex-col px-3 py-4',
         day.isToday && 'bg-primary/5',
+        hasData && 'cursor-default',
       )}
     >
       {day.isToday && (
@@ -248,5 +250,41 @@ function DayColumn({
         )}
       </div>
     </div>
+  )
+
+  if (!hasData) return column
+
+  const sortedBreakdown = [...day.entry!.byCardType].sort((a, b) => b.netAmount - a.netAmount)
+  const fullDate = day.dt.setLocale('es').toFormat("EEEE d 'de' MMMM")
+
+  return (
+    <HoverCard openDelay={120} closeDelay={80}>
+      <HoverCardTrigger asChild>{column}</HoverCardTrigger>
+      <HoverCardContent align="center" sideOffset={6} className="w-72 p-0">
+        <div className="border-b border-border/50 px-4 py-3">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">{fullDate}</p>
+          <div className="mt-2 flex items-baseline justify-between gap-2">
+            <p className="text-base font-semibold tabular-nums">{formatCurrency(day.entry!.totalNetAmount)}</p>
+            <p className="text-[11px] text-muted-foreground tabular-nums">
+              {day.entry!.transactionCount} {day.entry!.transactionCount === 1 ? 'transacción' : 'transacciones'}
+            </p>
+          </div>
+          <p className="mt-1 text-[11px] text-muted-foreground">Monto neto a depositar</p>
+        </div>
+        <ul className="max-h-64 overflow-y-auto px-4 py-3">
+          {sortedBreakdown.map(c => (
+            <li key={c.cardType} className="flex items-baseline justify-between gap-3 py-1.5 text-xs">
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium">{cardTypeLabel(c.cardType)}</p>
+                <p className="text-[11px] text-muted-foreground tabular-nums">
+                  {c.transactionCount} {c.transactionCount === 1 ? 'tx' : 'txs'}
+                </p>
+              </div>
+              <span className="tabular-nums">{formatCurrency(c.netAmount)}</span>
+            </li>
+          ))}
+        </ul>
+      </HoverCardContent>
+    </HoverCard>
   )
 }

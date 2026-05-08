@@ -146,6 +146,9 @@ export function usePlatformWelcomeTour() {
 
   const driverRef = useRef<Driver | null>(null)
   const userClosedRef = useRef(false)
+  // Indica que el siguiente `onDestroyed` viene de `advance()` (cambio de
+  // página dentro del tour) — NO debe interpretarse como dismissal.
+  const isAdvancingRef = useRef(false)
 
   // Filter pages by access. Recomputed each render — stable while access is stable.
   const availablePages = useMemo(() => {
@@ -169,13 +172,26 @@ export function usePlatformWelcomeTour() {
   const cancel = useCallback(() => {
     cleanup()
     clearPlatformTourState()
-  }, [cleanup])
+    // El usuario cerró explícitamente (X o cancel) — marcamos como
+    // completado para que el auto-launcher no vuelva a dispararlo en el
+    // próximo refresh / navegación. Sin esto, `platform-welcome-completed`
+    // queda en `false` y el tour reaparece cada vez que el user vuelve a
+    // Home, ignorando el cierre. Si el user quiere repetirlo, puede
+    // hacerlo desde el tile "Tour interactivo" del HomeSetupChecklist.
+    setCompleted(true)
+    sessionStorage.setItem(SESSION_FLAG_RAN, '1')
+  }, [cleanup, setCompleted])
 
   const advance = useCallback(() => {
     const state = getPlatformTourState()
     if (!state?.active) return
     const nextIndex = state.pageIndex + 1
+    isAdvancingRef.current = true
     cleanup()
+    // Reset el flag tras el tick — para entonces onDestroyed ya corrió.
+    queueMicrotask(() => {
+      isAdvancingRef.current = false
+    })
     if (nextIndex >= availablePages.length) {
       finish()
       // Send the user back to Home for a clean landing
@@ -233,10 +249,18 @@ export function usePlatformWelcomeTour() {
           cancel()
         },
         onDestroyed: () => {
-          // Don't call finish/advance here — both branches are explicitly
-          // handled by onNextClick on the last step (advance/finish) or by
-          // onCloseClick (cancel). onDestroyed firing here just means the
-          // driver was already torn down.
+          // Capturamos el dismissal por ESC (driver.js NO llama onCloseClick
+          // cuando el user presiona ESC, solo cuando hace click en la X).
+          // Si el state sigue active y NO estamos en una transición de
+          // página (`advance`), tratamos como dismissal: marcamos completed
+          // y limpiamos. Sin esto, presionar ESC dejaba el state activo y
+          // el auto-launcher volvía a disparar el tour en el siguiente
+          // navigate / refresh.
+          if (isAdvancingRef.current) return
+          if (userClosedRef.current) return // X ya hizo cancel()
+          if (getPlatformTourState()?.active) {
+            cancel()
+          }
         },
         steps,
       })
