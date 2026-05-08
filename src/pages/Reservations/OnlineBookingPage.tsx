@@ -22,6 +22,7 @@ import { Label } from '@/components/ui/label'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { getProducts } from '@/services/menu.service'
+import { BookingBrandingCard } from './components/BookingBrandingCard'
 
 type Locale = 'es' | 'en'
 type Theme = 'auto' | 'light' | 'dark'
@@ -150,6 +151,11 @@ import '@avoqado/booking-widget'
 				className="text-2xl font-bold"
 			/>
 			<p className="text-muted-foreground">{t('onlineBooking.subtitle')}</p>
+
+			{/* Branding card — hero photo + brand color preview live here so admins
+			    configure the public-booking look in the same place where they manage
+			    its URLs and settings. */}
+			<BookingBrandingCard />
 
 			{/* Booking channels — Square-style separation. Each channel is a shareable URL. */}
 			<div className="space-y-4">
