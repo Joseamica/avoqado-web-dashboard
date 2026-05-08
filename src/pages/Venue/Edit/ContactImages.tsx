@@ -123,6 +123,51 @@ export default function ContactImages() {
   // Logo upload + crop with rotation
   const [uploading, setUploading] = useState(false)
   const [imageUrl, setImageUrl] = useState<string | null>(null)
+  // Phase 11: separate uploading flag for the hero photo so its button reflects
+  // its own progress without colliding with the logo cropper's upload state.
+  const [heroUploading, setHeroUploading] = useState(false)
+  const heroFileInputRef = useRef<HTMLInputElement>(null)
+  const handleHeroPickFile = () => heroFileInputRef.current?.click()
+  const handleHeroFileChange = (e: any) => {
+    const file: File | undefined = e?.target?.files?.[0]
+    e.target.value = '' // allow picking the same file again later
+    if (!file || !venueId) return
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Archivo no soportado', description: 'Selecciona una imagen JPG, PNG o WebP.', variant: 'destructive' })
+      return
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast({ title: 'Imagen muy grande', description: 'Máximo 8 MB. Comprime la imagen y vuelve a intentar.', variant: 'destructive' })
+      return
+    }
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+    const fileName = `hero_${Date.now()}.${ext}`
+    const storageRef = ref(storage, buildStoragePath(`venues/${venueSlug}/hero/${fileName}`))
+    const uploadTask = uploadBytesResumable(storageRef, file)
+    setHeroUploading(true)
+    uploadTask.on(
+      'state_changed',
+      () => {},
+      (error) => {
+        console.error('Error uploading hero:', error)
+        setHeroUploading(false)
+        toast({ title: 'Error al subir', description: 'No se pudo subir la imagen. Intenta de nuevo.', variant: 'destructive' })
+      },
+      () => {
+        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+          setHeroUploading(false)
+          form.setValue('heroImageUrl', downloadURL, { shouldDirty: true })
+          toast({
+            title: 'Foto subida',
+            description: 'Recuerda guardar los cambios para que se aplique en book.avoqado.io.',
+          })
+        })
+      },
+    )
+  }
+  const handleHeroRemove = () => {
+    form.setValue('heroImageUrl', '', { shouldDirty: true })
+  }
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
   const [rotation, setRotation] = useState(0)
@@ -396,7 +441,10 @@ export default function ContactImages() {
                   )}
                 />
 
-                {/* Phase 8: hero cover photo for the public booking page (book.avoqado.io). */}
+                {/* Phase 8 + 11: hero cover photo for the public booking page.
+                    Upload button uses Firebase Storage (same path pattern as the
+                    logo cropper); the URL field stays available so admins with
+                    a CDN can still paste their own hosted asset. */}
                 <FormField
                   control={form.control}
                   name="heroImageUrl"
@@ -405,32 +453,87 @@ export default function ContactImages() {
                       <FormLabel>
                         {t('edit.labels.heroImageUrl', { defaultValue: 'Foto de portada (booking)' })}
                       </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="url"
-                          placeholder="https://cdn.tu-marca.com/hero.jpg"
-                          {...field}
-                          value={field.value || ''}
-                        />
-                      </FormControl>
-                      <p className="text-xs text-muted-foreground mt-1">
+
+                      {field.value ? (
+                        <div className="mt-2 space-y-2">
+                          <div className="rounded-lg overflow-hidden border border-border bg-muted">
+                            <img
+                              src={field.value}
+                              alt=""
+                              className="w-full max-h-56 object-cover"
+                              onError={(e) => {
+                                ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                              }}
+                            />
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={handleHeroPickFile}
+                              disabled={heroUploading || !canEdit}
+                            >
+                              {heroUploading
+                                ? t('edit.actions.uploading', { defaultValue: 'Subiendo…' })
+                                : t('edit.actions.replacePhoto', { defaultValue: 'Reemplazar foto' })}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={handleHeroRemove}
+                              disabled={heroUploading || !canEdit}
+                            >
+                              {tCommon('remove', { defaultValue: 'Quitar' })}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleHeroPickFile}
+                            disabled={heroUploading || !canEdit}
+                          >
+                            {heroUploading
+                              ? t('edit.actions.uploading', { defaultValue: 'Subiendo…' })
+                              : t('edit.actions.uploadPhoto', { defaultValue: 'Subir foto' })}
+                          </Button>
+                        </div>
+                      )}
+
+                      <input
+                        ref={heroFileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={handleHeroFileChange}
+                      />
+
+                      <details className="mt-3">
+                        <summary className="text-xs text-muted-foreground cursor-pointer">
+                          {t('edit.helpers.heroImageUrlAdvanced', { defaultValue: 'Pegar URL en lugar de subir' })}
+                        </summary>
+                        <FormControl>
+                          <Input
+                            type="url"
+                            placeholder="https://cdn.tu-marca.com/hero.jpg"
+                            className="mt-2"
+                            {...field}
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                      </details>
+
+                      <p className="text-xs text-muted-foreground mt-2">
                         {t('edit.helpers.heroImageUrl', {
                           defaultValue:
-                            'URL pública (16:9 recomendado, mín. 1200px de ancho). Aparece como hero en book.avoqado.io. Deja vacío para ocultar.',
+                            '16:9 recomendado, mín. 1200px de ancho. Aparece como hero en book.avoqado.io.',
                         })}
                       </p>
-                      {field.value ? (
-                        <div className="mt-2 rounded-lg overflow-hidden border border-border">
-                          <img
-                            src={field.value}
-                            alt=""
-                            className="w-full max-h-48 object-cover"
-                            onError={(e) => {
-                              ;(e.currentTarget as HTMLImageElement).style.display = 'none'
-                            }}
-                          />
-                        </div>
-                      ) : null}
                       <FormMessage />
                     </FormItem>
                   )}
