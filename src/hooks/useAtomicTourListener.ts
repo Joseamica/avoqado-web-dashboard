@@ -78,6 +78,7 @@ export type AtomicTourName =
   | 'team-invitation'
   | 'tpv-onboarding'
   | 'reservations-onboarding'
+  | 'reservation-settings-onboarding'
 
 /**
  * Call from launcher code (checklist, welcome tour) to queue an atomic tour.

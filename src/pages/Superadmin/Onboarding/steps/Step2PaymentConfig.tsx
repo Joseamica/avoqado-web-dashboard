@@ -277,8 +277,11 @@ export const Step2PaymentConfig: React.FC<Props> = ({ pricing, venueType, organi
                   className="h-12 text-base"
                   type="number"
                   step="0.01"
-                  value={pricing.debitRate}
-                  onChange={(e) => onChange({ debitRate: +e.target.value })}
+                  value={pricing.debitRate ?? ''}
+                  onChange={(e) => {
+                    const raw = e.target.value
+                    onChange({ debitRate: raw === '' ? undefined : +raw })
+                  }}
                 />
               </div>
               <div className="space-y-2">
@@ -287,8 +290,11 @@ export const Step2PaymentConfig: React.FC<Props> = ({ pricing, venueType, organi
                   className="h-12 text-base"
                   type="number"
                   step="0.01"
-                  value={pricing.creditRate}
-                  onChange={(e) => onChange({ creditRate: +e.target.value })}
+                  value={pricing.creditRate ?? ''}
+                  onChange={(e) => {
+                    const raw = e.target.value
+                    onChange({ creditRate: raw === '' ? undefined : +raw })
+                  }}
                 />
               </div>
               <div className="space-y-2">
@@ -297,8 +303,11 @@ export const Step2PaymentConfig: React.FC<Props> = ({ pricing, venueType, organi
                   className="h-12 text-base"
                   type="number"
                   step="0.01"
-                  value={pricing.amexRate}
-                  onChange={(e) => onChange({ amexRate: +e.target.value })}
+                  value={pricing.amexRate ?? ''}
+                  onChange={(e) => {
+                    const raw = e.target.value
+                    onChange({ amexRate: raw === '' ? undefined : +raw })
+                  }}
                 />
               </div>
               <div className="space-y-2">
@@ -307,8 +316,11 @@ export const Step2PaymentConfig: React.FC<Props> = ({ pricing, venueType, organi
                   className="h-12 text-base"
                   type="number"
                   step="0.01"
-                  value={pricing.internationalRate}
-                  onChange={(e) => onChange({ internationalRate: +e.target.value })}
+                  value={pricing.internationalRate ?? ''}
+                  onChange={(e) => {
+                    const raw = e.target.value
+                    onChange({ internationalRate: raw === '' ? undefined : +raw })
+                  }}
                 />
               </div>
             </div>

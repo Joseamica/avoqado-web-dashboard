@@ -413,8 +413,11 @@ const Step2ConfigBuilder: React.FC<{
                     ) : field.type === 'number' ? (
                       <Input
                         type="number"
-                        value={field.defaultValue as number}
-                        onChange={(e) => updateField(field.id, { defaultValue: Number(e.target.value) })}
+                        value={(field.defaultValue as number | undefined) ?? ''}
+                        onChange={(e) => {
+                          const raw = e.target.value
+                          updateField(field.id, { defaultValue: raw === '' ? undefined : Number(raw) })
+                        }}
                         placeholder="0"
                       />
                     ) : field.type === 'select' ? (
@@ -608,8 +611,11 @@ const Step3PresetsBuilder: React.FC<{
                           ) : field.type === 'number' ? (
                             <Input
                               type="number"
-                              value={preset.overrides[field.key] ?? field.defaultValue}
-                              onChange={(e) => updatePresetOverride(preset.id, field.key, Number(e.target.value))}
+                              value={(preset.overrides[field.key] ?? field.defaultValue ?? '') as string | number}
+                              onChange={(e) => {
+                                const raw = e.target.value
+                                updatePresetOverride(preset.id, field.key, raw === '' ? undefined : Number(raw))
+                              }}
                               className="h-8 w-24"
                             />
                           ) : (

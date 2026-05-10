@@ -198,7 +198,9 @@ interface VenueFormData {
 type FeatureGrantMode = 'enable' | 'trial'
 interface FeatureGrant {
   mode: FeatureGrantMode
-  trialDays: number // only used when mode === 'trial'
+  // `undefined` allowed transiently while the input is cleared during edit;
+  // coerced to a sensible default at submit (see grantTrialForVenue call).
+  trialDays: number | undefined // only used when mode === 'trial'
 }
 
 interface ConfigData {
@@ -419,7 +421,7 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
             if (grant.mode === 'enable') {
               await svc.enableFeatureForVenue(venueId, featureCode)
             } else {
-              await svc.grantTrialForVenue(venueId, featureCode, grant.trialDays)
+              await svc.grantTrialForVenue(venueId, featureCode, grant.trialDays ?? 30)
             }
           } catch (err: any) {
             failed.push({ code: featureCode, reason: err?.response?.data?.message ?? err?.message ?? 'error' })
@@ -1920,7 +1922,7 @@ function StepConfig({
     })
   }
 
-  const setTrialDays = (code: string, days: number) => {
+  const setTrialDays = (code: string, days: number | undefined) => {
     setConfig(prev => {
       const current = prev.featureGrants[code]
       if (!current || current.mode !== 'trial') return prev
@@ -2057,8 +2059,11 @@ function StepConfig({
                         type="number"
                         min={1}
                         max={365}
-                        value={grant.trialDays}
-                        onChange={e => setTrialDays(feature.code, Math.max(1, Number(e.target.value) || 1))}
+                        value={grant.trialDays ?? ''}
+                        onChange={e => {
+                          const raw = e.target.value
+                          setTrialDays(feature.code, raw === '' ? undefined : Number(raw))
+                        }}
                         className="h-8 w-20 text-sm"
                       />
                     </div>

@@ -181,6 +181,10 @@ export interface ReservationSettings {
 		requirePhone: boolean
 		requireEmail: boolean
 	}
+	payments?: {
+		appointmentUpfrontDefault: 'required' | 'at_venue' | 'optional'
+		classUpfrontDefault: 'required' | 'at_venue' | 'optional'
+	}
 	operatingHours: OperatingHours
 }
 

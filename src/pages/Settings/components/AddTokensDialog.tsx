@@ -42,7 +42,8 @@ export function AddTokensDialog({
   onChangePaymentMethod,
 }: AddTokensDialogProps) {
   const { t, i18n } = useTranslation('billing')
-  const [amount, setAmount] = useState(20000)
+  // `undefined` allows the input to be cleared; calculations below treat it as 0.
+  const [amount, setAmount] = useState<number | undefined>(20000)
 
   // Use venue's currency from pricing config (default to MXN)
   const currency = tokenBudget?.pricing?.currency || 'MXN'
@@ -50,17 +51,18 @@ export function AddTokensDialog({
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat(i18n.language, { style: 'currency', currency }).format(value)
 
+  const safeAmount = amount ?? 0
   const price = tokenBudget?.pricing
-    ? (amount / 1000) * tokenBudget.pricing.pricePerThousandTokens
+    ? (safeAmount / 1000) * tokenBudget.pricing.pricePerThousandTokens
     : 0
 
-  const newBalance = (tokenBudget?.totalAvailable || 0) + amount
+  const newBalance = (tokenBudget?.totalAvailable || 0) + safeAmount
 
   const presetAmounts = [20000, 50000, 100000, 200000]
 
   const handlePurchase = () => {
-    if (amount >= 20000 && defaultPaymentMethod?.id) {
-      onPurchase(amount, defaultPaymentMethod.id)
+    if (safeAmount >= 20000 && defaultPaymentMethod?.id) {
+      onPurchase(safeAmount, defaultPaymentMethod.id)
     }
   }
 
@@ -93,8 +95,11 @@ export function AddTokensDialog({
             </div>
             <Input
               type="number"
-              value={amount}
-              onChange={e => setAmount(Number(e.target.value) || 0)}
+              value={amount ?? ''}
+              onChange={e => {
+                const raw = e.target.value
+                setAmount(raw === '' ? undefined : Number(raw))
+              }}
               min={20000}
               step={10000}
               placeholder={t('tokenBudget.addFunds.customAmount')}

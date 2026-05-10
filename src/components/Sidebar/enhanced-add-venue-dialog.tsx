@@ -816,7 +816,11 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                                       max="0.1"
                                       placeholder="0.020"
                                       {...field}
-                                      onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                                      value={field.value ?? ''}
+                                      onChange={e => {
+                                        const raw = e.target.value
+                                        field.onChange(raw === '' ? (undefined as unknown as number) : parseFloat(raw))
+                                      }}
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -838,7 +842,11 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                                       max="0.1"
                                       placeholder="0.030"
                                       {...field}
-                                      onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                                      value={field.value ?? ''}
+                                      onChange={e => {
+                                        const raw = e.target.value
+                                        field.onChange(raw === '' ? (undefined as unknown as number) : parseFloat(raw))
+                                      }}
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -860,7 +868,11 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                                       max="0.1"
                                       placeholder="0.040"
                                       {...field}
-                                      onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                                      value={field.value ?? ''}
+                                      onChange={e => {
+                                        const raw = e.target.value
+                                        field.onChange(raw === '' ? (undefined as unknown as number) : parseFloat(raw))
+                                      }}
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -882,7 +894,11 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                                       max="0.1"
                                       placeholder="0.045"
                                       {...field}
-                                      onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                                      value={field.value ?? ''}
+                                      onChange={e => {
+                                        const raw = e.target.value
+                                        field.onChange(raw === '' ? (undefined as unknown as number) : parseFloat(raw))
+                                      }}
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -929,7 +945,11 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                                       min="0"
                                       placeholder="0.75"
                                       {...field}
-                                      onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                                      value={field.value ?? ''}
+                                      onChange={e => {
+                                        const raw = e.target.value
+                                        field.onChange(raw === '' ? (undefined as unknown as number) : parseFloat(raw))
+                                      }}
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -950,7 +970,11 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                                       min="0"
                                       placeholder="799.00"
                                       {...field}
-                                      onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                                      value={field.value ?? ''}
+                                      onChange={e => {
+                                        const raw = e.target.value
+                                        field.onChange(raw === '' ? (undefined as unknown as number) : parseFloat(raw))
+                                      }}
                                     />
                                   </FormControl>
                                   <FormMessage />

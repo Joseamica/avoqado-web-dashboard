@@ -40,8 +40,11 @@ export const Step4SettlementTerms: React.FC<Props> = ({ settlement, onChange }) 
               type="number"
               min={0}
               className="w-24 h-12 text-base"
-              value={settlement[key]}
-              onChange={(e) => onChange({ [key]: +e.target.value })}
+              value={settlement[key] ?? ''}
+              onChange={(e) => {
+                const raw = e.target.value
+                onChange({ [key]: raw === '' ? undefined : +raw })
+              }}
             />
             <span className="text-sm text-muted-foreground">dias</span>
           </div>

@@ -1043,8 +1043,11 @@ const TrainingDetail: React.FC = () => {
                 <Input
                   type="number"
                   min={1}
-                  value={stepForm.stepNumber}
-                  onChange={e => setStepForm(prev => ({ ...prev, stepNumber: Number(e.target.value) }))}
+                  value={stepForm.stepNumber ?? ''}
+                  onChange={e => {
+                    const raw = e.target.value
+                    setStepForm(prev => ({ ...prev, stepNumber: raw === '' ? (undefined as unknown as number) : Number(raw) }))
+                  }}
                 />
               </div>
               <div className="space-y-2">

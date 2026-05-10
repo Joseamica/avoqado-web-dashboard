@@ -224,7 +224,13 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
                             placeholder={t('form.placeholders.price')}
                             className="h-12 text-base"
                             {...field}
-                            onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : 0)}
+                            value={field.value ?? ''}
+                            onChange={e => {
+                              const raw = e.target.value
+                              // Allow clearing the input. `required` + `min` rules will reject
+                              // empty/zero values on submit, so we don't need to backfill here.
+                              field.onChange(raw === '' ? (undefined as unknown as number) : parseFloat(raw))
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -324,13 +330,20 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
                 </div>
 
                 {fields.map((field, index) => (
-                  <div key={field.id} className="flex items-end gap-3">
+                  // Grid with explicit column tracks — guarantees product +
+                  // quantity sit side-by-side regardless of modal width. The
+                  // previous flex layout was wrapping in narrower viewports.
+                  <div
+                    key={field.id}
+                    className="grid items-end gap-3"
+                    style={{ gridTemplateColumns: `1fr 96px ${fields.length > 1 ? 'auto' : ''}`.trim() }}
+                  >
                     <FormField
                       control={form.control}
                       name={`items.${index}.productId`}
                       rules={{ required: { value: true, message: t('form.validation.productRequired') } }}
                       render={({ field: f }) => (
-                        <FormItem className="flex-1">
+                        <FormItem className="min-w-0">
                           <FormLabel>{t('form.fields.product')}</FormLabel>
                           <Select onValueChange={f.onChange} value={f.value}>
                             <FormControl>
@@ -359,7 +372,7 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
                         min: { value: 1, message: t('form.validation.quantityPositive') },
                       }}
                       render={({ field: f }) => (
-                        <FormItem className="w-24">
+                        <FormItem>
                           <FormLabel>{t('form.fields.quantity')}</FormLabel>
                           <FormControl>
                             <Input
@@ -367,7 +380,12 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
                               min={1}
                               className="h-12 text-base"
                               {...f}
-                              onChange={e => f.onChange(e.target.value ? parseInt(e.target.value) : 1)}
+                              value={f.value ?? ''}
+                              onChange={e => {
+                                const raw = e.target.value
+                                // Allow clearing — `required` + `min:1` rules block submit if empty.
+                                f.onChange(raw === '' ? (undefined as unknown as number) : parseInt(raw))
+                              }}
                             />
                           </FormControl>
                           <FormMessage />

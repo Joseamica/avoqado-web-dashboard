@@ -12,17 +12,25 @@ import {
   Frame,
   MousePointerClick,
   ShieldAlert,
-  Calendar as CalendarIcon,
-  Users as UsersIcon,
+  MoreHorizontal,
+  Store,
+  ArrowUpRight,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { getProducts } from '@/services/menu.service'
-import { BookingBrandingCard } from './components/BookingBrandingCard'
+import { EditBrandIdentityModal } from './components/EditBrandIdentityModal'
 
 type Locale = 'es' | 'en'
 type Theme = 'auto' | 'light' | 'dark'
@@ -62,6 +70,69 @@ function CodeBlock({ code }: CodeBlockProps) {
 	)
 }
 
+interface PublicPageRowProps {
+	title: string
+	subtitle: string
+	url: string
+	editTo: string
+	editLabel: string
+	showLabel: string
+	copyLabel: string
+	copiedLabel: string
+}
+
+function PublicPageRow({
+	title,
+	subtitle,
+	url,
+	editTo,
+	editLabel,
+	showLabel,
+	copyLabel,
+	copiedLabel,
+}: PublicPageRowProps) {
+	const { copied, copy } = useCopyToClipboard()
+	return (
+		<div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+			<div className="min-w-0">
+				<h3 className="text-sm font-semibold text-foreground">{title}</h3>
+				<p className="text-sm text-muted-foreground">{subtitle}</p>
+			</div>
+			<div className="flex items-center gap-1 sm:-mr-2">
+				<Button variant="ghost" size="sm" asChild>
+					<Link to={editTo}>{editLabel}</Link>
+				</Button>
+				<Button variant="ghost" size="sm" asChild>
+					<a href={url} target="_blank" rel="noopener noreferrer">
+						{showLabel}
+						<ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+					</a>
+				</Button>
+				<TooltipProvider delayDuration={200}>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-9 w-9 cursor-pointer"
+								onClick={() => copy(url)}
+								aria-label={copyLabel}
+							>
+								{copied ? (
+									<Check className="h-4 w-4 text-emerald-500" />
+								) : (
+									<Copy className="h-4 w-4" />
+								)}
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>{copied ? copiedLabel : copyLabel}</TooltipContent>
+					</Tooltip>
+				</TooltipProvider>
+			</div>
+		</div>
+	)
+}
+
 export default function OnlineBookingPage() {
 	const { t } = useTranslation('reservations')
 	const { venue, fullBasePath, venueSlug } = useCurrentVenue()
@@ -69,6 +140,7 @@ export default function OnlineBookingPage() {
 	const [locale, setLocale] = useState<Locale>('es')
 	const [theme, setTheme] = useState<Theme>('auto')
 	const [mode, setMode] = useState<Mode>('inline')
+	const [brandModalOpen, setBrandModalOpen] = useState(false)
 
 	const slug = venueSlug ?? 'your-venue-slug'
 
@@ -152,118 +224,58 @@ import '@avoqado/booking-widget'
 			/>
 			<p className="text-muted-foreground">{t('onlineBooking.subtitle')}</p>
 
-			{/* Branding card — hero photo + brand color preview live here so admins
-			    configure the public-booking look in the same place where they manage
-			    its URLs and settings. */}
-			<BookingBrandingCard />
-
-			{/* Booking channels — Square-style separation. Each channel is a shareable URL. */}
-			<div className="space-y-4">
-				<h2 className="text-base font-semibold">Páginas de reserva públicas</h2>
-				<p className="-mt-2 text-sm text-muted-foreground">
-					Comparte estos enlaces con tus clientes. Cada uno abre un flujo distinto de reserva.
-				</p>
-
-				{/* Citas channel */}
-				<Card>
-					<CardHeader>
-						<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-							<div className="flex items-start gap-3">
-								<div className="rounded-md bg-emerald-100 p-2 dark:bg-emerald-900/40">
-									<CalendarIcon className="h-5 w-5 text-emerald-700 dark:text-emerald-300" />
-								</div>
-								<div className="space-y-0.5">
-									<CardTitle className="text-base">Página de reserva de citas</CardTitle>
-									<CardDescription>
-										{appointmentCount === 0
-											? 'No tienes servicios configurados todavía.'
-											: appointmentCount === 1
-												? '1 servicio'
-												: `${appointmentCount} servicios`}
-									</CardDescription>
-								</div>
-							</div>
-							<div className="flex items-center gap-2">
-								<Button variant="ghost" size="sm" asChild>
-									<Link to={`${fullBasePath}/menu`}>Editar servicios</Link>
-								</Button>
-								<Button variant="outline" size="sm" asChild>
-									<a href={appointmentsUrl} target="_blank" rel="noopener noreferrer">
-										Mostrar
-										<ExternalLink className="ml-2 h-3.5 w-3.5" />
-									</a>
-								</Button>
-							</div>
-						</div>
-					</CardHeader>
-					<CardContent>
-						<CodeBlock code={appointmentsUrl} />
-					</CardContent>
+			{/* Booking channels — Square-style flat list. The venue header row
+			    on top acts as the brand-identity entry point (kebab menu); the
+			    URL itself stays out of the way until the user copies it. */}
+			<section className="space-y-3">
+				<div>
+					<h2 className="text-base font-semibold">{t('onlineBooking.publicPages.title')}</h2>
+					<p className="text-sm text-muted-foreground">
+						{t('onlineBooking.publicPages.subtitle')}
+					</p>
+				</div>
+				<Card className="border-input">
+					<div className="divide-y divide-input">
+						<VenueIdentityRow
+							venueName={venue?.name ?? 'Tu negocio'}
+							venueType={venue?.type ?? null}
+							onEditIdentity={() => setBrandModalOpen(true)}
+						/>
+						<PublicPageRow
+							title={t('onlineBooking.publicPages.appointments.title')}
+							subtitle={
+								appointmentCount === 0
+									? t('onlineBooking.publicPages.appointments.empty')
+									: appointmentCount === 1
+										? t('onlineBooking.publicPages.appointments.one')
+										: t('onlineBooking.publicPages.appointments.many', { count: appointmentCount })
+							}
+							url={appointmentsUrl}
+							editTo={`${fullBasePath}/menu`}
+							editLabel={t('onlineBooking.publicPages.editService')}
+							showLabel={t('onlineBooking.publicPages.show')}
+							copyLabel={t('onlineBooking.publicPages.copyUrl')}
+							copiedLabel={t('onlineBooking.publicPages.urlCopied')}
+						/>
+						<PublicPageRow
+							title={t('onlineBooking.publicPages.classes.title')}
+							subtitle={
+								classCount === 0
+									? t('onlineBooking.publicPages.classes.empty')
+									: classCount === 1
+										? t('onlineBooking.publicPages.classes.one')
+										: t('onlineBooking.publicPages.classes.many', { count: classCount })
+							}
+							url={classesUrl}
+							editTo={`${fullBasePath}/reservations/calendar`}
+							editLabel={t('onlineBooking.publicPages.viewCalendar')}
+							showLabel={t('onlineBooking.publicPages.show')}
+							copyLabel={t('onlineBooking.publicPages.copyUrl')}
+							copiedLabel={t('onlineBooking.publicPages.urlCopied')}
+						/>
+					</div>
 				</Card>
-
-				{/* Clases channel */}
-				<Card>
-					<CardHeader>
-						<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-							<div className="flex items-start gap-3">
-								<div className="rounded-md bg-violet-100 p-2 dark:bg-violet-900/40">
-									<UsersIcon className="h-5 w-5 text-violet-700 dark:text-violet-300" />
-								</div>
-								<div className="space-y-0.5">
-									<CardTitle className="text-base">Página de reserva de clases</CardTitle>
-									<CardDescription>
-										{classCount === 0
-											? 'No tienes clases configuradas todavía.'
-											: classCount === 1
-												? '1 clase'
-												: `${classCount} clases`}
-									</CardDescription>
-								</div>
-							</div>
-							<div className="flex items-center gap-2">
-								<Button variant="ghost" size="sm" asChild>
-									<Link to={`${fullBasePath}/reservations/calendar`}>Ver calendario</Link>
-								</Button>
-								<Button variant="outline" size="sm" asChild>
-									<a href={classesUrl} target="_blank" rel="noopener noreferrer">
-										Mostrar
-										<ExternalLink className="ml-2 h-3.5 w-3.5" />
-									</a>
-								</Button>
-							</div>
-						</div>
-					</CardHeader>
-					<CardContent>
-						<CodeBlock code={classesUrl} />
-					</CardContent>
-				</Card>
-
-				{/* Unified channel — fallback for venues that don't differentiate */}
-				<Card className="border-dashed">
-					<CardHeader>
-						<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-							<div className="flex items-start gap-3">
-								<div className="rounded-md bg-muted p-2">
-									<Globe className="h-5 w-5 text-muted-foreground" />
-								</div>
-								<div className="space-y-0.5">
-									<CardTitle className="text-base">Página unificada</CardTitle>
-									<CardDescription>Todos los servicios y clases en un solo enlace.</CardDescription>
-								</div>
-							</div>
-							<Button variant="outline" size="sm" asChild>
-								<a href={publicBookingUrl} target="_blank" rel="noopener noreferrer">
-									Mostrar
-									<ExternalLink className="ml-2 h-3.5 w-3.5" />
-								</a>
-							</Button>
-						</div>
-					</CardHeader>
-					<CardContent>
-						<CodeBlock code={publicBookingUrl} />
-					</CardContent>
-				</Card>
-			</div>
+			</section>
 
 			{/* Settings link */}
 			<Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/20">
@@ -484,6 +496,66 @@ import '@avoqado/booking-widget'
 					</CardContent>
 				</Card>
 			)}
+
+			{/* Brand identity editor — opened from the venue row's kebab menu */}
+			<EditBrandIdentityModal
+				open={brandModalOpen}
+				onClose={() => setBrandModalOpen(false)}
+			/>
+		</div>
+	)
+}
+
+// ----------------------------------------------------------------------------
+// Venue identity row — sits at the top of the public-pages list. Square uses
+// this header row to surface the venue (store, mobile POS, etc.) and exposes
+// brand-level actions through a "..." menu. For now the only action is
+// "Editar identidad de marca".
+// ----------------------------------------------------------------------------
+
+interface VenueIdentityRowProps {
+	venueName: string
+	venueType: string | null
+	onEditIdentity: () => void
+}
+
+function VenueIdentityRow({ venueName, venueType, onEditIdentity }: VenueIdentityRowProps) {
+	const { t } = useTranslation(['reservations', 'venue'])
+	const subtitle = venueType
+		? t(`types.${venueType}`, { ns: 'venue', defaultValue: t('onlineBooking.brandIdentity.business') })
+		: t('onlineBooking.brandIdentity.business')
+
+	return (
+		<div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6">
+			<div className="flex min-w-0 items-center gap-3">
+				<div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-muted">
+					<Store className="h-5 w-5 text-muted-foreground" />
+				</div>
+				<div className="min-w-0">
+					<p className="truncate text-sm font-semibold text-foreground">{venueName}</p>
+					<p className="truncate text-sm text-muted-foreground">{subtitle}</p>
+				</div>
+			</div>
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>
+					<Button
+						variant="ghost"
+						size="icon"
+						className="h-9 w-9 cursor-pointer"
+						aria-label={t('onlineBooking.brandIdentity.moreActions')}
+					>
+						<MoreHorizontal className="h-4 w-4" />
+					</Button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="end" className="w-64">
+					<DropdownMenuItem onSelect={onEditIdentity} className="cursor-pointer">
+						<span className="flex-1">
+							{t('onlineBooking.brandIdentity.editIdentity')}
+						</span>
+						<ArrowUpRight className="ml-2 h-4 w-4 text-muted-foreground" />
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
 		</div>
 	)
 }

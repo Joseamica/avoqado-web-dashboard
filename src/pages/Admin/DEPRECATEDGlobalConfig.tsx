@@ -261,8 +261,11 @@ export default function GlobalConfig() {
                   <label className="text-sm font-medium text-foreground">{t('globalConfig.application.sessionTimeout')}</label>
                   <Input
                     type="number"
-                    value={config.appSettings.sessionTimeout}
-                    onChange={e => updateConfig('appSettings', 'sessionTimeout', parseInt(e.target.value))}
+                    value={config.appSettings.sessionTimeout ?? ''}
+                    onChange={e => {
+                      const raw = e.target.value
+                      updateConfig('appSettings', 'sessionTimeout', raw === '' ? undefined : parseInt(raw))
+                    }}
                     min="5"
                     max="120"
                   />
@@ -345,8 +348,11 @@ export default function GlobalConfig() {
                   <label className="text-sm font-medium text-foreground">{t('globalConfig.security.minLength')}</label>
                   <Input
                     type="number"
-                    value={config.security.passwordPolicyMinLength}
-                    onChange={e => updateConfig('security', 'passwordPolicyMinLength', parseInt(e.target.value))}
+                    value={config.security.passwordPolicyMinLength ?? ''}
+                    onChange={e => {
+                      const raw = e.target.value
+                      updateConfig('security', 'passwordPolicyMinLength', raw === '' ? undefined : parseInt(raw))
+                    }}
                     min="6"
                     max="24"
                   />
@@ -355,8 +361,11 @@ export default function GlobalConfig() {
                   <label className="text-sm font-medium text-foreground">{t('globalConfig.security.expiryDays')}</label>
                   <Input
                     type="number"
-                    value={config.security.passwordExpiryDays}
-                    onChange={e => updateConfig('security', 'passwordExpiryDays', parseInt(e.target.value))}
+                    value={config.security.passwordExpiryDays ?? ''}
+                    onChange={e => {
+                      const raw = e.target.value
+                      updateConfig('security', 'passwordExpiryDays', raw === '' ? undefined : parseInt(raw))
+                    }}
                     min="0"
                     max="365"
                   />
@@ -421,8 +430,11 @@ export default function GlobalConfig() {
                   <label className="text-sm font-medium text-foreground">{t('globalConfig.security.sessionTimeout')}</label>
                   <Input
                     type="number"
-                    value={config.security.sessionTimeoutMinutes}
-                    onChange={e => updateConfig('security', 'sessionTimeoutMinutes', parseInt(e.target.value))}
+                    value={config.security.sessionTimeoutMinutes ?? ''}
+                    onChange={e => {
+                      const raw = e.target.value
+                      updateConfig('security', 'sessionTimeoutMinutes', raw === '' ? undefined : parseInt(raw))
+                    }}
                     min="5"
                     max="1440"
                   />
@@ -448,8 +460,11 @@ export default function GlobalConfig() {
                   <label className="text-sm font-medium text-foreground">{t('globalConfig.email.smtpPort')}</label>
                   <Input
                     type="number"
-                    value={config.email.smtpPort}
-                    onChange={e => updateConfig('email', 'smtpPort', parseInt(e.target.value))}
+                    value={config.email.smtpPort ?? ''}
+                    onChange={e => {
+                      const raw = e.target.value
+                      updateConfig('email', 'smtpPort', raw === '' ? undefined : parseInt(raw))
+                    }}
                   />
                 </div>
                 <div className="space-y-2">

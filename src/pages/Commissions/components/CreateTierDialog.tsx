@@ -136,7 +136,16 @@ export default function CreateTierDialog({ open, onOpenChange, configId, tier, n
                   <FormItem>
                     <FormLabel>{t('tiers.level')}</FormLabel>
                     <FormControl>
-                      <Input type="number" min={1} {...field} onChange={e => field.onChange(parseInt(e.target.value) || 1)} />
+                      <Input
+                        type="number"
+                        min={1}
+                        {...field}
+                        value={field.value ?? ''}
+                        onChange={e => {
+                          const raw = e.target.value
+                          field.onChange(raw === '' ? (undefined as unknown as number) : parseInt(raw))
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -220,7 +229,17 @@ export default function CreateTierDialog({ open, onOpenChange, configId, tier, n
                   <FormItem>
                     <FormLabel>{t('tiers.minThreshold')}</FormLabel>
                     <FormControl>
-                      <Input type="number" min={0} step="0.01" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} />
+                      <Input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        {...field}
+                        value={field.value ?? ''}
+                        onChange={e => {
+                          const raw = e.target.value
+                          field.onChange(raw === '' ? (undefined as unknown as number) : parseFloat(raw))
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

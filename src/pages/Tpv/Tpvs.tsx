@@ -25,6 +25,7 @@ import { Link, useLocation } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
 import { FilterPill, CheckboxFilterContent } from '@/components/filters'
+import { getTerminalStatusInfo, type TerminalStatusKey } from '@/lib/terminal-status'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { PermissionGate } from '@/components/PermissionGate'
 import {
@@ -97,63 +98,28 @@ export default function Tpvs() {
   // Check if user is SUPERADMIN
   const isSuperadmin = user?.role === StaffRole.SUPERADMIN
 
-  // Helper function to check if terminal is online
-  const isTerminalOnline = (status: string, lastHeartbeat?: string | null) => {
-    const now = new Date()
-    const heartbeatTime = lastHeartbeat ? new Date(lastHeartbeat) : null
-    return status === 'ACTIVE' && heartbeatTime && now.getTime() - heartbeatTime.getTime() < 5 * 60 * 1000
+  const statusLabelMap: Record<TerminalStatusKey, string> = {
+    locked: t('tpv.status.locked', { defaultValue: 'Bloqueado' }),
+    pending: t('tpv.status.pendingActivation', { defaultValue: 'Pendiente' }),
+    online: t('tpv.status.online', { defaultValue: 'En línea' }),
+    offline: t('tpv.status.offline', { defaultValue: 'Sin conexión' }),
+    inactive: t('tpv.status.inactive', { defaultValue: 'Inactivo' }),
+    maintenance: t('tpv.status.maintenance', { defaultValue: 'Mantenimiento' }),
+    retired: t('tpv.status.retired', { defaultValue: 'Retirado' }),
+    unknown: t('tpv.status.unknown', { defaultValue: 'Desconocido' }),
   }
 
-  // Helper function to get terminal status styling
   const getTerminalStatusStyle = (status: string, lastHeartbeat?: string | null) => {
-    const isOnline = isTerminalOnline(status, lastHeartbeat)
-
-    switch (status) {
-      case 'PENDING_ACTIVATION':
-        return {
-          dotColor: 'bg-blue-500',
-          pulseStatus: 'info' as const,
-          label: t('tpv.status.pendingActivation', { defaultValue: 'Pendiente' }),
-          isOnline: false,
-        }
-      case 'ACTIVE':
-        return {
-          dotColor: isOnline ? 'bg-emerald-500' : 'bg-amber-500',
-          pulseStatus: isOnline ? ('success' as const) : ('warning' as const),
-          label: isOnline
-            ? t('tpv.status.online', { defaultValue: 'En línea' })
-            : t('tpv.status.offline', { defaultValue: 'Sin conexión' }),
-          isOnline,
-        }
-      case 'INACTIVE':
-        return {
-          dotColor: 'bg-muted-foreground/60',
-          pulseStatus: 'neutral' as const,
-          label: t('tpv.status.inactive', { defaultValue: 'Inactivo' }),
-          isOnline: false,
-        }
-      case 'MAINTENANCE':
-        return {
-          dotColor: 'bg-orange-500',
-          pulseStatus: 'warning' as const,
-          label: t('tpv.status.maintenance', { defaultValue: 'Mantenimiento' }),
-          isOnline: true,
-        }
-      case 'RETIRED':
-        return {
-          dotColor: 'bg-red-500',
-          pulseStatus: 'error' as const,
-          label: t('tpv.status.retired', { defaultValue: 'Retirado' }),
-          isOnline: false,
-        }
-      default:
-        return {
-          dotColor: 'bg-muted-foreground/60',
-          pulseStatus: 'neutral' as const,
-          label: t('tpv.status.unknown', { defaultValue: 'Desconocido' }),
-          isOnline: false,
-        }
+    const info = getTerminalStatusInfo({ status, lastHeartbeat })
+    return {
+      pulseStatus: info.pulseStatus,
+      label: statusLabelMap[info.statusKey],
+      isOnline: info.isOnline,
     }
+  }
+
+  const isTerminalOnline = (status: string, lastHeartbeat?: string | null) => {
+    return getTerminalStatusInfo({ status, lastHeartbeat }).isOnline
   }
 
   // Multi-select filters and search are sent to backend so pagination respects them.

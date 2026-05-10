@@ -572,7 +572,11 @@ export default function AvailableBalance() {
                         step="0.01"
                         placeholder={t('simulate.form.amountPlaceholder')}
                         {...field}
-                        onChange={e => field.onChange(parseFloat(e.target.value))}
+                        value={field.value ?? ''}
+                        onChange={e => {
+                          const raw = e.target.value
+                          field.onChange(raw === '' ? (undefined as unknown as number) : parseFloat(raw))
+                        }}
                       />
                     </FormControl>
                     <FormMessage />

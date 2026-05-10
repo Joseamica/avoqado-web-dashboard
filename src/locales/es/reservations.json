@@ -379,7 +379,71 @@
 		"npmDescription": "Para proyectos en React, Vue o Angular — importa como Web Component.",
 		"preview": "Vista Previa en Vivo",
 		"previewDescription": "Así es como tus clientes ven tu página de reservaciones. El widget en sitios externos se ve idéntico.",
-		"openPreview": "Abrir en nueva pestaña"
+		"openPreview": "Abrir en nueva pestaña",
+		"publicPages": {
+			"title": "Páginas de reserva públicas",
+			"subtitle": "Comparte estos enlaces con tus clientes. Cada uno abre un flujo distinto de reserva.",
+			"editService": "Edita visualización del servicio",
+			"viewCalendar": "Ver calendario",
+			"show": "Mostrar",
+			"copyUrl": "Copiar URL",
+			"urlCopied": "URL copiada",
+			"appointments": {
+				"title": "Página de reserva de citas",
+				"empty": "No tienes servicios configurados todavía.",
+				"one": "1 servicio",
+				"many": "{{count}} servicios"
+			},
+			"classes": {
+				"title": "Página de reserva de clases",
+				"empty": "No tienes clases configuradas todavía.",
+				"one": "1 clase",
+				"many": "{{count}} clases"
+			}
+		},
+		"brandIdentity": {
+			"business": "Negocio",
+			"moreActions": "Más acciones",
+			"editIdentity": "Editar identidad de marca",
+			"step1Title": "Aplica el diseño de tu marca",
+			"step1Heading": "Añade el logotipo y el color de tu marca",
+			"step1Description": "El logotipo y el color principal de tu negocio aparecerán en tu página pública de reservas, en los recibos y en cualquier otro espacio en el que tus clientes interactúen con tu marca.",
+			"step2Title": "Vista previa y ajustes",
+			"logoFull": "Logotipo completo",
+			"logoFullHelper": "Una versión amplia del logotipo. Aparece como hero en la página de reservas.",
+			"logoSmall": "Logotipo pequeño",
+			"logoSmallHelper": "Una versión cuadrada en miniatura. Se usa en recibos, avatares y la cabecera del widget.",
+			"color": "Color",
+			"colorHelper": "Un color principal para botones, badges y enlaces.",
+			"heroPhoto": "Foto de portada",
+			"heroHelper": "16:9, mín. 1200px de ancho. Aparece detrás del logotipo en la página pública.",
+			"add": "Añadir",
+			"replace": "Reemplazar",
+			"remove": "Quitar",
+			"uploading": "Subiendo…",
+			"uploadHero": "Subir foto",
+			"adjust": "Ajustes de marca",
+			"brandDesign": "Diseño de marca",
+			"previewContext": "Vista previa",
+			"tabAppointments": "Citas",
+			"tabClasses": "Clases",
+			"skip": "Omitir",
+			"next": "Siguiente",
+			"back": "Atrás",
+			"complete": "Completar",
+			"saved": "Identidad de marca guardada",
+			"savedDescription": "Tus cambios ya se reflejan en book.avoqado.io.",
+			"saveError": "No pudimos guardar",
+			"saveErrorDescription": "Inténtalo de nuevo en un momento.",
+			"fileUnsupported": "Archivo no soportado",
+			"fileUnsupportedDescription": "Selecciona una imagen JPG, PNG, WebP o SVG.",
+			"fileTooLarge": "Imagen muy grande",
+			"fileTooLargeDescription": "El máximo es 8 MB.",
+			"uploadError": "Error al subir",
+			"uploadErrorDescription": "Intenta de nuevo en un momento.",
+			"previewCtaAppointments": "Reservar cita",
+			"previewCtaClasses": "Reservar lugar"
+		}
 	},
 	"settings": {
 		"title": "Configuración de Reservaciones",
@@ -433,9 +497,74 @@
 			"onlineCapacity": "Capacidad online",
 			"onlineCapacityHelp": "Porcentaje de capacidad disponible para reservaciones online"
 		},
+		"scope": {
+			"appointments": "Citas",
+			"classes": "Clases"
+		},
+		"settingsTour": {
+			"start": "Ver tour",
+			"welcome": {
+				"title": "📅 Configuración de Reservaciones",
+				"description": "Te llevo en un recorrido por cada sección. Algunas opciones aplican solo a citas, otras solo a clases — busca los badges \"Citas\" y \"Clases\" junto a los nombres."
+			},
+			"save": {
+				"title": "Guardar Cambios",
+				"description": "El botón queda fijo arriba mientras haces scroll. Solo se habilita cuando hay algo nuevo que guardar."
+			},
+			"scheduling": {
+				"title": "Programación (Citas)",
+				"description": "Define cómo se generan los horarios disponibles para citas: cada cuántos minutos hay un slot, cuánto dura por defecto, qué tan lejos pueden reservar tus clientes y el aviso mínimo antes del inicio. Las clases tienen su propio horario por sesión."
+			},
+			"pacing": {
+				"title": "Ritmo (Citas)",
+				"description": "Controla cuántas reservas simultáneas aceptas por slot y qué porcentaje de tu capacidad expones online. Para clases, la capacidad se define por sesión."
+			},
+			"deposits": {
+				"title": "Depósitos",
+				"description": "Decide si pides depósito al reservar y cómo: retención de tarjeta, monto fijo, porcentaje del total, o solo para grupos grandes. Aplica a ambos tipos."
+			},
+			"payments": {
+				"title": "Pagos por tipo",
+				"description": "Aquí defines cómo cobras por defecto — diferente para citas y clases. Patrón típico: clases con prepago obligatorio, citas se pagan en el local. Cada servicio puede sobreescribir su default."
+			},
+			"publicBooking": {
+				"title": "Reservaciones Online",
+				"description": "Habilita el enlace público (book.avoqado.io/tu-slug) para que tus clientes reserven sin llamarte. Decide si requieres teléfono o email al momento de reservar."
+			},
+			"cancellation": {
+				"title": "Cancelación",
+				"description": "Política de cancelaciones: ¿los clientes pueden cancelar solos? ¿hasta cuántas horas antes? ¿pierden el depósito si cancelan tarde? Aplica a ambos tipos."
+			},
+			"creditRefund": {
+				"title": "Reembolsos en créditos (solo Clases)",
+				"description": "Cuando alguien cancela una clase pagada con paquete de créditos, decide cuántos créditos vuelven a su saldo. Solo aplica a clases — las citas no usan paquetes."
+			},
+			"waitlist": {
+				"title": "Lista de espera",
+				"description": "Si una clase o cita se llena, los clientes pueden anotarse a la lista y se les notifica cuando se libera un lugar. Tú defines el orden de prioridad y cuánto tiempo tienen para responder."
+			},
+			"reminders": {
+				"title": "Recordatorios",
+				"description": "Envía recordatorios automáticos antes de la reserva (email, SMS o WhatsApp) para reducir no-shows. Los canales y tiempos se configuran en backoffice por ahora."
+			}
+		},
+		"payments": {
+			"sectionTitle": "Pagos por tipo",
+			"sectionSubtitle": "Define qué se cobra de entrada según el tipo de reserva: el cobro al venue, prepago obligatorio, o que el cliente elija.",
+			"appointmentUpfrontDefault": "Cobro por adelantado en citas",
+			"appointmentUpfrontDefaultTooltip": "Cómo se cobra una cita por defecto: pagar en el local, requerir prepago al reservar, u opcional. Cada servicio puede sobreescribirlo.",
+			"classUpfrontDefault": "Cobro por adelantado en clases",
+			"classUpfrontDefaultTooltip": "Cómo se cobra una clase por defecto: pagar en el local, requerir prepago al reservar, u opcional. Cada clase puede sobreescribirlo.",
+			"options": {
+				"required": "Prepago obligatorio",
+				"at_venue": "Pagar en el local",
+				"optional": "Opcional (el cliente elige)"
+			}
+		},
 		"deposits": {
 			"enabled": "Requerir depósito",
 			"mode": "Modo de depósito",
+			"modeTooltip": "Define si pides depósito al reservar y de qué tipo: sin depósito, retención de tarjeta, depósito parcial o prepago total.",
 			"modes": {
 				"none": "Sin depósito",
 				"card_hold": "Retención de tarjeta",
@@ -443,9 +572,11 @@
 				"prepaid": "Prepago total"
 			},
 			"fixedAmount": "Monto fijo",
+			"fixedAmountTooltip": "Cantidad fija que el cliente paga como depósito al reservar.",
 			"percentage": "Porcentaje",
+			"percentageTooltip": "Porcentaje del total de la reserva que se cobra como depósito.",
 			"partySizeGte": "Para grupos de",
-			"partySizeGteHelp": "personas o más",
+			"partySizeGteHelp": "Solo se exige depósito a partir de este tamaño de grupo. Útil para no fricciones en reservas pequeñas.",
 			"paymentWindow": "Ventana de pago",
 			"paymentWindowHelp": "Horas para completar el pago"
 		},
@@ -453,13 +584,17 @@
 			"enabled": "Habilitar reservaciones online",
 			"enabledHelp": "Los clientes pueden reservar desde tu sitio web",
 			"requirePhone": "Requerir teléfono",
-			"requireEmail": "Requerir email"
+			"requirePhoneTooltip": "El cliente debe ingresar su teléfono al hacer la reserva online.",
+			"requireEmail": "Requerir email",
+			"requireEmailTooltip": "El cliente debe ingresar su correo electrónico al hacer la reserva online."
 		},
 		"cancellation": {
 			"allowCustomerCancel": "Permitir cancelación por cliente",
+			"allowCustomerCancelTooltip": "Si los clientes pueden cancelar sus reservas desde el enlace de confirmación, sin tener que contactarte.",
 			"minHoursBefore": "Horas mínimas antes",
 			"minHoursBeforeHelp": "Horas antes del inicio para poder cancelar",
 			"forfeitDeposit": "Perder depósito al cancelar",
+			"forfeitDepositTooltip": "Cuando un cliente cancela dentro de la ventana mínima, el depósito no se reembolsa.",
 			"noShowFee": "Cargo por No Show",
 			"noShowFeeHelp": "Porcentaje del depósito que se cobra",
 			"allowReschedule": "Permitir cambio de horario",
@@ -467,6 +602,7 @@
 			"creditRefundTitle": "Reembolso de créditos al cancelar",
 			"creditRefundHelp": "Decide cuántos créditos recuperan los clientes cuando cancelan una clase pagada con paquete.",
 			"creditRefundMode": "Política de reembolso",
+			"creditRefundModeTooltip": "Cuando un cliente cancela una clase pagada con paquete, decide cuántos créditos se le devuelven a su saldo.",
 			"creditRefundAlways": "Siempre devolver 100%",
 			"creditRefundTimeBased": "Según anticipación",
 			"creditRefundNever": "Nunca devolver",
@@ -479,13 +615,20 @@
 		},
 		"waitlist": {
 			"enabled": "Habilitar lista de espera",
+			"enabledTooltip": "Cuando una clase o servicio se llena, los clientes pueden anotarse a la lista de espera y serán notificados si se libera un lugar.",
 			"maxSize": "Tamaño máximo",
+			"maxSizeTooltip": "Número máximo de personas que pueden estar simultáneamente en la lista de espera de una misma clase.",
 			"priorityMode": "Modo de prioridad",
+			"priorityModeTooltip": "Orden en que se notifica a la lista cuando se libera un lugar: primero en llegar, por tamaño del grupo o notificación masiva.",
 			"notifyWindow": "Ventana de notificación",
 			"notifyWindowHelp": "Minutos que tiene el cliente para responder"
 		},
 		"reminders": {
 			"enabled": "Enviar recordatorios",
+			"enabledTooltip": "Envía recordatorios automáticos antes del inicio de la reserva por email, SMS o WhatsApp (según los canales activos).",
+			"channelsTooltip": "Los canales por los que se mandan los recordatorios. Puedes elegir uno o varios. Si dejas todo desactivado, no se envía nada.",
+			"whenToSend": "Cuándo enviar",
+			"whenToSendTooltip": "El tiempo de anticipación con el que se envía cada recordatorio. Puedes configurar varios — por ejemplo 24h antes y 2h antes para reforzar.",
 			"channels": "Canales",
 			"channelOptions": {
 				"EMAIL": "Email",

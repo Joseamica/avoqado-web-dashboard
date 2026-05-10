@@ -143,14 +143,25 @@
   "terminals": {
     "title": "Terminals",
     "subtitle": "Manage terminals across all venues",
-    "searchPlaceholder": "Search by name or serial number...",
+    "searchPlaceholder": "Search by name, serial, brand, model, or venue...",
+    "searchToggle": "Search",
     "noResults": "No terminals match your filters",
+    "noResultsForQuery": "No results for \"{{q}}\"",
     "empty": "No terminals registered",
+    "refresh": "Refresh",
     "stats": {
       "total": "Total",
       "online": "Online",
       "offline": "Offline",
       "lowHealth": "Low Health"
+    },
+    "tabs": {
+      "all": "All",
+      "online": "Online",
+      "offline": "Offline",
+      "pending": "Pending",
+      "maintenance": "Maintenance",
+      "retired": "Retired"
     },
     "filters": {
       "venue": "Venue",
@@ -158,7 +169,77 @@
       "status": "Status",
       "allStatuses": "All Statuses",
       "type": "Type",
-      "allTypes": "All Types"
+      "allTypes": "All Types",
+      "clearAll": "Clear all",
+      "activeFilters": "Active filters"
+    },
+    "columnCustomizer": {
+      "label": "Columns",
+      "title": "Show columns"
+    },
+    "emptyOrg": {
+      "title": "No terminals in your organization yet",
+      "body": "Terminals are your payment and kitchen devices. Connect the first one to start accepting payments.",
+      "cta": "Create terminal",
+      "docs": "How terminals work"
+    },
+    "emptyResults": {
+      "title": "No results",
+      "body": "No terminals match the applied filters.",
+      "clear": "Clear filters"
+    },
+    "bulk": {
+      "selected_one": "{{count}} selected",
+      "selected_other": "{{count}} selected",
+      "clearSelection": "Clear selection",
+      "max": "Max {{max}}",
+      "confirmTitle": "{{action}} {{count}} terminals",
+      "confirmDescription": "The action \"{{action}}\" will be applied to these terminals:",
+      "moreTerminals_one": "and {{count}} more",
+      "moreTerminals_other": "and {{count}} more",
+      "allSucceeded": "Command sent to {{count}} terminals",
+      "partial": "{{succeeded}} of {{total}} succeeded. {{failed}} failed.",
+      "allFailed": "Command could not be sent to any terminal",
+      "rowError": "{{name}}: {{error}}",
+      "action": {
+        "RESTART": "Restart",
+        "SYNC_DATA": "Sync data",
+        "REFRESH_MENU": "Refresh menu",
+        "FORCE_UPDATE": "Force update",
+        "LOCK": "Lock",
+        "UNLOCK": "Unlock"
+      }
+    },
+    "drawer": {
+      "close": "Close",
+      "identity": "Identity",
+      "identityFields": {
+        "serial": "Serial number",
+        "type": "Type",
+        "brand": "Brand",
+        "model": "Model",
+        "version": "Version",
+        "ip": "IP address",
+        "lastSeen": "Last seen"
+      },
+      "health": "Health",
+      "healthScore": "Health score",
+      "healthNoData": "No health data",
+      "merchants": "Assigned merchants",
+      "merchantsNone": "No merchants assigned",
+      "merchantsEdit": "Edit merchants",
+      "recentCommands": "Recent actions",
+      "recentCommandsEmpty": "No recent actions",
+      "dangerZone": "Danger zone",
+      "dangerZoneToggle": "Show destructive actions",
+      "notFound": "Terminal not found"
+    },
+    "tour": {
+      "step1": "See every terminal in your organization here.",
+      "step2": "Filter by venue, status, or type.",
+      "step3": "Click any column header to sort.",
+      "step4": "Select rows to run commands on many terminals at once.",
+      "step5": "Click a row to see the full terminal detail."
     },
     "columns": {
       "terminal": "Terminal",

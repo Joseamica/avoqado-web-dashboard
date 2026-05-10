@@ -86,11 +86,14 @@ export function ProductVariations({ variations, onChange }: ProductVariationsPro
                  <div className="col-span-3">
                     <div className="relative">
                       <span className="absolute left-2 top-1.5 text-xs text-muted-foreground">$</span>
-                      <Input 
-                        type="number" 
-                        placeholder="0.00" 
-                        value={variation.price} 
-                        onChange={(e) => updateVariation(variation.id, 'price', parseFloat(e.target.value))}
+                      <Input
+                        type="number"
+                        placeholder="0.00"
+                        value={variation.price ?? ''}
+                        onChange={(e) => {
+                          const raw = e.target.value
+                          updateVariation(variation.id, 'price', raw === '' ? undefined : parseFloat(raw))
+                        }}
                         className="h-8 pl-5"
                       />
                     </div>
@@ -134,10 +137,13 @@ export function ProductVariations({ variations, onChange }: ProductVariationsPro
                          </div>
                          <div>
                            <Label className="text-xs text-amber-600">Alerta Stock Bajo</Label>
-                           <Input 
+                           <Input
                              type="number"
-                             value={variation.lowStockAlert} 
-                             onChange={(e) => updateVariation(variation.id, 'lowStockAlert', parseInt(e.target.value))}
+                             value={variation.lowStockAlert ?? ''}
+                             onChange={(e) => {
+                               const raw = e.target.value
+                               updateVariation(variation.id, 'lowStockAlert', raw === '' ? undefined : parseInt(raw))
+                             }}
                              className="h-8 mt-1 border-amber-200 focus-visible:ring-amber-500"
                            />
                          </div>

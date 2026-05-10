@@ -143,14 +143,25 @@
   "terminals": {
     "title": "Terminales",
     "subtitle": "Gestión de terminales en todas las sucursales",
-    "searchPlaceholder": "Buscar por nombre o número de serie...",
+    "searchPlaceholder": "Buscar por nombre, serie, marca, modelo o sucursal...",
+    "searchToggle": "Buscar",
     "noResults": "No se encontraron terminales con esos filtros",
+    "noResultsForQuery": "Sin resultados para «{{q}}»",
     "empty": "No hay terminales registradas",
+    "refresh": "Recargar",
     "stats": {
       "total": "Total",
       "online": "En Línea",
       "offline": "Fuera de Línea",
       "lowHealth": "Salud Baja"
+    },
+    "tabs": {
+      "all": "Todas",
+      "online": "En línea",
+      "offline": "Sin conexión",
+      "pending": "Pendientes",
+      "maintenance": "Mantenimiento",
+      "retired": "Retiradas"
     },
     "filters": {
       "venue": "Sucursal",
@@ -158,7 +169,77 @@
       "status": "Estado",
       "allStatuses": "Todos los Estados",
       "type": "Tipo",
-      "allTypes": "Todos los Tipos"
+      "allTypes": "Todos los Tipos",
+      "clearAll": "Limpiar todo",
+      "activeFilters": "Filtros activos"
+    },
+    "columnCustomizer": {
+      "label": "Columnas",
+      "title": "Mostrar columnas"
+    },
+    "emptyOrg": {
+      "title": "Aún no hay terminales en tu organización",
+      "body": "Las terminales son tus dispositivos de cobro y de cocina. Conecta la primera para empezar a recibir pagos.",
+      "cta": "Crear terminal",
+      "docs": "Cómo funcionan las terminales"
+    },
+    "emptyResults": {
+      "title": "Sin resultados",
+      "body": "Ningún terminal coincide con los filtros aplicados.",
+      "clear": "Limpiar filtros"
+    },
+    "bulk": {
+      "selected_one": "{{count}} seleccionada",
+      "selected_other": "{{count}} seleccionadas",
+      "clearSelection": "Limpiar selección",
+      "max": "Máximo {{max}}",
+      "confirmTitle": "{{action}} {{count}} terminales",
+      "confirmDescription": "Se aplicará «{{action}}» a las siguientes terminales:",
+      "moreTerminals_one": "y {{count}} más",
+      "moreTerminals_other": "y {{count}} más",
+      "allSucceeded": "Comando enviado a {{count}} terminales",
+      "partial": "{{succeeded}} de {{total}} exitosas. {{failed}} fallaron.",
+      "allFailed": "No se pudo enviar el comando a ninguna terminal",
+      "rowError": "{{name}}: {{error}}",
+      "action": {
+        "RESTART": "Reiniciar",
+        "SYNC_DATA": "Sincronizar datos",
+        "REFRESH_MENU": "Refrescar catálogo",
+        "FORCE_UPDATE": "Forzar actualización",
+        "LOCK": "Bloquear",
+        "UNLOCK": "Desbloquear"
+      }
+    },
+    "drawer": {
+      "close": "Cerrar",
+      "identity": "Información",
+      "identityFields": {
+        "serial": "Número de serie",
+        "type": "Tipo",
+        "brand": "Marca",
+        "model": "Modelo",
+        "version": "Versión",
+        "ip": "Dirección IP",
+        "lastSeen": "Última señal"
+      },
+      "health": "Salud",
+      "healthScore": "Puntaje de salud",
+      "healthNoData": "Sin métricas de salud",
+      "merchants": "Comercios asignados",
+      "merchantsNone": "Sin comercios asignados",
+      "merchantsEdit": "Editar comercios",
+      "recentCommands": "Acciones recientes",
+      "recentCommandsEmpty": "Sin acciones recientes",
+      "dangerZone": "Zona peligrosa",
+      "dangerZoneToggle": "Mostrar acciones destructivas",
+      "notFound": "Terminal no encontrada"
+    },
+    "tour": {
+      "step1": "Aquí ves todas las terminales de tu organización.",
+      "step2": "Filtra por sucursal, estado o tipo.",
+      "step3": "Haz clic en cualquier columna para ordenar.",
+      "step4": "Selecciona terminales para ejecutar comandos en masa.",
+      "step5": "Haz clic en una fila para ver el detalle completo."
     },
     "columns": {
       "terminal": "Terminal",

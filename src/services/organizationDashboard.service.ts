@@ -389,13 +389,25 @@ export interface OrgTerminalsResponse {
   summary: OrgTerminalsSummary
 }
 
+export type OrgTerminalSortBy =
+  | 'name'
+  | 'lastHeartbeat'
+  | 'status'
+  | 'type'
+  | 'brand'
+  | 'createdAt'
+  | 'latestHealthScore'
+  | 'venue.name'
+
 export interface OrgTerminalsFilters {
   page?: number
   pageSize?: number
-  venueId?: string
-  status?: string
-  type?: string
+  venueIds?: string[]
+  statuses?: string[]
+  types?: string[]
   search?: string
+  sortBy?: OrgTerminalSortBy
+  sortOrder?: 'asc' | 'desc'
 }
 
 export function isTerminalOnline(lastHeartbeat?: string | null, thresholdMinutes = 5): boolean {
@@ -404,8 +416,71 @@ export function isTerminalOnline(lastHeartbeat?: string | null, thresholdMinutes
   return diffMs / (1000 * 60) < thresholdMinutes
 }
 
+function arrayToCsv(values?: string[]): string | undefined {
+  if (!values || values.length === 0) return undefined
+  return values.join(',')
+}
+
 export async function getOrgTerminals(orgId: string, filters?: OrgTerminalsFilters): Promise<OrgTerminalsResponse> {
-  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/terminals`, { params: filters })
+  const params: Record<string, string | number> = {}
+  if (filters?.page) params.page = filters.page
+  if (filters?.pageSize) params.pageSize = filters.pageSize
+  if (filters?.search) params.search = filters.search
+  const venueCsv = arrayToCsv(filters?.venueIds)
+  if (venueCsv) params.venueId = venueCsv
+  const statusCsv = arrayToCsv(filters?.statuses)
+  if (statusCsv) params.status = statusCsv
+  const typeCsv = arrayToCsv(filters?.types)
+  if (typeCsv) params.type = typeCsv
+  if (filters?.sortBy) params.sortBy = filters.sortBy
+  if (filters?.sortOrder) params.sortOrder = filters.sortOrder
+
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/terminals`, { params })
+  return response.data.data
+}
+
+// ===========================================
+// BULK COMMANDS
+// ===========================================
+
+export type OrgTerminalBulkCommand = 'RESTART' | 'SYNC_DATA' | 'REFRESH_MENU' | 'FORCE_UPDATE' | 'LOCK' | 'UNLOCK'
+
+export const ORG_TERMINAL_BULK_COMMANDS: OrgTerminalBulkCommand[] = [
+  'RESTART',
+  'SYNC_DATA',
+  'REFRESH_MENU',
+  'FORCE_UPDATE',
+  'LOCK',
+  'UNLOCK',
+]
+
+export const ORG_TERMINAL_BULK_COMMAND_MAX = 100
+
+export interface OrgBulkCommandRowResult {
+  terminalId: string
+  success: boolean
+  error?: string
+}
+
+export interface OrgBulkCommandResponse {
+  command: OrgTerminalBulkCommand
+  total: number
+  succeeded: number
+  failed: number
+  results: OrgBulkCommandRowResult[]
+}
+
+export async function bulkCommandOrgTerminals(
+  orgId: string,
+  terminalIds: string[],
+  command: OrgTerminalBulkCommand,
+): Promise<OrgBulkCommandResponse> {
+  const response = await api.post(
+    `/api/v1/dashboard/organizations/${orgId}/terminals/bulk-command`,
+    { terminalIds, command },
+    // Accept 207 Multi-Status as a non-error response
+    { validateStatus: status => status === 200 || status === 207 },
+  )
   return response.data.data
 }
 

@@ -603,8 +603,11 @@ const TrainingManagement: React.FC = () => {
                   type="number"
                   min={1}
                   max={480}
-                  value={formData.estimatedMinutes}
-                  onChange={e => setFormData(prev => ({ ...prev, estimatedMinutes: Number(e.target.value) }))}
+                  value={formData.estimatedMinutes ?? ''}
+                  onChange={e => {
+                    const raw = e.target.value
+                    setFormData(prev => ({ ...prev, estimatedMinutes: raw === '' ? (undefined as unknown as number) : Number(raw) }))
+                  }}
                 />
               </div>
               <div className="flex items-center justify-between pt-7">

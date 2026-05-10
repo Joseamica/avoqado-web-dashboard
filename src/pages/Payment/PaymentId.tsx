@@ -41,7 +41,6 @@ import {
   Wallet,
   XCircle,
   Star,
-  QrCode,
   TestTube2,
   Split,
   ShoppingBag,

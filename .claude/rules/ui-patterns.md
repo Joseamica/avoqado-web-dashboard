@@ -77,6 +77,63 @@ Follow the ProductWizardDialog pattern:
 - Use `forwardRef` + `useImperativeHandle` to expose `submit()` to parent
 - **Reference**: `src/pages/Inventory/components/ProductWizardDialog.tsx`
 
+## Clearable Number Inputs (MANDATORY)
+
+**Number inputs MUST be clearable.** A naive `parseFloat`/`parseInt`/`Number` fallback to a literal default (`|| 0`, `|| 1`, `: 0`) traps the field — the user types, hits backspace, and the value snaps back. They can't actually clear the field.
+
+```tsx
+// ❌ WRONG — locks the field. User can't backspace through "0".
+<Input
+  type="number"
+  {...field}
+  onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+/>
+
+// ❌ WRONG — same trap with local state.
+onChange={e => setAmount(Number(e.target.value) || 0)}
+
+// ❌ WRONG — `parseFloat('')` is NaN. NaN reaches form state silently.
+onChange={e => field.onChange(parseFloat(e.target.value))}
+```
+
+```tsx
+// ✅ CORRECT — empty input → undefined in state. Visual empty stays.
+<Input
+  type="number"
+  {...field}
+  value={field.value ?? ''}
+  onChange={e => {
+    const raw = e.target.value
+    field.onChange(raw === '' ? undefined : parseFloat(raw))
+  }}
+/>
+```
+
+### Rules
+
+1. `value={x ?? ''}` — never pass `undefined`/`null`/`NaN` to a controlled input's `value`.
+2. `onChange` must early-return `undefined` (or `null`, depending on the schema) for `raw === ''`. Never coerce empty to a default number inside `onChange`.
+3. The form's submit handler / mutation is responsible for defaulting (`amount ?? 0`) or for letting Zod/RHF `required` rules reject the empty value. Defaults belong at the boundary, not on every keystroke.
+4. If TypeScript complains because the form/state field is typed strict `number`, **widen it to `number | undefined`** (preferred) or cast `as unknown as number` only when widening is unsafe (RHF + Zod schemas already accept `undefined` at runtime).
+
+### Variations
+
+**RHF Controller / `<FormField>`:** spread `{...field}`, then override `value={field.value ?? ''}` and `onChange`.
+
+**Local `useState`:** widen state to `number | undefined`, default at usage points.
+
+```tsx
+// State widened
+const [amount, setAmount] = useState<number | undefined>(20000)
+const safeAmount = amount ?? 0  // for calculations / submit
+```
+
+**Nullable schemas (`number | null`):** map `''` → `null` (matches Zod `.nullable()`).
+
+**RHF `register('x', { valueAsNumber: true })`:** also produces NaN on empty. Avoid for clearable fields, or pair with `value={x ?? ''}` via Controller.
+
+**Reference fixes:** `src/pages/CreditPacks/CreditPackForm.tsx`, `src/pages/Order/Orders.tsx` (lines ~175, 1592, 1605), `src/components/Sidebar/enhanced-add-venue-dialog.tsx`.
+
 ## Cursor Pointer on Icon Buttons
 
 ALWAYS add `cursor-pointer` to icon buttons, especially inside Tooltip wrappers.

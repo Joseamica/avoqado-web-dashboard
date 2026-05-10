@@ -172,13 +172,16 @@ export default function Orders() {
   const [manualPaymentOpen, setManualPaymentOpen] = useState(false)
   const { can } = useAccess()
   const canCreateManualPayment = can('payment:create-manual')
+  // tipAmount/total widened to allow `undefined` so the inline edit inputs
+  // can be cleared (the previous `parseFloat(...) || 0` fallback locked the
+  // field to 0 on every keystroke). We coerce back to a number at submit.
   const [editValues, setEditValues] = useState<{
     status: OrderStatus
     customerName: string
     tableId: string
     servedById: string
-    tipAmount: number
-    total: number
+    tipAmount: number | undefined
+    total: number | undefined
     createdAt: string
     orderNumber: string
     type: OrderTypeEnum
@@ -521,8 +524,9 @@ export default function Orders() {
         customerName: editValues.customerName,
         tableId: editValues.tableId,
         servedById: editValues.servedById,
-        tipAmount: editValues.tipAmount,
-        total: editValues.total,
+        // Coerce undefined (cleared input) → 0 at submit. Schema expects number.
+        tipAmount: editValues.tipAmount ?? 0,
+        total: editValues.total ?? 0,
         createdAt: editValues.createdAt,
         orderNumber: editValues.orderNumber,
         type: editValues.type,
@@ -1588,8 +1592,11 @@ export default function Orders() {
                   id="edit-tip"
                   type="number"
                   step="0.01"
-                  value={editValues.tipAmount}
-                  onChange={e => setEditValues(prev => ({ ...prev, tipAmount: parseFloat(e.target.value) || 0 }))}
+                  value={editValues.tipAmount ?? ''}
+                  onChange={e => {
+                    const raw = e.target.value
+                    setEditValues(prev => ({ ...prev, tipAmount: raw === '' ? undefined : parseFloat(raw) }))
+                  }}
                   className="border-amber-400/50 focus:border-amber-400 focus:ring-amber-400/20"
                 />
               </div>
@@ -1601,8 +1608,11 @@ export default function Orders() {
                   id="edit-total"
                   type="number"
                   step="0.01"
-                  value={editValues.total}
-                  onChange={e => setEditValues(prev => ({ ...prev, total: parseFloat(e.target.value) || 0 }))}
+                  value={editValues.total ?? ''}
+                  onChange={e => {
+                    const raw = e.target.value
+                    setEditValues(prev => ({ ...prev, total: raw === '' ? undefined : parseFloat(raw) }))
+                  }}
                   className="border-amber-400/50 focus:border-amber-400 focus:ring-amber-400/20"
                 />
               </div>

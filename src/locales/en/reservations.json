@@ -379,7 +379,71 @@
 		"npmDescription": "For React, Vue, or Angular projects — import as a Web Component.",
 		"preview": "Live Preview",
 		"previewDescription": "This is how your booking page looks to customers. The widget on external sites looks identical.",
-		"openPreview": "Open in new tab"
+		"openPreview": "Open in new tab",
+		"publicPages": {
+			"title": "Public booking pages",
+			"subtitle": "Share these links with your customers. Each one opens a different booking flow.",
+			"editService": "Edit service display",
+			"viewCalendar": "View calendar",
+			"show": "Show",
+			"copyUrl": "Copy URL",
+			"urlCopied": "URL copied",
+			"appointments": {
+				"title": "Appointments booking page",
+				"empty": "No services configured yet.",
+				"one": "1 service",
+				"many": "{{count}} services"
+			},
+			"classes": {
+				"title": "Classes booking page",
+				"empty": "No classes configured yet.",
+				"one": "1 class",
+				"many": "{{count}} classes"
+			}
+		},
+		"brandIdentity": {
+			"business": "Business",
+			"moreActions": "More actions",
+			"editIdentity": "Edit brand identity",
+			"step1Title": "Apply your brand design",
+			"step1Heading": "Add your logo and brand color",
+			"step1Description": "Your business logo and primary color will appear on your public booking page, receipts, and anywhere else your customers interact with your brand.",
+			"step2Title": "Preview and adjust",
+			"logoFull": "Full logo",
+			"logoFullHelper": "A wide version of your logo. Shown as the hero on the booking page.",
+			"logoSmall": "Small logo",
+			"logoSmallHelper": "A square thumbnail. Used on receipts, avatars, and the widget header.",
+			"color": "Color",
+			"colorHelper": "A primary color for buttons, badges, and links.",
+			"heroPhoto": "Cover photo",
+			"heroHelper": "16:9, min. 1200px wide. Appears behind the logo on the public page.",
+			"add": "Add",
+			"replace": "Replace",
+			"remove": "Remove",
+			"uploading": "Uploading…",
+			"uploadHero": "Upload photo",
+			"adjust": "Brand adjustments",
+			"brandDesign": "Brand design",
+			"previewContext": "Preview",
+			"tabAppointments": "Appointments",
+			"tabClasses": "Classes",
+			"skip": "Skip",
+			"next": "Next",
+			"back": "Back",
+			"complete": "Complete",
+			"saved": "Brand identity saved",
+			"savedDescription": "Your changes are now live on book.avoqado.io.",
+			"saveError": "Couldn't save",
+			"saveErrorDescription": "Please try again in a moment.",
+			"fileUnsupported": "Unsupported file",
+			"fileUnsupportedDescription": "Select a JPG, PNG, WebP, or SVG image.",
+			"fileTooLarge": "Image too large",
+			"fileTooLargeDescription": "Maximum is 8 MB.",
+			"uploadError": "Upload failed",
+			"uploadErrorDescription": "Please try again in a moment.",
+			"previewCtaAppointments": "Book appointment",
+			"previewCtaClasses": "Book your spot"
+		}
 	},
 	"settings": {
 		"title": "Reservation Settings",
@@ -433,9 +497,74 @@
 			"onlineCapacity": "Online capacity",
 			"onlineCapacityHelp": "Percentage of capacity available for online bookings"
 		},
+		"scope": {
+			"appointments": "Appointments",
+			"classes": "Classes"
+		},
+		"settingsTour": {
+			"start": "Take tour",
+			"welcome": {
+				"title": "📅 Reservation Settings",
+				"description": "I'll walk you through every section. Some options only apply to appointments, others only to classes — look for the \"Appointments\" and \"Classes\" badges next to each label."
+			},
+			"save": {
+				"title": "Save Changes",
+				"description": "The button stays pinned at the top while you scroll. Enabled only when there's something new to save."
+			},
+			"scheduling": {
+				"title": "Scheduling (Appointments)",
+				"description": "Controls how available appointment slots are generated: interval between slots, default duration, max booking lead time, and minimum notice. Classes have their own per-session schedule."
+			},
+			"pacing": {
+				"title": "Pacing (Appointments)",
+				"description": "Cap how many simultaneous appointments you accept per slot and what percentage of your capacity is exposed online. Class capacity is defined per session."
+			},
+			"deposits": {
+				"title": "Deposits",
+				"description": "Decide if you require a deposit at booking and how: card hold, fixed amount, percentage of total, or only for large parties. Applies to both types."
+			},
+			"payments": {
+				"title": "Payments by type",
+				"description": "Set the default upfront-payment behavior separately for appointments and classes. Typical pattern: classes require prepayment, appointments pay at the venue. Each service can override its default."
+			},
+			"publicBooking": {
+				"title": "Online Booking",
+				"description": "Enable the public link (book.avoqado.io/your-slug) so customers can book without calling. Decide whether phone or email is required at booking."
+			},
+			"cancellation": {
+				"title": "Cancellation",
+				"description": "Cancellation policy: can customers cancel themselves? Up to how many hours before? Do they lose the deposit on late cancels? Applies to both types."
+			},
+			"creditRefund": {
+				"title": "Credit refunds (Classes only)",
+				"description": "When someone cancels a class paid with a credit pack, decide how many credits return to their balance. Only applies to classes — appointments don't use credit packs."
+			},
+			"waitlist": {
+				"title": "Waitlist",
+				"description": "If a class or appointment fills up, customers can join the waitlist and get notified when a spot opens. You set the priority order and how long they have to respond."
+			},
+			"reminders": {
+				"title": "Reminders",
+				"description": "Automatic reminders before each booking (email, SMS, or WhatsApp) to reduce no-shows. Channels and timings are configured in backoffice for now."
+			}
+		},
+		"payments": {
+			"sectionTitle": "Payments by type",
+			"sectionSubtitle": "Set the default upfront-payment behavior per reservation type: pay at venue, prepayment required, or let the customer choose.",
+			"appointmentUpfrontDefault": "Upfront for appointments",
+			"appointmentUpfrontDefaultTooltip": "Default upfront-payment behavior for appointments: pay at the venue, require prepayment at booking, or optional. Each service can override this.",
+			"classUpfrontDefault": "Upfront for classes",
+			"classUpfrontDefaultTooltip": "Default upfront-payment behavior for classes: pay at the venue, require prepayment at booking, or optional. Each class can override this.",
+			"options": {
+				"required": "Prepayment required",
+				"at_venue": "Pay at venue",
+				"optional": "Optional (customer chooses)"
+			}
+		},
 		"deposits": {
 			"enabled": "Require deposit",
 			"mode": "Deposit mode",
+			"modeTooltip": "Defines whether to require a deposit at booking and what type: none, card hold, partial deposit or full prepayment.",
 			"modes": {
 				"none": "No deposit",
 				"card_hold": "Card hold",
@@ -443,9 +572,11 @@
 				"prepaid": "Full prepayment"
 			},
 			"fixedAmount": "Fixed amount",
+			"fixedAmountTooltip": "Flat amount the customer pays as a deposit when booking.",
 			"percentage": "Percentage",
+			"percentageTooltip": "Percentage of the booking total charged as a deposit.",
 			"partySizeGte": "For parties of",
-			"partySizeGteHelp": "people or more",
+			"partySizeGteHelp": "Deposits are only enforced from this party size up. Useful to keep small bookings frictionless.",
 			"paymentWindow": "Payment window",
 			"paymentWindowHelp": "Hours to complete payment"
 		},
@@ -453,13 +584,17 @@
 			"enabled": "Enable online booking",
 			"enabledHelp": "Customers can book from your website",
 			"requirePhone": "Require phone",
-			"requireEmail": "Require email"
+			"requirePhoneTooltip": "The customer must enter a phone number when booking online.",
+			"requireEmail": "Require email",
+			"requireEmailTooltip": "The customer must enter an email address when booking online."
 		},
 		"cancellation": {
 			"allowCustomerCancel": "Allow customer cancellation",
+			"allowCustomerCancelTooltip": "Whether customers can cancel their bookings from the confirmation link without contacting you.",
 			"minHoursBefore": "Minimum hours before",
 			"minHoursBeforeHelp": "Hours before start to allow cancellation",
 			"forfeitDeposit": "Forfeit deposit on cancel",
+			"forfeitDepositTooltip": "When a customer cancels inside the minimum window, the deposit is not refunded.",
 			"noShowFee": "No Show fee",
 			"noShowFeeHelp": "Percentage of deposit charged",
 			"allowReschedule": "Allow rescheduling",
@@ -467,6 +602,7 @@
 			"creditRefundTitle": "Credit refunds on cancellation",
 			"creditRefundHelp": "Decide how many credits customers recover when they cancel a class paid with a package.",
 			"creditRefundMode": "Refund policy",
+			"creditRefundModeTooltip": "When a customer cancels a class paid with a credit pack, decide how many credits are returned to their balance.",
 			"creditRefundAlways": "Always refund 100%",
 			"creditRefundTimeBased": "Based on notice",
 			"creditRefundNever": "Never refund",
@@ -479,13 +615,20 @@
 		},
 		"waitlist": {
 			"enabled": "Enable waitlist",
+			"enabledTooltip": "When a class or service is full, customers can join the waitlist and be notified if a spot opens up.",
 			"maxSize": "Maximum size",
+			"maxSizeTooltip": "Maximum number of people who can be on the waitlist for the same class simultaneously.",
 			"priorityMode": "Priority mode",
+			"priorityModeTooltip": "Order in which the waitlist is notified when a spot opens: first-come, by party size, or broadcast to everyone.",
 			"notifyWindow": "Notification window",
 			"notifyWindowHelp": "Minutes the customer has to respond"
 		},
 		"reminders": {
 			"enabled": "Send reminders",
+			"enabledTooltip": "Sends automatic reminders before the booking starts via email, SMS or WhatsApp (depending on active channels).",
+			"channelsTooltip": "Channels used to send reminders. You can pick one or several. If all are off, nothing is sent.",
+			"whenToSend": "When to send",
+			"whenToSendTooltip": "Lead time for each reminder. You can configure several — e.g. 24h before and 2h before for a stronger nudge.",
 			"channels": "Channels",
 			"channelOptions": {
 				"EMAIL": "Email",
