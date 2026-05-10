@@ -840,7 +840,7 @@ function BookingBrandPreview({
             backgroundPosition: 'center',
           }}
         >
-          <span className="text-white font-semibold text-sm" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
+          <span className="font-semibold text-sm" style={{ color: '#ffffff', textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
             {venueName}
           </span>
         </div>
@@ -848,8 +848,8 @@ function BookingBrandPreview({
         {/* Sample class row */}
         <div className="flex items-center gap-3 rounded-lg bg-background border border-border p-3">
           <div
-            className="w-9 h-9 rounded-md flex items-center justify-center text-[11px] font-bold text-white shrink-0"
-            style={{ background: accent }}
+            className="w-9 h-9 rounded-md flex items-center justify-center text-[11px] font-bold shrink-0"
+            style={{ background: accent, color: '#ffffff' }}
           >
             09:00
           </div>
@@ -872,8 +872,8 @@ function BookingBrandPreview({
         <button
           type="button"
           tabIndex={-1}
-          className="w-full text-center py-2.5 text-sm font-semibold text-white rounded-md cursor-default"
-          style={{ background: accent }}
+          className="w-full text-center py-2.5 text-sm font-semibold rounded-md cursor-default"
+          style={{ background: accent, color: '#ffffff' }}
         >
           Reservar lugar
         </button>
