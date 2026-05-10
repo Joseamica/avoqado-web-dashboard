@@ -48,7 +48,7 @@ export function BookingBrandingCard() {
     setHeroImageUrl(venue.heroImageUrl ?? '')
     setPrimaryColor(venue.primaryColor ?? '')
     setDirty(false)
-  }, [venue?.heroImageUrl, venue?.primaryColor])
+  }, [venue])
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -230,14 +230,14 @@ export function BookingBrandingCard() {
                 backgroundPosition: 'center',
               }}
             >
-              <span className="text-white font-semibold text-sm" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
+              <span className="font-semibold text-sm" style={{ color: '#ffffff', textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
                 {venue?.name ?? 'Tu venue'}
               </span>
             </div>
             <div className="flex items-center gap-3 rounded-lg bg-background border border-border p-3">
               <div
-                className="w-9 h-9 rounded-md flex items-center justify-center text-[11px] font-bold text-white shrink-0"
-                style={{ background: accent }}
+                className="w-9 h-9 rounded-md flex items-center justify-center text-[11px] font-bold shrink-0"
+                style={{ background: accent, color: '#ffffff' }}
               >
                 09:00
               </div>

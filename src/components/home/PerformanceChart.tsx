@@ -68,8 +68,8 @@ export function PerformanceChart({
     <ChartContainer
       className="h-44 w-full"
       config={{
-        current: { label: currentLabel, color: 'hsl(var(--primary))' },
-        compare: { label: compareLabel, color: 'hsl(var(--muted-foreground) / 0.35)' },
+        current: { label: currentLabel, color: 'var(--primary)' },
+        compare: { label: compareLabel, color: 'color-mix(in oklab, var(--muted-foreground) 35%, transparent)' },
       }}
     >
       <BarChart accessibilityLayer data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barCategoryGap="20%">
@@ -84,15 +84,19 @@ export function PerformanceChart({
         />
         {!isEmpty && (
           <ChartTooltip
-            cursor={{ fill: 'hsl(var(--muted) / 0.5)' }}
+            cursor={{ fill: 'var(--muted)', fillOpacity: 0.5 }}
             content={
               <ChartTooltipContent
-                formatter={(value, _name, item) => (
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-xs text-muted-foreground">{item?.payload?.[`__label_${item?.dataKey}`] ?? item?.dataKey}</span>
-                    <span className="font-semibold">{Currency(Number(value), false)}</span>
-                  </div>
-                )}
+                formatter={(value, _name, item) => {
+                  const key = String(item?.dataKey ?? '')
+                  const seriesLabel = key === 'current' ? currentLabel : key === 'compare' ? compareLabel : key
+                  return (
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-xs text-muted-foreground">{seriesLabel}</span>
+                      <span className="font-semibold">{Currency(Number(value), false)}</span>
+                    </div>
+                  )
+                }}
               />
             }
           />
