@@ -258,8 +258,8 @@ export function BookingBrandingCard() {
             <button
               type="button"
               tabIndex={-1}
-              className="w-full text-center py-2.5 text-sm font-semibold text-white rounded-md cursor-default"
-              style={{ background: accent }}
+              className="w-full text-center py-2.5 text-sm font-semibold rounded-md cursor-default"
+              style={{ background: accent, color: '#ffffff' }}
             >
               Reservar lugar
             </button>
