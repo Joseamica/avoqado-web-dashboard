@@ -91,7 +91,11 @@ const NO_SHOW_GRACE_OPTIONS: NumberOption[] = [
 ]
 
 const PACING_MAX_OPTIONS: NullableOption[] = [
-	{ value: null, label: 'Sin límite' },
+	// Server-side: null collapses to 1 for APPOINTMENTS_SERVICE (tableless
+	// 1:1 services). Restaurants and venues with explicit values are
+	// unaffected. Label flags the implicit floor so admins managing a
+	// multi-resource service venue know to set the exact count.
+	{ value: null, label: 'Sin límite (1 para citas)' },
 	{ value: 1, label: '1 reserva' },
 	{ value: 2, label: '2 reservas' },
 	{ value: 3, label: '3 reservas' },

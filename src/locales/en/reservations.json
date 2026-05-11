@@ -493,7 +493,7 @@
 		},
 		"pacing": {
 			"maxPerSlot": "Max per slot",
-			"maxPerSlotHelp": "Concurrent reservation limit (empty = no limit)",
+			"maxPerSlotHelp": "Concurrent reservations allowed per slot. For 1:1 services (individual appointments), the effective minimum is 1 even if you select 'No limit' — pick the exact number of parallel resources (booths, stations, chairs) if your business takes multiple bookings at once.",
 			"onlineCapacity": "Online capacity",
 			"onlineCapacityHelp": "Percentage of capacity available for online bookings"
 		},

@@ -493,7 +493,7 @@
 		},
 		"pacing": {
 			"maxPerSlot": "Máximo por slot",
-			"maxPerSlotHelp": "Límite de reservaciones simultáneas (vacío = sin límite)",
+			"maxPerSlotHelp": "Reservaciones simultáneas permitidas por horario. Para servicios 1:1 (citas individuales), el mínimo efectivo es 1 incluso si seleccionas 'Sin límite' — elige el número exacto de recursos paralelos (cabinas, estaciones, sillas) si tu negocio recibe varias reservas a la vez.",
 			"onlineCapacity": "Capacidad online",
 			"onlineCapacityHelp": "Porcentaje de capacidad disponible para reservaciones online"
 		},
