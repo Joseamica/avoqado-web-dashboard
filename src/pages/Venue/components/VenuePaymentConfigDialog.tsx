@@ -1,11 +1,14 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
+import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { includesNormalized } from '@/lib/utils'
 import { paymentProviderAPI, type VenuePaymentConfig, type MerchantAccountListItem } from '@/services/paymentProvider.service'
 
 /**
@@ -107,71 +110,54 @@ export const VenuePaymentConfigDialog: React.FC<VenuePaymentConfigDialogProps> =
               {/* Primary Account */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="primaryAccount">
+                  <Label>
                     {t('venuePaymentConfig.primaryAccount')} <span className="text-destructive">*</span>
                   </Label>
                   <Button type="button" variant="link" className="h-auto p-0 text-xs" onClick={handleCreateNew}>
                     + {t('common:createNew')}
                   </Button>
                 </div>
-                <Select value={primaryAccountId} onValueChange={setPrimaryAccountId}>
-                  <SelectTrigger id="primaryAccount">
-                    <SelectValue placeholder={t('venuePaymentConfig.selectAccount')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {accounts.map(account => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {formatAccountLabel(account)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <AccountPicker
+                  accounts={accounts}
+                  value={primaryAccountId}
+                  onChange={setPrimaryAccountId}
+                  placeholder={t('venuePaymentConfig.selectAccount')}
+                  allowNone={false}
+                />
                 <p className="text-sm text-muted-foreground">{t('venuePaymentConfig.primaryAccountDesc')}</p>
               </div>
 
               {/* Secondary Account */}
               <div className="space-y-2">
-                <Label htmlFor="secondaryAccount">
+                <Label>
                   {t('venuePaymentConfig.secondaryAccount')} ({t('common:optional')})
                 </Label>
-                <Select value={secondaryAccountId} onValueChange={setSecondaryAccountId}>
-                  <SelectTrigger id="secondaryAccount">
-                    <SelectValue placeholder={t('venuePaymentConfig.selectAccount')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{t('common:none')}</SelectItem>
-                    {accounts
-                      .filter(a => a.id !== primaryAccountId)
-                      .map(account => (
-                        <SelectItem key={account.id} value={account.id}>
-                          {formatAccountLabel(account)}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                <AccountPicker
+                  accounts={accounts}
+                  value={secondaryAccountId}
+                  onChange={setSecondaryAccountId}
+                  placeholder={t('venuePaymentConfig.selectAccount')}
+                  allowNone
+                  noneLabel={t('common:none')}
+                  excludeIds={[primaryAccountId].filter(Boolean)}
+                />
                 <p className="text-sm text-muted-foreground">{t('venuePaymentConfig.secondaryAccountDesc')}</p>
               </div>
 
               {/* Tertiary Account */}
               <div className="space-y-2">
-                <Label htmlFor="tertiaryAccount">
+                <Label>
                   {t('venuePaymentConfig.tertiaryAccount')} ({t('common:optional')})
                 </Label>
-                <Select value={tertiaryAccountId} onValueChange={setTertiaryAccountId}>
-                  <SelectTrigger id="tertiaryAccount">
-                    <SelectValue placeholder={t('venuePaymentConfig.selectAccount')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{t('common:none')}</SelectItem>
-                    {accounts
-                      .filter(a => a.id !== primaryAccountId && (secondaryAccountId === 'none' || a.id !== secondaryAccountId))
-                      .map(account => (
-                        <SelectItem key={account.id} value={account.id}>
-                          {formatAccountLabel(account)}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                <AccountPicker
+                  accounts={accounts}
+                  value={tertiaryAccountId}
+                  onChange={setTertiaryAccountId}
+                  placeholder={t('venuePaymentConfig.selectAccount')}
+                  allowNone
+                  noneLabel={t('common:none')}
+                  excludeIds={[primaryAccountId, secondaryAccountId !== 'none' ? secondaryAccountId : ''].filter(Boolean)}
+                />
                 <p className="text-sm text-muted-foreground">{t('venuePaymentConfig.tertiaryAccountDesc')}</p>
               </div>
 
@@ -204,5 +190,94 @@ export const VenuePaymentConfigDialog: React.FC<VenuePaymentConfigDialogProps> =
         </DialogContent>
       </Dialog>
     </>
+  )
+}
+
+// ---------- Sub-components ----------
+
+interface AccountPickerProps {
+  accounts: MerchantAccountListItem[]
+  value: string
+  onChange: (id: string) => void
+  placeholder: string
+  /** When true, allows clearing the selection back to the sentinel value 'none'. */
+  allowNone?: boolean
+  noneLabel?: string
+  /** Account ids to hide (e.g. already chosen as primary/secondary). */
+  excludeIds?: string[]
+}
+
+function AccountPicker({
+  accounts,
+  value,
+  onChange,
+  placeholder,
+  allowNone = false,
+  noneLabel = 'Sin selección',
+  excludeIds = [],
+}: AccountPickerProps) {
+  const [search, setSearch] = useState('')
+  const excludedSet = useMemo(() => new Set(excludeIds), [excludeIds])
+  const selected = useMemo(
+    () => (value && value !== 'none' ? accounts.find(a => a.id === value) ?? null : null),
+    [accounts, value],
+  )
+
+  const items = useMemo<SearchComboboxItem[]>(() => {
+    const base = accounts.filter(a => !excludedSet.has(a.id))
+    const filtered = !search ? base : base.filter(a => includesNormalized(formatAccountLabel(a), search))
+    return filtered.map(a => ({ id: a.id, label: formatAccountLabel(a) }))
+  }, [accounts, excludedSet, search])
+
+  // Frozen state when an account is selected.
+  if (selected) {
+    return (
+      <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-input bg-background">
+        <span className="text-sm flex-1 truncate">{formatAccountLabel(selected)}</span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs text-muted-foreground cursor-pointer"
+          onClick={() => {
+            onChange(allowNone ? 'none' : '')
+            setSearch('')
+          }}
+        >
+          <X className="h-3.5 w-3.5 mr-1" />
+          Cambiar
+        </Button>
+      </div>
+    )
+  }
+
+  // Empty / search state.
+  return (
+    <div className="space-y-1">
+      <SearchCombobox
+        placeholder={placeholder}
+        items={items}
+        value={search}
+        onChange={setSearch}
+        onSelect={item => {
+          onChange(item.id)
+          setSearch('')
+        }}
+      />
+      {allowNone && value !== 'none' && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-6 px-2 text-xs text-muted-foreground"
+          onClick={() => {
+            onChange('none')
+            setSearch('')
+          }}
+        >
+          {noneLabel}
+        </Button>
+      )}
+    </div>
   )
 }

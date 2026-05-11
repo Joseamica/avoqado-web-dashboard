@@ -2,7 +2,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { ArrowLeft, Loader2, Plus, User } from 'lucide-react'
+import { ArrowLeft, Loader2, Plus, User, X } from 'lucide-react'
 import { DateTime } from 'luxon'
 import { useEffect, useMemo, useState, type MutableRefObject } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -593,37 +593,32 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
           {showTables && selectedSlot && selectedSlot.availableTables.length > 0 && (
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">{t('form.fields.table', { defaultValue: 'Mesa' })}</Label>
-              <Select value={watch('tableId') || 'none'} onValueChange={v => setValue('tableId', v === 'none' ? '' : v)}>
-                <SelectTrigger className="h-12">
-                  <SelectValue placeholder={t('form.selectTable', { defaultValue: 'Seleccionar mesa' })} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{t('noTable', { defaultValue: 'Sin mesa' })}</SelectItem>
-                  {selectedSlot.availableTables.map(table => (
-                    <SelectItem key={table.id} value={table.id}>
-                      {t('form.tableCapacity', { number: table.number, capacity: table.capacity, defaultValue: `Mesa {{number}} ({{capacity}} personas)` })}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <TablePicker
+                tables={selectedSlot.availableTables}
+                value={watch('tableId') || ''}
+                onChange={v => setValue('tableId', v)}
+                placeholder={t('form.selectTable', { defaultValue: 'Seleccionar mesa' })}
+                noneLabel={t('noTable', { defaultValue: 'Sin mesa' })}
+                formatLabel={(table) =>
+                  t('form.tableCapacity', {
+                    number: table.number,
+                    capacity: table.capacity,
+                    defaultValue: `Mesa {{number}} ({{capacity}} personas)`,
+                  }) as string
+                }
+              />
             </div>
           )}
 
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">{t('form.fields.staff', { defaultValue: 'Personal asignado' })}</Label>
-            <Select value={watch('assignedStaffId') || 'none'} onValueChange={v => setValue('assignedStaffId', v === 'none' ? '' : v)}>
-              <SelectTrigger className="h-12">
-                <SelectValue placeholder={t('form.selectStaff', { defaultValue: 'Sin asignar' })} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">{t('noStaff', { defaultValue: 'Sin asignar' })}</SelectItem>
-                {staffMembers.map(s => (
-                  <SelectItem key={s.staffId} value={s.staffId}>
-                    {s.firstName} {s.lastName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <StaffPicker
+              staff={staffMembers}
+              value={watch('assignedStaffId') || ''}
+              onChange={v => setValue('assignedStaffId', v)}
+              placeholder={t('form.selectStaff', { defaultValue: 'Buscar personal…' })}
+              noneLabel={t('noStaff', { defaultValue: 'Sin asignar' })}
+            />
           </div>
         </div>
 
@@ -786,5 +781,128 @@ export default function CreateReservation() {
 
       <CreateReservationForm submitRef={submitRef} />
     </div>
+  )
+}
+
+// ---------- Sub-components ----------
+
+interface StaffOption {
+  staffId: string
+  firstName?: string | null
+  lastName?: string | null
+}
+
+interface StaffPickerProps {
+  staff: StaffOption[]
+  value: string
+  onChange: (id: string) => void
+  placeholder: string
+  noneLabel: string
+}
+
+function StaffPicker({ staff, value, onChange, placeholder, noneLabel }: StaffPickerProps) {
+  const [search, setSearch] = useState('')
+
+  const labelFor = (s: StaffOption) => `${s.firstName ?? ''} ${s.lastName ?? ''}`.trim() || s.staffId
+
+  const selected = useMemo(() => (value ? staff.find(s => s.staffId === value) ?? null : null), [staff, value])
+
+  const items = useMemo<SearchComboboxItem[]>(() => {
+    const filtered = !search ? staff : staff.filter(s => includesNormalized(labelFor(s), search))
+    return filtered.map(s => ({ id: s.staffId, label: labelFor(s) }))
+  }, [staff, search])
+
+  if (selected) {
+    return (
+      <div className="flex items-center gap-2 h-12 px-3 rounded-md border border-input bg-transparent">
+        <span className="text-sm flex-1 truncate">{labelFor(selected)}</span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs text-muted-foreground cursor-pointer"
+          onClick={() => {
+            onChange('')
+            setSearch('')
+          }}
+        >
+          <X className="h-3.5 w-3.5 mr-1" />
+          {noneLabel}
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <SearchCombobox
+      placeholder={placeholder}
+      items={items}
+      value={search}
+      onChange={setSearch}
+      onSelect={item => {
+        onChange(item.id)
+        setSearch('')
+      }}
+    />
+  )
+}
+
+interface TableOption {
+  id: string
+  number: string | number
+  capacity: number
+}
+
+interface TablePickerProps {
+  tables: TableOption[]
+  value: string
+  onChange: (id: string) => void
+  placeholder: string
+  noneLabel: string
+  formatLabel: (table: TableOption) => string
+}
+
+function TablePicker({ tables, value, onChange, placeholder, noneLabel, formatLabel }: TablePickerProps) {
+  const [search, setSearch] = useState('')
+
+  const selected = useMemo(() => (value ? tables.find(t => t.id === value) ?? null : null), [tables, value])
+
+  const items = useMemo<SearchComboboxItem[]>(() => {
+    const filtered = !search ? tables : tables.filter(tbl => includesNormalized(formatLabel(tbl), search))
+    return filtered.map(tbl => ({ id: tbl.id, label: formatLabel(tbl) }))
+  }, [tables, search, formatLabel])
+
+  if (selected) {
+    return (
+      <div className="flex items-center gap-2 h-12 px-3 rounded-md border border-input bg-transparent">
+        <span className="text-sm flex-1 truncate">{formatLabel(selected)}</span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs text-muted-foreground cursor-pointer"
+          onClick={() => {
+            onChange('')
+            setSearch('')
+          }}
+        >
+          <X className="h-3.5 w-3.5 mr-1" />
+          {noneLabel}
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <SearchCombobox
+      placeholder={placeholder}
+      items={items}
+      value={search}
+      onChange={setSearch}
+      onSelect={item => {
+        onChange(item.id)
+        setSearch('')
+      }}
+    />
   )
 }

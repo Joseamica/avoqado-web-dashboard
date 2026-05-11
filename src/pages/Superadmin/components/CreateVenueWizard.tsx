@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
+import { X } from 'lucide-react'
 import { AddressAutocomplete } from '@/components/address-autocomplete'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -1338,25 +1340,15 @@ function StepPayments({
             <div className="space-y-4">
               <div className="rounded-xl border border-input bg-card p-4 space-y-3">
                 <Label className="text-sm font-medium">Copiar configuración de:</Label>
-                <Select
+                <VenuePicker
+                  venues={allVenues}
                   value={merchant.copyFromVenueId}
-                  onValueChange={venueId => {
-                    const venue = allVenues.find(v => v.id === venueId)
-                    setMerchant(prev => ({ ...prev, copyFromVenueId: venueId }))
-                    handleCopyFromVenue(venueId, venue?.name || '')
+                  onSelect={(id, name) => {
+                    setMerchant(prev => ({ ...prev, copyFromVenueId: id }))
+                    handleCopyFromVenue(id, name)
                   }}
-                >
-                  <SelectTrigger className="h-12 text-base cursor-pointer">
-                    <SelectValue placeholder="Selecciona un venue..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allVenues.map(v => (
-                      <SelectItem key={v.id} value={v.id} className="cursor-pointer">
-                        {v.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Selecciona un venue..."
+                />
               </div>
 
               {copyLoading && (
@@ -2259,6 +2251,62 @@ function ReviewCheck({ text, color = 'text-green-600', icon }: { text: string; c
       {icon || <CheckCircle2 className="w-3.5 h-3.5" />}
       {text}
     </div>
+  )
+}
+
+// ---------- Sub-components ----------
+
+interface VenuePickerProps {
+  venues: Array<{ id: string; name: string }>
+  value: string
+  onSelect: (id: string, name: string) => void
+  placeholder: string
+}
+
+function VenuePicker({ venues, value, onSelect, placeholder }: VenuePickerProps) {
+  const [search, setSearch] = useState('')
+  const selected = useMemo(() => (value ? venues.find(v => v.id === value) ?? null : null), [venues, value])
+
+  const items = useMemo<SearchComboboxItem[]>(
+    () =>
+      venues
+        .filter(v => !search || includesNormalized(v.name ?? '', search))
+        .map(v => ({ id: v.id, label: v.name })),
+    [venues, search],
+  )
+
+  if (selected) {
+    return (
+      <div className="flex items-center gap-2 h-12 px-3 rounded-md border border-input bg-card">
+        <span className="text-sm flex-1 truncate">{selected.name}</span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs text-muted-foreground cursor-pointer"
+          onClick={() => {
+            onSelect('', '')
+            setSearch('')
+          }}
+        >
+          <X className="h-3.5 w-3.5 mr-1" />
+          Cambiar
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <SearchCombobox
+      placeholder={placeholder}
+      items={items}
+      value={search}
+      onChange={setSearch}
+      onSelect={item => {
+        onSelect(item.id, item.label)
+        setSearch('')
+      }}
+    />
   )
 }
 

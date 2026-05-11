@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Dialog,
@@ -12,9 +12,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Loader2, Smartphone, AlertCircle } from 'lucide-react'
+import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
+import { Loader2, Search, Smartphone, AlertCircle, X } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useQuery } from '@tanstack/react-query'
+import { includesNormalized } from '@/lib/utils'
 import { getOrganizationVenues } from '@/services/organization.service'
 import {
   getOrgMerchantAccounts,
@@ -41,6 +43,7 @@ export const OrgTerminalDialog: React.FC<OrgTerminalDialogProps> = ({
   const { t } = useTranslation('organization')
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  const [merchantSearch, setMerchantSearch] = useState('')
   const [formData, setFormData] = useState({
     venueId: '',
     serialNumber: '',
@@ -160,22 +163,13 @@ export const OrgTerminalDialog: React.FC<OrgTerminalDialogProps> = ({
               <Label>
                 {t('terminals.dialog.venue')} <span className="text-destructive">*</span>
               </Label>
-              <Select
+              <VenuePicker
+                venues={venues}
                 value={formData.venueId}
-                onValueChange={value => setFormData({ ...formData, venueId: value, assignedMerchantIds: [] })}
+                onChange={value => setFormData({ ...formData, venueId: value, assignedMerchantIds: [] })}
                 disabled={!!terminal}
-              >
-                <SelectTrigger className="bg-background border-input">
-                  <SelectValue placeholder={t('terminals.dialog.selectVenue')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {venues.map(venue => (
-                    <SelectItem key={venue.id} value={venue.id}>
-                      {venue.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder={t('terminals.dialog.selectVenue')}
+              />
             </div>
 
             <div className="grid gap-2">
@@ -247,33 +241,14 @@ export const OrgTerminalDialog: React.FC<OrgTerminalDialogProps> = ({
             </div>
 
             {merchantAccounts.length > 0 && (
-              <div className="grid gap-2">
-                <Label>{t('terminals.dialog.assignedMerchants')}</Label>
-                <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto bg-background">
-                  {merchantAccounts.map(merchant => (
-                    <label
-                      key={merchant.id}
-                      className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-1 rounded"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.assignedMerchantIds.includes(merchant.id)}
-                        onChange={() => toggleMerchant(merchant.id)}
-                        className="w-4 h-4"
-                      />
-                      <div className="flex-1 flex items-center gap-2 text-sm">
-                        <span className="font-medium">{merchant.displayName || merchant.alias}</span>
-                        {merchant.externalMerchantId && (
-                          <span className="text-xs text-muted-foreground">({merchant.externalMerchantId})</span>
-                        )}
-                        {merchant.provider && (
-                          <span className="text-xs px-1.5 py-0.5 rounded bg-muted">{merchant.provider.name}</span>
-                        )}
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </div>
+              <MerchantPickerSection
+                merchants={merchantAccounts}
+                selectedIds={formData.assignedMerchantIds}
+                onToggle={toggleMerchant}
+                search={merchantSearch}
+                onSearchChange={setMerchantSearch}
+                label={t('terminals.dialog.assignedMerchants')}
+              />
             )}
 
             {!terminal && (
@@ -312,5 +287,156 @@ export const OrgTerminalDialog: React.FC<OrgTerminalDialogProps> = ({
         </form>
       </DialogContent>
     </Dialog>
+  )
+}
+
+// ---------- Sub-components ----------
+
+interface VenuePickerProps {
+  venues: Array<{ id: string; name: string; slug?: string }>
+  value: string
+  onChange: (id: string) => void
+  disabled?: boolean
+  placeholder: string
+}
+
+function VenuePicker({ venues, value, onChange, disabled, placeholder }: VenuePickerProps) {
+  const { t } = useTranslation('organization')
+  const [search, setSearch] = useState('')
+
+  const selected = useMemo(() => (value ? venues.find(v => v.id === value) ?? null : null), [venues, value])
+
+  const items = useMemo<SearchComboboxItem[]>(
+    () =>
+      venues
+        .filter(v => !search || includesNormalized(v.name ?? '', search))
+        .map(v => ({ id: v.id, label: v.name, description: v.slug })),
+    [venues, search],
+  )
+
+  if (selected) {
+    return (
+      <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-input bg-background">
+        <span className="text-sm flex-1 truncate">{selected.name}</span>
+        {!disabled && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs text-muted-foreground cursor-pointer"
+            onClick={() => {
+              onChange('')
+              setSearch('')
+            }}
+          >
+            <X className="h-3.5 w-3.5 mr-1" />
+            {t('terminals.drawer.merchantsEdit', { defaultValue: 'Cambiar' })}
+          </Button>
+        )}
+      </div>
+    )
+  }
+
+  if (disabled) {
+    return (
+      <div className="flex items-center h-10 px-3 rounded-md border border-input bg-muted/30">
+        <span className="text-sm text-muted-foreground">{placeholder}</span>
+      </div>
+    )
+  }
+
+  return (
+    <SearchCombobox
+      placeholder={placeholder}
+      items={items}
+      value={search}
+      onChange={setSearch}
+      onSelect={item => {
+        onChange(item.id)
+        setSearch('')
+      }}
+    />
+  )
+}
+
+interface MerchantOption {
+  id: string
+  displayName?: string | null
+  alias?: string | null
+  externalMerchantId?: string | null
+  provider?: { name: string } | null
+}
+
+interface MerchantPickerSectionProps {
+  merchants: MerchantOption[]
+  selectedIds: string[]
+  onToggle: (id: string) => void
+  search: string
+  onSearchChange: (value: string) => void
+  label: string
+}
+
+function MerchantPickerSection({
+  merchants,
+  selectedIds,
+  onToggle,
+  search,
+  onSearchChange,
+  label,
+}: MerchantPickerSectionProps) {
+  const filtered = useMemo(() => {
+    if (!search) return merchants
+    return merchants.filter(m => {
+      const haystack = [m.displayName, m.alias, m.externalMerchantId, m.provider?.name].filter(Boolean).join(' ')
+      return includesNormalized(haystack, search)
+    })
+  }, [merchants, search])
+
+  return (
+    <div className="grid gap-2">
+      <div className="flex items-center justify-between">
+        <Label>{label}</Label>
+        {selectedIds.length > 0 && (
+          <span className="text-xs text-muted-foreground">{selectedIds.length} seleccionado(s)</span>
+        )}
+      </div>
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={e => onSearchChange(e.target.value)}
+          placeholder="Buscar comercio…"
+          className="h-9 pl-8 text-sm bg-background"
+        />
+      </div>
+      <div className="border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto bg-background">
+        {filtered.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-2">Sin resultados</p>
+        ) : (
+          filtered.map(merchant => (
+            <label
+              key={merchant.id}
+              className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-1 rounded"
+            >
+              <input
+                type="checkbox"
+                checked={selectedIds.includes(merchant.id)}
+                onChange={() => onToggle(merchant.id)}
+                className="w-4 h-4"
+              />
+              <div className="flex-1 flex items-center gap-2 text-sm min-w-0">
+                <span className="font-medium truncate">{merchant.displayName || merchant.alias}</span>
+                {merchant.externalMerchantId && (
+                  <span className="text-xs text-muted-foreground truncate">({merchant.externalMerchantId})</span>
+                )}
+                {merchant.provider && (
+                  <span className="text-xs px-1.5 py-0.5 rounded bg-muted shrink-0">{merchant.provider.name}</span>
+                )}
+              </div>
+            </label>
+          ))
+        )}
+      </div>
+    </div>
   )
 }

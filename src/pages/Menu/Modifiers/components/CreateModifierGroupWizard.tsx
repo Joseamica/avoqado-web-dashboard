@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  ExternalLink,
   HelpCircle,
   Info,
   ListChecks,
@@ -13,6 +14,7 @@ import {
   Package,
   SlidersHorizontal,
   Sparkles,
+  X,
   type LucideIcon,
 } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
@@ -23,9 +25,12 @@ import { z } from 'zod'
 import DOMPurify from 'dompurify'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import DnDMultipleSelector, { Option } from '@/components/draggable-multi-select'
+import { type Option } from '@/components/draggable-multi-select'
+import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
+import { includesNormalized } from '@/lib/utils'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -702,29 +707,14 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
                               <InfoTooltip content={t('modifiers.detail.productTooltip')} />
                             </div>
                             <FormControl>
-                              <DnDMultipleSelector
-                                showViewIcon={true}
-                                showAddItemText={true}
-                                itemName={t('modifiers.detail.productItem')}
-                                onViewOption={option => {
-                                  if (option.value === '_new') {
-                                    navigate(`${fullBasePath}/menumaker/products`)
-                                  } else {
-                                    navigate(`${fullBasePath}/menumaker/products/${option.value}`)
-                                  }
-                                }}
-                                placeholder={t('modifiers.detail.selectProductsPlaceholder')}
-                                options={
-                                  allProducts
-                                    ? allProducts.map(product => ({
-                                        label: product.name,
-                                        value: product.id,
-                                        disable: false,
-                                      }))
-                                    : []
-                                }
+                              <ProductMultiPicker
+                                products={allProducts ?? []}
                                 value={(field.value || []) as Option[]}
                                 onChange={field.onChange}
+                                placeholder={t('modifiers.detail.selectProductsPlaceholder', { defaultValue: 'Buscar productos...' })}
+                                emptyLabel={t('modifiers.detail.productItem', { defaultValue: 'producto' })}
+                                onViewProduct={productId => navigate(`${fullBasePath}/menumaker/products/${productId}`)}
+                                onCreateNew={() => navigate(`${fullBasePath}/menumaker/products`)}
                               />
                             </FormControl>
                           </FormItem>
@@ -882,6 +872,111 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
           </form>
         </Form>
       </TooltipProvider>
+    </div>
+  )
+}
+
+// ---------- Sub-components ----------
+
+interface ProductLike {
+  id: string
+  name: string
+}
+
+interface ProductMultiPickerProps {
+  products: ProductLike[]
+  value: Option[]
+  onChange: (next: Option[]) => void
+  placeholder: string
+  emptyLabel: string
+  /** Called when the user clicks the open icon on a selected chip. */
+  onViewProduct?: (productId: string) => void
+  /** Called when the user picks the "+ Crear nuevo" item in the dropdown. */
+  onCreateNew?: () => void
+}
+
+/**
+ * Multi-select product picker built on SearchCombobox.
+ *
+ * Selected products render as chips above the input. Each chip has an open
+ * icon to navigate to that product and an X to remove it. Typing in the
+ * input filters the dropdown live; clicking a row adds it to the selection
+ * and clears the search.
+ *
+ * Note: drag-and-drop reordering of selected products is intentionally not
+ * supported here — if you need it, swap back to DnDMultipleSelector or add
+ * an explicit reorder mode.
+ */
+function ProductMultiPicker({
+  products,
+  value,
+  onChange,
+  placeholder,
+  emptyLabel,
+  onViewProduct,
+  onCreateNew,
+}: ProductMultiPickerProps) {
+  const [search, setSearch] = useState('')
+
+  const selectedIds = useMemo(() => new Set(value.map(o => o.value)), [value])
+
+  const items = useMemo<SearchComboboxItem[]>(() => {
+    const available = products.filter(p => !selectedIds.has(p.id))
+    const filtered = !search ? available : available.filter(p => includesNormalized(p.name ?? '', search))
+    return filtered.map(p => ({ id: p.id, label: p.name }))
+  }, [products, selectedIds, search])
+
+  const handleSelect = (item: SearchComboboxItem) => {
+    onChange([...value, { label: item.label, value: item.id, disable: false }])
+    setSearch('')
+  }
+
+  const handleRemove = (id: string) => {
+    onChange(value.filter(o => o.value !== id))
+  }
+
+  return (
+    <div className="space-y-2">
+      {value.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {value.map(option => (
+            <Badge
+              key={option.value}
+              variant="secondary"
+              className="h-7 pl-2.5 pr-1 gap-1 font-normal text-xs"
+            >
+              <span className="truncate max-w-[180px]">{option.label}</span>
+              {onViewProduct && option.value !== '_new' && (
+                <button
+                  type="button"
+                  onClick={() => onViewProduct(option.value)}
+                  className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
+                  aria-label="Ver producto"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => handleRemove(option.value)}
+                className="inline-flex h-4 w-4 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
+                aria-label="Quitar"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      )}
+      <SearchCombobox
+        placeholder={placeholder}
+        items={items}
+        value={search}
+        onChange={setSearch}
+        onSelect={handleSelect}
+        onCreateNew={onCreateNew}
+        createNewLabel={term => (term ? `+ Crear "${term}"` : `+ Crear ${emptyLabel}`)}
+      />
     </div>
   )
 }

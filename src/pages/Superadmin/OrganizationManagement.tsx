@@ -4,9 +4,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import { cn, includesNormalized } from '@/lib/utils'
+
 import {
   organizationAPI,
   type Organization,
@@ -44,7 +46,13 @@ import {
   Edit3,
 } from 'lucide-react'
 import React, { useMemo, useState } from 'react'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 // ===========================================
 // SHARED COMPONENTS - Modern 2025/2026 Design
@@ -97,7 +105,14 @@ interface OrganizationCardProps {
   onPaymentWizard: (org: Organization) => void
 }
 
-const OrganizationCard: React.FC<OrganizationCardProps> = ({ organization, onEdit, onDelete, onManageModules, onPaymentConfig, onPaymentWizard }) => {
+const OrganizationCard: React.FC<OrganizationCardProps> = ({
+  organization,
+  onEdit,
+  onDelete,
+  onManageModules,
+  onPaymentConfig,
+  onPaymentWizard,
+}) => {
   const businessTypeLabel = BUSINESS_TYPES.find(bt => bt.value === organization.type)?.label || organization.type
 
   return (
@@ -109,9 +124,7 @@ const OrganizationCard: React.FC<OrganizationCardProps> = ({ organization, onEdi
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <p className="font-medium text-sm truncate">{organization.name}</p>
-          {organization.slug && (
-            <span className="text-[11px] text-muted-foreground font-mono hidden sm:inline">/{organization.slug}</span>
-          )}
+          {organization.slug && <span className="text-[11px] text-muted-foreground font-mono hidden sm:inline">/{organization.slug}</span>}
         </div>
         <div className="flex items-center gap-3 mt-0.5">
           <span className="text-xs text-muted-foreground truncate max-w-[180px]">{organization.email}</span>
@@ -310,10 +323,7 @@ const OrganizationDialog: React.FC<OrganizationDialogProps> = ({ open, onOpenCha
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="type">Tipo de Negocio</Label>
-                <Select
-                  value={formData.type}
-                  onValueChange={value => setFormData(prev => ({ ...prev, type: value as BusinessType }))}
-                >
+                <Select value={formData.type} onValueChange={value => setFormData(prev => ({ ...prev, type: value as BusinessType }))}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -345,7 +355,11 @@ const OrganizationDialog: React.FC<OrganizationDialogProps> = ({ open, onOpenCha
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="rounded-full cursor-pointer">
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading} className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 rounded-full cursor-pointer">
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 rounded-full cursor-pointer"
+            >
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {isEdit ? 'Guardar' : 'Crear'}
             </Button>
@@ -400,12 +414,7 @@ const DeleteDialog: React.FC<DeleteDialogProps> = ({ open, onOpenChange, organiz
           <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-full cursor-pointer">
             Cancelar
           </Button>
-          <Button
-            variant="destructive"
-            onClick={onConfirm}
-            disabled={!canDelete || isLoading}
-            className="rounded-full cursor-pointer"
-          >
+          <Button variant="destructive" onClick={onConfirm} disabled={!canDelete || isLoading} className="rounded-full cursor-pointer">
             {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Eliminar
           </Button>
@@ -456,8 +465,7 @@ const ModuleManagementDialog: React.FC<ModuleManagementDialogProps> = ({ open, o
 
   // Disable mutation
   const disableMutation = useMutation({
-    mutationFn: (moduleCode: string) =>
-      organizationAPI.disableModuleForOrganization(organization!.id, moduleCode),
+    mutationFn: (moduleCode: string) => organizationAPI.disableModuleForOrganization(organization!.id, moduleCode),
     onSuccess: data => {
       toast({ title: 'Módulo Desactivado', description: data.message })
       queryClient.invalidateQueries({ queryKey: ['organization-modules', organization?.id] })
@@ -503,21 +511,16 @@ const ModuleManagementDialog: React.FC<ModuleManagementDialogProps> = ({ open, o
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
           ) : modulesData?.modules.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No hay módulos configurados en el sistema
-            </div>
+            <div className="text-center py-8 text-muted-foreground">No hay módulos configurados en el sistema</div>
           ) : (
             <div className="space-y-3">
               {modulesData?.modules.map(module => (
                 <GlassCard key={module.id} className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={cn(
-                        'p-2 rounded-lg',
-                        module.enabled
-                          ? 'bg-gradient-to-br from-green-500/20 to-green-500/5'
-                          : 'bg-muted',
-                      )}>
+                      <div
+                        className={cn('p-2 rounded-lg', module.enabled ? 'bg-gradient-to-br from-green-500/20 to-green-500/5' : 'bg-muted')}
+                      >
                         {module.enabled ? (
                           <Power className="w-4 h-4 text-green-600 dark:text-green-400" />
                         ) : (
@@ -531,9 +534,7 @@ const ModuleManagementDialog: React.FC<ModuleManagementDialogProps> = ({ open, o
                             {module.code}
                           </Badge>
                         </div>
-                        {module.description && (
-                          <p className="text-xs text-muted-foreground mt-0.5">{module.description}</p>
-                        )}
+                        {module.description && <p className="text-xs text-muted-foreground mt-0.5">{module.description}</p>}
                       </div>
                     </div>
                     <Switch
@@ -555,7 +556,8 @@ const ModuleManagementDialog: React.FC<ModuleManagementDialogProps> = ({ open, o
 
         <div className="pt-4 border-t">
           <p className="text-xs text-muted-foreground">
-            Los módulos activos a nivel organización se heredan automáticamente a todas las sucursales. Cada sucursal puede tener módulos adicionales activados individualmente.
+            Los módulos activos a nivel organización se heredan automáticamente a todas las sucursales. Cada sucursal puede tener módulos
+            adicionales activados individualmente.
           </p>
         </div>
       </DialogContent>
@@ -693,8 +695,7 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
 
   // Save payment config mutation
   const saveConfigMutation = useMutation({
-    mutationFn: (data: SetOrgPaymentConfigData) =>
-      organizationAPI.setOrganizationPaymentConfig(organization!.id, data),
+    mutationFn: (data: SetOrgPaymentConfigData) => organizationAPI.setOrganizationPaymentConfig(organization!.id, data),
     onSuccess: () => {
       toast({ title: 'Configuracion de pago guardada' })
       queryClient.invalidateQueries({ queryKey: ['org-payment-config', organization?.id] })
@@ -726,8 +727,7 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
 
   // Save pricing mutation
   const savePricingMutation = useMutation({
-    mutationFn: (data: SetOrgPricingData) =>
-      organizationAPI.setOrganizationPricing(organization!.id, data),
+    mutationFn: (data: SetOrgPricingData) => organizationAPI.setOrganizationPricing(organization!.id, data),
     onSuccess: () => {
       toast({ title: 'Tarifas guardadas' })
       queryClient.invalidateQueries({ queryKey: ['org-payment-config', organization?.id] })
@@ -744,8 +744,7 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
 
   // Delete pricing mutation
   const deletePricingMutation = useMutation({
-    mutationFn: (pricingId: string) =>
-      organizationAPI.deleteOrganizationPricing(organization!.id, pricingId),
+    mutationFn: (pricingId: string) => organizationAPI.deleteOrganizationPricing(organization!.id, pricingId),
     onSuccess: () => {
       toast({ title: 'Tarifa desactivada' })
       queryClient.invalidateQueries({ queryKey: ['org-payment-config', organization?.id] })
@@ -803,13 +802,22 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
         ) : (
           <Tabs defaultValue="config" className="flex-1 overflow-hidden flex flex-col">
             <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border w-full">
-              <TabsTrigger value="config" className="flex-1 rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground cursor-pointer">
+              <TabsTrigger
+                value="config"
+                className="flex-1 rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground cursor-pointer"
+              >
                 Cuentas Merchant
               </TabsTrigger>
-              <TabsTrigger value="pricing" className="flex-1 rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground cursor-pointer">
+              <TabsTrigger
+                value="pricing"
+                className="flex-1 rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground cursor-pointer"
+              >
                 Tarifas
               </TabsTrigger>
-              <TabsTrigger value="venues" className="group flex-1 rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground cursor-pointer">
+              <TabsTrigger
+                value="venues"
+                className="group flex-1 rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground cursor-pointer"
+              >
                 <span>Herencia</span>
                 <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
                   {venueInheritance.length}
@@ -845,8 +853,14 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Marca</Label>
-                      <Select value={autoFetchForm.brand} onValueChange={v => setAutoFetchForm(p => ({ ...p, brand: v }))} disabled={autoFetching}>
-                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <Select
+                        value={autoFetchForm.brand}
+                        onValueChange={v => setAutoFetchForm(p => ({ ...p, brand: v }))}
+                        disabled={autoFetching}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="PAX">PAX Technology</SelectItem>
                           <SelectItem value="Verifone">Verifone</SelectItem>
@@ -876,8 +890,14 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Ambiente</Label>
-                      <Select value={autoFetchForm.environment} onValueChange={v => setAutoFetchForm(p => ({ ...p, environment: v as 'SANDBOX' | 'PRODUCTION' }))} disabled={autoFetching}>
-                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <Select
+                        value={autoFetchForm.environment}
+                        onValueChange={v => setAutoFetchForm(p => ({ ...p, environment: v as 'SANDBOX' | 'PRODUCTION' }))}
+                        disabled={autoFetching}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="PRODUCTION">Producción</SelectItem>
                           <SelectItem value="SANDBOX">Sandbox</SelectItem>
@@ -897,8 +917,12 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
                     <div className="flex items-start gap-2 p-2.5 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800/50 text-xs">
                       <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
                       <div className="text-green-700 dark:text-green-300">
-                        <p className="font-medium">{autoFetchResult.alreadyExists ? 'Cuenta ya existía' : 'Cuenta creada'}: {autoFetchResult.displayName}</p>
-                        <p>POS ID: {autoFetchResult.posId} · DUKPT: {autoFetchResult.dukptKeysAvailable ? 'Sí' : 'No'}</p>
+                        <p className="font-medium">
+                          {autoFetchResult.alreadyExists ? 'Cuenta ya existía' : 'Cuenta creada'}: {autoFetchResult.displayName}
+                        </p>
+                        <p>
+                          POS ID: {autoFetchResult.posId} · DUKPT: {autoFetchResult.dukptKeysAvailable ? 'Sí' : 'No'}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -910,9 +934,15 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
                     type="button"
                   >
                     {autoFetching ? (
-                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Conectando con Blumon...</>
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Conectando con Blumon...
+                      </>
                     ) : (
-                      <><Zap className="mr-2 h-4 w-4" />Obtener Credenciales</>
+                      <>
+                        <Zap className="mr-2 h-4 w-4" />
+                        Obtener Credenciales
+                      </>
                     )}
                   </Button>
                 </GlassCard>
@@ -933,61 +963,37 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
                 <GlassCard className="p-4 space-y-4">
                   <div className="space-y-2">
                     <Label>Cuenta Primaria *</Label>
-                    <Select
-                      value={configForm.primaryAccountId || undefined}
-                      onValueChange={v => setConfigForm(prev => ({ ...prev, primaryAccountId: v }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar cuenta primaria" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {merchantAccounts.map(acc => (
-                          <SelectItem key={acc.id} value={acc.id}>
-                            {acc.displayName || acc.alias || acc.externalMerchantId} — {acc.providerName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <AccountPicker
+                      accounts={merchantAccounts}
+                      value={configForm.primaryAccountId || ''}
+                      onChange={v => setConfigForm(prev => ({ ...prev, primaryAccountId: v }))}
+                      placeholder="Seleccionar cuenta primaria"
+                      showProvider
+                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Cuenta Secundaria</Label>
-                      <Select
-                        value={configForm.secondaryAccountId || 'none'}
-                        onValueChange={v => setConfigForm(prev => ({ ...prev, secondaryAccountId: v === 'none' ? null : v }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Ninguna" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Ninguna</SelectItem>
-                          {merchantAccounts.map(acc => (
-                            <SelectItem key={acc.id} value={acc.id}>
-                              {acc.displayName || acc.alias || acc.externalMerchantId}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <AccountPicker
+                        accounts={merchantAccounts}
+                        value={configForm.secondaryAccountId || ''}
+                        onChange={v => setConfigForm(prev => ({ ...prev, secondaryAccountId: v || null }))}
+                        placeholder="Ninguna"
+                        allowNone
+                        excludeIds={[configForm.primaryAccountId].filter(Boolean)}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label>Cuenta Terciaria</Label>
-                      <Select
-                        value={configForm.tertiaryAccountId || 'none'}
-                        onValueChange={v => setConfigForm(prev => ({ ...prev, tertiaryAccountId: v === 'none' ? null : v }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Ninguna" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Ninguna</SelectItem>
-                          {merchantAccounts.map(acc => (
-                            <SelectItem key={acc.id} value={acc.id}>
-                              {acc.displayName || acc.alias || acc.externalMerchantId}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <AccountPicker
+                        accounts={merchantAccounts}
+                        value={configForm.tertiaryAccountId || ''}
+                        onChange={v => setConfigForm(prev => ({ ...prev, tertiaryAccountId: v || null }))}
+                        placeholder="Ninguna"
+                        allowNone
+                        excludeIds={[configForm.primaryAccountId, configForm.secondaryAccountId].filter(Boolean)}
+                      />
                     </div>
                   </div>
 
@@ -1051,7 +1057,8 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
                             {ACCOUNT_TYPE_LABELS[ps.accountType as AccountType]?.label || ps.accountType}
                           </Badge>
                           <span className="text-sm font-mono">
-                            D:{(Number(ps.debitRate) * 100).toFixed(2)}% C:{(Number(ps.creditRate) * 100).toFixed(2)}% A:{(Number(ps.amexRate) * 100).toFixed(2)}% I:{(Number(ps.internationalRate) * 100).toFixed(2)}%
+                            D:{(Number(ps.debitRate) * 100).toFixed(2)}% C:{(Number(ps.creditRate) * 100).toFixed(2)}% A:
+                            {(Number(ps.amexRate) * 100).toFixed(2)}% I:{(Number(ps.internationalRate) * 100).toFixed(2)}%
                           </span>
                         </div>
                         <Button
@@ -1064,9 +1071,7 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>
-                      {ps.contractReference && (
-                        <p className="text-xs text-muted-foreground mt-1">Ref: {ps.contractReference}</p>
-                      )}
+                      {ps.contractReference && <p className="text-xs text-muted-foreground mt-1">Ref: {ps.contractReference}</p>}
                     </GlassCard>
                   ))}
                 </div>
@@ -1203,9 +1208,7 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
             {/* Tab 3: Venue Inheritance */}
             <TabsContent value="venues" className="flex-1 overflow-y-auto mt-4">
               {venueInheritance.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Esta organizacion no tiene sucursales
-                </div>
+                <div className="text-center py-8 text-muted-foreground">Esta organizacion no tiene sucursales</div>
               ) : (
                 <div className="space-y-2">
                   {venueInheritance.map(v => (
@@ -1299,12 +1302,15 @@ const OrganizationManagement: React.FC = () => {
   }, [organizations, searchTerm, typeFilter])
 
   // Stats
-  const stats = useMemo(() => ({
-    total: organizations.length,
-    totalVenues: organizations.reduce((acc, org) => acc + org.venueCount, 0),
-    totalStaff: organizations.reduce((acc, org) => acc + org.staffCount, 0),
-    withModules: organizations.filter(org => org.enabledModules.length > 0).length,
-  }), [organizations])
+  const stats = useMemo(
+    () => ({
+      total: organizations.length,
+      totalVenues: organizations.reduce((acc, org) => acc + org.venueCount, 0),
+      totalStaff: organizations.reduce((acc, org) => acc + org.staffCount, 0),
+      withModules: organizations.filter(org => org.enabledModules.length > 0).length,
+    }),
+    [organizations],
+  )
 
   // Create mutation
   const createMutation = useMutation({
@@ -1325,8 +1331,7 @@ const OrganizationManagement: React.FC = () => {
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateOrganizationData }) =>
-      organizationAPI.updateOrganization(id, data),
+    mutationFn: ({ id, data }: { id: string; data: UpdateOrganizationData }) => organizationAPI.updateOrganization(id, data),
     onSuccess: () => {
       toast({ title: 'Organización actualizada exitosamente' })
       queryClient.invalidateQueries({ queryKey: ['superadmin-organizations'] })
@@ -1553,11 +1558,7 @@ const OrganizationManagement: React.FC = () => {
         isLoading={deleteMutation.isPending}
       />
 
-      <ModuleManagementDialog
-        open={isModuleDialogOpen}
-        onOpenChange={setIsModuleDialogOpen}
-        organization={selectedOrganization}
-      />
+      <ModuleManagementDialog open={isModuleDialogOpen} onOpenChange={setIsModuleDialogOpen} organization={selectedOrganization} />
 
       <PaymentConfigDialog
         open={isPaymentConfigDialogOpen}
@@ -1580,6 +1581,89 @@ const OrganizationManagement: React.FC = () => {
         />
       )}
     </div>
+  )
+}
+
+// ---------- Sub-components ----------
+
+interface AccountOption {
+  id: string
+  displayName?: string | null
+  alias?: string | null
+  externalMerchantId?: string | null
+  providerName?: string | null
+}
+
+interface AccountPickerProps {
+  accounts: AccountOption[]
+  value: string
+  onChange: (id: string) => void
+  placeholder: string
+  /** Allow clearing back to empty (for optional fields). */
+  allowNone?: boolean
+  /** Show provider name in the dropdown label. */
+  showProvider?: boolean
+  /** Account ids to hide (already chosen elsewhere). */
+  excludeIds?: string[]
+}
+
+function accountLabel(a: AccountOption, withProvider = false) {
+  const name = a.displayName || a.alias || a.externalMerchantId || a.id
+  if (!withProvider || !a.providerName) return name
+  return `${name} — ${a.providerName}`
+}
+
+function AccountPicker({
+  accounts,
+  value,
+  onChange,
+  placeholder,
+  allowNone = false,
+  showProvider = false,
+  excludeIds = [],
+}: AccountPickerProps) {
+  const [search, setSearch] = useState('')
+  const excludedSet = useMemo(() => new Set(excludeIds), [excludeIds])
+  const selected = useMemo(() => (value ? (accounts.find(a => a.id === value) ?? null) : null), [accounts, value])
+
+  const items = useMemo<SearchComboboxItem[]>(() => {
+    const base = accounts.filter(a => !excludedSet.has(a.id))
+    const filtered = !search ? base : base.filter(a => includesNormalized(accountLabel(a, true), search))
+    return filtered.map(a => ({ id: a.id, label: accountLabel(a, showProvider) }))
+  }, [accounts, excludedSet, search, showProvider])
+
+  if (selected) {
+    return (
+      <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-input bg-background">
+        <span className="text-sm flex-1 truncate">{accountLabel(selected, showProvider)}</span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs text-muted-foreground cursor-pointer"
+          onClick={() => {
+            onChange('')
+            setSearch('')
+          }}
+        >
+          <X className="h-3.5 w-3.5 mr-1" />
+          {allowNone ? 'Quitar' : 'Cambiar'}
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <SearchCombobox
+      placeholder={placeholder}
+      items={items}
+      value={search}
+      onChange={setSearch}
+      onSelect={item => {
+        onChange(item.id)
+        setSearch('')
+      }}
+    />
   )
 }
 

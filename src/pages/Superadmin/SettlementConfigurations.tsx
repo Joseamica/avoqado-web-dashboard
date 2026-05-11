@@ -6,11 +6,13 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import DataTable from '@/components/data-table'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Clock, Plus, Pencil, Trash2, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react'
+
+import { Clock, Plus, Pencil, Trash2, CheckCircle, AlertTriangle, Loader2, X } from 'lucide-react'
 import {
   getSettlementConfigurations,
   createSettlementConfiguration,
@@ -141,7 +143,7 @@ const SettlementConfigurations: React.FC = () => {
   // Bulk create mutation
   const bulkCreateMutation = useMutation({
     mutationFn: bulkCreateSettlementConfigurations,
-    onSuccess: (data) => {
+    onSuccess: data => {
       queryClient.invalidateQueries({ queryKey: ['settlement-configurations'] })
       toast({
         title: t('settlementConfigurations.toasts.success'),
@@ -276,9 +278,7 @@ const SettlementConfigurations: React.FC = () => {
     {
       accessorKey: 'cardType',
       header: t('settlementConfigurations.columns.cardType'),
-      cell: ({ row }) => (
-        <Badge variant="outline">{t(`settlementConfigurations.cardTypes.${row.original.cardType}`)}</Badge>
-      ),
+      cell: ({ row }) => <Badge variant="outline">{t(`settlementConfigurations.cardTypes.${row.original.cardType}`)}</Badge>,
     },
     {
       accessorKey: 'settlementDays',
@@ -305,7 +305,9 @@ const SettlementConfigurations: React.FC = () => {
       cell: ({ row }) => {
         const isActive = !row.original.effectiveTo || new Date(row.original.effectiveTo) > new Date()
         return (
-          <Badge className={isActive ? 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-200' : 'bg-muted text-muted-foreground'}>
+          <Badge
+            className={isActive ? 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-200' : 'bg-muted text-muted-foreground'}
+          >
             <CheckCircle className="w-3 h-3 mr-1" />
             {isActive ? t('settlementConfigurations.status.active') : t('settlementConfigurations.status.expired')}
           </Badge>
@@ -467,21 +469,12 @@ const SettlementConfigurations: React.FC = () => {
               <>
                 <div className="space-y-2">
                   <Label>{t('settlementConfigurations.form.merchantAccount')}</Label>
-                  <Select
+                  <MerchantAccountPicker
+                    accounts={merchantAccounts}
                     value={formData.merchantAccountId}
-                    onValueChange={value => setFormData({ ...formData, merchantAccountId: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('settlementConfigurations.form.merchantAccountPlaceholder')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {merchantAccounts.map(ma => (
-                        <SelectItem key={ma.id} value={ma.id}>
-                          {ma.displayName || ma.externalMerchantId}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={value => setFormData({ ...formData, merchantAccountId: value })}
+                    placeholder={t('settlementConfigurations.form.merchantAccountPlaceholder')}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>{t('settlementConfigurations.form.cardType')}</Label>
@@ -534,19 +527,12 @@ const SettlementConfigurations: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>{t('settlementConfigurations.form.cutoffTime')}</Label>
-                <Input
-                  type="time"
-                  value={formData.cutoffTime}
-                  onChange={e => setFormData({ ...formData, cutoffTime: e.target.value })}
-                />
+                <Input type="time" value={formData.cutoffTime} onChange={e => setFormData({ ...formData, cutoffTime: e.target.value })} />
                 <p className="text-xs text-muted-foreground">{t('settlementConfigurations.form.cutoffTimeHint')}</p>
               </div>
               <div className="space-y-2">
                 <Label>{t('settlementConfigurations.form.cutoffTimezone')}</Label>
-                <Select
-                  value={formData.cutoffTimezone}
-                  onValueChange={value => setFormData({ ...formData, cutoffTimezone: value })}
-                >
+                <Select value={formData.cutoffTimezone} onValueChange={value => setFormData({ ...formData, cutoffTimezone: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -589,21 +575,12 @@ const SettlementConfigurations: React.FC = () => {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>{t('settlementConfigurations.form.merchantAccount')}</Label>
-              <Select
+              <MerchantAccountPicker
+                accounts={merchantAccounts}
                 value={bulkFormData.merchantAccountId}
-                onValueChange={value => setBulkFormData({ ...bulkFormData, merchantAccountId: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t('settlementConfigurations.form.merchantAccountPlaceholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {merchantAccounts.map(ma => (
-                    <SelectItem key={ma.id} value={ma.id}>
-                      {ma.displayName || ma.externalMerchantId}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={value => setBulkFormData({ ...bulkFormData, merchantAccountId: value })}
+                placeholder={t('settlementConfigurations.form.merchantAccountPlaceholder')}
+              />
             </div>
 
             <div className="space-y-4 p-4 rounded-xl bg-muted/30 border border-border/50">
@@ -623,7 +600,10 @@ const SettlementConfigurations: React.FC = () => {
                             ? 'internationalDays'
                             : 'otherDays'
                   return (
-                    <div key={cardType} className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/30">
+                    <div
+                      key={cardType}
+                      className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/30"
+                    >
                       <Label className="text-sm">{t(`settlementConfigurations.cardTypes.${cardType}`)}</Label>
                       <div className="flex items-center gap-2">
                         <Input
@@ -673,10 +653,7 @@ const SettlementConfigurations: React.FC = () => {
             <Button variant="outline" onClick={() => setBulkDialogOpen(false)}>
               {t('common.cancel')}
             </Button>
-            <Button
-              onClick={handleBulkCreate}
-              disabled={bulkCreateMutation.isPending || !bulkFormData.merchantAccountId}
-            >
+            <Button onClick={handleBulkCreate} disabled={bulkCreateMutation.isPending || !bulkFormData.merchantAccountId}>
               {bulkCreateMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {t('settlementConfigurations.bulkCreate')}
             </Button>
@@ -684,6 +661,67 @@ const SettlementConfigurations: React.FC = () => {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+// ---------- Sub-components ----------
+
+interface AccountOption {
+  id: string
+  displayName?: string | null
+  externalMerchantId?: string | null
+}
+
+interface MerchantAccountPickerProps {
+  accounts: AccountOption[]
+  value: string
+  onChange: (id: string) => void
+  placeholder: string
+}
+
+function MerchantAccountPicker({ accounts, value, onChange, placeholder }: MerchantAccountPickerProps) {
+  const [search, setSearch] = useState('')
+  const selected = useMemo(() => (value ? (accounts.find(a => a.id === value) ?? null) : null), [accounts, value])
+
+  const labelFor = (a: AccountOption) => a.displayName || a.externalMerchantId || a.id
+
+  const items = useMemo<SearchComboboxItem[]>(() => {
+    const filtered = !search ? accounts : accounts.filter(a => includesNormalized(labelFor(a), search))
+    return filtered.map(a => ({ id: a.id, label: labelFor(a) }))
+  }, [accounts, search])
+
+  if (selected) {
+    return (
+      <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-input bg-background">
+        <span className="text-sm flex-1 truncate">{labelFor(selected)}</span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs text-muted-foreground cursor-pointer"
+          onClick={() => {
+            onChange('')
+            setSearch('')
+          }}
+        >
+          <X className="h-3.5 w-3.5 mr-1" />
+          Cambiar
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <SearchCombobox
+      placeholder={placeholder}
+      items={items}
+      value={search}
+      onChange={setSearch}
+      onSelect={item => {
+        onChange(item.id)
+        setSearch('')
+      }}
+    />
   )
 }
 
