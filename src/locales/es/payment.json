@@ -42,7 +42,12 @@
     "profit": "Ganancia Avoqado",
     "total": "Total",
     "type": "Tipo",
+    "international": "Internacional",
     "ai": "IA"
+  },
+  "international": {
+    "yes": "Sí",
+    "no": "No"
   },
   "types": {
     "regular": "Regular",

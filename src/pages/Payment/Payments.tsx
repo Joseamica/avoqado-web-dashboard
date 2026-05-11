@@ -55,6 +55,13 @@ import { useAccess } from '@/hooks/use-access'
 const isRefundPayment = (payment: PaymentType) =>
   payment.type === PaymentRecordType.REFUND || payment.status === PaymentStatus.REFUNDED
 
+// processorData.isInternational may arrive as boolean or as the string "true"/"false"
+// depending on the provider/legacy row. Normalize to a strict boolean.
+const isInternationalPayment = (payment: PaymentType): boolean => {
+  const raw = (payment as any)?.processorData?.isInternational
+  return raw === true || raw === 'true'
+}
+
 export default function Payments() {
   const { t } = useTranslation('payment')
   const { t: tCommon } = useTranslation('common')
@@ -108,6 +115,8 @@ export default function Payments() {
   const [subtotalFilter, setSubtotalFilter] = useState<AmountFilter | null>(null)
   const [tipFilter, setTipFilter] = useState<AmountFilter | null>(null)
   const [totalFilter, setTotalFilter] = useState<AmountFilter | null>(null)
+  // International filter — client-side. Values: 'yes' | 'no'.
+  const [internationalFilter, setInternationalFilter] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -123,6 +132,7 @@ export default function Payments() {
     'merchantAccount',
     'method',
     'source',
+    'international',
     'amount',
     'totalTipAmount',
     'totalAmount',
@@ -136,6 +146,7 @@ export default function Payments() {
     methodFilter,
     sourceFilter,
     waiterFilter,
+    internationalFilter,
     dateRange,
     subtotalFilter,
     tipFilter,
@@ -363,6 +374,7 @@ export default function Payments() {
     methodFilter.length > 0,
     sourceFilter.length > 0,
     waiterFilter.length > 0,
+    internationalFilter.length > 0,
     subtotalFilter !== null,
     tipFilter !== null,
     totalFilter !== null,
@@ -375,6 +387,7 @@ export default function Payments() {
     setMethodFilter([])
     setSourceFilter([])
     setWaiterFilter([])
+    setInternationalFilter([])
     setSubtotalFilter(null)
     setTipFilter(null)
     setTotalFilter(null)
@@ -487,12 +500,24 @@ export default function Payments() {
         }
       })
     }
+    // International filter (client-side, like the amount filters). Backend
+    // does not expose processorData.isInternational as a query parameter yet.
+    if (internationalFilter.length > 0) {
+      const wantYes = internationalFilter.includes('yes')
+      const wantNo = internationalFilter.includes('no')
+      if (!(wantYes && wantNo)) {
+        payments = payments.filter((p: PaymentType) => {
+          const intl = isInternationalPayment(p)
+          return wantYes ? intl : !intl
+        })
+      }
+    }
 
     return payments
     // NOTE: multi-select filters and search are applied server-side, so they no longer
-    // belong in the dep array. Only amount filters (subtotal/tip/total) and status tab
-    // still affect this memo's output.
-  }, [data?.data, activeStatusTab, subtotalFilter, tipFilter, totalFilter])
+    // belong in the dep array. Only amount filters (subtotal/tip/total), the
+    // international filter, and status tab still affect this memo's output.
+  }, [data?.data, activeStatusTab, subtotalFilter, tipFilter, totalFilter, internationalFilter])
 
   // Status tab counts (computed over ALL server-filtered payments, not just
   // the paginated page, so "Completados 450" means 450 in the whole date range).
@@ -590,6 +615,16 @@ export default function Payments() {
         }
       })
     }
+    if (internationalFilter.length > 0) {
+      const wantYes = internationalFilter.includes('yes')
+      const wantNo = internationalFilter.includes('no')
+      if (!(wantYes && wantNo)) {
+        payments = payments.filter((p: PaymentType) => {
+          const intl = isInternationalPayment(p)
+          return wantYes ? intl : !intl
+        })
+      }
+    }
 
     const count = payments.length
     const totalCollected = payments.reduce((sum, p) => sum + (Number(p.amount) || 0) + (Number(p.tipAmount) || 0), 0)
@@ -599,7 +634,7 @@ export default function Payments() {
       { label: t('summaryCards.totalCollected'), value: totalCollected, format: 'currency' as const },
       { label: t('summaryCards.netSales'), value: netSales, format: 'currency' as const },
     ]
-  }, [summaryPayments, activeStatusTab, subtotalFilter, tipFilter, totalFilter, t])
+  }, [summaryPayments, activeStatusTab, subtotalFilter, tipFilter, totalFilter, internationalFilter, t])
 
   // Get unique payment IDs from filtered payments to fetch their commissions
   const paymentIds = useMemo(() => {
@@ -718,6 +753,31 @@ export default function Payments() {
         cell: ({ row }) => {
           const payment = row.original as any
           return <PaymentSourceBadge source={payment.source} externalSource={payment.externalSource} />
+        },
+      },
+      {
+        // International column — reads processorData.isInternational. Shown
+        // as a small badge (Sí / No). Useful for venues that price cross-border
+        // card volume differently than domestic.
+        accessorFn: row => (isInternationalPayment(row) ? 'yes' : 'no'),
+        id: 'international',
+        meta: { label: t('columns.international', { defaultValue: 'Internacional' }) },
+        header: t('columns.international', { defaultValue: 'Internacional' }),
+        cell: ({ row }) => {
+          const intl = isInternationalPayment(row.original)
+          return (
+            <Badge
+              variant="soft"
+              className={cn(
+                'border-transparent text-xs px-2 py-0.5',
+                intl
+                  ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300'
+                  : 'bg-muted text-muted-foreground dark:text-foreground',
+              )}
+            >
+              {intl ? t('international.yes', { defaultValue: 'Sí' }) : t('international.no', { defaultValue: 'No' })}
+            </Badge>
+          )
         },
       },
       {
@@ -1075,12 +1135,17 @@ export default function Payments() {
           const sourceKey = `sources.${payment.source || 'UNKNOWN'}` as const
           const methodKey = payment.method === 'CASH' ? 'methods.cash' : 'methods.card'
 
+          const intlLabel = isInternationalPayment(payment)
+            ? t('international.yes', { defaultValue: 'Sí' })
+            : t('international.no', { defaultValue: 'No' })
+
           const row: Record<string, any> = {
             [t('columns.date')]: formatDate(payment.createdAt),
             [t('columns.waiter')]: processedBy,
             [t('columns.merchantAccount')]: merchantAccount,
             [t('columns.source')]: t(sourceKey as any),
             [t('columns.method')]: t(methodKey as any),
+            [t('columns.international', { defaultValue: 'Internacional' })]: intlLabel,
           }
 
           // Add card details if available
@@ -1314,6 +1379,30 @@ export default function Payments() {
             />
           </FilterPill>
 
+          {/* International Filter Pill */}
+          <FilterPill
+            label={t('columns.international', { defaultValue: 'Internacional' })}
+            activeValue={getFilterDisplayLabel(
+              internationalFilter,
+              [
+                { value: 'yes', label: t('international.yes', { defaultValue: 'Sí' }) },
+                { value: 'no', label: t('international.no', { defaultValue: 'No' }) },
+              ],
+            )}
+            isActive={internationalFilter.length > 0}
+            onClear={() => setInternationalFilter([])}
+          >
+            <CheckboxFilterContent
+              title={`Filtrar por: ${t('columns.international', { defaultValue: 'Internacional' }).toLowerCase()}`}
+              options={[
+                { value: 'yes', label: t('international.yes', { defaultValue: 'Sí' }) },
+                { value: 'no', label: t('international.no', { defaultValue: 'No' }) },
+              ]}
+              selectedValues={internationalFilter}
+              onApply={setInternationalFilter}
+            />
+          </FilterPill>
+
           {/* Waiter Filter Pill */}
           <FilterPill
             label={t('columns.waiter')}
@@ -1420,6 +1509,11 @@ export default function Payments() {
                 { id: 'merchantAccount', label: t('columns.merchantAccount'), visible: visibleColumns.includes('merchantAccount') },
                 { id: 'method', label: t('columns.method'), visible: visibleColumns.includes('method') },
                 { id: 'source', label: t('columns.source'), visible: visibleColumns.includes('source') },
+                {
+                  id: 'international',
+                  label: t('columns.international', { defaultValue: 'Internacional' }),
+                  visible: visibleColumns.includes('international'),
+                },
                 { id: 'amount', label: t('columns.subtotal'), visible: visibleColumns.includes('amount') },
                 { id: 'totalTipAmount', label: t('columns.tip'), visible: visibleColumns.includes('totalTipAmount') },
                 { id: 'totalAmount', label: t('columns.total'), visible: visibleColumns.includes('totalAmount'), disabled: true },

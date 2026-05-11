@@ -42,7 +42,12 @@
     "profit": "Avoqado Profit",
     "total": "Total",
     "type": "Type",
+    "international": "International",
     "ai": "AI"
+  },
+  "international": {
+    "yes": "Yes",
+    "no": "No"
   },
   "types": {
     "regular": "Regular",

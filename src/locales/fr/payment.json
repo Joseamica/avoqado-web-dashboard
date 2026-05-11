@@ -40,7 +40,12 @@
     "status": "Statut",
     "subtotal": "Sous-total",
     "profit": "Profit Avoqado",
-    "total": "Total"
+    "total": "Total",
+    "international": "International"
+  },
+  "international": {
+    "yes": "Oui",
+    "no": "Non"
   },
   "methods": {
     "cash": "Espèces",
