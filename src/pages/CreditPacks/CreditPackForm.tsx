@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Package, Plus, Trash2 } from 'lucide-react'
-import { useEffect } from 'react'
-import { useFieldArray, useForm } from 'react-hook-form'
+import { Package, Plus, Trash2, X } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { useFieldArray, useForm, type ControllerRenderProps } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
 import { LoadingButton } from '@/components/loading-button'
 import { LoadingScreen } from '@/components/spinner'
+import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
@@ -14,9 +15,88 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { includesNormalized } from '@/lib/utils'
 import creditPackService from '@/services/creditPack.service'
 import type { CreateCreditPackRequest } from '@/types/creditPack'
 import api from '@/api'
+
+interface ProductOption {
+  id: string
+  name: string
+  price?: number | string | null
+}
+
+interface ProductPickerProps {
+  products: ProductOption[]
+  field: ControllerRenderProps<FormValues, `items.${number}.productId`>
+  placeholder: string
+  changeLabel: string
+}
+
+/**
+ * Searchable product picker for the credit-pack items field array.
+ *
+ * Two states:
+ *  1. Empty (no productId) → SearchCombobox with live filter
+ *  2. Selected (productId set) → frozen pill with name + "cambiar" button
+ *     that clears the field and re-opens the search.
+ *
+ * Local `search` state is scoped to this row so adding/removing rows in the
+ * field array doesn't leak search terms between rows.
+ */
+function ProductPicker({ products, field, placeholder, changeLabel }: ProductPickerProps) {
+  const [search, setSearch] = useState('')
+
+  const selected = useMemo(
+    () => (field.value ? products.find(p => p.id === field.value) ?? null : null),
+    [products, field.value],
+  )
+
+  const items = useMemo<SearchComboboxItem[]>(() => {
+    return products
+      .filter(p => !search || includesNormalized(p.name ?? '', search))
+      .map(p => ({
+        id: p.id,
+        label: p.name,
+        endLabel:
+          p.price != null && Number(p.price) > 0 ? `$${Number(p.price).toFixed(2)}` : undefined,
+      }))
+  }, [products, search])
+
+  if (selected) {
+    return (
+      <div className="flex items-center gap-2 h-12 px-3 rounded-lg border border-input bg-transparent">
+        <span className="text-sm flex-1 truncate">{selected.name}</span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs text-muted-foreground cursor-pointer"
+          onClick={() => {
+            field.onChange('')
+            setSearch('')
+          }}
+        >
+          <X className="h-3.5 w-3.5 mr-1" />
+          {changeLabel}
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <SearchCombobox
+      placeholder={placeholder}
+      items={items}
+      value={search}
+      onChange={setSearch}
+      onSelect={item => {
+        field.onChange(item.id)
+        setSearch('')
+      }}
+    />
+  )
+}
 
 interface CreditPackFormModalProps {
   open: boolean
@@ -345,20 +425,14 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
                       render={({ field: f }) => (
                         <FormItem className="min-w-0">
                           <FormLabel>{t('form.fields.product')}</FormLabel>
-                          <Select onValueChange={f.onChange} value={f.value}>
-                            <FormControl>
-                              <SelectTrigger className="h-12 text-base">
-                                <SelectValue placeholder={t('form.fields.product')} />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {products.map((product: any) => (
-                                <SelectItem key={product.id} value={product.id}>
-                                  {product.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <ProductPicker
+                              products={products as ProductOption[]}
+                              field={f}
+                              placeholder={t('form.fields.product')}
+                              changeLabel={tCommon('change', { defaultValue: 'Cambiar' })}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
