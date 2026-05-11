@@ -392,16 +392,23 @@ export function ServiceFormDialog({ open, onOpenChange, onSuccess, mode, product
 
                 {isAppointment && (
                   <div className="space-y-1.5">
-                    <Label htmlFor="duration">{t('services.form.durationLabel')}</Label>
+                    <Label htmlFor="duration">
+                      {t('services.form.durationLabel')} <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       id="duration"
                       type="number"
-                      min="1"
+                      min="5"
+                      max="1440"
                       placeholder={t('services.form.durationPlaceholder')}
                       {...register('duration', {
-                        validate: v => !v || Number(v) > 0 || t('products.create.pricePositive'),
+                        required: { value: true, message: t('services.form.durationRequired') },
+                        min: { value: 5, message: t('services.form.durationMin') },
+                        max: { value: 1440, message: t('services.form.durationMax') },
+                        valueAsNumber: true,
                       })}
                     />
+                    {errors.duration && <p className="text-xs text-destructive">{errors.duration.message as string}</p>}
                     <p className="text-xs text-muted-foreground">{t('services.form.durationHelp')}</p>
                   </div>
                 )}
