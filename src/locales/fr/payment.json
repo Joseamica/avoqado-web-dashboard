@@ -41,7 +41,8 @@
     "subtotal": "Sous-total",
     "profit": "Profit Avoqado",
     "total": "Total",
-    "international": "International"
+    "international": "International",
+    "cardBrand": "Marque"
   },
   "international": {
     "yes": "Oui",

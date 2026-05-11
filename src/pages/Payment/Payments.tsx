@@ -62,6 +62,38 @@ const isInternationalPayment = (payment: PaymentType): boolean => {
   return raw === true || raw === 'true'
 }
 
+// Card brand can live on the top-level column or fall back to processorData
+// for legacy/imported rows. Always uppercase so filtering is case-insensitive.
+const getPaymentCardBrand = (payment: PaymentType): string => {
+  const raw = payment.cardBrand || (payment as any)?.processorData?.cardBrand || ''
+  return String(raw).toUpperCase()
+}
+
+// Friendly label for the few brands we actually receive. Unknowns render as
+// title-cased fallback (e.g. "CARNET" → "Carnet").
+const formatCardBrandLabel = (brand: string): string => {
+  switch (brand) {
+    case 'VISA':
+      return 'Visa'
+    case 'MASTERCARD':
+      return 'Mastercard'
+    case 'AMERICAN_EXPRESS':
+      return 'AMEX'
+    case 'DISCOVER':
+      return 'Discover'
+    case 'JCB':
+      return 'JCB'
+    case 'DINERS_CLUB':
+      return 'Diners Club'
+    case 'UNIONPAY':
+      return 'UnionPay'
+    case 'CARNET':
+      return 'Carnet'
+    default:
+      return brand.charAt(0) + brand.slice(1).toLowerCase().replace(/_/g, ' ')
+  }
+}
+
 export default function Payments() {
   const { t } = useTranslation('payment')
   const { t: tCommon } = useTranslation('common')
@@ -117,6 +149,8 @@ export default function Payments() {
   const [totalFilter, setTotalFilter] = useState<AmountFilter | null>(null)
   // International filter — client-side. Values: 'yes' | 'no'.
   const [internationalFilter, setInternationalFilter] = useState<string[]>([])
+  // Card brand filter — client-side. Values: e.g. 'VISA', 'MASTERCARD', 'AMERICAN_EXPRESS'.
+  const [cardBrandFilter, setCardBrandFilter] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -147,6 +181,7 @@ export default function Payments() {
     sourceFilter,
     waiterFilter,
     internationalFilter,
+    cardBrandFilter,
     dateRange,
     subtotalFilter,
     tipFilter,
@@ -335,7 +370,7 @@ export default function Payments() {
   })
 
   // Extract unique options for filters from unfiltered data
-  const { merchantAccounts, methods, sources, waiters } = useMemo(() => {
+  const { merchantAccounts, methods, sources, waiters, cardBrands } = useMemo(() => {
     const allPayments = filterOptionsData?.data || []
 
     // Unique merchant accounts
@@ -360,11 +395,20 @@ export default function Payments() {
       }
     })
 
+    // Unique card brands. Falls back to processorData.cardBrand when the
+    // top-level column is empty (some legacy/imported payments).
+    const cardBrandsSet = new Set<string>()
+    allPayments.forEach((p: PaymentType) => {
+      const brand = (p.cardBrand || (p as any)?.processorData?.cardBrand || '').toString().toUpperCase()
+      if (brand) cardBrandsSet.add(brand)
+    })
+
     return {
       merchantAccounts: Array.from(merchantAccountsMap.values()),
       methods: Array.from(methodsSet),
       sources: Array.from(sourcesSet),
       waiters: Array.from(waitersMap.values()),
+      cardBrands: Array.from(cardBrandsSet).sort(),
     }
   }, [filterOptionsData?.data])
 
@@ -375,6 +419,7 @@ export default function Payments() {
     sourceFilter.length > 0,
     waiterFilter.length > 0,
     internationalFilter.length > 0,
+    cardBrandFilter.length > 0,
     subtotalFilter !== null,
     tipFilter !== null,
     totalFilter !== null,
@@ -388,6 +433,7 @@ export default function Payments() {
     setSourceFilter([])
     setWaiterFilter([])
     setInternationalFilter([])
+    setCardBrandFilter([])
     setSubtotalFilter(null)
     setTipFilter(null)
     setTotalFilter(null)
@@ -512,12 +558,17 @@ export default function Payments() {
         })
       }
     }
+    // Card brand filter (client-side). Brand is independent from method
+    // (e.g. AMEX can be CREDIT or DEBIT), so we keep it as its own pill.
+    if (cardBrandFilter.length > 0) {
+      payments = payments.filter((p: PaymentType) => cardBrandFilter.includes(getPaymentCardBrand(p)))
+    }
 
     return payments
     // NOTE: multi-select filters and search are applied server-side, so they no longer
     // belong in the dep array. Only amount filters (subtotal/tip/total), the
-    // international filter, and status tab still affect this memo's output.
-  }, [data?.data, activeStatusTab, subtotalFilter, tipFilter, totalFilter, internationalFilter])
+    // international filter, card brand filter, and status tab still affect this memo's output.
+  }, [data?.data, activeStatusTab, subtotalFilter, tipFilter, totalFilter, internationalFilter, cardBrandFilter])
 
   // Status tab counts (computed over ALL server-filtered payments, not just
   // the paginated page, so "Completados 450" means 450 in the whole date range).
@@ -625,6 +676,9 @@ export default function Payments() {
         })
       }
     }
+    if (cardBrandFilter.length > 0) {
+      payments = payments.filter((p: PaymentType) => cardBrandFilter.includes(getPaymentCardBrand(p)))
+    }
 
     const count = payments.length
     const totalCollected = payments.reduce((sum, p) => sum + (Number(p.amount) || 0) + (Number(p.tipAmount) || 0), 0)
@@ -634,7 +688,7 @@ export default function Payments() {
       { label: t('summaryCards.totalCollected'), value: totalCollected, format: 'currency' as const },
       { label: t('summaryCards.netSales'), value: netSales, format: 'currency' as const },
     ]
-  }, [summaryPayments, activeStatusTab, subtotalFilter, tipFilter, totalFilter, internationalFilter, t])
+  }, [summaryPayments, activeStatusTab, subtotalFilter, tipFilter, totalFilter, internationalFilter, cardBrandFilter, t])
 
   // Get unique payment IDs from filtered payments to fetch their commissions
   const paymentIds = useMemo(() => {
@@ -1352,6 +1406,27 @@ export default function Payments() {
               }))}
               selectedValues={methodFilter}
               onApply={setMethodFilter}
+            />
+          </FilterPill>
+
+          {/* Card Brand Filter Pill — independent from method because the same
+              brand can show up as both CREDIT and DEBIT (e.g. AMEX, Visa). */}
+          <FilterPill
+            label={t('columns.cardBrand', { defaultValue: 'Marca' })}
+            activeValue={getFilterDisplayLabel(
+              cardBrandFilter,
+              cardBrands.map((brand: string) => ({ value: brand, label: formatCardBrandLabel(brand) })),
+            )}
+            isActive={cardBrandFilter.length > 0}
+            onClear={() => setCardBrandFilter([])}
+          >
+            <CheckboxFilterContent
+              title={`Filtrar por: ${t('columns.cardBrand', { defaultValue: 'Marca' }).toLowerCase()}`}
+              options={cardBrands.map((brand: string) => ({ value: brand, label: formatCardBrandLabel(brand) }))}
+              selectedValues={cardBrandFilter}
+              onApply={setCardBrandFilter}
+              searchable={cardBrands.length > 5}
+              searchPlaceholder={t('filters.searchBrand', { defaultValue: 'Buscar marca...' })}
             />
           </FilterPill>
 

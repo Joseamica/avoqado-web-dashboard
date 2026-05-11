@@ -43,6 +43,7 @@
     "total": "Total",
     "type": "Type",
     "international": "International",
+    "cardBrand": "Brand",
     "ai": "AI"
   },
   "international": {
