@@ -24,6 +24,7 @@ import {
   Login,
   MasterTotpSetup,
   MerchantAccounts,
+  EcommerceMerchantsGlobal,
   ModuleManagement,
   OrganizationManagement,
   OnboardingWizard,
@@ -343,6 +344,13 @@ const router = createBrowserRouter(
                     {
                       path: 'merchant-accounts',
                       element: <MerchantAccounts />,
+                    },
+                    {
+                      // Global cross-venue view of every ecommerce merchant +
+                      // Avoqado's platform-fee config. SUPERADMIN-only via the
+                      // parent AdminProtectedRoute / route guards.
+                      path: 'ecommerce-merchants',
+                      element: <EcommerceMerchantsGlobal />,
                     },
                     {
                       path: 'aggregators',

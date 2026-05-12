@@ -64,6 +64,11 @@ export interface CreatePaymentLinkRequest {
   productId?: string
   customFields?: CustomFieldDefinition[] | null
   tippingConfig?: TippingConfig | null
+  /** Pin link to a specific channel. Required when venue has >1 active merchants. */
+  ecommerceMerchantId?: string
+  /** Staff members who share commission when sales come via this link.
+   *  [] / omitted = no commission. N IDs = commission split equally (1/N each). */
+  attributedStaffIds?: string[]
 }
 
 export interface UpdatePaymentLinkRequest {

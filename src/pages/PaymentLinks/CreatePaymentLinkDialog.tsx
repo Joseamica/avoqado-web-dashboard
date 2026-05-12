@@ -1,14 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Banknote, Calendar, ChevronDown, DollarSign, Heart, Plus, Settings, Tag, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
@@ -21,6 +23,8 @@ import type {
   UpdatePaymentLinkRequest,
 } from '@/services/paymentLink.service'
 import paymentLinkService from '@/services/paymentLink.service'
+import { ecommerceMerchantAPI } from '@/services/ecommerceMerchant.service'
+import teamService from '@/services/team.service'
 import type { Product } from '@/types'
 
 import { DonationPreview } from './components/DonationPreview'
@@ -74,6 +78,65 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
   const [customFieldsEnabled, setCustomFieldsEnabled] = useState(false)
   const [tippingConfig, setTippingConfig] = useState<TippingConfig | null>(null)
   const [purposeDropdownOpen, setPurposeDropdownOpen] = useState(false)
+
+  // ─── Commission attribution (optional, multi-staff) ──────
+  // Array of staff IDs who share commission for sales via this link.
+  // [] = no commission. N IDs = backend splits commission equally (1/N each).
+  // Distinct from the LINK CREATOR (logged-in user) — a manager can create
+  // a link "on behalf of" one or more salespeople.
+  const [attributedStaffIds, setAttributedStaffIds] = useState<string[]>([])
+  const [staffPopoverOpen, setStaffPopoverOpen] = useState(false)
+  const { data: teamPage } = useQuery({
+    queryKey: ['team-members', venueId, 'for-payment-link-attribution'],
+    queryFn: () => teamService.getTeamMembers(venueId, 1, 100),
+    enabled: !!venueId && open && !isEditing,
+    staleTime: 60_000,
+  })
+  const activeStaff = useMemo(
+    () => (teamPage?.data ?? []).filter(m => m.active && m.staffId),
+    [teamPage?.data],
+  )
+  const attributedStaffNames = useMemo(() => {
+    if (attributedStaffIds.length === 0) return null
+    return activeStaff
+      .filter(s => attributedStaffIds.includes(s.staffId))
+      .map(s => `${s.firstName} ${s.lastName}`.trim())
+  }, [attributedStaffIds, activeStaff])
+
+  // ─── Channel (ecommerce merchant) selection ──────────────
+  // Only shown when the venue has 2+ active channels USABLE for online
+  // checkout. TPV-only providers (Menta, AngelPay, etc.) are excluded — they
+  // don't have ecommerce checkout integration today. Stripe Connect channels
+  // also require chargesEnabled (Stripe approved the account) to be usable.
+  const [selectedMerchantId, setSelectedMerchantId] = useState<string | null>(null)
+  const { data: allActiveMerchants = [] } = useQuery({
+    queryKey: ['ecommerce-merchants', venueId, 'active-for-payment-link-create'],
+    queryFn: () => ecommerceMerchantAPI.listByVenue(venueId, { active: true }),
+    enabled: !!venueId && open && !isEditing,
+  })
+
+  const usableMerchants = useMemo(() => {
+    return allActiveMerchants.filter(m => {
+      const code = m.provider?.code
+      // Stripe Connect: must have charges enabled (Stripe approved).
+      if (code === 'STRIPE_CONNECT') return !!m.chargesEnabled
+      // Blumon: has working ecommerce inline flow.
+      if (code === 'BLUMON') return true
+      // Everything else (Menta, AngelPay, Clip, ...) → TPV providers; no
+      // online payment flow wired up today. Exclude from payment-link UI.
+      return false
+    })
+  }, [allActiveMerchants])
+
+  const showMerchantPicker = usableMerchants.length > 1
+
+  // Auto-select the only usable merchant so the user never has to pick when
+  // there's no real choice. Reruns if the underlying list changes.
+  useEffect(() => {
+    if (!showMerchantPicker && usableMerchants.length === 1 && !selectedMerchantId) {
+      setSelectedMerchantId(usableMerchants[0].id)
+    }
+  }, [usableMerchants, showMerchantPicker, selectedMerchantId])
 
   // ─── Load existing link for editing ────────────────────
   const { data: existingLink } = useQuery({
@@ -268,6 +331,12 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
         ...(redirectEnabled && redirectUrl.trim() ? { redirectUrl: redirectUrl.trim() } : {}),
         purpose: selectedPurpose ? purposeMap[selectedPurpose] : 'PAYMENT',
         ...(selectedPurpose === 'item' && selectedProduct ? { productId: selectedProduct.id } : {}),
+        // Pin to selected channel when set. Only matters with >1 active
+        // merchants — for the 1-channel case it's still set, harmlessly.
+        ...(selectedMerchantId ? { ecommerceMerchantId: selectedMerchantId } : {}),
+        // Commission attribution. Empty array → no commission. N IDs → backend
+        // splits commission equally across all attributed staff (1/N each).
+        attributedStaffIds,
       }
       createMutation.mutate(createData, { onSettled: () => setIsSaving(false) })
     }
@@ -756,7 +825,8 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
 
                   <hr className="border-border" />
 
-                  {/* ── Settings section ────────────────────── */}
+                  {/* ── Settings section (reusable + redirect only — channel
+                      and staff attribution moved to shared section below) ── */}
                   <section className="space-y-4">
                     <h2 className="text-lg font-semibold">{t('form.settings')}</h2>
 
@@ -787,6 +857,133 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
                     )}
                   </section>
                 </div>
+              )}
+
+              {/* Shared Configuración — channel picker + commission attribution.
+                  Renders for ALL purposes (PAYMENT/ITEM/DONATION). Sits outside
+                  the purpose-specific branches so the ITEM flow gets them too.
+                  For ITEM we render the heading + divider; for non-ITEM the
+                  existing Settings section above already owns the heading. */}
+              {!isEditing && (
+                <section className="space-y-4 mt-8">
+                  {selectedPurpose === 'item' && (
+                    <>
+                      <hr className="border-border" />
+                      <h2 className="text-lg font-semibold pt-4">{t('form.settings')}</h2>
+                    </>
+                  )}
+
+                  {showMerchantPicker && (
+                    <div className="space-y-2 py-1">
+                      <div className="space-y-0.5">
+                        <span className="text-sm font-medium">Canal de cobro</span>
+                        <p className="text-xs text-muted-foreground">
+                          Tu venue tiene más de un canal activo. Elige cuál procesará los pagos de esta liga.
+                        </p>
+                      </div>
+                      <Select value={selectedMerchantId ?? ''} onValueChange={v => setSelectedMerchantId(v)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona un canal" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {usableMerchants.map(m => (
+                            <SelectItem key={m.id} value={m.id}>
+                              <span className="font-medium">{m.channelName}</span>
+                              {m.provider?.name && <span className="text-muted-foreground"> · {m.provider.name}</span>}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  <div className="space-y-2 py-1">
+                    <div className="space-y-0.5">
+                      <span className="text-sm font-medium">Atribuir comisión a</span>
+                      <p className="text-xs text-muted-foreground">
+                        Elige uno o varios miembros del equipo. Si seleccionas más de uno, la comisión se divide en partes iguales (ej. 2 personas = 50/50, 3 = 33/33/33). Si dejas vacío, no se genera comisión.
+                      </p>
+                    </div>
+                    <Popover open={staffPopoverOpen} onOpenChange={setStaffPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          role="combobox"
+                          className="w-full justify-between font-normal h-auto min-h-10 py-2"
+                        >
+                          <span className="flex flex-wrap gap-1 items-center text-left">
+                            {!attributedStaffNames ? (
+                              <span className="text-muted-foreground">Sin atribución (no genera comisión)</span>
+                            ) : attributedStaffNames.length <= 3 ? (
+                              attributedStaffNames.map(name => (
+                                <span
+                                  key={name}
+                                  className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium"
+                                >
+                                  {name}
+                                </span>
+                              ))
+                            ) : (
+                              <span>
+                                {attributedStaffNames.length} personas · split{' '}
+                                {(100 / attributedStaffNames.length).toFixed(0)}/{(100 / attributedStaffNames.length).toFixed(0)}…
+                              </span>
+                            )}
+                          </span>
+                          <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Buscar persona…" />
+                          <CommandList>
+                            <CommandEmpty>Sin resultados.</CommandEmpty>
+                            <CommandGroup>
+                              {activeStaff.map(m => {
+                                const checked = attributedStaffIds.includes(m.staffId)
+                                return (
+                                  <CommandItem
+                                    key={m.staffId}
+                                    value={`${m.firstName} ${m.lastName} ${m.role}`}
+                                    onSelect={() => {
+                                      setAttributedStaffIds(prev =>
+                                        checked ? prev.filter(id => id !== m.staffId) : [...prev, m.staffId],
+                                      )
+                                    }}
+                                    className="cursor-pointer gap-2"
+                                  >
+                                    <Checkbox checked={checked} className="pointer-events-none" />
+                                    <span className="font-medium">
+                                      {m.firstName} {m.lastName}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground ml-auto">{m.role}</span>
+                                  </CommandItem>
+                                )
+                              })}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                        {attributedStaffIds.length > 0 && (
+                          <div className="border-t border-border p-2 flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">
+                              {attributedStaffIds.length === 1
+                                ? '1 persona · 100%'
+                                : `${attributedStaffIds.length} personas · ${(100 / attributedStaffIds.length).toFixed(1)}% c/u`}
+                            </span>
+                            <button
+                              type="button"
+                              className="text-muted-foreground hover:text-foreground underline cursor-pointer"
+                              onClick={() => setAttributedStaffIds([])}
+                            >
+                              Limpiar
+                            </button>
+                          </div>
+                        )}
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </section>
               )}
             </div>
 

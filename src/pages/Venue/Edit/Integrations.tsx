@@ -379,6 +379,24 @@ function EcommercePaymentsSection({ venueId }: { venueId: string }) {
     return `${(bps / 100).toFixed(2)}%`
   }
 
+  // Read global VAT rate so we can show effective fee (1% + IVA) inline,
+  // matching the Superadmin global view.
+  const { data: platformSettings } = useQuery<{ vatRateBps: number }>({
+    queryKey: ['platform-settings', 'vat'],
+    queryFn: async () => {
+      const res = await import('@/api').then(m => m.default.get('/api/v1/dashboard/superadmin/platform-settings'))
+      return res.data.data
+    },
+    enabled: isSuperadmin,
+    staleTime: 5 * 60_000, // 5 min — VAT changes are exceedingly rare
+  })
+  const vatRateBps = platformSettings?.vatRateBps ?? 1600
+  const formatEffective = (feeBps?: number) => {
+    if (typeof feeBps !== 'number') return '—'
+    const effective = (feeBps * (10000 + vatRateBps)) / 10000 / 100
+    return `${effective.toFixed(2)}%`
+  }
+
   const renderStatus = (m: EcommerceMerchant) => {
     if (m.provider?.code !== 'STRIPE_CONNECT') {
       return <Badge variant={m.active ? 'default' : 'secondary'}>{m.active ? 'Activo' : 'Inactivo'}</Badge>
@@ -516,7 +534,9 @@ function EcommercePaymentsSection({ venueId }: { venueId: string }) {
                             <span className="text-muted-foreground">bps (100 = 1%)</span>
                           </div>
                         ) : (
-                          <span className="font-mono">{formatBps(m.platformFeeBps)}</span>
+                          <span className="font-mono">
+                            {formatBps(m.platformFeeBps)} + IVA = <strong>{formatEffective(m.platformFeeBps)}</strong>
+                          </span>
                         )}
                       </div>
                       {feeEditingId === m.id ? (

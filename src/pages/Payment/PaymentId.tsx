@@ -768,6 +768,7 @@ export default function PaymentId() {
                     <PaymentSourceBadge
                       source={payment.source as any}
                       externalSource={payment.externalSource}
+                      orderSource={(payment.order as any)?.source}
                       className="bg-muted/50 text-muted-foreground border-border"
                     />
                   )}

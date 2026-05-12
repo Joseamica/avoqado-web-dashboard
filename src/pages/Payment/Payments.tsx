@@ -806,7 +806,13 @@ export default function Payments() {
         header: t('columns.source'),
         cell: ({ row }) => {
           const payment = row.original as any
-          return <PaymentSourceBadge source={payment.source} externalSource={payment.externalSource} />
+          return (
+            <PaymentSourceBadge
+              source={payment.source}
+              externalSource={payment.externalSource}
+              orderSource={payment.order?.source}
+            />
+          )
         },
       },
       {
