@@ -241,7 +241,9 @@ const EcommerceMerchants: React.FC = () => {
   const renderStripeStatus = (merchant: EcommerceMerchant) => {
     if (merchant.provider?.code !== 'STRIPE_CONNECT') return null
     if (merchant.chargesEnabled) return <Badge variant="default">Stripe listo</Badge>
+    if (merchant.onboardingStatus === 'REJECTED') return <Badge variant="destructive">Stripe rechazó</Badge>
     if (merchant.onboardingStatus === 'RESTRICTED') return <Badge variant="destructive">Stripe restringido</Badge>
+    if (merchant.onboardingStatus === 'PENDING_VERIFICATION') return <Badge variant="secondary">Stripe revisando</Badge>
     if (merchant.onboardingStatus === 'IN_PROGRESS') return <Badge variant="secondary">Stripe pendiente</Badge>
     return <Badge variant="outline">Stripe sin alta</Badge>
   }

@@ -27,10 +27,14 @@ export interface EcommerceMerchant {
   providerId: string
   active: boolean
   sandboxMode: boolean
-  onboardingStatus?: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'RESTRICTED'
+  onboardingStatus?: 'NOT_STARTED' | 'IN_PROGRESS' | 'PENDING_VERIFICATION' | 'COMPLETED' | 'RESTRICTED' | 'REJECTED'
   chargesEnabled?: boolean
   payoutsEnabled?: boolean
   requirementsDue?: string[]
+  /** Raw Stripe `requirements.disabled_reason` (e.g. `under_review`, `rejected.fraud`). */
+  disabledReason?: string | null
+  /** Avoqado platform fee in basis points (100 = 1%). SUPERADMIN-only mutation. */
+  platformFeeBps?: number
   onboardingLinkUrl?: string | null
   onboardingLinkExpiry?: string | null
   createdAt: string
@@ -158,10 +162,11 @@ export interface StripeOnboardingLinkResponse {
 }
 
 export interface StripeOnboardingStatusResponse {
-  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'RESTRICTED'
+  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'PENDING_VERIFICATION' | 'COMPLETED' | 'RESTRICTED' | 'REJECTED'
   chargesEnabled: boolean
   payoutsEnabled: boolean
   requirementsDue: string[]
+  disabledReason?: string | null
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -289,6 +294,18 @@ export const ecommerceMerchantAPI = {
     const response = await api.post<{ success: boolean; data: StripeOnboardingLinkResponse }>(
       `/api/v1/dashboard/venues/${venueId}/ecommerce-merchants/${merchantId}/stripe-onboard`,
       { businessType, ...(returnPath ? { returnPath } : {}) },
+    )
+    return response.data.data
+  },
+
+  /**
+   * SUPERADMIN-only: update the platform fee (Avoqado margin) on a merchant.
+   * Backend enforces `system:manage` permission.
+   */
+  async updatePlatformFee(venueId: string, merchantId: string, platformFeeBps: number) {
+    const response = await api.patch<{ success: boolean; data: { id: string; channelName: string; platformFeeBps: number } }>(
+      `/api/v1/dashboard/venues/${venueId}/ecommerce-merchants/${merchantId}/platform-fee`,
+      { platformFeeBps },
     )
     return response.data.data
   },

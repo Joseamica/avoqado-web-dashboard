@@ -117,7 +117,13 @@
       "completeButton": "Compléter sur Stripe",
       "completedTitle": "Votre compte est actif",
       "completedDesc": "Vous pouvez accepter les paiements. Modifiez les infos locales ici ou allez sur Stripe pour les changements fiscaux/bancaires.",
-      "stripeDashboardButton": "Aller au Stripe Dashboard"
+      "stripeDashboardButton": "Aller au Stripe Dashboard",
+      "pendingVerificationTitle": "Stripe examine vos informations",
+      "pendingVerificationDesc": "Vous avez soumis tout ce dont Stripe a besoin. Leur équipe examine vos documents — cela prend généralement 1 à 5 jours ouvrables. Nous vous informerons dès que votre compte sera prêt. Aucune action nécessaire pour le moment.",
+      "rejectedTitle": "Stripe a rejeté ce compte",
+      "rejectedDesc": "Stripe n'a pas pu approuver ce compte. Cela peut être dû à des types d'activité interdits, des données incohérentes ou des politiques anti-fraude. Contactez le support et nous vous aiderons.",
+      "rejectedReasonLabel": "Raison signalée par Stripe :",
+      "contactSupportButton": "Contacter le support"
     },
     "returnBanner": {
       "successTitle": "✓ Connexion Stripe complète",

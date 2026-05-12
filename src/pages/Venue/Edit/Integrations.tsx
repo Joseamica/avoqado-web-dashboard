@@ -5,11 +5,12 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { AlertCircle, ArrowRight, CheckCircle2, Plus, ShoppingCart, Trash2, XCircle } from 'lucide-react'
+import { AlertCircle, ArrowRight, CheckCircle2, Plus, Power, ShoppingCart, Trash2, XCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { useForm } from 'react-hook-form'
@@ -31,6 +32,8 @@ import {
 } from '@/components/ui/alert-dialog'
 import { ecommerceMerchantAPI, type EcommerceMerchant } from '@/services/ecommerceMerchant.service'
 import { EcommerceMerchantWizard } from '../components/EcommerceMerchantWizard'
+import { useAuth } from '@/context/AuthContext'
+import { StaffRole } from '@/types'
 
 // eslint-disable-next-line unused-imports/no-unused-vars
 const posFormSchema = z.object({
@@ -293,9 +296,13 @@ function EcommercePaymentsSection({ venueId }: { venueId: string }) {
   const { t } = useTranslation('ecommerce')
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { user } = useAuth()
+  const isSuperadmin = user?.role === StaffRole.SUPERADMIN
   const [wizardOpen, setWizardOpen] = useState(false)
   const [wizardMerchant, setWizardMerchant] = useState<EcommerceMerchant | null>(null)
   const [merchantToDelete, setMerchantToDelete] = useState<EcommerceMerchant | null>(null)
+  const [feeEditingId, setFeeEditingId] = useState<string | null>(null)
+  const [feeDraft, setFeeDraft] = useState<string>('')
 
   const { data: merchants = [], isLoading } = useQuery({
     queryKey: ['ecommerce-merchants', venueId],
@@ -319,13 +326,76 @@ function EcommercePaymentsSection({ venueId }: { venueId: string }) {
     },
   })
 
+  // Soft-delete (deactivate) for COMPLETED Stripe Connect merchants. Backend
+  // refuses to hard-delete them because the underlying Stripe acct_* is live
+  // and may still receive disputes / payouts. "Desactivar" sets active=false
+  // and pauses the channel without orphaning the Stripe account.
+  const toggleActiveMutation = useMutation({
+    mutationFn: ({ merchantId, active }: { merchantId: string; active: boolean }) =>
+      ecommerceMerchantAPI.toggleStatus(venueId, merchantId, active),
+    onSuccess: (data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['ecommerce-merchants', venueId] })
+      toast({ title: vars.active ? 'Canal reactivado' : 'Canal desactivado' })
+    },
+    onError: (err: any) => {
+      toast({
+        title: 'Error',
+        description: err?.response?.data?.error || err?.message || 'No se pudo cambiar el estado',
+        variant: 'destructive',
+      })
+    },
+  })
+
+  /**
+   * For Stripe Connect merchants that are already processing payments
+   * (chargesEnabled), the OWNER can only deactivate (not delete). Hard-delete
+   * stays available for everything else (NOT_STARTED / IN_PROGRESS /
+   * RESTRICTED Stripe, or non-Stripe providers).
+   */
+  const requiresSoftDelete = (m: EcommerceMerchant): boolean =>
+    m.provider?.code === 'STRIPE_CONNECT' && !!m.chargesEnabled
+
+  // SUPERADMIN-only: update the platform fee (Avoqado margin).
+  const platformFeeMutation = useMutation({
+    mutationFn: ({ merchantId, bps }: { merchantId: string; bps: number }) =>
+      ecommerceMerchantAPI.updatePlatformFee(venueId, merchantId, bps),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ecommerce-merchants', venueId] })
+      toast({ title: 'Comisión actualizada' })
+      setFeeEditingId(null)
+    },
+    onError: (err: any) => {
+      toast({
+        title: 'Error',
+        description: err?.response?.data?.error || err?.message || 'No se pudo actualizar la comisión',
+        variant: 'destructive',
+      })
+    },
+  })
+
+  const formatBps = (bps?: number) => {
+    if (typeof bps !== 'number') return '—'
+    // 100 bps = 1.00%
+    return `${(bps / 100).toFixed(2)}%`
+  }
+
   const renderStatus = (m: EcommerceMerchant) => {
     if (m.provider?.code !== 'STRIPE_CONNECT') {
       return <Badge variant={m.active ? 'default' : 'secondary'}>{m.active ? 'Activo' : 'Inactivo'}</Badge>
     }
-    if (m.chargesEnabled) return <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20">✓ Listo</Badge>
-    if (m.onboardingStatus === 'RESTRICTED') return <Badge variant="destructive">Stripe pide más info</Badge>
-    if (m.onboardingStatus === 'IN_PROGRESS') return <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20">Pendiente</Badge>
+    if (m.chargesEnabled)
+      return <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20">✓ Listo</Badge>
+    // Order matters: REJECTED is terminal failure (worst), then RESTRICTED
+    // (user must act), then PENDING_VERIFICATION (waiting on Stripe, user
+    // can't act), then IN_PROGRESS (in the middle of doing the flow).
+    if (m.onboardingStatus === 'REJECTED')
+      return <Badge variant="destructive">Stripe rechazó</Badge>
+    if (m.onboardingStatus === 'RESTRICTED')
+      return <Badge variant="destructive">Stripe pide más info</Badge>
+    if (m.onboardingStatus === 'PENDING_VERIFICATION')
+      return <Badge className="bg-sky-500/15 text-sky-700 dark:text-sky-300 hover:bg-sky-500/20">Stripe revisando</Badge>
+    if (m.onboardingStatus === 'IN_PROGRESS')
+      return <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20">Pendiente</Badge>
     return <Badge variant="outline">Sin alta</Badge>
   }
 
@@ -371,41 +441,123 @@ function EcommercePaymentsSection({ venueId }: { venueId: string }) {
               {merchants.map(m => (
                 <div
                   key={m.id}
-                  className="flex items-center justify-between gap-4 rounded-xl border border-input p-4 hover:bg-muted/30 transition-colors group"
+                  className="flex flex-col gap-2 rounded-xl border border-input p-4 hover:bg-muted/30 transition-colors group"
                 >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setWizardMerchant(m)
-                      setWizardOpen(true)
-                    }}
-                    className="flex flex-1 min-w-0 items-center justify-between gap-3 text-left cursor-pointer"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{m.channelName}</span>
-                        {m.provider?.name && (
-                          <Badge variant="outline" className="text-xs">
-                            {m.provider.name}
-                          </Badge>
+                  <div className="flex items-center justify-between gap-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWizardMerchant(m)
+                        setWizardOpen(true)
+                      }}
+                      className="flex flex-1 min-w-0 items-center justify-between gap-3 text-left cursor-pointer"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{m.channelName}</span>
+                          {m.provider?.name && (
+                            <Badge variant="outline" className="text-xs">
+                              {m.provider.name}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">{m.contactEmail}</div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {renderStatus(m)}
+                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </button>
+                    {requiresSoftDelete(m) ? (
+                      /* COMPLETED Stripe → toggle active (soft delete). Hard
+                         delete needs Superadmin offboarding because the live
+                         acct_* in Stripe must be properly closed. */
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => toggleActiveMutation.mutate({ merchantId: m.id, active: !m.active })}
+                        disabled={toggleActiveMutation.isPending}
+                        className="h-8 w-8 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        title={m.active ? 'Desactivar canal (pausa pagos sin eliminar)' : 'Reactivar canal'}
+                      >
+                        <Power className={`h-4 w-4 ${m.active ? 'text-emerald-600' : 'text-muted-foreground'}`} />
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setMerchantToDelete(m)}
+                        className="h-8 w-8 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        title="Eliminar canal"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* SUPERADMIN-only inline editor for Avoqado's platform fee
+                      (application_fee on Stripe Connect). OWNERs should never
+                      see/edit their own commission. */}
+                  {isSuperadmin && m.provider?.code === 'STRIPE_CONNECT' && (
+                    <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs">
+                      <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+                        <span className="font-medium">Comisión Avoqado:</span>
+                        {feeEditingId === m.id ? (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              inputMode="decimal"
+                              value={feeDraft}
+                              onChange={e => setFeeDraft(e.target.value)}
+                              placeholder="100"
+                              className="h-7 w-20 text-xs"
+                              autoFocus
+                            />
+                            <span className="text-muted-foreground">bps (100 = 1%)</span>
+                          </div>
+                        ) : (
+                          <span className="font-mono">{formatBps(m.platformFeeBps)}</span>
                         )}
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1">{m.contactEmail}</div>
+                      {feeEditingId === m.id ? (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2"
+                            onClick={() => setFeeEditingId(null)}
+                            disabled={platformFeeMutation.isPending}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="h-7 px-3"
+                            onClick={() => {
+                              const parsed = parseInt(feeDraft, 10)
+                              if (!Number.isFinite(parsed)) return
+                              platformFeeMutation.mutate({ merchantId: m.id, bps: parsed })
+                            }}
+                            disabled={platformFeeMutation.isPending || !feeDraft.trim()}
+                          >
+                            {platformFeeMutation.isPending ? 'Guardando...' : 'Guardar'}
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-amber-700 dark:text-amber-300"
+                          onClick={() => {
+                            setFeeEditingId(m.id)
+                            setFeeDraft(String(m.platformFeeBps ?? 100))
+                          }}
+                        >
+                          Editar
+                        </Button>
+                      )}
                     </div>
-                    <div className="flex items-center gap-3">
-                      {renderStatus(m)}
-                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setMerchantToDelete(m)}
-                    className="h-8 w-8 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity cursor-pointer"
-                    title="Eliminar canal"
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  )}
                 </div>
               ))}
             </div>

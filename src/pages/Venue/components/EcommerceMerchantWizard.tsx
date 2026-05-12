@@ -581,6 +581,41 @@ function ResumeView({ merchant, venueId }: { merchant: EcommerceMerchant; venueI
     )
   }
 
+  if (status === 'REJECTED') {
+    // Terminal failure — Stripe rejected the account (fraud / prohibited /
+    // ToS violation). User can't self-recover; needs support intervention.
+    return (
+      <div className="mx-auto max-w-2xl space-y-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-5 w-5" />
+          <AlertTitle>{t('wizard.resume.rejectedTitle')}</AlertTitle>
+          <AlertDescription>{t('wizard.resume.rejectedDesc')}</AlertDescription>
+        </Alert>
+        {merchant.disabledReason && (
+          <div className="rounded-2xl border border-input bg-card p-6 text-sm">
+            <div className="text-muted-foreground mb-1">{t('wizard.resume.rejectedReasonLabel')}</div>
+            <code className="font-mono text-xs">{merchant.disabledReason}</code>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  if (status === 'PENDING_VERIFICATION') {
+    // Stripe is manually reviewing — user can't act, just wait. Crucial to
+    // NOT show a "Continuar onboarding" CTA here; that would frustrate the
+    // user by opening the Stripe portal with nothing to fill in.
+    return (
+      <div className="mx-auto max-w-2xl space-y-6">
+        <Alert className="border-sky-500/40 bg-sky-500/5">
+          <Info className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+          <AlertTitle className="text-sky-700 dark:text-sky-300">{t('wizard.resume.pendingVerificationTitle')}</AlertTitle>
+          <AlertDescription className="text-sm">{t('wizard.resume.pendingVerificationDesc')}</AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
+
   if (status === 'RESTRICTED') {
     return (
       <div className="mx-auto max-w-2xl space-y-6">
@@ -844,6 +879,21 @@ export function EcommerceMerchantWizard({ open, onClose, venueId, merchant }: Pr
           <Button variant="outline" asChild>
             <a href="https://dashboard.stripe.com/" target="_blank" rel="noreferrer">
               {t('wizard.resume.stripeDashboardButton')} <ExternalLink className="h-4 w-4 ml-2" />
+            </a>
+          </Button>
+        )
+      }
+      // PENDING_VERIFICATION: no action. User just waits for Stripe.
+      if (merchant.onboardingStatus === 'PENDING_VERIFICATION') {
+        return null
+      }
+      // REJECTED: terminal failure; surface a support contact instead of an
+      // "onboard again" CTA that wouldn't help anyway.
+      if (merchant.onboardingStatus === 'REJECTED') {
+        return (
+          <Button variant="outline" asChild>
+            <a href="mailto:soporte@avoqado.io?subject=Stripe%20Connect%20rechazado" target="_blank" rel="noreferrer">
+              {t('wizard.resume.contactSupportButton')} <ExternalLink className="h-4 w-4 ml-2" />
             </a>
           </Button>
         )

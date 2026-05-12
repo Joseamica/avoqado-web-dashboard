@@ -117,7 +117,13 @@
       "completeButton": "Complete on Stripe",
       "completedTitle": "Your account is active",
       "completedDesc": "You can accept payments. Edit local info here, or go to Stripe for tax/bank changes.",
-      "stripeDashboardButton": "Go to Stripe Dashboard"
+      "stripeDashboardButton": "Go to Stripe Dashboard",
+      "pendingVerificationTitle": "Stripe is reviewing your information",
+      "pendingVerificationDesc": "You've submitted everything Stripe needs. Their team is reviewing your documents — this usually takes 1 to 5 business days. We'll let you know when your account is ready. No action needed from you right now.",
+      "rejectedTitle": "Stripe rejected this account",
+      "rejectedDesc": "Stripe wasn't able to approve this account. This can happen due to prohibited business types, inconsistent data, or anti-fraud policies. Contact support and we'll help.",
+      "rejectedReasonLabel": "Reason reported by Stripe:",
+      "contactSupportButton": "Contact support"
     },
     "returnBanner": {
       "successTitle": "✓ Stripe connection complete",
