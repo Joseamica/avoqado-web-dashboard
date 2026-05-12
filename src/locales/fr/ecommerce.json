@@ -42,5 +42,88 @@
     "webhookPlaceholder": "https://votre-site.com/webhooks/paiement",
     "sandboxMode": "Mode Sandbox",
     "active": "Actif"
+  },
+  "wizard": {
+    "createTitle": "Créer un canal e-commerce",
+    "editTitle": "Modifier le canal e-commerce",
+    "step1": {
+      "title": "Comment voulez-vous recevoir les paiements en ligne?",
+      "subtitle": "Choisissez votre processeur de paiement",
+      "providerLoading": "Chargement des fournisseurs...",
+      "providerEmpty": "Aucun fournisseur disponible. Veuillez contacter le support.",
+      "recommendedBadge": "Recommandé",
+      "nextButton": "Suivant",
+      "stripe": {
+        "title": "Stripe Connect",
+        "subtitle": "Cartes avec 3D Secure",
+        "description": "Idéal pour le web et les applications. Stripe vérifie l'identité et gère tout le flux de paiement."
+      },
+      "generic": {
+        "subtitle": "Processeur alternatif"
+      }
+    },
+    "step2": {
+      "backButton": "Retour",
+      "channelNameLabel": "Nom du canal",
+      "channelNamePlaceholder": "Site Principal",
+      "channelNameHelp": "Identifiant interne — vos clients ne le verront pas",
+      "businessNameLabel": "Nom de l'entreprise",
+      "businessNamePlaceholder": "Mon Entreprise SARL",
+      "rfcLabel": "Numéro fiscal (optionnel)",
+      "rfcPlaceholder": "ABC123456XYZ",
+      "contactEmailLabel": "Email de contact",
+      "contactEmailPlaceholder": "paiements@entreprise.com",
+      "contactPhoneLabel": "Téléphone de contact (optionnel)",
+      "contactPhonePlaceholder": "+52 55 1234 5678",
+      "websiteLabel": "Site web (optionnel)",
+      "websitePlaceholder": "https://www.monentreprise.com",
+      "sandboxLabel": "Mode test (sandbox)",
+      "sandboxHelp": "Aucun frais réel — idéal pour l'intégration"
+    },
+    "stripe": {
+      "businessTypeLabel": "Type d'entité",
+      "businessTypeCompany": "Personne morale (entreprise, SARL, SA, etc.)",
+      "businessTypePersonal": "Personne physique / auto-entrepreneur",
+      "infoText": "Nous vous emmènerons sur Stripe pour vérifier votre identité et connecter votre compte bancaire. Prend 5-10 minutes. Vous reviendrez ici automatiquement.",
+      "connectButton": "Connecter avec Stripe",
+      "preparingButton": "Préparation du lien...",
+      "alreadyHaveStripeTitle": "J'ai déjà un compte Stripe ?",
+      "alreadyHaveStripeBody": "Stripe Connect crée un nouveau compte lié sous la plateforme Avoqado. Il est distinct de votre Stripe personnel — celui-ci reste inchangé. Si vous utilisez le même email/identifiant fiscal pendant l'onboarding, Stripe peut préremplir certaines informations automatiquement."
+    },
+    "credentials": {
+      "title": "Identifiants du fournisseur",
+      "help": "Demandez-les à votre fournisseur de paiement",
+      "showButton": "Afficher",
+      "hideButton": "Masquer"
+    },
+    "create": {
+      "submitButton": "Créer le canal",
+      "submittingButton": "Création...",
+      "successToast": "Canal {{name}} créé"
+    },
+    "edit": {
+      "title": "Modifier les infos locales",
+      "saveButton": "Enregistrer",
+      "savingButton": "Enregistrement...",
+      "savedToast": "Modifications enregistrées"
+    },
+    "resume": {
+      "inProgressTitle": "Votre compte est en attente de vérification",
+      "inProgressDesc": "Continuez l'onboarding sur Stripe pour que vos clients puissent payer. Le lien précédent a expiré si plus de 5 minutes se sont écoulées — nous en générons un nouveau.",
+      "continueButton": "Continuer l'onboarding",
+      "regeneratingButton": "Génération du lien...",
+      "restrictedTitle": "Stripe a besoin de plus d'informations",
+      "restrictedDesc": "Pour activer les paiements, complétez ces exigences sur Stripe:",
+      "completeButton": "Compléter sur Stripe",
+      "completedTitle": "Votre compte est actif",
+      "completedDesc": "Vous pouvez accepter les paiements. Modifiez les infos locales ici ou allez sur Stripe pour les changements fiscaux/bancaires.",
+      "stripeDashboardButton": "Aller au Stripe Dashboard"
+    },
+    "returnBanner": {
+      "successTitle": "✓ Connexion Stripe complète",
+      "successDesc": "Vérification du statut de votre compte...",
+      "retryTitle": "Onboarding incomplet",
+      "retryDesc": "Réessayez quand vous êtes prêt."
+    }
   }
 }

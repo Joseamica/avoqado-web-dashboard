@@ -342,6 +342,10 @@
         "reservations": {
           "title": "Activate reservations",
           "description": "Configure the calendar and online booking widget for your website."
+        },
+        "payments": {
+          "title": "Activate online payments",
+          "description": "Connect Stripe to start accepting payments on your website, payment links, and reservations."
         }
       }
     },

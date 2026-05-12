@@ -1,12 +1,14 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, Check, Compass } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useOnboardingKey } from '@/hooks/useOnboardingState'
 import { usePlatformWelcomeTour } from '@/hooks/usePlatformWelcomeTour'
+import { ecommerceMerchantAPI } from '@/services/ecommerceMerchant.service'
 import {
   requestAtomicTour,
   setAtomicTourReturnPath,
@@ -14,7 +16,7 @@ import {
 } from '@/hooks/useAtomicTourListener'
 import { cn } from '@/lib/utils'
 
-type StepId = 'catalog' | 'inventory' | 'team' | 'tpv' | 'reservations'
+type StepId = 'catalog' | 'inventory' | 'team' | 'tpv' | 'reservations' | 'payments'
 
 interface StepState {
   done: boolean
@@ -95,6 +97,17 @@ const STEPS: StepConfig[] = [
     atomicTour: 'reservations-onboarding',
     canSkip: true,
   },
+  {
+    // "Activa pagos online" — auto-completed when the venue has at least one
+    // ecommerce merchant with onboardingStatus=COMPLETED. The user is navigated
+    // to /edit/integrations where they configure Stripe via EcommerceMerchantWizard.
+    // No atomic tour involved.
+    id: 'payments',
+    titleKey: 'newHome.setup.steps.payments.title',
+    descriptionKey: 'newHome.setup.steps.payments.description',
+    path: 'edit/integrations',
+    canSkip: true,
+  },
 ]
 
 function normalize(raw: unknown): ChecklistState {
@@ -108,7 +121,7 @@ function normalize(raw: unknown): ChecklistState {
 
 export function HomeSetupChecklist() {
   const { t } = useTranslation('home')
-  const { fullBasePath } = useCurrentVenue()
+  const { fullBasePath, venueId } = useCurrentVenue()
   const navigate = useNavigate()
   const { start: startPlatformTour } = usePlatformWelcomeTour()
 
@@ -118,6 +131,19 @@ export function HomeSetupChecklist() {
   // Tour de plataforma — su completion vive en backend bajo otra key, así
   // sobrevive a clear del checklist y se respeta la primera vez del usuario.
   const { value: platformTourCompleted } = useOnboardingKey<boolean>('platform-welcome-completed', false)
+
+  // Auto-mark "payments" step when the venue has at least one ecommerce
+  // merchant fully onboarded with Stripe (chargesEnabled=true). This step
+  // doesn't have an atomic tour, so we watch the data signal directly.
+  const { data: ecommerceMerchants = [] } = useQuery({
+    queryKey: ['ecommerce-merchants', venueId, 'home-checklist'],
+    queryFn: () => ecommerceMerchantAPI.listByVenue(venueId!),
+    enabled: !!venueId,
+  })
+  const hasActivePaymentChannel = useMemo(
+    () => ecommerceMerchants.some(m => m.chargesEnabled || m.onboardingStatus === 'COMPLETED'),
+    [ecommerceMerchants],
+  )
 
   const doneCount = useMemo(() => STEPS.filter(s => state.steps[s.id]?.done).length, [state.steps])
   const allDone = doneCount === STEPS.length
@@ -134,6 +160,15 @@ export function HomeSetupChecklist() {
       },
     })
   }
+
+  // Auto-mark the payments step once the data shows a working Stripe channel.
+  useEffect(() => {
+    if (!isLoaded) return
+    if (!hasActivePaymentChannel) return
+    if (state.steps.payments?.done) return
+    markDone('payments')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, hasActivePaymentChannel, state.steps.payments?.done])
 
   const handleStart = (step: StepConfig) => {
     // Marcamos el step como inProgress para que el badge "En curso"

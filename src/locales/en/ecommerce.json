@@ -42,5 +42,88 @@
     "webhookPlaceholder": "https://your-site.com/webhooks/payment",
     "sandboxMode": "Sandbox Mode",
     "active": "Active"
+  },
+  "wizard": {
+    "createTitle": "Create e-commerce channel",
+    "editTitle": "Edit e-commerce channel",
+    "step1": {
+      "title": "How do you want to accept online payments?",
+      "subtitle": "Pick your payment processor",
+      "providerLoading": "Loading providers...",
+      "providerEmpty": "No providers available. Please contact support.",
+      "recommendedBadge": "Recommended",
+      "nextButton": "Next",
+      "stripe": {
+        "title": "Stripe Connect",
+        "subtitle": "Cards with 3D Secure",
+        "description": "Best for web and apps. Stripe verifies identity and handles the entire payment flow."
+      },
+      "generic": {
+        "subtitle": "Alternative processor"
+      }
+    },
+    "step2": {
+      "backButton": "Back",
+      "channelNameLabel": "Channel name",
+      "channelNamePlaceholder": "Main Website",
+      "channelNameHelp": "Internal identifier — your customers won't see this",
+      "businessNameLabel": "Business name",
+      "businessNamePlaceholder": "My Business Inc.",
+      "rfcLabel": "Tax ID (optional)",
+      "rfcPlaceholder": "ABC123456XYZ",
+      "contactEmailLabel": "Contact email",
+      "contactEmailPlaceholder": "payments@business.com",
+      "contactPhoneLabel": "Contact phone (optional)",
+      "contactPhonePlaceholder": "+52 55 1234 5678",
+      "websiteLabel": "Website (optional)",
+      "websitePlaceholder": "https://www.mybusiness.com",
+      "sandboxLabel": "Test mode (sandbox)",
+      "sandboxHelp": "No real charges — ideal for integration"
+    },
+    "stripe": {
+      "businessTypeLabel": "Business type",
+      "businessTypeCompany": "Company (corporation, LLC, etc.)",
+      "businessTypePersonal": "Individual / sole proprietor",
+      "infoText": "We'll take you to Stripe to verify your identity and connect your bank account. Takes 5-10 minutes. You'll return here automatically when done.",
+      "connectButton": "Connect with Stripe",
+      "preparingButton": "Preparing link...",
+      "alreadyHaveStripeTitle": "I already have a Stripe account?",
+      "alreadyHaveStripeBody": "Stripe Connect creates a new linked account under Avoqado's platform. It's separate from your personal Stripe — that one stays untouched. If you use the same email/tax ID during onboarding, Stripe may prefill some info automatically."
+    },
+    "credentials": {
+      "title": "Provider credentials",
+      "help": "Get these from your payment provider",
+      "showButton": "Show",
+      "hideButton": "Hide"
+    },
+    "create": {
+      "submitButton": "Create channel",
+      "submittingButton": "Creating...",
+      "successToast": "Channel {{name}} created"
+    },
+    "edit": {
+      "title": "Edit local info",
+      "saveButton": "Save changes",
+      "savingButton": "Saving...",
+      "savedToast": "Changes saved"
+    },
+    "resume": {
+      "inProgressTitle": "Your account is pending verification",
+      "inProgressDesc": "Continue the onboarding flow on Stripe so your customers can pay. The previous link expired if more than 5 minutes have passed — we'll generate a fresh one.",
+      "continueButton": "Continue onboarding",
+      "regeneratingButton": "Generating link...",
+      "restrictedTitle": "Stripe needs more information",
+      "restrictedDesc": "To activate payments, complete these requirements on Stripe:",
+      "completeButton": "Complete on Stripe",
+      "completedTitle": "Your account is active",
+      "completedDesc": "You can accept payments. Edit local info here, or go to Stripe for tax/bank changes.",
+      "stripeDashboardButton": "Go to Stripe Dashboard"
+    },
+    "returnBanner": {
+      "successTitle": "✓ Stripe connection complete",
+      "successDesc": "Verifying your account status...",
+      "retryTitle": "Onboarding incomplete",
+      "retryDesc": "Try again when you're ready."
+    }
   }
 }

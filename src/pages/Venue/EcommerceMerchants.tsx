@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import React, { useEffect, useState } from 'react'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Card,
@@ -39,15 +39,16 @@ import {
   Loader2,
   Globe,
   Power,
-  ExternalLink,
   RefreshCcw,
+  CheckCircle2,
+  PlayCircle,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import { ecommerceMerchantAPI, type EcommerceMerchant } from '@/services/ecommerceMerchant.service'
-import { EcommerceMerchantDialog } from './components/EcommerceMerchantDialog'
+import { EcommerceMerchantWizard } from './components/EcommerceMerchantWizard'
 import { APIKeysDialog } from './components/APIKeysDialog'
 
 const EcommerceMerchants: React.FC = () => {
@@ -56,13 +57,21 @@ const EcommerceMerchants: React.FC = () => {
   const { slug } = useParams<{ slug: string }>()
   const { getVenueBySlug } = useAuth()
   const queryClient = useQueryClient()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   // State
-  const [merchantDialogOpen, setMerchantDialogOpen] = useState(false)
+  const [wizardOpen, setWizardOpen] = useState(false)
+  const [wizardMerchant, setWizardMerchant] = useState<EcommerceMerchant | null>(null)
   const [keysDialogOpen, setKeysDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedMerchant, setSelectedMerchant] = useState<EcommerceMerchant | null>(null)
   const [merchantToDelete, setMerchantToDelete] = useState<EcommerceMerchant | null>(null)
+
+  // Post-Stripe-onboarding return state — driven by URL params Stripe redirects us with.
+  // `?status=success&merchantId=X` → green banner + active polling of /onboarding-status
+  // `?status=retry&merchantId=X`   → amber banner (user didn't complete onboarding)
+  const returnStatus = searchParams.get('status')
+  const returnMerchantId = searchParams.get('merchantId')
 
   // Get venue by slug from AuthContext
   const venue = getVenueBySlug(slug!)
@@ -78,62 +87,57 @@ const EcommerceMerchants: React.FC = () => {
     enabled: !!venue?.id,
   })
 
-  // Create merchant mutation
-  const createMutation = useMutation({
-    mutationFn: (data: any) => ecommerceMerchantAPI.create(venue!.id, data),
-    onSuccess: (newMerchant) => {
-      queryClient.invalidateQueries({ queryKey: ['ecommerce-merchants', venue?.id] })
-
-      // Show secret key alert (only time it's visible!)
-      toast({
-        title: '✅ Canal creado exitosamente',
-        description: (
-          <div className="space-y-2">
-            <p className="font-semibold">⚠️ {t('secretKeyWarning')}</p>
-            <div className="bg-slate-100 dark:bg-slate-800 p-2 rounded font-mono text-sm break-all">
-              {newMerchant.secretKey}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              No podrás volver a ver esta clave. Guárdala en un lugar seguro.
-            </p>
-          </div>
-        ),
-        duration: 30000, // 30 seconds
-      })
-
-      setMerchantDialogOpen(false)
-      setSelectedMerchant(null)
+  // After Stripe redirects back with status=success, actively poll the status
+  // endpoint until Stripe confirms COMPLETED (or until the user navigates away).
+  // The webhook also syncs status async, so this is mostly a UX nicety so the
+  // user sees the badge flip without manually clicking refresh.
+  useQuery({
+    queryKey: ['ecommerce-merchant-onboarding-poll', venue?.id, returnMerchantId],
+    queryFn: async () => {
+      if (!venue?.id || !returnMerchantId) return null
+      const status = await ecommerceMerchantAPI.getStripeOnboardingStatus(venue.id, returnMerchantId)
+      queryClient.invalidateQueries({ queryKey: ['ecommerce-merchants', venue.id] })
+      return status
     },
-    onError: (error: any) => {
-      toast({
-        title: 'Error',
-        description: error.response?.data?.error || 'No se pudo crear el canal de e-commerce',
-        variant: 'destructive',
-      })
+    enabled: !!venue?.id && !!returnMerchantId && returnStatus === 'success',
+    refetchInterval: query => {
+      // Stop polling once Stripe confirms a terminal status. RESTRICTED is
+      // terminal in the polling sense — Stripe needs the user to act before
+      // anything new happens.
+      const status = query.state.data?.status
+      return status === 'COMPLETED' || status === 'RESTRICTED' ? false : 3000
     },
+    refetchIntervalInBackground: false,
   })
 
-  // Update merchant mutation
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
-      ecommerceMerchantAPI.update(venue!.id, id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ecommerce-merchants', venue?.id] })
-      toast({
-        title: t('common:success'),
-        description: 'Canal actualizado exitosamente',
-      })
-      setMerchantDialogOpen(false)
-      setSelectedMerchant(null)
-    },
-    onError: (error: any) => {
-      toast({
-        title: t('common:error'),
-        description: error.response?.data?.error || 'No se pudo actualizar el canal',
-        variant: 'destructive',
-      })
-    },
-  })
+  // Auto-open the wizard in resume mode when user returns with status=retry.
+  useEffect(() => {
+    if (returnStatus === 'retry' && returnMerchantId) {
+      const target = merchants.find(m => m.id === returnMerchantId)
+      if (target) {
+        setWizardMerchant(target)
+        setWizardOpen(true)
+      }
+    }
+  }, [returnStatus, returnMerchantId, merchants])
+
+  // Clear the URL params once we've consumed them so a page refresh doesn't
+  // re-trigger banners / auto-open.
+  useEffect(() => {
+    if (returnStatus) {
+      const timeout = setTimeout(() => {
+        const next = new URLSearchParams(searchParams)
+        next.delete('status')
+        next.delete('merchantId')
+        setSearchParams(next, { replace: true })
+      }, 500)
+      return () => clearTimeout(timeout)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [returnStatus])
+
+  // (Create/update mutations live inside EcommerceMerchantWizard now — it handles
+  // the multi-step Stripe Connect flow + polling on return.)
 
   // Toggle status mutation
   const toggleStatusMutation = useMutation({
@@ -176,22 +180,6 @@ const EcommerceMerchants: React.FC = () => {
     },
   })
 
-  const stripeOnboardingMutation = useMutation({
-    mutationFn: (merchant: EcommerceMerchant) =>
-      ecommerceMerchantAPI.createStripeOnboardingLink(venue!.id, merchant.id, 'company'),
-    onSuccess: (link) => {
-      queryClient.invalidateQueries({ queryKey: ['ecommerce-merchants', venue?.id] })
-      window.location.assign(link.url)
-    },
-    onError: (error: any) => {
-      toast({
-        title: t('common:error'),
-        description: error.response?.data?.error || 'No se pudo iniciar onboarding de Stripe',
-        variant: 'destructive',
-      })
-    },
-  })
-
   const syncStripeStatusMutation = useMutation({
     mutationFn: (merchant: EcommerceMerchant) => ecommerceMerchantAPI.getStripeOnboardingStatus(venue!.id, merchant.id),
     onSuccess: () => {
@@ -212,13 +200,19 @@ const EcommerceMerchants: React.FC = () => {
 
   // Handlers
   const handleCreate = () => {
-    setSelectedMerchant(null)
-    setMerchantDialogOpen(true)
+    setWizardMerchant(null)
+    setWizardOpen(true)
   }
 
   const handleEdit = (merchant: EcommerceMerchant) => {
-    setSelectedMerchant(merchant)
-    setMerchantDialogOpen(true)
+    setWizardMerchant(merchant)
+    setWizardOpen(true)
+  }
+
+  /** Resume / continue onboarding for an incomplete Stripe Connect merchant. */
+  const handleContinueOnboarding = (merchant: EcommerceMerchant) => {
+    setWizardMerchant(merchant)
+    setWizardOpen(true)
   }
 
   const handleViewKeys = (merchant: EcommerceMerchant) => {
@@ -269,8 +263,32 @@ const EcommerceMerchants: React.FC = () => {
     )
   }
 
+  // Show the merchant we just returned from Stripe for, so the banner can
+  // include its name. Falls back gracefully if not found.
+  const returnedMerchant = returnMerchantId ? merchants.find(m => m.id === returnMerchantId) : null
+
   return (
     <div className="space-y-6">
+      {/* Return-from-Stripe banner */}
+      {returnStatus === 'success' && (
+        <Alert className="border-emerald-500/40 bg-emerald-500/5">
+          <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <AlertDescription className="text-emerald-700 dark:text-emerald-300">
+            <strong>{t('wizard.returnBanner.successTitle')}</strong>
+            {returnedMerchant && <> — {returnedMerchant.channelName}.</>} {t('wizard.returnBanner.successDesc')}
+          </AlertDescription>
+        </Alert>
+      )}
+      {returnStatus === 'retry' && (
+        <Alert className="border-amber-500/40 bg-amber-500/5">
+          <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+          <AlertDescription className="text-amber-700 dark:text-amber-300">
+            <strong>{t('wizard.returnBanner.retryTitle')}</strong>
+            {returnedMerchant && <> — {returnedMerchant.channelName}.</>} {t('wizard.returnBanner.retryDesc')}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -377,15 +395,16 @@ const EcommerceMerchants: React.FC = () => {
                       <div className="flex justify-end gap-2">
                         {merchant.provider?.code === 'STRIPE_CONNECT' && (
                           <>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => stripeOnboardingMutation.mutate(merchant)}
-                              disabled={stripeOnboardingMutation.isPending}
-                              title="Abrir onboarding de Stripe"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
+                            {merchant.onboardingStatus !== 'COMPLETED' && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleContinueOnboarding(merchant)}
+                                title="Continuar onboarding de Stripe"
+                              >
+                                <PlayCircle className="h-4 w-4 text-amber-600" />
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="icon"
@@ -439,20 +458,15 @@ const EcommerceMerchants: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Dialogs */}
-      <EcommerceMerchantDialog
-        open={merchantDialogOpen}
-        onOpenChange={setMerchantDialogOpen}
-        merchant={selectedMerchant}
-        venueId={venue.id}
-        onSubmit={(data) => {
-          if (selectedMerchant) {
-            updateMutation.mutate({ id: selectedMerchant.id, data })
-          } else {
-            createMutation.mutate(data)
-          }
+      {/* Wizard (replaces legacy EcommerceMerchantDialog) */}
+      <EcommerceMerchantWizard
+        open={wizardOpen}
+        onClose={() => {
+          setWizardOpen(false)
+          setWizardMerchant(null)
         }}
-        isLoading={createMutation.isPending || updateMutation.isPending}
+        venueId={venue.id}
+        merchant={wizardMerchant}
       />
 
       <APIKeysDialog

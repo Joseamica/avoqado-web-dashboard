@@ -49,6 +49,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useVenueDateTime } from '@/utils/datetime'
 import { ecommerceMerchantAPI } from '@/services/ecommerceMerchant.service'
+import { EcommerceMerchantWizard } from '@/pages/Venue/components/EcommerceMerchantWizard'
 import paymentLinkService, { type PaymentLink } from '@/services/paymentLink.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
 
@@ -100,6 +101,7 @@ export default function PaymentLinks() {
   })
 
   const isEcommerceExplicitlyMissing = isEcommerceCheckSuccess && ecommerceMerchants.length === 0
+  const [setupWizardOpen, setSetupWizardOpen] = useState(false)
 
   const links = useMemo(() => {
     let result = allLinks
@@ -435,9 +437,15 @@ export default function PaymentLinks() {
         <Alert className="mb-4 border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100">
           <AlertTriangle className="h-4 w-4 text-amber-700 dark:text-amber-300" />
           <AlertTitle>{t('requirements.merchantMissingTitle')}</AlertTitle>
-          <AlertDescription className="text-amber-800 dark:text-amber-200">
+          <AlertDescription className="text-amber-800 dark:text-amber-200 space-y-3">
             <p>{t('emptyState.noEcommerce')}</p>
             <p>{t('requirements.createBlocked')}</p>
+            <PermissionGate permission="payment-link:create">
+              <Button size="sm" variant="default" onClick={() => setSetupWizardOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Configurar Stripe ahora
+              </Button>
+            </PermissionGate>
           </AlertDescription>
         </Alert>
       )}
@@ -530,6 +538,21 @@ export default function PaymentLinks() {
           setEditingLinkId(undefined)
         }}
         editingLinkId={editingLinkId}
+      />
+
+      {/* Stripe Connect setup wizard — opened from the "Configurar Stripe ahora"
+          CTA in the empty-state alert. After the user completes onboarding on
+          Stripe, they return to /edit/integrations (the wizard's redirect),
+          so we just need to invalidate the ecommerce-merchants query when the
+          modal closes. */}
+      <EcommerceMerchantWizard
+        open={setupWizardOpen}
+        onClose={() => {
+          setSetupWizardOpen(false)
+          queryClient.invalidateQueries({ queryKey: ['ecommerce-merchants', venueId, 'active-for-payment-links'] })
+        }}
+        venueId={venueId}
+        merchant={null}
       />
     </div>
   )

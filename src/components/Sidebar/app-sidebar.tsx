@@ -501,6 +501,16 @@ export function AppSidebar({
     // ── Configuracion ──
     const settingsSubItems = [
       { title: t('sidebar:routes.editvenue'), url: 'edit', icon: Store, permission: 'venues:read', keywords: ['ajustes', 'settings', 'negocio'] },
+      // Direct shortcut to integrations (Stripe Connect, Google, Crypto, POS).
+      // The page itself still lives at /edit/integrations (inside VenueEditLayout)
+      // — this is just a one-click entry from the Configuración group.
+      {
+        title: t('sidebar:routes.integrations', { defaultValue: 'Integraciones' }),
+        url: 'edit/integrations',
+        icon: Link2,
+        permission: 'venues:read',
+        keywords: ['stripe', 'connect', 'pagos', 'google', 'integraciones', 'integrations', 'pos'],
+      },
       ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
         ? [{ title: t('sidebar:rolePermissions'), url: 'settings/role-permissions', icon: Shield }]
         : []),

@@ -60,9 +60,22 @@ export interface EcommerceMerchant {
   }
 }
 
+export interface AvailablePaymentProvider {
+  id: string
+  code: string
+  name: string
+  type: string
+  countryCode: string[]
+  configSchema?: {
+    required?: string[]
+    properties?: Record<string, { type: string; description?: string; enum?: string[] }>
+  } | null
+}
+
 export interface CreateEcommerceMerchantData {
   channelName: string
-  businessName: string
+  /** Optional — defaults to channelName server-side. Stripe Connect collects the legal name during hosted onboarding. */
+  businessName?: string
   rfc?: string
   contactEmail: string
   contactPhone?: string
@@ -156,6 +169,18 @@ export interface StripeOnboardingStatusResponse {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const ecommerceMerchantAPI = {
+  /**
+   * Lists payment providers usable to set up an ecommerce channel for this
+   * venue. Unlike /superadmin/payment-providers (which requires system:manage),
+   * this endpoint is accessible to OWNER+ at the venue.
+   */
+  async listAvailableProviders(venueId: string): Promise<AvailablePaymentProvider[]> {
+    const response = await api.get<{ success: boolean; data: AvailablePaymentProvider[] }>(
+      `/api/v1/dashboard/venues/${venueId}/ecommerce-merchants/available-providers`,
+    )
+    return response.data.data
+  },
+
   /**
    * Lists e-commerce merchants for a venue
    */
@@ -259,10 +284,11 @@ export const ecommerceMerchantAPI = {
     venueId: string,
     merchantId: string,
     businessType: 'company' | 'individual' = 'company',
+    returnPath?: string,
   ): Promise<StripeOnboardingLinkResponse> {
     const response = await api.post<{ success: boolean; data: StripeOnboardingLinkResponse }>(
       `/api/v1/dashboard/venues/${venueId}/ecommerce-merchants/${merchantId}/stripe-onboard`,
-      { businessType },
+      { businessType, ...(returnPath ? { returnPath } : {}) },
     )
     return response.data.data
   },

@@ -341,6 +341,10 @@
         "reservations": {
           "title": "Activez les réservations",
           "description": "Configurez le calendrier et le widget de réservation en ligne pour votre site web."
+        },
+        "payments": {
+          "title": "Activez les paiements en ligne",
+          "description": "Connectez Stripe pour commencer à accepter les paiements sur votre site, les liens de paiement et les réservations."
         }
       }
     },

@@ -42,5 +42,88 @@
     "webhookPlaceholder": "https://tu-sitio.com/webhooks/payment",
     "sandboxMode": "Modo Sandbox",
     "active": "Activo"
+  },
+  "wizard": {
+    "createTitle": "Crear canal de e-commerce",
+    "editTitle": "Editar canal de e-commerce",
+    "step1": {
+      "title": "¿Cómo quieres recibir pagos online?",
+      "subtitle": "Elige tu procesador de pagos",
+      "providerLoading": "Cargando proveedores...",
+      "providerEmpty": "No hay proveedores disponibles. Contacta a soporte.",
+      "recommendedBadge": "Recomendado",
+      "nextButton": "Siguiente",
+      "stripe": {
+        "title": "Stripe Connect",
+        "subtitle": "Tarjetas con 3D Secure",
+        "description": "Ideal para web y app. Stripe verifica identidad y maneja todo el procesamiento."
+      },
+      "generic": {
+        "subtitle": "Procesador alternativo"
+      }
+    },
+    "step2": {
+      "backButton": "Atrás",
+      "channelNameLabel": "Nombre del canal",
+      "channelNamePlaceholder": "Web Principal",
+      "channelNameHelp": "Identificador interno — no lo verán tus clientes",
+      "businessNameLabel": "Nombre del negocio",
+      "businessNamePlaceholder": "Mi Negocio SA de CV",
+      "rfcLabel": "RFC (opcional)",
+      "rfcPlaceholder": "ABC123456XYZ",
+      "contactEmailLabel": "Email de contacto",
+      "contactEmailPlaceholder": "pagos@negocio.com",
+      "contactPhoneLabel": "Teléfono de contacto (opcional)",
+      "contactPhonePlaceholder": "+52 55 1234 5678",
+      "websiteLabel": "Sitio web (opcional)",
+      "websitePlaceholder": "https://www.minegocio.com",
+      "sandboxLabel": "Modo de prueba (sandbox)",
+      "sandboxHelp": "Sin cobros reales — ideal para integrar"
+    },
+    "stripe": {
+      "businessTypeLabel": "Tipo de persona",
+      "businessTypeCompany": "Persona moral (empresa, SA de CV, SAPI, etc.)",
+      "businessTypePersonal": "Persona física",
+      "infoText": "Te llevaremos a Stripe para verificar tu identidad y conectar tu cuenta bancaria. Toma 5-10 minutos. Regresas aquí automáticamente al terminar.",
+      "connectButton": "Conectar con Stripe",
+      "preparingButton": "Preparando enlace...",
+      "alreadyHaveStripeTitle": "¿Ya tengo cuenta en Stripe?",
+      "alreadyHaveStripeBody": "Stripe Connect crea una cuenta vinculada nueva bajo la plataforma de Avoqado. No es la misma que tu Stripe personal — eso queda separado. Si usas el mismo email/RFC durante el onboarding, Stripe puede prellenar parte de la info automáticamente."
+    },
+    "credentials": {
+      "title": "Credenciales del proveedor",
+      "help": "Pídeselas a tu proveedor de pagos",
+      "showButton": "Mostrar",
+      "hideButton": "Ocultar"
+    },
+    "create": {
+      "submitButton": "Crear canal",
+      "submittingButton": "Creando...",
+      "successToast": "Canal {{name}} creado"
+    },
+    "edit": {
+      "title": "Editar información local",
+      "saveButton": "Guardar cambios",
+      "savingButton": "Guardando...",
+      "savedToast": "Cambios guardados"
+    },
+    "resume": {
+      "inProgressTitle": "Tu cuenta está pendiente de verificación",
+      "inProgressDesc": "Continúa el onboarding en Stripe para que tus clientes puedan pagar. El enlace anterior caducó si pasaron más de 5 minutos — genera uno nuevo.",
+      "continueButton": "Continuar onboarding",
+      "regeneratingButton": "Generando enlace...",
+      "restrictedTitle": "Stripe necesita más información",
+      "restrictedDesc": "Para activar pagos, completa estos requisitos en Stripe:",
+      "completeButton": "Completar en Stripe",
+      "completedTitle": "Tu cuenta está activa",
+      "completedDesc": "Puedes recibir pagos. Edita info local aquí, o ve a Stripe para cambios fiscales y bancarios.",
+      "stripeDashboardButton": "Ir a Stripe Dashboard"
+    },
+    "returnBanner": {
+      "successTitle": "✓ Conexión con Stripe completada",
+      "successDesc": "Verificando el estado de tu cuenta...",
+      "retryTitle": "Onboarding incompleto",
+      "retryDesc": "Inténtalo de nuevo cuando estés listo."
+    }
   }
 }

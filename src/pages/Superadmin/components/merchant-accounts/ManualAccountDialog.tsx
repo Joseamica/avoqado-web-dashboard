@@ -249,13 +249,21 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
                   <SelectValue placeholder="Seleccionar procesador..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {providers.map(provider => (
-                    <SelectItem key={provider.id} value={provider.id}>
-                      {provider.name} ({provider.code})
-                    </SelectItem>
-                  ))}
+                  {providers
+                    // Stripe Connect cannot be configured manually — it requires hosted
+                    // onboarding per venue. Direct admins to the per-venue ecommerce flow.
+                    .filter(provider => provider.code !== 'STRIPE_CONNECT')
+                    .map(provider => (
+                      <SelectItem key={provider.id} value={provider.id}>
+                        {provider.name} ({provider.code})
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                ¿Buscas Stripe Connect? Se configura desde la página del venue en{' '}
+                <span className="underline">/venues/&lt;slug&gt;/ecommerce-merchants</span>.
+              </p>
             </div>
 
             {/* ═══════════════════════════════════════════════════ */}
@@ -483,6 +491,8 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
                   onChange={e => setFormData({ ...formData, externalMerchantId: e.target.value })}
                   placeholder="ID único del comercio en el procesador"
                   className="bg-background border-input font-mono text-sm"
+                  autoComplete="off"
+                  data-1p-ignore
                 />
               </div>
             )}
@@ -502,10 +512,13 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
                   onChange={e => setFormData({ ...formData, alias: e.target.value })}
                   placeholder="Ej: cuenta-principal"
                   className="bg-background border-input"
+                  autoComplete="off"
+                  data-1p-ignore
                 />
               </div>
 
-              {/* Display Name */}
+              {/* Display Name — autoComplete off so the browser doesn't autofill the
+                  logged-in user's email/name into a merchant display field. */}
               <div className="grid gap-2">
                 <Label>Nombre para mostrar</Label>
                 <Input
@@ -513,6 +526,8 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
                   onChange={e => setFormData({ ...formData, displayName: e.target.value })}
                   placeholder="Ej: Cuenta Caja 1"
                   className="bg-background border-input"
+                  autoComplete="off"
+                  data-1p-ignore
                 />
               </div>
             </div>
