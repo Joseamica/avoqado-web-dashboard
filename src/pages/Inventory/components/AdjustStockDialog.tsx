@@ -15,6 +15,7 @@ import { rawMaterialsApi, type RawMaterial, type AdjustStockDto } from '@/servic
 import { Loader2, AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { MOVEMENT_TYPE_OPTIONS } from '@/lib/inventory-constants'
+import { invalidateStockOverviewQueries } from '@/lib/queryKeys/inventory'
 
 interface AdjustStockDialogProps {
   open: boolean
@@ -65,8 +66,12 @@ export function AdjustStockDialog({ open, onOpenChange, rawMaterial }: AdjustSto
   const adjustStockMutation = useMutation({
     mutationFn: (data: AdjustStockDto) => rawMaterialsApi.adjustStock(venueId, rawMaterial!.id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['rawMaterials', venueId] })
-      queryClient.invalidateQueries({ queryKey: ['stockMovements', venueId, rawMaterial?.id] })
+      if (venueId && rawMaterial?.id) {
+        invalidateStockOverviewQueries(queryClient, venueId, {
+          kind: 'ingredient',
+          id: rawMaterial.id,
+        })
+      }
       toast({
         title: t('rawMaterials.messages.stockAdjusted'),
         variant: 'default',

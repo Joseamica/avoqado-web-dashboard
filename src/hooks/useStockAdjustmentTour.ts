@@ -3,23 +3,28 @@ import 'driver.js/dist/driver.css'
 import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAtomicTourListener, notifyAtomicTourCompleted } from '@/hooks/useAtomicTourListener'
+import { useToast } from '@/hooks/use-toast'
 
 /**
  * Interactive onboarding tour for stock adjustments.
  * Teaches the day-to-day operation: "received mercancía, had a mermada, need to
  * fix a discrepancy → how do I reflect that here?"
  *
- * Designed for the Resumen de Existencias page. Targets the FIRST row's
- * "Existencias físicas" dropdown (assumes the venue has at least one tracked
- * product — empty state is handled by the page copy itself).
+ * Designed for the Resumen de Existencias page. Pins to the FIRST product row's
+ * "Existencias físicas" dropdown via [data-stock-kind="product"]; ingredients
+ * use a separate dialog that this tour does not cover. If the venue has no
+ * product rows the tour bails out gracefully with a toast.
  *
- * Required `data-tour` attributes (added in InventorySummary.tsx):
- *   - `stock-edit-trigger`   — Popover trigger button (the clickable number)
- *   - `stock-edit-popover`   — Popover content container
- *   - `stock-edit-action`    — "Acción de existencias" select block
- *   - `stock-edit-quantity`  — Quantity input block
- *   - `stock-edit-save`      — Save button inside the popover
+ * Required selectors (rendered in InventorySummary.tsx):
+ *   - `[data-stock-kind="product"][data-tour="stock-edit-trigger"]`  — Popover trigger
+ *   - `[data-tour="stock-edit-popover"]`   — Popover content container
+ *   - `[data-tour="stock-edit-action"]`    — "Acción de existencias" select block
+ *   - `[data-tour="stock-edit-quantity"]`  — Quantity input block
+ *   - `[data-tour="stock-edit-save"]`      — Save button inside the popover
  */
+
+const PRODUCT_TRIGGER_SELECTOR =
+  '[data-stock-kind="product"][data-tour="stock-edit-trigger"]'
 
 function waitForElement(selector: string, timeout = 4000): Promise<Element> {
   return new Promise((resolve, reject) => {
@@ -53,9 +58,7 @@ function exists(selector: string): boolean {
  */
 async function ensurePopoverOpen() {
   if (!exists('[data-tour="stock-edit-action"]')) {
-    const trigger = document.querySelector<HTMLButtonElement>(
-      '[data-tour="stock-edit-trigger"]',
-    )
+    const trigger = document.querySelector<HTMLButtonElement>(PRODUCT_TRIGGER_SELECTOR)
     trigger?.click()
     try {
       await waitForElement('[data-tour="stock-edit-action"]')
@@ -67,6 +70,7 @@ async function ensurePopoverOpen() {
 
 export function useStockAdjustmentTour() {
   const { t } = useTranslation('inventory')
+  const { toast } = useToast()
   const driverRef = useRef<Driver | null>(null)
 
   const buildDriver = useCallback((): Driver => {
@@ -116,7 +120,7 @@ export function useStockAdjustmentTour() {
 
         // 2) Highlight the table — users learn where the action lives
         {
-          element: '[data-tour="stock-edit-trigger"]',
+          element: PRODUCT_TRIGGER_SELECTOR,
           popover: {
             title: t('tourStockAdjustment.step1.title', {
               defaultValue: 'Haz clic en el número de existencias',
@@ -129,9 +133,7 @@ export function useStockAdjustmentTour() {
             align: 'start',
             onNextClick: async () => {
               if (!exists('[data-tour="stock-edit-popover"]')) {
-                const trigger = document.querySelector<HTMLButtonElement>(
-                  '[data-tour="stock-edit-trigger"]',
-                )
+                const trigger = document.querySelector<HTMLButtonElement>(PRODUCT_TRIGGER_SELECTOR)
                 trigger?.click()
                 try {
                   await waitForElement('[data-tour="stock-edit-popover"]')
@@ -225,12 +227,27 @@ export function useStockAdjustmentTour() {
 
   const start = useCallback(() => {
     driverRef.current?.destroy()
+    // Empty-state: if there are no product rows on the page (only ingredients,
+    // or the table is still loading), the tour has nothing to anchor to.
+    // Show a guidance toast instead of starting a tour that would silently fail.
+    if (!exists(PRODUCT_TRIGGER_SELECTOR)) {
+      toast({
+        title: t('tourStockAdjustment.emptyState.title', {
+          defaultValue: 'Necesitas un producto contable',
+        }),
+        description: t('tourStockAdjustment.emptyState.description', {
+          defaultValue:
+            'Crea un producto con seguimiento por unidad para usar este tour. Los ingredientes se ajustan desde su propia fila en la tabla.',
+        }),
+      })
+      return
+    }
     // Signal to any Radix Popover/Dialog on the page that the tour is active,
     // so they won't auto-close on outside-click (which includes driver.js overlay).
     document.body.classList.add('tour-active')
     driverRef.current = buildDriver()
     driverRef.current.drive()
-  }, [buildDriver])
+  }, [buildDriver, toast, t])
 
   const stop = useCallback(() => {
     document.body.classList.remove('tour-active')

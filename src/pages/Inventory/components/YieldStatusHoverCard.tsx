@@ -128,7 +128,7 @@ export function YieldStatusHoverCard({ productId, currentYield, triggerClassName
                          size="icon"
                          className="h-6 w-6 ml-auto cursor-pointer"
                             title={tCommon('restock', { defaultValue: 'Reponer Stock' })}
-                            onClick={() => navigate(`${fullBasePath}/inventory/raw-materials?search=${encodeURIComponent(status.limitingIngredient!.name)}&openRestock=true`)}
+                            onClick={() => navigate(`${fullBasePath}/inventory/ingredients?search=${encodeURIComponent(status.limitingIngredient!.name)}&openRestock=true`)}
                          >
                             <ShoppingCart className="h-3 w-3" />
                          </Button>

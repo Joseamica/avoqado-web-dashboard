@@ -21,11 +21,13 @@ Convertir `stock-overview` en **el** lugar operativo para ver y ajustar existenc
 
 ### Decisión UX: asimetría popover ↔ dialog (intencional)
 
-Productos siguen con popover inline; ingredientes abren dialog. **Razones:**
+Productos siguen con popover inline; ingredientes abren dialog. **Razones reales** (corregidas tras revisión del código):
 
-1. Preserva el tour `useStockAdjustmentTour` sin reescribirlo (los 5 `data-tour` keys viven en el popover hoy).
-2. El dialog de ingredientes (`AdjustStockDialog`) tiene campos que **no caben** en un popover (proveedor, costo unitario obligatorio en recepciones).
-3. La acción es semánticamente distinta: ajustar producto = movimiento simple; ajustar ingrediente = puede crear movimiento + asociar proveedor + costear FIFO.
+1. **Preserva el tour `useStockAdjustmentTour`** sin reescribirlo: los 5 `data-tour` keys (`stock-edit-trigger`, `stock-edit-popover`, `stock-edit-action`, `stock-edit-quantity`, `stock-edit-save`) viven hoy dentro del popover de productos.
+2. **Reúsa los dos componentes existentes tal cual**: `StockEditPopover` (productos, en `InventorySummary.tsx:677`) y `AdjustStockDialog` (ingredientes, en `RawMaterials.tsx`). Cero reescritura de UI de ajuste.
+3. **Paridad con la página `/inventory/ingredients`**: el usuario que ya conoce esa página verá el mismo dialog al ajustar un ingrediente desde la tabla unificada — consistencia mental.
+
+> **Nota factual:** El `StockEditPopover` de productos es el que tiene los campos más ricos hoy (`unitCost`, `supplier`, ver `InventorySummary.tsx:85,86,123,124,330,331`). El `AdjustStockDialog` de ingredientes solo manda `{ type, quantity, reason, reference }` (`AdjustStockDialog.tsx:55-60`). La asimetría se preserva tal cual; **no** se propaga `unitCost`/`supplier` al lado ingrediente en este PR.
 
 **Implicación:** no hay un solo `onRowClick` que abra "el dialog correspondiente". El comportamiento se ramifica:
 - Filas de producto: el clic sobre el popover trigger (la celda "Existencias físicas") abre el popover. **No** registrar `onRowClick` global en estas filas — Radix `PopoverTrigger` y `onRowClick` competirían y el popover podría cerrarse por bubble.
@@ -147,9 +149,58 @@ export function invalidateStockOverviewQueries(
 
 Esto preserva el tour aunque la primera fila alfabética sea ingrediente, y no requiere modificar `DataTable`. Los demás 4 `data-tour` keys (`stock-edit-popover`, `stock-edit-action`, `stock-edit-quantity`, `stock-edit-save`) viven dentro del popover y no necesitan cambio.
 
+#### Empty-state: venue sin productos físicos
+
+Si la venue solo tiene ingredientes (selector no matchea nada), `useStockAdjustmentTour` **no debe romper**. Resolución:
+
+```ts
+// useStockAdjustmentTour.ts — añadir imports/hooks si no están:
+//   import { useToast } from '@/hooks/use-toast'
+//   import { useTranslation } from 'react-i18next'
+//   const { toast } = useToast()
+//   const { t } = useTranslation('inventory')
+
+const start = useCallback(() => {
+  const productTrigger = document.querySelector(
+    '[data-stock-kind="product"][data-tour="stock-edit-trigger"]'
+  )
+  if (!productTrigger) {
+    toast({
+      title: t('tourStockAdjustment.emptyState.title'),
+      description: t('tourStockAdjustment.emptyState.description'),
+      // i18n keys nuevas en en/es (y fr si el namespace existe):
+      //   "Necesitas un producto contable" /
+      //   "Crea un producto con seguimiento por unidad para usar este tour. Los ingredientes se ajustan desde su propia fila."
+    })
+    return
+  }
+  document.body.classList.add('tour-active')
+  driverRef.current = buildDriver()
+  driverRef.current.drive()
+}, [buildDriver, toast, t])
+```
+
+**Razón:** el tour enseña a usar el popover de productos. Si no hay productos físicos, guiar al usuario hacia "Crear producto contable" es más útil que un fallback que mezcla conceptos.
+
+**Alternativa rechazada:** extender el tour para soportar ingredientes como fallback. Lo descartamos porque el popover y el dialog tienen layouts distintos — sería casi un segundo tour. Mejor ese trabajo en un PR separado si el feedback lo pide.
+
 ### 4.4 Permisos
 
-Envolver `StockEditPopover` con `<PermissionGate permission="inventory:adjust">` para paridad con `RawMaterials.tsx:813+`. Corrige regresión de seguridad preexistente.
+**Ambos** triggers de ajuste deben estar gated explícitamente en `InventorySummary.tsx` (la tabla unificada introduce un nuevo punto de mutación: la celda de ingrediente):
+
+```tsx
+// Fila de producto (preserva comportamiento, corrige regresión)
+<PermissionGate permission="inventory:adjust">
+  <StockEditPopover … data-stock-kind="product" />
+</PermissionGate>
+
+// Fila de ingrediente (nuevo trigger en stock-overview)
+<PermissionGate permission="inventory:adjust">
+  <button onClick={() => openIngredientDialog(row.source as RawMaterial)}>…</button>
+</PermissionGate>
+```
+
+Paridad con `RawMaterials.tsx:813+` (que ya gatea su propio trigger). El `<AdjustStockDialog>` montado a nivel de página no necesita gate adicional — quien controla la apertura es el trigger gated. Resultado: un usuario sin `inventory:adjust` ve la tabla pero **no** puede abrir popover ni dialog en ninguna fila.
 
 ### 4.5 Navegación con `fullBasePath`
 
@@ -191,7 +242,10 @@ Mantener el filter set actual de `InventorySummary` (stock, disponible, precio).
 - [ ] `npm run build` pasa
 - [ ] `npm run lint` pasa
 - [ ] `npm run test:e2e` pasa
-- [ ] Tour `useStockAdjustmentTour` funciona en venue con: (a) solo productos, (b) solo ingredientes, (c) mezclado con ingrediente como primera fila alfabética
+- [ ] Tour `useStockAdjustmentTour`:
+  - (a) Venue con solo productos → funciona normal
+  - (b) Venue con productos + ingredientes (ingrediente primera fila alfabética) → tour ancla al primer **producto**, no a la primera fila
+  - (c) Venue con solo ingredientes → tour **no se ejecuta**, muestra toast con copy de empty-state guiando a crear producto contable
 - [ ] Ajustar producto refresca filas de ingrediente y viceversa (cross-invalidation)
 - [ ] Usuario sin `inventory:adjust` ve la tabla pero **no** puede abrir popover/dialog en ninguna fila
 - [ ] White-label: row click en recetas navega a `/wl/venues/:slug/inventory/recipes?productId=…`

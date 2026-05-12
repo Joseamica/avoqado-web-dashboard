@@ -40,9 +40,23 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useAccess } from '@/hooks/use-access'
 import { useToast } from '@/hooks/use-toast'
-import { assignModifierGroupToProduct, createModifierGroup as createModifierGroupService, getProducts } from '@/services/menu.service'
+import {
+  assignModifierGroupToProduct,
+  createModifier as createModifierService,
+  createModifierGroup as createModifierGroupService,
+  deleteModifier as deleteModifierService,
+  getModifierGroup,
+  getProducts,
+  removeModifierGroupFromProduct,
+  updateModifier as updateModifierService,
+  updateModifierGroup as updateModifierGroupService,
+} from '@/services/menu.service'
 
 type CreateModifierGroupWizardProps = {
+  /** 'create' (default) opens the wizard for creating a new group; 'edit' loads `modifierGroupId` and updates it. */
+  mode?: 'create' | 'edit'
+  /** Required when `mode === 'edit'`. */
+  modifierGroupId?: string
   onCancel?: () => void
   onSuccess?: () => void
 }
@@ -111,7 +125,7 @@ type FormValues = z.infer<ReturnType<typeof createFormSchema>>
 const TOTAL_STEPS = 5
 type WizardStep = 1 | 2 | 3 | 4 | 5
 
-export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifierGroupWizardProps) {
+export function CreateModifierGroupWizard({ mode = 'create', modifierGroupId, onCancel, onSuccess }: CreateModifierGroupWizardProps) {
   const { t } = useTranslation('menu')
   const { t: tCommon } = useTranslation('common')
   const { venueId, fullBasePath } = useCurrentVenue()
@@ -121,10 +135,11 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
   const { can } = useAccess()
   const [currentStep, setCurrentStep] = useState<WizardStep>(1)
 
-  const canCreate = can('menu:create')
+  const isEditMode = mode === 'edit'
+  const canMutate = isEditMode ? can('menu:update') : can('menu:create')
 
   useEffect(() => {
-    if (!canCreate) {
+    if (!canMutate) {
       toast({
         title: tCommon('errors.unauthorized'),
         description: tCommon('errors.noPermission'),
@@ -137,13 +152,20 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
         navigate('../', { replace: true })
       }
     }
-  }, [canCreate, navigate, onCancel, tCommon, toast])
+  }, [canMutate, navigate, onCancel, tCommon, toast])
 
   // Query to fetch all products for the venue
   const { data: allProducts } = useQuery({
     queryKey: ['products', venueId, 'orderBy:name'],
     queryFn: () => getProducts(venueId!, { orderBy: 'name' }),
     enabled: !!venueId,
+  })
+
+  // Edit mode: fetch the existing modifier group
+  const { data: existingGroup, isLoading: isLoadingGroup } = useQuery({
+    queryKey: ['modifier-group', modifierGroupId, venueId],
+    queryFn: () => getModifierGroup(venueId!, modifierGroupId!),
+    enabled: isEditMode && !!venueId && !!modifierGroupId,
   })
 
   // Initialize the form with default values
@@ -158,6 +180,27 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
       selectedProducts: [],
     },
   })
+
+  // Reset form once existing data is loaded
+  useEffect(() => {
+    if (!isEditMode || !existingGroup || !allProducts) return
+
+    const groupModifiers = existingGroup.modifiers ?? []
+    const assignedProducts = allProducts.filter(p => p.modifierGroups?.some(mg => mg.groupId === existingGroup.id))
+
+    form.reset({
+      name: existingGroup.name ?? '',
+      required: existingGroup.required ?? false,
+      min: typeof existingGroup.minSelections === 'number' ? existingGroup.minSelections : 0,
+      max: typeof existingGroup.maxSelections === 'number' && existingGroup.maxSelections! > 0 ? existingGroup.maxSelections! : 1,
+      newModifiers:
+        groupModifiers.length > 0
+          ? groupModifiers.map(m => ({ name: m.name, extraPrice: Number(m.price ?? 0) }))
+          : [{ name: '', extraPrice: 0 }],
+      selectedProducts: assignedProducts.map(p => ({ label: p.name, value: p.id, disable: false })),
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditMode, existingGroup, allProducts])
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -220,6 +263,128 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
     },
   })
 
+  const updateModifierGroupMutation = useMutation({
+    mutationFn: async ({
+      groupData,
+      productIds,
+      modifiersInput,
+    }: {
+      groupData: Record<string, unknown>
+      productIds: string[]
+      modifiersInput: { name: string; price: number; active: boolean }[]
+    }) => {
+      if (!venueId || !modifierGroupId || !existingGroup) {
+        throw new Error('missing context for update')
+      }
+
+      // 1) Update basic fields on the group
+      await updateModifierGroupService(venueId, modifierGroupId, groupData)
+
+      // 2) Diff modifiers vs existing.
+      // Existing modifiers list comes from `existingGroup.modifiers` (each with id+name+price).
+      // The form gives us a flat list with no ids; match by normalized name (display order isn't part of schema).
+      const existingModifiers = existingGroup.modifiers ?? []
+      const formByKey = new Map<string, { name: string; price: number; active: boolean }>()
+      for (const m of modifiersInput) {
+        formByKey.set(m.name.trim().toLowerCase(), m)
+      }
+
+      const tasks: Promise<unknown>[] = []
+      const matchedExistingIds = new Set<string>()
+
+      // Update existing or delete if no longer present
+      for (const existing of existingModifiers) {
+        const key = (existing.name ?? '').trim().toLowerCase()
+        const match = formByKey.get(key)
+        if (!match) {
+          tasks.push(deleteModifierService(venueId, modifierGroupId, existing.id))
+          continue
+        }
+        matchedExistingIds.add(existing.id)
+        formByKey.delete(key)
+        // Only push update if price/active actually changed
+        const priceChanged = Number(existing.price ?? 0) !== Number(match.price ?? 0)
+        const activeChanged = (existing.active ?? true) !== match.active
+        if (priceChanged || activeChanged) {
+          tasks.push(
+            updateModifierService(venueId, modifierGroupId, existing.id, {
+              name: match.name,
+              price: match.price,
+              active: match.active,
+            }),
+          )
+        }
+      }
+
+      // Anything left in formByKey is a brand-new modifier
+      for (const fresh of formByKey.values()) {
+        tasks.push(
+          createModifierService(venueId, modifierGroupId, {
+            name: fresh.name,
+            price: fresh.price,
+            active: fresh.active,
+          }),
+        )
+      }
+
+      // 3) Diff product assignments
+      const currentlyAssignedIds = (allProducts ?? [])
+        .filter(p => p.modifierGroups?.some(mg => mg.groupId === modifierGroupId))
+        .map(p => p.id)
+      const desiredIds = new Set(productIds)
+      const currentIds = new Set(currentlyAssignedIds)
+
+      for (const [index, productId] of productIds.entries()) {
+        if (!currentIds.has(productId)) {
+          tasks.push(
+            assignModifierGroupToProduct(venueId, productId, {
+              modifierGroupId,
+              displayOrder: index,
+            }),
+          )
+        }
+      }
+      for (const productId of currentlyAssignedIds) {
+        if (!desiredIds.has(productId)) {
+          tasks.push(removeModifierGroupFromProduct(venueId, productId, modifierGroupId))
+        }
+      }
+
+      await Promise.all(tasks)
+    },
+    onSuccess: () => {
+      toast({
+        title: t('modifiers.createGroup.toasts.updated'),
+        description: t('modifiers.createGroup.toasts.updatedDesc'),
+      })
+
+      queryClient.invalidateQueries({ queryKey: ['modifier-groups', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['modifier-group', modifierGroupId, venueId] })
+      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+
+      onSuccess?.()
+    },
+    onError: (error: any) => {
+      let errorMessage = t('modifiers.createGroup.toasts.updateErrorDesc')
+
+      if (error.response?.status === 409) {
+        errorMessage = t('modifiers.createGroup.errors.nameExists')
+      } else if (error.response?.status === 400) {
+        errorMessage = error.response.data?.message || t('modifiers.createGroup.errors.invalidData')
+      } else if (!navigator.onLine) {
+        errorMessage = tCommon('errors.offlineDescription')
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message
+      }
+
+      toast({
+        title: t('modifiers.createGroup.toasts.updateError'),
+        description: errorMessage,
+        variant: 'destructive',
+      })
+    },
+  })
+
   const watchRequired = form.watch('required')
 
   useEffect(() => {
@@ -258,10 +423,18 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
       active: true,
     }
 
-    createModifierGroupMutation.mutate({
-      groupData,
-      productIds,
-    })
+    if (isEditMode) {
+      updateModifierGroupMutation.mutate({
+        groupData,
+        productIds,
+        modifiersInput: validModifiers,
+      })
+    } else {
+      createModifierGroupMutation.mutate({
+        groupData,
+        productIds,
+      })
+    }
   }
 
   const addNewModifier = (): void => {
@@ -362,7 +535,8 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
 
   const currentStepMeta = steps[currentStep - 1]
   const progressPercentage = (currentStep / TOTAL_STEPS) * 100
-  const isLoading = form.formState.isSubmitting || createModifierGroupMutation.isPending
+  const isLoading =
+    form.formState.isSubmitting || createModifierGroupMutation.isPending || updateModifierGroupMutation.isPending
 
   const InfoTooltip = ({ content }: { content: string }) => (
     <Tooltip>
@@ -427,8 +601,17 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
     form.handleSubmit(onSubmit)()
   }
 
-  if (!canCreate) {
+  if (!canMutate) {
     return null
+  }
+
+  if (isEditMode && isLoadingGroup) {
+    return (
+      <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        {t('modifiers.createGroup.loading')}
+      </div>
+    )
   }
 
   return (
@@ -862,7 +1045,7 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
                     </>
                   ) : (
                     <>
-                      {t('modifiers.createGroup.createButton')}
+                      {isEditMode ? t('modifiers.createGroup.saveButton') : t('modifiers.createGroup.createButton')}
                       <Check className="ml-2 h-4 w-4" />
                     </>
                   )}

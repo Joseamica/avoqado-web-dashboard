@@ -1136,6 +1136,10 @@
       "title": "🎓 How to adjust stock when mercancía arrives or there's a shortage?",
       "description": "A step-by-step walkthrough — it's the most common day-to-day operation."
     },
+    "emptyState": {
+      "title": "You need a tracked product",
+      "description": "Create a product with per-unit tracking to use this tour. Ingredients can be adjusted from their own row in the table."
+    },
     "welcome": {
       "title": "📦 Adjusting stock",
       "description": "Learn the day-to-day flow: <b>receive mercancía</b>, register a <b>shortage</b>, correct a <b>theft</b>, or record a <b>physical count</b>.<br/><br/>Every change is logged in <b>History</b> for audit."

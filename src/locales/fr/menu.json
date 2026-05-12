@@ -347,11 +347,20 @@
       "createButton": "Créer le groupe de modificateurs",
       "removeModifier": "Supprimer {{name}}",
       "modifier": "modificateur {{index}}",
+      "editTitle": "Modifier le groupe de modificateurs",
+      "editDesc": "Mettre à jour les informations du groupe de modificateurs",
+      "saveButton": "Enregistrer les modifications",
+      "saving": "Enregistrement...",
+      "loading": "Chargement du groupe de modificateurs...",
       "toasts": {
         "created": "Groupe de modificateurs créé",
         "createdDesc": "Le groupe de modificateurs a été créé avec succès.",
         "createError": "Erreur de création",
-        "createErrorDesc": "Un problème est survenu lors de la création du groupe de modificateurs."
+        "createErrorDesc": "Un problème est survenu lors de la création du groupe de modificateurs.",
+        "updated": "Groupe de modificateurs mis à jour",
+        "updatedDesc": "Le groupe de modificateurs a été mis à jour avec succès.",
+        "updateError": "Erreur de mise à jour",
+        "updateErrorDesc": "Un problème est survenu lors de la mise à jour du groupe de modificateurs."
       },
       "errors": {
         "minMaxInvalid": "Le maximum doit être supérieur ou égal au minimum",

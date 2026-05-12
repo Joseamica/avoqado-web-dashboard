@@ -1136,6 +1136,10 @@
       "title": "🎓 ¿Cómo ajustar existencias cuando llega mercancía o hay una merma?",
       "description": "Te guiamos paso a paso — es la operación que más vas a hacer en el día a día."
     },
+    "emptyState": {
+      "title": "Necesitas un producto contable",
+      "description": "Crea un producto con seguimiento por unidad para usar este tour. Los ingredientes se ajustan desde su propia fila en la tabla."
+    },
     "welcome": {
       "title": "📦 Ajustar existencias",
       "description": "Te enseñamos el flujo del día a día: <b>recibir mercancía</b>, registrar una <b>merma</b>, corregir un <b>robo</b>, o dejar constancia de un <b>conteo físico</b>.<br/><br/>Todo cambio queda registrado en <b>Historial</b> para auditoría."

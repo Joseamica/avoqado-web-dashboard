@@ -321,11 +321,20 @@
       "createButton": "Create Modifier Group",
       "removeModifier": "Remove {{name}}",
       "modifier": "modifier {{index}}",
+      "editTitle": "Edit Modifier Group",
+      "editDesc": "Update the modifier group information",
+      "saveButton": "Save Changes",
+      "saving": "Saving...",
+      "loading": "Loading modifier group...",
       "toasts": {
         "created": "Modifier group created",
         "createdDesc": "The modifier group has been created successfully.",
         "createError": "Error creating",
-        "createErrorDesc": "There was a problem creating the modifier group."
+        "createErrorDesc": "There was a problem creating the modifier group.",
+        "updated": "Modifier group updated",
+        "updatedDesc": "The modifier group has been updated successfully.",
+        "updateError": "Error updating",
+        "updateErrorDesc": "There was a problem updating the modifier group."
       },
       "errors": {
         "minMaxInvalid": "Maximum must be greater than or equal to minimum",

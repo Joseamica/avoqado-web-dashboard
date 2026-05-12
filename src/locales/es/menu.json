@@ -319,11 +319,20 @@
       },
       "creating": "Creando...",
       "createButton": "Crear Grupo Modificador",
+      "editTitle": "Editar Grupo Modificador",
+      "editDesc": "Actualiza la información del grupo modificador",
+      "saveButton": "Guardar Cambios",
+      "saving": "Guardando...",
+      "loading": "Cargando grupo modificador...",
       "toasts": {
         "created": "Grupo modificador creado",
         "createdDesc": "El grupo modificador se ha creado correctamente.",
         "createError": "Error al crear",
-        "createErrorDesc": "Hubo un problema al crear el grupo modificador."
+        "createErrorDesc": "Hubo un problema al crear el grupo modificador.",
+        "updated": "Grupo modificador actualizado",
+        "updatedDesc": "El grupo modificador se ha actualizado correctamente.",
+        "updateError": "Error al actualizar",
+        "updateErrorDesc": "Hubo un problema al actualizar el grupo modificador."
       }
     },
     "editModifier": {

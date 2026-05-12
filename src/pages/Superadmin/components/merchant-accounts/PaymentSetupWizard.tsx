@@ -152,7 +152,7 @@ type WizardAction =
   | { type: 'SET_VENUE_EXISTING_PRICING_ID'; venueId: string; existingPricingId: string | null }
   | { type: 'RESET' }
 
-// Blumon defaults: DEBIT/CREDIT 1d, AMEX 3d, INTERNATIONAL 5d, OTHER 2d
+// Blumon defaults: DEBIT/CREDIT 1d, AMEX 3d, INTERNATIONAL 3d, OTHER 2d
 const DEFAULT_SETTLEMENT: SettlementData = {
   dayType: 'BUSINESS_DAYS',
   cutoffTime: '23:00',
@@ -160,7 +160,7 @@ const DEFAULT_SETTLEMENT: SettlementData = {
   debitDays: 1,
   creditDays: 1,
   amexDays: 3,
-  internationalDays: 5,
+  internationalDays: 3,
   otherDays: 2,
 }
 

@@ -68,6 +68,7 @@ interface PurchaseOrderWizardProps {
 
 export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, duplicateFrom, mode = 'create' }: PurchaseOrderWizardProps) {
   const { t } = useTranslation(['purchaseOrders', 'common'])
+  const { getShortLabel } = useUnitTranslation()
   const { venue } = useCurrentVenue()
   const isEditMode = mode === 'edit' && !!purchaseOrder
   const isDuplicateMode = mode === 'create' && !!duplicateFrom
@@ -948,6 +949,8 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                       const qty = Number(item?.quantityOrdered) || 0
                       const price = Number(item?.unitPrice) || 0
                       const itemSubtotal = qty * price
+                      const selectedMaterial = rawMaterials?.data?.find((m) => m.id === item?.rawMaterialId)
+                      const unitLabel = selectedMaterial ? getShortLabel(selectedMaterial.unit) : ''
 
                       return (
                         <TableRow key={field.id}>
@@ -974,27 +977,34 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                               render={({ field }) => (
                                 <FormItem>
                                   <FormControl>
-                                    <Input
-                                      type="text"
-                                      inputMode="decimal"
-                                      placeholder="0"
-                                      value={field.value || ''}
-                                      onChange={(e) => {
-                                        const value = e.target.value
-                                        if (value === '') {
-                                          field.onChange(0)
-                                        } else {
-                                          const parsed = parseFloat(value)
-                                          if (!isNaN(parsed)) {
-                                            field.onChange(parsed)
+                                    <div className="relative w-28">
+                                      <Input
+                                        type="text"
+                                        inputMode="decimal"
+                                        placeholder="0"
+                                        value={field.value || ''}
+                                        onChange={(e) => {
+                                          const value = e.target.value
+                                          if (value === '') {
+                                            field.onChange(0)
+                                          } else {
+                                            const parsed = parseFloat(value)
+                                            if (!isNaN(parsed)) {
+                                              field.onChange(parsed)
+                                            }
                                           }
-                                        }
-                                      }}
-                                      onBlur={field.onBlur}
-                                      name={field.name}
-                                      ref={field.ref}
-                                      className="w-24"
-                                    />
+                                        }}
+                                        onBlur={field.onBlur}
+                                        name={field.name}
+                                        ref={field.ref}
+                                        className={cn('w-full', unitLabel && 'pr-10')}
+                                      />
+                                      {unitLabel && (
+                                        <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs font-medium text-muted-foreground">
+                                          {unitLabel}
+                                        </span>
+                                      )}
+                                    </div>
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -1432,7 +1442,16 @@ function MaterialCombobox({ materials, value, onChange }: MaterialComboboxProps)
             !value && 'text-muted-foreground'
           )}
         >
-          {selectedMaterial ? selectedMaterial.name : t('wizard.selectMaterial')}
+          {selectedMaterial ? (
+            <span className="flex items-center gap-2 truncate">
+              <span className="truncate">{selectedMaterial.name}</span>
+              <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+                {getShortLabel(selectedMaterial.unit)}
+              </span>
+            </span>
+          ) : (
+            t('wizard.selectMaterial')
+          )}
           <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>

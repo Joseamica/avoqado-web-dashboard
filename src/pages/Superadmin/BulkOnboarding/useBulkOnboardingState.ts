@@ -19,12 +19,12 @@ export const INITIAL_PRICING: PricingConfig = {
   internationalRate: 4.5,
 }
 
-// Blumon defaults: DEBIT/CREDIT 1d, AMEX 3d, INTERNATIONAL 5d, OTHER 2d
+// Blumon defaults: DEBIT/CREDIT 1d, AMEX 3d, INTERNATIONAL 3d, OTHER 2d
 export const INITIAL_SETTLEMENT: SettlementConfig = {
   debitDays: 1,
   creditDays: 1,
   amexDays: 3,
-  internationalDays: 5,
+  internationalDays: 3,
   otherDays: 2,
   dayType: 'BUSINESS_DAYS',
   cutoffTime: '23:00',

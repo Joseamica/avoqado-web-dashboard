@@ -20,7 +20,7 @@ export function generateJsonTemplate(): string {
       debitDays: 1,
       creditDays: 1,
       amexDays: 3,
-      internationalDays: 5,
+      internationalDays: 3,
       otherDays: 2,
       dayType: 'BUSINESS_DAYS',
     },

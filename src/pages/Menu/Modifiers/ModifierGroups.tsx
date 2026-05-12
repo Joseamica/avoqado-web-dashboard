@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown, Link2, MoreHorizontal, Pencil, Sparkles, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 // Legacy api removed; use typed services instead
@@ -43,12 +43,11 @@ import { includesNormalized } from '@/lib/utils'
 export default function ModifierGroups() {
   const { t } = useTranslation('menu')
   const { venueId } = useCurrentVenue()
-  const location = useLocation()
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const [createModifier, setCreateModifier] = useState(false)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [modifierGroupToDelete, setModifierGroupToDelete] = useState<string | null>(null)
 
@@ -217,7 +216,7 @@ export default function ModifierGroups() {
               <DropdownMenuContent align="end" className="w-56" sideOffset={5}>
                 <DropdownMenuLabel>{t('modifiers.actions.title')}</DropdownMenuLabel>
                 <PermissionGate permission="menu:update">
-                  <DropdownMenuItem onClick={() => navigate(`${row.original.id}`)}>
+                  <DropdownMenuItem onClick={() => setEditingGroupId(row.original.id)}>
                     <Pencil className="h-4 w-4 mr-2" />
                     {t('modifiers.actions.edit')}
                   </DropdownMenuItem>
@@ -343,6 +342,24 @@ export default function ModifierGroups() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!editingGroupId} onOpenChange={open => !open && setEditingGroupId(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t('modifiers.createGroup.editTitle')}</DialogTitle>
+            <DialogDescription>{t('modifiers.createGroup.editDesc')}</DialogDescription>
+          </DialogHeader>
+          {editingGroupId && (
+            <CreateModifierGroupWizard
+              key={editingGroupId}
+              mode="edit"
+              modifierGroupId={editingGroupId}
+              onCancel={() => setEditingGroupId(null)}
+              onSuccess={() => setEditingGroupId(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       <DataTable
         data={modifierGroups || []}
         rowCount={modifierGroups?.length}
@@ -352,10 +369,7 @@ export default function ModifierGroups() {
         searchPlaceholder={t('modifiers.searchPlaceholder')}
         onSearch={handleSearch}
         tableId="modifier-groups:list"
-        clickableRow={row => ({
-          to: row.id,
-          state: { from: location.pathname },
-        })}
+        onRowClick={row => setEditingGroupId(row.id)}
         pagination={pagination}
         setPagination={setPagination}
       />

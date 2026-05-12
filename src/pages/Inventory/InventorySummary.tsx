@@ -11,9 +11,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { FilterPill, CheckboxFilterContent, AmountFilterContent, type AmountFilter } from '@/components/filters'
 import { YieldStatusHoverCard } from './components/YieldStatusHoverCard'
+import { AdjustStockDialog } from './components/AdjustStockDialog'
+import { PermissionGate } from '@/components/PermissionGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { getProducts } from '@/services/menu.service'
-import { productInventoryApi as inventoryApi } from '@/services/inventory.service'
+import { productInventoryApi as inventoryApi, rawMaterialsApi, type RawMaterial } from '@/services/inventory.service'
 import { supplierService, type Supplier } from '@/services/supplier.service'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -21,6 +23,7 @@ import { type ColumnDef } from '@tanstack/react-table'
 import { AlertTriangle, ChevronDown, Download, HelpCircle, MoreHorizontal, Printer, Search, Star, Upload, X } from 'lucide-react'
 import { useStockAdjustmentTour } from '@/hooks/useStockAdjustmentTour'
 import { useInventoryWelcomeTour } from '@/hooks/useInventoryWelcomeTour'
+import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -28,29 +31,23 @@ import { useToast } from '@/hooks/use-toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import { InventoryLabelModal } from './components/InventoryLabelModal'
 import { includesNormalized } from '@/lib/utils'
-
-// Type for product data
-interface InventoryProduct {
-  id: string
-  name: string
-  sku?: string | null
-  price: number | string
-  cost?: number | string | null
-  trackInventory: boolean
-  inventoryMethod?: 'QUANTITY' | 'RECIPE' | null
-  availableQuantity?: number | string | null
-  inventory?: {
-    minimumStock?: number | null
-  } | null
-}
+import { inventoryKeys, invalidateStockOverviewQueries } from '@/lib/queryKeys/inventory'
+import {
+  isProductRow,
+  productToStockOverviewRow,
+  rawMaterialToStockOverviewRow,
+  type InventoryProduct,
+  type StockOverviewRow,
+} from './types/stock-overview'
 
 export default function InventorySummary() {
   const { t: _t } = useTranslation() // Prefixed with _ to mark as intentionally unused (will be used for i18n later)
   const { t: tInventory } = useTranslation('inventory')
   const navigate = useNavigate()
-  const { venueId } = useCurrentVenue()
+  const { venueId, fullBasePath } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { getShortLabel } = useUnitTranslation()
 
   // Interactive onboarding tour
   const { start: startStockAdjustmentTour } = useStockAdjustmentTour()
@@ -67,13 +64,30 @@ export default function InventorySummary() {
   const [priceFilter, setPriceFilter] = useState<AmountFilter | null>(null)
   const [activeTab, setActiveTab] = useState('physical')
   const [labelModalOpen, setLabelModalOpen] = useState(false)
+  const [adjustIngredient, setAdjustIngredient] = useState<RawMaterial | null>(null)
 
   // Fetch real products with inventory data
-  const { data: products, isLoading } = useQuery({
-    queryKey: ['products', venueId, 'inventory-summary'],
+  const { data: products, isLoading: isLoadingProducts } = useQuery({
+    queryKey: inventoryKeys.productsSummary(venueId ?? ''),
     queryFn: () => getProducts(venueId!),
     enabled: !!venueId,
   })
+
+  // Fetch raw materials (ingredients) to merge into the physical tab
+  const { data: rawMaterialsResponse, isLoading: isLoadingRawMaterials } = useQuery({
+    queryKey: inventoryKeys.rawMaterials(venueId ?? ''),
+    queryFn: () => rawMaterialsApi.getAll(venueId!, { active: true }),
+    enabled: !!venueId,
+  })
+
+  const rawMaterials: RawMaterial[] = useMemo(() => {
+    const payload = (rawMaterialsResponse as any)?.data
+    if (Array.isArray(payload)) return payload
+    if (Array.isArray(payload?.data)) return payload.data
+    return []
+  }, [rawMaterialsResponse])
+
+  const isLoading = isLoadingProducts || isLoadingRawMaterials
 
   // Stock Adjustment Mutation
   const adjustStockMutation = useMutation({
@@ -124,9 +138,12 @@ export default function InventorySummary() {
         supplier,
       })
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       toast({ title: 'Stock actualizado correctamente' })
-      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+      invalidateStockOverviewQueries(queryClient, venueId!, {
+        kind: 'product',
+        id: variables.productId,
+      })
     },
     onError: () => {
       toast({ title: 'Error al actualizar stock', description: 'Inténtalo de nuevo', variant: 'destructive' })
@@ -171,40 +188,68 @@ export default function InventorySummary() {
     return `${operators[filter.operator]} $${filter.value}`
   }
 
-  // Filter products
-  const filteredProducts = useMemo(() => {
+  // Normalize products into StockOverviewRow shape (physical + recipe both flow through here)
+  const productPhysicalRows = useMemo<StockOverviewRow[]>(() => {
     return (
-      products?.filter((product: InventoryProduct) => {
-        // 1. Search Filter (debounced)
-        const matchesSearch =
-          includesNormalized(product.name ?? '', debouncedSearchTerm) ||
-          includesNormalized(product.sku ?? '', debouncedSearchTerm)
+      products
+        ?.filter(
+          (p: InventoryProduct) =>
+            p.inventoryMethod === 'QUANTITY' || (!p.inventoryMethod && p.trackInventory),
+        )
+        .map(productToStockOverviewRow) ?? []
+    )
+  }, [products])
 
-        // 2. Stock Status Filter (array-based)
-        let matchesStockFilter = true
-        const stock = Number(product.availableQuantity || 0)
-        const minStock = Number(product.inventory?.minimumStock || 0)
+  // Normalize raw materials into the same row shape
+  const ingredientRows = useMemo<StockOverviewRow[]>(
+    () => rawMaterials.map(rawMaterialToStockOverviewRow),
+    [rawMaterials],
+  )
 
-        if (stockFilter.includes('low_stock')) {
-          matchesStockFilter = product.trackInventory && stock <= minStock
-        }
+  // Recipe items stay as raw InventoryProduct in their own tab (calculated, info-only)
+  const recipeItems = useMemo<InventoryProduct[]>(
+    () =>
+      products?.filter((p: InventoryProduct) => p.inventoryMethod === 'RECIPE') ?? [],
+    [products],
+  )
 
-        // 3. Disponible (available quantity) Filter
-        let matchesDisponibleFilter = true
-        if (disponibleFilter.length > 0) {
-          matchesDisponibleFilter = disponibleFilter.some(filter => {
-            if (filter === 'sin_stock') return stock === 0
-            if (filter === '1_10') return stock >= 1 && stock <= 10
-            if (filter === '11_50') return stock >= 11 && stock <= 50
-            if (filter === '50_plus') return stock > 50
-            return true
-          })
-        }
+  // Apply filters/search uniformly across product + ingredient rows
+  const filteredPhysicalRows = useMemo<StockOverviewRow[]>(() => {
+    const merged = [...productPhysicalRows, ...ingredientRows]
+    return merged.filter(row => {
+      // 1. Search (name or SKU)
+      const matchesSearch =
+        includesNormalized(row.name, debouncedSearchTerm) ||
+        includesNormalized(row.sku ?? '', debouncedSearchTerm)
 
-        // 4. Price Filter
-        let matchesPriceFilter = true
-        const price = Number(product.price || 0)
-        if (priceFilter && priceFilter.value !== null) {
+      // 2. Stock status (low-stock)
+      let matchesStockFilter = true
+      if (stockFilter.includes('low_stock')) {
+        matchesStockFilter =
+          row.minStock != null && row.stock <= row.minStock
+      }
+
+      // 3. Disponible quantity
+      let matchesDisponibleFilter = true
+      if (disponibleFilter.length > 0) {
+        const stock = row.stock
+        matchesDisponibleFilter = disponibleFilter.some(filter => {
+          if (filter === 'sin_stock') return stock === 0
+          if (filter === '1_10') return stock >= 1 && stock <= 10
+          if (filter === '11_50') return stock >= 11 && stock <= 50
+          if (filter === '50_plus') return stock > 50
+          return true
+        })
+      }
+
+      // 4. Price filter — only applies to products (ingredients have no price)
+      let matchesPriceFilter = true
+      if (priceFilter && priceFilter.value !== null) {
+        if (row.price == null) {
+          // Skip ingredient rows when a price filter is active
+          matchesPriceFilter = false
+        } else {
+          const price = row.price
           switch (priceFilter.operator) {
             case 'gt':
               matchesPriceFilter = price > priceFilter.value
@@ -216,48 +261,62 @@ export default function InventorySummary() {
               matchesPriceFilter = price === priceFilter.value
               break
             case 'between':
-              matchesPriceFilter = price >= priceFilter.value && price <= (priceFilter.value2 ?? priceFilter.value)
+              matchesPriceFilter =
+                price >= priceFilter.value && price <= (priceFilter.value2 ?? priceFilter.value)
               break
           }
         }
+      }
 
-        return matchesSearch && matchesStockFilter && matchesDisponibleFilter && matchesPriceFilter
-      }) || []
-    )
-  }, [products, debouncedSearchTerm, stockFilter, disponibleFilter, priceFilter])
+      return matchesSearch && matchesStockFilter && matchesDisponibleFilter && matchesPriceFilter
+    })
+  }, [productPhysicalRows, ingredientRows, debouncedSearchTerm, stockFilter, disponibleFilter, priceFilter])
 
-  // Split into physical (countable) and recipe (calculated)
-  const physicalItems = useMemo(
-    () => filteredProducts.filter((p: InventoryProduct) => p.inventoryMethod === 'QUANTITY' || (!p.inventoryMethod && p.trackInventory)),
-    [filteredProducts],
+  // Filter recipes by search only (other filters are irrelevant for calculated yields)
+  const filteredRecipeItems = useMemo<InventoryProduct[]>(
+    () =>
+      recipeItems.filter(
+        p =>
+          includesNormalized(p.name ?? '', debouncedSearchTerm) ||
+          includesNormalized(p.sku ?? '', debouncedSearchTerm),
+      ),
+    [recipeItems, debouncedSearchTerm],
   )
 
-  const recipeItems = useMemo(() => filteredProducts.filter((p: InventoryProduct) => p.inventoryMethod === 'RECIPE'), [filteredProducts])
-
-  // Column definitions for physical items
-  const physicalColumns = useMemo<ColumnDef<InventoryProduct>[]>(
+  // Column definitions for unified physical tab (products + ingredients)
+  const physicalColumns = useMemo<ColumnDef<StockOverviewRow>[]>(
     () => [
       {
         accessorKey: 'name',
         header: 'Artículo',
         cell: ({ row }) => {
           const item = row.original
-          const stock = Number(item.availableQuantity || 0)
-          const minStock = Number(item.inventory?.minimumStock || 0)
-          const isLowStock = item.trackInventory && stock <= minStock
+          const isLowStock = item.minStock != null && item.stock <= item.minStock
 
           return (
-            <div className="flex flex-col">
-              <span className="font-medium">{item.name}</span>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{item.name}</span>
+                <Badge
+                  variant="outline"
+                  className={`text-[10px] h-4 px-1.5 font-normal ${
+                    item.kind === 'ingredient'
+                      ? 'border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-300'
+                      : 'border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-300'
+                  }`}
+                >
+                  {item.kind === 'ingredient' ? 'Ingrediente' : 'Producto'}
+                </Badge>
+              </div>
               {isLowStock && (
-                <span className="text-xs text-amber-600 flex items-center font-semibold mt-1">
+                <span className="text-xs text-amber-600 flex items-center font-semibold">
                   <AlertTriangle className="w-3 h-3 mr-1" /> Stock Bajo
                 </span>
               )}
             </div>
           )
         },
-        size: 300,
+        size: 320,
       },
       {
         accessorKey: 'sku',
@@ -269,16 +328,13 @@ export default function InventorySummary() {
         header: 'Disponible',
         cell: ({ row }) => {
           const item = row.original
-          const stock = Number(item.availableQuantity || 0)
-          const minStock = Number(item.inventory?.minimumStock || 0)
-          const isLowStock = item.trackInventory && stock <= minStock
-
-          return item.trackInventory ? (
+          const isLowStock = item.minStock != null && item.stock <= item.minStock
+          const unitSuffix = item.unitLabel ? ` ${getShortLabel(item.unitLabel)}` : ''
+          return (
             <Badge variant={isLowStock ? 'destructive' : 'secondary'} className="min-w-[60px] justify-center">
-              {stock}
+              {item.stock}
+              {unitSuffix}
             </Badge>
-          ) : (
-            <span className="text-muted-foreground text-sm italic">No rastreado</span>
           )
         },
       },
@@ -286,9 +342,8 @@ export default function InventorySummary() {
         id: 'minimo',
         header: 'Mínimo',
         cell: ({ row }) => {
-          const item = row.original
-          const minStock = Number(item.inventory?.minimumStock || 0)
-          return item.trackInventory ? minStock : '-'
+          const min = row.original.minStock
+          return min != null ? min : '-'
         },
       },
       {
@@ -302,17 +357,16 @@ export default function InventorySummary() {
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className="max-w-xs">
-                    Función disponible para Ingredientes (no productos terminados). Los productos terminados no se compran directamente -
-                    solo se compran sus ingredientes.
+                    Cantidad confirmada en órdenes de compra en tránsito. Solo aplica a ingredientes — los productos terminados no se compran directamente.
                   </p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
         ),
-        cell: () => (
+        cell: ({ row }) => (
           <Badge variant="secondary" className="min-w-[60px] justify-center bg-muted/50">
-            0
+            {row.original.confirmedStock ?? 0}
           </Badge>
         ),
       },
@@ -321,26 +375,61 @@ export default function InventorySummary() {
         header: 'Existencias físicas',
         cell: ({ row }) => {
           const item = row.original
-          const stock = Number(item.availableQuantity || 0)
 
-          return item.trackInventory ? (
-            <StockEditPopover
-              productId={item.id}
-              currentStock={stock}
-              defaultUnitCost={Number(item.cost) || undefined}
-              onSave={(type, quantity, reason, unitCost, supplier) =>
-                adjustStockMutation.mutate({ productId: item.id, type, quantity, reason, unitCost, supplier })
-              }
-            />
-          ) : (
-            '-'
+          if (isProductRow(item)) {
+            const product = item.source
+            return (
+              <PermissionGate
+                permission="inventory:adjust"
+                fallback={<span className="text-muted-foreground">{item.stock}</span>}
+              >
+                <StockEditPopover
+                  productId={product.id}
+                  currentStock={item.stock}
+                  defaultUnitCost={item.cost ?? undefined}
+                  onSave={(type, quantity, reason, unitCost, supplier) =>
+                    adjustStockMutation.mutate({ productId: product.id, type, quantity, reason, unitCost, supplier })
+                  }
+                />
+              </PermissionGate>
+            )
+          }
+
+          // Ingredient row → open the dialog
+          const rawMaterial = (item as StockOverviewRow & { source: RawMaterial }).source
+          return (
+            <PermissionGate
+              permission="inventory:adjust"
+              fallback={<span className="text-muted-foreground">{item.stock}</span>}
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 min-w-[80px] justify-between"
+                onClick={e => {
+                  e.stopPropagation()
+                  setAdjustIngredient(rawMaterial)
+                }}
+              >
+                {item.stock}
+                {item.unitLabel ? ` ${getShortLabel(item.unitLabel)}` : ''}
+                <ChevronDown className="h-3 w-3 opacity-50 ml-1" />
+              </Button>
+            </PermissionGate>
           )
         },
       },
       {
-        accessorKey: 'price',
+        id: 'price',
         header: () => <span className="block text-right">Precio</span>,
-        cell: ({ row }) => <span className="block text-right">${Number(row.original.price).toFixed(2)}</span>,
+        cell: ({ row }) => {
+          const price = row.original.price
+          return (
+            <span className="block text-right">
+              {price != null ? `$${price.toFixed(2)}` : '-'}
+            </span>
+          )
+        },
       },
       {
         id: 'actions',
@@ -373,7 +462,7 @@ export default function InventorySummary() {
         size: 50,
       },
     ],
-    [adjustStockMutation],
+    [adjustStockMutation, getShortLabel],
   )
 
   // Column definitions for recipe items
@@ -495,8 +584,8 @@ export default function InventorySummary() {
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              Artículos Contables
-              <span className="ml-1.5 text-xs opacity-60">{physicalItems.length}</span>
+              Artículos e Ingredientes
+              <span className="ml-1.5 text-xs opacity-60">{filteredPhysicalRows.length}</span>
               {activeTab === 'physical' && (
                 <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
               )}
@@ -510,7 +599,7 @@ export default function InventorySummary() {
               }`}
             >
               Basados en Receta
-              <span className="ml-1.5 text-xs opacity-60">{recipeItems.length}</span>
+              <span className="ml-1.5 text-xs opacity-60">{filteredRecipeItems.length}</span>
               {activeTab === 'recipes' && (
                 <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
               )}
@@ -640,24 +729,27 @@ export default function InventorySummary() {
 
       <TabsContent value="physical" className="mt-4">
         <DataTable
-          data={physicalItems}
-          rowCount={physicalItems.length}
+          data={filteredPhysicalRows}
+          rowCount={filteredPhysicalRows.length}
           columns={physicalColumns}
           isLoading={isLoading}
           enableSearch={false}
           showColumnCustomizer={false}
-          tableId="inventory:physical"
+          tableId="inventory:mixed"
         />
       </TabsContent>
       <TabsContent value="recipes" className="mt-4">
         <DataTable
-          data={recipeItems}
-          rowCount={recipeItems.length}
+          data={filteredRecipeItems}
+          rowCount={filteredRecipeItems.length}
           columns={recipeColumns}
           isLoading={isLoading}
           enableSearch={false}
           showColumnCustomizer={false}
           tableId="inventory:recipes"
+          onRowClick={row => {
+            navigate(`${fullBasePath}/inventory/recipes?productId=${row.id}`)
+          }}
         />
       </TabsContent>
 
@@ -670,6 +762,14 @@ export default function InventorySummary() {
           venueId={venueId}
         />
       )}
+
+      <AdjustStockDialog
+        open={!!adjustIngredient}
+        onOpenChange={open => {
+          if (!open) setAdjustIngredient(null)
+        }}
+        rawMaterial={adjustIngredient}
+      />
     </Tabs>
   )
 }
@@ -773,7 +873,13 @@ function StockEditPopover({
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <Button data-tour="stock-edit-trigger" variant="outline" size="sm" className="h-8 w-20 justify-between">
+        <Button
+          data-tour="stock-edit-trigger"
+          data-stock-kind="product"
+          variant="outline"
+          size="sm"
+          className="h-8 w-20 justify-between"
+        >
           {currentStock}
           <ChevronDown className="h-3 w-3 opacity-50" />
         </Button>
