@@ -1,4 +1,3 @@
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -9,6 +8,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { FontPicker } from './components/FontPicker'
+import { fontFamilyValue, loadFontPreview } from './font-loader'
 
 const BUTTON_SHAPES = ['rounded', 'square', 'pill'] as const
 type ButtonShape = (typeof BUTTON_SHAPES)[number]
@@ -57,6 +58,13 @@ export default function PaymentLinkBranding() {
       setDraft(branding)
     }
   }, [branding, dirty])
+
+  // Preload the font currently applied to the preview so the @font-face is
+  // available the moment the user lands on the page (avoids a brief flash
+  // of system-ui in the preview card + picker trigger).
+  useEffect(() => {
+    if (draft.fontFamily) loadFontPreview(draft.fontFamily)
+  }, [draft.fontFamily])
 
   const update = <K extends keyof PaymentLinkBranding>(key: K, value: PaymentLinkBranding[K]) => {
     setDraft(prev => ({ ...prev, [key]: value }))
@@ -201,15 +209,13 @@ export default function PaymentLinkBranding() {
 
             {/* ── Font ────────────────────────────────────── */}
             <section className="space-y-3">
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold">{t('branding.font')}</h3>
-                <Badge variant="outline" className="text-[10px] h-4 px-1.5">
-                  Muy pronto
-                </Badge>
-              </div>
-              <div className="rounded-xl border border-input bg-muted/30 p-4 opacity-50">
-                <span className="text-sm text-muted-foreground">DM Sans</span>
-              </div>
+              <h3 className="font-semibold">{t('branding.font')}</h3>
+              <p className="text-xs text-muted-foreground -mt-1">
+                {t('branding.fontHint', {
+                  defaultValue: '40 fuentes auto-hostadas. Solo se descarga la que elijas.',
+                })}
+              </p>
+              <FontPicker value={draft.fontFamily} onChange={v => update('fontFamily', v)} />
             </section>
 
             <hr className="border-border" />
@@ -238,7 +244,10 @@ export default function PaymentLinkBranding() {
             <div className="sticky top-24 space-y-6">
               <p className="text-sm font-medium text-muted-foreground text-center">{t('branding.buttonPreview')}</p>
 
-              <div className="rounded-2xl border border-input bg-muted/30 p-8 flex flex-col items-center gap-6">
+              <div
+                className="rounded-2xl border border-input bg-muted/30 p-8 flex flex-col items-center gap-6"
+                style={{ fontFamily: fontFamilyValue(draft.fontFamily) }}
+              >
                 <div className="w-full max-w-[240px] rounded-xl border border-input bg-card overflow-hidden shadow-sm">
                   {draft.showImage && (
                     <div className="h-32 bg-muted flex items-center justify-center">

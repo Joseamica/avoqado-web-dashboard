@@ -170,6 +170,9 @@ export interface PaymentLinkBranding {
   showLogo: boolean
   buttonColor: string
   buttonShape: 'rounded' | 'square' | 'pill'
+  /** One of the 40 whitelisted fonts — see payment-link-fonts.ts. Server
+   *  validates with a Zod enum so arbitrary values can't slip through. */
+  fontFamily: string
   showImage: boolean
   showTitle: boolean
   showPrice: boolean
@@ -179,6 +182,7 @@ export const DEFAULT_PAYMENT_LINK_BRANDING: PaymentLinkBranding = {
   showLogo: true,
   buttonColor: '#006aff',
   buttonShape: 'rounded',
+  fontFamily: 'DM Sans',
   showImage: true,
   showTitle: true,
   showPrice: true,
