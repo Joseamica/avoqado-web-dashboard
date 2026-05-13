@@ -22,7 +22,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { AlertCircle, ArrowLeft, CheckCircle2, ExternalLink, Eye, EyeOff, Info, Loader2, Sparkles } from 'lucide-react'
+import { AlertCircle, AlertTriangle, ArrowLeft, CheckCircle2, ExternalLink, Eye, EyeOff, Info, Loader2, Sparkles } from 'lucide-react'
 
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Button } from '@/components/ui/button'
@@ -703,6 +703,7 @@ export function EcommerceMerchantWizard({ open, onClose, venueId, merchant }: Pr
         setProviderId(null)
         setForm(emptyForm)
       }
+      setOverrideDuplicate(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, merchant?.id])
@@ -734,6 +735,38 @@ export function EcommerceMerchantWizard({ open, onClose, venueId, merchant }: Pr
       // the legacy /ecommerce-merchants admin page.
       ecommerceMerchantAPI.createStripeOnboardingLink(venueId, merchantId, businessType, window.location.pathname),
   })
+
+  // Deactivate-on-connect: when the operator is about to onboard a second
+  // Stripe Connect, the existing one MUST be deactivated first. Stripe doesn't
+  // support routing the same venue's charges through two connected accounts —
+  // and Avoqado's reservation/payment-link pickers fall back to "newest active"
+  // which silently changes where money lands.
+  const deactivateMutation = useMutation({
+    mutationFn: (merchantId: string) => ecommerceMerchantAPI.toggleStatus(venueId, merchantId, false),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ecommerce-merchants-wizard', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['ecommerce-merchants', venueId] })
+    },
+  })
+
+  // Existing merchants for this venue — only relevant when opening the wizard
+  // to create a NEW Stripe Connect channel (not when resuming an existing one
+  // or editing a generic provider, where the duplicate-channel concern doesn't
+  // apply).
+  const { data: existingMerchants = [] } = useQuery({
+    queryKey: ['ecommerce-merchants-wizard', venueId],
+    queryFn: () => ecommerceMerchantAPI.listByVenue(venueId),
+    enabled: open && !isResume,
+  })
+  const existingActiveStripe = useMemo(
+    () =>
+      existingMerchants.find(
+        m => m.active && m.provider?.code === 'STRIPE_CONNECT' && (m.id !== merchant?.id),
+      ) ?? null,
+    [existingMerchants, merchant?.id],
+  )
+  const [overrideDuplicate, setOverrideDuplicate] = useState(false)
+  const blockingDuplicate = !!existingActiveStripe && isStripe && step === 2 && !isResume && !overrideDuplicate
 
   const isSubmittingStripe = createMutation.isPending || stripeOnboardMutation.isPending
   const isContinuingStripe = stripeOnboardMutation.isPending
@@ -849,7 +882,60 @@ export function EcommerceMerchantWizard({ open, onClose, venueId, merchant }: Pr
       )
     }
     if (isStripe) {
-      return <Step2Stripe form={form} setForm={setForm} onBack={() => setStep(1)} showBack={!isResume} />
+      return (
+        <div className="space-y-4">
+          {existingActiveStripe && !isResume && (
+            <Alert variant="default" className="border-amber-500/40 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-950/40">
+              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <AlertTitle className="text-amber-900 dark:text-amber-100">
+                Ya tienes Stripe Connect conectado
+              </AlertTitle>
+              <AlertDescription className="space-y-3 text-amber-900 dark:text-amber-100">
+                <p>
+                  El canal <span className="font-semibold">"{existingActiveStripe.channelName}"</span> está
+                  activo. Stripe no permite que un mismo comercio cobre por dos cuentas Connect a la vez —
+                  desactiva la actual antes de onboardear una nueva. Los charges ya procesados siguen
+                  conectados a la cuenta original (refunds incluidos), solo se pausa el routing para nuevos
+                  cobros.
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        await deactivateMutation.mutateAsync(existingActiveStripe.id)
+                        toast({
+                          title: 'Canal desactivado',
+                          description: `${existingActiveStripe.channelName} ya no recibirá cobros nuevos.`,
+                        })
+                      } catch (err: any) {
+                        toast({
+                          title: t('common:error', 'Error'),
+                          description: err?.response?.data?.error || err?.message || 'No se pudo desactivar el canal',
+                          variant: 'destructive',
+                        })
+                      }
+                    }}
+                    disabled={deactivateMutation.isPending}
+                  >
+                    {deactivateMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" /> Desactivando…
+                      </>
+                    ) : (
+                      `Desactivar "${existingActiveStripe.channelName}"`
+                    )}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setOverrideDuplicate(true)}>
+                    Continuar de todos modos
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+          <Step2Stripe form={form} setForm={setForm} onBack={() => setStep(1)} showBack={!isResume} />
+        </div>
+      )
     }
     if (selectedProvider) {
       return (
@@ -927,7 +1013,9 @@ export function EcommerceMerchantWizard({ open, onClose, venueId, merchant }: Pr
       return (
         <Button
           onClick={handleStripeSubmit}
-          disabled={isSubmittingStripe || !form.channelName.trim() || !form.contactEmail.trim()}
+          disabled={
+            isSubmittingStripe || !form.channelName.trim() || !form.contactEmail.trim() || blockingDuplicate
+          }
           data-tour="ecommerce-wizard-connect-stripe"
         >
           {isSubmittingStripe ? (
