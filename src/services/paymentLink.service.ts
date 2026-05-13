@@ -162,6 +162,36 @@ export const paymentLinkService = {
     const response = await api.put(`/api/v1/dashboard/venues/${venueId}/payment-links/branding/config`, branding)
     return response.data?.data ?? response.data
   },
+
+  async getSettings(venueId: string): Promise<PaymentLinkSettings> {
+    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payment-links/settings`)
+    return response.data?.data ?? response.data
+  },
+
+  async updateSettings(venueId: string, settings: Partial<PaymentLinkSettings>): Promise<PaymentLinkSettings> {
+    const response = await api.patch(`/api/v1/dashboard/venues/${venueId}/payment-links/settings`, settings)
+    return response.data?.data ?? response.data
+  },
+}
+
+/** Per-venue defaults applied to new payment links + admin notification
+ *  preferences. Backs the "Ajustes generales" page. Per-link config still
+ *  lives on PaymentLink itself for cases where a venue overrides defaults
+ *  at creation time. */
+export interface PaymentLinkSettings {
+  notifyOnPaid: boolean
+  defaultTippingConfig: TippingConfig | null
+  defaultCustomFields: CustomFieldDefinition[] | null
+  customerNotesEnabled: boolean
+  merchantPolicies: string | null
+}
+
+export const DEFAULT_PAYMENT_LINK_SETTINGS: PaymentLinkSettings = {
+  notifyOnPaid: false,
+  defaultTippingConfig: null,
+  defaultCustomFields: null,
+  customerNotesEnabled: false,
+  merchantPolicies: null,
 }
 
 /** Per-venue branding for the public payment-link checkout. Mirrors the
