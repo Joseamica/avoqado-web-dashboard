@@ -5,7 +5,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
-import { HelpCircle, Info } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, HelpCircle, Info } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -18,6 +19,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useReservationSettingsTour } from '@/hooks/useReservationSettingsTour'
 import { cn } from '@/lib/utils'
 import reservationService from '@/services/reservation.service'
+import { ecommerceMerchantAPI } from '@/services/ecommerceMerchant.service'
 import type { OperatingHours } from '@/types/reservation'
 
 // ----------------------------------------------------------------------------
@@ -469,7 +471,7 @@ const settingsSchema = z.object({
 type SettingsFormData = z.infer<typeof settingsSchema>
 
 export default function ReservationSettings() {
-	const { venueId } = useCurrentVenue()
+	const { venueId, fullBasePath } = useCurrentVenue()
 	const { toast } = useToast()
 	const queryClient = useQueryClient()
 	const { t } = useTranslation('reservations')
@@ -479,6 +481,21 @@ export default function ReservationSettings() {
 		queryKey: ['reservation-settings', venueId],
 		queryFn: () => reservationService.getSettings(venueId),
 	})
+
+	// Detect whether the venue has a working Stripe Connect channel. Reservation
+	// deposits and payment links share the same EcommerceMerchant rail; without
+	// one chargesEnabled+STRIPE_CONNECT row the "Prepago obligatorio" / "Opcional"
+	// options can be selected but the customer can't actually be charged online
+	// — the booking falls back to "pay at venue". Surface this as an inline
+	// warning so operators know to onboard Stripe first.
+	const { data: ecommerceMerchants = [] } = useQuery({
+		queryKey: ['ecommerce-merchants', venueId, 'reservation-settings'],
+		queryFn: () => ecommerceMerchantAPI.listByVenue(venueId),
+		enabled: !!venueId,
+	})
+	const hasActiveStripeConnect = ecommerceMerchants.some(
+		m => m.active && m.provider?.code === 'STRIPE_CONNECT' && (m.chargesEnabled || m.onboardingStatus === 'COMPLETED'),
+	)
 
 	const {
 		handleSubmit,
@@ -886,6 +903,45 @@ export default function ReservationSettings() {
 								{t('settings.payments.sectionSubtitle')}
 							</p>
 						</div>
+						{/* Stripe Connect status — both `required` and `optional` presets
+						    need a working Stripe channel for the customer to actually pay
+						    online. Without it the booking falls back to "owesAtVenue"
+						    semantics (spot held, charge collected in person), which is
+						    rarely what the operator expects when they pick "Prepago obligatorio".
+						    Show a warning when missing, and a positive confirmation when
+						    connected — so the operator always knows the state. */}
+						{(formValues.appointmentUpfrontDefault !== 'at_venue' ||
+							formValues.classUpfrontDefault !== 'at_venue') &&
+							(hasActiveStripeConnect ? (
+								<div className="flex items-start gap-3 rounded-md border border-emerald-500/40 bg-emerald-50 p-3 text-sm dark:border-emerald-500/30 dark:bg-emerald-950/40">
+									<CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+									<div className="flex flex-1 flex-wrap items-center justify-between gap-2">
+										<p className="text-emerald-900 dark:text-emerald-100">
+											Stripe Connect está activo. Los prepagos de tus reservaciones se cobrarán en línea
+											a tu cuenta.
+										</p>
+										<Link
+											to={`${fullBasePath}/edit/integrations`}
+											className="font-medium text-emerald-700 underline-offset-4 hover:underline dark:text-emerald-300"
+										>
+											Administrar
+										</Link>
+									</div>
+								</div>
+							) : (
+								<div className="flex items-start gap-3 rounded-md border border-amber-500/40 bg-amber-50 p-3 text-sm dark:border-amber-500/30 dark:bg-amber-950/40">
+									<AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+									<div className="flex-1 space-y-2">
+										<p className="text-amber-900 dark:text-amber-100">
+											Para cobrar prepagos en línea necesitas conectar Stripe Connect. Sin él, las
+											reservaciones se confirman pero el cliente paga al llegar al local.
+										</p>
+										<Button asChild size="sm" variant="outline" className="h-8">
+											<Link to={`${fullBasePath}/edit/integrations`}>Conectar Stripe</Link>
+										</Button>
+									</div>
+								</div>
+							))}
 						<Card className="border-input">
 							<div className="divide-y divide-input">
 								<SettingRow

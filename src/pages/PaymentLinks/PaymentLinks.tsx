@@ -103,10 +103,21 @@ export default function PaymentLinks() {
   const isEcommerceExplicitlyMissing = isEcommerceCheckSuccess && ecommerceMerchants.length === 0
   const [setupWizardOpen, setSetupWizardOpen] = useState(false)
 
+  // Single-use links stay status=ACTIVE in the DB even after being paid —
+  // the public checkout rejects them via `!isReusable && paymentCount > 0`.
+  // Surface this as a synthetic "used" bucket so the Activas tab doesn't
+  // mix live + spent links in the same view.
+  const isUsedUp = (l: PaymentLink) => l.status === 'ACTIVE' && !l.isReusable && (l.paymentCount || 0) > 0
+
   const links = useMemo(() => {
     let result = allLinks
-    // Status tab filter
-    if (activeStatusTab !== 'all') {
+    // Status tab filter — `used` is a derived state, all others map to the
+    // backend status enum directly. Activas excludes spent single-use links.
+    if (activeStatusTab === 'used') {
+      result = result.filter(isUsedUp)
+    } else if (activeStatusTab === 'active') {
+      result = result.filter(l => l.status === 'ACTIVE' && !isUsedUp(l))
+    } else if (activeStatusTab !== 'all') {
       result = result.filter(l => l.status === activeStatusTab.toUpperCase())
     }
     // Client-side multi-status filter (API supports single status)
@@ -119,7 +130,8 @@ export default function PaymentLinks() {
   // Status tab counts
   const plStatusTabCounts = useMemo(() => ({
     all: allLinks.length,
-    active: allLinks.filter(l => l.status === 'ACTIVE').length,
+    active: allLinks.filter(l => l.status === 'ACTIVE' && !isUsedUp(l)).length,
+    used: allLinks.filter(isUsedUp).length,
     paused: allLinks.filter(l => l.status === 'PAUSED').length,
     expired: allLinks.filter(l => l.status === 'EXPIRED').length,
   }), [allLinks])
@@ -127,6 +139,7 @@ export default function PaymentLinks() {
   const plStatusTabs = useMemo<StatusTab[]>(() => [
     { value: 'all', label: t('statusTabs.all'), count: plStatusTabCounts.all },
     { value: 'active', label: t('statusTabs.active'), count: plStatusTabCounts.active },
+    { value: 'used', label: t('statusTabs.used', { defaultValue: 'Usadas' }), count: plStatusTabCounts.used },
     { value: 'paused', label: t('statusTabs.paused'), count: plStatusTabCounts.paused },
     { value: 'expired', label: t('statusTabs.expired'), count: plStatusTabCounts.expired },
   ], [t, plStatusTabCounts])
@@ -304,9 +317,22 @@ export default function PaymentLinks() {
       {
         accessorKey: 'status',
         header: t('list.columns.status'),
-        cell: ({ row }) => (
-          <Badge variant={statusBadgeVariant(row.original.status)}>{statusLabels[row.original.status] || row.original.status}</Badge>
-        ),
+        cell: ({ row }) => {
+          // Single-use links are stored as status=ACTIVE even after they've
+          // been paid (paymentCount>0). Without this distinction the
+          // dashboard showed "Activa" for a link that the customer-facing
+          // checkout rejects with "Esta liga ya fue utilizada" — confusing
+          // because the badge claims it's still live. Surface a dedicated
+          // "Usada" badge so the operator sees the link is consumed.
+          const isUsedUp =
+            row.original.status === 'ACTIVE' && !row.original.isReusable && (row.original.paymentCount || 0) > 0
+          if (isUsedUp) {
+            return <Badge variant="outline">{t('status.used', { defaultValue: 'Usada' })}</Badge>
+          }
+          return (
+            <Badge variant={statusBadgeVariant(row.original.status)}>{statusLabels[row.original.status] || row.original.status}</Badge>
+          )
+        },
       },
       {
         accessorKey: 'paymentCount',

@@ -28,11 +28,13 @@
     "paused": "Pausada",
     "expired": "Expirada",
     "archived": "Archivada",
+    "used": "Usada",
     "label": "Estado"
   },
   "statusTabs": {
     "all": "Todas",
     "active": "Activas",
+    "used": "Usadas",
     "paused": "Pausadas",
     "expired": "Expiradas"
   },
