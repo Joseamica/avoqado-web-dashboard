@@ -88,7 +88,7 @@ export default function PaymentLinkBranding() {
   })
 
   return (
-    <div className="p-4 bg-background text-foreground pb-32">
+    <div className="p-4 bg-background text-foreground">
       <div className="max-w-4xl">
         {/* Header */}
         <div className="mb-8 flex items-start justify-between gap-4">
@@ -96,28 +96,46 @@ export default function PaymentLinkBranding() {
             <h1 className="text-2xl font-bold tracking-tight">{t('branding.title')}</h1>
             <p className="text-muted-foreground mt-1">{t('branding.description')}</p>
           </div>
-          {/* Inline Save button — also pinned at the bottom for long pages. */}
-          <Button
-            type="button"
-            onClick={() => mutation.mutate()}
-            disabled={!dirty || mutation.isPending}
-            className="cursor-pointer"
-            data-tour="payment-link-branding-save"
-          >
-            {mutation.isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {t('branding.saving', { defaultValue: 'Guardando…' })}
-              </>
-            ) : !dirty ? (
-              <>
-                <Check className="h-4 w-4" />
-                {t('branding.saved', { defaultValue: 'Guardado' })}
-              </>
-            ) : (
-              t('branding.save', { defaultValue: 'Guardar cambios' })
+          {/* Top-right actions. Discard only shows when there are unsaved
+              changes — destructive action shouldn't be one click away when
+              nothing is at stake. */}
+          <div className="flex items-center gap-2">
+            {dirty && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (branding) setDraft(branding)
+                  setDirty(false)
+                }}
+                disabled={mutation.isPending}
+                className="cursor-pointer"
+              >
+                {t('branding.discard', { defaultValue: 'Descartar' })}
+              </Button>
             )}
-          </Button>
+            <Button
+              type="button"
+              onClick={() => mutation.mutate()}
+              disabled={!dirty || mutation.isPending}
+              className="cursor-pointer"
+              data-tour="payment-link-branding-save"
+            >
+              {mutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {t('branding.saving', { defaultValue: 'Guardando…' })}
+                </>
+              ) : !dirty ? (
+                <>
+                  <Check className="h-4 w-4" />
+                  {t('branding.saved', { defaultValue: 'Guardado' })}
+                </>
+              ) : (
+                t('branding.save', { defaultValue: 'Guardar cambios' })
+              )}
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
@@ -277,41 +295,6 @@ export default function PaymentLinkBranding() {
         </div>
       </div>
 
-      {/* Sticky save bar — pinned to the viewport so the action is always
-          reachable on long pages, with a "unsaved changes" hint. */}
-      {dirty && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-background/95 backdrop-blur px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
-          <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
-            <span className="text-sm text-muted-foreground">
-              {t('branding.unsaved', { defaultValue: 'Cambios sin guardar' })}
-            </span>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  if (branding) setDraft(branding)
-                  setDirty(false)
-                }}
-                disabled={mutation.isPending}
-                className="cursor-pointer"
-              >
-                {t('branding.discard', { defaultValue: 'Descartar' })}
-              </Button>
-              <Button type="button" onClick={() => mutation.mutate()} disabled={mutation.isPending} className="cursor-pointer">
-                {mutation.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {t('branding.saving', { defaultValue: 'Guardando…' })}
-                  </>
-                ) : (
-                  t('branding.save', { defaultValue: 'Guardar cambios' })
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
