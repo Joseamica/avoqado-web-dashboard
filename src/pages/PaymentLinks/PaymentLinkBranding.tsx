@@ -1,8 +1,13 @@
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { useState } from 'react'
+import { useToast } from '@/hooks/use-toast'
+import paymentLinkService, { DEFAULT_PAYMENT_LINK_BRANDING, type PaymentLinkBranding } from '@/services/paymentLink.service'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Check, Loader2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 const BUTTON_SHAPES = ['rounded', 'square', 'pill'] as const
@@ -25,22 +30,86 @@ const SHAPE_CLASSES: Record<ButtonShape, string> = {
 
 export default function PaymentLinkBranding() {
   const { t } = useTranslation('paymentLinks')
-  const { venue } = useCurrentVenue()
+  const { venue, venueId } = useCurrentVenue()
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
 
-  const [showLogo, setShowLogo] = useState(true)
-  const [buttonColor, setButtonColor] = useState('#006aff')
-  const [buttonShape, setButtonShape] = useState<ButtonShape>('rounded')
-  const [showImage, setShowImage] = useState(true)
-  const [showTitle, setShowTitle] = useState(true)
-  const [showPrice, setShowPrice] = useState(true)
+  // Load persisted branding. Backend always merges with defaults so the
+  // response shape is guaranteed — no nullable fields to handle here.
+  const { data: branding } = useQuery({
+    queryKey: ['payment-link-branding', venueId],
+    queryFn: () => paymentLinkService.getBranding(venueId),
+    enabled: !!venueId,
+    staleTime: 60_000,
+  })
+
+  // Local editable copy, hydrated from the server. `dirty` tracks whether
+  // the user has unsaved edits — Save button is disabled until something
+  // changes (Stripe Dashboard pattern).
+  const [draft, setDraft] = useState<PaymentLinkBranding>(DEFAULT_PAYMENT_LINK_BRANDING)
+  const [dirty, setDirty] = useState(false)
+
+  // Hydrate the draft once the server responds. If the user has already
+  // started editing (dirty=true) we keep their in-flight changes; otherwise
+  // we replace the draft so the UI reflects the latest persisted state.
+  useEffect(() => {
+    if (branding && !dirty) {
+      setDraft(branding)
+    }
+  }, [branding, dirty])
+
+  const update = <K extends keyof PaymentLinkBranding>(key: K, value: PaymentLinkBranding[K]) => {
+    setDraft(prev => ({ ...prev, [key]: value }))
+    setDirty(true)
+  }
+
+  const mutation = useMutation({
+    mutationFn: () => paymentLinkService.updateBranding(venueId, draft),
+    onSuccess: data => {
+      queryClient.setQueryData(['payment-link-branding', venueId], data)
+      setDirty(false)
+      toast({ title: t('branding.savedTitle', { defaultValue: 'Cambios guardados' }) })
+    },
+    onError: (err: any) => {
+      toast({
+        title: t('branding.saveErrorTitle', { defaultValue: 'No se pudo guardar' }),
+        description: err?.response?.data?.error || err?.message,
+        variant: 'destructive',
+      })
+    },
+  })
 
   return (
-    <div className="p-4 bg-background text-foreground">
+    <div className="p-4 bg-background text-foreground pb-32">
       <div className="max-w-4xl">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold tracking-tight">{t('branding.title')}</h1>
-          <p className="text-muted-foreground mt-1">{t('branding.description')}</p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{t('branding.title')}</h1>
+            <p className="text-muted-foreground mt-1">{t('branding.description')}</p>
+          </div>
+          {/* Inline Save button — also pinned at the bottom for long pages. */}
+          <Button
+            type="button"
+            onClick={() => mutation.mutate()}
+            disabled={!dirty || mutation.isPending}
+            className="cursor-pointer"
+            data-tour="payment-link-branding-save"
+          >
+            {mutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {t('branding.saving', { defaultValue: 'Guardando…' })}
+              </>
+            ) : !dirty ? (
+              <>
+                <Check className="h-4 w-4" />
+                {t('branding.saved', { defaultValue: 'Guardado' })}
+              </>
+            ) : (
+              t('branding.save', { defaultValue: 'Guardar cambios' })
+            )}
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
@@ -68,7 +137,7 @@ export default function PaymentLinkBranding() {
                   <h3 className="font-semibold">{t('branding.logo')}</h3>
                   <p className="text-xs text-muted-foreground mt-0.5">{t('branding.logoHint')}</p>
                 </div>
-                <Switch checked={showLogo} onCheckedChange={setShowLogo} className="cursor-pointer" />
+                <Switch checked={draft.showLogo} onCheckedChange={v => update('showLogo', v)} className="cursor-pointer" />
               </div>
             </section>
 
@@ -86,19 +155,18 @@ export default function PaymentLinkBranding() {
                     <button
                       key={color}
                       type="button"
-                      onClick={() => setButtonColor(color)}
+                      onClick={() => update('buttonColor', color)}
                       className={`w-8 h-8 rounded-full transition-all cursor-pointer ${
-                        buttonColor === color ? 'ring-2 ring-offset-2 ring-foreground/50' : 'hover:scale-110'
+                        draft.buttonColor === color ? 'ring-2 ring-offset-2 ring-foreground/50' : 'hover:scale-110'
                       }`}
                       style={{ backgroundColor: color }}
                     />
                   ))}
-                  {/* Custom color input */}
                   <div className="relative">
                     <input
                       type="color"
-                      value={buttonColor}
-                      onChange={e => setButtonColor(e.target.value)}
+                      value={draft.buttonColor}
+                      onChange={e => update('buttonColor', e.target.value)}
                       className="absolute inset-0 opacity-0 w-8 h-8 cursor-pointer"
                     />
                     <div className="w-8 h-8 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-foreground/50 transition-colors">
@@ -106,7 +174,7 @@ export default function PaymentLinkBranding() {
                     </div>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground font-mono">{buttonColor}</p>
+                <p className="text-xs text-muted-foreground font-mono">{draft.buttonColor}</p>
               </div>
 
               {/* Shape */}
@@ -117,9 +185,9 @@ export default function PaymentLinkBranding() {
                     <button
                       key={shape}
                       type="button"
-                      onClick={() => setButtonShape(shape)}
+                      onClick={() => update('buttonShape', shape)}
                       className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
-                        buttonShape === shape ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                        draft.buttonShape === shape ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
                       {t(`branding.buttonShape${shape.charAt(0).toUpperCase() + shape.slice(1)}`)}
@@ -150,17 +218,17 @@ export default function PaymentLinkBranding() {
             <section className="space-y-4">
               <div className="flex items-center justify-between py-2">
                 <span className="text-sm font-medium">{t('branding.showImage')}</span>
-                <Switch checked={showImage} onCheckedChange={setShowImage} className="cursor-pointer" />
+                <Switch checked={draft.showImage} onCheckedChange={v => update('showImage', v)} className="cursor-pointer" />
               </div>
               <hr className="border-border" />
               <div className="flex items-center justify-between py-2">
                 <span className="text-sm font-medium">{t('branding.showTitle')}</span>
-                <Switch checked={showTitle} onCheckedChange={setShowTitle} className="cursor-pointer" />
+                <Switch checked={draft.showTitle} onCheckedChange={v => update('showTitle', v)} className="cursor-pointer" />
               </div>
               <hr className="border-border" />
               <div className="flex items-center justify-between py-2">
                 <span className="text-sm font-medium">{t('branding.showPrice')}</span>
-                <Switch checked={showPrice} onCheckedChange={setShowPrice} className="cursor-pointer" />
+                <Switch checked={draft.showPrice} onCheckedChange={v => update('showPrice', v)} className="cursor-pointer" />
               </div>
             </section>
           </div>
@@ -170,13 +238,11 @@ export default function PaymentLinkBranding() {
             <div className="sticky top-24 space-y-6">
               <p className="text-sm font-medium text-muted-foreground text-center">{t('branding.buttonPreview')}</p>
 
-              {/* Preview card */}
               <div className="rounded-2xl border border-input bg-muted/30 p-8 flex flex-col items-center gap-6">
-                {/* Simulated product card */}
                 <div className="w-full max-w-[240px] rounded-xl border border-input bg-card overflow-hidden shadow-sm">
-                  {showImage && (
-                    <div className="h-32 bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
-                      {showLogo && venue?.logo ? (
+                  {draft.showImage && (
+                    <div className="h-32 bg-muted flex items-center justify-center">
+                      {draft.showLogo && venue?.logo ? (
                         <img src={venue.logo} alt="" className="h-10 w-10 rounded-full object-cover" />
                       ) : (
                         <div className="h-10 w-10 rounded-full bg-foreground/5 flex items-center justify-center">
@@ -186,11 +252,11 @@ export default function PaymentLinkBranding() {
                     </div>
                   )}
                   <div className="p-4 space-y-3">
-                    {showTitle && <span className="text-sm font-medium text-foreground/70">{t('form.titlePlaceholder')}</span>}
-                    {showPrice && <p className="text-sm font-semibold">$250.00 MXN</p>}
+                    {draft.showTitle && <span className="text-sm font-medium text-foreground/70">{t('form.titlePlaceholder')}</span>}
+                    {draft.showPrice && <p className="text-sm font-semibold">$250.00 MXN</p>}
                     <button
-                      className={`w-full py-2.5 text-sm font-semibold text-white transition-all ${SHAPE_CLASSES[buttonShape]}`}
-                      style={{ backgroundColor: buttonColor }}
+                      className={`w-full py-2.5 text-sm font-semibold text-white transition-all ${SHAPE_CLASSES[draft.buttonShape]}`}
+                      style={{ backgroundColor: draft.buttonColor }}
                     >
                       {t('branding.buttonText')}
                     </button>
@@ -201,6 +267,42 @@ export default function PaymentLinkBranding() {
           </div>
         </div>
       </div>
+
+      {/* Sticky save bar — pinned to the viewport so the action is always
+          reachable on long pages, with a "unsaved changes" hint. */}
+      {dirty && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-background/95 backdrop-blur px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
+          <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+            <span className="text-sm text-muted-foreground">
+              {t('branding.unsaved', { defaultValue: 'Cambios sin guardar' })}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (branding) setDraft(branding)
+                  setDirty(false)
+                }}
+                disabled={mutation.isPending}
+                className="cursor-pointer"
+              >
+                {t('branding.discard', { defaultValue: 'Descartar' })}
+              </Button>
+              <Button type="button" onClick={() => mutation.mutate()} disabled={mutation.isPending} className="cursor-pointer">
+                {mutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {t('branding.saving', { defaultValue: 'Guardando…' })}
+                  </>
+                ) : (
+                  t('branding.save', { defaultValue: 'Guardar cambios' })
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -152,6 +152,36 @@ export const paymentLinkService = {
     const response = await api.delete(`/api/v1/dashboard/venues/${venueId}/payment-links/${linkId}`)
     return response.data
   },
+
+  async getBranding(venueId: string): Promise<PaymentLinkBranding> {
+    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payment-links/branding/config`)
+    return response.data?.data ?? response.data
+  },
+
+  async updateBranding(venueId: string, branding: Partial<PaymentLinkBranding>): Promise<PaymentLinkBranding> {
+    const response = await api.put(`/api/v1/dashboard/venues/${venueId}/payment-links/branding/config`, branding)
+    return response.data?.data ?? response.data
+  },
+}
+
+/** Per-venue branding for the public payment-link checkout. Mirrors the
+ *  DEFAULT_PAYMENT_LINK_BRANDING constant in avoqado-server. */
+export interface PaymentLinkBranding {
+  showLogo: boolean
+  buttonColor: string
+  buttonShape: 'rounded' | 'square' | 'pill'
+  showImage: boolean
+  showTitle: boolean
+  showPrice: boolean
+}
+
+export const DEFAULT_PAYMENT_LINK_BRANDING: PaymentLinkBranding = {
+  showLogo: true,
+  buttonColor: '#006aff',
+  buttonShape: 'rounded',
+  showImage: true,
+  showTitle: true,
+  showPrice: true,
 }
 
 export default paymentLinkService
