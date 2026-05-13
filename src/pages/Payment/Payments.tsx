@@ -775,23 +775,47 @@ export default function Payments() {
       },
 
       {
-        // Merchant account information
-        accessorFn: row => row.merchantAccount?.displayName || row.merchantAccount?.externalMerchantId || 'N/A',
+        // Merchant account information.
+        // - In-person POS sales → row.merchantAccount (Banorte/Menta).
+        // - Payment-link sales → row.ecommerceMerchant (Stripe/Blumon channel).
+        // Show whichever is present; falls back to "-" only when neither is set.
+        accessorFn: row =>
+          row.merchantAccount?.displayName ||
+          row.merchantAccount?.externalMerchantId ||
+          (row as any).ecommerceMerchant?.channelName ||
+          'N/A',
         id: 'merchantAccount',
         meta: { label: t('columns.merchantAccount') },
         header: t('columns.merchantAccount'),
         cell: ({ row }) => {
           const payment = row.original
           const merchant = payment.merchantAccount
+          const ecommerce = (payment as any).ecommerceMerchant as
+            | { id: string; channelName: string; provider?: { name?: string; code?: string } }
+            | undefined
 
-          if (!merchant) {
+          if (!merchant && !ecommerce) {
             return <span className="text-sm text-muted-foreground dark:text-foreground">-</span>
           }
 
+          if (merchant) {
+            return (
+              <div className="flex flex-col">
+                <span className="text-sm font-medium">{merchant.displayName || merchant.externalMerchantId}</span>
+                {merchant.bankName && (
+                  <span className="text-xs text-muted-foreground dark:text-foreground">{merchant.bankName}</span>
+                )}
+              </div>
+            )
+          }
+
+          // Payment-link / e-commerce case
           return (
             <div className="flex flex-col">
-              <span className="text-sm font-medium">{merchant.displayName || merchant.externalMerchantId}</span>
-              {merchant.bankName && <span className="text-xs text-muted-foreground dark:text-foreground">{merchant.bankName}</span>}
+              <span className="text-sm font-medium">{ecommerce!.channelName}</span>
+              {ecommerce!.provider?.name && (
+                <span className="text-xs text-muted-foreground dark:text-foreground">{ecommerce!.provider.name}</span>
+              )}
             </div>
           )
         },
