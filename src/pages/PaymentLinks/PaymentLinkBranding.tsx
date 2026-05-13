@@ -254,19 +254,37 @@ export default function PaymentLinkBranding() {
                   defaultValue: '40 fuentes auto-hostadas. Solo se descarga la que elijas.',
                 })}
               </p>
+              {/* The input itself only holds the user's search query — never
+                  the selected font name. Stuffing the selected value into
+                  the input made cmdk's internal matching lock onto it and
+                  swallow click events on other items. The current selection
+                  is surfaced separately below. */}
               <SearchCombobox
-                placeholder={t('branding.fontPlaceholder', { defaultValue: 'Buscar fuente…' })}
+                placeholder={
+                  draft.fontFamily
+                    ? `${draft.fontFamily} — ${t('branding.fontPlaceholder', { defaultValue: 'buscar otra…' })}`
+                    : t('branding.fontPlaceholder', { defaultValue: 'Buscar fuente…' })
+                }
                 items={fontItems}
-                // Show the selected family in the input when not actively
-                // searching; switch to the user's typed query while focused.
-                value={fontSearch || draft.fontFamily}
+                value={fontSearch}
                 onChange={setFontSearch}
                 onSelect={item => {
-                  loadFontPreview(item.id)
                   update('fontFamily', item.id)
-                  setFontSearch('') // reset so trigger shows the new selection
+                  setFontSearch('')
                 }}
               />
+              {/* Selected-font preview line. Renders in the chosen face so
+                  the admin sees what was picked even without opening the
+                  dropdown. Kept outside the input to avoid the cmdk lock. */}
+              {draft.fontFamily && (
+                <p
+                  className="text-xs text-muted-foreground"
+                  style={{ fontFamily: fontFamilyValue(draft.fontFamily) }}
+                >
+                  {t('branding.fontSelected', { defaultValue: 'Seleccionada' })}:{' '}
+                  <span className="text-foreground font-medium">{draft.fontFamily}</span>
+                </p>
+              )}
             </section>
 
             <hr className="border-border" />
