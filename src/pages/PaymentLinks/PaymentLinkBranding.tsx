@@ -9,7 +9,11 @@ import { Check, Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
-import { fontFamilyValue, loadFontPreview } from './font-loader'
+import { fontFamilyValue } from './font-loader'
+// Side-effect import: registers all 40 @font-face declarations the moment
+// this route chunk is parsed, so the dropdown opens with every option
+// already pre-rendering in its own face (no FOUT cascade per row).
+import './fonts-eager'
 import { FONT_CATEGORY_LABELS, PAYMENT_LINK_FONTS } from './payment-link-fonts'
 import { includesNormalized } from '@/lib/utils'
 
@@ -61,25 +65,15 @@ export default function PaymentLinkBranding() {
     }
   }, [branding, dirty])
 
-  // Preload the font currently applied to the preview so the @font-face is
-  // available the moment the user lands on the page (avoids a brief flash
-  // of system-ui in the preview card + picker trigger).
-  useEffect(() => {
-    if (draft.fontFamily) loadFontPreview(draft.fontFamily)
-  }, [draft.fontFamily])
-
   // Font picker — controlled SearchCombobox state. The input shows the
   // selected family name when collapsed and the user's search term while
   // typing. Items are filtered client-side (40 entries — no need for paging).
+  //
+  // No imperative preload here — `./fonts-eager` registers every @font-face
+  // at module init, so the dropdown opens with all faces already
+  // pre-rendering. The .woff2 files stream in via parallel HTTP/2 requests
+  // the moment a row references the family.
   const [fontSearch, setFontSearch] = useState('')
-  // Preload all 40 fonts in the background so the dropdown shows each
-  // option rendered in its own face from first paint. Each .woff2 is
-  // ~30-50 KB and Vite code-splits them; the browser can stream them in
-  // parallel via HTTP/2. Cheaper than the alternative (per-item lazy load)
-  // because the previews need the font available BEFORE the row is visible.
-  useEffect(() => {
-    for (const f of PAYMENT_LINK_FONTS) loadFontPreview(f.id)
-  }, [])
   const fontItems: SearchComboboxItem[] = (() => {
     const q = fontSearch.trim()
     const matches = q ? PAYMENT_LINK_FONTS.filter(f => includesNormalized(f.label, q)) : PAYMENT_LINK_FONTS
