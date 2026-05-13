@@ -28,7 +28,7 @@ import teamService from '@/services/team.service'
 import type { Product } from '@/types'
 
 import { DonationPreview } from './components/DonationPreview'
-import { ItemFormSection } from './components/ItemFormSection'
+import { ItemFormSection, type BundleItem } from './components/ItemFormSection'
 import { ItemPreview } from './components/ItemPreview'
 import { PaymentLinkPreview } from './components/PaymentLinkPreview'
 import { ShareActions } from './components/ShareActions'
@@ -73,7 +73,10 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
   const [isSaving, setIsSaving] = useState(false)
 
   // ─── Item-specific state ──────────────────────────────
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  // Bundle line items for ITEM-purpose links. Multi-product: each entry has
+  // its own quantity. Single-product is just length=1. The total customer pays
+  // is sum(quantity × product.price). Empty array = no items selected.
+  const [selectedItems, setSelectedItems] = useState<BundleItem[]>([])
   const [customFields, setCustomFields] = useState<CustomFieldDefinition[]>([])
   const [customFieldsEnabled, setCustomFieldsEnabled] = useState(false)
   const [tippingConfig, setTippingConfig] = useState<TippingConfig | null>(null)
@@ -177,17 +180,29 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
       }
       setSelectedPurpose(purposeReverseMap[link.purpose] || 'payment')
 
-      // Restore product selection for ITEM links
-      if (link.purpose === 'ITEM' && link.product) {
-        setSelectedProduct({
-          id: link.product.id,
-          name: link.product.name,
-          description: link.product.description || null,
-          price: link.product.price,
-          imageUrl: link.product.imageUrl || null,
-        } as Product)
+      // Restore bundle line items + modifiers for ITEM links. Empty for
+      // PAYMENT/DONATION. The dialog supports re-editing the full bundle.
+      if (link.purpose === 'ITEM' && Array.isArray(link.items)) {
+        setSelectedItems(
+          link.items.map(it => ({
+            product: {
+              id: it.product.id,
+              name: it.product.name,
+              description: it.product.description || null,
+              price: it.product.price,
+              imageUrl: it.product.imageUrl || null,
+            } as Product,
+            quantity: it.quantity,
+            modifiers: (it.modifiers ?? []).map(m => ({
+              modifierId: m.modifier.id,
+              name: m.modifier.name,
+              price: Number(m.modifier.price),
+              quantity: m.quantity,
+            })),
+          })),
+        )
       } else {
-        setSelectedProduct(null)
+        setSelectedItems([])
       }
     }
   }, [existingLink])
@@ -203,7 +218,7 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
       setIsReusable(false)
       setRedirectUrl('')
       setRedirectEnabled(false)
-      setSelectedProduct(null)
+      setSelectedItems([])
       setCustomFields([])
       setCustomFieldsEnabled(false)
       setTippingConfig(null)
@@ -280,11 +295,31 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
   })
 
   const handleSave = () => {
-    // For item purpose, use product data
-    const effectiveTitle = selectedPurpose === 'item' && selectedProduct ? selectedProduct.name : title.trim()
+    // For ITEM (bundle) purpose: derive title + amount from the items list.
+    // With 1 product use its name + description; with N show "N artículos".
+    // Total = sum(qty × price). The backend recomputes this too as a guard.
+    const bundleSubtotal = selectedItems.reduce((sum, it) => {
+      const modSum = it.modifiers.reduce((m, mm) => m + mm.price * mm.quantity, 0)
+      return sum + (Number(it.product.price) + modSum) * it.quantity
+    }, 0)
+    const effectiveTitle =
+      selectedPurpose === 'item'
+        ? selectedItems.length === 1
+          ? selectedItems[0].product.name
+          : selectedItems.length > 1
+            ? title.trim() || `Bundle (${selectedItems.length} artículos)`
+            : ''
+        : title.trim()
     const effectiveAmount =
-      selectedPurpose === 'item' && selectedProduct ? Number(selectedProduct.price) : amount ? parseFloat(amount) : undefined
-    const effectiveDescription = selectedPurpose === 'item' && selectedProduct ? selectedProduct.description || '' : description.trim()
+      selectedPurpose === 'item' && selectedItems.length > 0
+        ? bundleSubtotal
+        : amount
+          ? parseFloat(amount)
+          : undefined
+    const effectiveDescription =
+      selectedPurpose === 'item' && selectedItems.length === 1
+        ? selectedItems[0].product.description || ''
+        : description.trim()
 
     if (!effectiveTitle) return
 
@@ -321,8 +356,16 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
         ...baseData,
         // Explicitly null when disabled so backend clears existing value
         redirectUrl: redirectEnabled && redirectUrl.trim() ? redirectUrl.trim() : null,
-        // Allow product changes for ITEM links
-        ...(selectedPurpose === 'item' && selectedProduct ? { productId: selectedProduct.id } : {}),
+        // Replace bundle items list for ITEM links (incl. their modifiers)
+        ...(selectedPurpose === 'item'
+          ? {
+              items: selectedItems.map(it => ({
+                productId: it.product.id,
+                quantity: it.quantity,
+                modifiers: it.modifiers.map(m => ({ modifierId: m.modifierId, quantity: m.quantity })),
+              })),
+            }
+          : {}),
       }
       updateMutation.mutate(updateData, { onSettled: () => setIsSaving(false) })
     } else {
@@ -330,7 +373,15 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
         ...baseData,
         ...(redirectEnabled && redirectUrl.trim() ? { redirectUrl: redirectUrl.trim() } : {}),
         purpose: selectedPurpose ? purposeMap[selectedPurpose] : 'PAYMENT',
-        ...(selectedPurpose === 'item' && selectedProduct ? { productId: selectedProduct.id } : {}),
+        ...(selectedPurpose === 'item'
+          ? {
+              items: selectedItems.map(it => ({
+                productId: it.product.id,
+                quantity: it.quantity,
+                modifiers: it.modifiers.map(m => ({ modifierId: m.modifierId, quantity: m.quantity })),
+              })),
+            }
+          : {}),
         // Pin to selected channel when set. Only matters with >1 active
         // merchants — for the 1-channel case it's still set, harmlessly.
         ...(selectedMerchantId ? { ecommerceMerchantId: selectedMerchantId } : {}),
@@ -344,7 +395,7 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
 
   const canSave =
     selectedPurpose === 'item'
-      ? !!selectedProduct
+      ? selectedItems.length > 0
       : title.trim().length > 0 && (amountType === 'OPEN' || (amountType === 'FIXED' && parseFloat(amount) > 0))
 
   const handleClose = () => {
@@ -461,7 +512,7 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
             <div className="lg:col-span-3">
               <div className="sticky top-24">
                 {selectedPurpose === 'item' ? (
-                  <ItemPreview product={null} redirectEnabled={false} redirectUrl="" />
+                  <ItemPreview items={[]} redirectEnabled={false} redirectUrl="" />
                 ) : selectedPurpose === 'donation' ? (
                   <DonationPreview title={title || t('preview.donationTitlePlaceholder')} description={description} />
                 ) : (
@@ -536,13 +587,8 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
               {/* Purpose-specific form content */}
               {selectedPurpose === 'item' ? (
                 <ItemFormSection
-                  selectedProduct={selectedProduct}
-                  onProductSelect={product => {
-                    setSelectedProduct(product)
-                    setTitle(product.name)
-                    setAmount(String(product.price))
-                    setAmountType('FIXED')
-                  }}
+                  selectedItems={selectedItems}
+                  onItemsChange={setSelectedItems}
                   customFields={customFields}
                   onCustomFieldsChange={setCustomFields}
                   customFieldsEnabled={customFieldsEnabled}
@@ -992,7 +1038,7 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
               <div className="sticky top-24">
                 {selectedPurpose === 'item' ? (
                   <ItemPreview
-                    product={selectedProduct}
+                    items={selectedItems}
                     redirectEnabled={redirectEnabled}
                     redirectUrl={redirectUrl}
                     customFields={customFieldsEnabled ? customFields : undefined}

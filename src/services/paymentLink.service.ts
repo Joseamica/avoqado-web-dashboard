@@ -13,6 +13,27 @@ export interface TippingConfig {
   allowCustom: boolean
 }
 
+export interface PaymentLinkBundleItem {
+  id: string
+  quantity: number
+  product: {
+    id: string
+    name: string
+    description?: string | null
+    price: number
+    imageUrl?: string | null
+  }
+  modifiers: Array<{
+    id: string
+    quantity: number
+    modifier: {
+      id: string
+      name: string
+      price: number
+    }
+  }>
+}
+
 export interface PaymentLink {
   id: string
   shortCode: string
@@ -20,14 +41,8 @@ export interface PaymentLink {
   ecommerceMerchantId: string
   createdById: string
   purpose: 'PAYMENT' | 'ITEM' | 'DONATION'
-  productId?: string
-  product?: {
-    id: string
-    name: string
-    description?: string
-    price: number
-    imageUrl?: string
-  }
+  /** Bundle line items for ITEM-purpose links. Empty for PAYMENT/DONATION. */
+  items?: PaymentLinkBundleItem[]
   title: string
   description?: string
   imageUrl?: string
@@ -61,7 +76,13 @@ export interface CreatePaymentLinkRequest {
   expiresAt?: string
   redirectUrl?: string
   purpose?: 'PAYMENT' | 'ITEM' | 'DONATION'
-  productId?: string
+  /** Bundle line items for ITEM-purpose links. Required when purpose is ITEM.
+   *  Each item may include pre-selected modifiers. */
+  items?: Array<{
+    productId: string
+    quantity: number
+    modifiers?: Array<{ modifierId: string; quantity?: number }>
+  }>
   customFields?: CustomFieldDefinition[] | null
   tippingConfig?: TippingConfig | null
   /** Pin link to a specific channel. Required when venue has >1 active merchants. */
@@ -81,7 +102,12 @@ export interface UpdatePaymentLinkRequest {
   expiresAt?: string | null
   redirectUrl?: string | null
   status?: 'ACTIVE' | 'PAUSED'
-  productId?: string | null
+  /** Replace the bundle items list for ITEM links. Pass [] to clear. */
+  items?: Array<{
+    productId: string
+    quantity: number
+    modifiers?: Array<{ modifierId: string; quantity?: number }>
+  }> | null
   customFields?: CustomFieldDefinition[] | null
   tippingConfig?: TippingConfig | null
 }

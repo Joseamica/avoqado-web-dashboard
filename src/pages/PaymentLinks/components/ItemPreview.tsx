@@ -1,26 +1,25 @@
-import { Check, ChevronDown, Circle, CreditCard, ExternalLink, ImageIcon, Lock, Minus, Plus } from 'lucide-react'
+import { Check, ChevronDown, Circle, CreditCard, ExternalLink, ImageIcon, Lock } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import type { Product } from '@/types'
 import type { CustomFieldDefinition, TippingConfig } from '@/services/paymentLink.service'
 import { PhoneFrame } from './PhoneFrame'
+import type { BundleItem } from './ItemFormSection'
 
 type PreviewTab = 'details' | 'payment' | 'confirmation'
 
 interface ItemPreviewProps {
-  product: Product | null
+  items: BundleItem[]
   redirectEnabled: boolean
   redirectUrl: string
   customFields?: CustomFieldDefinition[]
   tippingConfig?: TippingConfig | null
 }
 
-export function ItemPreview({ product, redirectEnabled, redirectUrl, customFields, tippingConfig }: ItemPreviewProps) {
+export function ItemPreview({ items, redirectEnabled, redirectUrl, customFields, tippingConfig }: ItemPreviewProps) {
   const { t } = useTranslation('paymentLinks')
   const { venue } = useCurrentVenue()
   const [activeTab, setActiveTab] = useState<PreviewTab>('details')
-  const [quantity, setQuantity] = useState(1)
   const [selectedTip, setSelectedTip] = useState<number | null>(null)
 
   const formatPrice = (price: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(price)
@@ -31,9 +30,19 @@ export function ItemPreview({ product, redirectEnabled, redirectUrl, customField
     { key: 'confirmation', label: t('itemPreview.confirmation') },
   ]
 
-  const subtotal = product ? Number(product.price) * quantity : 0
+  // Bundle preview: customer cannot edit quantities or modifiers — both are
+  // fixed at link creation. Subtotal = sum of each line including modifier
+  // surcharges; tip applied on top.
+  const totalQuantity = items.reduce((sum, it) => sum + it.quantity, 0)
+  const subtotal = items.reduce((sum, it) => {
+    const modSum = it.modifiers.reduce((m, mm) => m + mm.price * mm.quantity, 0)
+    return sum + (Number(it.product.price) + modSum) * it.quantity
+  }, 0)
   const tipAmount = selectedTip !== null ? subtotal * (selectedTip / 100) : 0
   const total = subtotal + tipAmount
+  // For the hero image, pick the first item's image if any has one. Bundle
+  // links have no single "primary" product image, so this is just a hint.
+  const heroProduct = items.find(it => it.product.imageUrl)?.product ?? items[0]?.product ?? null
 
   return (
     <div className="flex flex-col items-center">
@@ -72,10 +81,10 @@ export function ItemPreview({ product, redirectEnabled, redirectUrl, customField
           )}
         </div>
 
-        {/* Product image — full width like Square */}
-        {product?.imageUrl ? (
+        {/* Bundle hero image */}
+        {heroProduct?.imageUrl ? (
           <div className="border-y border-border">
-            <img src={product.imageUrl} alt={product.name} className="w-full h-48 object-cover" />
+            <img src={heroProduct.imageUrl} alt={heroProduct.name} className="w-full h-48 object-cover" />
           </div>
         ) : (
           <div className="border-y border-border bg-muted/30 w-full h-48 flex flex-col items-center justify-center gap-2">
@@ -88,12 +97,59 @@ export function ItemPreview({ product, redirectEnabled, redirectUrl, customField
           {/* ═══ DETAILS TAB ═══ */}
           {activeTab === 'details' && (
             <>
-              {/* Name, price, description */}
+              {/* Bundle header */}
               <div>
-                <h3 className="font-bold text-xl leading-snug">{product?.name || t('itemPreview.articlePlaceholder')}</h3>
-                <p className="text-lg font-medium mt-1.5">{product ? formatPrice(Number(product.price)) : '$0.00'}</p>
-                {product?.description && <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{product.description}</p>}
+                <h3 className="font-bold text-xl leading-snug">
+                  {items.length === 0
+                    ? t('itemPreview.articlePlaceholder')
+                    : items.length === 1
+                      ? items[0].product.name
+                      : `${items.length} artículos`}
+                </h3>
+                <p className="text-lg font-medium mt-1.5">{formatPrice(subtotal)}</p>
               </div>
+
+              {/* Line items — show every product with qty × price + its
+                  pre-selected modifiers indented underneath. */}
+              {items.length > 0 && (
+                <div className="space-y-2.5">
+                  {items.map(it => {
+                    const modSumPerUnit = it.modifiers.reduce((m, mm) => m + mm.price * mm.quantity, 0)
+                    const lineTotal = (Number(it.product.price) + modSumPerUnit) * it.quantity
+                    return (
+                      <div key={it.product.id} className="space-y-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {it.quantity > 1 && <span className="text-muted-foreground">{it.quantity}× </span>}
+                              {it.product.name}
+                            </p>
+                            {it.product.description && (
+                              <p className="text-xs text-muted-foreground line-clamp-1">{it.product.description}</p>
+                            )}
+                          </div>
+                          <span className="text-sm font-medium shrink-0">{formatPrice(lineTotal)}</span>
+                        </div>
+                        {it.modifiers.length > 0 && (
+                          <ul className="text-xs text-muted-foreground pl-3 space-y-0.5">
+                            {it.modifiers.map(mm => (
+                              <li key={mm.modifierId} className="flex items-center justify-between gap-3">
+                                <span>
+                                  + {mm.quantity > 1 && `${mm.quantity}× `}
+                                  {mm.name}
+                                </span>
+                                {mm.price > 0 && (
+                                  <span className="shrink-0">{formatPrice(mm.price * mm.quantity * it.quantity)}</span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
 
               {/* Custom fields preview */}
               {customFields && customFields.length > 0 && (
@@ -135,32 +191,15 @@ export function ItemPreview({ product, redirectEnabled, redirectUrl, customField
 
               <hr className="border-border" />
 
-              {/* Quantity selector */}
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-9 h-9 rounded-lg border border-input flex items-center justify-center cursor-pointer hover:bg-muted transition-colors"
-                >
-                  <Minus className="h-3.5 w-3.5" />
-                </button>
-                <span className="text-base font-medium w-6 text-center">{quantity}</span>
-                <button
-                  type="button"
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="w-9 h-9 rounded-lg border border-input flex items-center justify-center cursor-pointer hover:bg-muted transition-colors"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
-              </div>
-
-              {/* Subtotal */}
+              {/* Subtotal — quantities are fixed by the bundle, no selector */}
               <div>
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-bold">{t('itemPreview.subtotal')}</p>
                   <p className="text-sm font-bold">{formatPrice(subtotal)}</p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">{t('itemPreview.totalCalculated')}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {totalQuantity} {totalQuantity === 1 ? 'artículo' : 'artículos'} en total
+                </p>
               </div>
 
               {/* CTA button */}
@@ -177,7 +216,7 @@ export function ItemPreview({ product, redirectEnabled, redirectUrl, customField
 
               {/* Order summary */}
               <div className="flex items-center justify-between text-sm">
-                <span>{t('itemPreview.orderSummary', { count: quantity })}</span>
+                <span>{t('itemPreview.orderSummary', { count: totalQuantity })}</span>
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </div>
 
@@ -275,10 +314,22 @@ export function ItemPreview({ product, redirectEnabled, redirectUrl, customField
 
                   <div className="space-y-3">
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('itemPreview.summary')}</p>
-                    <div className="flex items-center justify-between text-sm">
-                      <span>{product?.name || t('itemPreview.articlePlaceholder')}</span>
-                      <span>{formatPrice(subtotal)}</span>
-                    </div>
+                    {items.length === 0 ? (
+                      <div className="flex items-center justify-between text-sm">
+                        <span>{t('itemPreview.articlePlaceholder')}</span>
+                        <span>{formatPrice(0)}</span>
+                      </div>
+                    ) : (
+                      items.map(it => (
+                        <div key={it.product.id} className="flex items-center justify-between text-sm">
+                          <span>
+                            {it.quantity > 1 && <span className="text-muted-foreground">{it.quantity}× </span>}
+                            {it.product.name}
+                          </span>
+                          <span>{formatPrice(Number(it.product.price) * it.quantity)}</span>
+                        </div>
+                      ))
+                    )}
                     {selectedTip !== null && tipAmount > 0 && (
                       <div className="flex items-center justify-between text-sm">
                         <span>{t('itemPreview.tip')}</span>
