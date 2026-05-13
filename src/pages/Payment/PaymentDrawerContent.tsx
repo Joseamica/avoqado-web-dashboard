@@ -411,31 +411,56 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
         {/* Totals card — pure money breakdown. Method and date live in the
          * meta card above so we don't repeat them here. Propina is always
          * visible (even $0.00) so the breakdown doesn't collapse for pagos
-         * en efectivo sin propina. */}
-        <div className="rounded-xl border border-border/60 bg-card p-6 space-y-3 text-sm">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span>{t('detail.subtotal', { defaultValue: 'Subtotal' })}</span>
-            <span>{Currency(amount)}</span>
-          </div>
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span>{t('detail.tip', { defaultValue: 'Propina' })}</span>
-            <span>{Currency(tip)}</span>
-          </div>
-          <div className="flex items-center justify-between font-semibold text-base pt-2 border-t border-border/60">
-            <span className="uppercase tracking-wide">{t('detail.total', { defaultValue: 'Total' })}</span>
-            <span>{Currency(total)}</span>
-          </div>
-          {primaryReceipt?.accessKey && receiptLabel && (
-            <a
-              href={`${RECEIPT_PATHS.PUBLIC}/${primaryReceipt.accessKey}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block underline underline-offset-2 text-sm text-foreground hover:text-primary pt-2"
-            >
-              {t('detail.receiptNumber', { defaultValue: 'Recibo n.º' })} {receiptLabel}
-            </a>
-          )}
-        </div>
+         * en efectivo sin propina.
+         *
+         * Subtotal/Descuento show GROSS + reduction when the linked Order
+         * carries a discount; otherwise we fall back to `payment.amount` (the
+         * net charged amount) so legacy fast-payments still render cleanly. */}
+        {(() => {
+          const grossSubtotal = Number(payment.order?.subtotal) || amount
+          const orderDiscount = Number(payment.order?.discountAmount) || 0
+          const showDiscountRow = orderDiscount > 0
+          const isFullyComped = showDiscountRow && Number(payment.order?.total ?? 0) === 0
+          const discountLabel = isFullyComped
+            ? t('detail.courtesy', { defaultValue: 'Cortesía' })
+            : t('detail.discount', { defaultValue: 'Descuento' })
+          return (
+            <div className="rounded-xl border border-border/60 bg-card p-6 space-y-3 text-sm">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>{t('detail.subtotal', { defaultValue: 'Subtotal' })}</span>
+                <span>{Currency(grossSubtotal)}</span>
+              </div>
+              {showDiscountRow && (
+                <div
+                  className={`flex items-center justify-between ${
+                    isFullyComped ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-muted-foreground'
+                  }`}
+                >
+                  <span>{discountLabel}</span>
+                  <span>−{Currency(orderDiscount)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>{t('detail.tip', { defaultValue: 'Propina' })}</span>
+                <span>{Currency(tip)}</span>
+              </div>
+              <div className="flex items-center justify-between font-semibold text-base pt-2 border-t border-border/60">
+                <span className="uppercase tracking-wide">{t('detail.total', { defaultValue: 'Total' })}</span>
+                <span>{Currency(total)}</span>
+              </div>
+              {primaryReceipt?.accessKey && receiptLabel && (
+                <a
+                  href={`${RECEIPT_PATHS.PUBLIC}/${primaryReceipt.accessKey}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block underline underline-offset-2 text-sm text-foreground hover:text-primary pt-2"
+                >
+                  {t('detail.receiptNumber', { defaultValue: 'Recibo n.º' })} {receiptLabel}
+                </a>
+              )}
+            </div>
+          )
+        })()}
       </div>
 
       {/* Sticky footer: Listo */}

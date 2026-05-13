@@ -8,9 +8,9 @@
     "orderNumber": "Número de orden",
     "customer": "Cliente",
     "type": "Tipo",
-    "products": "Productos",
-    "productsCount_one": "{{count}} producto",
-    "productsCount_other": "{{count}} productos",
+    "products": "Artículos",
+    "productsCount_one": "{{count}} artículo",
+    "productsCount_other": "{{count}} artículos",
     "table": "Mesa",
     "waiter": "Mesero",
     "status": "Estado",
@@ -18,9 +18,9 @@
     "total": "Total"
   },
   "productsDialog": {
-    "title": "Productos del pedido {{number}}",
-    "empty": "Sin productos",
-    "loading": "Cargando productos…"
+    "title": "Artículos del pedido {{number}}",
+    "empty": "Sin artículos",
+    "loading": "Cargando artículos…"
   },
   "types": {
     "DINE_IN": "Servicio de mesa",

@@ -710,7 +710,7 @@ export default function Orders() {
                   setProductsDialogOrder(row.original)
                 }}
               >
-                {t('columns.productsCount', { count, defaultValue: `${count} productos` })}
+                {t('columns.productsCount', { count, defaultValue: `${count} artículos` })}
               </Button>
             </div>
           )
