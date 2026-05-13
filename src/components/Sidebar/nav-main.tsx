@@ -110,13 +110,20 @@ export function NavMain({
     return relativePath === cleanUrl || relativePath.startsWith(`${cleanUrl}/`)
   }
 
+  /**
+   * Sub-items are distinct top-level pages — exact match only. Using a
+   * prefix match here caused shorter sub-urls (e.g. `payment-links`) to
+   * stay highlighted when the user navigated to a deeper sibling like
+   * `payment-links/branding`. Keep the parent (`isItemActive`) prefix-based
+   * so the parent group still highlights / auto-opens for ANY descendant.
+   */
   const isSubItemActive = (url: string) => {
     const path = location.pathname
     if (!url || url.startsWith('#')) return false
-    if (url.startsWith('/')) return path === url || path.startsWith(`${url}/`)
+    if (url.startsWith('/')) return path === url
     const relativePath = getRelativePath(path)
     const cleanUrl = url.replace(/^\/+|\/+$/g, '')
-    return relativePath === cleanUrl || relativePath.startsWith(`${cleanUrl}/`)
+    return relativePath === cleanUrl
   }
 
   // Check if a URL is hidden
