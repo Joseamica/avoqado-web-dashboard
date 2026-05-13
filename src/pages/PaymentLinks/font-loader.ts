@@ -81,7 +81,7 @@ export function loadFontPreview(fontFamily: string | undefined | null): Promise<
   let p = inFlight.get(fontFamily)
   if (!p) {
     p = load().catch(err => {
-      // eslint-disable-next-line no-console
+       
       console.warn(`[font-loader] failed to load "${fontFamily}":`, err)
     })
     inFlight.set(fontFamily, p)
