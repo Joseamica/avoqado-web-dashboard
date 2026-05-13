@@ -1020,8 +1020,12 @@ export default function Payments() {
         ? [
             {
               accessorFn: (row: PaymentType) => {
-                if (!row.transactionCost) return 0
-                return Number(row.transactionCost.grossProfit) || 0
+                if (row.transactionCost) return Number(row.transactionCost.grossProfit) || 0
+                // Stripe Connect / ecommerce: Avoqado's application_fee is
+                // stored directly on Payment.feeAmount (1% + IVA baked in at
+                // PaymentIntent creation). Stripe processing fees are paid by
+                // the connected merchant, so gross = net for our side.
+                return Number((row as any).feeAmount) || 0
               },
               id: 'avoqadoProfit',
               meta: { label: t('columns.profit') },
