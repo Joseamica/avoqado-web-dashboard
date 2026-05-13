@@ -146,6 +146,11 @@
     "communications": "Communications"
   },
   "requiresKycVerification": "Requires KYC verification",
+  "acceptPayment": {
+    "title": "Accept payment",
+    "chargeCard": "Charge card",
+    "sendLink": "Send payment link"
+  },
   "organizationMenu": {
     "title": "Organization",
     "config": "TPV Configuration",

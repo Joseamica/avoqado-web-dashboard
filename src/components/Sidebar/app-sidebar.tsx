@@ -49,6 +49,7 @@ import { NavMain } from '@/components/Sidebar/nav-main'
 import { NavUser } from '@/components/Sidebar/nav-user'
 import { VenuesSwitcher } from '@/components/Sidebar/venues-switcher'
 import { ChatBubble } from '@/components/Chatbot'
+import { AcceptPaymentTrigger } from '@/components/Sidebar/AcceptPaymentTrigger'
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail, useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/context/AuthContext'
 import { SessionVenue, User, Venue } from '@/types'
@@ -747,6 +748,7 @@ export function AppSidebar({
             still enforce feature access and return 403 when the venue is not
             subscribed. */}
         <ChatBubble variant="sidebar" />
+        <AcceptPaymentTrigger />
         <NavUser user={navUser} />
       </SidebarFooter>
       <SidebarRail />

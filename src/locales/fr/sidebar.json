@@ -130,5 +130,10 @@
     "users": "Utilisateurs",
     "tpvConfig": "Configuration White Label"
   },
-  "requiresKycVerification": "Vérification KYC requise"
+  "requiresKycVerification": "Vérification KYC requise",
+  "acceptPayment": {
+    "title": "Accepter un paiement",
+    "chargeCard": "Débiter la carte",
+    "sendLink": "Envoyer un lien de paiement"
+  }
 }

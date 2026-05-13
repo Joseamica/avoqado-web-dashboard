@@ -17,8 +17,9 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
 import { FilterPill, CheckboxFilterContent } from '@/components/filters'
@@ -79,6 +80,25 @@ export default function PaymentLinks() {
   const [showForm, setShowForm] = useState(false)
   const [editingLinkId, setEditingLinkId] = useState<string | undefined>()
   const [dialogKey, setDialogKey] = useState(0)
+
+  // Auto-open create modal when navigated here with ?new=1 (e.g. from the
+  // sidebar "Aceptar pago" → "Enviar liga de pago" shortcut). Strip the param
+  // immediately so a refresh doesn't re-trigger, and defer opening until the
+  // ecommerce-merchant gate below resolves.
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [autoOpenPending, setAutoOpenPending] = useState(false)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    if (params.get('new') !== '1') return
+    setAutoOpenPending(true)
+    params.delete('new')
+    const nextSearch = params.toString()
+    navigate(
+      { pathname: location.pathname, search: nextSearch ? `?${nextSearch}` : '', hash: location.hash },
+      { replace: true },
+    )
+  }, [location.search, location.pathname, location.hash, navigate])
 
   // ─── Data ────────────────────────────────────────────────
   const { data: allLinks = [], isLoading } = useQuery({
@@ -257,7 +277,7 @@ export default function PaymentLinks() {
     [t],
   )
 
-  const openCreate = () => {
+  const openCreate = useCallback(() => {
     if (isEcommerceExplicitlyMissing) {
       toast({
         title: tCommon('error'),
@@ -269,7 +289,16 @@ export default function PaymentLinks() {
     setEditingLinkId(undefined)
     setDialogKey(prev => prev + 1)
     setShowForm(true)
-  }
+  }, [isEcommerceExplicitlyMissing, t, tCommon, toast])
+
+  // Consume the deferred ?new=1 trigger once the ecommerce-merchant gate has
+  // resolved, so we either open the modal or surface the requirements toast —
+  // never open a modal the user can't actually submit.
+  useEffect(() => {
+    if (!autoOpenPending || isLoadingEcommerceMerchants) return
+    setAutoOpenPending(false)
+    openCreate()
+  }, [autoOpenPending, isLoadingEcommerceMerchants, openCreate])
 
   const openEdit = (linkId: string) => {
     setEditingLinkId(linkId)
