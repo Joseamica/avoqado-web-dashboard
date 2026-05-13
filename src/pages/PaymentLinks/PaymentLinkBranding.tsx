@@ -8,8 +8,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FontPicker } from './components/FontPicker'
+import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
 import { fontFamilyValue, loadFontPreview } from './font-loader'
+import { FONT_CATEGORY_LABELS, PAYMENT_LINK_FONTS } from './payment-link-fonts'
+import { includesNormalized } from '@/lib/utils'
 
 const BUTTON_SHAPES = ['rounded', 'square', 'pill'] as const
 type ButtonShape = (typeof BUTTON_SHAPES)[number]
@@ -65,6 +67,31 @@ export default function PaymentLinkBranding() {
   useEffect(() => {
     if (draft.fontFamily) loadFontPreview(draft.fontFamily)
   }, [draft.fontFamily])
+
+  // Font picker — controlled SearchCombobox state. The input shows the
+  // selected family name when collapsed and the user's search term while
+  // typing. Items are filtered client-side (40 entries — no need for paging).
+  const [fontSearch, setFontSearch] = useState('')
+  // Preload all 40 fonts in the background so the dropdown shows each
+  // option rendered in its own face from first paint. Each .woff2 is
+  // ~30-50 KB and Vite code-splits them; the browser can stream them in
+  // parallel via HTTP/2. Cheaper than the alternative (per-item lazy load)
+  // because the previews need the font available BEFORE the row is visible.
+  useEffect(() => {
+    for (const f of PAYMENT_LINK_FONTS) loadFontPreview(f.id)
+  }, [])
+  const fontItems: SearchComboboxItem[] = (() => {
+    const q = fontSearch.trim()
+    const matches = q ? PAYMENT_LINK_FONTS.filter(f => includesNormalized(f.label, q)) : PAYMENT_LINK_FONTS
+    return matches.map(f => ({
+      id: f.id,
+      label: f.label,
+      endLabel: FONT_CATEGORY_LABELS[f.category],
+      // Render each option in its own face so the dropdown doubles as a
+      // visual catalog. fontFamilyValue() appends a fallback stack.
+      labelStyle: { fontFamily: fontFamilyValue(f.id), fontSize: '15px' },
+    }))
+  })()
 
   const update = <K extends keyof PaymentLinkBranding>(key: K, value: PaymentLinkBranding[K]) => {
     setDraft(prev => ({ ...prev, [key]: value }))
@@ -233,7 +260,19 @@ export default function PaymentLinkBranding() {
                   defaultValue: '40 fuentes auto-hostadas. Solo se descarga la que elijas.',
                 })}
               </p>
-              <FontPicker value={draft.fontFamily} onChange={v => update('fontFamily', v)} />
+              <SearchCombobox
+                placeholder={t('branding.fontPlaceholder', { defaultValue: 'Buscar fuente…' })}
+                items={fontItems}
+                // Show the selected family in the input when not actively
+                // searching; switch to the user's typed query while focused.
+                value={fontSearch || draft.fontFamily}
+                onChange={setFontSearch}
+                onSelect={item => {
+                  loadFontPreview(item.id)
+                  update('fontFamily', item.id)
+                  setFontSearch('') // reset so trigger shows the new selection
+                }}
+              />
             </section>
 
             <hr className="border-border" />

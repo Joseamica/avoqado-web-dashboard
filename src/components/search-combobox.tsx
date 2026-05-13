@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -14,6 +14,13 @@ export interface SearchComboboxItem {
   endLabel?: string
   disabled?: boolean
   disabledLabel?: string
+  /** Inline style applied to the label span — useful when the label needs
+   *  per-item typography (e.g. a font picker rendering each option in its
+   *  own face). Kept narrow on purpose to discourage drift. */
+  labelStyle?: CSSProperties
+  /** Fired the first time the cursor enters the row. Used by font picker
+   *  to lazy-load the .woff2 so the next render shows it in its real face. */
+  onHover?: () => void
 }
 
 interface SearchComboboxProps {
@@ -169,13 +176,14 @@ export function SearchCombobox({
                     value={item.id}
                     disabled={item.disabled}
                     onSelect={() => handleSelect(item)}
+                    onMouseEnter={item.onHover}
                     className={cn(
                       'flex items-center gap-3 w-full px-4 py-3 text-sm rounded-none',
                       item.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
                     )}
                   >
                     <div className="flex-1 min-w-0">
-                      <span className="truncate">
+                      <span className="truncate" style={item.labelStyle}>
                         {item.label}
                         {item.description && <span className="text-muted-foreground"> - {item.description}</span>}
                       </span>
