@@ -756,9 +756,9 @@ ${dataRows}
 
         {/* Custodia de SIMs — panel del Supervisor (o filtrado a su inventario) */}
         <TabsContent value="custodia" className="mt-4">
-          {orgIdFromVenue ? (
+          {orgIdFromVenue && venueId ? (
             <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
-              <VenueSimCustodyPanel orgId={orgIdFromVenue} dateRange={selectedRange} />
+              <VenueSimCustodyPanel orgId={orgIdFromVenue} venueId={venueId} dateRange={selectedRange} />
             </Suspense>
           ) : (
             <div className="text-sm text-muted-foreground py-8 text-center">No se pudo determinar la organización del venue activo.</div>

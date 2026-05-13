@@ -104,13 +104,23 @@ export interface CustodyEvent {
 
 const base = (orgId: string) => `/api/v1/dashboard/organizations/${orgId}/sim-custody`
 
+// These endpoints are org-scoped, so the backend can't infer the user's active
+// venue from the URL. If the caller knows it (venue-scoped pages like
+// VenueSimCustodyPanel under /wl/venues/:slug), pass it via `x-venue-id` so
+// `checkPermission` evaluates the user's role in that venue rather than the
+// stale `authContext.venueId` from their last switchVenue. Org-level callers
+// (no specific venue) can omit it and the backend falls back to the JWT venue.
+function venueHeaders(venueId?: string | null): Record<string, string> {
+  return venueId ? { 'x-venue-id': venueId } : {}
+}
+
 /**
  * Admin → Supervisor bulk assignment.
  * Partial-success: HTTP 200 always; check summary.failed for per-row errors.
  */
-export async function assignSimsToSupervisor(orgId: string, body: AssignToSupervisorInput): Promise<BulkResponse> {
+export async function assignSimsToSupervisor(orgId: string, body: AssignToSupervisorInput, venueId?: string | null): Promise<BulkResponse> {
   const { data } = await api.post(`${base(orgId)}/assign-to-supervisor`, body, {
-    headers: { 'Idempotency-Key': uuidv4() },
+    headers: { 'Idempotency-Key': uuidv4(), ...venueHeaders(venueId) },
   })
   return data
 }
@@ -118,9 +128,9 @@ export async function assignSimsToSupervisor(orgId: string, body: AssignToSuperv
 /**
  * Supervisor → Promoter bulk assignment. Only the owning supervisor may transition.
  */
-export async function assignSimsToPromoter(orgId: string, body: AssignToPromoterInput): Promise<BulkResponse> {
+export async function assignSimsToPromoter(orgId: string, body: AssignToPromoterInput, venueId?: string | null): Promise<BulkResponse> {
   const { data } = await api.post(`${base(orgId)}/assign-to-promoter`, body, {
-    headers: { 'Idempotency-Key': uuidv4() },
+    headers: { 'Idempotency-Key': uuidv4(), ...venueHeaders(venueId) },
   })
   return data
 }
@@ -130,20 +140,32 @@ export async function assignSimsToPromoter(orgId: string, body: AssignToPromoter
  * Supervisor. Solo se expone en UI cuando el actor tiene el permiso
  * `sim-custody:assign-to-promoter-direct`.
  */
-export async function assignSimsToPromoterDirect(orgId: string, body: AssignToPromoterInput): Promise<BulkResponse> {
+export async function assignSimsToPromoterDirect(
+  orgId: string,
+  body: AssignToPromoterInput,
+  venueId?: string | null,
+): Promise<BulkResponse> {
   const { data } = await api.post(`${base(orgId)}/assign-to-promoter-direct`, body, {
-    headers: { 'Idempotency-Key': uuidv4() },
+    headers: { 'Idempotency-Key': uuidv4(), ...venueHeaders(venueId) },
   })
   return data
 }
 
-export async function collectFromPromoter(orgId: string, body: CollectInput): Promise<{ custodyState: SimCustodyState }> {
-  const { data } = await api.post(`${base(orgId)}/collect-from-promoter`, body)
+export async function collectFromPromoter(
+  orgId: string,
+  body: CollectInput,
+  venueId?: string | null,
+): Promise<{ custodyState: SimCustodyState }> {
+  const { data } = await api.post(`${base(orgId)}/collect-from-promoter`, body, { headers: venueHeaders(venueId) })
   return data
 }
 
-export async function collectFromSupervisor(orgId: string, body: CollectInput): Promise<{ custodyState: SimCustodyState }> {
-  const { data } = await api.post(`${base(orgId)}/collect-from-supervisor`, body)
+export async function collectFromSupervisor(
+  orgId: string,
+  body: CollectInput,
+  venueId?: string | null,
+): Promise<{ custodyState: SimCustodyState }> {
+  const { data } = await api.post(`${base(orgId)}/collect-from-supervisor`, body, { headers: venueHeaders(venueId) })
   return data
 }
 

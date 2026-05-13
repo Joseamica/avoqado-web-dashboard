@@ -21,9 +21,13 @@ interface Props {
   onOpenChange: (open: boolean) => void
   orgId: string
   serialNumbers: string[]
+  // Venue currently in view (when called from a venue-scoped page). Forwarded
+  // as `x-venue-id` so the backend evaluates the user's role in THIS venue.
+  // Optional: org-level callers (no specific venue) can omit it.
+  venueId?: string
 }
 
-export function AssignToPromoterDialog({ open, onOpenChange, orgId, serialNumbers }: Props) {
+export function AssignToPromoterDialog({ open, onOpenChange, orgId, serialNumbers, venueId }: Props) {
   const [promoterStaffId, setPromoterStaffId] = useState<string>('')
   const [selectedName, setSelectedName] = useState<string>('')
   const [search, setSearch] = useState('')
@@ -59,7 +63,7 @@ export function AssignToPromoterDialog({ open, onOpenChange, orgId, serialNumber
   const mutation = useMutation<BulkResponse, Error, void>({
     mutationFn: async () => {
       if (!promoterStaffId) throw new Error('Selecciona un Promotor')
-      return assignSimsToPromoter(orgId, { promoterStaffId, serialNumbers })
+      return assignSimsToPromoter(orgId, { promoterStaffId, serialNumbers }, venueId)
     },
     onSuccess: result => {
       const { succeeded, failed } = result.summary

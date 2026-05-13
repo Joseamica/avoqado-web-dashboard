@@ -34,6 +34,10 @@ import type { OrgStockOverviewItem } from '@/services/stockDashboard.service'
 
 interface Props {
   orgId: string
+  // Venue currently being viewed. Sent as `x-venue-id` on org-scoped sim-custody
+  // calls so the backend evaluates permissions against the user's role in THIS
+  // venue, not the stale `authContext.venueId` from their last switchVenue.
+  venueId: string
   /**
    * Optional user-controlled date window (driven by the page-level
    * DateRangePicker in StockControl). When omitted we fall back to the
@@ -49,7 +53,7 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000
 
 type FilterKey = 'todos' | 'almacen' | 'pendientes' | 'aceptados' | 'rechazados' | 'vendidos' | 'estancados'
 
-export function VenueSimCustodyPanel({ orgId, dateRange }: Props) {
+export function VenueSimCustodyPanel({ orgId, venueId, dateRange }: Props) {
   const { user } = useAuth()
   const currentStaffId = user?.id ?? null
 
@@ -399,7 +403,7 @@ export function VenueSimCustodyPanel({ orgId, dateRange }: Props) {
           from={collectState.from}
           contextLabel={collectState.contextLabel}
           onConfirm={async reason => {
-            await collectFromPromoter(orgId, { serialNumber: collectState.serialNumber, reason })
+            await collectFromPromoter(orgId, { serialNumber: collectState.serialNumber, reason }, venueId)
           }}
         />
       )}
@@ -414,6 +418,7 @@ export function VenueSimCustodyPanel({ orgId, dateRange }: Props) {
             }
           }}
           orgId={orgId}
+          venueId={venueId}
           serialNumbers={assignSerials}
         />
       )}
