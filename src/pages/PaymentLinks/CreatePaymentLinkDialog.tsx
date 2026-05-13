@@ -131,6 +131,16 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
     })
   }, [allActiveMerchants])
 
+  // Venue-wide defaults from the "Ajustes generales" page. Used to seed the
+  // tipping config, custom fields, and the customerNotes shorthand toggle
+  // when the user opens a fresh create dialog. Edit mode ignores these and
+  // shows what was saved on the link itself.
+  const { data: venueSettings } = useQuery({
+    queryKey: ['payment-link-settings', venueId],
+    queryFn: () => paymentLinkService.getSettings(venueId),
+    enabled: !!venueId && open && !isEditing,
+  })
+
   const showMerchantPicker = usableMerchants.length > 1
 
   // Auto-select the only usable merchant so the user never has to pick when
@@ -207,10 +217,13 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
     }
   }, [existingLink])
 
-  // Reset form state whenever the dialog opens (for new links) or closes
+  // Reset form state whenever the dialog opens (for new links) or closes.
+  // Seeds tipping + custom-fields from venue settings so the operator's
+  // "Ajustes generales" defaults are actually applied. `customerNotesEnabled`
+  // is shorthand: if it's on AND defaultCustomFields is empty, seed a single
+  // "Nota" text field so the customer gets a free-text comment box.
   useEffect(() => {
     if (open && !isEditing) {
-      // Reset all form state when opening a fresh create dialog
       setTitle('')
       setDescription('')
       setAmountType('FIXED')
@@ -219,9 +232,17 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
       setRedirectUrl('')
       setRedirectEnabled(false)
       setSelectedItems([])
-      setCustomFields([])
-      setCustomFieldsEnabled(false)
-      setTippingConfig(null)
+
+      const seededFields = (venueSettings?.defaultCustomFields && venueSettings.defaultCustomFields.length > 0)
+        ? venueSettings.defaultCustomFields
+        : venueSettings?.customerNotesEnabled
+          ? [{ id: `cf_note_${Date.now()}`, type: 'TEXT' as const, label: 'Nota', required: false }]
+          : []
+      setCustomFields(seededFields)
+      setCustomFieldsEnabled(seededFields.length > 0)
+
+      setTippingConfig(venueSettings?.defaultTippingConfig ?? null)
+
       setPurposeDropdownOpen(false)
       setStep('type')
       setSelectedPurpose(null)
@@ -231,7 +252,7 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
       setSelectedPurpose(null)
       setPurposeDropdownOpen(false)
     }
-  }, [open, isEditing])
+  }, [open, isEditing, venueSettings])
 
   const handlePurposeSelect = (purpose: LinkPurpose) => {
     const def = PURPOSES.find(p => p.key === purpose)
