@@ -273,18 +273,6 @@ export default function PaymentLinkBranding() {
                   setFontSearch('')
                 }}
               />
-              {/* Selected-font preview line. Renders in the chosen face so
-                  the admin sees what was picked even without opening the
-                  dropdown. Kept outside the input to avoid the cmdk lock. */}
-              {draft.fontFamily && (
-                <p
-                  className="text-xs text-muted-foreground"
-                  style={{ fontFamily: fontFamilyValue(draft.fontFamily) }}
-                >
-                  {t('branding.fontSelected', { defaultValue: 'Seleccionada' })}:{' '}
-                  <span className="text-foreground font-medium">{draft.fontFamily}</span>
-                </p>
-              )}
             </section>
 
             <hr className="border-border" />
