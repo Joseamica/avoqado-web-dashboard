@@ -9,6 +9,7 @@ import { Check, Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
+import { X } from 'lucide-react'
 import { fontFamilyValue } from './font-loader'
 // Side-effect import: registers all 40 @font-face declarations the moment
 // this route chunk is parsed, so the dropdown opens with every option
@@ -254,25 +255,46 @@ export default function PaymentLinkBranding() {
                   defaultValue: '40 fuentes auto-hostadas. Solo se descarga la que elijas.',
                 })}
               </p>
-              {/* The input itself only holds the user's search query — never
-                  the selected font name. Stuffing the selected value into
-                  the input made cmdk's internal matching lock onto it and
-                  swallow click events on other items. The current selection
-                  is surfaced separately below. */}
-              <SearchCombobox
-                placeholder={
-                  draft.fontFamily
-                    ? `${draft.fontFamily} — ${t('branding.fontPlaceholder', { defaultValue: 'buscar otra…' })}`
-                    : t('branding.fontPlaceholder', { defaultValue: 'Buscar fuente…' })
-                }
-                items={fontItems}
-                value={fontSearch}
-                onChange={setFontSearch}
-                onSelect={item => {
-                  update('fontFamily', item.id)
-                  setFontSearch('')
-                }}
-              />
+              {/* Two-state picker mirroring CreditPackForm's ProductPicker:
+                  - When a font is selected → frozen pill with name (in its
+                    own face) + X/Cambiar to clear and re-open the search.
+                  - When empty → SearchCombobox with all 40 options.
+                  Keeps the cmdk dropdown clean (no auto-matched lock) and
+                  matches the existing "Items del Paquete" UX. */}
+              {draft.fontFamily ? (
+                <div className="flex items-center gap-2 h-12 px-3 rounded-lg border border-input bg-transparent">
+                  <span
+                    className="text-sm flex-1 truncate"
+                    style={{ fontFamily: fontFamilyValue(draft.fontFamily) }}
+                  >
+                    {draft.fontFamily}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-muted-foreground cursor-pointer"
+                    onClick={() => {
+                      update('fontFamily', '')
+                      setFontSearch('')
+                    }}
+                  >
+                    <X className="h-3.5 w-3.5 mr-1" />
+                    {t('branding.fontChange', { defaultValue: 'Cambiar' })}
+                  </Button>
+                </div>
+              ) : (
+                <SearchCombobox
+                  placeholder={t('branding.fontPlaceholder', { defaultValue: 'Buscar fuente…' })}
+                  items={fontItems}
+                  value={fontSearch}
+                  onChange={setFontSearch}
+                  onSelect={item => {
+                    update('fontFamily', item.id)
+                    setFontSearch('')
+                  }}
+                />
+              )}
             </section>
 
             <hr className="border-border" />
