@@ -6,6 +6,7 @@ import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Switch } from '@/components/ui/switch'
@@ -999,20 +1000,26 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
   const isLoading = createProductWithInventoryMutation.isPending || configureInventoryMutation.isPending
 
+  // True while edit-mode wizard is fetching the product to prefill the form.
+  // During this window we render a skeleton and lock the action buttons so the
+  // user can't submit empty data or close mid-fetch.
+  const isInitialLoadingEdit =
+    mode === 'edit' && open && !!productId && (isLoadingProduct || isLoadingExistingData)
+
   // Render action buttons - single step, always show "Finish"
   const renderActions = () => {
     return (
       <>
-        <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+        <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading || isInitialLoadingEdit}>
           {tCommon('cancel')}
         </Button>
         <Button
           type="submit"
           form="step1-form"
           data-tour="product-wizard-finish"
-          disabled={isLoading || (mode === 'create' && (uploading || !!imageForCrop))}
+          disabled={isLoading || isInitialLoadingEdit || (mode === 'create' && (uploading || !!imageForCrop))}
         >
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {(isLoading || isInitialLoadingEdit) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {mode === 'edit' ? tCommon('save') : t('wizard.finish')}
           <Check className="ml-2 h-4 w-4" />
         </Button>
@@ -1034,7 +1041,65 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         contentClassName="bg-muted/30"
       >
         <div className="max-w-5xl mx-auto p-6 space-y-6">
-          {/* Single step wizard - product configuration form */}
+          {isInitialLoadingEdit ? (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6" aria-busy="true" aria-live="polite">
+              <div className="lg:col-span-8 space-y-6">
+                <section className="bg-card rounded-2xl border border-border/50 p-4">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-10 w-10 rounded-xl" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-3 w-24" />
+                      <Skeleton className="h-4 w-40" />
+                    </div>
+                  </div>
+                </section>
+                <section className="bg-card rounded-2xl border border-border/50 p-6 space-y-5">
+                  <Skeleton className="h-5 w-48" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-12 w-full" />
+                  </div>
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-12 w-full" />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-12 w-full" />
+                    </div>
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-12 w-full" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-24 w-full" />
+                  </div>
+                </section>
+                <section className="bg-card rounded-2xl border border-border/50 p-6 space-y-4">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-32 w-full" />
+                </section>
+                <section className="bg-card rounded-2xl border border-border/50 p-6 space-y-4">
+                  <Skeleton className="h-5 w-40" />
+                  <Skeleton className="h-20 w-full" />
+                </section>
+              </div>
+              <div className="lg:col-span-4 space-y-6">
+                <section className="bg-card rounded-2xl border border-border/50 p-6 space-y-3">
+                  <Skeleton className="h-5 w-28" />
+                  <Skeleton className="h-12 w-full" />
+                </section>
+                <section className="bg-card rounded-2xl border border-border/50 p-6 space-y-3">
+                  <Skeleton className="h-5 w-36" />
+                  <Skeleton className="h-12 w-full" />
+                </section>
+              </div>
+            </div>
+          ) : (
+          /* Single step wizard - product configuration form */
           <form id="step1-form" onSubmit={step1Form.handleSubmit(handleStep1Submit)}>
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Left Column - Main Form (both create and edit modes) */}
@@ -2114,7 +2179,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                 </div>
               </div>
             </form>
-
+          )}
         </div>
       </FullScreenModal>
 
