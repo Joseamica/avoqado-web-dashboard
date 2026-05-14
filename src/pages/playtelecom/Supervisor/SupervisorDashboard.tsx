@@ -20,6 +20,7 @@ import { GlassCard } from '@/components/ui/glass-card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
+import { ZoomableImage } from '@/components/ui/zoomable-image'
 import { useToast } from '@/hooks/use-toast'
 import { exportToCSV, exportToExcel, formatCurrencyForExport, formatDateForExport, generateFilename } from '@/utils/export'
 import getIcon from '@/utils/getIcon'
@@ -1467,9 +1468,13 @@ export function SupervisorDashboard() {
                 </h3>
               </div>
               <div className="p-4 flex justify-center bg-background">
-                <div className="relative rounded-xl overflow-hidden border-2 border-border shadow-lg">
-                  <img src={photoDialog.url} alt="Evidencia" className="max-h-[400px] w-auto object-cover" />
-                  <div className="absolute bottom-3 left-3 flex flex-col gap-1">
+                <ZoomableImage
+                  src={photoDialog.url}
+                  alt="Evidencia"
+                  className="rounded-xl overflow-hidden border-2 border-border shadow-lg"
+                  imageClassName="max-h-[400px]"
+                >
+                  <div className="pointer-events-none absolute bottom-3 left-3 flex flex-col gap-1">
                     {photoDialog.lat != null && photoDialog.lon != null && (
                       <span className="text-[9px] font-semibold bg-black/60 text-white px-1.5 py-0.5 rounded-md flex items-center gap-1 backdrop-blur-md border border-white/10">
                         <MapPin className="w-2.5 h-2.5 text-green-400" />
@@ -1481,7 +1486,7 @@ export function SupervisorDashboard() {
                       {photoDialog.time} - {photoDialog.store}
                     </span>
                   </div>
-                </div>
+                </ZoomableImage>
               </div>
               <div className="px-4 py-3 border-t border-border/50 flex justify-end bg-card">
                 <Button variant="outline" size="sm" onClick={() => setPhotoDialog(null)}>
@@ -1526,10 +1531,11 @@ export function SupervisorDashboard() {
                 </div>
               </div>
               <div className="p-4 flex justify-center bg-background">
-                <img
+                <ZoomableImage
                   src={salePhotos[salePhotoIndex]}
                   alt="Evidencia de venta"
-                  className="max-h-[400px] w-auto object-contain rounded-lg border border-border shadow-lg"
+                  className="rounded-lg overflow-hidden border border-border shadow-lg"
+                  imageClassName="max-h-[400px]"
                 />
               </div>
               {salePhotos.length > 1 && (
