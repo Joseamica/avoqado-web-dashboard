@@ -80,6 +80,7 @@ import {
   RawMaterials,
   Services,
   Recipes,
+  Profitability,
   ReservationsPage,
   ReservationDetail,
   ReservationCalendar,
@@ -519,6 +520,7 @@ export function createVenueRoutes(): RouteObject[] {
                 { path: 'ingredients', element: <RawMaterials /> }, // Ingredients = Raw Materials
                 { path: 'product-stock', element: <ProductStock /> },
                 { path: 'recipes', element: <Recipes /> },
+                { path: 'profitability', element: <Profitability /> },
                 { path: 'pricing', element: <Navigate to="../recipes" replace /> },
                 { path: 'modifiers', element: <ModifierInventory /> },
                 { path: 'modifier-analytics', element: <ModifierAnalytics /> },

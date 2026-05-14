@@ -255,6 +255,51 @@ export const pricingApi = {
   applySuggestedPrice: (venueId: string, productId: string) => api.post(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/apply-suggested-price`),
 
   getAnalysis: (venueId: string, categoryId?: string) => api.get(`/api/v1/dashboard/venues/${venueId}/inventory/pricing-analysis`, { params: { categoryId } }),
+
+  getProfitability: (venueId: string, categoryId?: string) =>
+    api.get(`/api/v1/dashboard/venues/${venueId}/inventory/profitability`, { params: { categoryId } }),
+
+  getMarketBenchmark: (venueId: string, productId: string) =>
+    api.get(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/market-benchmark`),
+}
+
+export interface MarketBenchmarkResult {
+  productId: string
+  productName: string
+  currency: string | null
+  comparablesFound: number
+  comparableVenues: string[]
+  medianEstimate: number | null
+  rangeLow: number | null
+  rangeHigh: number | null
+  confidence: 'low' | 'medium' | 'high'
+  reasoning: string
+  generatedAt: string
+  cached: boolean
+}
+
+// ─── Unified Profitability types (Rentabilidad page) ────────────────────
+export type ProfitabilityType = 'RECIPE' | 'QUANTITY'
+export type ProfitabilityStatus = 'EXCELLENT' | 'HEALTHY' | 'ACCEPTABLE' | 'POOR' | 'UNDEFINED'
+export type ProfitabilityStrategy = 'MANUAL' | 'AUTO_MARKUP' | 'AUTO_TARGET_MARGIN' | 'NONE'
+
+export interface ProfitabilityApiRow {
+  productId: string
+  name: string
+  category: string | null
+  categoryId: string | null
+  type: ProfitabilityType
+  price: number
+  cost: number | null
+  costPct: number | null
+  marginAmount: number | null
+  marginPct: number | null
+  status: ProfitabilityStatus
+  strategy: ProfitabilityStrategy
+  hasPolicy: boolean
+  costDrift: boolean
+  costLastUpdatedAt: string | null
+  priceLastUpdatedAt: string | null
 }
 
 // ===========================================

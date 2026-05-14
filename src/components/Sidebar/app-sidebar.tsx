@@ -306,6 +306,7 @@ export function AppSidebar({
       { title: 'Proveedores', url: 'inventory/suppliers', permission: 'inventory:read', keywords: ['suppliers', 'compras', 'abastecimiento'] },
       { title: 'Ingredientes', url: 'inventory/ingredients', permission: 'inventory:read', keywords: ['materia prima', 'insumos', 'materiales'] },
       { title: t('sidebar:routes.recipes', { defaultValue: 'Recetas' }), url: 'inventory/recipes', permission: 'inventory:read', keywords: ['preparaciones', 'formulas', 'costos'] },
+      { title: 'Rentabilidad', url: 'inventory/profitability', permission: 'inventory:read', keywords: ['margen', 'precio', 'utilidad', 'rentabilidad', 'pricing', 'policy', 'política'] },
       { title: 'Modificadores', url: 'inventory/modifier-analytics', permission: 'inventory:read' },
       { title: 'Conteos de inventario', url: 'inventory/stock-counts', permission: 'inventory:read', keywords: ['recuentos', 'conteo fisico', 'auditoria'] },
       { title: 'Transferencias', url: 'inventory/transfers', permission: 'inventory:read', keywords: ['traslados', 'movimientos entre ubicaciones'] },
