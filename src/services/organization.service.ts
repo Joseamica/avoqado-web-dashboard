@@ -58,6 +58,9 @@ export interface OrganizationTeamMember {
   lastName: string
   email: string
   phone: string | null
+  // Free-text identifier the org owner sets per staff. Surfaced only on
+  // white-label orgs (e.g. PlayTelecom internal employee numbers).
+  employeeCode: string | null
   venues: Array<{
     venueId: string
     venueName: string

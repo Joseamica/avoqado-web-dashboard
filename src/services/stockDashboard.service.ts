@@ -267,14 +267,19 @@ export interface OrgStockOverviewItem {
   currentVenueName: string | null
   createdById: string | null
   createdByName: string | null
+  // Org-internal identifier (white-label orgs like PlayTelecom). Optional
+  // because older backends won't populate it.
+  createdByEmployeeCode?: string | null
   // Chain-of-custody (plan §2.2). Optional for backward-compat with older
   // backend responses (TPV rule: backend supports old clients; here we treat
   // absent fields as ADMIN_HELD + no assignments).
   custodyState?: 'ADMIN_HELD' | 'SUPERVISOR_HELD' | 'PROMOTER_PENDING' | 'PROMOTER_HELD' | 'PROMOTER_REJECTED' | 'SOLD'
   assignedSupervisorId?: string | null
   assignedSupervisorName?: string | null
+  assignedSupervisorEmployeeCode?: string | null
   assignedPromoterId?: string | null
   assignedPromoterName?: string | null
+  assignedPromoterEmployeeCode?: string | null
   promoterAcceptedAt?: string | null
   promoterRejectedAt?: string | null
 }
@@ -289,6 +294,7 @@ export interface OrgStockBulkGroup {
   registeredFromVenueName: string | null
   createdById: string | null
   createdByName: string | null
+  createdByEmployeeCode?: string | null
   itemCount: number
   serialNumberFirst: string
   serialNumberLast: string

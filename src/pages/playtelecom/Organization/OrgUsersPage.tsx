@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
+import { useIsOrgWhiteLabel } from '@/hooks/useIsOrgWhiteLabel'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { useToast } from '@/hooks/use-toast'
 import { useOrgTeam, useOrgZones } from '@/hooks/useOrganizationConfig'
@@ -32,6 +33,7 @@ import {
   getOrgTeamMemberActivity,
   resetOrgTeamMemberPassword,
   syncOrgTeamMemberVenues,
+  updateOrgTeamMemberEmployeeCode,
   updateOrgTeamMemberPin,
   updateOrgTeamMemberRole,
   updateOrgTeamMemberStatus,
@@ -59,6 +61,7 @@ interface OrgUserRow {
   venueCount: number
   venueNames: string[]
   pin?: string
+  employeeCode?: string | null
 }
 
 // ---------- Constants ----------
@@ -113,6 +116,9 @@ export default function OrgUsersPage() {
   const { toast } = useToast()
   const { staffInfo, user } = useAuth()
   const { getDisplayName, getColor } = useRoleConfig()
+  // Surface the org-specific employee code field only on white-label orgs
+  // (e.g. PlayTelecom). Avoids leaking PT terminology to other orgs.
+  const isWhiteLabelOrg = useIsOrgWhiteLabel(orgId)
 
   // State
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
@@ -130,6 +136,7 @@ export default function OrgUsersPage() {
   const [editRole, setEditRole] = useState<string>('')
   const [editVenueIds, setEditVenueIds] = useState<string[]>([])
   const [editPin, setEditPin] = useState('')
+  const [editEmployeeCode, setEditEmployeeCode] = useState('')
   const [hasChanges, setHasChanges] = useState(false)
 
   // PIN visibility toggle (detail modal)
@@ -213,6 +220,20 @@ export default function OrgUsersPage() {
     },
   })
 
+  const updateEmployeeCodeMutation = useMutation({
+    mutationFn: ({ staffId, employeeCode }: { staffId: string; employeeCode: string | null }) =>
+      updateOrgTeamMemberEmployeeCode(orgId!, staffId, employeeCode),
+    onSuccess: () => {
+      toast({ title: t('playtelecom:users.employeeCodeUpdated', { defaultValue: 'ID Playtelecom actualizado' }) })
+      queryClient.invalidateQueries({ queryKey: ['org-config', orgId, 'team'] })
+    },
+    onError: (error: any) => {
+      const msg =
+        error?.response?.data?.message || t('playtelecom:users.employeeCodeUpdateError', { defaultValue: 'Error al actualizar ID' })
+      toast({ title: msg, variant: 'destructive' })
+    },
+  })
+
   const resetPasswordMutation = useMutation({
     mutationFn: (staffId: string) => resetOrgTeamMemberPassword(orgId!, staffId),
     onSuccess: data => {
@@ -276,6 +297,7 @@ export default function OrgUsersPage() {
           venueCount: activeVenues.length,
           venueNames: activeVenues.map(v => v.venueName),
           pin,
+          employeeCode: member.employeeCode ?? null,
         }
       }),
     [teamMembers],
@@ -361,6 +383,7 @@ export default function OrgUsersPage() {
     setEditRole(primaryRole)
     setEditVenueIds(activeVenueIds)
     setEditPin(pin)
+    setEditEmployeeCode(member.employeeCode ?? '')
     setHasChanges(false)
     setShowPin(false)
   }, [])
@@ -406,6 +429,18 @@ export default function OrgUsersPage() {
       updatePinMutation.mutate({ staffId: selectedUserId, pin: editPin })
     }
 
+    // Employee code change (white-label orgs only — UI is hidden otherwise)
+    if (isWhiteLabelOrg) {
+      const currentCode = member.employeeCode ?? ''
+      const nextCode = editEmployeeCode.trim()
+      if (nextCode !== currentCode) {
+        updateEmployeeCodeMutation.mutate({
+          staffId: selectedUserId,
+          employeeCode: nextCode.length > 0 ? nextCode : null,
+        })
+      }
+    }
+
     setHasChanges(false)
   }, [
     selectedUserId,
@@ -414,9 +449,12 @@ export default function OrgUsersPage() {
     editRole,
     editVenueIds,
     editPin,
+    editEmployeeCode,
+    isWhiteLabelOrg,
     updateRoleMutation,
     syncVenuesMutation,
     updatePinMutation,
+    updateEmployeeCodeMutation,
   ])
 
   const handleReset = useCallback(() => {
@@ -458,7 +496,11 @@ export default function OrgUsersPage() {
   }, [])
 
   const isSaving =
-    updateRoleMutation.isPending || updateStatusMutation.isPending || syncVenuesMutation.isPending || updatePinMutation.isPending
+    updateRoleMutation.isPending ||
+    updateStatusMutation.isPending ||
+    syncVenuesMutation.isPending ||
+    updatePinMutation.isPending ||
+    updateEmployeeCodeMutation.isPending
 
   // ---------- Computed for detail ----------
 
@@ -566,8 +608,24 @@ export default function OrgUsersPage() {
         header: 'PIN',
         cell: ({ row }) => <PinCell pin={row.original.pin} />,
       },
+      // Employee code column appended only for white-label orgs so plain
+      // Avoqado tenants don't see a PlayTelecom-specific concept.
+      ...(isWhiteLabelOrg
+        ? [
+            {
+              accessorKey: 'employeeCode',
+              header: t('playtelecom:users.columns.employeeCode', { defaultValue: 'ID Playtelecom' }),
+              cell: ({ row }: { row: { original: OrgUserRow } }) =>
+                row.original.employeeCode ? (
+                  <span className="font-mono text-xs">{row.original.employeeCode}</span>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                ),
+            } as ColumnDef<OrgUserRow>,
+          ]
+        : []),
     ],
-    [t, getDisplayName, getColor],
+    [t, getDisplayName, getColor, isWhiteLabelOrg],
   )
 
   // ---------- Render ----------
@@ -947,6 +1005,42 @@ export default function OrgUsersPage() {
                 </div>
               </GlassCard>
             </div>
+
+            {/* Employee Code (white-label only — used by PlayTelecom to assign
+                internal IDs to promoters/supervisors) */}
+            {isWhiteLabelOrg && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="w-4 h-4 text-muted-foreground" />
+                  <h4 className="text-sm font-medium">
+                    {t('playtelecom:users.employeeCodeLabel', { defaultValue: 'ID Playtelecom' })}
+                  </h4>
+                </div>
+                <GlassCard className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="max-w-[260px] flex-1">
+                      <Input
+                        type="text"
+                        maxLength={64}
+                        placeholder={t('playtelecom:users.employeeCodePlaceholder', { defaultValue: 'Ej. PT-001' })}
+                        value={editEmployeeCode}
+                        onChange={e => {
+                          setEditEmployeeCode(e.target.value)
+                          setHasChanges(true)
+                        }}
+                        disabled={!canEditSelectedUser}
+                        className="h-12 text-base font-mono"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {t('playtelecom:users.employeeCodeDescription', {
+                        defaultValue: 'ID interno para identificar al colaborador (opcional)',
+                      })}
+                    </p>
+                  </div>
+                </GlassCard>
+              </div>
+            )}
 
             {/* Activity Log */}
             <AuditLogTerminal entries={auditLogEntries} maxHeight={240} />

@@ -80,7 +80,12 @@ export function DepositApprovalDialog({
             {/* Promoter info bar */}
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
               <div>
-                <p className="font-semibold text-sm">{entry.promoterName}</p>
+                <p className="font-semibold text-sm">
+                  {entry.promoterName}
+                  {entry.promoterEmployeeCode && (
+                    <span className="ml-1 font-mono text-xs text-muted-foreground">({entry.promoterEmployeeCode})</span>
+                  )}
+                </p>
                 <p className="text-xs text-muted-foreground">{entry.storeName}</p>
               </div>
               <div className="text-right">

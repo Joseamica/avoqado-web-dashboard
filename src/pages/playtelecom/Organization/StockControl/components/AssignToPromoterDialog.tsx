@@ -50,7 +50,10 @@ export function AssignToPromoterDialog({ open, onOpenChange, orgId, serialNumber
     return filtered.map(p => ({
       id: p.id,
       label: p.fullName,
-      description: isInternalEmail(p.email) ? undefined : p.email,
+      // Prefer the org-internal employee code (set by white-label orgs like
+      // PlayTelecom) so Isaac can identify Promoters by their ID. Falls back
+      // to email for non-white-label orgs.
+      description: p.employeeCode ? `ID: ${p.employeeCode}` : isInternalEmail(p.email) ? undefined : p.email,
     }))
   }, [promoters.data, search])
 

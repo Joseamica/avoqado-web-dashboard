@@ -78,7 +78,10 @@ export function ExportButton({ orgId, params, items, bulkGroups }: ExportButtonP
         Estado: item.status,
         Custodia: toCustodyCell(item.custodyState),
         Supervisor: item.assignedSupervisorName ?? '',
+        // White-label orgs use these; blank for everyone else.
+        'ID Supervisor': item.assignedSupervisorEmployeeCode ?? '',
         Promotor: item.assignedPromoterName ?? '',
+        'ID Promotor': item.assignedPromoterEmployeeCode ?? '',
         'Fecha Carga': toDateCell(item.createdAt),
         'Hora Carga': toTimeCell(item.createdAt),
         'Carga Masiva': bulkSerials.has(item.serialNumber) ? 'Sí' : 'No',
@@ -88,6 +91,7 @@ export function ExportButton({ orgId, params, items, bulkGroups }: ExportButtonP
         'Fecha Venta': toDateCell(item.soldAt),
         'Hora Venta': toTimeCell(item.soldAt),
         'Registrado Por': item.createdByName ?? '',
+        'ID Registrante': item.createdByEmployeeCode ?? '',
       }))
 
       const from = params.dateFrom?.slice(0, 10)

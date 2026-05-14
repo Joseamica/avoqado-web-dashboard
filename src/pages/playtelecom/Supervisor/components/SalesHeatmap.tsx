@@ -119,6 +119,8 @@ export function SalesHeatmap({ startDate, endDate, filterVenueId, currency = 'MX
       const row: Record<string, any> = {
         [t('supervisor.salesHeatmap.store')]: s.venueName,
         [t('supervisor.salesHeatmap.promoter')]: s.staffName,
+        // Org-internal ID (white-label orgs). Blank when unset.
+        [t('supervisor.salesHeatmap.promoterId', { defaultValue: 'ID Promotor' })]: s.staffEmployeeCode ?? '',
       }
       for (const d of s.days) {
         const label = format(parseISO(d.date), 'dd/MM')
@@ -320,6 +322,9 @@ function SalesGroupRows({
             </td>
             <td className="sticky left-[120px] z-10 bg-card px-3 py-1.5 text-xs truncate max-w-[140px]">
               {staff.staffName}
+              {staff.staffEmployeeCode && (
+                <span className="ml-1 font-mono text-[9px] text-muted-foreground">({staff.staffEmployeeCode})</span>
+              )}
             </td>
             {staff.days.map(day => {
               const value = viewMode === 'count' ? day.salesCount : day.salesAmount

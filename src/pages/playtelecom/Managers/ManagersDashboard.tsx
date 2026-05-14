@@ -182,6 +182,7 @@ export function ManagersDashboard() {
         date: clockInDate.toLocaleDateString('es-MX', dateOpts),
         storeName: entry.venueName,
         promoterName: entry.name,
+        promoterEmployeeCode: entry.employeeCode ?? null,
         clockIn: clockInDate.toLocaleTimeString('es-MX', timeOpts).toUpperCase(),
         clockOut: te.clockOutTime
           ? new Date(te.clockOutTime).toLocaleTimeString('es-MX', timeOpts).toUpperCase()

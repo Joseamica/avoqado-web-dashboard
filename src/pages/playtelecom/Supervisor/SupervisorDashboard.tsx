@@ -494,6 +494,8 @@ export function SupervisorDashboard() {
         [t('playtelecom:supervisor.exportHeaders.product', { defaultValue: 'Producto' })]: e.title,
         ICCID: (e.metadata?.iccid as string) || '',
         [t('playtelecom:supervisor.exportHeaders.seller', { defaultValue: 'Vendedor' })]: sellerName,
+        // Org-internal ID (white-label orgs like PlayTelecom). Blank when unset.
+        [t('playtelecom:supervisor.exportHeaders.sellerEmployeeCode', { defaultValue: 'ID Vendedor' })]: e.staffEmployeeCode ?? '',
         [t('playtelecom:supervisor.exportHeaders.sellerUser', { defaultValue: 'Usuario vendedor' })]: sellerUser,
         [t('playtelecom:supervisor.exportHeaders.amount', { defaultValue: 'Monto' })]: formatCurrencyForExport(
           (e.metadata?.total as number) || (e.metadata?.amount as number) || 0,

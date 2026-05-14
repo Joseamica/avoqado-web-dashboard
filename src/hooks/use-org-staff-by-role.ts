@@ -29,6 +29,8 @@ export interface OrgStaffOption {
   lastName: string
   fullName: string
   email: string
+  // Org-internal identifier (white-label orgs). Null when unset.
+  employeeCode: string | null
 }
 
 export function useOrgStaffByRole(orgId: string | undefined, role: StaffRoleId | StaffRoleId[]) {
@@ -79,5 +81,6 @@ function toOption(m: OrganizationTeamMember): OrgStaffOption {
     lastName: m.lastName,
     fullName: `${m.firstName} ${m.lastName}`.trim(),
     email: m.email,
+    employeeCode: m.employeeCode ?? null,
   }
 }

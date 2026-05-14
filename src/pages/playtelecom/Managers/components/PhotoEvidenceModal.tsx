@@ -30,7 +30,11 @@ export function PhotoEvidenceModal({ entry, type, open, onClose }: PhotoEvidence
         <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-card">
           <User className="w-4 h-4 text-primary" />
           <h3 className="font-semibold text-sm">
-            {entry.promoterName} — {label}
+            {entry.promoterName}
+            {entry.promoterEmployeeCode && (
+              <span className="ml-1 font-mono text-xs text-muted-foreground">({entry.promoterEmployeeCode})</span>
+            )}{' '}
+            — {label}
           </h3>
         </div>
 

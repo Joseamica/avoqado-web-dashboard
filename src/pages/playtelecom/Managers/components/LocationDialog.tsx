@@ -41,7 +41,12 @@ export function LocationDialog({ entry, type, open, onClose }: LocationDialogPro
         <div className="p-5 space-y-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <User className="w-4 h-4" />
-            <span>{entry.promoterName}</span>
+            <span>
+              {entry.promoterName}
+              {entry.promoterEmployeeCode && (
+                <span className="ml-1 font-mono text-xs text-muted-foreground">({entry.promoterEmployeeCode})</span>
+              )}
+            </span>
           </div>
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

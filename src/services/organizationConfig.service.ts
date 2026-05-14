@@ -167,6 +167,9 @@ export interface OrgTeamMember {
   email: string
   phone?: string
   photoUrl?: string
+  // Free-text identifier the org owner sets per staff. Surfaced only on
+  // white-label orgs (e.g. PlayTelecom internal employee numbers).
+  employeeCode?: string | null
   createdAt: string
   venues: Array<{
     staffVenueId: string
@@ -203,6 +206,15 @@ export const syncOrgTeamMemberVenues = async (orgId: string, staffId: string, ve
 
 export const updateOrgTeamMemberPin = async (orgId: string, staffId: string, pin: string): Promise<void> => {
   await api.patch(`/api/v1/dashboard/organizations/${orgId}/team/${staffId}/pin`, { pin })
+}
+
+export const updateOrgTeamMemberEmployeeCode = async (
+  orgId: string,
+  staffId: string,
+  employeeCode: string | null,
+): Promise<{ employeeCode: string | null }> => {
+  const response = await api.patch(`/api/v1/dashboard/organizations/${orgId}/team/${staffId}/employee-code`, { employeeCode })
+  return response.data.data
 }
 
 export const resetOrgTeamMemberPassword = async (orgId: string, staffId: string): Promise<{ temporaryPassword: string }> => {

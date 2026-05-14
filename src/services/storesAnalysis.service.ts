@@ -110,6 +110,9 @@ export interface ActivityFeedEvent {
   venueName: string
   staffId?: string
   staffName?: string
+  // Org-internal employee identifier (white-label orgs). Surfaced beside the
+  // name in the UI and included in CSV/Excel exports.
+  staffEmployeeCode?: string | null
   metadata?: Record<string, unknown>
 }
 
@@ -286,6 +289,8 @@ export interface StaffAttendanceEntry {
   timeEntryId: string | null
   name: string
   email: string
+  // Org-internal employee identifier (white-label orgs).
+  employeeCode?: string | null
   avatar?: string | null
   venueId: string
   venueName: string
@@ -739,6 +744,7 @@ export interface AttendanceHeatmapDay {
 export interface AttendanceHeatmapStaff {
   staffId: string
   staffName: string
+  staffEmployeeCode?: string | null
   venueId: string
   venueName: string
   venueState: string
@@ -766,6 +772,7 @@ export interface SalesHeatmapDay {
 export interface SalesHeatmapStaff {
   staffId: string
   staffName: string
+  staffEmployeeCode?: string | null
   venueId: string
   venueName: string
   venueState: string

@@ -229,7 +229,11 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
                   onValueChange={setSupervisorStaffId}
                   options={(supervisors.data ?? []).map(s => ({
                     value: s.id,
-                    label: s.fullName,
+                    // Suffix the org-internal ID (white-label orgs) so the
+                    // selector lets you disambiguate two people with the same
+                    // name. Empty suffix when there's no code, so non-WL orgs
+                    // see just the name.
+                    label: s.employeeCode ? `${s.fullName} (${s.employeeCode})` : s.fullName,
                   }))}
                   placeholder={supervisors.isLoading ? 'Cargando…' : 'Selecciona un Supervisor'}
                   searchPlaceholder="Buscar por nombre…"
@@ -247,7 +251,7 @@ export function AssignToSupervisorDialog({ open, onOpenChange, orgId }: Props) {
                   onValueChange={setPromoterStaffId}
                   options={(promoters.data ?? []).map(s => ({
                     value: s.id,
-                    label: s.fullName,
+                    label: s.employeeCode ? `${s.fullName} (${s.employeeCode})` : s.fullName,
                   }))}
                   placeholder={promoters.isLoading ? 'Cargando…' : 'Selecciona un Promotor'}
                   searchPlaceholder="Buscar por nombre…"

@@ -396,12 +396,18 @@ function SimRow({
         <span className="block max-w-[180px] truncate">
           {item.assignedSupervisorName ?? <span className="text-muted-foreground">—</span>}
         </span>
+        {item.assignedSupervisorEmployeeCode && (
+          <span className="block text-[10px] font-mono text-muted-foreground tracking-wide">{item.assignedSupervisorEmployeeCode}</span>
+        )}
       </td>
       <td className="py-3 px-2 text-sm">
         <span className="block max-w-[180px] truncate">
           {item.assignedPromoterName ?? <span className="text-muted-foreground">—</span>}
           {item.promoterRejectedAt && <span className="ml-1 text-red-600 text-xs">(rechazado)</span>}
         </span>
+        {item.assignedPromoterEmployeeCode && (
+          <span className="block text-[10px] font-mono text-muted-foreground tracking-wide">{item.assignedPromoterEmployeeCode}</span>
+        )}
       </td>
       <td className="py-3 px-2">
         <CategoryChip name={item.categoryName} />

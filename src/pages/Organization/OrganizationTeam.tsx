@@ -10,14 +10,17 @@
  * Access: OWNER+ only (guarded by OwnerProtectedRoute in router)
  */
 
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { type ColumnDef } from '@tanstack/react-table'
 import { getOrganizationTeam, type OrganizationTeamMember } from '@/services/organization.service'
+import { updateOrgTeamMemberEmployeeCode } from '@/services/organizationConfig.service'
 import { getTeam, adminResetPassword, getStaffActivityLog, type TeamMember as StoresTeamMember } from '@/services/storesAnalysis.service'
 import { teamService } from '@/services/team.service'
+import { Input } from '@/components/ui/input'
+import { useIsOrgWhiteLabel } from '@/hooks/useIsOrgWhiteLabel'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
@@ -75,6 +78,7 @@ interface TeamRow {
   phone: string | null
   venues: OrganizationTeamMember['venues']
   createdAt: string
+  employeeCode: string | null
 }
 
 const OrganizationTeam: React.FC = () => {
@@ -85,6 +89,8 @@ const OrganizationTeam: React.FC = () => {
   const { getDisplayName } = useRoleConfig()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  // Surface the org-specific employee code field only on white-label orgs.
+  const isWhiteLabelOrg = useIsOrgWhiteLabel(orgId)
 
   // Context venue for venue-scoped API calls — MUST belong to the organization
   // in the URL, otherwise invitations end up assigned to another org (production
@@ -116,6 +122,9 @@ const OrganizationTeam: React.FC = () => {
   // Reset password dialog
   const [tempPassword, setTempPassword] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+
+  // Employee-code editor (white-label only)
+  const [editEmployeeCode, setEditEmployeeCode] = useState('')
 
   // ---------- Queries ----------
 
@@ -193,6 +202,22 @@ const OrganizationTeam: React.FC = () => {
     },
   })
 
+  const updateEmployeeCodeMutation = useMutation({
+    mutationFn: ({ staffId, employeeCode }: { staffId: string; employeeCode: string | null }) =>
+      updateOrgTeamMemberEmployeeCode(orgId!, staffId, employeeCode),
+    onSuccess: () => {
+      toast({ title: t('organization:team.employeeCodeUpdated', { defaultValue: 'ID actualizado' }) })
+      queryClient.invalidateQueries({ queryKey: ['organization', 'team', orgId] })
+    },
+    onError: (error: any) => {
+      toast({
+        title:
+          error?.response?.data?.message || t('organization:team.employeeCodeUpdateError', { defaultValue: 'Error al actualizar ID' }),
+        variant: 'destructive',
+      })
+    },
+  })
+
   // ---------- Data Mapping ----------
 
   const rows: TeamRow[] = useMemo(
@@ -204,6 +229,7 @@ const OrganizationTeam: React.FC = () => {
         phone: member.phone,
         venues: member.venues,
         createdAt: member.createdAt,
+        employeeCode: member.employeeCode,
       })),
     [orgTeam],
   )
@@ -231,6 +257,12 @@ const OrganizationTeam: React.FC = () => {
   // ---------- Selected member data ----------
 
   const selectedOrgMember = useMemo(() => orgTeam?.find(m => m.id === selectedMemberId) || null, [orgTeam, selectedMemberId])
+
+  // Re-sync the editable code field whenever we open or switch members. Avoids
+  // showing the previous user's code on a fresh selection.
+  useEffect(() => {
+    setEditEmployeeCode(selectedOrgMember?.employeeCode ?? '')
+  }, [selectedOrgMember?.id, selectedOrgMember?.employeeCode])
 
   const selectedStoresMember = useMemo(
     () => (selectedMemberId ? storesTeamMap.get(selectedMemberId) || null : null),
@@ -442,8 +474,23 @@ const OrganizationTeam: React.FC = () => {
         header: t('organization:team.joined', { defaultValue: 'Se unió' }),
         cell: ({ row }) => <span className="text-sm text-muted-foreground whitespace-nowrap">{formatDate(row.original.createdAt)}</span>,
       },
+      // Employee code column appended only for white-label orgs.
+      ...(isWhiteLabelOrg
+        ? [
+            {
+              accessorKey: 'employeeCode',
+              header: t('organization:team.employeeCode', { defaultValue: 'ID' }),
+              cell: ({ row }: { row: { original: TeamRow } }) =>
+                row.original.employeeCode ? (
+                  <span className="font-mono text-xs">{row.original.employeeCode}</span>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                ),
+            } as ColumnDef<TeamRow>,
+          ]
+        : []),
     ],
-    [t, formatDate, getDisplayName],
+    [t, formatDate, getDisplayName, isWhiteLabelOrg],
   )
 
   // ---------- Render ----------
@@ -596,6 +643,54 @@ const OrganizationTeam: React.FC = () => {
                 </Button>
               </div>
             </GlassCard>
+
+            {/* Employee Code (white-label only — used by orgs like PlayTelecom
+                to assign internal IDs to staff) */}
+            {isWhiteLabelOrg && (
+              <GlassCard className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <KeyRound className="w-4 h-4 text-muted-foreground" />
+                  <h4 className="text-sm font-medium">{t('organization:team.employeeCodeLabel', { defaultValue: 'ID Interno' })}</h4>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="text"
+                    maxLength={64}
+                    placeholder={t('organization:team.employeeCodePlaceholder', { defaultValue: 'Ej. PT-001' })}
+                    value={editEmployeeCode}
+                    onChange={e => setEditEmployeeCode(e.target.value)}
+                    className="h-10 max-w-[260px] font-mono"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (!selectedMemberId) return
+                      const next = editEmployeeCode.trim()
+                      const current = selectedOrgMember?.employeeCode ?? ''
+                      if (next === current) return
+                      updateEmployeeCodeMutation.mutate({
+                        staffId: selectedMemberId,
+                        employeeCode: next.length > 0 ? next : null,
+                      })
+                    }}
+                    disabled={
+                      updateEmployeeCodeMutation.isPending ||
+                      editEmployeeCode.trim() === (selectedOrgMember?.employeeCode ?? '')
+                    }
+                    className="h-9 cursor-pointer"
+                  >
+                    {updateEmployeeCodeMutation.isPending
+                      ? t('common:saving', { defaultValue: 'Guardando...' })
+                      : t('common:save', { defaultValue: 'Guardar' })}
+                  </Button>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {t('organization:team.employeeCodeDescription', {
+                    defaultValue: 'ID interno para identificar al colaborador (opcional).',
+                  })}
+                </p>
+              </GlassCard>
+            )}
 
             {/* Venue Assignments */}
             <div className="space-y-3">

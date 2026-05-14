@@ -18,6 +18,8 @@ export interface AttendanceEntry {
   date: string
   storeName: string
   promoterName: string
+  // Org-internal ID (white-label orgs). Surfaced beside the name when present.
+  promoterEmployeeCode?: string | null
   clockIn: string | null
   clockOut: string | null
   clockInPhotoUrl: string | null
@@ -245,7 +247,12 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
                     <div className="font-semibold">{entry.date}</div>
                     <div className="text-xs text-primary">{entry.storeName}</div>
                   </td>
-                  <td className="px-6 py-4 text-muted-foreground">{entry.promoterName}</td>
+                  <td className="px-6 py-4 text-muted-foreground">
+                    {entry.promoterName}
+                    {entry.promoterEmployeeCode && (
+                      <span className="ml-1 font-mono text-[10px] text-muted-foreground/70">({entry.promoterEmployeeCode})</span>
+                    )}
+                  </td>
 
                   {/* Clock In */}
                   <td className="px-6 py-4">
@@ -456,7 +463,12 @@ export function AttendanceLog({ entries, onApprove, onReject, onResetValidation,
               <div className="flex items-start justify-between">
                 <div>
                   <p className="font-semibold text-sm">{entry.storeName}</p>
-                  <p className="text-xs text-muted-foreground">{entry.promoterName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {entry.promoterName}
+                    {entry.promoterEmployeeCode && (
+                      <span className="ml-1 font-mono text-[10px] text-muted-foreground/70">({entry.promoterEmployeeCode})</span>
+                    )}
+                  </p>
                   <p className="text-[10px] text-muted-foreground">{entry.date}</p>
                 </div>
                 <div className="text-right">

@@ -517,6 +517,9 @@ function SupervisorSimRow({ item, checked, onToggle, onTimeline, onCollect, onAs
           {item.assignedPromoterName ?? <span className="text-muted-foreground">—</span>}
           {item.promoterRejectedAt && <span className="ml-1 text-red-600 text-xs">(rechazado)</span>}
         </span>
+        {item.assignedPromoterEmployeeCode && (
+          <span className="block text-[10px] font-mono text-muted-foreground tracking-wide">{item.assignedPromoterEmployeeCode}</span>
+        )}
       </td>
       <td className="py-2 px-2 text-sm">
         <span className="block max-w-[160px] truncate">{item.categoryName}</span>
