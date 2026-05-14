@@ -113,20 +113,20 @@ export function ZoomableImage({ src, alt = '', className, imageClassName, childr
         {children}
       </div>
 
-      <div className="absolute bottom-3 right-3 flex items-center gap-0.5 rounded-full border border-white/10 bg-black/60 p-1 backdrop-blur-md">
+      <div className="absolute bottom-3 right-3 flex items-center gap-0.5 rounded-full border border-neutral-50/10 bg-neutral-900/60 p-1 backdrop-blur-md">
         <Button
           type="button"
           variant="ghost"
           size="icon"
           onClick={zoomOut}
           disabled={zoom <= MIN_ZOOM}
-          className="h-7 w-7 cursor-pointer rounded-full text-white hover:bg-white/15 hover:text-white disabled:opacity-40"
+          className="h-7 w-7 cursor-pointer rounded-full text-neutral-50 hover:bg-neutral-50/15 hover:text-neutral-50 disabled:opacity-40"
           aria-label="Alejar"
           title="Alejar"
         >
           <ZoomOut className="h-3.5 w-3.5" />
         </Button>
-        <span className="min-w-[2.5rem] text-center text-[10px] font-semibold tabular-nums text-white">
+        <span className="min-w-[2.5rem] text-center text-[10px] font-semibold tabular-nums text-neutral-50">
           {Math.round(zoom * 100)}%
         </span>
         <Button
@@ -135,7 +135,7 @@ export function ZoomableImage({ src, alt = '', className, imageClassName, childr
           size="icon"
           onClick={zoomIn}
           disabled={zoom >= MAX_ZOOM}
-          className="h-7 w-7 cursor-pointer rounded-full text-white hover:bg-white/15 hover:text-white disabled:opacity-40"
+          className="h-7 w-7 cursor-pointer rounded-full text-neutral-50 hover:bg-neutral-50/15 hover:text-neutral-50 disabled:opacity-40"
           aria-label="Acercar"
           title="Acercar"
         >
@@ -147,7 +147,7 @@ export function ZoomableImage({ src, alt = '', className, imageClassName, childr
             variant="ghost"
             size="icon"
             onClick={reset}
-            className="h-7 w-7 cursor-pointer rounded-full text-white hover:bg-white/15 hover:text-white"
+            className="h-7 w-7 cursor-pointer rounded-full text-neutral-50 hover:bg-neutral-50/15 hover:text-neutral-50"
             aria-label="Restablecer zoom"
             title="Restablecer"
           >
@@ -159,7 +159,7 @@ export function ZoomableImage({ src, alt = '', className, imageClassName, childr
             variant="ghost"
             size="icon"
             onClick={() => setZoom(DOUBLE_CLICK_ZOOM)}
-            className="h-7 w-7 cursor-pointer rounded-full text-white hover:bg-white/15 hover:text-white"
+            className="h-7 w-7 cursor-pointer rounded-full text-neutral-50 hover:bg-neutral-50/15 hover:text-neutral-50"
             aria-label="Ampliar"
             title="Ampliar (doble click)"
           >
