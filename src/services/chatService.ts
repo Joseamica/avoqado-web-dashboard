@@ -1366,6 +1366,10 @@ export interface TokenBudgetStatus {
   overageTokensUsed: number
   overageCost: number
   warning?: string
+  // Auto-recharge config (mirrors backend TokenBudgetStatus)
+  autoRechargeEnabled: boolean
+  autoRechargeThreshold: number
+  autoRechargeAmount: number
   // Historical totals (for display purposes)
   totalTokensPurchased: number // Total tokens ever purchased (doesn't decrease)
   totalTokensUsed: number // Total tokens ever used
