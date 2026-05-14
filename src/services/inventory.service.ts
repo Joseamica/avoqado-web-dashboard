@@ -261,6 +261,18 @@ export const pricingApi = {
 
   getMarketBenchmark: (venueId: string, productId: string) =>
     api.get(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/market-benchmark`),
+
+  getBulkMarketBenchmark: (venueId: string, productIds: string[]) =>
+    api.post(`/api/v1/dashboard/venues/${venueId}/inventory/market-benchmark/bulk`, { productIds }),
+}
+
+export interface BulkBenchmarkResponse {
+  results: Array<MarketBenchmarkResult | { productId: string; error: string }>
+  tokensAvailableBefore: number
+  tokensAvailableAfter: number
+  productsProcessed: number
+  productsFailed: number
+  warning?: string
 }
 
 export interface MarketBenchmarkResult {

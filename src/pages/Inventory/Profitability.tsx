@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Settings2, Search, RefreshCcw } from 'lucide-react'
+import { Settings2, Search, RefreshCcw, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { pricingApi, type ProfitabilityApiRow } from '@/services/inventory.service'
@@ -13,6 +13,7 @@ import { CostChangeAlertBanner } from './components/profitability/CostChangeAler
 import { UnifiedProfitabilityTable } from './components/profitability/UnifiedProfitabilityTable'
 import { PolicyDrawer } from './components/profitability/PolicyDrawer'
 import { QuickPriceEditDialog } from './components/profitability/QuickPriceEditDialog'
+import { BulkBenchmarkDialog } from './components/profitability/BulkBenchmarkDialog'
 
 import {
   apiRowToDerived,
@@ -52,6 +53,7 @@ export default function Profitability() {
   const [focusedProduct, setFocusedProduct] = useState<DerivedRow | null>(null)
   const [quickEditRow, setQuickEditRow] = useState<DerivedRow | null>(null)
   const [quickEditOpen, setQuickEditOpen] = useState(false)
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false)
 
   // KPIs are computed over the FULL catalog, not the filtered view.
   // We use the MEDIAN, not the mean — a single broken row (e.g. recipe cost
@@ -123,6 +125,16 @@ export default function Profitability() {
           >
             <RefreshCcw className={cn('h-4 w-4', isFetching && 'animate-spin')} />
             Actualizar
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setBulkDialogOpen(true)}
+            disabled={allRows.length === 0}
+            className="gap-1.5 border-violet-300 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950/30"
+          >
+            <Sparkles className="h-4 w-4" />
+            Analizar con IA
           </Button>
           <Button size="sm" onClick={() => openPolicyFor(undefined)} className="gap-1.5">
             <Settings2 className="h-4 w-4" />
@@ -248,6 +260,9 @@ export default function Profitability() {
 
       {/* Quick price/cost edit on row click */}
       <QuickPriceEditDialog open={quickEditOpen} onOpenChange={setQuickEditOpen} row={quickEditRow} />
+
+      {/* Bulk AI benchmark from header */}
+      <BulkBenchmarkDialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen} rows={allRows} />
     </div>
   )
 }
