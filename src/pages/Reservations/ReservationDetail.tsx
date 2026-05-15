@@ -45,6 +45,7 @@ import { ReservationStatusBadge } from './components/ReservationStatusBadge'
 export default function ReservationDetail() {
 	const { t } = useTranslation('reservations')
 	const { t: tCommon } = useTranslation()
+	const { t: tGcal } = useTranslation('googleCalendar')
 	const { venueId } = useCurrentVenue()
 	const { reservationId } = useParams<{ reservationId: string }>()
 	const { toast } = useToast()
@@ -147,7 +148,23 @@ export default function ReservationDetail() {
 			queryClient.invalidateQueries({ queryKey: ['reservations', venueId] })
 		},
 		onError: (error: any) => {
-			toast({ title: tCommon('error'), description: error.response?.data?.message || t('toasts.error'), variant: 'destructive' })
+			// External Google Calendar busy-block conflict during reschedule —
+			// same defensive shape detection as CreateReservation. See
+			// avoqado-server `dashboard/reservation.dashboard.service.ts:886`.
+			const status = error?.response?.status
+			const message = error?.response?.data?.message ?? ''
+			const code =
+				error?.response?.data?.code ??
+				error?.response?.data?.errorCode ??
+				error?.response?.data?.error?.code
+			const isExternalCalendarBusy =
+				code === 'external_calendar_busy' ||
+				(status === 409 && /calendario\s+externo/i.test(message))
+			if (isExternalCalendarBusy) {
+				toast({ title: tGcal('reservationBusyError'), variant: 'destructive' })
+				return
+			}
+			toast({ title: tCommon('error'), description: message || t('toasts.error'), variant: 'destructive' })
 		},
 	})
 

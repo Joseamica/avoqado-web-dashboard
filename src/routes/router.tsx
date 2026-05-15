@@ -18,6 +18,7 @@ import {
   ErrorPage,
   ForgotPassword,
   GlobalConfig,
+  GoogleCalendarPicker,
   GoogleOAuthCallback,
   InviteAccept,
   KYCReview,
@@ -180,6 +181,15 @@ const router = createBrowserRouter(
         {
           element: <ProtectedRoute />, // Protected routes
           children: [
+            // Google Calendar Sync — landing page for Google's OAuth redirect.
+            // Lives at top level (NOT inside venue routes) because the dashboard
+            // base URL is what we hand to Google as the redirect target; the
+            // user's active venue is whatever venue context they had when they
+            // hit "Connect" in Reservation Settings or Mi Cuenta.
+            {
+              path: '/google-calendar/picker',
+              element: <GoogleCalendarPicker />,
+            },
             // Executive Analytics (org/venue scoped via backend auth)
             // Requires MANAGER+ or VIEWER role
             {

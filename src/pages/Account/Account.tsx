@@ -9,16 +9,19 @@ import { Badge } from '@/components/ui/badge'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { User, Mail, Shield, Calendar, KeyRound } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useVenueDateTime } from '@/utils/datetime'
+import googleCalendarService from '@/services/googleCalendar.service'
+import { GoogleCalendarConnectionCard } from '@/pages/GoogleCalendar/components/GoogleCalendarConnectionCard'
 
 export default function Account() {
   const { t } = useTranslation(['account', 'common'])
+  const { t: tGcal } = useTranslation('googleCalendar')
   const { venueId } = useCurrentVenue()
   const { user } = useAuth()
   const { formatDate, formatDateTime } = useVenueDateTime()
@@ -30,6 +33,19 @@ export default function Account() {
   // Get current PIN from venue data in auth context
   const currentVenue = user?.venues?.find((v: any) => v.id === venueId)
   const currentPin = currentVenue?.pin || ''
+
+  // Google Calendar Sync — STAFF_PERSONAL connection for the current user. The
+  // backend's listConnections returns all connections the caller can see
+  // (their personal one + venue ones in the active venue); we filter to the
+  // staff-personal row owned by this user.
+  const { data: gcalConnectionsData, isLoading: gcalLoading } = useQuery({
+    queryKey: ['google-calendar', 'connections'],
+    queryFn: () => googleCalendarService.listConnections(),
+  })
+  const personalGoogleCalendarConnection =
+    gcalConnectionsData?.connections.find(
+      c => c.scope === 'STAFF_PERSONAL' && c.staffId === user?.id && c.status !== 'DISCONNECTED',
+    ) ?? null
 
   const profileForm = useForm({
     defaultValues: {
@@ -296,6 +312,24 @@ export default function Account() {
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* ----------------------------- Google Calendar (Mi calendario personal) */}
+      {/* Sits below the profile grid as a full-width section. Visually distinct
+          from the Google Business Profile integration (which lives under
+          /settings/google-integration) — different surface, different icon,
+          different copy. They use separate OAuth apps and scopes. */}
+      <div className="mt-6 space-y-3">
+        <div>
+          <h2 className="text-lg font-semibold">{tGcal('personal.title')}</h2>
+          <p className="text-sm text-muted-foreground">{tGcal('personal.description')}</p>
+        </div>
+        <GoogleCalendarConnectionCard
+          variant="personal"
+          connection={personalGoogleCalendarConnection}
+          isLoading={gcalLoading}
+          requiredPermission="calendar:connect_self"
+        />
       </div>
 
       {/* Diálogo para cambiar contraseña */}

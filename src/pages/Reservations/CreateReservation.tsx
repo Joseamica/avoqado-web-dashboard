@@ -319,9 +319,30 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
       }
     },
     onError: (error: any) => {
+      // External Google Calendar busy-block conflict — backend currently
+      // signals this as a 409 ConflictError with a Spanish message and no
+      // structured code (see avoqado-server `dashboard/reservation.dashboard.service.ts`).
+      // Defensive: also accept a future `code` field so we can stop pattern
+      // matching once the backend adds one without redeploying the dashboard.
+      const status = error?.response?.status
+      const message = error?.response?.data?.message ?? ''
+      const code =
+        error?.response?.data?.code ??
+        error?.response?.data?.errorCode ??
+        error?.response?.data?.error?.code
+      const isExternalCalendarBusy =
+        code === 'external_calendar_busy' ||
+        (status === 409 && /calendario\s+externo/i.test(message))
+      if (isExternalCalendarBusy) {
+        toast({
+          title: t('googleCalendar:reservationBusyError'),
+          variant: 'destructive',
+        })
+        return
+      }
       toast({
         title: tCommon('error'),
-        description: error.response?.data?.message || t('toasts.error'),
+        description: message || t('toasts.error'),
         variant: 'destructive',
       })
     },

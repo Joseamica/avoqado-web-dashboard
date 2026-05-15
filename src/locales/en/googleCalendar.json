@@ -1,0 +1,56 @@
+{
+  "title": "Google Calendar",
+  "venue": {
+    "title": "Venue calendar",
+    "description": "Sync a master Google Calendar for the venue. Events on that calendar will block availability for every reservation at this venue."
+  },
+  "personal": {
+    "title": "My Google Calendar",
+    "description": "Connect your personal Google Calendar. Events on your calendar will block your staff availability across every venue where you work."
+  },
+  "differentFromBusiness": "This is independent of Google Business Profile. No business verification required — a standard Google account works.",
+  "actions": {
+    "connect": "Connect Google Calendar",
+    "disconnect": "Disconnect",
+    "reconnect": "Reconnect"
+  },
+  "status": {
+    "connected": "Connected",
+    "tokenRevoked": "Access revoked",
+    "calendarLost": "Calendar unreachable",
+    "watchFailed": "Sync failed",
+    "disconnected": "Disconnected",
+    "lastSyncedAt": "Last synced: {{date}}",
+    "never": "never",
+    "calendarLabel": "Calendar",
+    "accountLabel": "Google account",
+    "timezoneLabel": "Time zone"
+  },
+  "picker": {
+    "pageTitle": "Pick a calendar",
+    "title": "Choose the calendar you want to sync",
+    "description": "We only show calendars where you have enough permissions.",
+    "useThis": "Use this calendar",
+    "noWritable": "No writable calendars found. For staff reservations you need a calendar you own or have write access to.",
+    "loading": "Loading calendars…",
+    "invalidSession": "The session expired. Please start the connection again.",
+    "missingSession": "No valid session was provided.",
+    "back": "Back to My Account",
+    "readOnlyBadge": "Read-only",
+    "primaryBadge": "Primary"
+  },
+  "toast": {
+    "connectFailed": "Couldn't connect Google Calendar. Please try again.",
+    "connected": "Google Calendar connected",
+    "disconnected": "Google Calendar disconnected",
+    "disconnectFailed": "Couldn't disconnect. Please try again.",
+    "connectionFinalized": "Pick the calendar you want to sync."
+  },
+  "disconnect": {
+    "confirmTitle": "Disconnect Google Calendar?",
+    "confirmDescription": "Events from that calendar will stop blocking availability. Existing reservations aren't affected.",
+    "confirmAction": "Yes, disconnect",
+    "cancel": "Cancel"
+  },
+  "reservationBusyError": "This time slot is blocked by an event on the connected calendar. Pick a different time."
+}

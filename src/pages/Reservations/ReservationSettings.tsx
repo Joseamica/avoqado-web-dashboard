@@ -20,6 +20,8 @@ import { useReservationSettingsTour } from '@/hooks/useReservationSettingsTour'
 import { cn } from '@/lib/utils'
 import reservationService from '@/services/reservation.service'
 import { ecommerceMerchantAPI } from '@/services/ecommerceMerchant.service'
+import googleCalendarService from '@/services/googleCalendar.service'
+import { GoogleCalendarConnectionCard } from '@/pages/GoogleCalendar/components/GoogleCalendarConnectionCard'
 import type { OperatingHours } from '@/types/reservation'
 
 // ----------------------------------------------------------------------------
@@ -476,6 +478,7 @@ export default function ReservationSettings() {
 	const queryClient = useQueryClient()
 	const { t } = useTranslation('reservations')
 	const { t: tCommon } = useTranslation()
+	const { t: tGcal } = useTranslation('googleCalendar')
 
 	const { data: settings, isLoading } = useQuery({
 		queryKey: ['reservation-settings', venueId],
@@ -496,6 +499,18 @@ export default function ReservationSettings() {
 	const hasActiveStripeConnect = ecommerceMerchants.some(
 		m => m.active && m.provider?.code === 'STRIPE_CONNECT' && (m.chargesEnabled || m.onboardingStatus === 'COMPLETED'),
 	)
+
+	// Google Calendar Sync — VENUE-scope connection. Pull the full list and
+	// filter client-side so a single query feeds both this card and Mi Cuenta
+	// in the same session (TanStack will dedupe).
+	const { data: gcalConnectionsData, isLoading: gcalLoading } = useQuery({
+		queryKey: ['google-calendar', 'connections'],
+		queryFn: () => googleCalendarService.listConnections(),
+	})
+	const venueGoogleCalendarConnection =
+		gcalConnectionsData?.connections.find(
+			c => c.scope === 'VENUE' && c.venueId === venueId && c.status !== 'DISCONNECTED',
+		) ?? null
 
 	const {
 		handleSubmit,
@@ -1210,6 +1225,25 @@ export default function ReservationSettings() {
 								)}
 							</div>
 						</Card>
+					</section>
+
+					{/* -------------------------------------------- Google Calendar Sync */}
+					{/* Independent of the settings form — its own mutations sit inside
+					    the card component. Rendered inside the fieldset only so the
+					    section header lines up visually with the rest of the page;
+					    PermissionGate gates the connect CTA, so non-admin users see
+					    just the explainer copy. */}
+					<section className="space-y-3" data-tour="reservation-settings-google-calendar">
+						<div>
+							<h2 className="text-base font-semibold">{tGcal('venue.title')}</h2>
+							<p className="text-sm text-muted-foreground">{tGcal('venue.description')}</p>
+						</div>
+						<GoogleCalendarConnectionCard
+							variant="venue"
+							connection={venueGoogleCalendarConnection}
+							isLoading={gcalLoading}
+							requiredPermission="calendar:manage_venue"
+						/>
 					</section>
 
 					{/* ----------------------------------------------------- Recordatorios */}

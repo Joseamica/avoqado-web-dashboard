@@ -1,0 +1,56 @@
+{
+  "title": "Google Calendar",
+  "venue": {
+    "title": "Calendario del venue",
+    "description": "Sincroniza un Google Calendar maestro del venue. Los eventos en ese calendario bloquearán disponibilidad para todas las reservaciones del venue."
+  },
+  "personal": {
+    "title": "Mi Google Calendar",
+    "description": "Conecta tu Google Calendar personal. Los eventos en tu calendario bloquearán tu disponibilidad como staff en todos los venues donde trabajas."
+  },
+  "differentFromBusiness": "Esto es independiente de Google Business Profile. No requiere verificación del negocio — usa una cuenta de Google estándar.",
+  "actions": {
+    "connect": "Conectar Google Calendar",
+    "disconnect": "Desconectar",
+    "reconnect": "Reconectar"
+  },
+  "status": {
+    "connected": "Conectado",
+    "tokenRevoked": "Acceso revocado",
+    "calendarLost": "Calendario inaccesible",
+    "watchFailed": "Sincronización fallida",
+    "disconnected": "Desconectado",
+    "lastSyncedAt": "Última sincronización: {{date}}",
+    "never": "nunca",
+    "calendarLabel": "Calendario",
+    "accountLabel": "Cuenta de Google",
+    "timezoneLabel": "Zona horaria"
+  },
+  "picker": {
+    "pageTitle": "Elige el calendario",
+    "title": "Elige el calendario que quieres sincronizar",
+    "description": "Mostramos solo los calendarios donde tienes permisos suficientes.",
+    "useThis": "Usar este calendario",
+    "noWritable": "No encontramos calendarios con permisos de escritura. Para reservaciones del staff necesitas un calendario que poseas o donde tengas permiso de escribir.",
+    "loading": "Cargando calendarios…",
+    "invalidSession": "La sesión expiró. Vuelve a intentar la conexión.",
+    "missingSession": "No se proporcionó una sesión válida.",
+    "back": "Volver a Mi Cuenta",
+    "readOnlyBadge": "Solo lectura",
+    "primaryBadge": "Principal"
+  },
+  "toast": {
+    "connectFailed": "No se pudo conectar Google Calendar. Intenta de nuevo.",
+    "connected": "Google Calendar conectado",
+    "disconnected": "Google Calendar desconectado",
+    "disconnectFailed": "No se pudo desconectar. Intenta de nuevo.",
+    "connectionFinalized": "Selecciona el calendario que quieres sincronizar."
+  },
+  "disconnect": {
+    "confirmTitle": "¿Desconectar Google Calendar?",
+    "confirmDescription": "Los eventos del calendario dejarán de bloquear disponibilidad. Las reservaciones existentes no se afectan.",
+    "confirmAction": "Sí, desconectar",
+    "cancel": "Cancelar"
+  },
+  "reservationBusyError": "Este horario está bloqueado por un evento del calendario conectado. Elige otro horario."
+}

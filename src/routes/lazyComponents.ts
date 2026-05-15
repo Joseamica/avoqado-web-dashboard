@@ -148,6 +148,9 @@ export const InventoryTransferDetailPage = lazyWithRetry(() => import('@/pages/I
 export const RolePermissions = lazyWithRetry(() => import('@/pages/Settings/RolePermissions'))
 export const GoogleIntegration = lazyWithRetry(() => import('@/pages/Settings/GoogleIntegration'))
 
+// Google Calendar Sync — picker page the OAuth callback redirects to with ?session=<token>
+export const GoogleCalendarPicker = lazyWithRetry(() => import('@/pages/GoogleCalendar/Picker'))
+
 // Billing pages
 export const BillingLayout = lazyWithRetry(() => import('@/pages/Settings/Billing/BillingLayout'))
 export const BillingSubscriptions = lazyWithRetry(() => import('@/pages/Settings/Billing/Subscriptions'))

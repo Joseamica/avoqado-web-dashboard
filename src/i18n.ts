@@ -90,6 +90,9 @@ import creditOfferEs from '@/locales/es/creditOffer.json'
 import googleIntegrationEn from '@/locales/en/googleIntegration.json'
 import googleIntegrationEs from '@/locales/es/googleIntegration.json'
 import googleIntegrationFr from '@/locales/fr/googleIntegration.json'
+import googleCalendarEn from '@/locales/en/googleCalendar.json'
+import googleCalendarEs from '@/locales/es/googleCalendar.json'
+import googleCalendarFr from '@/locales/fr/googleCalendar.json'
 import menuImportEn from '@/locales/en/menuImport.json'
 import menuImportEs from '@/locales/es/menuImport.json'
 import menuImportFr from '@/locales/fr/menuImport.json'
@@ -474,6 +477,15 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'googleIntegration', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', googleCalendarEn],
+    ['es', googleCalendarEs],
+    ['fr', googleCalendarFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'googleCalendar', bundle as Record<string, unknown>, true, true)
 })
 ;(
   [
