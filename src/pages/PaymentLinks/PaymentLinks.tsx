@@ -57,6 +57,7 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { StatusFilterTabs, type StatusTab } from '@/components/StatusFilterTabs'
 import { SummaryCards, type SummaryCardItem } from '@/components/SummaryCards'
 import CreatePaymentLinkDialog from './CreatePaymentLinkDialog'
+import { SharePaymentLinkDialog } from './SharePaymentLinkDialog'
 
 const CHECKOUT_BASE_URL = import.meta.env.VITE_CHECKOUT_URL || 'https://pay.avoqado.io'
 
@@ -268,14 +269,17 @@ export default function PaymentLinks() {
     [t, toast],
   )
 
-  const handleWhatsApp = useCallback(
-    (shortCode: string, title: string) => {
-      const url = `${CHECKOUT_BASE_URL}/${shortCode}`
-      const message = t('share.whatsappMessage', { title, url })
-      window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank')
-    },
-    [t],
-  )
+  // WhatsApp share — opens a dialog where the operator enters the customer's
+  // phone, picks a country, and sends the link through Avoqado's approved
+  // Meta template (`payment_link_share`). The previous `wa.me` URL is still
+  // available as a fallback for operators who'd rather send from their own
+  // WhatsApp (toggle on the dialog).
+  const [waShareOpen, setWaShareOpen] = useState(false)
+  const [waShareLink, setWaShareLink] = useState<PaymentLink | null>(null)
+  const handleWhatsApp = useCallback((link: PaymentLink) => {
+    setWaShareLink(link)
+    setWaShareOpen(true)
+  }, [])
 
   const openCreate = useCallback(() => {
     if (isEcommerceExplicitlyMissing) {
@@ -397,7 +401,7 @@ export default function PaymentLinks() {
               variant="ghost"
               size="icon"
               className="h-8 w-8 cursor-pointer"
-              onClick={() => handleWhatsApp(row.original.shortCode, row.original.title)}
+              onClick={() => handleWhatsApp(row.original)}
               title={t('share.whatsapp')}
             >
               <MessageCircle className="h-4 w-4" />
@@ -608,6 +612,20 @@ export default function PaymentLinks() {
         }}
         venueId={venueId}
         merchant={null}
+      />
+
+      {/* WhatsApp share dialog — replaces the previous wa.me window.open so
+          the operator can send the link directly through Avoqado's approved
+          Meta template, with a manual wa.me fallback inside the dialog. */}
+      <SharePaymentLinkDialog
+        open={waShareOpen}
+        onOpenChange={open => {
+          setWaShareOpen(open)
+          if (!open) setWaShareLink(null)
+        }}
+        link={waShareLink}
+        venueId={venueId}
+        checkoutBaseUrl={CHECKOUT_BASE_URL}
       />
     </div>
   )

@@ -153,6 +153,23 @@ export const paymentLinkService = {
     return response.data
   },
 
+  /**
+   * Share a payment link with a customer via WhatsApp using the approved
+   * `payment_link_share` Meta template. `phone` should be E.164 (`+52...`);
+   * the backend normalizes further.
+   */
+  async shareViaWhatsapp(
+    venueId: string,
+    linkId: string,
+    phone: string,
+  ): Promise<{ success: boolean; data: { sent: boolean } }> {
+    const response = await api.post(
+      `/api/v1/dashboard/venues/${venueId}/payment-links/${linkId}/share-whatsapp`,
+      { phone },
+    )
+    return response.data
+  },
+
   async getBranding(venueId: string): Promise<PaymentLinkBranding> {
     const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payment-links/branding/config`)
     return response.data?.data ?? response.data
