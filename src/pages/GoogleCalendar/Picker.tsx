@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import googleCalendarService, { type CalendarPickerItem } from '@/services/googleCalendar.service'
 
@@ -38,6 +39,12 @@ export default function GoogleCalendarPicker() {
   const sessionToken = searchParams.get('session') ?? ''
   const [selectedCalendarId, setSelectedCalendarId] = useState<string>('')
 
+  // useCurrentVenue falls back to the user's activeVenue when there's no :slug
+  // in the URL (Picker is a top-level route). Use that to build a venue-scoped
+  // return path; otherwise '/' lets the router pick a sensible default.
+  const { fullBasePath } = useCurrentVenue()
+  const returnPath = fullBasePath ? `${fullBasePath}/account` : '/'
+
   // ---------------------------------------------------------------------------
   // Calendar list — only fires when we actually have a session in the URL. The
   // `retry: false` keeps us from looping when the session is missing/expired:
@@ -62,7 +69,7 @@ export default function GoogleCalendarPicker() {
     onSuccess: () => {
       toast({ title: t('toast.connected') })
       queryClient.invalidateQueries({ queryKey: ['google-calendar', 'connections'] })
-      navigate('/account', { replace: true })
+      navigate(returnPath, { replace: true })
     },
     onError: (err: any) => {
       toast({
