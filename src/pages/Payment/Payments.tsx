@@ -906,6 +906,9 @@ export default function Payments() {
               {isCard ? (
                 <>
                   <div className="shrink-0"> {getIcon(cardBrand)}</div>
+                  <span className="text-xs font-semibold text-muted-foreground dark:text-foreground">
+                    {payment.method === 'CREDIT_CARD' ? 'TC' : 'TD'}
+                  </span>
                   <span className="text-sm text-muted-foreground dark:text-foreground">{maskedLast4}</span>
                 </>
               ) : isCrypto ? (
