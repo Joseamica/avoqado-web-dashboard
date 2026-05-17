@@ -415,6 +415,7 @@ export default function ModifierGroupId() {
                 initialValues={{
                   name: data.modifiers.find(m => m.id === editingModifierId)?.name || '',
                   price: data.modifiers.find(m => m.id === editingModifierId)?.price || 0,
+                  durationMin: (data.modifiers.find(m => m.id === editingModifierId) as any)?.durationMin ?? null,
                   active: data.modifiers.find(m => m.id === editingModifierId)?.active ?? true,
                 }}
               />

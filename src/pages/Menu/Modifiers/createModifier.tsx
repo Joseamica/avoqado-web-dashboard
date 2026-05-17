@@ -26,6 +26,10 @@ import { ModifierInventoryMode, Unit } from '@/types'
 type FormValues = {
   name: string
   price: number
+  /** Minutes this modifier adds to the booked service when picked. Null = no
+   *  duration impact (price-only modifier). Used by the booking widget to
+   *  extend the reservation slot ("Manicura tradicional 25min + Esmalte +35min = 60min"). */
+  durationMin: number | null
   active: boolean
   // Inventory fields
   trackInventory: boolean
@@ -40,6 +44,7 @@ const createFormSchema = (t: any) =>
   z.object({
     name: z.string().min(1, { message: t('modifiers.create.nameRequired') }),
     price: z.number().min(0).default(0),
+    durationMin: z.number().int().min(0).max(480).nullable().default(null),
     active: z.boolean().default(true),
     // Inventory fields
     trackInventory: z.boolean().default(false),
@@ -74,6 +79,7 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
     defaultValues: {
       name: '',
       price: 0,
+      durationMin: null,
       active: true,
       trackInventory: false,
       rawMaterialId: null,
@@ -132,6 +138,7 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
       const payload: any = {
         name: formValues.name,
         price: formValues.price,
+        durationMin: formValues.durationMin,
         active: formValues.active,
       }
 
@@ -245,6 +252,45 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
                         />
                       </div>
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Duration delta — extends the booked service when picked */}
+              <FormField
+                control={form.control}
+                name="durationMin"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('modifiers.create.durationMin', 'Duración adicional (min)')}</FormLabel>
+                    <FormControl>
+                      <div>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={480}
+                          step={5}
+                          placeholder="0"
+                          value={field.value ?? ''}
+                          onChange={e => {
+                            const v = e.target.value.trim()
+                            if (v === '') return field.onChange(null)
+                            const n = parseInt(v, 10)
+                            field.onChange(Number.isFinite(n) ? n : null)
+                          }}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormDescription>
+                      {t(
+                        'modifiers.create.durationMinDescription',
+                        'Si lo escogen, extiende el slot del booking por estos minutos. Déjalo vacío si no afecta tiempo.',
+                      )}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
