@@ -395,12 +395,6 @@ export function AppSidebar({
             keywords: ['link', 'reservar', 'booking', 'embed', 'widget', 'wordpress', 'sitio web', 'codigo', 'snippet'],
           },
           {
-            title: t('sidebar:reservationsMenu.onlineSettings', { defaultValue: 'Ajustes' }),
-            url: 'reservations/settings',
-            permission: 'reservations:read',
-            keywords: ['reservas online', 'public booking', 'depositos', 'horarios'],
-          },
-          {
             title: t('sidebar:reservationsMenu.advancedWidget', { defaultValue: 'Widget avanzado' }),
             url: 'reservations/widget-advanced',
             permission: 'reservations:read',

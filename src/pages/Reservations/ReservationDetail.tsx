@@ -337,6 +337,33 @@ export default function ReservationDetail() {
 						</div>
 					</div>
 
+					{/* Modifiers — picked add-ons per service (Vagaro-style). Surfaced
+					    so the cashier sees the full breakdown before charging. */}
+					{reservation.modifiers && reservation.modifiers.length > 0 && (
+						<div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6">
+							<h3 className="font-semibold mb-4">{t('detail.sections.modifiers', 'Extras / modificadores')}</h3>
+							<ul className="space-y-2">
+								{reservation.modifiers.map(m => {
+									const lineTotal = m.price * m.quantity
+									const qtyLabel = m.quantity > 1 ? ` × ${m.quantity}` : ''
+									return (
+										<li key={m.id} className="flex justify-between items-baseline text-sm">
+											<span>
+												{m.name ?? t('unnamed', 'Sin nombre')}
+												{qtyLabel}
+											</span>
+											{lineTotal > 0 && (
+												<span className="font-medium tabular-nums">
+													+{lineTotal.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 })}
+												</span>
+											)}
+										</li>
+									)
+								})}
+							</ul>
+						</div>
+					)}
+
 					{/* Notes */}
 					{(reservation.specialRequests || reservation.internalNotes) && (
 						<div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6">

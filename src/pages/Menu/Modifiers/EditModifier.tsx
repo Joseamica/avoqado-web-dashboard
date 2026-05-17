@@ -23,6 +23,8 @@ import { ModifierInventoryMode, Unit } from '@/types'
 type FormValues = {
   name: string
   price: number
+  /** Minutes this modifier adds to the booked service when picked. Null = price-only. */
+  durationMin: number | null
   active: boolean
   // Inventory fields
   trackInventory: boolean
@@ -42,6 +44,7 @@ interface EditModifierProps {
   initialValues: {
     name: string
     price: number
+    durationMin?: number | null
     active: boolean
     // Inventory fields (optional - may not be present in older modifiers)
     rawMaterialId?: string | null
@@ -79,6 +82,7 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
     defaultValues: {
       name: initialValues.name,
       price: initialValues.price,
+      durationMin: initialValues.durationMin ?? null,
       active: initialValues.active,
       trackInventory: hasInventoryTracking,
       rawMaterialId: initialValues.rawMaterialId || null,
@@ -103,6 +107,7 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
     form.reset({
       name: initialValues.name,
       price: initialValues.price,
+      durationMin: initialValues.durationMin ?? null,
       active: initialValues.active,
       trackInventory: Boolean(initialValues.rawMaterialId),
       rawMaterialId: initialValues.rawMaterialId || null,
@@ -150,6 +155,7 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
       const payload: any = {
         name: formValues.name,
         price: formValues.price,
+        durationMin: formValues.durationMin,
         active: formValues.active,
       }
 
@@ -266,6 +272,45 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
                         ref={field.ref}
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Duration delta */}
+              <FormField
+                control={form.control}
+                name="durationMin"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('modifiers.editModifier.fields.durationMin', 'Duración adicional (min)')}</FormLabel>
+                    <FormControl>
+                      <div>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={480}
+                          step={5}
+                          placeholder="0"
+                          value={field.value ?? ''}
+                          onChange={e => {
+                            const v = e.target.value.trim()
+                            if (v === '') return field.onChange(null)
+                            const n = parseInt(v, 10)
+                            field.onChange(Number.isFinite(n) ? n : null)
+                          }}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormDescription>
+                      {t(
+                        'modifiers.editModifier.fields.durationMinDescription',
+                        'Si lo escogen, extiende el slot del booking por estos minutos.',
+                      )}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

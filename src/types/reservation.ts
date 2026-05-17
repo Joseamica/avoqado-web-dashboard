@@ -39,6 +39,19 @@ export interface Reservation {
 		name: string
 		price: number | null
 	} | null
+	/** Picked modifiers per service (Vagaro-style add-ons). Surfaced so the
+	 *  cashier sees the full breakdown ("Manicura + Esmalte +$150") at the
+	 *  reservation detail. Each row is tagged with productId for multi-service
+	 *  bookings. Denormalized name/price preserved if the source Modifier is
+	 *  later deleted. */
+	modifiers?: Array<{
+		id: string
+		productId: string
+		name: string | null
+		quantity: number
+		price: number
+		createdAt: string
+	}>
 	classSessionId: string | null
 	assignedStaffId: string | null
 	assignedStaff: {

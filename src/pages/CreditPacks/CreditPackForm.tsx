@@ -105,7 +105,8 @@ interface CreditPackFormModalProps {
   onSuccess: () => void
 }
 
-interface FormValues extends CreateCreditPackRequest {
+interface FormValues extends Omit<CreateCreditPackRequest, 'price'> {
+  price: number | undefined
   active: boolean
 }
 
@@ -141,7 +142,7 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
     defaultValues: {
       name: '',
       description: '',
-      price: 0,
+      price: undefined,
       currency: 'MXN',
       validityDays: undefined,
       maxPerCustomer: undefined,
@@ -178,7 +179,7 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
       form.reset({
         name: '',
         description: '',
-        price: 0,
+        price: undefined,
         currency: 'MXN',
         validityDays: undefined,
         maxPerCustomer: undefined,
