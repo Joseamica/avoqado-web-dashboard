@@ -21,6 +21,12 @@
     "watchFailed": "Sync failed",
     "disconnected": "Disconnected",
     "lastSyncedAt": "Last synced: {{date}}",
+    "lastSyncedRelative": "Synced {{relative}}",
+    "channelExpires": "Renews on {{date}}",
+    "pendingCount_one": "1 pending",
+    "pendingCount_other": "{{count}} pending",
+    "deadLetterCount_one": "1 failed",
+    "deadLetterCount_other": "{{count}} failed",
     "never": "never",
     "calendarLabel": "Calendar",
     "accountLabel": "Google account",
@@ -52,5 +58,62 @@
     "confirmAction": "Yes, disconnect",
     "cancel": "Cancel"
   },
-  "reservationBusyError": "This time slot is blocked by an event on the connected calendar. Pick a different time."
+  "reservationBusyError": "This time slot is blocked by an event on the connected calendar. Pick a different time.",
+  "overlay": {
+    "toggle": "Show Google blocks",
+    "busyLabel": "Busy",
+    "sourceTooltip": "Google Calendar block",
+    "account": "Account: {{email}}"
+  },
+  "deadLetter": {
+    "bannerSingular": "1 reservation couldn't sync to Google Calendar.",
+    "bannerPlural": "{{count}} reservations couldn't sync to Google Calendar.",
+    "viewDetails": "View details",
+    "modalTitle": "Failed syncs",
+    "colDate": "Date",
+    "colReservation": "Reservation",
+    "colError": "Error",
+    "actions": {
+      "retry": "Retry",
+      "retrying": "Retrying…"
+    },
+    "toast": {
+      "retrySuccess": "Sync re-queued",
+      "retryConflict": "State changed. Reload the list.",
+      "retryFailed": "Couldn't retry. Please try again."
+    },
+    "empty": "No failed syncs.",
+    "pagination": {
+      "loadMore": "Load more"
+    }
+  },
+  "privacy": {
+    "title": "Google Calendar event privacy",
+    "description": "Control how much detail appears in the events we push to the connected calendar.",
+    "levels": {
+      "MINIMAL": {
+        "label": "Minimal",
+        "description": "Generic title 'Avoqado booking' and a dashboard link. Zero customer info."
+      },
+      "SERVICE": {
+        "label": "Service",
+        "description": "Title includes the service name (e.g. 'Booking: Haircut')."
+      },
+      "FULL": {
+        "label": "Full",
+        "description": "Title includes service and customer name, description with notes and party size."
+      }
+    },
+    "warningFull": "The customer's name and notes will be visible in phone widgets, shared calendars, and backups.",
+    "previewTitle": "Preview",
+    "preview": {
+      "eventTitle": {
+        "MINIMAL": "Avoqado booking",
+        "SERVICE": "Booking: Haircut",
+        "FULL": "Booking: Haircut — Juan Pérez"
+      },
+      "eventTime": "Tomorrow, 3:00 PM – 4:00 PM"
+    },
+    "save": "Save"
+  }
 }

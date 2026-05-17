@@ -21,6 +21,12 @@
     "watchFailed": "Échec de synchronisation",
     "disconnected": "Déconnecté",
     "lastSyncedAt": "Dernière synchronisation : {{date}}",
+    "lastSyncedRelative": "Synchronisé {{relative}}",
+    "channelExpires": "Renouvellement le {{date}}",
+    "pendingCount_one": "1 en attente",
+    "pendingCount_other": "{{count}} en attente",
+    "deadLetterCount_one": "1 échec",
+    "deadLetterCount_other": "{{count}} échecs",
     "never": "jamais",
     "calendarLabel": "Calendrier",
     "accountLabel": "Compte Google",
@@ -52,5 +58,62 @@
     "confirmAction": "Oui, déconnecter",
     "cancel": "Annuler"
   },
-  "reservationBusyError": "Ce créneau est bloqué par un événement du calendrier connecté. Choisissez un autre horaire."
+  "reservationBusyError": "Ce créneau est bloqué par un événement du calendrier connecté. Choisissez un autre horaire.",
+  "overlay": {
+    "toggle": "Afficher les blocages Google",
+    "busyLabel": "Occupé",
+    "sourceTooltip": "Blocage Google Calendar",
+    "account": "Compte : {{email}}"
+  },
+  "deadLetter": {
+    "bannerSingular": "1 réservation n'a pas pu être synchronisée avec Google Calendar.",
+    "bannerPlural": "{{count}} réservations n'ont pas pu être synchronisées avec Google Calendar.",
+    "viewDetails": "Voir les détails",
+    "modalTitle": "Synchronisations en échec",
+    "colDate": "Date",
+    "colReservation": "Réservation",
+    "colError": "Erreur",
+    "actions": {
+      "retry": "Réessayer",
+      "retrying": "Nouvelle tentative…"
+    },
+    "toast": {
+      "retrySuccess": "Synchronisation relancée",
+      "retryConflict": "L'état a changé. Rechargez la liste.",
+      "retryFailed": "Impossible de réessayer. Veuillez réessayer."
+    },
+    "empty": "Aucune synchronisation en échec.",
+    "pagination": {
+      "loadMore": "Charger plus"
+    }
+  },
+  "privacy": {
+    "title": "Confidentialité des événements Google Calendar",
+    "description": "Contrôlez les informations qui apparaissent dans les événements que nous envoyons au calendrier connecté.",
+    "levels": {
+      "MINIMAL": {
+        "label": "Minimal",
+        "description": "Titre générique 'Réservation Avoqado' et lien vers le tableau de bord. Aucune information client."
+      },
+      "SERVICE": {
+        "label": "Service",
+        "description": "Le titre inclut le nom du service (ex. 'Réservation : Coupe de cheveux')."
+      },
+      "FULL": {
+        "label": "Complet",
+        "description": "Le titre inclut le service et le nom du client, description avec notes et nombre de personnes."
+      }
+    },
+    "warningFull": "Le nom du client et les notes seront visibles dans les widgets téléphoniques, les calendriers partagés et les sauvegardes.",
+    "previewTitle": "Aperçu",
+    "preview": {
+      "eventTitle": {
+        "MINIMAL": "Réservation Avoqado",
+        "SERVICE": "Réservation : Coupe de cheveux",
+        "FULL": "Réservation : Coupe de cheveux — Juan Pérez"
+      },
+      "eventTime": "Demain, 15h00 – 16h00"
+    },
+    "save": "Enregistrer"
+  }
 }

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, Columns3, Plus, Settings, Users } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, Columns3, Eye, EyeOff, Plus, Settings, Users } from 'lucide-react'
 import { DateTime } from 'luxon'
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -24,6 +24,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 import { getDateFnsLocale } from '@/utils/i18n-locale'
 import reservationService from '@/services/reservation.service'
 import classSessionService from '@/services/classSession.service'
+import googleCalendarService, { type ExternalBusyBlock } from '@/services/googleCalendar.service'
 import type { Reservation, ReservationSettings, ReservationStatus } from '@/types/reservation'
 
 import { CreateReservationForm } from './CreateReservation'
@@ -31,12 +32,18 @@ import { CreateClassSessionDialog } from './components/CreateClassSessionDialog'
 import { EditClassSessionDialog } from './components/EditClassSessionDialog'
 import { EditAvailabilityDialog } from './components/EditAvailabilityDialog'
 import { CalendarAttributesDialog, loadAttributes, type CalendarAttributes } from './components/CalendarAttributesDialog'
+import { GoogleCalendarBusyBlock } from './components/GoogleCalendarBusyBlock'
 
 type CalendarView = 'day' | 'week' | '5day' | 'month'
 type GroupByMode = 'none' | 'staff' | 'table'
 
 const VIEW_STORAGE_KEY = 'avoqado:calendar-view'
 const GROUP_BY_STORAGE_KEY = 'avoqado:calendar-group-by'
+// Persisted Google Calendar overlay toggle — operators have strong opinions
+// about whether to see external busy blocks; we honor their last choice across
+// sessions. Defaults to ON because Phase 1 users' #1 complaint was "ya
+// conectado no se ve nada en el calendario".
+const GCAL_OVERLAY_STORAGE_KEY = 'gcal:overlay:visible'
 
 function loadView(): CalendarView {
   try {
@@ -56,6 +63,16 @@ function loadGroupBy(): GroupByMode {
     // localStorage unavailable — fall through to default
   }
   return 'none'
+}
+
+function loadGcalOverlay(): boolean {
+  try {
+    const stored = localStorage.getItem(GCAL_OVERLAY_STORAGE_KEY)
+    if (stored === 'false') return false
+  } catch {
+    // localStorage unavailable — fall through to default
+  }
+  return true
 }
 
 // Status colors for calendar blocks
@@ -118,6 +135,7 @@ export default function ReservationCalendar() {
   const { venueId, fullBasePath } = useCurrentVenue()
   const navigate = useNavigate()
   const { t: tCommon } = useTranslation()
+  const { t: tGcal } = useTranslation('googleCalendar')
   const locale = i18n.language
   const { formatTime, formatDateISO: formatVenueDateISO, venueTimezone } = useVenueDateTime()
   const queryClient = useQueryClient()
@@ -132,6 +150,10 @@ export default function ReservationCalendar() {
   const [view, setView] = useState<CalendarView>(loadView)
   const [groupBy, setGroupBy] = useState<GroupByMode>(loadGroupBy)
   const [currentDate, setCurrentDate] = useState(new Date())
+  // Google Calendar overlay toggle — when off, we skip the network call too
+  // (TanStack `enabled: gcalOverlayVisible`) so we don't burn bandwidth on
+  // operators who don't care about external blockers.
+  const [gcalOverlayVisible, setGcalOverlayVisible] = useState<boolean>(loadGcalOverlay)
 
   useEffect(() => {
     try {
@@ -148,6 +170,14 @@ export default function ReservationCalendar() {
       // localStorage unavailable (SSR / privacy mode) — fall through to default
     }
   }, [groupBy])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(GCAL_OVERLAY_STORAGE_KEY, gcalOverlayVisible ? 'true' : 'false')
+    } catch {
+      // localStorage unavailable — fall through to in-memory state only
+    }
+  }, [gcalOverlayVisible])
 
   // Click-to-create reservation modal state
   const [createModal, setCreateModal] = useState<{ open: boolean; date: string; startTime: string }>({
@@ -254,6 +284,33 @@ export default function ReservationCalendar() {
     queryFn: () => classSessionService.getClassSessions(venueId!, { dateFrom, dateTo }),
     enabled: !!dateFrom && !!dateTo && !!venueId,
   })
+
+  // ---------------------------------------------------------------------------
+  // Google Calendar external busy blocks for the visible range. Treated as a
+  // *visual overlay* layered into the same day columns — not a separate calendar.
+  // The query is gated by `gcalOverlayVisible` so toggling it off literally
+  // stops the network call (no point paying for data we won't render).
+  //
+  // We pass the venue tz day boundaries as UTC ISO strings — backend interprets
+  // them as raw timestamps with no timezone math, so `formatVenueDateISO` +
+  // `00:00`/`23:59:59` is enough. staffId is intentionally left undefined here
+  // (we show all blocks visible to the operator); future enhancement: pass the
+  // active staff filter when group-by=staff narrows down to one column.
+  // ---------------------------------------------------------------------------
+  const { data: busyBlocksData } = useQuery({
+    queryKey: ['gcal-busy-blocks', venueId, dateFrom, dateTo],
+    queryFn: () =>
+      googleCalendarService.listBusyBlocks(venueId!, {
+        from: new Date(`${dateFrom}T00:00:00.000Z`).toISOString(),
+        to: new Date(`${dateTo}T23:59:59.999Z`).toISOString(),
+      }),
+    enabled: gcalOverlayVisible && !!venueId && !!dateFrom && !!dateTo,
+    // The overlay is informational, not transactional — 1 minute staleness is
+    // plenty for an operator scrolling through the week.
+    staleTime: 60_000,
+  })
+
+  const busyBlocks = useMemo<ExternalBusyBlock[]>(() => busyBlocksData?.blocks ?? [], [busyBlocksData])
 
   // Drag-to-reschedule: mutation + document-level handlers (must be after classSessions)
   const dragUpdateMutation = useMutation({
@@ -524,6 +581,19 @@ export default function ReservationCalendar() {
     return map
   }, [classSessions, formatVenueDateISO])
 
+  // Group external busy blocks by day — same shape as reservations/classes
+  // so the day-column renderer can map them with identical pixel positioning.
+  const busyBlocksByDay = useMemo(() => {
+    if (!gcalOverlayVisible) return {} as Record<string, ExternalBusyBlock[]>
+    const map: Record<string, ExternalBusyBlock[]> = {}
+    for (const b of busyBlocks) {
+      const dayKey = formatVenueDateISO(b.startsAt)
+      if (!map[dayKey]) map[dayKey] = []
+      map[dayKey].push(b)
+    }
+    return map
+  }, [busyBlocks, gcalOverlayVisible, formatVenueDateISO])
+
   // Compute grouped columns for day view when groupBy is active
   const groupedColumns = useMemo(() => {
     if (!activeGroupBy || !calendarData?.grouped) return null
@@ -680,6 +750,19 @@ export default function ReservationCalendar() {
     )
   }
 
+  // Render a single Google Calendar busy block — pixel positioning mirrors
+  // renderReservationBlock so an overlap visually stacks cleanly (the busy
+  // block sits at a lower z-index, behind real reservations).
+  const renderBusyBlock = (block: ExternalBusyBlock) => {
+    const start = DateTime.fromISO(block.startsAt, { zone: 'utc' }).setZone(venueTimezone)
+    const end = DateTime.fromISO(block.endsAt, { zone: 'utc' }).setZone(venueTimezone)
+    const startHour = start.hour + start.minute / 60
+    const endHour = end.hour + end.minute / 60
+    const top = (startHour - firstHour) * 64 + GRID_TOP_PAD
+    const height = Math.max((endHour - startHour) * 64, 24)
+    return <GoogleCalendarBusyBlock key={`gcal-${block.id}`} block={block} top={top} height={height} />
+  }
+
   // Check if a date is today
   const isToday = (day: Date) => formatVenueDateISO(day) === formatVenueDateISO(new Date())
 
@@ -694,7 +777,11 @@ export default function ReservationCalendar() {
 
   const handleGridMouseMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>, day: Date) => {
-      if ((e.target as HTMLElement).closest('[data-reservation]')) {
+      // Treat reservations, class sessions, AND Google Calendar overlay blocks
+      // as "filled" so hovering over a busy block doesn't render the
+      // create-here ghost preview.
+      const tgt = e.target as HTMLElement
+      if (tgt.closest('[data-reservation]') || tgt.closest('[data-gcal-overlay]')) {
         setHoverSlot(null)
         return
       }
@@ -725,8 +812,10 @@ export default function ReservationCalendar() {
   // Handle click on empty grid area — show event type picker
   const handleGridClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>, day: Date) => {
-      // Don't trigger if user clicked on an existing reservation block
-      if ((e.target as HTMLElement).closest('[data-reservation]')) return
+      // Don't trigger if user clicked on an existing reservation block OR an
+      // external Google Calendar busy block (those are read-only overlays).
+      const tgt = e.target as HTMLElement
+      if (tgt.closest('[data-reservation]') || tgt.closest('[data-gcal-overlay]')) return
 
       const rect = e.currentTarget.getBoundingClientRect()
       const y = e.clientY - rect.top
@@ -768,6 +857,7 @@ export default function ReservationCalendar() {
     const dayKey = formatVenueDateISO(day)
     const dayReservations = reservationsByDay[dayKey] || []
     const dayClassSessions = classSessionsByDay[dayKey] || []
+    const dayBusyBlocks = busyBlocksByDay[dayKey] || []
     const dayIsToday = isToday(day)
 
     return (
@@ -833,6 +923,10 @@ export default function ReservationCalendar() {
             </div>
           )}
 
+          {/* External busy blocks (Google Calendar) — rendered first so they
+              sit behind reservations and class sessions in the z-stack. */}
+          {dayBusyBlocks.map(renderBusyBlock)}
+
           {/* Class session blocks */}
           {dayClassSessions.map(renderClassSessionBlock)}
 
@@ -846,6 +940,7 @@ export default function ReservationCalendar() {
   // Render a grouped column (staff/table) for day view
   const renderGroupedColumn = (col: { key: string; headerLabel: string; reservations: Reservation[] }, day: Date) => {
     const dayKey = formatVenueDateISO(day)
+    const dayBusyBlocks = busyBlocksByDay[dayKey] || []
     const dayIsToday = isToday(day)
 
     return (
@@ -906,6 +1001,11 @@ export default function ReservationCalendar() {
               </div>
             </div>
           )}
+
+          {/* External busy blocks — repeated across grouped columns so the
+              operator sees the conflict no matter which staff/table column
+              they're scanning. */}
+          {dayBusyBlocks.map(renderBusyBlock)}
 
           {/* Reservation blocks for this group */}
           {col.reservations.map(renderReservationBlock)}
@@ -1045,6 +1145,21 @@ export default function ReservationCalendar() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Google Calendar overlay toggle — Eye icon flips between "blocks
+              are visible" and "blocks are hidden". Persists in localStorage
+              and gates the network call too. */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 text-xs font-medium"
+            onClick={() => setGcalOverlayVisible(v => !v)}
+            title={tGcal('overlay.toggle')}
+            aria-pressed={gcalOverlayVisible}
+          >
+            {gcalOverlayVisible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+            <span className="hidden lg:inline">{tGcal('overlay.toggle')}</span>
+          </Button>
+
           {/* Calendar attributes — gear icon like Square */}
           <Button
             variant="outline"

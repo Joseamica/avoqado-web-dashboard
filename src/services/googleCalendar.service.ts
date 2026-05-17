@@ -45,6 +45,81 @@ export interface CalendarPickerItem {
 
 export type OAuthIntent = 'venue_master' | 'staff_personal'
 
+// ----------------------------------------------------------------------------
+// Phase 3 types — overlay, dead-letter, connection detail.
+// Mirrors the response shapes produced by the backend endpoints documented in
+// `docs/superpowers/plans/2026-05-16-google-calendar-sync-phase3.md` (Subagent A).
+// ----------------------------------------------------------------------------
+
+export interface ExternalBusyBlock {
+  id: string
+  startsAt: string
+  endsAt: string
+  allDay: boolean
+  /** Server forces `null` when `isPrivate === true` — UI renders "Ocupado" then. */
+  title: string | null
+  isPrivate: boolean
+  source: 'GOOGLE'
+  connection: {
+    id: string
+    googleAccountEmail: string
+    scope: ConnectionScope
+  }
+}
+
+export type GoogleCalendarOutboxOperation = 'CREATE' | 'UPDATE' | 'CANCEL' | 'UPDATE_ROSTER'
+
+export type DeadLetterSource =
+  | {
+      kind: 'reservation'
+      id: string
+      confirmationCode: string
+      displayName: string | null
+      startsAt: string
+    }
+  | {
+      kind: 'classSession'
+      id: string
+      title: string
+      startsAt: string
+    }
+  | {
+      kind: 'unknown'
+      id: string
+    }
+
+export interface DeadLetterRow {
+  id: string
+  operation: GoogleCalendarOutboxOperation
+  createdAt: string
+  attempts: number
+  lastError: string | null
+  source: DeadLetterSource
+  target: {
+    connectionId: string
+    googleAccountEmail: string
+    scope: ConnectionScope
+  }
+}
+
+export interface ConnectionDetail {
+  id: string
+  scope: ConnectionScope
+  status: ConnectionStatus
+  statusReason: string | null
+  googleAccountEmail: string
+  selectedCalendarId: string
+  selectedCalendarSummary: string
+  selectedCalendarTimeZone: string
+  lastSyncedAt: string | null
+  lastHorizonEnd: string | null
+  connectedAt: string
+  disconnectedAt: string | null
+  channel: { expiresAt: string; status: string } | null
+  pendingCount: number
+  deadLetterCount: number
+}
+
 const BASE = '/api/v1/google-calendar'
 
 const googleCalendarService = {
@@ -104,6 +179,79 @@ const googleCalendarService = {
    */
   disconnectConnection(id: string): Promise<void> {
     return api.delete(`${BASE}/connections/${id}`).then(() => undefined)
+  },
+
+  // --------------------------------------------------------------------------
+  // Phase 3 wrappers — read-side overlay + dead-letter triage + status detail.
+  //
+  // The first three are dashboard-scoped (under /api/v1/dashboard/venues/...)
+  // because they require the venue context for tenant isolation. The detail
+  // lookup is connection-scoped and falls back to the global `/google-calendar`
+  // prefix (owner of the staff connection OR `calendar:view_status` in venue
+  // context can read it).
+  // --------------------------------------------------------------------------
+
+  /**
+   * Fetch external Google Calendar busy blocks overlapping the requested range
+   * for the visible week/day in the dashboard reservation calendar.
+   * The backend forces `title: null` when the source event is marked private —
+   * render those as "Ocupado" / "Busy" in the UI.
+   */
+  listBusyBlocks(
+    venueId: string,
+    args: { from: string; to: string; staffId?: string },
+  ): Promise<{ blocks: ExternalBusyBlock[] }> {
+    return api
+      .get<{ blocks: ExternalBusyBlock[] }>(
+        `/api/v1/dashboard/venues/${venueId}/google-calendar/busy-blocks`,
+        { params: args },
+      )
+      .then(r => r.data)
+  },
+
+  /**
+   * Paginated list of outbox rows in DEAD_LETTER status for the venue — what
+   * the operator sees in the "Sincronizaciones fallidas" modal.
+   */
+  listDeadLetter(
+    venueId: string,
+    args: { limit?: number; cursor?: string } = {},
+  ): Promise<{ rows: DeadLetterRow[]; nextCursor: string | null }> {
+    return api
+      .get<{ rows: DeadLetterRow[]; nextCursor: string | null }>(
+        `/api/v1/dashboard/venues/${venueId}/google-calendar/outbox/dead-letter`,
+        { params: args },
+      )
+      .then(r => r.data)
+  },
+
+  /**
+   * Manually retry a single dead-letter outbox row. Backend returns 409 if the
+   * row's status has changed between the user reading the modal and clicking
+   * Reintentar — the caller surfaces a "Estado cambió, recarga la lista" toast.
+   */
+  retryDeadLetterRow(
+    venueId: string,
+    rowId: string,
+  ): Promise<{
+    row: { id: string; status: string; attempts: number; scheduledAt: string; lastError: string | null }
+  }> {
+    return api
+      .post<{
+        row: { id: string; status: string; attempts: number; scheduledAt: string; lastError: string | null }
+      }>(`/api/v1/dashboard/venues/${venueId}/google-calendar/outbox/${rowId}/retry`)
+      .then(r => r.data)
+  },
+
+  /**
+   * Detailed status payload for a single connection — used by the connection
+   * card to show pending/dead-letter counts, channel renewal date, and the
+   * structured statusReason banner.
+   */
+  getConnectionDetail(id: string): Promise<{ connection: ConnectionDetail }> {
+    return api
+      .get<{ connection: ConnectionDetail }>(`${BASE}/connections/${id}`)
+      .then(r => r.data)
   },
 }
 

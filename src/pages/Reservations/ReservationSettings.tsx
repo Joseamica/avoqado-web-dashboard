@@ -22,6 +22,8 @@ import reservationService from '@/services/reservation.service'
 import { ecommerceMerchantAPI } from '@/services/ecommerceMerchant.service'
 import googleCalendarService from '@/services/googleCalendar.service'
 import { GoogleCalendarConnectionCard } from '@/pages/GoogleCalendar/components/GoogleCalendarConnectionCard'
+import { GoogleCalendarDeadLetterBanner } from './components/GoogleCalendarDeadLetterBanner'
+import { GoogleCalendarPrivacySection } from './components/GoogleCalendarPrivacySection'
 import type { OperatingHours } from '@/types/reservation'
 
 // ----------------------------------------------------------------------------
@@ -468,6 +470,10 @@ const settingsSchema = z.object({
 	remindersEnabled: z.boolean(),
 	reminderChannels: z.array(z.enum(['EMAIL', 'SMS', 'WHATSAPP'])),
 	reminderMinBefore: z.array(z.number().int().min(0)),
+	// Google Calendar privacy — how much detail Avoqado pushes to the
+	// connected Google Calendar event body. See GoogleCalendarPrivacySection
+	// for the per-level UX semantics.
+	googleCalendarEventDetailLevel: z.enum(['MINIMAL', 'SERVICE', 'FULL']),
 })
 
 type SettingsFormData = z.infer<typeof settingsSchema>
@@ -554,6 +560,9 @@ export default function ReservationSettings() {
 			remindersEnabled: true,
 			reminderChannels: ['EMAIL'],
 			reminderMinBefore: [1440, 120],
+			// FULL mirrors the database default — operators see all detail in
+			// connected calendars unless they explicitly downgrade for privacy.
+			googleCalendarEventDetailLevel: 'FULL',
 		},
 	})
 
@@ -604,6 +613,8 @@ export default function ReservationSettings() {
 				reminderMinBefore: settings.reminders.minutesBefore?.length
 					? settings.reminders.minutesBefore
 					: [1440, 120],
+				googleCalendarEventDetailLevel:
+					(settings.googleCalendar?.eventDetailLevel as 'MINIMAL' | 'SERVICE' | 'FULL' | undefined) ?? 'FULL',
 			})
 		}
 	}, [settings, reset])
@@ -662,6 +673,9 @@ export default function ReservationSettings() {
 					minutesBefore: data.reminderMinBefore.length
 						? [...data.reminderMinBefore].sort((a, b) => b - a)
 						: [1440, 120],
+				},
+				googleCalendar: {
+					eventDetailLevel: data.googleCalendarEventDetailLevel,
 				},
 				...(operatingHours ? { operatingHours } : {}),
 			})
@@ -739,6 +753,14 @@ export default function ReservationSettings() {
 			</div>
 
 			<form onSubmit={handleSave} className="p-4">
+				{/* Dead-letter banner — surfaces only when there are failed Google
+				    Calendar sync rows. Lives outside the disabled-fieldset so the
+				    operator can interact with it even mid-save. */}
+				{venueId && (
+					<div className="mb-4">
+						<GoogleCalendarDeadLetterBanner venueId={venueId} />
+					</div>
+				)}
 				<fieldset disabled={isPending} className="space-y-8">
 					{/* ------------------------------------------------------------ Programación */}
 					<section className="space-y-3" data-tour="reservation-settings-scheduling">
@@ -1244,6 +1266,17 @@ export default function ReservationSettings() {
 							isLoading={gcalLoading}
 							requiredPermission="calendar:manage_venue"
 						/>
+						{/* Privacy controls — only meaningful once a calendar is
+						    connected. Operators without an active connection don't
+						    see the section to avoid configuring a no-op. */}
+						{venueGoogleCalendarConnection?.status === 'CONNECTED' && (
+							<GoogleCalendarPrivacySection
+								value={formValues.googleCalendarEventDetailLevel}
+								onChange={next =>
+									setValue('googleCalendarEventDetailLevel', next, { shouldDirty: true })
+								}
+							/>
+						)}
 					</section>
 
 					{/* ----------------------------------------------------- Recordatorios */}

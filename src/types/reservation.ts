@@ -185,6 +185,21 @@ export interface ReservationSettings {
 		appointmentUpfrontDefault: 'required' | 'at_venue' | 'optional'
 		classUpfrontDefault: 'required' | 'at_venue' | 'optional'
 	}
+	/**
+	 * Google Calendar sync settings — controls how Avoqado pushes reservations
+	 * and class sessions out to the connected venue calendar. Optional because
+	 * pre-Phase-3 dashboards may not surface it.
+	 */
+	googleCalendar?: {
+		/**
+		 * How much customer-identifying detail Avoqado includes in the event
+		 * title and description pushed to Google Calendar:
+		 * - MINIMAL: generic title "Reserva Avoqado", no description
+		 * - SERVICE: includes the service name only
+		 * - FULL: service + customer name + notes (default — matches server)
+		 */
+		eventDetailLevel?: 'MINIMAL' | 'SERVICE' | 'FULL'
+	}
 	operatingHours: OperatingHours
 }
 

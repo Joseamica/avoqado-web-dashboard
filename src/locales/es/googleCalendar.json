@@ -21,6 +21,12 @@
     "watchFailed": "Sincronización fallida",
     "disconnected": "Desconectado",
     "lastSyncedAt": "Última sincronización: {{date}}",
+    "lastSyncedRelative": "Sincronizado {{relative}}",
+    "channelExpires": "Renueva el {{date}}",
+    "pendingCount_one": "1 pendiente",
+    "pendingCount_other": "{{count}} pendientes",
+    "deadLetterCount_one": "1 fallida",
+    "deadLetterCount_other": "{{count}} fallidas",
     "never": "nunca",
     "calendarLabel": "Calendario",
     "accountLabel": "Cuenta de Google",
@@ -52,5 +58,62 @@
     "confirmAction": "Sí, desconectar",
     "cancel": "Cancelar"
   },
-  "reservationBusyError": "Este horario está bloqueado por un evento del calendario conectado. Elige otro horario."
+  "reservationBusyError": "Este horario está bloqueado por un evento del calendario conectado. Elige otro horario.",
+  "overlay": {
+    "toggle": "Mostrar bloqueos de Google",
+    "busyLabel": "Ocupado",
+    "sourceTooltip": "Bloqueo de Google Calendar",
+    "account": "Cuenta: {{email}}"
+  },
+  "deadLetter": {
+    "bannerSingular": "1 reservación no se pudo sincronizar a Google Calendar.",
+    "bannerPlural": "{{count}} reservaciones no se pudieron sincronizar a Google Calendar.",
+    "viewDetails": "Ver detalles",
+    "modalTitle": "Sincronizaciones fallidas",
+    "colDate": "Fecha",
+    "colReservation": "Reservación",
+    "colError": "Error",
+    "actions": {
+      "retry": "Reintentar",
+      "retrying": "Reintentando…"
+    },
+    "toast": {
+      "retrySuccess": "Sincronización reiniciada",
+      "retryConflict": "El estado cambió. Recarga la lista.",
+      "retryFailed": "No se pudo reintentar. Intenta de nuevo."
+    },
+    "empty": "Sin sincronizaciones fallidas.",
+    "pagination": {
+      "loadMore": "Cargar más"
+    }
+  },
+  "privacy": {
+    "title": "Privacidad de eventos en Google Calendar",
+    "description": "Controla qué información aparece en los eventos que pusheamos al calendar conectado.",
+    "levels": {
+      "MINIMAL": {
+        "label": "Mínimo",
+        "description": "Solo título 'Reserva Avoqado' y link al dashboard. Cero información del cliente."
+      },
+      "SERVICE": {
+        "label": "Servicio",
+        "description": "Título incluye el nombre del servicio (ej. 'Reserva: Corte de cabello')."
+      },
+      "FULL": {
+        "label": "Completo",
+        "description": "Título incluye servicio y nombre del cliente, descripción con notas y party size."
+      }
+    },
+    "warningFull": "El nombre del cliente y notas serán visibles en widgets de teléfono, calendarios compartidos y backups.",
+    "previewTitle": "Vista previa",
+    "preview": {
+      "eventTitle": {
+        "MINIMAL": "Reserva Avoqado",
+        "SERVICE": "Reserva: Corte de cabello",
+        "FULL": "Reserva: Corte de cabello — Juan Pérez"
+      },
+      "eventTime": "Mañana, 15:00 – 16:00"
+    },
+    "save": "Guardar"
+  }
 }

@@ -1,7 +1,9 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, Calendar, CheckCircle2, HelpCircle, Loader2, RefreshCw, XCircle } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { format, formatDistanceToNow } from 'date-fns'
+import { enUS, es, fr } from 'date-fns/locale'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -16,6 +18,12 @@ import googleCalendarService, {
   type GoogleCalendarConnection,
   type OAuthIntent,
 } from '@/services/googleCalendar.service'
+
+function dateFnsLocale(lang: string) {
+  if (lang.startsWith('fr')) return fr
+  if (lang.startsWith('en')) return enUS
+  return es
+}
 
 // -----------------------------------------------------------------------------
 // Reusable card that surfaces a single Google Calendar connection. The same
@@ -97,11 +105,26 @@ export function GoogleCalendarConnectionCard({
   isLoading,
   requiredPermission,
 }: GoogleCalendarConnectionCardProps) {
-  const { t } = useTranslation('googleCalendar')
+  const { t, i18n } = useTranslation('googleCalendar')
   const { toast } = useToast()
   const { formatDateTime } = useVenueDateTime()
   const queryClient = useQueryClient()
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false)
+  const locale = dateFnsLocale(i18n.language)
+
+  // -------------------------------------------------------------------------
+  // Connection-status detail — pending count, dead-letter count, channel
+  // expiration. Only fetched when we have a connection row to inspect; the
+  // 30s staleTime avoids hammering the endpoint while the user is sitting on
+  // the settings page.
+  // -------------------------------------------------------------------------
+  const { data: detailData } = useQuery({
+    queryKey: ['gcal-connection-detail', connection?.id],
+    queryFn: () => googleCalendarService.getConnectionDetail(connection!.id),
+    enabled: !!connection?.id,
+    staleTime: 30_000,
+  })
+  const detail = detailData?.connection
 
   const intent: OAuthIntent = variant === 'venue' ? 'venue_master' : 'staff_personal'
 
@@ -199,12 +222,49 @@ export function GoogleCalendarConnectionCard({
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">
-                    {t('status.lastSyncedAt', {
-                      date: connection.lastSyncedAt ? formatDateTime(connection.lastSyncedAt) : t('status.never'),
-                    })}
+                    {connection.lastSyncedAt
+                      ? t('status.lastSyncedRelative', {
+                          relative: formatDistanceToNow(new Date(connection.lastSyncedAt), {
+                            addSuffix: true,
+                            locale,
+                          }),
+                        })
+                      : t('status.lastSyncedAt', { date: t('status.never') })}
                   </p>
+                  {/* Show absolute time on hover as a power-user disambiguator. */}
+                  {connection.lastSyncedAt && (
+                    <p className="text-[10px] text-muted-foreground/70">
+                      {formatDateTime(connection.lastSyncedAt)}
+                    </p>
+                  )}
                 </div>
               </div>
+
+              {/* Phase 3 detail — channel renewal + pending/dead-letter counts.
+                  Only renders when the detail endpoint has responded; the rest
+                  of the card already shows the basic state, so we lazily
+                  enrich it without blocking the initial paint. */}
+              {detail && (detail.channel || detail.pendingCount > 0 || detail.deadLetterCount > 0) && (
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  {detail.channel?.expiresAt && (
+                    <Badge variant="outline" className="font-normal">
+                      {t('status.channelExpires', {
+                        date: format(new Date(detail.channel.expiresAt), 'PP', { locale }),
+                      })}
+                    </Badge>
+                  )}
+                  {detail.pendingCount > 0 && (
+                    <Badge variant="secondary" className="font-normal">
+                      {t('status.pendingCount', { count: detail.pendingCount })}
+                    </Badge>
+                  )}
+                  {detail.deadLetterCount > 0 && (
+                    <Badge variant="destructive" className="font-normal">
+                      {t('status.deadLetterCount', { count: detail.deadLetterCount })}
+                    </Badge>
+                  )}
+                </div>
+              )}
 
               {showReconnect && (
                 <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-50 p-3 text-sm dark:border-amber-500/30 dark:bg-amber-950/40">
