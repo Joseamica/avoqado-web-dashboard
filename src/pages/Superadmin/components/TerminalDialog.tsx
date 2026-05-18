@@ -13,6 +13,22 @@ import { includesNormalized } from '@/lib/utils'
 import { getAllVenues } from '@/services/superadmin.service'
 import { paymentProviderAPI } from '@/services/paymentProvider.service'
 import { Terminal, TerminalType, CreateTerminalRequest } from '@/services/superadmin-terminals.service'
+import { getCompatibleBrandsFor } from '@/lib/providerDeviceCompatibility'
+
+/**
+ * Supported Terminal brands (Task 15 — normalized enum).
+ *
+ * Source of truth: backend Task 6 data migration normalized every existing
+ * `Terminal.brand` value to one of these. Backend `providerDeviceCompatibility`
+ * matrix only accepts these four — anything else would fail
+ * `assertMerchantTerminalCompatible` at assign time.
+ *
+ * If you add a brand here, you MUST also add it to:
+ *   - avoqado-server/src/lib/providerDeviceCompatibility.ts
+ *   - The backend Prisma seed
+ */
+export const TERMINAL_BRAND_OPTIONS = ['PAX', 'NEXGO', 'INGENICO', 'VERIFONE'] as const
+export type TerminalBrand = typeof TERMINAL_BRAND_OPTIONS[number]
 
 interface TerminalDialogProps {
   open: boolean
@@ -178,7 +194,21 @@ export const TerminalDialog: React.FC<TerminalDialogProps> = ({ open, onOpenChan
 
               <div className="grid gap-2">
                 <Label>{t('dialog.brand')}</Label>
-                <Input value={formData.brand} onChange={(e) => setFormData({ ...formData, brand: e.target.value })} className="bg-background" />
+                <Select
+                  value={formData.brand}
+                  onValueChange={(value) => setFormData({ ...formData, brand: value as TerminalBrand })}
+                >
+                  <SelectTrigger className="bg-background">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TERMINAL_BRAND_OPTIONS.map((brand) => (
+                      <SelectItem key={brand} value={brand}>
+                        {brand}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="grid gap-2">
@@ -195,6 +225,7 @@ export const TerminalDialog: React.FC<TerminalDialogProps> = ({ open, onOpenChan
                 search={merchantSearch}
                 onSearchChange={setMerchantSearch}
                 label={t('dialog.assignedMerchants')}
+                terminalBrand={formData.brand}
               />
             )}
 
@@ -295,7 +326,7 @@ interface MerchantOption {
   displayName?: string | null
   alias?: string | null
   externalMerchantId?: string | null
-  provider?: { name: string } | null
+  provider?: { name: string; code?: string } | null
 }
 
 interface MerchantPickerSectionProps {
@@ -305,6 +336,21 @@ interface MerchantPickerSectionProps {
   search: string
   onSearchChange: (value: string) => void
   label: string
+  /**
+   * Terminal brand (e.g. `PAX`, `NEXGO`). When set, merchants whose provider
+   * has a hardware constraint (see `PROVIDER_DEVICE_COMPATIBILITY`) are
+   * hidden unless their compatible-brand list includes this brand. Backend
+   * also enforces this (Task 11 `assertMerchantsTerminalCompatible`) — this
+   * is the UX safety net so operators never see the doomed option.
+   *
+   * Permissive cases (no filter applied):
+   *   - terminal brand missing (e.g. PENDING_ACTIVATION) → show all
+   *   - merchant provider has no compatibility entry → show
+   *   - merchant has no provider.code → show (assume unconstrained)
+   *
+   * Spec ref: §5.3 (assignment filter).
+   */
+  terminalBrand?: string
 }
 
 function MerchantPickerSection({
@@ -314,14 +360,33 @@ function MerchantPickerSection({
   search,
   onSearchChange,
   label,
+  terminalBrand,
 }: MerchantPickerSectionProps) {
-  const filtered = useMemo(() => {
-    if (!search) return merchants
+  // Filter #1: hardware compatibility. Drop merchants whose provider can't
+  // run on this terminal brand. Selections survive a brand change — the
+  // backend will reject the save (HTTP 409 IncompatibleDevice) so the
+  // operator sees a concrete error instead of a silently-dropped checkbox.
+  const compatible = useMemo(() => {
+    if (!terminalBrand) return merchants
     return merchants.filter(m => {
+      const code = m.provider?.code
+      if (!code) return true
+      const allowed = getCompatibleBrandsFor(code)
+      if (!allowed) return true // unconstrained provider (STRIPE, MENTA, etc.)
+      return allowed.includes(terminalBrand)
+    })
+  }, [merchants, terminalBrand])
+
+  // Filter #2: search query.
+  const filtered = useMemo(() => {
+    if (!search) return compatible
+    return compatible.filter(m => {
       const haystack = [m.displayName, m.alias, m.externalMerchantId, m.provider?.name].filter(Boolean).join(' ')
       return includesNormalized(haystack, search)
     })
-  }, [merchants, search])
+  }, [compatible, search])
+
+  const hiddenCount = merchants.length - compatible.length
 
   return (
     <div className="grid gap-2">
@@ -340,6 +405,11 @@ function MerchantPickerSection({
           className="h-9 pl-8 text-sm bg-background"
         />
       </div>
+      {hiddenCount > 0 && terminalBrand && (
+        <p className="text-xs text-muted-foreground">
+          {hiddenCount} comercio(s) ocultos por incompatibilidad con terminal {terminalBrand}.
+        </p>
+      )}
       <div className="border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto bg-background">
         {filtered.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-2">Sin resultados</p>
