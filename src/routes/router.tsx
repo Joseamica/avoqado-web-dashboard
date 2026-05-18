@@ -76,6 +76,7 @@ import {
   SuperadminLayout,
   SuperAdminManagement,
   SuperAdminVenueEdit,
+  SuperadminAngelPayAccount,
   SuperadminVenueManagement,
   SystemSettings,
   Terminals,
@@ -302,6 +303,10 @@ const router = createBrowserRouter(
                     {
                       path: 'kyc/:venueId',
                       element: <KYCReview />,
+                    },
+                    {
+                      path: 'venues/:venueId/angelpay-account',
+                      element: <SuperadminAngelPayAccount />,
                     },
                     {
                       path: 'features',

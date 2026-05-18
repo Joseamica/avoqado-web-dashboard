@@ -1,4 +1,6 @@
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -6,21 +8,76 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { useToast } from '@/hooks/use-toast'
+import {
+  angelpayUserAccountAPI,
+  type AngelPayEnvironment,
+} from '@/services/superadmin-angelpay-user-account.service'
 import { paymentProviderAPI, type MerchantAccount, type MerchantAccountCredentials } from '@/services/paymentProvider.service'
-import { useQuery } from '@tanstack/react-query'
-import { AlertCircle, ChevronRight, CreditCard, Eye, EyeOff, Loader2, Smartphone } from 'lucide-react'
-import React, { useEffect, useState } from 'react'
+import { getAllVenues } from '@/services/superadmin.service'
+import { terminalAPI, type CreateTerminalRequest } from '@/services/superadmin-terminals.service'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AlertCircle, AlertTriangle, ChevronDown, ChevronRight, CreditCard, Eye, EyeOff, Loader2 } from 'lucide-react'
+import React, { useEffect, useMemo, useState } from 'react'
+import { TerminalDialog } from '../TerminalDialog'
+import { AngelPayAccountSection } from './AngelPayAccountSection'
+import { AngelPayFields } from './AngelPayFields'
+import { AttachTerminalDialog } from './AttachTerminalDialog'
+import { DiscoveredMerchantsSubsection } from './DiscoveredMerchantsSubsection'
+import { TerminalsSubsection } from './TerminalsSubsection'
+// Note: DeviceCompatibilityBanner removed from this dialog in Task 54.
+// TerminalsSubsection's empty-state already conveys "no NEXGO terminals"
+// with two actionable buttons. The banner component still exists for any
+// future caller that wants a standalone presence check.
 
 interface ManualAccountDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   account: MerchantAccount | null
   onSave: (data: any) => Promise<void>
+  /**
+   * Task 17: when supplied, AngelPay creates a device-compatibility banner
+   * + prerequisite check (`AngelPayUserAccount` must be ACTIVE) AND the
+   * payload posted to the server includes `venueId`, which the Task 10
+   * service-side guard requires for the ANGELPAY branch. Editing existing
+   * accounts continues to work without a venue context.
+   */
+  venueId?: string
 }
 
-export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, onOpenChange, account, onSave }) => {
+export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, onOpenChange, account, onSave, venueId }) => {
   const [loading, setLoading] = useState(false)
   const [showCredentials, setShowCredentials] = useState(false)
+  // Nested dialogs:
+  //   - terminalDialogOpen: TerminalDialog so the operator can register a
+  //     NEXGO terminal inline (Section A "Crear terminal nueva").
+  //   - attachTerminalOpen (Task 54): AttachTerminalDialog re-parents an
+  //     existing terminal from another venue (Section A "Anexar existente").
+  //
+  // The pre-Task-54 AngelPayConnectDialog mount was deleted because Section B
+  // (`<AngelPayAccountSection>`) inlines the connect form directly.
+  const [terminalDialogOpen, setTerminalDialogOpen] = useState(false)
+  const [attachTerminalOpen, setAttachTerminalOpen] = useState(false)
+  // Wizard-gate state (Task 54). Section A reports terminal-presence;
+  // Section B's ACTIVE chip is derived from the existing angelpayAccount
+  // query; Section C only renders when both gates are satisfied.
+  const [terminalsReady, setTerminalsReady] = useState(false)
+  const [pendingMerchantsCount, setPendingMerchantsCount] = useState(0)
+  // Section C → "Crear manualmente (avanzado)" collapsible. Default COLLAPSED
+  // always — the manual form is a true escape hatch, not the primary path.
+  // The primary path is TPV auto-discovery. Auto-expanding on no-pending was
+  // confusing because operators thought the form was required. After admin
+  // clicks the chevron, their choice sticks.
+  const [manualExpanded, setManualExpanded] = useState(false)
+  const [manualToggled, setManualToggled] = useState(false)
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  // UX polish on top of Task 17: when the operator opens this dialog from the
+  // "Todos" page-level filter (i.e. no `venueId` prop), we render an inline
+  // venue picker for the ANGELPAY path so they don't have to cancel, change
+  // the page filter, and reopen. The `effectiveVenueId` below is what every
+  // AngelPay-aware piece of UI (banner, prereq lookup, payload) consumes.
+  const [internalSelectedVenueId, setInternalSelectedVenueId] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     providerId: '',
@@ -39,11 +96,12 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
     blumonEnvironment: 'SANDBOX' as 'SANDBOX' | 'PRODUCTION',
     blumonBrand: 'PAX',
     blumonModel: 'A910S',
-    // AngelPay-specific fields
-    angelPayEmail: '',
-    angelPayPassword: '',
-    angelPayAffiliation: '',
-    angelPayCommerceToken: '',
+    // AngelPay-specific fields (Task 17 — SDK 1.0.5 model)
+    // Credentials moved to AngelPayUserAccount (per-venue email + PIN). The
+    // MerchantAccount only needs the merchant numeric id + affiliation +
+    // optional display override.
+    angelpayAffiliation: '',
+    angelpayMerchantName: '',
   })
 
   // Fetch providers for dropdown
@@ -62,8 +120,112 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
   // (Blumon serial, AngelPay afiliación or email). The user shouldn't see
   // the raw input in the main form — it's noise. The advanced section still
   // exposes it for power-user override.
-  const isAutoDerivedExternalId =
-    (isBlumon && !!formData.blumonSerialNumber) || (isAngelPay && (!!formData.angelPayAffiliation || !!formData.angelPayEmail))
+  // For AngelPay we now bind `externalMerchantId` directly to the dedicated
+  // numeric input inside <AngelPayFields>, so the legacy auto-derive (from
+  // email / afiliación) no longer applies. Blumon keeps its auto-derive from
+  // the serial number.
+  const isAutoDerivedExternalId = isBlumon && !!formData.blumonSerialNumber
+
+  // Inline venue picker: only shown when the operator opened the dialog
+  // without a preset venue (i.e. from the page-level "Todos" filter) and
+  // they picked the ANGELPAY processor (which needs a venue context).
+  const showInlineVenuePicker = isAngelPay && !account && !venueId
+  const effectiveVenueId = venueId ?? internalSelectedVenueId ?? undefined
+
+  // Fetch venues for the inline picker. Only enabled when we actually need
+  // to show it — keeps the dialog cheap to open for Blumon / other paths.
+  const { data: venuesList = [], isLoading: venuesLoading } = useQuery({
+    queryKey: ['superadmin-venues', 'manual-account-dialog'],
+    queryFn: () => getAllVenues(true), // includeDemos — match MerchantAccounts page behavior
+    enabled: open && showInlineVenuePicker,
+  })
+
+  // Reset the internal selection whenever the dialog closes or the operator
+  // switches away from AngelPay. Avoids stale selections leaking across
+  // separate "Crear Manual" sessions.
+  useEffect(() => {
+    if (!open || !isAngelPay) {
+      setInternalSelectedVenueId(null)
+      setTerminalsReady(false)
+      setPendingMerchantsCount(0)
+      setManualExpanded(false)
+      setManualToggled(false)
+    }
+  }, [open, isAngelPay])
+
+  // Task 54: when there's nothing to approve in Section C, default the
+  // manual-entry collapsible stays COLLAPSED by default. The intended flow
+  // is auto-discovery (TPV authenticates → reports merchants → admin approves
+  // in this dialog). Manual entry is a true escape hatch — only expanded
+  // when admin explicitly clicks the chevron. Auto-expanding on the no-pending
+  // case was confusing because it made the manual form look required.
+  useEffect(() => {
+    if (!isAngelPay || manualToggled) return
+    setManualExpanded(false)
+  }, [isAngelPay, manualToggled])
+
+  // Task 17: AngelPay requires an ACTIVE AngelPayUserAccount on the venue
+  // before any MerchantAccount can be created (the server enforces this in
+  // `createMerchantAccount` and returns 400). Fetch on demand only when the
+  // operator picks ANGELPAY + a venue is in scope + we're creating (editing
+  // existing accounts doesn't re-trip the gate). Returns `null` if the venue
+  // has never been provisioned.
+  const {
+    data: angelpayAccount,
+    isLoading: isLoadingAngelpayAccount,
+  } = useQuery({
+    queryKey: ['superadmin-angelpay-user-account', effectiveVenueId, 'manual-account-dialog'],
+    queryFn: () => angelpayUserAccountAPI.get(effectiveVenueId as string),
+    enabled: open && isAngelPay && !account && !!effectiveVenueId,
+  })
+  const angelpayPrereqOk = isAngelPay ? angelpayAccount?.status === 'ACTIVE' : true
+
+  // Inline create-terminal mutation. Used by the "Registrar terminal NEXGO"
+  // CTA inside DeviceCompatibilityBanner so the operator can satisfy the
+  // hardware prereq without leaving this dialog. On success we invalidate
+  // every terminals cache key so DeviceCompatibilityBanner re-fetches and
+  // updates `deviceCompatible` automatically.
+  const createTerminalMutation = useMutation({
+    mutationFn: (data: CreateTerminalRequest) => terminalAPI.createTerminal(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['superadmin-terminals'] })
+      queryClient.invalidateQueries({ queryKey: ['terminals'] })
+      toast({ title: 'Terminal registrada' })
+      setTerminalDialogOpen(false)
+    },
+    onError: (err: any) => {
+      toast({
+        title: 'Error al registrar terminal',
+        description: err?.response?.data?.message || err?.message || 'Error desconocido',
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Inline AngelPayUserAccount provisioning. Mirrors
+  // `pages/Superadmin/Venues/AngelPayAccount.tsx` so the prereq alert in this
+  // dialog can resolve without sending the operator to that subpage. On
+  // success we invalidate every angelpay-account cache key so the prereq
+  // Alert disappears automatically.
+  const createAngelPayAccountMutation = useMutation({
+    mutationFn: (payload: { email: string; pin?: string; environment: AngelPayEnvironment }) =>
+      angelpayUserAccountAPI.create(effectiveVenueId!, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['superadmin-angelpay-user-account', effectiveVenueId] })
+      queryClient.invalidateQueries({ queryKey: ['angelpay-account', effectiveVenueId] })
+      toast({ title: 'Cuenta AngelPay conectada' })
+      // No dialog to close — Section B's inline form is part of the wizard
+      // body; the query invalidation above flips it to the "Conectada" chip
+      // state automatically on the next render.
+    },
+    onError: (err: any) => {
+      toast({
+        title: 'No se pudo conectar la cuenta AngelPay',
+        description: err?.response?.data?.message || err?.message || 'Error desconocido',
+        variant: 'destructive',
+      })
+    },
+  })
 
   useEffect(() => {
     if (account) {
@@ -83,10 +245,13 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
         blumonEnvironment: (account.blumonEnvironment as 'SANDBOX' | 'PRODUCTION') || 'SANDBOX',
         blumonBrand: (account.providerConfig as any)?.brand || 'PAX',
         blumonModel: (account.providerConfig as any)?.model || 'A910S',
-        angelPayEmail: '',
-        angelPayPassword: '',
-        angelPayAffiliation: account.externalMerchantId || '',
-        angelPayCommerceToken: '',
+        // For editing, hydrate the AngelPay fields from the stored
+        // providerConfig (Task 17 schema) — falling back to legacy keys for
+        // accounts created before the cutover.
+        angelpayAffiliation:
+          (account.providerConfig as any)?.angelpayAffiliation ?? (account.providerConfig as any)?.afiliacion ?? '',
+        angelpayMerchantName:
+          (account.providerConfig as any)?.angelpayMerchantName ?? (account.providerConfig as any)?.merchantName ?? '',
       })
     } else {
       setFormData({
@@ -105,10 +270,8 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
         blumonEnvironment: 'SANDBOX',
         blumonBrand: 'PAX',
         blumonModel: 'A910S',
-        angelPayEmail: '',
-        angelPayPassword: '',
-        angelPayAffiliation: '',
-        angelPayCommerceToken: '',
+        angelpayAffiliation: '',
+        angelpayMerchantName: '',
       })
     }
   }, [account, open])
@@ -119,10 +282,11 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
     // Provider-specific validation
     if (!account) {
       if (isBlumon && !formData.blumonSerialNumber) return
-      // simpleLogin (AngelPay SDK 1.0.3+): only email + PIN are required.
-      // Afiliación and Commerce Token are optional — they only matter for
-      // multi-merchant selection or the legacy app-to-app flow.
-      if (isAngelPay && (!formData.angelPayEmail || !formData.angelPayPassword)) return
+      // Task 17: AngelPay creds live on AngelPayUserAccount (per-venue
+      // email + PIN). The MerchantAccount form only needs the numeric
+      // merchant id (already covered by `externalMerchantId` above) and
+      // an affiliation number.
+      if (isAngelPay && !formData.angelpayAffiliation) return
       if (isGenericProvider && (!formData.merchantId || !formData.apiKey)) return
     }
 
@@ -142,21 +306,19 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
       }
 
       if (isAngelPay) {
-        // AngelPay uses canonical schema keys that match
-        // PaymentProvider.configSchema.credentialFields on the backend
-        // (email + password required for simpleLogin; afiliacion +
-        // commerceToken optional for multi-merchant / app-to-app legacy).
-        // Empty optionals are dropped so backend validation doesn't trip
-        // on length / pattern constraints.
-        credentials = {
-          email: formData.angelPayEmail,
-          password: formData.angelPayPassword,
-          ...(formData.angelPayAffiliation ? { afiliacion: formData.angelPayAffiliation } : {}),
-          ...(formData.angelPayCommerceToken ? { commerceToken: formData.angelPayCommerceToken } : {}),
-        }
+        // Task 17 / SDK 1.0.5 cutover: credentials no longer live on
+        // MerchantAccount — they're per-venue email+PIN on AngelPayUserAccount
+        // (managed via /superadmin/venues/:venueId/angelpay-account, Task 16).
+        // The backend ANGELPAY branch in createMerchantAccount detects the
+        // provider code and stores a placeholder { encrypted, iv } blob; any
+        // credentials sent from the client are intentionally ignored, but we
+        // omit them entirely to keep the payload self-documenting.
+        credentials = undefined
         providerConfig = {
           ...providerConfig,
           processor: 'ANGELPAY',
+          angelpayAffiliation: formData.angelpayAffiliation,
+          ...(formData.angelpayMerchantName ? { angelpayMerchantName: formData.angelpayMerchantName } : {}),
         }
       } else if (isBlumon) {
         credentials =
@@ -190,11 +352,26 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
         providerId: formData.providerId,
         externalMerchantId: formData.externalMerchantId,
         alias: formData.alias || undefined,
-        displayName: formData.displayName || undefined,
+        // For AngelPay, prefer the operator-supplied merchant name as the
+        // displayName when present; otherwise fall back to the existing
+        // displayName field. This keeps backend `displayName` and the new
+        // `providerConfig.angelpayMerchantName` consistent.
+        displayName:
+          (isAngelPay && formData.angelpayMerchantName) || formData.displayName || undefined,
         active: formData.active,
         displayOrder: formData.displayOrder,
         credentials,
         providerConfig,
+      }
+
+      // Task 17: forward venueId for any AngelPay creation. The backend
+      // service-level guard (Task 10) requires it for the ANGELPAY branch
+      // (assertVenueHasCompatibleTerminal + ACTIVE-AngelPayUserAccount check).
+      // Blumon still works without venueId — legacy behavior preserved.
+      // Uses `effectiveVenueId` so the inline picker selection (when the
+      // dialog was opened from the "Todos" filter) is honored.
+      if (effectiveVenueId && !account) {
+        payload.venueId = effectiveVenueId
       }
 
       // Add Blumon-specific fields to payload
@@ -213,24 +390,64 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
     }
   }
 
+  // Task 54: AngelPay manual-entry detection. The wizard's primary path is
+  // auto-discovery (operator clicks Approve per row in Section C — no
+  // submit needed). The submit button only fires the legacy createMutation
+  // when the operator filled the "Crear manualmente (avanzado)" fallback.
+  // We detect that via the AngelPay-specific field set being populated.
+  const isAngelPayManualPath = useMemo(
+    () => isAngelPay && !account && !!formData.angelpayAffiliation && /^\d+$/.test(formData.externalMerchantId),
+    [isAngelPay, account, formData.angelpayAffiliation, formData.externalMerchantId],
+  )
+
   // Validation for submit button
   const isSubmitDisabled = () => {
-    if (loading || !formData.providerId || !formData.externalMerchantId) return true
+    if (loading || !formData.providerId) return true
     if (account) return false // Editing — credentials already exist
-    if (isBlumon) return !formData.blumonSerialNumber
-    // simpleLogin: email + PIN suffice. Afiliación + token become optional.
-    if (isAngelPay) return !formData.angelPayEmail || !formData.angelPayPassword
+    if (isBlumon) return !formData.externalMerchantId || !formData.blumonSerialNumber
+    if (isAngelPay) {
+      // Task 54: in the new wizard, submit is only meaningful when the
+      // operator opted into the manual fallback in Section C. If they
+      // didn't, the dialog acts as a viewer — the auto-discovery flow
+      // commits per-row via Approve and never round-trips this submit.
+      if (!isAngelPayManualPath) return true
+      // Manual path — backend ANGELPAY branch still requires the legacy
+      // gates (Task 10): numeric ID, venueId, ACTIVE AngelPayUserAccount,
+      // and a compatible terminal. We've already filtered the wizard so
+      // both terminals and account are ready, but defense in depth.
+      if (!effectiveVenueId) return true
+      if (!angelpayPrereqOk) return true
+      if (!terminalsReady) return true
+      return false
+    }
+    if (!formData.externalMerchantId) return true
     return !formData.merchantId || !formData.apiKey
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-background">
+      {/* AngelPay wizard is wider (3 stacked sections) — give it more room. */}
+      <DialogContent
+        className={`${
+          isAngelPay && !account ? 'sm:max-w-[760px]' : 'sm:max-w-[600px]'
+        } max-h-[90vh] overflow-y-auto bg-background`}
+      >
         <div>
           <DialogHeader>
-            <DialogTitle>{account ? 'Editar Cuenta' : 'Crear Cuenta Manual'}</DialogTitle>
+            <DialogTitle>
+              {account
+                ? 'Editar Cuenta'
+                : isAngelPay
+                  ? 'Conectar Cuenta AngelPay'
+                  : 'Crear Cuenta Manual'}
+            </DialogTitle>
             <DialogDescription>
-              {account ? 'Actualiza la información de la cuenta' : 'Ingresa las credenciales manualmente'}
+              {account
+                ? 'Actualiza la información de la cuenta'
+                : isAngelPay
+                  ? 'Sigue los 3 pasos. La TPV descubrirá los merchants automáticamente; aquí los apruebas y asignas al slot.'
+                  : 'Ingresa las credenciales manualmente'}
             </DialogDescription>
           </DialogHeader>
 
@@ -363,125 +580,204 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
             )}
 
             {/* ═══════════════════════════════════════════════════ */}
-            {/* ANGELPAY-SPECIFIC FIELDS                           */}
+            {/* ANGELPAY-SPECIFIC PATH (Task 54 — inline 3-section wizard) */}
+            {/*                                                       */}
+            {/* Section A: Venue picker + Terminals list + create/    */}
+            {/*            attach buttons. Operator never bounces to  */}
+            {/*            the Terminals page.                        */}
+            {/* Section B: AngelPay account connect form (inline)     */}
+            {/*            OR compact "Conectada" status row.         */}
+            {/* Section C: Discovered merchants (slot picker + approve) */}
+            {/*            with "Crear manualmente" fallback as a     */}
+            {/*            collapsible bypass.                        */}
+            {/*                                                       */}
+            {/* The standalone DeviceCompatibilityBanner from the old */}
+            {/* Task 17 UX is now redundant in this path — the empty- */}
+            {/* state of the terminals subsection already conveys     */}
+            {/* "no NEXGO terminals" with actionable buttons.         */}
             {/* ═══════════════════════════════════════════════════ */}
-            {isAngelPay && (
-              <div className="border border-orange-500/30 rounded-lg p-4 space-y-4 bg-orange-500/5">
-                <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
-                  <Smartphone className="h-4 w-4" />
-                  <span className="text-sm font-medium">Configuración AngelPay</span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Con <span className="font-medium text-orange-600 dark:text-orange-400">simpleLogin</span> (SDK 1.0.3+), AngelPay solo
-                  necesita correo y PIN. Afiliación y Commerce Token son opcionales — solo se usan para multi-comercio o flow app-to-app
-                  legacy.
-                </p>
+            {isAngelPay && !account && (
+              <div className="space-y-4">
+                {/* SECTION A — Venue + Terminales */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">1. Venue y terminales</CardTitle>
+                    <CardDescription className="text-xs">
+                      AngelPay solo opera en terminales NEXGO. Asegura que este venue tenga al menos una.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {showInlineVenuePicker && (
+                      <div className="grid gap-2">
+                        <Label htmlFor="angelpay-venue-picker">
+                          Venue <span className="text-destructive">*</span>
+                        </Label>
+                        <Select
+                          value={internalSelectedVenueId ?? ''}
+                          onValueChange={value => setInternalSelectedVenueId(value || null)}
+                          disabled={venuesLoading}
+                        >
+                          <SelectTrigger id="angelpay-venue-picker" className="bg-background border-input">
+                            <SelectValue placeholder={venuesLoading ? 'Cargando venues...' : 'Selecciona un venue'} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {venuesList.map(v => (
+                              <SelectItem key={v.id} value={v.id}>
+                                {v.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
-                <div className="grid gap-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="grid gap-2">
-                      <Label>
-                        Email del comercio <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        type={showCredentials ? 'text' : 'email'}
-                        value={formData.angelPayEmail}
-                        onChange={e => {
-                          const email = e.target.value
-                          setFormData({
-                            ...formData,
-                            angelPayEmail: email,
-                            // Use email as the externalMerchantId fallback when
-                            // afiliación is empty — the DB unique key is
-                            // (providerId, externalMerchantId), so this keeps
-                            // single-merchant accounts uniquely identified
-                            // without forcing AngelPay to give us afiliación.
-                            externalMerchantId: formData.angelPayAffiliation || email || formData.externalMerchantId,
-                          })
+                    {!effectiveVenueId && (
+                      <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Selecciona un venue primero</AlertTitle>
+                        <AlertDescription>
+                          AngelPay requiere asociar la cuenta a un venue.
+                          {showInlineVenuePicker
+                            ? ' Usa el selector arriba.'
+                            : ' Usa el filtro de venue para acotar el contexto antes de crear la cuenta.'}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {effectiveVenueId && (
+                      <TerminalsSubsection
+                        venueId={effectiveVenueId}
+                        brand="NEXGO"
+                        onReadyChange={setTerminalsReady}
+                        onCreateTerminal={() => setTerminalDialogOpen(true)}
+                        onAttachTerminal={() => setAttachTerminalOpen(true)}
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* SECTION B — Cuenta AngelPay (only after a venue is picked) */}
+                {effectiveVenueId && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">2. Cuenta AngelPay</CardTitle>
+                      <CardDescription className="text-xs">
+                        Vincula el correo + PIN que AngelPay generó para este venue.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <AngelPayAccountSection
+                        venueId={effectiveVenueId}
+                        account={angelpayAccount}
+                        isLoading={isLoadingAngelpayAccount}
+                        isPending={createAngelPayAccountMutation.isPending}
+                        onConnect={(payload) => createAngelPayAccountMutation.mutate(payload)}
+                      />
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* SECTION C — Merchants. Only renders when both gates pass. */}
+                {effectiveVenueId && terminalsReady && angelpayPrereqOk && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">3. Merchants</CardTitle>
+                      <CardDescription className="text-xs">
+                        La TPV descubrirá los comercios automáticamente al primer cobro. Apruébalos y asígnalos a un slot.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <DiscoveredMerchantsSubsection
+                        venueId={effectiveVenueId}
+                        onPendingCountChange={setPendingMerchantsCount}
+                      />
+
+                      {/* Manual-entry fallback. Default open when no
+                          discovered merchants are pending (operator needs a
+                          path forward); collapsed once discovery kicks in. */}
+                      <Collapsible
+                        open={manualExpanded}
+                        onOpenChange={(v) => {
+                          setManualExpanded(v)
+                          setManualToggled(true)
                         }}
-                        placeholder="comercio@ejemplo.com"
-                        className="bg-background border-input text-sm"
-                      />
-                      <p className="text-xs text-muted-foreground">Portal → "Correo electrónico"</p>
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label>
-                        PIN <span className="text-destructive">*</span> <span className="text-muted-foreground text-xs">(6 dígitos)</span>
-                      </Label>
-                      <Input
-                        type={showCredentials ? 'text' : 'password'}
-                        value={formData.angelPayPassword}
-                        onChange={e => setFormData({ ...formData, angelPayPassword: e.target.value })}
-                        placeholder="••••••"
-                        maxLength={6}
-                        className="bg-background border-input font-mono text-sm"
-                      />
-                      <p className="text-xs text-muted-foreground">Contraseña/PIN de la app AngelPay</p>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label>
-                      No. Afiliación <span className="text-muted-foreground text-xs">(opcional)</span>
-                    </Label>
-                    <Input
-                      value={formData.angelPayAffiliation}
-                      onChange={e => {
-                        const affiliation = e.target.value
-                        setFormData({
-                          ...formData,
-                          angelPayAffiliation: affiliation,
-                          externalMerchantId: affiliation || formData.angelPayEmail || formData.externalMerchantId,
-                          displayName: affiliation ? `AngelPay - ${affiliation}` : formData.displayName,
-                        })
-                      }}
-                      placeholder="Ej: 9814275"
-                      className="bg-background border-input font-mono text-sm"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Solo si el comercio tiene varias afiliaciones — el SDK lo usa para autoseleccionar la correcta.
-                    </p>
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label>
-                      Commerce Token <span className="text-muted-foreground text-xs">(opcional)</span>
-                    </Label>
-                    <Input
-                      type={showCredentials ? 'text' : 'password'}
-                      value={formData.angelPayCommerceToken}
-                      onChange={e => setFormData({ ...formData, angelPayCommerceToken: e.target.value })}
-                      placeholder="Token del portal AngelPay"
-                      className="bg-background border-input font-mono text-sm"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Solo necesario para el flow app-to-app legacy (Intent a la app externa de AngelPay).
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-end">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => setShowCredentials(!showCredentials)}
-                    >
-                      {showCredentials ? <EyeOff className="h-3 w-3 mr-1" /> : <Eye className="h-3 w-3 mr-1" />}
-                      {showCredentials ? 'Ocultar' : 'Mostrar'}
-                    </Button>
-                  </div>
-                </div>
+                      >
+                        <CollapsibleTrigger asChild>
+                          <button
+                            type="button"
+                            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full text-left"
+                          >
+                            {manualExpanded ? (
+                              <ChevronDown className="w-4 h-4" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4" />
+                            )}
+                            Crear manualmente (avanzado)
+                          </button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-3 space-y-3">
+                          <AngelPayFields
+                            externalMerchantId={formData.externalMerchantId}
+                            setExternalMerchantId={value => setFormData(prev => ({ ...prev, externalMerchantId: value }))}
+                            angelpayAffiliation={formData.angelpayAffiliation}
+                            setAngelpayAffiliation={value => setFormData(prev => ({ ...prev, angelpayAffiliation: value }))}
+                            angelpayMerchantName={formData.angelpayMerchantName}
+                            setAngelpayMerchantName={value => setFormData(prev => ({ ...prev, angelpayMerchantName: value }))}
+                          />
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="grid gap-2">
+                              <Label>Alias (interno)</Label>
+                              <Input
+                                value={formData.alias}
+                                onChange={e => setFormData({ ...formData, alias: e.target.value })}
+                                placeholder="Ej: cuenta-principal"
+                                className="bg-background border-input"
+                                autoComplete="off"
+                                data-1p-ignore
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label>Nombre para mostrar</Label>
+                              <Input
+                                value={formData.displayName}
+                                onChange={e => setFormData({ ...formData, displayName: e.target.value })}
+                                placeholder="Ej: Cuenta Caja 1"
+                                className="bg-background border-input"
+                                autoComplete="off"
+                                data-1p-ignore
+                              />
+                            </div>
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             )}
 
+            {/* Editing an existing AngelPay account: show a short read-only summary
+                instead of the full form. PIN / email rotation is done via the
+                AngelPayUserAccount page, not this dialog. */}
+            {isAngelPay && account && (
+              <Alert variant="default">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Cuenta AngelPay existente</AlertTitle>
+                <AlertDescription>
+                  Para rotar PIN, cambiar correo o suspender la cuenta usa la página de cuenta AngelPay del venue.
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* External Merchant ID
-                Hidden in the main form when it's auto-derivable (Blumon serial,
-                AngelPay afiliación, AngelPay email). For those cases the user
-                gets a read-only summary instead and the editable input only
-                appears in "Configuración avanzada" below for power-user override. */}
-            {!isAutoDerivedExternalId && (
+                Hidden in the main form when:
+                  - It's auto-derivable from a Blumon serial; or
+                  - The provider is AngelPay (AngelPayFields owns the input
+                    inline with its other required fields and enforces digits-only).
+                For those cases the user gets a read-only summary instead and
+                the editable input only appears in "Configuración avanzada"
+                below for power-user override. */}
+            {!isAutoDerivedExternalId && !isAngelPay && (
               <div className="grid gap-2">
                 <Label>
                   External Merchant ID <span className="text-destructive">*</span>
@@ -503,34 +799,39 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
-              {/* Alias */}
-              <div className="grid gap-2">
-                <Label>Alias (interno)</Label>
-                <Input
-                  value={formData.alias}
-                  onChange={e => setFormData({ ...formData, alias: e.target.value })}
-                  placeholder="Ej: cuenta-principal"
-                  className="bg-background border-input"
-                  autoComplete="off"
-                  data-1p-ignore
-                />
-              </div>
+            {/* Alias + Display Name. Hidden for AngelPay create flow —
+                the wizard's Section C "Crear manualmente (avanzado)"
+                collapsible owns those fields. Always shown for editing,
+                Blumon, and other providers. */}
+            {(!isAngelPay || !!account) && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Alias (interno)</Label>
+                  <Input
+                    value={formData.alias}
+                    onChange={e => setFormData({ ...formData, alias: e.target.value })}
+                    placeholder="Ej: cuenta-principal"
+                    className="bg-background border-input"
+                    autoComplete="off"
+                    data-1p-ignore
+                  />
+                </div>
 
-              {/* Display Name — autoComplete off so the browser doesn't autofill the
-                  logged-in user's email/name into a merchant display field. */}
-              <div className="grid gap-2">
-                <Label>Nombre para mostrar</Label>
-                <Input
-                  value={formData.displayName}
-                  onChange={e => setFormData({ ...formData, displayName: e.target.value })}
-                  placeholder="Ej: Cuenta Caja 1"
-                  className="bg-background border-input"
-                  autoComplete="off"
-                  data-1p-ignore
-                />
+                {/* Display Name — autoComplete off so the browser doesn't autofill the
+                    logged-in user's email/name into a merchant display field. */}
+                <div className="grid gap-2">
+                  <Label>Nombre para mostrar</Label>
+                  <Input
+                    value={formData.displayName}
+                    onChange={e => setFormData({ ...formData, displayName: e.target.value })}
+                    placeholder="Ej: Cuenta Caja 1"
+                    className="bg-background border-input"
+                    autoComplete="off"
+                    data-1p-ignore
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* ═══════════════════════════════════════════════════ */}
             {/* GENERIC CREDENTIALS (Blumon optional / Other required) */}
@@ -687,15 +988,56 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-              Cancelar
+              {/* Task 54: in the AngelPay wizard, the primary completion path
+                  is per-row Approve in Section C (no submit). "Cerrar" is
+                  more honest than "Cancelar" because there's nothing to
+                  cancel — work is already committed. */}
+              {isAngelPay && !account ? 'Cerrar' : 'Cancelar'}
             </Button>
-            <Button type="button" onClick={handleSubmit} disabled={isSubmitDisabled()}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {account ? 'Guardar Cambios' : 'Crear Cuenta'}
-            </Button>
+            {/* Submit button is hidden in the AngelPay wizard until the
+                operator opts into manual entry. Avoids the dead "Conectar"
+                button that confused operators during the Task 17 era. */}
+            {(!isAngelPay || !!account || isAngelPayManualPath) && (
+              <Button type="button" onClick={handleSubmit} disabled={isSubmitDisabled()}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {account
+                  ? 'Guardar Cambios'
+                  : isAngelPay
+                    ? 'Conectar manualmente'
+                    : 'Crear Cuenta'}
+              </Button>
+            )}
           </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Inline TerminalDialog — launched from Section A "Crear terminal
+        nueva" CTA. TerminalDialog has its own venue picker (we can't
+        pre-fill via prop), but the createTerminalMutation handles the save
+        and TerminalsSubsection re-fetches via query invalidation. */}
+    <TerminalDialog
+      open={terminalDialogOpen}
+      onOpenChange={setTerminalDialogOpen}
+      terminal={null}
+      onSave={async (data) => {
+        await createTerminalMutation.mutateAsync(data)
+      }}
+    />
+
+    {/* Task 54: AttachTerminalDialog — re-parent an existing NEXGO terminal
+        from another venue. Replaces the previous "no compatible terminals"
+        dead-end with an actionable second option. The old
+        AngelPayConnectDialog mount was removed because Section B inlines
+        the connect form via <AngelPayAccountSection>. */}
+    {effectiveVenueId && (
+      <AttachTerminalDialog
+        open={attachTerminalOpen}
+        onOpenChange={setAttachTerminalOpen}
+        targetVenueId={effectiveVenueId}
+        targetBrand="NEXGO"
+      />
+    )}
+    </>
   )
 }

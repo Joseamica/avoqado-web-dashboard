@@ -70,6 +70,12 @@ export interface UpdateTerminalRequest {
   assignedMerchantIds?: string[]
   brand?: string
   model?: string
+  /**
+   * Task 54: re-parent the terminal to another venue. Backend clears
+   * `assignedMerchantIds` atomically on venue move (cross-tenant safety).
+   * Used by the "Anexar terminal existente" flow in the AngelPay wizard.
+   */
+  venueId?: string
 }
 
 export interface ActivationCodeResponse {

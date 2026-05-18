@@ -500,7 +500,16 @@ const MerchantAccounts: React.FC = () => {
       )}
 
       {/* Dialogs */}
-      <ManualAccountDialog open={manualDialogOpen} onOpenChange={setManualDialogOpen} account={selectedAccount} onSave={handleSave} />
+      <ManualAccountDialog
+        open={manualDialogOpen}
+        onOpenChange={setManualDialogOpen}
+        account={selectedAccount}
+        onSave={handleSave}
+        // Task 17: pass the currently selected venue (if any) so the AngelPay
+        // path can mount its device-compatibility banner + AngelPayUserAccount
+        // prereq check and forward `venueId` in the create payload.
+        venueId={selectedVenueId !== 'all' ? selectedVenueId : undefined}
+      />
 
       <BlumonAutoFetchWizard
         open={blumonWizardOpen}

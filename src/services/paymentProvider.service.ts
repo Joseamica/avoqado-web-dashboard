@@ -44,6 +44,9 @@ export interface MerchantAccount {
   clabeNumber?: string
   bankName?: string
   accountHolder?: string
+  // AngelPay display fields (optional caches for SDK MerchantOption display data)
+  angelpayAffiliation?: string | null
+  angelpayMerchantName?: string | null
   // Enriched relationship data (from superadmin endpoint)
   venues?: Array<{ id: string; name: string; slug: string }>
   terminals?: Array<{ id: string; serialNumber: string }>

@@ -49,6 +49,7 @@ import {
   Building2,
   CheckCircle,
   Clock,
+  CreditCard,
   Crown,
   DollarSign,
   FileText,
@@ -726,6 +727,19 @@ const VenueManagement: React.FC = () => {
                     >
                       <Settings className="w-3.5 h-3.5" />
                       Features
+                    </Button>
+                    {/* Task 19: entry point for the AngelPay account page (Task 16).
+                        Route is reachable by URL only without this — operators
+                        navigate from the venue detail panel, same pattern as
+                        "Revisar KYC" / "Features" above. */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="cursor-pointer h-8 text-xs gap-1.5"
+                      onClick={() => navigate(`/superadmin/venues/${selectedVenue.id}/angelpay-account`)}
+                    >
+                      <CreditCard className="w-3.5 h-3.5" />
+                      AngelPay
                     </Button>
                     {canApprove && (
                       <Button

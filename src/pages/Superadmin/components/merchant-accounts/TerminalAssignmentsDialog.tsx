@@ -10,7 +10,8 @@ import { terminalAPI } from '@/services/superadmin-terminals.service'
 import { getAllVenues } from '@/services/superadmin.service'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Building2, Check, Info, Loader2, Plus, Smartphone, Terminal as TerminalIcon, X } from 'lucide-react'
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
+import { getCompatibleBrandsFor } from '@/lib/providerDeviceCompatibility'
 
 interface TerminalAssignmentsDialogProps {
   open: boolean
@@ -62,7 +63,24 @@ export const TerminalAssignmentsDialog: React.FC<TerminalAssignmentsDialogProps>
   })
 
   // Filter out terminals that already have this merchant account assigned
-  const availableTerminals = allTerminals.filter(terminal => !assignedTerminals.some((assigned: any) => assigned.id === terminal.id))
+  // PLUS terminals whose brand isn't compatible with this merchant's provider
+  // (Task 18 — UX safety net; backend `assertMerchantTerminalCompatible`
+  // would 409 anyway, but hiding the option keeps the operator out of the
+  // doomed selection in the first place). Unconstrained providers (STRIPE,
+  // MENTA, etc.) and PENDING_ACTIVATION terminals (no brand) are permissive.
+  const compatibleBrands = useMemo(
+    () => (account?.provider?.code ? getCompatibleBrandsFor(account.provider.code) : null),
+    [account?.provider?.code],
+  )
+  const availableTerminals = allTerminals.filter(terminal => {
+    if (assignedTerminals.some((assigned: any) => assigned.id === terminal.id)) return false
+    if (!compatibleBrands) return true // provider unconstrained
+    if (!terminal.brand) return true // PENDING_ACTIVATION — accept
+    return compatibleBrands.includes(terminal.brand)
+  })
+  const hiddenByBrandCount = compatibleBrands
+    ? allTerminals.filter(t => t.brand && !compatibleBrands.includes(t.brand)).length
+    : 0
 
   if (!account) return null
 
@@ -259,7 +277,16 @@ export const TerminalAssignmentsDialog: React.FC<TerminalAssignmentsDialogProps>
                         Cargando terminales...
                       </div>
                     ) : availableTerminals.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-2">No hay terminales disponibles en este venue para vincular.</p>
+                      <p className="text-sm text-muted-foreground py-2">
+                        No hay terminales disponibles en este venue para vincular.
+                        {hiddenByBrandCount > 0 && compatibleBrands && (
+                          <>
+                            {' '}
+                            {hiddenByBrandCount} terminal(es) ocultas: este procesador requiere{' '}
+                            {compatibleBrands.join(' o ')}.
+                          </>
+                        )}
+                      </p>
                     ) : (
                       <Select value={selectedTerminalId} onValueChange={setSelectedTerminalId}>
                         <SelectTrigger>

@@ -10,6 +10,16 @@ import DataTable from '@/components/data-table'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Smartphone, Plus, Pencil, Trash2, Key, Copy, Zap } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { terminalAPI, Terminal, isTerminalOnline } from '@/services/superadmin-terminals.service'
 import { getAllVenues } from '@/services/superadmin.service'
 import { useToast } from '@/hooks/use-toast'
@@ -29,6 +39,22 @@ const Terminals: React.FC = () => {
   const [selectedVenueId, setSelectedVenueId] = useState<string>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedTerminal, setSelectedTerminal] = useState<Terminal | null>(null)
+
+  /**
+   * Task 15 — brand-change warning dialog state.
+   *
+   * Triggered when the backend rejects a Terminal.brand mutation that would
+   * orphan currently-assigned merchants (HTTP 409,
+   * code=TERMINAL_BRAND_CHANGE_BLOCKED). We stash the pending payload here
+   * so "Continuar y desasignar" can re-issue the PATCH with
+   * `forceUnassign: true`, atomically pruning the incompatible merchants
+   * alongside the brand change.
+   */
+  const [brandChangeBlocked, setBrandChangeBlocked] = useState<{
+    terminalId: string
+    pendingData: any
+    incompatibleMerchants: Array<{ id: string; name: string; code: string }>
+  } | null>(null)
 
   const { data: venues = [] } = useQuery({ queryKey: ['venues'], queryFn: () => getAllVenues() })
 
@@ -88,6 +114,9 @@ const Terminals: React.FC = () => {
       toast({ title: t('toast.updated'), description: t('toast.updatedDesc') })
     },
     onError: (error: any) => {
+      // Task 15 — TERMINAL_BRAND_CHANGE_BLOCKED is handled by handleSave
+      // (opens the warning dialog instead of a generic error toast).
+      if (error.response?.data?.code === 'TERMINAL_BRAND_CHANGE_BLOCKED') return
       const message = error.response?.data?.message || error.message || t('toast.updateFailed')
       toast({ title: t('toast.error'), description: message, variant: 'destructive' })
     },
@@ -154,9 +183,51 @@ const Terminals: React.FC = () => {
 
   const handleSave = async (data: any) => {
     if (selectedTerminal) {
-      await updateMutation.mutateAsync({ id: selectedTerminal.id, data })
+      try {
+        await updateMutation.mutateAsync({ id: selectedTerminal.id, data })
+      } catch (err: any) {
+        // Task 15 — backend Task 12 returns HTTP 409 + code
+        // `TERMINAL_BRAND_CHANGE_BLOCKED` when changing brand would orphan
+        // currently-assigned merchants. We stash the pending payload + the
+        // incompatible-merchants list, then open the warning dialog. On
+        // confirm, we re-issue the PATCH with `forceUnassign: true`.
+        if (err?.response?.data?.code === 'TERMINAL_BRAND_CHANGE_BLOCKED') {
+          const incompatible = err.response.data.details?.incompatibleMerchants ?? []
+          setBrandChangeBlocked({
+            terminalId: selectedTerminal.id,
+            pendingData: data,
+            incompatibleMerchants: incompatible,
+          })
+          // Swallow — the dialog drives the next step. Do NOT re-throw or
+          // TerminalDialog's catch will toast a duplicate error.
+          return
+        }
+        // Other errors: let TerminalDialog show its toast as before.
+        throw err
+      }
     } else {
       await createMutation.mutateAsync(data)
+    }
+  }
+
+  /**
+   * Operator confirmed they want to unassign the incompatible merchants
+   * and proceed with the brand change. Re-issue the PATCH with
+   * `forceUnassign: true` — the backend prunes the incompatible merchants
+   * atomically with the brand change.
+   */
+  const confirmBrandChange = async () => {
+    if (!brandChangeBlocked) return
+    const { terminalId, pendingData } = brandChangeBlocked
+    setBrandChangeBlocked(null)
+    try {
+      await updateMutation.mutateAsync({
+        id: terminalId,
+        data: { ...pendingData, forceUnassign: true },
+      })
+      setDialogOpen(false)
+    } catch {
+      // updateMutation.onError already toasts.
     }
   }
 
@@ -345,6 +416,42 @@ const Terminals: React.FC = () => {
         terminal={selectedTerminal}
         onSave={handleSave}
       />
+
+      {/* Task 15 — brand-change warning. Fired by handleSave's 409 catch. */}
+      <AlertDialog
+        open={brandChangeBlocked !== null}
+        onOpenChange={(open) => {
+          if (!open) setBrandChangeBlocked(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Estos merchants quedarán sin asignar</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cambiar la marca del terminal desasignará a los siguientes comercios porque su procesador no es compatible con la nueva marca:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {brandChangeBlocked && brandChangeBlocked.incompatibleMerchants.length > 0 && (
+            <ul className="mt-2 max-h-48 overflow-y-auto rounded-md border bg-muted/30 p-3 text-sm space-y-1">
+              {brandChangeBlocked.incompatibleMerchants.map((m) => (
+                <li key={m.id} className="flex items-center gap-2">
+                  <span className="font-medium">{m.name}</span>
+                  <span className="text-xs text-muted-foreground font-mono">({m.code})</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setBrandChangeBlocked(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBrandChange}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Continuar y desasignar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
