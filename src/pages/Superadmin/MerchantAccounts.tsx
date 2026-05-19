@@ -204,9 +204,9 @@ const MerchantAccounts: React.FC = () => {
   // Handlers
   const handleSave = async (data: any) => {
     if (selectedAccount) {
-      await updateMutation.mutateAsync({ id: selectedAccount.id, data })
+      return await updateMutation.mutateAsync({ id: selectedAccount.id, data })
     } else {
-      await createMutation.mutateAsync(data)
+      return await createMutation.mutateAsync(data)
     }
   }
 

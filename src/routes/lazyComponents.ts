@@ -82,7 +82,9 @@ export { default as SuperadminDashboard } from '@/pages/Superadmin/SuperadminDas
 export { default as SuperadminFeatureManagement } from '@/pages/Superadmin/FeatureManagement'
 export { default as SuperadminVenueManagement } from '@/pages/Superadmin/VenueManagement'
 export { default as KYCReview } from '@/pages/Superadmin/KYCReview'
-export { default as SuperadminAngelPayAccount } from '@/pages/Superadmin/Venues/AngelPayAccount'
+// Standalone AngelPay account page removed 2026-05-19 — all management
+// operations are now consolidated into the MerchantAccounts dialog Section 2
+// via `AngelPayAccountManageSheet`.
 export { default as RevenueDashboard } from '@/pages/Superadmin/RevenueDashboard'
 export { default as ProfitAnalyticsDashboard } from '@/pages/Superadmin/ProfitAnalyticsDashboard'
 export { default as TestingPayments } from '@/pages/Superadmin/Testing/TestingPayments'

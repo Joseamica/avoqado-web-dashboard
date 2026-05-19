@@ -12,14 +12,19 @@ import { useToast } from '@/hooks/use-toast'
 import {
   angelpayUserAccountAPI,
   type AngelPayEnvironment,
+  type AngelPayUserAccount,
+  type AngelPayVenuePaymentSlot,
 } from '@/services/superadmin-angelpay-user-account.service'
 import { paymentProviderAPI, type MerchantAccount, type MerchantAccountCredentials } from '@/services/paymentProvider.service'
 import { getAllVenues } from '@/services/superadmin.service'
 import { terminalAPI, type CreateTerminalRequest } from '@/services/superadmin-terminals.service'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, AlertTriangle, ChevronDown, ChevronRight, CreditCard, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { AlertCircle, AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, CreditCard, Eye, EyeOff, Loader2, RefreshCw, Settings2 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import React, { useEffect, useMemo, useState } from 'react'
 import { TerminalDialog } from '../TerminalDialog'
+import { AngelPayCreateTerminalDialog } from '../angelpay/AngelPayCreateTerminalDialog'
+import { AngelPayAccountManageSheet } from '../angelpay/AngelPayAccountManageSheet'
 import { AngelPayAccountSection } from './AngelPayAccountSection'
 import { AngelPayFields } from './AngelPayFields'
 import { AttachTerminalDialog } from './AttachTerminalDialog'
@@ -70,6 +75,35 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
   // clicks the chevron, their choice sticks.
   const [manualExpanded, setManualExpanded] = useState(false)
   const [manualToggled, setManualToggled] = useState(false)
+  // Slot picker for the manual-entry AngelPay path. After createMutation creates
+  // the MerchantAccount row, we chain a call to approveDiscoveredAngelPayMerchant
+  // with this slot so the new merchant is atomically assigned to a
+  // VenuePaymentConfig slot. Without this step the merchant exists in the DB
+  // but isn't routable from the TPV (the /tpv/terminals/:serial/config endpoint
+  // only returns merchants attached to a slot).
+  const [manualSlot, setManualSlot] = useState<AngelPayVenuePaymentSlot>('PRIMARY')
+
+  // State for the AngelPay "Reservar slot" placeholder flow (replaces manual
+  // entry which was impossible to use — admins don't have the real Merchant ID
+  // / Affiliation numbers, those come from AngelPay/TPV).
+  const [reserveSlotChoice, setReserveSlotChoice] = useState<'AUTO' | AngelPayVenuePaymentSlot>('AUTO')
+  const [reserveDisplayName, setReserveDisplayName] = useState('')
+  // Multi-account: when venue has >1 AngelPay account, admin picks WHICH
+  // account the placeholder belongs to. Empty string = no account link
+  // (legacy path — placeholder gets upgraded by whichever account the TPV
+  // authenticates with first).
+  const [reserveAccountId, setReserveAccountId] = useState<string>('')
+  // Multi-AngelPay accounts per venue (2026-05-18). When true, the connect
+  // form is rendered alongside the existing account list so the operator can
+  // add another login from the same dialog. Default false when there's at
+  // least one existing account (list is shown); auto-true when there are none
+  // (no list to render, so the form is the primary CTA).
+  const [angelpayAddMode, setAngelpayAddMode] = useState(false)
+  // Consolidated AngelPay account management (2026-05-19). Replaces the
+  // legacy "Gestionar" link to the standalone /superadmin/venues/:id/angelpay-account
+  // page. When set, AngelPayAccountManageSheet opens on top of this dialog
+  // with rotate-PIN, force-rotation, suspend, and delete actions.
+  const [manageSheetAccount, setManageSheetAccount] = useState<AngelPayUserAccount | null>(null)
   const queryClient = useQueryClient()
   const { toast } = useToast()
   // UX polish on top of Task 17: when the operator opens this dialog from the
@@ -153,16 +187,23 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
     }
   }, [open, isAngelPay])
 
-  // Task 54: when there's nothing to approve in Section C, default the
-  // manual-entry collapsible stays COLLAPSED by default. The intended flow
-  // is auto-discovery (TPV authenticates → reports merchants → admin approves
-  // in this dialog). Manual entry is a true escape hatch — only expanded
-  // when admin explicitly clicks the chevron. Auto-expanding on the no-pending
-  // case was confusing because it made the manual form look required.
+  // Manual-entry collapsible auto-expand logic.
+  //
+  // The intended primary path is auto-discovery (TPV authenticates → reports
+  // merchants → admin approves in Section C). Manual entry is the escape hatch.
+  //
+  // But when there's NOTHING to approve in Section C (no discovered merchants
+  // yet — typical first-time onboarding, OR when the TPV's discovery flow can't
+  // fire yet for any reason), the admin's ONLY path forward is manual entry.
+  // Auto-expand in that case to surface the form immediately — otherwise the
+  // dialog looks like a dead-end with no actionable "Crear" button.
+  //
+  // After admin clicks the chevron explicitly, their choice sticks
+  // (manualToggled flag) — we don't fight their preference.
   useEffect(() => {
     if (!isAngelPay || manualToggled) return
-    setManualExpanded(false)
-  }, [isAngelPay, manualToggled])
+    setManualExpanded(pendingMerchantsCount === 0)
+  }, [isAngelPay, pendingMerchantsCount, manualToggled])
 
   // Task 17: AngelPay requires an ACTIVE AngelPayUserAccount on the venue
   // before any MerchantAccount can be created (the server enforces this in
@@ -178,7 +219,28 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
     queryFn: () => angelpayUserAccountAPI.get(effectiveVenueId as string),
     enabled: open && isAngelPay && !account && !!effectiveVenueId,
   })
-  const angelpayPrereqOk = isAngelPay ? angelpayAccount?.status === 'ACTIVE' : true
+  // Multi-AngelPay accounts per venue (2026-05-18). Lists every AngelPay
+  // user account assigned to this venue so the operator can manage more than
+  // one login from the wizard. The legacy singular `angelpayAccount` query
+  // above is kept for the wizard gates that still ask "is there an ACTIVE
+  // account?" — the answer logically reduces to "any ACTIVE in the list".
+  const {
+    data: angelpayAccounts,
+    isLoading: isLoadingAngelpayAccounts,
+  } = useQuery({
+    queryKey: ['superadmin-angelpay-accounts', effectiveVenueId],
+    queryFn: () => angelpayUserAccountAPI.listForVenue(effectiveVenueId as string),
+    enabled: open && isAngelPay && !account && !!effectiveVenueId,
+  })
+  const angelpayAccountsList = angelpayAccounts ?? []
+  // Wizard gate: ANY ACTIVE account satisfies the prereq (multi-account aware).
+  // Fallback to the legacy singular field when the new list endpoint hasn't
+  // populated yet (preserves behavior on the first render before the new
+  // query resolves).
+  const angelpayHasActive = angelpayAccountsList.some(acc => acc.status === 'ACTIVE')
+  const angelpayPrereqOk = isAngelPay
+    ? angelpayHasActive || angelpayAccount?.status === 'ACTIVE'
+    : true
 
   // Inline create-terminal mutation. Used by the "Registrar terminal NEXGO"
   // CTA inside DeviceCompatibilityBanner so the operator can satisfy the
@@ -188,8 +250,12 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
   const createTerminalMutation = useMutation({
     mutationFn: (data: CreateTerminalRequest) => terminalAPI.createTerminal(data),
     onSuccess: () => {
+      // Invalidate all known terminal query keys (with/without venue scoping)
+      // so Section 1's TerminalsSubsection refreshes immediately.
       queryClient.invalidateQueries({ queryKey: ['superadmin-terminals'] })
+      queryClient.invalidateQueries({ queryKey: ['superadmin-terminals', { venueId: effectiveVenueId }] })
       queryClient.invalidateQueries({ queryKey: ['terminals'] })
+      queryClient.refetchQueries({ queryKey: ['superadmin-terminals'] })
       toast({ title: 'Terminal registrada' })
       setTerminalDialogOpen(false)
     },
@@ -213,6 +279,11 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['superadmin-angelpay-user-account', effectiveVenueId] })
       queryClient.invalidateQueries({ queryKey: ['angelpay-account', effectiveVenueId] })
+      // Multi-AngelPay accounts per venue (2026-05-18) — also refresh the
+      // multi-account list and collapse add-mode so the operator sees the new
+      // account in the list immediately.
+      queryClient.invalidateQueries({ queryKey: ['superadmin-angelpay-accounts', effectiveVenueId] })
+      setAngelpayAddMode(false)
       toast({ title: 'Cuenta AngelPay conectada' })
       // No dialog to close — Section B's inline form is part of the wizard
       // body; the query invalidation above flips it to the "Conectada" chip
@@ -222,6 +293,87 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
       toast({
         title: 'No se pudo conectar la cuenta AngelPay',
         description: err?.response?.data?.message || err?.message || 'Error desconocido',
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Multi-AngelPay accounts per venue (2026-05-18). Dispatches a
+  // FETCH_ANGELPAY_MERCHANTS socket command to the venue's NEXGO terminal so
+  // the TPV switches to the selected AngelPay account and re-reports its
+  // merchants. We poll the discovered-merchants query for 30s after dispatch
+  // (handled implicitly by react-query refetch on the Section C subsection
+  // — invalidation here forces an immediate fetch).
+  const fetchMerchantsMutation = useMutation({
+    mutationFn: (angelpayUserAccountId: string) =>
+      angelpayUserAccountAPI.fetchMerchantsFromTpv({
+        venueId: effectiveVenueId as string,
+        angelpayUserAccountId,
+      }),
+    onSuccess: () => {
+      toast({
+        title: 'Comando enviado a TPV',
+        description:
+          'La TPV está consultando AngelPay; los nuevos merchants aparecerán en la lista de pendientes en ~30s.',
+      })
+      // Light polling: invalidate now + on a small delay so the discovered list
+      // refreshes when the TPV reports back. The Section C subsection's own
+      // query window covers the rest.
+      queryClient.invalidateQueries({ queryKey: ['superadmin-discovered-merchants', effectiveVenueId] })
+      window.setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['superadmin-discovered-merchants', effectiveVenueId] })
+      }, 15000)
+    },
+    onError: (err: any) => {
+      toast({
+        title: 'No se pudo enviar el comando',
+        description: err?.response?.data?.message || err?.message || 'Error desconocido',
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Reserve-slot mutation: creates a placeholder MerchantAccount + atomically
+  // attaches to the chosen (or first empty) VenuePaymentConfig slot. The TPV
+  // later upgrades the placeholder with real Merchant ID / Affiliation when
+  // discovery fires.
+  const reserveSlotMutation = useMutation({
+    mutationFn: () => {
+      if (!effectiveVenueId) {
+        return Promise.reject(new Error('No venue selected'))
+      }
+      return angelpayUserAccountAPI.reserveSlot({
+        venueId: effectiveVenueId,
+        slot: reserveSlotChoice === 'AUTO' ? undefined : reserveSlotChoice,
+        displayName: reserveDisplayName.trim() || undefined,
+        angelpayUserAccountId: reserveAccountId || undefined,
+      })
+    },
+    onSuccess: (data) => {
+      // Force-refetch ALL relevant queries so the dialog reflects the new
+      // placeholder immediately (slot occupancy banner + discovered list +
+      // accounts list + merchant accounts list).
+      queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
+      queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
+      queryClient.invalidateQueries({ queryKey: ['venue-payment-config', effectiveVenueId] })
+      queryClient.invalidateQueries({ queryKey: ['superadmin-discovered-merchants', effectiveVenueId] })
+      queryClient.invalidateQueries({ queryKey: ['superadmin-angelpay-accounts', effectiveVenueId] })
+      queryClient.refetchQueries({ queryKey: ['superadmin-discovered-merchants', effectiveVenueId] })
+      toast({
+        title: 'Slot reservado',
+        description: `Placeholder creado en slot ${data.slot}. Cuando la TPV autentique, los datos del comercio se autocompletarán aquí.`,
+      })
+      // Reset form so admin can immediately reserve another (e.g., for a different account).
+      setReserveDisplayName('')
+      // Keep reserveSlotChoice as-is (likely AUTO) so consecutive clicks just work.
+      setReserveDisplayName('')
+      setReserveSlotChoice('AUTO')
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message || err?.message || 'Error desconocido'
+      toast({
+        title: err?.response?.status === 409 ? 'Slot ocupado' : 'No se pudo reservar el slot',
+        description: msg,
         variant: 'destructive',
       })
     },
@@ -381,7 +533,51 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
         payload.blumonMerchantId = formData.externalMerchantId
       }
 
-      await onSave(payload)
+      const created = await onSave(payload)
+
+      // AngelPay manual path: after createMerchantAccount succeeds, atomically
+      // assign the new MerchantAccount to the chosen VenuePaymentConfig slot.
+      // Without this, the merchant exists in the DB but isn't routable from the
+      // TPV — the /tpv/terminals/:serial/config endpoint only returns merchants
+      // attached to a slot.
+      //
+      // We use the same approve endpoint as the discovered flow so all slot
+      // assignment paths converge on a single backend transaction (atomic
+      // flip-active + slot write + per-terminal assignment).
+      if (isAngelPay && !account && effectiveVenueId && created?.id) {
+        try {
+          await angelpayUserAccountAPI.approveDiscoveredMerchant({
+            venueId: effectiveVenueId,
+            merchantAccountId: created.id,
+            slot: manualSlot,
+          })
+          queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
+          queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
+          queryClient.invalidateQueries({ queryKey: ['venue-payment-config', effectiveVenueId] })
+          toast({
+            title: 'Merchant creado y asignado',
+            description: `Asignado al slot ${manualSlot} del venue.`,
+          })
+        } catch (err: any) {
+          const msg = err?.response?.data?.message || err?.message || 'Error desconocido'
+          if (err?.response?.status === 409) {
+            toast({
+              title: 'Slot ocupado',
+              description: `${msg}. El merchant se creó pero no se asignó — escoge otro slot y vuelve a intentar.`,
+              variant: 'destructive',
+            })
+          } else {
+            toast({
+              title: 'Merchant creado, error asignando slot',
+              description: msg,
+              variant: 'destructive',
+            })
+          }
+          // Don't close the dialog — let admin retry the slot assignment.
+          return
+        }
+      }
+
       onOpenChange(false)
     } catch (error) {
       console.error('Error saving account:', error)
@@ -477,10 +673,15 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
                     ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                ¿Buscas Stripe Connect? Se configura desde la página del venue en{' '}
-                <span className="underline">/venues/&lt;slug&gt;/ecommerce-merchants</span>.
-              </p>
+              {/* Stripe hint only when provider isn't already an inline-managed one.
+                  For AngelPay (wizard handles everything inline) and Blumon (auto-fetch
+                  flow), the Stripe reference is noise. */}
+              {!isAngelPay && !isBlumon && (
+                <p className="text-xs text-muted-foreground">
+                  ¿Buscas Stripe Connect? Se configura desde la página del venue en{' '}
+                  <span className="underline">/venues/&lt;slug&gt;/ecommerce-merchants</span>.
+                </p>
+              )}
             </div>
 
             {/* ═══════════════════════════════════════════════════ */}
@@ -656,24 +857,163 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
                   </CardContent>
                 </Card>
 
-                {/* SECTION B — Cuenta AngelPay (only after a venue is picked) */}
+                {/* SECTION B — Cuentas AngelPay (only after a venue is picked).
+                    Multi-AngelPay accounts per venue (2026-05-18): renders the
+                    full list of AngelPayUserAccount rows for the venue with a
+                    "Pedir merchants" button per row (dispatches the
+                    FETCH_ANGELPAY_MERCHANTS socket command) and a "Gestionar"
+                    link to the dedicated page for advanced ops. The legacy
+                    `AngelPayAccountSection` connect form is kept as the
+                    primary CTA when the list is empty AND as a togglable
+                    "add another" form below the list when ≥1 already exists. */}
                 {effectiveVenueId && (
                   <Card>
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-base">2. Cuenta AngelPay</CardTitle>
+                      <CardTitle className="text-base">2. Cuentas AngelPay</CardTitle>
                       <CardDescription className="text-xs">
-                        Vincula el correo + PIN que AngelPay generó para este venue.
+                        Vincula uno o varios correos + PIN que AngelPay generó para este venue.
                       </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <AngelPayAccountSection
-                        venueId={effectiveVenueId}
-                        account={angelpayAccount}
-                        isLoading={isLoadingAngelpayAccount}
-                        isPending={createAngelPayAccountMutation.isPending}
-                        onConnect={(payload) => createAngelPayAccountMutation.mutate(payload)}
-                      />
+                    <CardContent className="space-y-3">
+                      {isLoadingAngelpayAccounts && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground py-3">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Cargando cuentas AngelPay…
+                        </div>
+                      )}
+
+                      {!isLoadingAngelpayAccounts && angelpayAccountsList.length > 0 && (
+                        <div className="space-y-2">
+                          {angelpayAccountsList.map(acc => {
+                            const statusBadgeClass =
+                              acc.status === 'ACTIVE'
+                                ? 'bg-green-100 text-green-800 hover:bg-green-100'
+                                : acc.status === 'PENDING_PIN'
+                                ? 'bg-amber-100 text-amber-800 hover:bg-amber-100'
+                                : acc.status === 'SUSPENDED' || acc.status === 'DELETED'
+                                ? 'bg-red-100 text-red-800 hover:bg-red-100'
+                                : 'bg-muted text-muted-foreground hover:bg-muted'
+                            const isFetchingThis =
+                              fetchMerchantsMutation.isPending && fetchMerchantsMutation.variables === acc.id
+                            return (
+                              <div
+                                key={acc.id}
+                                className="rounded-md border border-border bg-background p-3 space-y-2"
+                              >
+                                <div className="flex items-center justify-between gap-3 flex-wrap">
+                                  <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                    <Badge className={statusBadgeClass}>
+                                      {acc.status === 'ACTIVE' && <CheckCircle2 className="w-3 h-3 mr-1" />}
+                                      {acc.status}
+                                    </Badge>
+                                    <span className="font-mono text-sm truncate">{acc.email}</span>
+                                    <Badge variant="outline" className="text-xs">
+                                      {acc.environment}
+                                    </Badge>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={
+                                      acc.status !== 'ACTIVE' ||
+                                      fetchMerchantsMutation.isPending
+                                    }
+                                    onClick={() => fetchMerchantsMutation.mutate(acc.id)}
+                                    title={
+                                      acc.status !== 'ACTIVE'
+                                        ? 'La cuenta debe estar ACTIVE para pedir merchants'
+                                        : 'Pide a la TPV que cambie a esta cuenta y reporte sus merchants'
+                                    }
+                                  >
+                                    {isFetchingThis ? (
+                                      <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                                    ) : (
+                                      <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                                    )}
+                                    Pedir merchants
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-xs h-8 px-2 text-primary hover:text-primary"
+                                    onClick={() => setManageSheetAccount(acc)}
+                                    title="Rotar PIN, suspender o eliminar esta cuenta"
+                                  >
+                                    <Settings2 className="w-3.5 h-3.5 mr-1.5" />
+                                    Gestionar
+                                  </Button>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+
+                      {!isLoadingAngelpayAccounts && (angelpayAccountsList.length === 0 || angelpayAddMode) && (
+                        <div className="rounded-md border border-dashed border-muted-foreground/30 p-3">
+                          {angelpayAccountsList.length > 0 && (
+                            <p className="text-xs text-muted-foreground mb-2">
+                              Añadir otra cuenta AngelPay para este venue (multi-login).
+                            </p>
+                          )}
+                          <AngelPayAccountSection
+                            venueId={effectiveVenueId}
+                            // Pass null so AngelPayAccountSection always renders
+                            // the connect form (multi-account list above handles
+                            // the "Conectada" status row for existing accounts).
+                            account={null}
+                            isLoading={false}
+                            isPending={createAngelPayAccountMutation.isPending}
+                            onConnect={payload => createAngelPayAccountMutation.mutate(payload)}
+                          />
+                        </div>
+                      )}
+
+                      {!isLoadingAngelpayAccounts && angelpayAccountsList.length > 0 && !angelpayAddMode && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => setAngelpayAddMode(true)}
+                        >
+                          + Añadir otra cuenta AngelPay
+                        </Button>
+                      )}
+                      {!isLoadingAngelpayAccounts && angelpayAccountsList.length > 0 && angelpayAddMode && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => setAngelpayAddMode(false)}
+                        >
+                          Cancelar
+                        </Button>
+                      )}
                     </CardContent>
+                  </Card>
+                )}
+
+                {/* SECTION C teaser — visible when gates AREN'T satisfied yet so
+                    operator sees the full 3-step path from the start (matches the
+                    "Sigue los 3 pasos" promise in the dialog subtitle). */}
+                {effectiveVenueId && (!terminalsReady || !angelpayPrereqOk) && (
+                  <Card className="opacity-60">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base text-muted-foreground">3. Merchants <span className="text-xs font-normal">(disponible después)</span></CardTitle>
+                      <CardDescription className="text-xs">
+                        {!terminalsReady && !angelpayPrereqOk
+                          ? 'Disponible después de registrar una terminal NEXGO y conectar una cuenta AngelPay.'
+                          : !terminalsReady
+                          ? 'Disponible después de registrar una terminal NEXGO arriba.'
+                          : 'Disponible después de conectar al menos una cuenta AngelPay arriba.'}
+                      </CardDescription>
+                    </CardHeader>
                   </Card>
                 )}
 
@@ -692,64 +1032,98 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
                         onPendingCountChange={setPendingMerchantsCount}
                       />
 
-                      {/* Manual-entry fallback. Default open when no
-                          discovered merchants are pending (operator needs a
-                          path forward); collapsed once discovery kicks in. */}
-                      <Collapsible
-                        open={manualExpanded}
-                        onOpenChange={(v) => {
-                          setManualExpanded(v)
-                          setManualToggled(true)
-                        }}
-                      >
-                        <CollapsibleTrigger asChild>
-                          <button
-                            type="button"
-                            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full text-left"
-                          >
-                            {manualExpanded ? (
-                              <ChevronDown className="w-4 h-4" />
-                            ) : (
-                              <ChevronRight className="w-4 h-4" />
-                            )}
-                            Crear manualmente (avanzado)
-                          </button>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="mt-3 space-y-3">
-                          <AngelPayFields
-                            externalMerchantId={formData.externalMerchantId}
-                            setExternalMerchantId={value => setFormData(prev => ({ ...prev, externalMerchantId: value }))}
-                            angelpayAffiliation={formData.angelpayAffiliation}
-                            setAngelpayAffiliation={value => setFormData(prev => ({ ...prev, angelpayAffiliation: value }))}
-                            angelpayMerchantName={formData.angelpayMerchantName}
-                            setAngelpayMerchantName={value => setFormData(prev => ({ ...prev, angelpayMerchantName: value }))}
-                          />
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="grid gap-2">
-                              <Label>Alias (interno)</Label>
-                              <Input
-                                value={formData.alias}
-                                onChange={e => setFormData({ ...formData, alias: e.target.value })}
-                                placeholder="Ej: cuenta-principal"
-                                className="bg-background border-input"
-                                autoComplete="off"
-                                data-1p-ignore
-                              />
-                            </div>
-                            <div className="grid gap-2">
-                              <Label>Nombre para mostrar</Label>
-                              <Input
-                                value={formData.displayName}
-                                onChange={e => setFormData({ ...formData, displayName: e.target.value })}
-                                placeholder="Ej: Cuenta Caja 1"
-                                className="bg-background border-input"
-                                autoComplete="off"
-                                data-1p-ignore
-                              />
-                            </div>
+                      {/* Reserve-slot button: admin clicks ONE button to create
+                          a placeholder MerchantAccount + atomically attach to a
+                          slot. No fields required (admin doesn't have the real
+                          Merchant ID / Affiliation — those come from AngelPay
+                          itself). When the TPV authenticates + reports, the
+                          backend upserts the placeholder in-place with the
+                          real numeric ID, affiliation, name, and flips active=true.
+                          The slot assignment is preserved across the upgrade.
+
+                          For multi-merchant venues (login has N>1 merchants),
+                          admin can click Reservar multiple times to reserve N
+                          slots; TPV upgrades them in discovery order. */}
+                      <div className="rounded-md border border-dashed border-muted-foreground/30 p-4 space-y-3">
+                        <div className="space-y-1">
+                          <Label className="text-sm font-semibold">Reservar slot AngelPay</Label>
+                          <p className="text-xs text-muted-foreground">
+                            Crea un placeholder en el siguiente slot vacío del venue. Los datos del comercio
+                            (Merchant ID, Afiliación) se autocompletan cuando la TPV autentica con AngelPay.
+                            Si tu cuenta tiene varios comercios, haz click una vez por cada slot que necesites.
+                          </p>
+                        </div>
+                        {/* Account picker — only shown when there are 2+
+                            ACTIVE accounts. Single-account venues fall through
+                            to the legacy "no link" path (placeholder takes
+                            whatever account TPV authenticates with). */}
+                        {angelpayAccountsList.filter(a => a.status === 'ACTIVE').length > 1 && (
+                          <div className="grid gap-2">
+                            <Label className="text-xs">Cuenta AngelPay *</Label>
+                            <Select
+                              value={reserveAccountId || ''}
+                              onValueChange={(v) => setReserveAccountId(v)}
+                            >
+                              <SelectTrigger className="bg-background border-input">
+                                <SelectValue placeholder="Selecciona la cuenta a vincular" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {angelpayAccountsList
+                                  .filter(a => a.status === 'ACTIVE')
+                                  .map(a => (
+                                    <SelectItem key={a.id} value={a.id}>
+                                      {a.email} ({a.environment})
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                              Cada placeholder se vincula a una cuenta AngelPay. La TPV solo
+                              completará placeholders cuya cuenta coincida con la que está autenticada.
+                            </p>
                           </div>
-                        </CollapsibleContent>
-                      </Collapsible>
+                        )}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="grid gap-2">
+                            <Label className="text-xs">Slot (opcional)</Label>
+                            <Select
+                              value={reserveSlotChoice}
+                              onValueChange={(v) => setReserveSlotChoice(v as 'AUTO' | AngelPayVenuePaymentSlot)}
+                            >
+                              <SelectTrigger className="bg-background border-input">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="AUTO">Auto (primer vacío)</SelectItem>
+                                <SelectItem value="PRIMARY">Principal</SelectItem>
+                                <SelectItem value="SECONDARY">Secundario</SelectItem>
+                                <SelectItem value="TERTIARY">Terciario</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="grid gap-2">
+                            <Label className="text-xs">Etiqueta (opcional)</Label>
+                            <Input
+                              value={reserveDisplayName}
+                              onChange={(e) => setReserveDisplayName(e.target.value)}
+                              placeholder="Ej: Madre Café Rooftop"
+                              className="bg-background border-input"
+                            />
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={() => reserveSlotMutation.mutate()}
+                          disabled={
+                            reserveSlotMutation.isPending ||
+                            (angelpayAccountsList.filter(a => a.status === 'ACTIVE').length > 1 && !reserveAccountId)
+                          }
+                          className="w-full"
+                        >
+                          {reserveSlotMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          + Reservar slot AngelPay
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 )}
@@ -919,7 +1293,10 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
               </div>
             )}
 
-            {/* Provider Config (JSON) */}
+            {/* Provider Config (JSON) — hidden for AngelPay path which has its
+                own dedicated configuration UI (reserve slot, account selector).
+                The advanced section was a holdover from the generic dialog era. */}
+            {!(isAngelPay && !account) && (
             <Collapsible>
               <CollapsibleTrigger asChild>
                 <button
@@ -984,6 +1361,7 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
                 </div>
               </CollapsibleContent>
             </Collapsible>
+            )}
           </div>
 
           <DialogFooter>
@@ -994,17 +1372,16 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
                   cancel — work is already committed. */}
               {isAngelPay && !account ? 'Cerrar' : 'Cancelar'}
             </Button>
-            {/* Submit button is hidden in the AngelPay wizard until the
-                operator opts into manual entry. Avoids the dead "Conectar"
-                button that confused operators during the Task 17 era. */}
-            {(!isAngelPay || !!account || isAngelPayManualPath) && (
+            {/* For AngelPay (non-edit), there is no submit action at all —
+                the only path to create merchants is auto-discovery from the
+                TPV. The dialog is purely informational: shows venue/terminal/
+                account status + discovered merchants. Operator closes when done.
+                For all other providers (and AngelPay edit), keep the normal
+                submit button. */}
+            {!(isAngelPay && !account) && (
               <Button type="button" onClick={handleSubmit} disabled={isSubmitDisabled()}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {account
-                  ? 'Guardar Cambios'
-                  : isAngelPay
-                    ? 'Conectar manualmente'
-                    : 'Crear Cuenta'}
+                {account ? 'Guardar Cambios' : 'Crear Cuenta'}
               </Button>
             )}
           </DialogFooter>
@@ -1012,18 +1389,39 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
       </DialogContent>
     </Dialog>
 
-    {/* Inline TerminalDialog — launched from Section A "Crear terminal
-        nueva" CTA. TerminalDialog has its own venue picker (we can't
-        pre-fill via prop), but the createTerminalMutation handles the save
-        and TerminalsSubsection re-fetches via query invalidation. */}
-    <TerminalDialog
-      open={terminalDialogOpen}
-      onOpenChange={setTerminalDialogOpen}
-      terminal={null}
-      onSave={async (data) => {
-        await createTerminalMutation.mutateAsync(data)
-      }}
-    />
+    {/* Crear terminal — two flavors:
+        - AngelPay path: AngelPayCreateTerminalDialog hardcodes brand=NEXGO,
+          venue=current, auto-generates activation code, no merchant assignment
+          UI (irrelevant — merchants come from AngelPay discovery, not manual).
+        - Other providers: generic TerminalDialog with full pickers.
+
+        The generic dialog used to be used here for AngelPay too but it
+        defaulted brand=PAX, which silently bypassed TerminalsSubsection's
+        NEXGO filter and gave the appearance of "create succeeded but
+        terminal not visible". */}
+    {isAngelPay && effectiveVenueId ? (
+      <AngelPayCreateTerminalDialog
+        open={terminalDialogOpen}
+        onOpenChange={setTerminalDialogOpen}
+        venueId={effectiveVenueId}
+        venueName={venuesList.find(v => v.id === effectiveVenueId)?.name}
+        onCreated={() => {
+          // Belt-and-suspenders: also force-refresh from the parent in case
+          // any state in the wizard depends on the new terminal.
+          queryClient.invalidateQueries({ queryKey: ['superadmin-terminals'] })
+          queryClient.refetchQueries({ queryKey: ['superadmin-terminals'] })
+        }}
+      />
+    ) : (
+      <TerminalDialog
+        open={terminalDialogOpen}
+        onOpenChange={setTerminalDialogOpen}
+        terminal={null}
+        onSave={async (data) => {
+          await createTerminalMutation.mutateAsync(data)
+        }}
+      />
+    )}
 
     {/* Task 54: AttachTerminalDialog — re-parent an existing NEXGO terminal
         from another venue. Replaces the previous "no compatible terminals"
@@ -1036,6 +1434,34 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
         onOpenChange={setAttachTerminalOpen}
         targetVenueId={effectiveVenueId}
         targetBrand="NEXGO"
+      />
+    )}
+
+    {/* Consolidated AngelPay account management (2026-05-19). Replaces the
+        deleted standalone page. Mutations invalidate the same multi-account
+        list query the dialog reads from, so the row's status badge updates
+        live without closing the sheet. */}
+    {manageSheetAccount && (
+      <AngelPayAccountManageSheet
+        open={true}
+        onOpenChange={v => {
+          if (!v) setManageSheetAccount(null)
+        }}
+        account={manageSheetAccount}
+        onChange={() => {
+          queryClient.invalidateQueries({
+            queryKey: ['superadmin-angelpay-accounts', effectiveVenueId],
+          })
+          // The legacy singular account query — kept for wizard gates.
+          queryClient.invalidateQueries({
+            queryKey: ['superadmin-angelpay-user-account', effectiveVenueId, 'manual-account-dialog'],
+          })
+          queryClient.invalidateQueries({ queryKey: ['angelpay-account', effectiveVenueId] })
+          // MerchantAccount rows for the venue may go inactive when an AngelPay
+          // account is suspended/deleted — keep the merchant lists fresh too.
+          queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
+          queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
+        }}
       />
     )}
     </>

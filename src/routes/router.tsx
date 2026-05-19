@@ -76,7 +76,6 @@ import {
   SuperadminLayout,
   SuperAdminManagement,
   SuperAdminVenueEdit,
-  SuperadminAngelPayAccount,
   SuperadminVenueManagement,
   SystemSettings,
   Terminals,
@@ -304,10 +303,9 @@ const router = createBrowserRouter(
                       path: 'kyc/:venueId',
                       element: <KYCReview />,
                     },
-                    {
-                      path: 'venues/:venueId/angelpay-account',
-                      element: <SuperadminAngelPayAccount />,
-                    },
+                    // Standalone AngelPay account page removed 2026-05-19;
+                    // its operations now live in MerchantAccounts dialog
+                    // Section 2 via `AngelPayAccountManageSheet`.
                     {
                       path: 'features',
                       element: <SuperadminFeatureManagement />,

@@ -73,13 +73,13 @@ export function TerminalsSubsection({
 
   if (matching.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-amber-500/40 bg-amber-500/5 p-4 space-y-3">
+      <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/30 p-4 space-y-3">
         <div className="flex items-start gap-2">
-          <Smartphone className="w-4 h-4 mt-0.5 text-amber-600 dark:text-amber-400 shrink-0" />
+          <Smartphone className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
           <div className="text-sm">
-            <p className="font-medium text-amber-700 dark:text-amber-300">Sin terminales {brand} en este venue</p>
+            <p className="font-medium">Empieza registrando una terminal {brand}</p>
             <p className="text-xs text-muted-foreground mt-1">
-              AngelPay solo opera en terminales {brand}. Registra una nueva o anexa una existente que pertenezca
+              AngelPay solo opera en terminales {brand}. Crea una nueva o anexa una existente que pertenezca
               físicamente a este venue.
             </p>
           </div>
