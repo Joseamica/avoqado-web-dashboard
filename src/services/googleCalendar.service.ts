@@ -137,9 +137,9 @@ const googleCalendarService = {
    * Step 2 — after the OAuth callback redirects back with a session token,
    * fetch the user's writable calendars (filtered server-side per intent).
    */
-  listCalendars(sessionToken: string): Promise<{ calendars: CalendarPickerItem[] }> {
+  listCalendars(sessionToken: string): Promise<{ calendars: CalendarPickerItem[]; intent: OAuthIntent }> {
     return api
-      .get<{ calendars: CalendarPickerItem[] }>(`${BASE}/oauth/calendars`, {
+      .get<{ calendars: CalendarPickerItem[]; intent: OAuthIntent }>(`${BASE}/oauth/calendars`, {
         params: { session: sessionToken },
       })
       .then(r => r.data)
@@ -150,10 +150,7 @@ const googleCalendarService = {
    * creates the GoogleCalendarConnection row, and subscribes to the
    * events.watch channel inside a single transaction.
    */
-  createConnection(
-    sessionToken: string,
-    selectedCalendarId: string,
-  ): Promise<{ connection: GoogleCalendarConnection }> {
+  createConnection(sessionToken: string, selectedCalendarId: string): Promise<{ connection: GoogleCalendarConnection }> {
     return api
       .post<{ connection: GoogleCalendarConnection }>(`${BASE}/connections`, {
         session: sessionToken,
@@ -197,15 +194,9 @@ const googleCalendarService = {
    * The backend forces `title: null` when the source event is marked private —
    * render those as "Ocupado" / "Busy" in the UI.
    */
-  listBusyBlocks(
-    venueId: string,
-    args: { from: string; to: string; staffId?: string },
-  ): Promise<{ blocks: ExternalBusyBlock[] }> {
+  listBusyBlocks(venueId: string, args: { from: string; to: string; staffId?: string }): Promise<{ blocks: ExternalBusyBlock[] }> {
     return api
-      .get<{ blocks: ExternalBusyBlock[] }>(
-        `/api/v1/dashboard/venues/${venueId}/google-calendar/busy-blocks`,
-        { params: args },
-      )
+      .get<{ blocks: ExternalBusyBlock[] }>(`/api/v1/dashboard/venues/${venueId}/google-calendar/busy-blocks`, { params: args })
       .then(r => r.data)
   },
 
@@ -218,10 +209,10 @@ const googleCalendarService = {
     args: { limit?: number; cursor?: string } = {},
   ): Promise<{ rows: DeadLetterRow[]; nextCursor: string | null }> {
     return api
-      .get<{ rows: DeadLetterRow[]; nextCursor: string | null }>(
-        `/api/v1/dashboard/venues/${venueId}/google-calendar/outbox/dead-letter`,
-        { params: args },
-      )
+      .get<{
+        rows: DeadLetterRow[]
+        nextCursor: string | null
+      }>(`/api/v1/dashboard/venues/${venueId}/google-calendar/outbox/dead-letter`, { params: args })
       .then(r => r.data)
   },
 
@@ -249,9 +240,7 @@ const googleCalendarService = {
    * structured statusReason banner.
    */
   getConnectionDetail(id: string): Promise<{ connection: ConnectionDetail }> {
-    return api
-      .get<{ connection: ConnectionDetail }>(`${BASE}/connections/${id}`)
-      .then(r => r.data)
+    return api.get<{ connection: ConnectionDetail }>(`${BASE}/connections/${id}`).then(r => r.data)
   },
 }
 

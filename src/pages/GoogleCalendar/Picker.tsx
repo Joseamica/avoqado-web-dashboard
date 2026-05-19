@@ -21,12 +21,9 @@ import googleCalendarService, { type CalendarPickerItem } from '@/services/googl
 //   1. Read the session token from the URL.
 //   2. Ask the backend which calendars the user can pick (filtered by intent).
 //   3. Let the user pick one, then POST /connections to commit.
-//   4. Redirect back to /account where the connection card surfaces the new row.
-//
-// We don't try to be clever about return paths. The card lives in two places
-// (Reservation Settings + Mi Cuenta), but both query the same `listConnections`
-// endpoint. Sending the user to /account works for either origin because the
-// venue card on the next page will re-fetch and render fresh state.
+//   4. Redirect back to the page that started the flow — Reservation Settings
+//      for venue_master, Mi Cuenta for staff_personal — using the intent the
+//      backend returns from `listCalendars`.
 // -----------------------------------------------------------------------------
 
 export default function GoogleCalendarPicker() {
@@ -40,10 +37,9 @@ export default function GoogleCalendarPicker() {
   const [selectedCalendarId, setSelectedCalendarId] = useState<string>('')
 
   // useCurrentVenue falls back to the user's activeVenue when there's no :slug
-  // in the URL (Picker is a top-level route). Use that to build a venue-scoped
-  // return path; otherwise '/' lets the router pick a sensible default.
+  // in the URL (Picker is a top-level route). Use it to build venue-scoped
+  // return paths; if there's no active venue we fall back to '/'.
   const { fullBasePath } = useCurrentVenue()
-  const returnPath = fullBasePath ? `${fullBasePath}/account` : '/'
 
   // ---------------------------------------------------------------------------
   // Calendar list — only fires when we actually have a session in the URL. The
@@ -58,6 +54,16 @@ export default function GoogleCalendarPicker() {
   })
 
   const calendars: CalendarPickerItem[] = useMemo(() => data?.calendars ?? [], [data])
+
+  // Return path depends on which flow started this — venue_master connections
+  // live on Reservation Settings, staff_personal on Mi Cuenta. Before the
+  // session loads we don't know the intent yet, so back/error buttons fall
+  // back to Mi Cuenta (safest default — never 404s when fullBasePath exists).
+  const returnPath = useMemo(() => {
+    if (!fullBasePath) return '/'
+    if (data?.intent === 'venue_master') return `${fullBasePath}/reservations/settings`
+    return `${fullBasePath}/account`
+  }, [fullBasePath, data?.intent])
 
   // ---------------------------------------------------------------------------
   // Connect mutation — finalizes the connection on the backend. On success the
@@ -98,7 +104,7 @@ export default function GoogleCalendarPicker() {
           </CardHeader>
           <CardContent>
             <Button asChild variant="outline">
-              <Link to="/account">
+              <Link to={returnPath}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 {t('picker.back')}
               </Link>
@@ -129,13 +135,11 @@ export default function GoogleCalendarPicker() {
               <AlertCircle className="h-5 w-5 text-destructive" />
               {tCommon('error')}
             </CardTitle>
-            <CardDescription>
-              {(error as any)?.response?.data?.message ?? t('picker.invalidSession')}
-            </CardDescription>
+            <CardDescription>{(error as any)?.response?.data?.message ?? t('picker.invalidSession')}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild variant="outline">
-              <Link to="/account">
+              <Link to={returnPath}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 {t('picker.back')}
               </Link>
@@ -166,7 +170,7 @@ export default function GoogleCalendarPicker() {
             </div>
             <div className="mt-4">
               <Button asChild variant="outline">
-                <Link to="/account">
+                <Link to={returnPath}>
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   {t('picker.back')}
                 </Link>
@@ -179,11 +183,7 @@ export default function GoogleCalendarPicker() {
           <CardContent className="pt-6">
             {/* Radix RadioGroup wraps the rows; each row is a tappable label so
                 clicking anywhere on the calendar card selects it. */}
-            <RadioGroup
-              value={selectedCalendarId}
-              onValueChange={setSelectedCalendarId}
-              className="space-y-2"
-            >
+            <RadioGroup value={selectedCalendarId} onValueChange={setSelectedCalendarId} className="space-y-2">
               {calendars.map(cal => {
                 const isReadOnly = cal.accessRole === 'reader' || cal.accessRole === 'freeBusyReader'
                 const itemId = `cal-${cal.id}`
@@ -197,9 +197,7 @@ export default function GoogleCalendarPicker() {
                     <RadioGroupItem value={cal.id} id={itemId} className="mt-1" />
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-medium text-foreground truncate">
-                          {cal.summary || cal.id}
-                        </span>
+                        <span className="text-sm font-medium text-foreground truncate">{cal.summary || cal.id}</span>
                         {cal.primary && (
                           <Badge variant="secondary" className="text-[10px] py-0">
                             {t('picker.primaryBadge')}
@@ -220,15 +218,12 @@ export default function GoogleCalendarPicker() {
 
             <div className="flex items-center justify-between gap-3 pt-6">
               <Button asChild variant="ghost">
-                <Link to="/account">
+                <Link to={returnPath}>
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   {t('picker.back')}
                 </Link>
               </Button>
-              <Button
-                onClick={() => connectMutation.mutate()}
-                disabled={!selectedCalendarId || connectMutation.isPending}
-              >
+              <Button onClick={() => connectMutation.mutate()} disabled={!selectedCalendarId || connectMutation.isPending}>
                 {connectMutation.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
