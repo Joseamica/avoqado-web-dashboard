@@ -565,11 +565,16 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
       // We use the same approve endpoint as the discovered flow so all slot
       // assignment paths converge on a single backend transaction (atomic
       // flip-active + slot write + per-terminal assignment).
-      if (isAngelPay && !account && effectiveVenueId && created?.id) {
+      // Narrow `void | MerchantAccount` to MerchantAccount — TS won't do this
+      // through optional chaining on a union containing void, so we destructure.
+      const createdAccount: MerchantAccount | undefined =
+        created && typeof created === 'object' && 'id' in created ? created : undefined
+
+      if (isAngelPay && !account && effectiveVenueId && createdAccount) {
         try {
           await angelpayUserAccountAPI.approveDiscoveredMerchant({
             venueId: effectiveVenueId,
-            merchantAccountId: created.id,
+            merchantAccountId: createdAccount.id,
             slot: manualSlot,
           })
           queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
