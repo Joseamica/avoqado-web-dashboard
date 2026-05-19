@@ -38,7 +38,12 @@ interface ManualAccountDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   account: MerchantAccount | null
-  onSave: (data: any) => Promise<void>
+  /**
+   * Returns the created/updated MerchantAccount (or void on update paths that
+   * don't surface a return). The AngelPay manual path consumes `created.id`
+   * to chain `approveDiscoveredMerchant` for slot assignment.
+   */
+  onSave: (data: any) => Promise<MerchantAccount | void>
   /**
    * Task 17: when supplied, AngelPay creates a device-compatibility banner
    * + prerequisite check (`AngelPayUserAccount` must be ACTIVE) AND the
