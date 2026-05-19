@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-import { terminalAPI, type ActivationCodeResponse, type CreateTerminalRequest } from '@/services/superadmin-terminals.service'
+import { terminalAPI, TerminalType, type ActivationCodeResponse, type CreateTerminalRequest } from '@/services/superadmin-terminals.service'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Check, Copy, Loader2, Smartphone, Tablet } from 'lucide-react'
 import React, { useState } from 'react'
@@ -116,7 +116,7 @@ export const AngelPayCreateTerminalDialog: React.FC<AngelPayCreateTerminalDialog
       venueId,
       serialNumber: fullSerial,
       name: name.trim(),
-      type: 'TPV_ANDROID',
+      type: TerminalType.TPV_ANDROID,
       brand: 'NEXGO',
       model,
       assignedMerchantIds: [],

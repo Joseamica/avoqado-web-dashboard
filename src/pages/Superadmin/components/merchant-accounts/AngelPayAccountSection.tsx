@@ -114,7 +114,10 @@ export function AngelPayAccountSection({
 
   return (
     <div className="space-y-3">
-      {account && account.status !== 'ACTIVE' && (
+      {account && (
+        // ACTIVE was already returned-early above (line ~82). Anything reaching
+        // here is PENDING_PIN/PIN_ROTATION_REQUIRED/SUSPENDED/DELETED — all
+        // valid "reconnect will reset" cases.
         <p className="text-xs text-amber-700 dark:text-amber-300">
           Cuenta existente en estado <strong>{account.status}</strong>. Conectar reemplazará el PIN actual.
         </p>
