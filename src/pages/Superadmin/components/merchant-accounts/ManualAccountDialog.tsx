@@ -19,14 +19,13 @@ import { paymentProviderAPI, type MerchantAccount, type MerchantAccountCredentia
 import { getAllVenues } from '@/services/superadmin.service'
 import { terminalAPI, type CreateTerminalRequest } from '@/services/superadmin-terminals.service'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, CreditCard, Eye, EyeOff, Loader2, RefreshCw, Settings2 } from 'lucide-react'
+import { AlertCircle, AlertTriangle, CheckCircle2, ChevronRight, CreditCard, Eye, EyeOff, Loader2, RefreshCw, Settings2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import React, { useEffect, useMemo, useState } from 'react'
 import { TerminalDialog } from '../TerminalDialog'
 import { AngelPayCreateTerminalDialog } from '../angelpay/AngelPayCreateTerminalDialog'
 import { AngelPayAccountManageSheet } from '../angelpay/AngelPayAccountManageSheet'
 import { AngelPayAccountSection } from './AngelPayAccountSection'
-import { AngelPayFields } from './AngelPayFields'
 import { AttachTerminalDialog } from './AttachTerminalDialog'
 import { DiscoveredMerchantsSubsection } from './DiscoveredMerchantsSubsection'
 import { TerminalsSubsection } from './TerminalsSubsection'
@@ -164,7 +163,13 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
   // without a preset venue (i.e. from the page-level "Todos" filter) and
   // they picked the ANGELPAY processor (which needs a venue context).
   const showInlineVenuePicker = isAngelPay && !account && !venueId
-  const effectiveVenueId = venueId ?? internalSelectedVenueId ?? undefined
+  // effectiveVenueId resolution order:
+  //   1. explicit prop (passed by MerchantAccounts page when a venue filter is set)
+  //   2. inline picker selection (operator picked from "Todos" page filter)
+  //   3. for AngelPay edit: derive from the account's linked AngelPayUserAccount
+  //      (so "Pedir merchants" + account list lookups work without re-passing venueId)
+  const editModeVenueId = (account as any)?.angelpayUserAccount?.venueId as string | undefined
+  const effectiveVenueId = venueId ?? internalSelectedVenueId ?? editModeVenueId ?? undefined
 
   // Fetch venues for the inline picker. Only enabled when we actually need
   // to show it — keeps the dialog cheap to open for Blumon / other paths.
@@ -230,7 +235,11 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
   } = useQuery({
     queryKey: ['superadmin-angelpay-accounts', effectiveVenueId],
     queryFn: () => angelpayUserAccountAPI.listForVenue(effectiveVenueId as string),
-    enabled: open && isAngelPay && !account && !!effectiveVenueId,
+    // Enabled in both create AND edit flows. In edit mode the operator needs
+    // to see the linked AngelPay account email + use "Pedir merchants" to
+    // upgrade placeholders. effectiveVenueId may need to be derived from the
+    // account's venue in edit mode if not passed as prop.
+    enabled: open && isAngelPay && !!effectiveVenueId,
   })
   const angelpayAccountsList = angelpayAccounts ?? []
   // Wizard gate: ANY ACTIVE account satisfies the prereq (multi-account aware).
@@ -314,15 +323,22 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
       toast({
         title: 'Comando enviado a TPV',
         description:
-          'La TPV está consultando AngelPay; los nuevos merchants aparecerán en la lista de pendientes en ~30s.',
+          'La TPV está autenticando; los placeholders se actualizarán automáticamente en ~5-10 seg.',
       })
-      // Light polling: invalidate now + on a small delay so the discovered list
-      // refreshes when the TPV reports back. The Section C subsection's own
-      // query window covers the rest.
-      queryClient.invalidateQueries({ queryKey: ['superadmin-discovered-merchants', effectiveVenueId] })
-      window.setTimeout(() => {
+      // Multi-key invalidation — TPV → backend report is async, so we hit
+      // both the immediate paths AND a delayed sweep to catch the post-upsert
+      // state. The 5s + 15s schedule covers typical SDK auth (2-3s) + report
+      // POST (1s) + Prisma write (sub-second) round-trips.
+      const invalidateAll = () => {
         queryClient.invalidateQueries({ queryKey: ['superadmin-discovered-merchants', effectiveVenueId] })
-      }, 15000)
+        queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
+        queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
+        queryClient.invalidateQueries({ queryKey: ['superadmin-angelpay-accounts', effectiveVenueId] })
+        queryClient.invalidateQueries({ queryKey: ['venue-payment-config', effectiveVenueId] })
+      }
+      invalidateAll()
+      window.setTimeout(invalidateAll, 5000)
+      window.setTimeout(invalidateAll, 15000)
     },
     onError: (err: any) => {
       toast({
@@ -1130,18 +1146,132 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
               </div>
             )}
 
-            {/* Editing an existing AngelPay account: show a short read-only summary
-                instead of the full form. PIN / email rotation is done via the
-                AngelPayUserAccount page, not this dialog. */}
-            {isAngelPay && account && (
-              <Alert variant="default">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Cuenta AngelPay existente</AlertTitle>
-                <AlertDescription>
-                  Para rotar PIN, cambiar correo o suspender la cuenta usa la página de cuenta AngelPay del venue.
-                </AlertDescription>
-              </Alert>
-            )}
+            {/* Editing an existing AngelPay merchant: show read-only summary
+                with all relevant info (placeholder vs real, linked account,
+                affiliation, slot). The legacy "Use the AngelPay page" alert
+                hid this critical info — admin had no way to verify what they
+                were actually editing. PIN/account rotation still happens via
+                the management sheet (in the parent flow). */}
+            {isAngelPay && account && (() => {
+              const isPlaceholder = account.externalMerchantId?.startsWith('AWAITING_') ?? false
+              const linkedAccountId = (account as any).angelpayUserAccountId as string | null | undefined
+              return (
+                <div className="space-y-3">
+                  {isPlaceholder ? (
+                    <Alert variant="default" className="border-amber-500/40 bg-amber-500/10">
+                      <AlertCircle className="h-4 w-4 text-amber-600" />
+                      <AlertTitle className="text-amber-700 dark:text-amber-300">Placeholder — esperando TPV</AlertTitle>
+                      <AlertDescription className="text-xs space-y-1">
+                        <p>Este es un slot reservado, sin datos reales de AngelPay todavía.</p>
+                        <p>Cuando la TPV autentique con la cuenta AngelPay vinculada, este placeholder se completará automáticamente con el Merchant ID y Afiliación reales, y pasará a estado <strong>Activo</strong>.</p>
+                        <p className="text-muted-foreground">Para forzar la actualización ahora: usa el botón <strong>"Pedir merchants"</strong> en la cuenta AngelPay vinculada (Section 2 del wizard).</p>
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <Alert variant="default">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Merchant AngelPay real</AlertTitle>
+                      <AlertDescription className="text-xs">
+                        Para rotar PIN / suspender la cuenta AngelPay, usa el botón "Gestionar" en Section 2 del wizard.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {/* Read-only summary panel */}
+                  <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Merchant ID</Label>
+                        <p className="font-mono mt-0.5 break-all">
+                          {isPlaceholder ? (
+                            <span className="text-amber-700 dark:text-amber-300">
+                              {account.externalMerchantId} <span className="text-muted-foreground">(placeholder)</span>
+                            </span>
+                          ) : (
+                            account.externalMerchantId
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Afiliación</Label>
+                        <p className="font-mono mt-0.5">
+                          {(account as any).angelpayAffiliation === 'PENDING' || !(account as any).angelpayAffiliation
+                            ? <span className="text-amber-700 dark:text-amber-300">PENDING</span>
+                            : (account as any).angelpayAffiliation}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Cuenta AngelPay vinculada</Label>
+                        <p className="font-mono mt-0.5 break-all">
+                          {(() => {
+                            // Three sources, in order: backend include (most reliable
+                            // in edit mode), in-memory accounts list (only populated
+                            // when venueId is in scope), raw FK id (worst-case
+                            // fallback so admin at least sees SOMETHING).
+                            const includedEmail = (account as any).angelpayUserAccount?.email as string | undefined
+                            const listEmail = linkedAccountId
+                              ? angelpayAccountsList.find(a => a.id === linkedAccountId)?.email
+                              : undefined
+                            const email = includedEmail || listEmail
+                            if (email) return email
+                            if (linkedAccountId) return <span className="text-muted-foreground">{linkedAccountId} (id)</span>
+                            return <span className="text-muted-foreground">Sin vincular (auto-discovery)</span>
+                          })()}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Estado</Label>
+                        <p className="mt-0.5">
+                          {account.active
+                            ? <span className="text-emerald-600">Activo</span>
+                            : <span className="text-amber-700 dark:text-amber-300">Esperando TPV</span>}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Inline "Pedir merchants" for placeholders — dashboard sends
+                      socket command to TPV which switches to the linked account,
+                      authenticates, reports merchants. Backend upgrades this
+                      placeholder in-place with real IDs. Removes the need to
+                      reopen the AngelPay wizard. */}
+                  {isPlaceholder && linkedAccountId && (
+                    <div className="rounded-md border border-primary/40 bg-primary/5 p-3 space-y-2">
+                      <p className="text-xs">
+                        Esta cuenta vinculada (<strong>{(account as any).angelpayUserAccount?.email ?? angelpayAccountsList.find(a => a.id === linkedAccountId)?.email ?? linkedAccountId}</strong>) puede activarse ahora si una TPV NEXGO está conectada al venue.
+                      </p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={fetchMerchantsMutation.isPending}
+                        onClick={() => fetchMerchantsMutation.mutate(linkedAccountId)}
+                      >
+                        {fetchMerchantsMutation.isPending ? (
+                          <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                        )}
+                        Pedir merchants a la TPV ahora
+                      </Button>
+                      <p className="text-[10px] text-muted-foreground">
+                        Manda un socket command a la TPV. La TPV cambia a la cuenta vinculada, autentica contra AngelPay, y reporta sus merchants. Backend upgradea este placeholder con los IDs reales (~10-15 seg).
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Placeholder sin cuenta vinculada — surface the gap so admin
+                      knows why "Pedir merchants" isn't available here. */}
+                  {isPlaceholder && !linkedAccountId && (
+                    <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs space-y-1">
+                      <p className="font-medium text-amber-700 dark:text-amber-300">Placeholder sin cuenta AngelPay vinculada</p>
+                      <p>
+                        Este placeholder fue creado en modo "auto-discovery" — se actualizará con cualquier merchant que la TPV reporte primero. Si tienes varias cuentas AngelPay activas y quieres control específico, considera eliminarlo y crear uno vinculado a la cuenta correcta desde el wizard.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
 
             {/* External Merchant ID
                 Hidden in the main form when:
@@ -1434,6 +1564,13 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
         onOpenChange={setAttachTerminalOpen}
         targetVenueId={effectiveVenueId}
         targetBrand="NEXGO"
+        onSwitchToCreate={() => {
+          // Empty-state escape hatch: when there are no other-venue NEXGO
+          // terminals to attach, close the attach dialog + open the create one.
+          // Eliminates the "close, then click the other button" dance.
+          setAttachTerminalOpen(false)
+          setTerminalDialogOpen(true)
+        }}
       />
     )}
 

@@ -73,10 +73,10 @@ const STATUS_LABELS: Record<AngelPayAccountStatus, string> = {
 
 const STATUS_CHIP_CLASSES: Record<AngelPayAccountStatus, string> = {
   ACTIVE: 'bg-green-100 text-green-800 hover:bg-green-100',
-  PENDING_PIN: 'bg-gray-100 text-gray-700 hover:bg-gray-100',
+  PENDING_PIN: 'bg-muted text-muted-foreground hover:bg-muted',
   PIN_ROTATION_REQUIRED: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100',
   SUSPENDED: 'bg-red-100 text-red-800 hover:bg-red-100',
-  DELETED: 'bg-gray-50 text-gray-500 hover:bg-gray-50',
+  DELETED: 'bg-muted/50 text-muted-foreground/70 hover:bg-muted/50',
 }
 
 const PIN_REGEX = /^\d{6}$/

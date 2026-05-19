@@ -69,6 +69,12 @@ export interface AttachTerminalDialogProps {
   targetBrand: string
   /** Fired after a successful move so the parent can refresh local state. */
   onAttached?: () => void
+  /** Optional callback for the empty-state CTA "Crear terminal nueva". When
+   *  provided, the empty state shows a button that closes this dialog and
+   *  fires the callback (parent typically opens its create-terminal dialog).
+   *  Without this, the empty state just tells the operator to use the other
+   *  button — which means closing + reopening, a dead-end UX. */
+  onSwitchToCreate?: () => void
 }
 
 export function AttachTerminalDialog({
@@ -77,6 +83,7 @@ export function AttachTerminalDialog({
   targetVenueId,
   targetBrand,
   onAttached,
+  onSwitchToCreate,
 }: AttachTerminalDialogProps) {
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -163,9 +170,24 @@ export function AttachTerminalDialog({
             )}
 
             {!isLoading && candidates.length === 0 && (
-              <div className="text-sm text-muted-foreground text-center py-6 border rounded-md bg-muted/30">
-                No hay terminales <strong>{targetBrand}</strong> en otros venues. Usa "Crear terminal nueva" para
-                registrar una.
+              <div className="text-sm text-muted-foreground text-center py-6 border rounded-md bg-muted/30 space-y-3">
+                <p>
+                  No hay terminales <strong>{targetBrand}</strong> en otros venues para anexar.
+                </p>
+                {onSwitchToCreate ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      onOpenChange(false)
+                      onSwitchToCreate()
+                    }}
+                  >
+                    + Crear terminal {targetBrand} nueva
+                  </Button>
+                ) : (
+                  <p className="text-xs">Cierra este diálogo y usa "Crear terminal nueva" para registrar una.</p>
+                )}
               </div>
             )}
 

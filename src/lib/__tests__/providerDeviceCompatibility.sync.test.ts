@@ -30,7 +30,7 @@ describe('PROVIDER_DEVICE_COMPATIBILITY sync with avoqado-server', () => {
     )
 
     if (!fs.existsSync(backendPath)) {
-      // eslint-disable-next-line no-console
+       
       console.warn(
         `[sync test SKIPPED] avoqado-server sibling not found at ${backendPath}. ` +
           `Solo dashboard dev — test will run in CI with both repos checked out.`,
