@@ -61,6 +61,43 @@
   "getStarted": "Commencer",
   "finish": "Terminer",
   "loading": "Chargement...",
+  "infiniteScroll": {
+    "showing": "Affichage de {{loaded}}",
+    "showingOf": "Affichage de {{loaded}} sur {{total}}",
+    "loadMore": "Charger plus",
+    "exportForMore": "Pour plus de résultats, utilisez Exporter"
+  },
+  "exportDialog": {
+    "export": "Exporter",
+    "success": "Export terminé",
+    "selectAll": "Toutes",
+    "selectNone": "Aucune",
+    "required": "Obligatoire",
+    "estimated": "≈ {{count}} résultats seront inclus dans ce fichier",
+    "sections": {
+      "dateRange": "Plage de dates",
+      "dateRangeHint": "Définissez la période à exporter",
+      "filters": "Filtres actifs",
+      "filtersHint": "Fermez la boîte de dialogue pour modifier les filtres",
+      "columns": "Colonnes à inclure",
+      "columnsHint": "Choisissez quels champs sont exportés par ligne",
+      "format": "Format",
+      "formatHint": "Choisissez le format du fichier"
+    },
+    "formats": {
+      "csvHint": "Léger. Compatible Excel et Google Sheets.",
+      "xlsxHint": "Avec mise en forme, idéal pour la comptabilité.",
+      "pdfHint": "Imprimable. Limite de 1 000 lignes."
+    },
+    "warnings": {
+      "pdfLarge": "PDF est limité à 1 000 lignes. Pour des plages plus larges, utilisez CSV ou Excel."
+    },
+    "errors": {
+      "generic": "Impossible de générer le fichier",
+      "tooLarge": "Trop de résultats",
+      "noColumns": "Sélectionnez au moins une colonne"
+    }
+  },
   "previous": "Précédent",
   "continue": "Continuer",
   "skip": "Passer",

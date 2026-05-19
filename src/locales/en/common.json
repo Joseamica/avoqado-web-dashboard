@@ -94,6 +94,43 @@
   "comingSoon": "Coming Soon",
   "dismiss": "Dismiss",
   "more": "More",
+  "infiniteScroll": {
+    "showing": "Showing {{loaded}}",
+    "showingOf": "Showing {{loaded}} of {{total}}",
+    "loadMore": "Load more",
+    "exportForMore": "For more results, use Export"
+  },
+  "exportDialog": {
+    "export": "Export",
+    "success": "Export complete",
+    "selectAll": "All",
+    "selectNone": "None",
+    "required": "Required",
+    "estimated": "≈ {{count}} results will be included in this file",
+    "sections": {
+      "dateRange": "Date range",
+      "dateRangeHint": "Define the period to export",
+      "filters": "Active filters",
+      "filtersHint": "Close the dialog to change filters on the page",
+      "columns": "Columns to include",
+      "columnsHint": "Choose which fields are exported per row",
+      "format": "Format",
+      "formatHint": "Pick how you'd like to receive the file"
+    },
+    "formats": {
+      "csvHint": "Lightweight. Works with Excel and Google Sheets.",
+      "xlsxHint": "Formatted, ideal for accounting.",
+      "pdfHint": "Printable. Limit 1,000 rows."
+    },
+    "warnings": {
+      "pdfLarge": "PDF is limited to 1,000 rows. For larger ranges use CSV or Excel."
+    },
+    "errors": {
+      "generic": "Could not generate the file",
+      "tooLarge": "Too many results",
+      "noColumns": "Select at least one column"
+    }
+  },
   "viewDetails": "View Details",
   "remove": "Remove",
   "clearAll": "Clear All",

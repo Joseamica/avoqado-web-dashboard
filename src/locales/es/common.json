@@ -94,6 +94,43 @@
   "comingSoon": "Próximamente",
   "dismiss": "Descartar",
   "more": "Más",
+  "infiniteScroll": {
+    "showing": "Mostrando {{loaded}}",
+    "showingOf": "Mostrando {{loaded}} de {{total}}",
+    "loadMore": "Cargar más",
+    "exportForMore": "Para más resultados, usa Exportar"
+  },
+  "exportDialog": {
+    "export": "Exportar",
+    "success": "Exportación completada",
+    "selectAll": "Todas",
+    "selectNone": "Ninguna",
+    "required": "Obligatoria",
+    "estimated": "≈ {{count}} resultados se incluirán en este archivo",
+    "sections": {
+      "dateRange": "Rango de fechas",
+      "dateRangeHint": "Define el periodo que quieres exportar",
+      "filters": "Filtros aplicados",
+      "filtersHint": "Cierra el diálogo para cambiar filtros en la página",
+      "columns": "Columnas a incluir",
+      "columnsHint": "Elige qué información se exporta en cada fila",
+      "format": "Formato",
+      "formatHint": "Selecciona cómo quieres recibir el archivo"
+    },
+    "formats": {
+      "csvHint": "Ligero. Compatible con Excel, Google Sheets.",
+      "xlsxHint": "Con formato, ideal para contabilidad.",
+      "pdfHint": "Imprimible. Límite de 1,000 filas."
+    },
+    "warnings": {
+      "pdfLarge": "PDF está limitado a 1,000 filas. Si tu rango supera ese límite, usa CSV o Excel."
+    },
+    "errors": {
+      "generic": "No se pudo generar el archivo",
+      "tooLarge": "Demasiados resultados",
+      "noColumns": "Selecciona al menos una columna"
+    }
+  },
   "viewDetails": "Ver Detalles",
   "remove": "Eliminar",
   "clearAll": "Limpiar Todo",

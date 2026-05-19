@@ -19,7 +19,6 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -38,12 +37,13 @@ import { PaymentMethod, PaymentRecordType, PaymentStatus, Payment as PaymentType
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { DateTime } from 'luxon'
-import { exportToCSV, exportToExcel, formatCurrencyForExport, generateFilename } from '@/utils/export'
+import { ExportDialog, type ExportColumnOption } from '@/components/export-dialog'
 import getIcon from '@/utils/getIcon'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { InfiniteScrollFooter } from '@/components/infinite-scroll-footer'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown, Banknote, Bitcoin, Download, Pencil, Plus, RotateCcw, Search, Trash2, X } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
@@ -108,15 +108,19 @@ export default function Payments() {
   const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
   const isSuperAdmin = user?.role === StaffRole.SUPERADMIN
   const hasChatbot = checkFeatureAccess('CHATBOT')
-  const { formatDate } = useVenueDateTime()
+  const { formatDate: _formatDate } = useVenueDateTime()
   const location = useLocation()
   const navigate = useNavigate()
   const { paymentId: drawerPaymentId } = useParams<{ paymentId: string }>()
   const queryClient = useQueryClient()
-  const [pagination, setPagination] = useState({
-    pageIndex: 0,
-    pageSize: 100,
-  })
+  // Infinite-scroll pagination config — backend page size is fixed, frontend stitches pages.
+  // Soft cap: stops auto-fetch on scroll; user clicks "Cargar más" to keep going.
+  // Hard cap: stops loading entirely; user is steered to Exportar.
+  const PAGE_SIZE = 100
+  const SOFT_CAP = 500
+  const HARD_CAP = 1000
+  // Dummy pagination state for DataTable's manualPagination mode. We never advance it.
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: PAGE_SIZE })
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [paymentToDelete, setPaymentToDelete] = useState<PaymentType | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -156,6 +160,7 @@ export default function Payments() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [selectedPayments, setSelectedPayments] = useState<PaymentType[]>([])
   const [clearSelectionTrigger, setClearSelectionTrigger] = useState(0)
+  const [exportOpen, setExportOpen] = useState(false)
 
   // Column visibility state. 'source' shows a badge — enabled by default
   // because manual-payment feature depends on it to display external
@@ -172,23 +177,6 @@ export default function Payments() {
     'totalAmount',
   ])
 
-  // Reset pagination when filters change (using debounced search to avoid flicker)
-  useEffect(() => {
-    setPagination(prev => ({ ...prev, pageIndex: 0 }))
-  }, [
-    merchantAccountFilter,
-    methodFilter,
-    sourceFilter,
-    waiterFilter,
-    internationalFilter,
-    cardBrandFilter,
-    dateRange,
-    subtotalFilter,
-    tipFilter,
-    totalFilter,
-    debouncedSearchTerm,
-  ])
-
   // Convert dateRange to startDate/endDate ISO strings for the API
   const dateParams = useMemo(() => {
     return {
@@ -198,14 +186,21 @@ export default function Payments() {
   }, [dateRange])
 
   // Fetch payments — multi-select filters, search and date range are sent to backend.
+  // Infinite query: page 1 → 2 → 3 ... each backend page returns PAGE_SIZE rows.
   // Amount filters (subtotal/tip/total) and status tab remain client-side because the
   // backend does not support them yet.
-  const { data, isLoading, error, refetch } = useQuery({
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: [
-      'payments',
+      'payments-infinite',
       venueId,
-      pagination.pageIndex,
-      pagination.pageSize,
       dateParams,
       merchantAccountFilter,
       methodFilter,
@@ -213,11 +208,12 @@ export default function Payments() {
       waiterFilter,
       debouncedSearchTerm,
     ],
-    queryFn: async () => {
+    initialPageParam: 1,
+    queryFn: async ({ pageParam }) => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payments`, {
         params: {
-          page: pagination.pageIndex + 1,
-          pageSize: pagination.pageSize,
+          page: pageParam,
+          pageSize: PAGE_SIZE,
           ...dateParams,
           ...(merchantAccountFilter.length > 0 && { merchantAccountIds: merchantAccountFilter.join(',') }),
           ...(methodFilter.length > 0 && { methods: methodFilter.join(',') }),
@@ -226,12 +222,26 @@ export default function Payments() {
           ...(debouncedSearchTerm && { search: debouncedSearchTerm }),
         },
       })
-      return response.data
+      return response.data as { data: PaymentType[]; meta?: { total?: number; totalPages?: number; page?: number } }
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      const loadedSoFar = allPages.reduce((sum, p) => sum + (p.data?.length || 0), 0)
+      const total = lastPage.meta?.total
+      // Hard cap protects the DOM from runaway row counts — user must export past 1000.
+      if (loadedSoFar >= HARD_CAP) return undefined
+      if (total !== undefined && loadedSoFar >= total) return undefined
+      if (!lastPage.data || lastPage.data.length < PAGE_SIZE) return undefined
+      return allPages.length + 1
     },
     refetchOnWindowFocus: true,
   })
 
-  const totalPayments = data?.meta?.total || 0
+  // Flat list of loaded payments across all pages — fed to DataTable.
+  const paymentsLoaded = useMemo<PaymentType[]>(() => {
+    return (data?.pages?.flatMap(p => p.data || []) as PaymentType[]) ?? []
+  }, [data])
+
+  const totalPayments = data?.pages?.[0]?.meta?.total || 0
 
   // --- SIN CAMBIOS EN useSocketEvents ---
   // La lógica de refetch al recibir un evento sigue siendo correcta.
@@ -469,7 +479,7 @@ export default function Payments() {
 
   // Apply client-side multi-select filtering
   const filteredPayments = useMemo(() => {
-    let payments = data?.data || []
+    let payments: PaymentType[] = paymentsLoaded
 
     // Status tab filter
     if (activeStatusTab !== 'all') {
@@ -568,7 +578,7 @@ export default function Payments() {
     // NOTE: multi-select filters and search are applied server-side, so they no longer
     // belong in the dep array. Only amount filters (subtotal/tip/total), the
     // international filter, card brand filter, and status tab still affect this memo's output.
-  }, [data?.data, activeStatusTab, subtotalFilter, tipFilter, totalFilter, internationalFilter, cardBrandFilter])
+  }, [paymentsLoaded, activeStatusTab, subtotalFilter, tipFilter, totalFilter, internationalFilter, cardBrandFilter])
 
   // Status tab counts (computed over ALL server-filtered payments, not just
   // the paginated page, so "Completados 450" means 450 in the whole date range).
@@ -1205,88 +1215,47 @@ export default function Payments() {
     })
   }, [columns, visibleColumns])
 
-  // Export functionality
-  const handleExport = useCallback(
-    async (format: 'csv' | 'excel') => {
-      if (!filteredPayments || filteredPayments.length === 0) {
-        toast({
-          title: t('export.noData'),
-          variant: 'destructive',
-        })
-        return
-      }
-
-      try {
-        // Transform payments to flat structure for export
-        const exportData = filteredPayments.map((payment: PaymentType) => {
-          const processedBy = payment.processedBy ? `${payment.processedBy.firstName} ${payment.processedBy.lastName}` : '-'
-          const merchantAccount = payment.merchantAccount?.displayName || payment.merchantAccount?.externalMerchantId || 'N/A'
-          const cardInfo = payment.last4 ? `**** ${payment.last4}` : ''
-
-          const sourceKey = `sources.${payment.source || 'UNKNOWN'}` as const
-          const methodKey = payment.method === 'CASH' ? 'methods.cash' : 'methods.card'
-
-          const intlLabel = isInternationalPayment(payment)
-            ? t('international.yes', { defaultValue: 'Sí' })
-            : t('international.no', { defaultValue: 'No' })
-
-          const row: Record<string, any> = {
-            [t('columns.date')]: formatDate(payment.createdAt),
-            [t('columns.waiter')]: processedBy,
-            [t('columns.merchantAccount')]: merchantAccount,
-            [t('columns.source')]: t(sourceKey as any),
-            [t('columns.method')]: t(methodKey as any),
-            [t('columns.international', { defaultValue: 'Internacional' })]: intlLabel,
-          }
-
-          // Add card details if available
-          if (cardInfo) {
-            row['Card'] = cardInfo
-          }
-
-          const isRefund = payment.type === PaymentRecordType.REFUND
-          row[t('columns.subtotal')] = formatCurrencyForExport(Number(payment.amount) || 0)
-          row[t('columns.tip')] = formatCurrencyForExport(Number(payment.tipAmount) || 0)
-
-          // Add profit column if superadmin - show negative for refunds
-          if (isSuperAdmin && payment.transactionCost) {
-            const profit = Number(payment.transactionCost.grossProfit) || 0
-            row[t('columns.profit')] = isRefund ? `-${formatCurrencyForExport(Math.abs(profit))}` : formatCurrencyForExport(profit)
-          }
-
-          row[t('columns.total')] = formatCurrencyForExport((Number(payment.amount) || 0) + (Number(payment.tipAmount) || 0))
-
-          // Add refund indicator
-          if (isRefund) {
-            row[t('columns.type')] = t('types.refund')
-          }
-
-          return row
-        })
-
-        const filename = generateFilename('payments', venueId)
-
-        if (format === 'csv') {
-          exportToCSV(exportData, filename)
-          toast({
-            title: t('export.success', { count: filteredPayments.length }),
-          })
-        } else {
-          await exportToExcel(exportData, filename, 'Payments')
-          toast({
-            title: t('export.success', { count: filteredPayments.length }),
-          })
-        }
-      } catch (error) {
-        console.error('Export error:', error)
-        toast({
-          title: t('export.error'),
-          variant: 'destructive',
-        })
-      }
-    },
-    [filteredPayments, formatDate, isSuperAdmin, venueId, t, toast],
+  // Columns offered in the ExportDialog. Server resolves the value of each id.
+  const exportColumns = useMemo<ExportColumnOption[]>(
+    () => [
+      { id: 'createdAt', label: t('columns.date'), defaultSelected: true, required: true },
+      { id: 'waiterName', label: t('columns.waiter'), defaultSelected: true },
+      { id: 'merchantAccount', label: t('columns.merchantAccount'), defaultSelected: true },
+      { id: 'method', label: t('columns.method'), defaultSelected: true },
+      { id: 'source', label: t('columns.source'), defaultSelected: true },
+      { id: 'international', label: t('columns.international', { defaultValue: 'Internacional' }), defaultSelected: false },
+      { id: 'cardBrand', label: t('columns.cardBrand', { defaultValue: 'Marca' }), defaultSelected: false },
+      { id: 'last4', label: t('columns.last4', { defaultValue: 'Últimos 4' }), defaultSelected: false },
+      { id: 'amount', label: t('columns.subtotal'), defaultSelected: true },
+      { id: 'tipAmount', label: t('columns.tip'), defaultSelected: true },
+      { id: 'totalAmount', label: t('columns.total'), defaultSelected: true },
+      { id: 'status', label: t('columns.status', { defaultValue: 'Estatus' }), defaultSelected: false },
+      { id: 'paymentId', label: 'ID', defaultSelected: false },
+    ],
+    [t],
   )
+
+  // Filters to forward to the export endpoint — mirrors the listing query params.
+  const exportBaseParams = useMemo(() => {
+    return {
+      ...(merchantAccountFilter.length > 0 && { merchantAccountIds: merchantAccountFilter.join(',') }),
+      ...(methodFilter.length > 0 && { methods: methodFilter.join(',') }),
+      ...(sourceFilter.length > 0 && { sources: sourceFilter.join(',') }),
+      ...(waiterFilter.length > 0 && { staffIds: waiterFilter.join(',') }),
+      ...(debouncedSearchTerm && { search: debouncedSearchTerm }),
+    }
+  }, [merchantAccountFilter, methodFilter, sourceFilter, waiterFilter, debouncedSearchTerm])
+
+  // Read-only summary of active filters surfaced in the dialog.
+  const exportFilterSummary = useMemo<Array<{ label: string; value: string }>>(() => {
+    const out: Array<{ label: string; value: string }> = []
+    if (merchantAccountFilter.length > 0) out.push({ label: t('columns.merchantAccount'), value: `${merchantAccountFilter.length}` })
+    if (methodFilter.length > 0) out.push({ label: t('columns.method'), value: methodFilter.join(', ') })
+    if (sourceFilter.length > 0) out.push({ label: t('columns.source'), value: sourceFilter.join(', ') })
+    if (waiterFilter.length > 0) out.push({ label: t('columns.waiter'), value: `${waiterFilter.length}` })
+    if (debouncedSearchTerm) out.push({ label: t('search', { defaultValue: 'Búsqueda' }), value: debouncedSearchTerm })
+    return out
+  }, [merchantAccountFilter, methodFilter, sourceFilter, waiterFilter, debouncedSearchTerm, t])
 
   return (
     <div className={`p-4 bg-background text-foreground`}>
@@ -1599,19 +1568,17 @@ export default function Payments() {
                 Nuevo pago manual
               </Button>
             )}
-            {/* Export button */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 gap-1.5">
-                  <Download className="h-3.5 w-3.5" />
-                  {t('export.button')}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleExport('csv')}>{t('export.asCSV')}</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport('excel')}>{t('export.asExcel')}</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Export button — opens advanced ExportDialog */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5"
+              onClick={() => setExportOpen(true)}
+              data-tour="payments-export-btn"
+            >
+              <Download className="h-3.5 w-3.5" />
+              {t('export.button')}
+            </Button>
 
             {/* Column Customizer */}
             <ColumnCustomizer
@@ -1656,6 +1623,19 @@ export default function Payments() {
         })}
         pagination={pagination}
         setPagination={setPagination}
+        hidePagination
+        footer={
+          <InfiniteScrollFooter
+            loadedCount={paymentsLoaded.length}
+            totalCount={totalPayments || undefined}
+            hasMore={!!hasNextPage}
+            isFetching={isFetchingNextPage}
+            onLoadMore={() => fetchNextPage()}
+            softCap={SOFT_CAP}
+            hardCap={HARD_CAP}
+            hidden={isLoading || paymentsLoaded.length === 0}
+          />
+        }
         getRowClassName={row =>
           row.type === PaymentRecordType.REFUND
             ? '!bg-red-50/50 dark:!bg-red-950/20 hover:!bg-red-100/50 dark:hover:!bg-red-950/30'
@@ -1843,6 +1823,21 @@ export default function Payments() {
         open={manualPaymentOpen}
         onClose={() => setManualPaymentOpen(false)}
         venueId={venueId}
+      />
+
+      {/* Advanced export dialog — date range, columns, format. Backend streams the file. */}
+      <ExportDialog
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        title={t('export.title', { defaultValue: 'Exportar pagos' })}
+        endpoint={`/api/v1/dashboard/venues/${venueId}/payments/export`}
+        baseParams={exportBaseParams}
+        columns={exportColumns}
+        initialDateFrom={dateRange.from}
+        initialDateTo={dateRange.to}
+        estimatedCount={filteredPayments.length || totalPayments}
+        filenameStem="payments"
+        activeFilterSummary={exportFilterSummary}
       />
     </div>
   )

@@ -60,6 +60,10 @@ type DataTableProps<TData> = {
   toolbarLeft?: ReactNode
   /** Optional content rendered on the right side of the toolbar row (next to the column customizer) */
   toolbarRight?: ReactNode
+  /** Hide the built-in pagination footer (use when rendering infinite scroll / custom load-more controls below the table) */
+  hidePagination?: boolean
+  /** Optional content rendered directly below the table (replaces the pagination footer when hidePagination is true) */
+  footer?: ReactNode
 }
 
 function DataTable<TData>({
@@ -87,6 +91,8 @@ function DataTable<TData>({
   clearSelectionTrigger,
   toolbarLeft,
   toolbarRight,
+  hidePagination = false,
+  footer,
 }: DataTableProps<TData>) {
   // MUST call ALL hooks at the very top, before ANY conditional logic or returns
   const { t } = useTranslation()
@@ -504,7 +510,8 @@ function DataTable<TData>({
           </TableBody>
         )}
       </Table>
-      <DataTablePagination table={table} />
+      {footer}
+      {!hidePagination && <DataTablePagination table={table} />}
     </>
   )
 }

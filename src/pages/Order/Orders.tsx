@@ -22,7 +22,6 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -39,14 +38,15 @@ import { teamService, type TeamMember } from '@/services/team.service'
 import { Order, OrderStatus, OrderType as OrderTypeEnum, StaffRole } from '@/types'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
-import { exportToCSV, exportToExcel, formatCurrencyForExport, generateFilename } from '@/utils/export'
+import { ExportDialog, type ExportColumnOption } from '@/components/export-dialog'
 import { formatOrderNumber } from '@/utils/orderStatus'
 import { ItemsSection } from './components/sections/ItemsSection'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { InfiniteScrollFooter } from '@/components/infinite-scroll-footer'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowDown, ArrowUp, ArrowUpDown, Clock, Download, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
 import { DateTime } from 'luxon'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
@@ -69,7 +69,7 @@ export default function Orders() {
   const { t: tCommon } = useTranslation('common')
   const { toast } = useToast()
   const { venueId, fullBasePath } = useCurrentVenue()
-  const { formatTime: _formatTime, formatDate, venueTimezoneShort: _venueTimezoneShort } = useVenueDateTime()
+  const { formatTime: _formatTime, formatDate: _formatDate, venueTimezoneShort: _venueTimezoneShort } = useVenueDateTime()
   const location = useLocation()
   const navigate = useNavigate()
   const { orderId: drawerOrderId } = useParams<{ orderId: string }>()
@@ -107,10 +107,14 @@ export default function Orders() {
     return t(`types.${normalizedType}` as any, { defaultValue: normalizedType })
   }
 
-  const [pagination, setPagination] = useState({
-    pageIndex: 0,
-    pageSize: 100,
-  })
+  // Infinite-scroll pagination config — backend page size is fixed, frontend stitches pages.
+  // Soft cap: stops auto-fetch on scroll; user clicks "Cargar más" to keep going.
+  // Hard cap: stops loading entirely; user is steered to Exportar.
+  const PAGE_SIZE = 100
+  const SOFT_CAP = 500
+  const HARD_CAP = 1000
+  // Dummy pagination state for DataTable's manualPagination mode. We never advance it.
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: PAGE_SIZE })
 
   // Status tab filter
   const [activeStatusTab, setActiveStatusTab] = useState('all')
@@ -135,6 +139,7 @@ export default function Orders() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [selectedOrders, setSelectedOrders] = useState<Order[]>([])
   const [clearSelectionTrigger, setClearSelectionTrigger] = useState(0)
+  const [exportOpen, setExportOpen] = useState(false)
 
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState<string[]>([
@@ -156,11 +161,6 @@ export default function Orders() {
     queryFn: () => orderService.getOrder(venueId, productsDialogOrder!.id),
     enabled: !!productsDialogOrder?.id,
   })
-
-  // Reset pagination when filters change
-  useEffect(() => {
-    setPagination(prev => ({ ...prev, pageIndex: 0 }))
-  }, [statusFilter, typeFilter, tableFilter, waiterFilter, totalFilter, tipFilter, dateRange, debouncedSearchTerm])
 
   const [sortField, setSortField] = useState<string | null>(null)
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
@@ -198,14 +198,20 @@ export default function Orders() {
   })
 
   // Multi-select filters, date range and search are sent to backend so pagination
-  // respects them. Amount filters (total/tip) remain client-side — backend does not
-  // support them yet.
-  const { data, isLoading, error, refetch } = useQuery({
+  // respects them. Infinite query stitches pages 1, 2, 3... on scroll/load-more.
+  // Amount filters (total/tip) remain client-side — backend does not support them yet.
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: [
-      'orders',
+      'orders-infinite',
       venueId,
-      pagination.pageIndex,
-      pagination.pageSize,
       statusFilter,
       typeFilter,
       tableFilter,
@@ -213,22 +219,40 @@ export default function Orders() {
       dateRange,
       debouncedSearchTerm,
     ],
-    queryFn: async () => {
-      const response = await orderService.getOrders(venueId, pagination, {
-        statuses: statusFilter.length > 0 ? statusFilter : undefined,
-        types: typeFilter.length > 0 ? typeFilter : undefined,
-        tableIds: tableFilter.length > 0 ? tableFilter : undefined,
-        staffIds: waiterFilter.length > 0 ? waiterFilter : undefined,
-        search: debouncedSearchTerm || undefined,
-        startDate: dateRange.from.toISOString(),
-        endDate: dateRange.to.toISOString(),
-      })
-      return response
+    initialPageParam: 1,
+    queryFn: async ({ pageParam }) => {
+      const response = await orderService.getOrders(
+        venueId,
+        { pageIndex: (pageParam as number) - 1, pageSize: PAGE_SIZE },
+        {
+          statuses: statusFilter.length > 0 ? statusFilter : undefined,
+          types: typeFilter.length > 0 ? typeFilter : undefined,
+          tableIds: tableFilter.length > 0 ? tableFilter : undefined,
+          staffIds: waiterFilter.length > 0 ? waiterFilter : undefined,
+          search: debouncedSearchTerm || undefined,
+          startDate: dateRange.from.toISOString(),
+          endDate: dateRange.to.toISOString(),
+        },
+      )
+      return response as { data: Order[]; meta?: { total?: number; totalPages?: number; page?: number } }
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      const loadedSoFar = allPages.reduce((sum, p) => sum + (p.data?.length || 0), 0)
+      const total = lastPage.meta?.total
+      if (loadedSoFar >= HARD_CAP) return undefined
+      if (total !== undefined && loadedSoFar >= total) return undefined
+      if (!lastPage.data || lastPage.data.length < PAGE_SIZE) return undefined
+      return allPages.length + 1
     },
     refetchOnWindowFocus: true,
   })
 
-  const totalOrders = data?.meta?.total || 0 // CAMBIO: variable renombrada
+  // Flat list of loaded orders across all pages — fed to DataTable.
+  const ordersLoaded = useMemo<Order[]>(() => {
+    return (data?.pages?.flatMap(p => p.data || []) as Order[]) ?? []
+  }, [data])
+
+  const totalOrders = data?.pages?.[0]?.meta?.total || 0
 
   // Query for tables (SUPERADMIN edit dropdown)
   const { data: tablesData } = useQuery({
@@ -852,7 +876,7 @@ export default function Orders() {
 
   // Filter and sort data before displaying
   const sortedData = useMemo(() => {
-    let orders = data?.data || []
+    let orders: Order[] = ordersLoaded
 
     // Status tab filter
     if (activeStatusTab !== 'all') {
@@ -953,7 +977,7 @@ export default function Orders() {
     // NOTE: filter states (status/type/table/waiter/search/dateRange) are applied server-side,
     // so they don't belong here. Only amount filters (total/tip) and sort/tab still affect
     // this memo's output.
-  }, [data?.data, activeStatusTab, sortField, sortOrder, totalFilter, tipFilter])
+  }, [ordersLoaded, activeStatusTab, sortField, sortOrder, totalFilter, tipFilter])
 
   // Status tab counts (computed over ALL server-filtered orders, not just the
   // paginated page, so "Activos 12" means 12 in the whole date range).
@@ -1041,67 +1065,45 @@ export default function Orders() {
     ]
   }, [summaryOrders, activeStatusTab, totalFilter, tipFilter, t])
 
-  // Export functionality
-  const handleExport = useCallback(
-    async (format: 'csv' | 'excel') => {
-      const orders = data?.data || []
-
-      if (!orders || orders.length === 0) {
-        toast({
-          title: t('export.noData'),
-          variant: 'destructive',
-        })
-        return
-      }
-
-      try {
-        // Transform orders to flat structure for export
-        const exportData = orders.map(order => {
-          const waiter = order.servedBy || order.createdBy
-          const waiterName = waiter ? `${waiter.firstName} ${waiter.lastName}` : '-'
-          const tableName = order.table?.number || '-'
-
-          // Show last 6 digits for ALL orders: "ORD-1767664106975" → "#106975", "FAST-1766069887997" → "#887997"
-          const displayFolio =
-            order.orderNumber && order.orderNumber.length > 6 ? `#${order.orderNumber.slice(-6)}` : order.orderNumber || '-'
-          const displayType = getOrderTypeDisplayLabel(order.type, order.orderNumber)
-
-          return {
-            [t('columns.date')]: formatDate(order.createdAt),
-            [t('columns.orderNumber')]: displayFolio,
-            // [t('columns.customer')]: order.customerName || t('counter'),
-            [t('columns.type')]: displayType,
-            [t('columns.table')]: tableName,
-            [t('columns.waiter')]: waiterName,
-            [t('columns.status')]: t(`statuses.${order.status}` as any),
-            [t('columns.tip')]: formatCurrencyForExport(Number(order.tipAmount) || 0),
-            [t('columns.total')]: formatCurrencyForExport(Number(order.total) || 0),
-          }
-        })
-
-        const filename = generateFilename('orders', venueId)
-
-        if (format === 'csv') {
-          exportToCSV(exportData, filename)
-          toast({
-            title: t('export.success', { count: orders.length }),
-          })
-        } else {
-          await exportToExcel(exportData, filename, 'Orders')
-          toast({
-            title: t('export.success', { count: orders.length }),
-          })
-        }
-      } catch (error) {
-        console.error('Export error:', error)
-        toast({
-          title: t('export.error'),
-          variant: 'destructive',
-        })
-      }
-    },
-    [data?.data, formatDate, venueId, t, toast],
+  // Columns offered in the ExportDialog. Server resolves each id to a value.
+  const exportColumns = useMemo<ExportColumnOption[]>(
+    () => [
+      { id: 'createdAt', label: t('columns.date'), defaultSelected: true, required: true },
+      { id: 'orderNumber', label: t('columns.orderNumber'), defaultSelected: true, required: true },
+      { id: 'type', label: t('columns.type'), defaultSelected: true },
+      { id: 'customerName', label: t('columns.customer', { defaultValue: 'Cliente' }), defaultSelected: false },
+      { id: 'tableName', label: t('columns.table'), defaultSelected: true },
+      { id: 'waiterName', label: t('columns.waiter'), defaultSelected: true },
+      { id: 'status', label: t('columns.status'), defaultSelected: true },
+      { id: 'productsCount', label: t('columns.products', { defaultValue: 'Productos' }), defaultSelected: false },
+      { id: 'tipAmount', label: t('columns.tip'), defaultSelected: true },
+      { id: 'total', label: t('columns.total'), defaultSelected: true },
+      { id: 'orderId', label: 'ID', defaultSelected: false },
+    ],
+    [t],
   )
+
+  // Filters forwarded to the export endpoint — mirrors the listing query params.
+  const exportBaseParams = useMemo(() => {
+    return {
+      ...(statusFilter.length > 0 && { statuses: statusFilter.join(',') }),
+      ...(typeFilter.length > 0 && { types: typeFilter.join(',') }),
+      ...(tableFilter.length > 0 && { tableIds: tableFilter.join(',') }),
+      ...(waiterFilter.length > 0 && { staffIds: waiterFilter.join(',') }),
+      ...(debouncedSearchTerm && { search: debouncedSearchTerm }),
+    }
+  }, [statusFilter, typeFilter, tableFilter, waiterFilter, debouncedSearchTerm])
+
+  // Read-only summary of active filters surfaced in the dialog.
+  const exportFilterSummary = useMemo<Array<{ label: string; value: string }>>(() => {
+    const out: Array<{ label: string; value: string }> = []
+    if (statusFilter.length > 0) out.push({ label: t('columns.status'), value: statusFilter.join(', ') })
+    if (typeFilter.length > 0) out.push({ label: t('columns.type'), value: typeFilter.join(', ') })
+    if (tableFilter.length > 0) out.push({ label: t('columns.table'), value: `${tableFilter.length}` })
+    if (waiterFilter.length > 0) out.push({ label: t('columns.waiter'), value: `${waiterFilter.length}` })
+    if (debouncedSearchTerm) out.push({ label: t('search', { defaultValue: 'Búsqueda' }), value: debouncedSearchTerm })
+    return out
+  }, [statusFilter, typeFilter, tableFilter, waiterFilter, debouncedSearchTerm, t])
 
   return (
     <div className={`p-4 bg-background text-foreground`}>
@@ -1368,19 +1370,17 @@ export default function Orders() {
               {t('payLater.button', { defaultValue: 'Cuentas por Cobrar' })}
             </Button>
 
-            {/* Export button */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 gap-1.5">
-                  <Download className="h-3.5 w-3.5" />
-                  {t('export.button')}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleExport('csv')}>{t('export.asCSV')}</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport('excel')}>{t('export.asExcel')}</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Export button — opens advanced ExportDialog */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5"
+              onClick={() => setExportOpen(true)}
+              data-tour="orders-export-btn"
+            >
+              <Download className="h-3.5 w-3.5" />
+              {t('export.button')}
+            </Button>
 
             {/* Column Customizer */}
             <ColumnCustomizer
@@ -1418,6 +1418,19 @@ export default function Orders() {
         })}
         pagination={pagination}
         setPagination={setPagination}
+        hidePagination
+        footer={
+          <InfiniteScrollFooter
+            loadedCount={ordersLoaded.length}
+            totalCount={totalOrders || undefined}
+            hasMore={!!hasNextPage}
+            isFetching={isFetchingNextPage}
+            onLoadMore={() => fetchNextPage()}
+            softCap={SOFT_CAP}
+            hardCap={HARD_CAP}
+            hidden={isLoading || ordersLoaded.length === 0}
+          />
+        }
         enableRowSelection
         onRowSelectionChange={setSelectedOrders}
         clearSelectionTrigger={clearSelectionTrigger}
@@ -1683,6 +1696,21 @@ export default function Orders() {
         open={manualPaymentOpen}
         onClose={() => setManualPaymentOpen(false)}
         venueId={venueId}
+      />
+
+      {/* Advanced export dialog — date range, columns, format. Backend streams the file. */}
+      <ExportDialog
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        title={t('export.title', { defaultValue: 'Exportar órdenes' })}
+        endpoint={`/api/v1/dashboard/venues/${venueId}/orders/export`}
+        baseParams={exportBaseParams}
+        columns={exportColumns}
+        initialDateFrom={dateRange.from}
+        initialDateTo={dateRange.to}
+        estimatedCount={sortedData.length || totalOrders}
+        filenameStem="orders"
+        activeFilterSummary={exportFilterSummary}
       />
     </div>
   )
