@@ -556,6 +556,9 @@ const router = createBrowserRouter(
                     { path: 'org-messages', element: <PlayTelecomOrgMessages /> },
                     { path: 'users', element: <PlayTelecomOrgUsers /> },
                     { path: 'stock-control', element: <PlayTelecomOrgStockControl /> },
+                    // PlayTelecom / Walmart back-office sale-verification approval (cross-venue)
+                    { path: 'sales', element: <WLSalesExecutive /> },
+                    { path: 'sales/detail', element: <WLSalesDetail /> },
                   ],
                 },
               ],
