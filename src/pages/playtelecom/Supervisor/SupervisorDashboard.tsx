@@ -170,7 +170,10 @@ export function SupervisorDashboard() {
   })
   const { data: _stockSummary } = useStoresStockSummary()
   const { data: venuesResponse, isLoading: venuesLoading } = useStoresVenues()
-  const { data: activityFeed } = useStoresActivityFeed(200, {
+  // Limit must cover all transactions in the selected date range, not just the most recent ones.
+  // The Ventas tab and Excel export both consume this feed, so a small limit silently truncates
+  // older days when ordering is desc by createdAt (see organizationDashboard.service.ts:1311).
+  const { data: activityFeed } = useStoresActivityFeed(10000, {
     refetchInterval: 30000,
     startDate: startDateISO,
     endDate: endDateISO,

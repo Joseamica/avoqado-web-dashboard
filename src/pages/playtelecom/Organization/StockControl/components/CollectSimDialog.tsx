@@ -24,14 +24,25 @@ interface Props {
   contextLabel?: string
 }
 
-const REASON_OPTIONS: { value: SimCustodyCollectionReason; label: string }[] = [
-  { value: 'STAFF_TERMINATED', label: 'Baja de empleado' },
+const BASE_REASON_OPTIONS: { value: SimCustodyCollectionReason; label: string }[] = [
+  { value: 'STAFF_TERMINATED', label: 'Baja de promotor' },
   { value: 'DAMAGED_SIM', label: 'SIM defectuoso' },
 ]
+
+// "Recolección de Supervisor" sólo aplica cuando el Supervisor recoge del Promotor;
+// no se ofrece cuando el Administrador recoge del Supervisor.
+const SUPERVISOR_FROM_PROMOTER_REASON: { value: SimCustodyCollectionReason; label: string } = {
+  value: 'SUPERVISOR_COLLECTION',
+  label: 'Recolección de Supervisor',
+}
 
 export function CollectSimDialog({ open, onOpenChange, serialNumber, from, onConfirm, contextLabel }: Props) {
   const [reason, setReason] = useState<SimCustodyCollectionReason | ''>('')
   const queryClient = useQueryClient()
+
+  const reasonOptions = from === 'promoter'
+    ? [...BASE_REASON_OPTIONS, SUPERVISOR_FROM_PROMOTER_REASON]
+    : BASE_REASON_OPTIONS
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -71,7 +82,7 @@ export function CollectSimDialog({ open, onOpenChange, serialNumber, from, onCon
           <SearchableSelect
             value={reason}
             onValueChange={v => setReason(v as SimCustodyCollectionReason)}
-            options={REASON_OPTIONS.map(opt => ({ value: opt.value, label: opt.label }))}
+            options={reasonOptions.map(opt => ({ value: opt.value, label: opt.label }))}
             placeholder="Selecciona un motivo"
             searchPlaceholder="Buscar motivo…"
             className="w-full"

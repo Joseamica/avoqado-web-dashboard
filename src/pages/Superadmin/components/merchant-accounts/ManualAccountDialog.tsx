@@ -318,22 +318,43 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
   // merchants. We poll the discovered-merchants query for 30s after dispatch
   // (handled implicitly by react-query refetch on the Section C subsection
   // — invalidation here forces an immediate fetch).
+  // Discovery-in-flight tracker: persistent loader UX after the dispatch HTTP
+  // ACK returns. The dispatch is async (TPV picks up command via heartbeat ≤30s,
+  // does SDK auth which takes ~5-30s, then POSTs report-discovered-merchants
+  // back to backend). The dispatch mutation's `isPending` is true only for the
+  // ~200ms POST → it'd clear the spinner before the merchants actually land.
+  // This timestamp keeps the spinner up + the OTHER account's buttons disabled
+  // until either: (a) we observe the merchants land in queries via the polling
+  // sweeps below, or (b) a 90s fallback timer expires (covers worst-case
+  // heartbeat + AngelPay QA timeout). Reset on any "Pedir merchants" click.
+  const [pendingFetchUntil, setPendingFetchUntil] = useState<{
+    accountId: string
+    until: number
+  } | null>(null)
+
   const fetchMerchantsMutation = useMutation({
     mutationFn: (angelpayUserAccountId: string) =>
       angelpayUserAccountAPI.fetchMerchantsFromTpv({
         venueId: effectiveVenueId as string,
         angelpayUserAccountId,
       }),
+    onMutate: (angelpayUserAccountId: string) => {
+      // 90s window covers: heartbeat receive (≤30s) + SDK 7-step auth + retries
+      // + report POST + Prisma write. Adjust if AngelPay QA gets slower again.
+      setPendingFetchUntil({ accountId: angelpayUserAccountId, until: Date.now() + 90_000 })
+    },
     onSuccess: () => {
       toast({
         title: 'Comando enviado a TPV',
         description:
-          'La TPV está autenticando; los placeholders se actualizarán automáticamente en ~5-10 seg.',
+          'La TPV está autenticando; los merchants aparecerán automáticamente en ~10-30 seg.',
       })
       // Multi-key invalidation — TPV → backend report is async, so we hit
       // both the immediate paths AND a delayed sweep to catch the post-upsert
-      // state. The 5s + 15s schedule covers typical SDK auth (2-3s) + report
-      // POST (1s) + Prisma write (sub-second) round-trips.
+      // state. The schedule covers typical heartbeat receive (≤30s) + SDK
+      // auth (2-30s w/ retries) + report POST (1s) + Prisma write (sub-second)
+      // round-trips. Aggressive cadence so the operator sees merchants land
+      // without manually refreshing.
       const invalidateAll = () => {
         queryClient.invalidateQueries({ queryKey: ['superadmin-discovered-merchants', effectiveVenueId] })
         queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
@@ -342,10 +363,17 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
         queryClient.invalidateQueries({ queryKey: ['venue-payment-config', effectiveVenueId] })
       }
       invalidateAll()
-      window.setTimeout(invalidateAll, 5000)
-      window.setTimeout(invalidateAll, 15000)
+      // Burst at 3, 6, 10, 15, 25, 45, 60s — cheap because cached + 304
+      ;[3, 6, 10, 15, 25, 45, 60].forEach(s => window.setTimeout(invalidateAll, s * 1000))
+      // Fallback clear of the loader at 90s — by then merchants either
+      // landed (loader already cleared by observed state — see useEffect)
+      // or AngelPay QA is timing out and we should let the operator retry.
+      window.setTimeout(() => {
+        setPendingFetchUntil(prev => (prev && Date.now() >= prev.until ? null : prev))
+      }, 90_000)
     },
     onError: (err: any) => {
+      setPendingFetchUntil(null)
       toast({
         title: 'No se pudo enviar el comando',
         description: err?.response?.data?.message || err?.message || 'Error desconocido',
@@ -353,6 +381,10 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
       })
     },
   })
+
+  const isAnyFetchInFlight =
+    fetchMerchantsMutation.isPending ||
+    (pendingFetchUntil != null && pendingFetchUntil.until > Date.now())
 
   // Reserve-slot mutation: creates a placeholder MerchantAccount + atomically
   // attaches to the chosen (or first empty) VenuePaymentConfig slot. The TPV
@@ -919,8 +951,12 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
                                 : acc.status === 'SUSPENDED' || acc.status === 'DELETED'
                                 ? 'bg-red-100 text-red-800 hover:bg-red-100'
                                 : 'bg-muted text-muted-foreground hover:bg-muted'
+                            // "Fetching this" now includes the persistent 90s window
+                            // after dispatch ACK (not just the dispatch HTTP call) so
+                            // the spinner stays up while the TPV does the real work.
                             const isFetchingThis =
-                              fetchMerchantsMutation.isPending && fetchMerchantsMutation.variables === acc.id
+                              (fetchMerchantsMutation.isPending && fetchMerchantsMutation.variables === acc.id) ||
+                              pendingFetchUntil?.accountId === acc.id
                             return (
                               <div
                                 key={acc.id}
@@ -943,14 +979,20 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
                                     type="button"
                                     size="sm"
                                     variant="outline"
-                                    disabled={
-                                      acc.status !== 'ACTIVE' ||
-                                      fetchMerchantsMutation.isPending
-                                    }
+                                    // Disable ALL Pedir buttons (this one + every
+                                    // other account's) while ANY request is in flight.
+                                    // Prevents the operator from queueing multiple
+                                    // account switches that would step on each other's
+                                    // SDK session and cause the cross-account race we
+                                    // hit yesterday (contacto@ switch interrupting
+                                    // ventas@'s in-flight auth).
+                                    disabled={acc.status !== 'ACTIVE' || isAnyFetchInFlight}
                                     onClick={() => fetchMerchantsMutation.mutate(acc.id)}
                                     title={
                                       acc.status !== 'ACTIVE'
                                         ? 'La cuenta debe estar ACTIVE para pedir merchants'
+                                        : isAnyFetchInFlight && !isFetchingThis
+                                        ? 'Espera a que termine el comando en flight de otra cuenta'
                                         : 'Pide a la TPV que cambie a esta cuenta y reporte sus merchants'
                                     }
                                   >
@@ -1238,7 +1280,62 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
                         </p>
                       </div>
                     </div>
+
                   </div>
+
+                  {/* Cuentas AngelPay del venue — full list (not just the linked
+                      one) so the operator can manage any of them from the merchant
+                      edit dialog without context-switching back to the AngelPay
+                      wizard. Each row exposes a "Gestionar" CTA that opens the
+                      AngelPayAccountManageSheet (rotate PIN, force rotation,
+                      suspend, delete + merchants asociados list). The currently-
+                      linked account is highlighted with a "Vinculada" badge so
+                      the operator can quickly see which one owns this merchant. */}
+                  {angelpayAccountsList.length > 0 && (
+                    <div className="rounded-md border bg-card p-3 space-y-2">
+                      <div className="flex items-baseline justify-between">
+                        <Label className="text-xs font-semibold">Cuentas AngelPay del venue</Label>
+                        <span className="text-[10px] text-muted-foreground">
+                          {angelpayAccountsList.length} cuenta{angelpayAccountsList.length === 1 ? '' : 's'}
+                        </span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {angelpayAccountsList.map(acct => {
+                          const isLinked = acct.id === linkedAccountId
+                          return (
+                            <div
+                              key={acct.id}
+                              className={`flex items-center justify-between gap-2 rounded border px-2.5 py-1.5 text-xs ${
+                                isLinked ? 'border-primary/40 bg-primary/5' : 'border-border'
+                              }`}
+                            >
+                              <div className="min-w-0 flex-1 flex items-center gap-2">
+                                <span className="font-mono truncate">{acct.email}</span>
+                                <Badge variant="outline" className="text-[9px] h-4 px-1">
+                                  {acct.environment}
+                                </Badge>
+                                {isLinked && (
+                                  <Badge className="text-[9px] h-4 px-1 bg-primary/15 text-primary border-primary/30 hover:bg-primary/15">
+                                    Vinculada
+                                  </Badge>
+                                )}
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2"
+                                onClick={() => setManageSheetAccount(acct)}
+                              >
+                                <Settings2 className="w-3 h-3 mr-1" />
+                                <span className="text-[10px]">Gestionar</span>
+                              </Button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Inline "Pedir merchants" for placeholders — dashboard sends
                       socket command to TPV which switches to the linked account,

@@ -29,7 +29,7 @@ export type SimCustodyErrorCode =
   | 'TENANT_MISMATCH'
   | 'IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_BODY'
 
-export type SimCustodyCollectionReason = 'STAFF_TERMINATED' | 'DAMAGED_SIM'
+export type SimCustodyCollectionReason = 'STAFF_TERMINATED' | 'DAMAGED_SIM' | 'SUPERVISOR_COLLECTION'
 
 export type SimCustodyState =
   | 'ADMIN_HELD'

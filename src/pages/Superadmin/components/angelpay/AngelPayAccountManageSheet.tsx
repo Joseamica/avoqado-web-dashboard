@@ -23,7 +23,7 @@
  */
 
 import { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { KeyRound, Loader2, Pencil, ShieldAlert, ShieldOff, Trash2 } from 'lucide-react'
@@ -58,6 +58,7 @@ import {
   type AngelPayEnvironment,
   type AngelPayUserAccount,
 } from '@/services/superadmin-angelpay-user-account.service'
+import { paymentProviderAPI } from '@/services/paymentProvider.service'
 
 // ---------------------------------------------------------------------------
 // Status presentation helpers (lifted verbatim from the deleted page)
@@ -163,6 +164,21 @@ export function AngelPayAccountManageSheet({
   const notifyChange = () => {
     if (onChange) onChange()
   }
+
+  // -------------------- Linked merchants query --------------------
+  // Show the operator which MerchantAccount rows currently route through
+  // THIS AngelPay user account. Filtered client-side from the full venue
+  // list because there's no per-account merchant-list endpoint yet
+  // (extending the API for one screen would be over-engineering).
+  const { data: allMerchantAccounts = [], isLoading: loadingMerchants } = useQuery({
+    queryKey: ['merchant-accounts-all'],
+    queryFn: () => paymentProviderAPI.getAllMerchantAccounts(),
+    enabled: open,
+    staleTime: 30_000,
+  })
+  const linkedMerchants = allMerchantAccounts.filter(
+    (ma: any) => ma.angelpayUserAccountId === account.id && ma.active,
+  )
 
   // -------------------- Mutations --------------------
   const setPinMutation = useMutation({
@@ -395,6 +411,49 @@ export function AngelPayAccountManageSheet({
                 </>
               )}
             </dl>
+          </section>
+
+          {/* -------------------- Merchants asociados -------------------- */}
+          <section className="space-y-3">
+            <div className="flex items-baseline justify-between">
+              <h3 className="text-sm font-semibold">Merchants asociados</h3>
+              <span className="text-xs text-muted-foreground">
+                {loadingMerchants
+                  ? 'cargando…'
+                  : `${linkedMerchants.length} merchant${linkedMerchants.length === 1 ? '' : 's'}`}
+              </span>
+            </div>
+            {!loadingMerchants && linkedMerchants.length === 0 ? (
+              <p className="text-xs text-muted-foreground border rounded-md p-3 bg-muted/30">
+                Esta cuenta aún no tiene merchants descubiertos. Cuando la TPV haga login
+                con esta cuenta y reporte sus comercios, aparecerán aquí.
+              </p>
+            ) : (
+              <div className="space-y-1.5">
+                {linkedMerchants.map((m: any) => (
+                  <div
+                    key={m.id}
+                    className="flex items-center justify-between gap-2 border rounded-md px-3 py-2 text-xs"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium truncate">{m.displayName ?? m.angelpayMerchantName ?? '—'}</div>
+                      <div className="text-muted-foreground text-[10px] font-mono mt-0.5">
+                        merchant <span className="text-foreground">{m.externalMerchantId ?? '—'}</span>
+                        {m.angelpayAffiliation && (
+                          <> · afil <span className="text-foreground">{m.angelpayAffiliation}</span></>
+                        )}
+                      </div>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={m.active ? 'bg-green-50 text-green-700 border-green-200' : ''}
+                    >
+                      {m.active ? 'Activo' : 'Inactivo'}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
 
           {/* -------------------- Acciones -------------------- */}

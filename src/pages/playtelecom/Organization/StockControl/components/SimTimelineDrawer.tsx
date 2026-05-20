@@ -9,7 +9,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Loader2, PackageCheck, ArrowRight, CheckCircle2, XCircle, RotateCcw, DollarSign } from 'lucide-react'
-import { getSimCustodyEvents, type CustodyEvent, type CustodyEventStaff } from '@/services/simCustody.service'
+import { getSimCustodyEvents, type CustodyEvent, type CustodyEventStaff, type SimCustodyCollectionReason } from '@/services/simCustody.service'
 import { useVenueDateTime } from '@/utils/datetime'
 
 interface Props {
@@ -17,6 +17,12 @@ interface Props {
   onOpenChange: (open: boolean) => void
   orgId: string
   serialNumber: string | null
+}
+
+const REASON_LABELS: Record<SimCustodyCollectionReason, string> = {
+  STAFF_TERMINATED: 'Baja de promotor',
+  DAMAGED_SIM: 'SIM defectuoso',
+  SUPERVISOR_COLLECTION: 'Recolección de Supervisor',
 }
 
 const EVENT_META: Record<
@@ -140,7 +146,7 @@ export function SimTimelineDrawer({ open, onOpenChange, orgId, serialNumber }: P
                   <p className="text-xs text-muted-foreground">{formatDateTime(ev.createdAt)}</p>
                   {ev.reason && (
                     <p className="text-xs">
-                      Motivo: <span className="font-medium">{ev.reason === 'STAFF_TERMINATED' ? 'Baja de empleado' : 'SIM defectuoso'}</span>
+                      Motivo: <span className="font-medium">{REASON_LABELS[ev.reason] ?? ev.reason}</span>
                     </p>
                   )}
                 </div>

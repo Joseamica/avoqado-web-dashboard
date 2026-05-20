@@ -143,6 +143,7 @@ export default function VenueEditLayout() {
             { to: `${fullBasePath}/edit/contact-images`, label: t('edit.nav.contactImages', { defaultValue: 'Contacto e Imágenes' }) },
             { to: `${fullBasePath}/edit/documents`, label: t('edit.nav.documents', { defaultValue: 'Documentación' }) },
             { to: `${fullBasePath}/edit/integrations`, label: t('edit.nav.integrations', { defaultValue: 'Integraciones' }) },
+            { to: `${fullBasePath}/edit/chat`, label: t('edit.nav.chat', { defaultValue: 'Chat con clientes' }) },
           ]}
         />
 
