@@ -264,8 +264,8 @@ function ActivationPanel({
 
       {waUrl && (
         <div className="flex flex-col sm:flex-row gap-6 items-start">
-          <div className="rounded-lg border bg-white p-3">
-            <QRCodeSVG value={waUrl} size={180} />
+          <div className="rounded-lg border bg-card p-3">
+            <QRCodeSVG value={waUrl} size={180} bgColor="#ffffff" fgColor="#000000" />
           </div>
           <div className="space-y-3 flex-1">
             <div>
