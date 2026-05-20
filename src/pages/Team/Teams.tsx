@@ -7,7 +7,7 @@ import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
-import { FilterPill, CheckboxFilterContent, ColumnCustomizer, AmountFilterContent, type AmountFilter } from '@/components/filters'
+import { FilterPill, FilterPillBar, CheckboxFilterContent, ColumnCustomizer, AmountFilterContent, type AmountFilter } from '@/components/filters'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useRoleConfig } from '@/hooks/use-role-config'
@@ -800,97 +800,6 @@ export default function Teams() {
         </div>
 
         <TabsContent value="members" data-tour="team-members-table" className="space-y-4">
-          {/* Stripe-style Filter Bar */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Expandable Search */}
-            <div className="relative">
-              {isSearchOpen ? (
-                <div className="flex items-center">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    type="text"
-                    placeholder={tCommon('search')}
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    className="pl-9 pr-8 h-9 w-64"
-                    autoFocus
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 h-9 w-9 p-0"
-                    onClick={() => {
-                      setSearchTerm('')
-                      setIsSearchOpen(false)
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <Button variant="outline" size="sm" className="h-9 px-3" onClick={() => setIsSearchOpen(true)}>
-                  <Search className="h-4 w-4 mr-2" />
-                  {tCommon('search')}
-                </Button>
-              )}
-            </div>
-
-            {/* Status Filter */}
-            <FilterPill
-              label={getFilterDisplayLabel(statusFilter, t('columns.status'), statusLabels)}
-              isActive={statusFilter.length > 0}
-              onClear={() => setStatusFilter([])}
-            >
-              <CheckboxFilterContent
-                title={t('columns.status')}
-                options={statusOptions}
-                selectedValues={statusFilter}
-                onApply={setStatusFilter}
-              />
-            </FilterPill>
-
-            {/* Role Filter */}
-            <FilterPill
-              label={getFilterDisplayLabel(roleFilter, t('columns.role'), roleLabels)}
-              isActive={roleFilter.length > 0}
-              onClear={() => setRoleFilter([])}
-            >
-              <CheckboxFilterContent title={t('columns.role')} options={roleOptions} selectedValues={roleFilter} onApply={setRoleFilter} />
-            </FilterPill>
-
-            {/* Sales Amount Filter */}
-            <FilterPill
-              label={getAmountFilterLabel(salesFilter, t('columns.totalSales'))}
-              isActive={!!salesFilter}
-              onClear={() => setSalesFilter(null)}
-            >
-              <AmountFilterContent title={t('columns.totalSales')} currentFilter={salesFilter} onApply={setSalesFilter} currency="$" />
-            </FilterPill>
-
-            {/* Tips Amount Filter */}
-            <FilterPill
-              label={getAmountFilterLabel(tipsFilter, t('columns.totalTips'))}
-              isActive={!!tipsFilter}
-              onClear={() => setTipsFilter(null)}
-            >
-              <AmountFilterContent title={t('columns.totalTips')} currentFilter={tipsFilter} onApply={setTipsFilter} currency="$" />
-            </FilterPill>
-
-            {/* Reset Filters */}
-            {activeFiltersCount > 0 && (
-              <Button variant="ghost" size="sm" className="h-9 text-muted-foreground hover:text-foreground" onClick={resetFilters}>
-                <X className="h-4 w-4 mr-1" />
-                {t('filters.clearAll', { defaultValue: 'Limpiar filtros' })} ({activeFiltersCount})
-              </Button>
-            )}
-
-            {/* Spacer */}
-            <div className="flex-1" />
-
-            {/* Column Customizer */}
-            <ColumnCustomizer columns={columnOptions} onApply={setVisibleColumns} />
-          </div>
-
           {/* Results count */}
           {(activeFiltersCount > 0 || debouncedSearchTerm) && (
             <div className="text-sm text-muted-foreground">
@@ -912,6 +821,98 @@ export default function Teams() {
             rowCount={filteredTeamMembers.length}
             enableSearch={false}
             clickableRow={row => ({ to: row.id })}
+            tableTabLeft={
+              <>
+                {/* Expandable Search */}
+                <div className="relative flex items-center">
+                  {isSearchOpen ? (
+                    <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          type="text"
+                          placeholder={tCommon('search')}
+                          value={searchTerm}
+                          onChange={e => setSearchTerm(e.target.value)}
+                          className="h-7 w-[180px] pl-8 pr-7 text-xs rounded-full"
+                          autoFocus
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-full"
+                        onClick={() => {
+                          setSearchTerm('')
+                          setIsSearchOpen(false)
+                        }}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant={searchTerm ? 'secondary' : 'ghost'}
+                      size="icon"
+                      className="h-7 w-7 rounded-full"
+                      onClick={() => setIsSearchOpen(true)}
+                    >
+                      <Search className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                  {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
+                </div>
+
+                <FilterPillBar onReset={resetFilters}>
+                  <FilterPill
+                    label={getFilterDisplayLabel(statusFilter, t('columns.status'), statusLabels)}
+                    isActive={statusFilter.length > 0}
+                    onClear={() => setStatusFilter([])}
+                  >
+                    <CheckboxFilterContent
+                      title={t('columns.status')}
+                      options={statusOptions}
+                      selectedValues={statusFilter}
+                      onApply={setStatusFilter}
+                    />
+                  </FilterPill>
+                  <FilterPill
+                    label={getFilterDisplayLabel(roleFilter, t('columns.role'), roleLabels)}
+                    isActive={roleFilter.length > 0}
+                    onClear={() => setRoleFilter([])}
+                  >
+                    <CheckboxFilterContent
+                      title={t('columns.role')}
+                      options={roleOptions}
+                      selectedValues={roleFilter}
+                      onApply={setRoleFilter}
+                    />
+                  </FilterPill>
+                  <FilterPill
+                    label={getAmountFilterLabel(salesFilter, t('columns.totalSales'))}
+                    isActive={!!salesFilter}
+                    onClear={() => setSalesFilter(null)}
+                  >
+                    <AmountFilterContent title={t('columns.totalSales')} currentFilter={salesFilter} onApply={setSalesFilter} currency="$" />
+                  </FilterPill>
+                  <FilterPill
+                    label={getAmountFilterLabel(tipsFilter, t('columns.totalTips'))}
+                    isActive={!!tipsFilter}
+                    onClear={() => setTipsFilter(null)}
+                  >
+                    <AmountFilterContent title={t('columns.totalTips')} currentFilter={tipsFilter} onApply={setTipsFilter} currency="$" />
+                  </FilterPill>
+                </FilterPillBar>
+              </>
+            }
+            tableTab={
+              <ColumnCustomizer
+                columns={columnOptions}
+                onApply={setVisibleColumns}
+                triggerVariant="ghost"
+                triggerClassName="h-7 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              />
+            }
           />
         </TabsContent>
 

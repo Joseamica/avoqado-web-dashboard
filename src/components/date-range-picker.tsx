@@ -36,7 +36,8 @@ export interface DateRangePickerProps {
 }
 
 const formatDate = (date: Date, locale: string = 'en-US'): string => {
-  return DateTime.fromJSDate(date).setLocale(getIntlLocale(locale)).toLocaleString(DateTime.DATE_MED)
+  // Compact 2-digit-year format ("20 may 25") so the trigger fits inside the table tab.
+  return DateTime.fromJSDate(date).setLocale(getIntlLocale(locale)).toFormat('d LLL yy')
 }
 
 const getDateAdjustedForTimezone = (dateInput: Date | string): Date => {
@@ -414,21 +415,17 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
       }}
     >
       <PopoverTrigger asChild>
-        <Button ref={triggerRef} size={'lg'} variant="outline">
-          <div className="text-right">
-            <div className="py-1">
-              <div>{`${formatDate(range.from, resolvedLocale)}${range.to != null ? ' - ' + formatDate(range.to, resolvedLocale) : ''}`}</div>
-            </div>
-            {rangeCompare != null && (
-              <div className="opacity-60 text-xs -mt-1">
-                <>
-                  vs. {formatDate(rangeCompare.from, resolvedLocale)}
-                  {rangeCompare.to != null ? ` - ${formatDate(rangeCompare.to, resolvedLocale)}` : ''}
-                </>
-              </div>
-            )}
-          </div>
-          <div className="pl-1 opacity-60 -mr-2 scale-125">{isOpen ? <ChevronUpIcon width={24} /> : <ChevronDownIcon width={24} />}</div>
+        <Button ref={triggerRef} size="sm" variant="outline" className="h-7 gap-1.5 rounded-full px-3 text-xs font-normal">
+          <span className="whitespace-nowrap">
+            {`${formatDate(range.from, resolvedLocale)}${range.to != null ? ' – ' + formatDate(range.to, resolvedLocale) : ''}`}
+          </span>
+          {rangeCompare != null && (
+            <span className="opacity-60 text-[10px]">
+              vs. {formatDate(rangeCompare.from, resolvedLocale)}
+              {rangeCompare.to != null ? ` – ${formatDate(rangeCompare.to, resolvedLocale)}` : ''}
+            </span>
+          )}
+          {isOpen ? <ChevronUpIcon className="h-3 w-3 opacity-60" /> : <ChevronDownIcon className="h-3 w-3 opacity-60" />}
         </Button>
       </PopoverTrigger>
       <PopoverContent

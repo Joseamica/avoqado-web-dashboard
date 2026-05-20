@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, Banknote, Clock, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ArrowUpDown, Banknote, Clock, MoreHorizontal, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -68,6 +68,7 @@ export default function Customers() {
 	const [settleNotes, setSettleNotes] = useState('')
 	const [showPendingOnly, setShowPendingOnly] = useState(false)
 	const [searchTerm, setSearchTerm] = useState('')
+	const [isSearchOpen, setIsSearchOpen] = useState(false)
 	const [debouncedSearch, setDebouncedSearch] = useState('')
 	const debounceRef = useRef<ReturnType<typeof setTimeout>>()
 
@@ -398,63 +399,6 @@ export default function Customers() {
 				</PermissionGate>
 			</div>
 
-			{/* Filters — pill selects */}
-			<div className="flex items-center gap-2 mb-4 flex-wrap">
-				<Select value={selectedGroupId || 'all'} onValueChange={(value) => { setSelectedGroupId(value === 'all' ? '' : value); setPagination(prev => ({ ...prev, pageIndex: 0 })) }}>
-					<SelectTrigger className="h-8 w-auto rounded-full border-border/60 bg-transparent px-3 text-sm gap-1.5 [&>svg]:h-3.5 [&>svg]:w-3.5 [&>svg]:opacity-50">
-						<SelectValue placeholder={t('list.filters.allGroups')} />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">{t('list.filters.allGroups')}</SelectItem>
-						<SelectItem value="none">{t('list.filters.noGroup')}</SelectItem>
-						{groupsData?.data.map((group: CustomerGroup) => (
-							<SelectItem key={group.id} value={group.id}>
-								<div className="flex items-center gap-2">
-									<div className="w-3 h-3 rounded-full" style={{ backgroundColor: group.color }} />
-									{group.name}
-								</div>
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
-
-				<Select value={sortBy} onValueChange={(value) => { setSortBy(value as typeof sortBy); setPagination(prev => ({ ...prev, pageIndex: 0 })) }}>
-					<SelectTrigger className="h-8 w-auto rounded-full border-border/60 bg-transparent px-3 text-sm gap-1.5 [&>svg]:h-3.5 [&>svg]:w-3.5 [&>svg]:opacity-50">
-						<SelectValue placeholder={t('list.sort.label')} />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="createdAt">{t('list.sort.createdAt')}</SelectItem>
-						<SelectItem value="totalSpent">{t('list.sort.totalSpent')}</SelectItem>
-						<SelectItem value="visitCount">{t('list.sort.visitCount')}</SelectItem>
-						<SelectItem value="lastVisit">{t('list.sort.lastVisit')}</SelectItem>
-					</SelectContent>
-				</Select>
-
-				<Select value={sortOrder} onValueChange={(value) => setSortOrder(value as 'asc' | 'desc')}>
-					<SelectTrigger className="h-8 w-auto rounded-full border-border/60 bg-transparent px-3 text-sm gap-1.5 [&>svg]:h-3.5 [&>svg]:w-3.5 [&>svg]:opacity-50">
-						<SelectValue />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="desc">{tCommon('descending')}</SelectItem>
-						<SelectItem value="asc">{tCommon('ascending')}</SelectItem>
-					</SelectContent>
-				</Select>
-
-				<button
-					type="button"
-					onClick={() => { setShowPendingOnly(!showPendingOnly); setPagination(prev => ({ ...prev, pageIndex: 0 })) }}
-					className={`inline-flex items-center gap-1.5 h-8 rounded-full px-3 text-sm border transition-colors ${showPendingOnly ? 'bg-primary text-primary-foreground border-primary' : 'bg-transparent border-border/60 text-foreground hover:bg-muted'}`}
-				>
-					<Clock className="h-3.5 w-3.5" />
-					{t('list.filters.pendingBalance', { defaultValue: 'Con Saldo Pendiente' })}
-					{pendingCustomersCount > 0 && (
-						<Badge variant={showPendingOnly ? 'secondary' : 'destructive'} className="ml-0.5 h-5 min-w-5 px-1 text-xs">
-							{pendingCustomersCount}
-						</Badge>
-					)}
-				</button>
-			</div>
-
 			{/* Data Table */}
 			<DataTable
 				data={customers}
@@ -464,12 +408,105 @@ export default function Customers() {
 				setPagination={setPagination}
 				tableId="customers:list"
 				rowCount={customersData?.meta.totalCount || 0}
-				enableSearch={true}
-				searchPlaceholder={t('list.searchPlaceholder')}
-				searchValue={searchTerm}
-				onSearchChange={setSearchTerm}
+				enableSearch={false}
 				clickableRow={row => ({ to: row.id })}
 				stickyFirstColumn={true}
+				tableTabLeft={
+					<>
+						{/* Expandable search */}
+						<div className="relative flex items-center">
+							{isSearchOpen ? (
+								<div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
+									<div className="relative">
+										<Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+										<Input
+											value={searchTerm}
+											onChange={e => setSearchTerm(e.target.value)}
+											placeholder={t('list.searchPlaceholder')}
+											className="h-7 w-[180px] pl-8 pr-7 text-xs rounded-full"
+											autoFocus
+										/>
+									</div>
+									<Button
+										variant="ghost"
+										size="icon"
+										className="h-7 w-7 rounded-full"
+										onClick={() => {
+											setIsSearchOpen(false)
+											setSearchTerm('')
+										}}
+									>
+										<X className="h-3.5 w-3.5" />
+									</Button>
+								</div>
+							) : (
+								<Button
+									variant={searchTerm ? 'secondary' : 'ghost'}
+									size="icon"
+									className="h-7 w-7 rounded-full"
+									onClick={() => setIsSearchOpen(true)}
+								>
+									<Search className="h-3.5 w-3.5" />
+								</Button>
+							)}
+							{searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
+						</div>
+
+						<Select value={selectedGroupId || 'all'} onValueChange={(value) => { setSelectedGroupId(value === 'all' ? '' : value); setPagination(prev => ({ ...prev, pageIndex: 0 })) }}>
+							<SelectTrigger className="h-7 w-auto rounded-full border-border/60 bg-transparent px-3 text-xs gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-50">
+								<SelectValue placeholder={t('list.filters.allGroups')} />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">{t('list.filters.allGroups')}</SelectItem>
+								<SelectItem value="none">{t('list.filters.noGroup')}</SelectItem>
+								{groupsData?.data.map((group: CustomerGroup) => (
+									<SelectItem key={group.id} value={group.id}>
+										<div className="flex items-center gap-2">
+											<div className="w-3 h-3 rounded-full" style={{ backgroundColor: group.color }} />
+											{group.name}
+										</div>
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+
+						<Select value={sortBy} onValueChange={(value) => { setSortBy(value as typeof sortBy); setPagination(prev => ({ ...prev, pageIndex: 0 })) }}>
+							<SelectTrigger className="h-7 w-auto rounded-full border-border/60 bg-transparent px-3 text-xs gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-50">
+								<SelectValue placeholder={t('list.sort.label')} />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="createdAt">{t('list.sort.createdAt')}</SelectItem>
+								<SelectItem value="totalSpent">{t('list.sort.totalSpent')}</SelectItem>
+								<SelectItem value="visitCount">{t('list.sort.visitCount')}</SelectItem>
+								<SelectItem value="lastVisit">{t('list.sort.lastVisit')}</SelectItem>
+							</SelectContent>
+						</Select>
+
+						<Select value={sortOrder} onValueChange={(value) => setSortOrder(value as 'asc' | 'desc')}>
+							<SelectTrigger className="h-7 w-auto rounded-full border-border/60 bg-transparent px-3 text-xs gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-50">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="desc">{tCommon('descending')}</SelectItem>
+								<SelectItem value="asc">{tCommon('ascending')}</SelectItem>
+							</SelectContent>
+						</Select>
+
+						<button
+							type="button"
+							onClick={() => { setShowPendingOnly(!showPendingOnly); setPagination(prev => ({ ...prev, pageIndex: 0 })) }}
+							className={`inline-flex items-center gap-1.5 h-7 rounded-full px-3 text-xs border transition-colors ${showPendingOnly ? 'bg-primary text-primary-foreground border-primary' : 'bg-transparent border-border/60 text-foreground hover:bg-muted'}`}
+						>
+							<Clock className="h-3 w-3" />
+							{t('list.filters.pendingBalance', { defaultValue: 'Con Saldo Pendiente' })}
+							{pendingCustomersCount > 0 && (
+								<Badge variant={showPendingOnly ? 'secondary' : 'destructive'} className="ml-0.5 h-4 min-w-4 px-1 text-[10px]">
+									{pendingCustomersCount}
+								</Badge>
+							)}
+						</button>
+					</>
+				}
 			/>
 
 			{/* Edit Customer Dialog */}

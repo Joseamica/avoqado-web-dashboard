@@ -24,7 +24,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
-import { FilterPill, CheckboxFilterContent } from '@/components/filters'
+import { FilterPill, FilterPillBar, CheckboxFilterContent } from '@/components/filters'
 import { getTerminalStatusInfo, type TerminalStatusKey } from '@/lib/terminal-status'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { PermissionGate } from '@/components/PermissionGate'
@@ -192,15 +192,6 @@ export default function Tpvs() {
     }
     return t('tpv.filter.nSelected', { count: values.length, defaultValue: `${values.length} seleccionados` })
   }
-
-  // Active filters count
-  const activeFiltersCount = [
-    connectionFilter.length > 0,
-    activationFilter.length > 0,
-    statusFilter.length > 0,
-    versionFilter.length > 0,
-    searchTerm !== '',
-  ].filter(Boolean).length
 
   // Reset all filters
   const resetFilters = useCallback(() => {
@@ -784,17 +775,57 @@ export default function Tpvs() {
     <TooltipProvider>
       <div className="p-4 md:p-6 bg-background text-foreground max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div>
-          <PageTitleWithInfo
-            title={t('tpv.title', { defaultValue: 'Terminales Punto de Venta' })}
-            className="text-2xl font-bold tracking-tight"
-            tooltip={t('tpv.info', {
-              defaultValue: 'Administra terminales TPV, su estado y acciones remotas.',
-            })}
-          />
-          <p className="text-sm text-muted-foreground mt-1">
-            {t('tpv.subtitle', { defaultValue: 'Gestiona los dispositivos TPV de tu restaurante' })}
-          </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <PageTitleWithInfo
+              title={t('tpv.title', { defaultValue: 'Terminales Punto de Venta' })}
+              className="text-2xl font-bold tracking-tight"
+              tooltip={t('tpv.info', {
+                defaultValue: 'Administra terminales TPV, su estado y acciones remotas.',
+              })}
+            />
+            <p className="text-sm text-muted-foreground mt-1">
+              {t('tpv.subtitle', { defaultValue: 'Gestiona los dispositivos TPV de tu restaurante' })}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {/* SUPERADMIN: Direct terminal creation button */}
+            {isSuperadmin && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    onClick={() => setSuperadminDialogOpen(true)}
+                    className="h-9 bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground"
+                  >
+                    <Shield className="w-4 h-4 mr-1.5" />
+                    <span>{t('tpv.superadmin.quickCreate', { defaultValue: 'Crear Rápido' })}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {t('tpv.superadmin.quickCreateTooltip', { defaultValue: 'Crear terminal directamente (solo Superadmin)' })}
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            {/* Link to org-level TPV config — only OWNER/SUPERADMIN (they have access to org settings page) */}
+            {venue?.organizationId && (user?.role === StaffRole.OWNER || isSuperadmin) && (
+              <Button size="sm" variant="outline" className="h-9" asChild>
+                <Link to={`/organizations/${venue.organizationId}/settings`}>
+                  <ExternalLink className="w-4 h-4 mr-1.5" />
+                  <span>{t('tpv.actions.globalConfig', { defaultValue: 'Config. Global' })}</span>
+                </Link>
+              </Button>
+            )}
+
+            {/* Regular "Create" button - purchase wizard flow */}
+            <PermissionGate permission="tpv:create">
+              <Button data-tour="tpv-new-btn" size="sm" variant={isSuperadmin ? 'outline' : 'default'} className="h-9" onClick={() => setWizardOpen(true)}>
+                <Plus className="w-4 h-4 mr-1.5" />
+                <span>{t('tpv.actions.createNew', { defaultValue: 'Nuevo dispositivo' })}</span>
+              </Button>
+            </PermissionGate>
+          </div>
         </div>
 
         {/* Metrics Summary Row */}
@@ -826,172 +857,6 @@ export default function Tpvs() {
           />
         </div>
 
-        {/* Stripe-style Filter Bar */}
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
-          {/* Expandable Search Icon */}
-          <div className="relative flex items-center">
-            {isSearchOpen ? (
-              <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder={t('tpv.search.placeholder', { defaultValue: 'Buscar terminales...' })}
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Escape') {
-                        if (!searchTerm) setIsSearchOpen(false)
-                      }
-                    }}
-                    className="h-8 w-[200px] pl-8 pr-8 text-sm rounded-full"
-                    autoFocus
-                  />
-                  {searchTerm && (
-                    <button
-                      onClick={() => setSearchTerm('')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-full"
-                  onClick={() => {
-                    setSearchTerm('')
-                    setIsSearchOpen(false)
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <Button
-                variant={searchTerm ? 'secondary' : 'ghost'}
-                size="icon"
-                className="h-8 w-8 rounded-full"
-                onClick={() => setIsSearchOpen(true)}
-              >
-                <Search className="h-4 w-4" />
-              </Button>
-            )}
-            {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
-          </div>
-
-          {/* Connection Filter Pill */}
-          <FilterPill
-            label={t('tpv.filter.connection', { defaultValue: 'Conexión' })}
-            activeValue={getFilterDisplayLabel(connectionFilter, connectionOptions)}
-            isActive={connectionFilter.length > 0}
-            onClear={() => setConnectionFilter([])}
-          >
-            <CheckboxFilterContent
-              title={t('tpv.filter.connection', { defaultValue: 'Conexión' })}
-              options={connectionOptions}
-              selectedValues={connectionFilter}
-              onApply={setConnectionFilter}
-            />
-          </FilterPill>
-
-          {/* Activation Filter Pill */}
-          <FilterPill
-            label={t('tpv.filter.activation', { defaultValue: 'Activación' })}
-            activeValue={getFilterDisplayLabel(activationFilter, activationOptions)}
-            isActive={activationFilter.length > 0}
-            onClear={() => setActivationFilter([])}
-          >
-            <CheckboxFilterContent
-              title={t('tpv.filter.activation', { defaultValue: 'Activación' })}
-              options={activationOptions}
-              selectedValues={activationFilter}
-              onApply={setActivationFilter}
-            />
-          </FilterPill>
-
-          {/* Status Filter Pill */}
-          <FilterPill
-            label={t('tpv.filter.status', { defaultValue: 'Estado' })}
-            activeValue={getFilterDisplayLabel(statusFilter, statusOptions)}
-            isActive={statusFilter.length > 0}
-            onClear={() => setStatusFilter([])}
-          >
-            <CheckboxFilterContent
-              title={t('tpv.filter.status', { defaultValue: 'Estado' })}
-              options={statusOptions}
-              selectedValues={statusFilter}
-              onApply={setStatusFilter}
-            />
-          </FilterPill>
-
-          {/* Version Filter Pill */}
-          {versionOptions.length > 0 && (
-            <FilterPill
-              label={t('tpv.filter.version', { defaultValue: 'Versión' })}
-              activeValue={getFilterDisplayLabel(versionFilter, versionOptions)}
-              isActive={versionFilter.length > 0}
-              onClear={() => setVersionFilter([])}
-            >
-              <CheckboxFilterContent
-                title={t('tpv.filter.version', { defaultValue: 'Versión' })}
-                options={versionOptions}
-                selectedValues={versionFilter}
-                onApply={setVersionFilter}
-                searchable={versionOptions.length > 5}
-              />
-            </FilterPill>
-          )}
-
-          {/* Reset filters button */}
-          {activeFiltersCount > 0 && (
-            <Button variant="outline" size="sm" onClick={resetFilters} className="h-8 gap-1.5 rounded-full">
-              <X className="h-3.5 w-3.5" />
-              {t('tpv.filter.reset', { defaultValue: 'Borrar filtros' })}
-            </Button>
-          )}
-
-          {/* Action buttons pushed right */}
-          <div className="ml-auto flex items-center gap-2">
-            {/* SUPERADMIN: Direct terminal creation button */}
-            {isSuperadmin && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    onClick={() => setSuperadminDialogOpen(true)}
-                    className="h-8 bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground"
-                  >
-                    <Shield className="w-3.5 h-3.5 mr-1.5" />
-                    <span>{t('tpv.superadmin.quickCreate', { defaultValue: 'Crear Rápido' })}</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {t('tpv.superadmin.quickCreateTooltip', { defaultValue: 'Crear terminal directamente (solo Superadmin)' })}
-                </TooltipContent>
-              </Tooltip>
-            )}
-
-            {/* Link to org-level TPV config — only OWNER/SUPERADMIN (they have access to org settings page) */}
-            {venue?.organizationId && (user?.role === StaffRole.OWNER || isSuperadmin) && (
-              <Button size="sm" variant="outline" className="h-8" asChild>
-                <Link to={`/organizations/${venue.organizationId}/settings`}>
-                  <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
-                  <span>{t('tpv.actions.globalConfig', { defaultValue: 'Config. Global' })}</span>
-                </Link>
-              </Button>
-            )}
-
-            {/* Regular "Create" button - purchase wizard flow */}
-            <PermissionGate permission="tpv:create">
-              <Button data-tour="tpv-new-btn" size="sm" variant={isSuperadmin ? 'outline' : 'default'} className="h-8" onClick={() => setWizardOpen(true)}>
-                <Plus className="w-3.5 h-3.5 mr-1.5" />
-                <span>{t('tpv.actions.createNew', { defaultValue: 'Nuevo dispositivo' })}</span>
-              </Button>
-            </PermissionGate>
-          </div>
-        </div>
-
         {/* Data Table in GlassCard */}
         <GlassCard data-tour="tpv-list" className="p-0 overflow-hidden">
           <DataTable
@@ -1007,6 +872,119 @@ export default function Tpvs() {
             tableId="tpv:list"
             pagination={pagination}
             setPagination={setPagination}
+            tableTabLeft={
+              <>
+                {/* Expandable Search */}
+                <div className="relative flex items-center">
+                  {isSearchOpen ? (
+                    <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          placeholder={t('tpv.search.placeholder', { defaultValue: 'Buscar terminales...' })}
+                          value={searchTerm}
+                          onChange={e => setSearchTerm(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Escape') {
+                              if (!searchTerm) setIsSearchOpen(false)
+                            }
+                          }}
+                          className="h-7 w-[180px] pl-8 pr-7 text-xs rounded-full"
+                          autoFocus
+                        />
+                        {searchTerm && (
+                          <button
+                            onClick={() => setSearchTerm('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-full"
+                        onClick={() => {
+                          setSearchTerm('')
+                          setIsSearchOpen(false)
+                        }}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant={searchTerm ? 'secondary' : 'ghost'}
+                      size="icon"
+                      className="h-7 w-7 rounded-full"
+                      onClick={() => setIsSearchOpen(true)}
+                    >
+                      <Search className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                  {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
+                </div>
+
+                <FilterPillBar onReset={resetFilters} resetLabel={t('tpv.filter.reset', { defaultValue: 'Borrar filtros' })}>
+                  <FilterPill
+                    label={t('tpv.filter.connection', { defaultValue: 'Conexión' })}
+                    activeValue={getFilterDisplayLabel(connectionFilter, connectionOptions)}
+                    isActive={connectionFilter.length > 0}
+                    onClear={() => setConnectionFilter([])}
+                  >
+                    <CheckboxFilterContent
+                      title={t('tpv.filter.connection', { defaultValue: 'Conexión' })}
+                      options={connectionOptions}
+                      selectedValues={connectionFilter}
+                      onApply={setConnectionFilter}
+                    />
+                  </FilterPill>
+                  <FilterPill
+                    label={t('tpv.filter.activation', { defaultValue: 'Activación' })}
+                    activeValue={getFilterDisplayLabel(activationFilter, activationOptions)}
+                    isActive={activationFilter.length > 0}
+                    onClear={() => setActivationFilter([])}
+                  >
+                    <CheckboxFilterContent
+                      title={t('tpv.filter.activation', { defaultValue: 'Activación' })}
+                      options={activationOptions}
+                      selectedValues={activationFilter}
+                      onApply={setActivationFilter}
+                    />
+                  </FilterPill>
+                  <FilterPill
+                    label={t('tpv.filter.status', { defaultValue: 'Estado' })}
+                    activeValue={getFilterDisplayLabel(statusFilter, statusOptions)}
+                    isActive={statusFilter.length > 0}
+                    onClear={() => setStatusFilter([])}
+                  >
+                    <CheckboxFilterContent
+                      title={t('tpv.filter.status', { defaultValue: 'Estado' })}
+                      options={statusOptions}
+                      selectedValues={statusFilter}
+                      onApply={setStatusFilter}
+                    />
+                  </FilterPill>
+                  {versionOptions.length > 0 && (
+                    <FilterPill
+                      label={t('tpv.filter.version', { defaultValue: 'Versión' })}
+                      activeValue={getFilterDisplayLabel(versionFilter, versionOptions)}
+                      isActive={versionFilter.length > 0}
+                      onClear={() => setVersionFilter([])}
+                    >
+                      <CheckboxFilterContent
+                        title={t('tpv.filter.version', { defaultValue: 'Versión' })}
+                        options={versionOptions}
+                        selectedValues={versionFilter}
+                        onApply={setVersionFilter}
+                        searchable={versionOptions.length > 5}
+                      />
+                    </FilterPill>
+                  )}
+                </FilterPillBar>
+              </>
+            }
           />
         </GlassCard>
 

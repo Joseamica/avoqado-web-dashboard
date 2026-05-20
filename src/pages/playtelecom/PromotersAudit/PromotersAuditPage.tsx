@@ -12,7 +12,7 @@
  */
 
 import { useState, useMemo } from 'react'
-import { FilterPill, CheckboxFilterContent, DateFilterContent, AmountFilterContent, type DateFilter, type AmountFilter } from '@/components/filters'
+import { FilterPill, FilterPillBar, CheckboxFilterContent, DateFilterContent, AmountFilterContent, type DateFilter, type AmountFilter } from '@/components/filters'
 import DataTable from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -567,126 +567,17 @@ export default function PromotersAuditPage() {
 
   return (
     <div className="flex flex-col h-full p-6 space-y-6 overflow-y-auto">
-      {/* Header with Filters */}
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Auditoría de Promotores</h1>
-            <p className="text-sm text-muted-foreground">Monitoreo de asistencia, ventas y ubicación GPS</p>
-          </div>
-
-          <Button variant="outline" className="gap-2">
-            <Download className="w-4 h-4" />
-            Exportar Reporte
-          </Button>
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Auditoría de Promotores</h1>
+          <p className="text-sm text-muted-foreground">Monitoreo de asistencia, ventas y ubicación GPS</p>
         </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* Search - FIRST */}
-          <div className="relative flex items-center">
-            {isSearchOpen ? (
-              <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    placeholder="Buscar promotor..."
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Escape') {
-                        if (!searchTerm) setIsSearchOpen(false)
-                      }
-                    }}
-                    className="h-8 w-full sm:w-[200px] pl-8 pr-8 text-sm rounded-full border border-input bg-background focus:ring-2 focus:ring-ring"
-                    autoFocus
-                  />
-                  {searchTerm && (
-                    <button
-                      onClick={() => setSearchTerm('')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-full"
-                  onClick={() => {
-                    setSearchTerm('')
-                    setIsSearchOpen(false)
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <Button
-                variant={searchTerm ? 'secondary' : 'ghost'}
-                size="icon"
-                className="h-8 w-8 rounded-full"
-                onClick={() => setIsSearchOpen(true)}
-              >
-                <Search className="h-4 w-4" />
-              </Button>
-            )}
-            {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
-          </div>
-
-          {/* Fecha de Auditoría */}
-          <FilterPill
-            label="Fecha de Auditoría"
-            isActive={!!dateFilter}
-            onClear={() => setDateFilter(null)}
-          >
-            <DateFilterContent
-              title="Fecha de Auditoría"
-              value={dateFilter}
-              onApply={setDateFilter}
-            />
-          </FilterPill>
-
-          {/* Tienda Filter */}
-          <FilterPill label="Tienda" isActive={storeFilter.length > 0} onClear={() => setStoreFilter([])}>
-            <CheckboxFilterContent
-              title="Seleccionar Tiendas"
-              options={storeOptions}
-              selectedValues={storeFilter}
-              onApply={setStoreFilter}
-            />
-          </FilterPill>
-
-          {/* Estado Filter */}
-          <FilterPill label="Estado" isActive={statusFilter.length > 0} onClear={() => setStatusFilter([])}>
-            <CheckboxFilterContent
-              title="Seleccionar Estado"
-              options={statusOptions}
-              selectedValues={statusFilter}
-              onApply={setStatusFilter}
-            />
-          </FilterPill>
-
-          {/* Venta Filter */}
-          <FilterPill label="Venta" isActive={!!salesFilter} onClear={() => setSalesFilter(null)}>
-            <AmountFilterContent
-              title="Filtrar por Venta"
-              value={salesFilter}
-              onApply={setSalesFilter}
-            />
-          </FilterPill>
-
-          {/* Turno Filter */}
-          <FilterPill label="Turno" isActive={shiftFilter.length > 0} onClear={() => setShiftFilter([])}>
-            <CheckboxFilterContent
-              title="Estado del Turno"
-              options={shiftOptions}
-              selectedValues={shiftFilter}
-              onApply={setShiftFilter}
-            />
-          </FilterPill>
-        </div>
+        <Button variant="outline" className="gap-2 h-9 shrink-0">
+          <Download className="w-4 h-4" />
+          Exportar Reporte
+        </Button>
       </div>
 
       {/* Loading State */}
@@ -714,23 +605,114 @@ export default function PromotersAuditPage() {
 
       {/* Table */}
       {!isLoading && (
-        <div className="bg-card rounded-xl border">
-          <div className="px-6 py-3 border-b bg-muted/30 flex justify-between items-center">
-            <h3 className="text-xs font-black text-muted-foreground uppercase tracking-widest">
-              Resultados ({filteredData.length} {filteredData.length === 1 ? 'persona' : 'personas'})
-            </h3>
-          </div>
-          <DataTable
-            columns={columns}
-            data={filteredData}
-            rowCount={filteredData.length}
-            showColumnCustomizer={false}
-            onRowClick={row => {
-              setSelectedPromoter(row)
-              setPromoterModalOpen(true)
-            }}
-          />
-        </div>
+        <DataTable
+          columns={columns}
+          data={filteredData}
+          rowCount={filteredData.length}
+          showColumnCustomizer={false}
+          onRowClick={row => {
+            setSelectedPromoter(row)
+            setPromoterModalOpen(true)
+          }}
+          tableTabLeft={
+            <>
+              {/* Search */}
+              <div className="relative flex items-center">
+                {isSearchOpen ? (
+                  <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                      <input
+                        placeholder="Buscar promotor..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Escape') {
+                            if (!searchTerm) setIsSearchOpen(false)
+                          }
+                        }}
+                        className="h-7 w-[180px] pl-8 pr-7 text-xs rounded-full border border-input bg-background focus:ring-2 focus:ring-ring"
+                        autoFocus
+                      />
+                      {searchTerm && (
+                        <button
+                          onClick={() => setSearchTerm('')}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-full"
+                      onClick={() => {
+                        setSearchTerm('')
+                        setIsSearchOpen(false)
+                      }}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant={searchTerm ? 'secondary' : 'ghost'}
+                    size="icon"
+                    className="h-7 w-7 rounded-full"
+                    onClick={() => setIsSearchOpen(true)}
+                  >
+                    <Search className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
+              </div>
+
+              <FilterPillBar
+                onReset={() => {
+                  setDateFilter(null)
+                  setStoreFilter([])
+                  setStatusFilter([])
+                  setSalesFilter(null)
+                  setShiftFilter([])
+                  setSearchTerm('')
+                  setIsSearchOpen(false)
+                }}
+              >
+                <FilterPill label="Fecha de Auditoría" isActive={!!dateFilter} onClear={() => setDateFilter(null)}>
+                  <DateFilterContent title="Fecha de Auditoría" value={dateFilter} onApply={setDateFilter} />
+                </FilterPill>
+                <FilterPill label="Tienda" isActive={storeFilter.length > 0} onClear={() => setStoreFilter([])}>
+                  <CheckboxFilterContent
+                    title="Seleccionar Tiendas"
+                    options={storeOptions}
+                    selectedValues={storeFilter}
+                    onApply={setStoreFilter}
+                  />
+                </FilterPill>
+                <FilterPill label="Estado" isActive={statusFilter.length > 0} onClear={() => setStatusFilter([])}>
+                  <CheckboxFilterContent
+                    title="Seleccionar Estado"
+                    options={statusOptions}
+                    selectedValues={statusFilter}
+                    onApply={setStatusFilter}
+                  />
+                </FilterPill>
+                <FilterPill label="Venta" isActive={!!salesFilter} onClear={() => setSalesFilter(null)}>
+                  <AmountFilterContent title="Filtrar por Venta" value={salesFilter} onApply={setSalesFilter} />
+                </FilterPill>
+                <FilterPill label="Turno" isActive={shiftFilter.length > 0} onClear={() => setShiftFilter([])}>
+                  <CheckboxFilterContent
+                    title="Estado del Turno"
+                    options={shiftOptions}
+                    selectedValues={shiftFilter}
+                    onApply={setShiftFilter}
+                  />
+                </FilterPill>
+              </FilterPillBar>
+            </>
+          }
+        />
       )}
 
       {/* Full Screen Modal for Promoter Details */}

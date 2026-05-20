@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, Copy, MoreHorizontal, Pencil, Plus, Tag, Trash2 } from 'lucide-react'
+import { ArrowUpDown, Copy, MoreHorizontal, Pencil, Plus, Search, Tag, Trash2, X } from 'lucide-react'
 import { useState, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -59,6 +60,8 @@ export default function Discounts() {
 	const [activeFilter, setActiveFilter] = useState<string>('')
 	const [deletingDiscount, setDeletingDiscount] = useState<Discount | null>(null)
 	const [wizardOpen, setWizardOpen] = useState(false)
+	const [searchTerm, setSearchTerm] = useState('')
+	const [isSearchOpen, setIsSearchOpen] = useState(false)
 
 	// Fetch discounts
 	const { data: discountsData, isLoading: isLoadingDiscounts } = useQuery({
@@ -114,16 +117,16 @@ export default function Discounts() {
 	// Memoized discounts list
 	const discounts = useMemo(() => discountsData?.data || [], [discountsData?.data])
 
-	// Client-side search
-	const handleSearch = useCallback((search: string, rows: Discount[]) => {
-		if (!search) return rows
-		const q = search.toLowerCase()
-		return rows.filter(d => {
+	// Client-side search (applied to the data before passing to DataTable)
+	const filteredDiscounts = useMemo(() => {
+		if (!searchTerm) return discounts
+		const q = searchTerm.toLowerCase()
+		return discounts.filter(d => {
 			const name = (d.name || '').toLowerCase()
 			const description = (d.description || '').toLowerCase()
 			return name.includes(q) || description.includes(q)
 		})
-	}, [])
+	}, [discounts, searchTerm])
 
 	// Format currency
 	const formatCurrency = useCallback(
@@ -355,61 +358,98 @@ export default function Discounts() {
 				</PermissionGate>
 			</div>
 
-			{/* Filters */}
-			<div className="flex items-center gap-4 mb-4">
-				<Select value={selectedType || 'all'} onValueChange={(value) => setSelectedType(value === 'all' ? '' : value)}>
-					<SelectTrigger className="w-[180px]">
-						<SelectValue placeholder={t('discounts.list.filters.allTypes')} />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">{t('discounts.list.filters.allTypes')}</SelectItem>
-						<SelectItem value="PERCENTAGE">{t('discounts.form.types.PERCENTAGE')}</SelectItem>
-						<SelectItem value="FIXED_AMOUNT">{t('discounts.form.types.FIXED_AMOUNT')}</SelectItem>
-						<SelectItem value="COMP">{t('discounts.form.types.COMP')}</SelectItem>
-					</SelectContent>
-				</Select>
-
-				<Select value={selectedScope || 'all'} onValueChange={(value) => setSelectedScope(value === 'all' ? '' : value)}>
-					<SelectTrigger className="w-[180px]">
-						<SelectValue placeholder={t('discounts.list.filters.allScopes')} />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">{t('discounts.list.filters.allScopes')}</SelectItem>
-						<SelectItem value="ORDER">{t('discounts.form.scopes.ORDER')}</SelectItem>
-						<SelectItem value="ITEM">{t('discounts.form.scopes.ITEM')}</SelectItem>
-						<SelectItem value="CATEGORY">{t('discounts.form.scopes.CATEGORY')}</SelectItem>
-						<SelectItem value="MODIFIER">{t('discounts.form.scopes.MODIFIER')}</SelectItem>
-						<SelectItem value="MODIFIER_GROUP">{t('discounts.form.scopes.MODIFIER_GROUP')}</SelectItem>
-						<SelectItem value="CUSTOMER_GROUP">{t('discounts.form.scopes.CUSTOMER_GROUP')}</SelectItem>
-						<SelectItem value="QUANTITY">{t('discounts.form.scopes.QUANTITY')}</SelectItem>
-					</SelectContent>
-				</Select>
-
-				<Select value={activeFilter || 'all'} onValueChange={(value) => setActiveFilter(value === 'all' ? '' : value)}>
-					<SelectTrigger className="w-[150px]">
-						<SelectValue placeholder={t('discounts.list.filters.allTypes')} />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">{t('discounts.list.filters.allTypes')}</SelectItem>
-						<SelectItem value="active">{t('discounts.list.filters.active')}</SelectItem>
-						<SelectItem value="inactive">{t('discounts.list.filters.inactive')}</SelectItem>
-					</SelectContent>
-				</Select>
-			</div>
-
 			{/* Data Table */}
 			<DataTable
-				data={discounts}
+				data={filteredDiscounts}
 				columns={columns}
 				isLoading={isLoadingDiscounts}
 				pagination={pagination}
 				setPagination={setPagination}
 				tableId="discounts:list"
 				rowCount={discountsData?.meta.totalCount || 0}
-				enableSearch={true}
-				searchPlaceholder={t('discounts.list.searchPlaceholder')}
-				onSearch={handleSearch}
+				enableSearch={false}
 				clickableRow={row => ({ to: row.id })}
+				tableTabLeft={
+					<>
+						{/* Expandable search */}
+						<div className="relative flex items-center">
+							{isSearchOpen ? (
+								<div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
+									<div className="relative">
+										<Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+										<Input
+											value={searchTerm}
+											onChange={e => setSearchTerm(e.target.value)}
+											placeholder={t('discounts.list.searchPlaceholder')}
+											className="h-7 w-[180px] pl-8 pr-7 text-xs rounded-full"
+											autoFocus
+										/>
+									</div>
+									<Button
+										variant="ghost"
+										size="icon"
+										className="h-7 w-7 rounded-full"
+										onClick={() => {
+											setIsSearchOpen(false)
+											setSearchTerm('')
+										}}
+									>
+										<X className="h-3.5 w-3.5" />
+									</Button>
+								</div>
+							) : (
+								<Button
+									variant={searchTerm ? 'secondary' : 'ghost'}
+									size="icon"
+									className="h-7 w-7 rounded-full"
+									onClick={() => setIsSearchOpen(true)}
+								>
+									<Search className="h-3.5 w-3.5" />
+								</Button>
+							)}
+							{searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
+						</div>
+
+						<Select value={selectedType || 'all'} onValueChange={(value) => setSelectedType(value === 'all' ? '' : value)}>
+							<SelectTrigger className="h-7 w-auto rounded-full border-border/60 bg-transparent px-3 text-xs gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-50">
+								<SelectValue placeholder={t('discounts.list.filters.allTypes')} />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">{t('discounts.list.filters.allTypes')}</SelectItem>
+								<SelectItem value="PERCENTAGE">{t('discounts.form.types.PERCENTAGE')}</SelectItem>
+								<SelectItem value="FIXED_AMOUNT">{t('discounts.form.types.FIXED_AMOUNT')}</SelectItem>
+								<SelectItem value="COMP">{t('discounts.form.types.COMP')}</SelectItem>
+							</SelectContent>
+						</Select>
+
+						<Select value={selectedScope || 'all'} onValueChange={(value) => setSelectedScope(value === 'all' ? '' : value)}>
+							<SelectTrigger className="h-7 w-auto rounded-full border-border/60 bg-transparent px-3 text-xs gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-50">
+								<SelectValue placeholder={t('discounts.list.filters.allScopes')} />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">{t('discounts.list.filters.allScopes')}</SelectItem>
+								<SelectItem value="ORDER">{t('discounts.form.scopes.ORDER')}</SelectItem>
+								<SelectItem value="ITEM">{t('discounts.form.scopes.ITEM')}</SelectItem>
+								<SelectItem value="CATEGORY">{t('discounts.form.scopes.CATEGORY')}</SelectItem>
+								<SelectItem value="MODIFIER">{t('discounts.form.scopes.MODIFIER')}</SelectItem>
+								<SelectItem value="MODIFIER_GROUP">{t('discounts.form.scopes.MODIFIER_GROUP')}</SelectItem>
+								<SelectItem value="CUSTOMER_GROUP">{t('discounts.form.scopes.CUSTOMER_GROUP')}</SelectItem>
+								<SelectItem value="QUANTITY">{t('discounts.form.scopes.QUANTITY')}</SelectItem>
+							</SelectContent>
+						</Select>
+
+						<Select value={activeFilter || 'all'} onValueChange={(value) => setActiveFilter(value === 'all' ? '' : value)}>
+							<SelectTrigger className="h-7 w-auto rounded-full border-border/60 bg-transparent px-3 text-xs gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-50">
+								<SelectValue placeholder={t('discounts.list.filters.allTypes')} />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">{t('discounts.list.filters.allTypes')}</SelectItem>
+								<SelectItem value="active">{t('discounts.list.filters.active')}</SelectItem>
+								<SelectItem value="inactive">{t('discounts.list.filters.inactive')}</SelectItem>
+							</SelectContent>
+						</Select>
+					</>
+				}
 			/>
 
 			{/* Delete Discount Alert */}

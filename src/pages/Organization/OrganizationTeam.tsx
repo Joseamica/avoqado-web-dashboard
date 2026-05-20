@@ -27,14 +27,14 @@ import { GlassCard } from '@/components/ui/glass-card'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { Skeleton } from '@/components/ui/skeleton'
 import DataTable from '@/components/data-table'
-import { FilterPill, CheckboxFilterContent } from '@/components/filters'
+import { FilterPill, FilterPillBar, CheckboxFilterContent } from '@/components/filters'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import InviteTeamMemberForm, { type InviteTeamMemberFormRef } from '@/pages/Team/components/InviteTeamMemberForm'
 import { AuditLogTerminal, type AuditLogEntry } from '@/pages/playtelecom/Users/components/AuditLogTerminal'
-import { Users, Store, X, UserPlus, Mail, Phone, KeyRound, UserCheck, Ban, ShieldAlert } from 'lucide-react'
+import { Users, Store, X, Search, UserPlus, Mail, Phone, KeyRound, UserCheck, Ban, ShieldAlert } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useRoleConfig } from '@/hooks/use-role-config'
@@ -109,6 +109,8 @@ const OrganizationTeam: React.FC = () => {
   // Stripe-style filter state
   const [venueFilter, setVenueFilter] = useState<string[]>([])
   const [roleFilter, setRoleFilter] = useState<string[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   // Detail modal state
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
@@ -326,11 +328,12 @@ const OrganizationTeam: React.FC = () => {
     return `${values.length} seleccionados`
   }, [])
 
-  const activeFiltersCount = [venueFilter.length > 0, roleFilter.length > 0].filter(Boolean).length
 
   const resetFilters = useCallback(() => {
     setVenueFilter([])
     setRoleFilter([])
+    setSearchTerm('')
+    setIsSearchOpen(false)
   }, [])
 
   const filteredRows = useMemo(() => {
@@ -341,16 +344,16 @@ const OrganizationTeam: React.FC = () => {
     if (roleFilter.length > 0) {
       result = result.filter(r => r.venues.some(v => roleFilter.includes(v.role)))
     }
+    if (searchTerm) {
+      result = result.filter(
+        r =>
+          includesNormalized(r.name ?? '', searchTerm) ||
+          includesNormalized(r.email ?? '', searchTerm) ||
+          r.venues.some(v => includesNormalized(v.venueName ?? '', searchTerm)),
+      )
+    }
     return result
-  }, [rows, venueFilter, roleFilter])
-
-  const handleSearch = useCallback((search: string, data: TeamRow[]) => {
-    if (!search) return data
-    return data.filter(
-      r =>
-        includesNormalized(r.name ?? '', search) || includesNormalized(r.email ?? '', search) || r.venues.some(v => includesNormalized(v.venueName ?? '', search)),
-    )
-  }, [])
+  }, [rows, venueFilter, roleFilter, searchTerm])
 
   // ---------- Handlers ----------
 
@@ -516,6 +519,7 @@ const OrganizationTeam: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
+      <div className="flex items-start justify-between gap-4">
       <div>
         <PageTitleWithInfo
           title={
@@ -532,52 +536,12 @@ const OrganizationTeam: React.FC = () => {
         <p className="text-muted-foreground mt-1">{t('organization:team.subtitle', { count: orgTeam?.length || 0 })}</p>
       </div>
 
-      {/* Stripe-style filter bar */}
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
-        <FilterPill
-          label={t('organization:team.venues', { defaultValue: 'Sucursales' })}
-          activeValue={getFilterLabel(venueFilter, venueOptions)}
-          isActive={venueFilter.length > 0}
-          onClear={() => setVenueFilter([])}
-        >
-          <CheckboxFilterContent
-            title={t('organization:team.filterByVenue', { defaultValue: 'Filtrar por Sucursal' })}
-            options={venueOptions}
-            selectedValues={venueFilter}
-            searchable={venueOptions.length > 5}
-            onApply={setVenueFilter}
-          />
-        </FilterPill>
-
-        <FilterPill
-          label="Rol"
-          activeValue={getFilterLabel(roleFilter, roleOptions)}
-          isActive={roleFilter.length > 0}
-          onClear={() => setRoleFilter([])}
-        >
-          <CheckboxFilterContent
-            title={t('organization:team.filterByRole', { defaultValue: 'Filtrar por Rol' })}
-            options={roleOptions}
-            selectedValues={roleFilter}
-            onApply={setRoleFilter}
-          />
-        </FilterPill>
-
-        {activeFiltersCount > 0 && (
-          <Button variant="outline" size="sm" onClick={resetFilters} className="h-8 gap-1.5 rounded-full cursor-pointer">
-            <X className="h-3.5 w-3.5" />
-            {t('organization:team.clearFilters', { defaultValue: 'Borrar filtros' })}
-          </Button>
-        )}
-
-        {/* Invite button — right aligned */}
+        {/* Invite button — header right */}
         {contextVenueId && (
-          <div className="ml-auto">
-            <Button onClick={() => setShowInviteDialog(true)} className="h-10 gap-1.5 rounded-xl cursor-pointer px-4">
-              <UserPlus className="w-4 h-4" />
-              {t('organization:team.invite', { defaultValue: 'Invitar' })}
-            </Button>
-          </div>
+          <Button onClick={() => setShowInviteDialog(true)} className="h-9 gap-1.5 shrink-0 cursor-pointer px-4">
+            <UserPlus className="w-4 h-4" />
+            {t('organization:team.invite', { defaultValue: 'Invitar' })}
+          </Button>
         )}
       </div>
 
@@ -589,9 +553,82 @@ const OrganizationTeam: React.FC = () => {
         isLoading={isLoading}
         onRowClick={row => setSelectedMemberId(row.id)}
         tableId="org:team"
-        enableSearch
-        searchPlaceholder={t('organization:team.searchPlaceholder', { defaultValue: 'Buscar miembros del equipo...' })}
-        onSearch={handleSearch}
+        enableSearch={false}
+        tableTabLeft={
+          <>
+            {/* Expandable Search */}
+            <div className="relative flex items-center">
+              {isSearchOpen ? (
+                <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder={t('organization:team.searchPlaceholder', { defaultValue: 'Buscar miembros del equipo...' })}
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                      className="h-7 w-[180px] pl-8 pr-7 text-xs rounded-full"
+                      autoFocus
+                    />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-full"
+                    onClick={() => {
+                      setSearchTerm('')
+                      setIsSearchOpen(false)
+                    }}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant={searchTerm ? 'secondary' : 'ghost'}
+                  size="icon"
+                  className="h-7 w-7 rounded-full"
+                  onClick={() => setIsSearchOpen(true)}
+                >
+                  <Search className="h-3.5 w-3.5" />
+                </Button>
+              )}
+              {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
+            </div>
+
+            <FilterPillBar
+              onReset={resetFilters}
+              resetLabel={t('organization:team.clearFilters', { defaultValue: 'Borrar filtros' })}
+            >
+              <FilterPill
+                label={t('organization:team.venues', { defaultValue: 'Sucursales' })}
+                activeValue={getFilterLabel(venueFilter, venueOptions)}
+                isActive={venueFilter.length > 0}
+                onClear={() => setVenueFilter([])}
+              >
+                <CheckboxFilterContent
+                  title={t('organization:team.filterByVenue', { defaultValue: 'Filtrar por Sucursal' })}
+                  options={venueOptions}
+                  selectedValues={venueFilter}
+                  searchable={venueOptions.length > 5}
+                  onApply={setVenueFilter}
+                />
+              </FilterPill>
+              <FilterPill
+                label="Rol"
+                activeValue={getFilterLabel(roleFilter, roleOptions)}
+                isActive={roleFilter.length > 0}
+                onClear={() => setRoleFilter([])}
+              >
+                <CheckboxFilterContent
+                  title={t('organization:team.filterByRole', { defaultValue: 'Filtrar por Rol' })}
+                  options={roleOptions}
+                  selectedValues={roleFilter}
+                  onApply={setRoleFilter}
+                />
+              </FilterPill>
+            </FilterPillBar>
+          </>
+        }
       />
 
       {/* Member Detail Modal */}

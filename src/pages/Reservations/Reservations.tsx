@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
-import { CheckboxFilterContent, FilterPill } from '@/components/filters'
+import { CheckboxFilterContent, FilterPill, FilterPillBar } from '@/components/filters'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { PermissionGate } from '@/components/PermissionGate'
 import { Badge } from '@/components/ui/badge'
@@ -303,72 +303,22 @@ export default function Reservations() {
         </div>
       )}
 
-      {/* Underline tabs + filters row */}
-      <div className="flex items-center justify-between gap-4 mb-4">
-        <div className="border-b border-border">
-          <nav className="flex items-center gap-6">
-            {validTabs.map(tab => (
-              <button
-                key={tab}
-                onClick={() => handleTabChange(tab)}
-                className={`relative pb-3 text-sm font-medium transition-colors ${
-                  activeTab === tab ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {t(`tabs.${tab}`)}
-                {activeTab === tab && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Channel filter */}
-          <FilterPill
-            label={t('filters.channel')}
-            isActive={channelFilter.length > 0}
-            activeValue={channelFilter.length > 0 ? `${channelFilter.length}` : null}
-            onClear={() => setChannelFilter([])}
-          >
-            <CheckboxFilterContent
-              title={t('filters.channel')}
-              options={channelOptions}
-              selectedValues={channelFilter}
-              onApply={values => setChannelFilter(values.slice(0, 1))}
-            />
-          </FilterPill>
-
-          {/* Expandable search */}
-          {isSearchOpen ? (
-            <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
-              <Input
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                placeholder={t('searchPlaceholder')}
-                className="h-9 w-64 rounded-full"
-                autoFocus
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 rounded-full cursor-pointer"
-                onClick={() => {
-                  setIsSearchOpen(false)
-                  setSearchTerm('')
-                }}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <div className="relative">
-              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full cursor-pointer" onClick={() => setIsSearchOpen(true)}>
-                <Search className="h-4 w-4" />
-              </Button>
-              {searchTerm && <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full" />}
-            </div>
-          )}
-        </div>
+      {/* Underline tabs */}
+      <div className="border-b border-border mb-4">
+        <nav className="flex items-center gap-6">
+          {validTabs.map(tab => (
+            <button
+              key={tab}
+              onClick={() => handleTabChange(tab)}
+              className={`relative pb-3 text-sm font-medium transition-colors ${
+                activeTab === tab ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t(`tabs.${tab}`)}
+              {activeTab === tab && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
+            </button>
+          ))}
+        </nav>
       </div>
 
       {/* Data Table */}
@@ -384,6 +334,70 @@ export default function Reservations() {
         showColumnCustomizer={false}
         clickableRow={row => ({ to: row.id })}
         stickyFirstColumn={true}
+        tableTabLeft={
+          <>
+            {/* Expandable search */}
+            <div className="relative flex items-center">
+              {isSearchOpen ? (
+                <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                      placeholder={t('searchPlaceholder')}
+                      className="h-7 w-[180px] pl-8 pr-7 text-xs rounded-full"
+                      autoFocus
+                    />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-full"
+                    onClick={() => {
+                      setIsSearchOpen(false)
+                      setSearchTerm('')
+                    }}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant={searchTerm ? 'secondary' : 'ghost'}
+                  size="icon"
+                  className="h-7 w-7 rounded-full"
+                  onClick={() => setIsSearchOpen(true)}
+                >
+                  <Search className="h-3.5 w-3.5" />
+                </Button>
+              )}
+              {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
+            </div>
+
+            <FilterPillBar
+              onReset={() => {
+                setChannelFilter([])
+                setSearchTerm('')
+                setIsSearchOpen(false)
+              }}
+            >
+              <FilterPill
+                label={t('filters.channel')}
+                isActive={channelFilter.length > 0}
+                activeValue={channelFilter.length > 0 ? `${channelFilter.length}` : null}
+                onClear={() => setChannelFilter([])}
+              >
+                <CheckboxFilterContent
+                  title={t('filters.channel')}
+                  options={channelOptions}
+                  selectedValues={channelFilter}
+                  onApply={values => setChannelFilter(values.slice(0, 1))}
+                />
+              </FilterPill>
+            </FilterPillBar>
+          </>
+        }
       />
       </div>
 

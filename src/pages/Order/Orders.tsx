@@ -4,7 +4,7 @@ import api from '@/api'
 import { AddToAIButton } from '@/components/AddToAIButton'
 import DataTable from '@/components/data-table'
 import { DateRangePicker } from '@/components/date-range-picker'
-import { AmountFilterContent, CheckboxFilterContent, ColumnCustomizer, FilterPill, type AmountFilter } from '@/components/filters'
+import { AmountFilterContent, CheckboxFilterContent, ColumnCustomizer, FilterPill, FilterPillBar, type AmountFilter } from '@/components/filters'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { SelectionSummaryBar } from '@/components/selection-summary-bar'
 import { StatusFilterTabs, type StatusTab } from '@/components/StatusFilterTabs'
@@ -388,18 +388,6 @@ export default function Orders() {
       waiters: Array.from(waitersMap.values()),
     }
   }, [filterOptionsData?.data])
-
-  // Count active filters (arrays with values count as active)
-  const activeFiltersCount = [
-    statusFilter.length > 0,
-    typeFilter.length > 0,
-    tableFilter.length > 0,
-    waiterFilter.length > 0,
-    totalFilter !== null,
-    tipFilter !== null,
-    dateRange !== null,
-    searchTerm !== '',
-  ].filter(Boolean).length
 
   // Reset all filters
   const resetFilters = useCallback(() => {
@@ -1107,7 +1095,7 @@ export default function Orders() {
 
   return (
     <div className={`p-4 bg-background text-foreground`}>
-      <div className="flex flex-row items-center justify-between mb-6">
+      <div className="flex flex-row items-start justify-between gap-4 mb-6">
         <PageTitleWithInfo
           title={t('title')}
           className="text-xl font-semibold"
@@ -1115,6 +1103,18 @@ export default function Orders() {
             defaultValue: 'Consulta y filtra las ordenes del venue, con acceso al detalle y exportacion.',
           })}
         />
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <Button variant="outline" size="sm" className="h-9 gap-2" onClick={() => navigate('../reports/pay-later-aging')}>
+            <Clock className="h-4 w-4" />
+            {t('payLater.button', { defaultValue: 'Cuentas por Cobrar' })}
+          </Button>
+          {canCreateManualPayment && (
+            <Button size="sm" className="h-9 gap-1.5" onClick={() => setManualPaymentOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Nuevo pago manual
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Status Filter Tabs */}
@@ -1153,236 +1153,218 @@ export default function Orders() {
         </div>
       )}
 
-      {/* Stripe-style Filter Bar */}
-      <div className="mb-4">
-        {/* Single row: Filters left, Actions right (wrap when needed) */}
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
-          {/* Expandable Search Icon */}
-          <div className="relative flex items-center">
-            {isSearchOpen ? (
-              <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder={t('searchPlaceholder')}
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Escape') {
-                        if (!searchTerm) setIsSearchOpen(false)
-                      }
+      <DataTable
+        data={sortedData}
+        rowCount={totalOrders}
+        columns={filteredColumns}
+        isLoading={isLoading}
+        enableSearch={false}
+        showColumnCustomizer={false}
+        tableId="orders:main"
+        clickableRow={row => ({
+          to: row.id,
+          state: { from: location.pathname },
+        })}
+        pagination={pagination}
+        setPagination={setPagination}
+        hidePagination
+        tableTabLeft={
+          <>
+            {/* Expandable Search Icon */}
+            <div className="relative flex items-center">
+              {isSearchOpen ? (
+                <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder={t('searchPlaceholder')}
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Escape') {
+                          if (!searchTerm) setIsSearchOpen(false)
+                        }
+                      }}
+                      className="h-7 w-[180px] pl-8 pr-7 text-xs rounded-full"
+                      autoFocus
+                    />
+                    {searchTerm && (
+                      <button
+                        onClick={() => setSearchTerm('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-full"
+                    onClick={() => {
+                      setSearchTerm('')
+                      setIsSearchOpen(false)
                     }}
-                    className="h-8 w-[200px] pl-8 pr-8 text-sm rounded-full"
-                    autoFocus
-                  />
-                  {searchTerm && (
-                    <button
-                      onClick={() => setSearchTerm('')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
+              ) : (
                 <Button
-                  variant="ghost"
+                  variant={searchTerm ? 'secondary' : 'ghost'}
                   size="icon"
-                  className="h-8 w-8 rounded-full"
-                  onClick={() => {
-                    setSearchTerm('')
-                    setIsSearchOpen(false)
-                  }}
+                  className="h-7 w-7 rounded-full"
+                  onClick={() => setIsSearchOpen(true)}
                 >
-                  <X className="h-4 w-4" />
+                  <Search className="h-3.5 w-3.5" />
+                  {searchTerm && <span className="sr-only">{t('filters.searchActive', { defaultValue: 'Búsqueda activa' })}</span>}
                 </Button>
-              </div>
-            ) : (
-              <Button
-                variant={searchTerm ? 'secondary' : 'ghost'}
-                size="icon"
-                className="h-8 w-8 rounded-full"
-                onClick={() => setIsSearchOpen(true)}
+              )}
+              {/* Active search indicator dot */}
+              {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
+            </div>
+
+            {/* Date Range Picker */}
+            <DateRangePicker
+              initialDateFrom={dateRange.from}
+              initialDateTo={dateRange.to}
+              showCompare={false}
+              align="start"
+              onUpdate={({ range }) => {
+                setDateRange({
+                  from: range.from,
+                  to: range.to ?? range.from,
+                })
+              }}
+            />
+
+            <FilterPillBar onReset={resetFilters} resetLabel={t('filters.reset', { defaultValue: 'Borrar filtros' })}>
+              {/* Type Filter Pill */}
+              <FilterPill
+                label={t('columns.type')}
+                activeValue={getFilterDisplayLabel(
+                  typeFilter,
+                  typeOptions.map(type => ({
+                    value: type,
+                    label: getOrderTypeDisplayLabel(type),
+                  })),
+                )}
+                isActive={typeFilter.length > 0}
+                onClear={() => setTypeFilter([])}
               >
-                <Search className="h-4 w-4" />
-                {searchTerm && <span className="sr-only">{t('filters.searchActive', { defaultValue: 'Búsqueda activa' })}</span>}
-              </Button>
-            )}
-            {/* Active search indicator dot */}
-            {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
-          </div>
+                <CheckboxFilterContent
+                  title={`Filtrar por: ${t('columns.type').toLowerCase()}`}
+                  options={typeOptions.map(type => ({
+                    value: type,
+                    label: getOrderTypeDisplayLabel(type),
+                  }))}
+                  selectedValues={typeFilter}
+                  onApply={setTypeFilter}
+                />
+              </FilterPill>
 
-          {/* Date Range Picker */}
-          <DateRangePicker
-            initialDateFrom={dateRange.from}
-            initialDateTo={dateRange.to}
-            showCompare={false}
-            align="start"
-            onUpdate={({ range }) => {
-              setDateRange({
-                from: range.from,
-                to: range.to ?? range.from,
-              })
-            }}
-          />
+              {/* Table Filter Pill */}
+              <FilterPill
+                label={t('columns.table')}
+                activeValue={getFilterDisplayLabel(
+                  tableFilter,
+                  tables.map((tb: any) => ({
+                    value: tb.id,
+                    label: tb.area?.name ? `${tb.area.name} - ${tb.number}` : tb.number,
+                  })),
+                )}
+                isActive={tableFilter.length > 0}
+                onClear={() => setTableFilter([])}
+              >
+                <CheckboxFilterContent
+                  title={`Filtrar por: ${t('columns.table').toLowerCase()}`}
+                  options={tables.map((tb: any) => ({
+                    value: tb.id,
+                    label: tb.area?.name ? `${tb.area.name} - ${tb.number}` : tb.number,
+                  }))}
+                  selectedValues={tableFilter}
+                  onApply={setTableFilter}
+                  searchable={tables.length > 5}
+                  searchPlaceholder="Buscar mesa..."
+                />
+              </FilterPill>
 
-          {/* Type Filter Pill */}
-          <FilterPill
-            label={t('columns.type')}
-            activeValue={getFilterDisplayLabel(
-              typeFilter,
-              typeOptions.map(type => ({
-                value: type,
-                label: getOrderTypeDisplayLabel(type),
-              })),
-            )}
-            isActive={typeFilter.length > 0}
-            onClear={() => setTypeFilter([])}
-          >
-            <CheckboxFilterContent
-              title={`Filtrar por: ${t('columns.type').toLowerCase()}`}
-              options={typeOptions.map(type => ({
-                value: type,
-                label: getOrderTypeDisplayLabel(type),
-              }))}
-              selectedValues={typeFilter}
-              onApply={setTypeFilter}
-            />
-          </FilterPill>
+              {/* Waiter Filter Pill */}
+              <FilterPill
+                label={t('columns.waiter')}
+                activeValue={getFilterDisplayLabel(
+                  waiterFilter,
+                  waiterOptions.map((w: any) => ({
+                    value: w.id,
+                    label: `${w.firstName} ${w.lastName}`.trim(),
+                  })),
+                )}
+                isActive={waiterFilter.length > 0}
+                onClear={() => setWaiterFilter([])}
+              >
+                <CheckboxFilterContent
+                  title={`Filtrar por: ${t('columns.waiter').toLowerCase()}`}
+                  options={waiterOptions.map((w: any) => ({
+                    value: w.id,
+                    label: `${w.firstName} ${w.lastName}`.trim(),
+                  }))}
+                  selectedValues={waiterFilter}
+                  onApply={setWaiterFilter}
+                  searchable={waiterOptions.length > 5}
+                  searchPlaceholder="Buscar personal..."
+                />
+              </FilterPill>
 
-          {/* Table Filter Pill */}
-          <FilterPill
-            label={t('columns.table')}
-            activeValue={getFilterDisplayLabel(
-              tableFilter,
-              tables.map((tb: any) => ({
-                value: tb.id,
-                label: tb.area?.name ? `${tb.area.name} - ${tb.number}` : tb.number,
-              })),
-            )}
-            isActive={tableFilter.length > 0}
-            onClear={() => setTableFilter([])}
-          >
-            <CheckboxFilterContent
-              title={`Filtrar por: ${t('columns.table').toLowerCase()}`}
-              options={tables.map((tb: any) => ({
-                value: tb.id,
-                label: tb.area?.name ? `${tb.area.name} - ${tb.number}` : tb.number,
-              }))}
-              selectedValues={tableFilter}
-              onApply={setTableFilter}
-              searchable={tables.length > 5}
-              searchPlaceholder="Buscar mesa..."
-            />
-          </FilterPill>
+              {/* Status Filter Pill */}
+              <FilterPill
+                label={t('columns.status')}
+                activeValue={getFilterDisplayLabel(
+                  statusFilter,
+                  statuses.map(s => ({ value: s, label: t(`statuses.${s}`, { defaultValue: s }) })),
+                )}
+                isActive={statusFilter.length > 0}
+                onClear={() => setStatusFilter([])}
+              >
+                <CheckboxFilterContent
+                  title={`Filtrar por: ${t('columns.status').toLowerCase()}`}
+                  options={statuses.map(s => ({ value: s, label: t(`statuses.${s}`, { defaultValue: s }) }))}
+                  selectedValues={statusFilter}
+                  onApply={setStatusFilter}
+                />
+              </FilterPill>
 
-          {/* Waiter Filter Pill */}
-          <FilterPill
-            label={t('columns.waiter')}
-            activeValue={getFilterDisplayLabel(
-              waiterFilter,
-              waiterOptions.map((w: any) => ({
-                value: w.id,
-                label: `${w.firstName} ${w.lastName}`.trim(),
-              })),
-            )}
-            isActive={waiterFilter.length > 0}
-            onClear={() => setWaiterFilter([])}
-          >
-            <CheckboxFilterContent
-              title={`Filtrar por: ${t('columns.waiter').toLowerCase()}`}
-              options={waiterOptions.map((w: any) => ({
-                value: w.id,
-                label: `${w.firstName} ${w.lastName}`.trim(),
-              }))}
-              selectedValues={waiterFilter}
-              onApply={setWaiterFilter}
-              searchable={waiterOptions.length > 5}
-              searchPlaceholder="Buscar personal..."
-            />
-          </FilterPill>
+              {/* Tip Filter Pill */}
+              <FilterPill
+                label={t('columns.tip')}
+                activeValue={getAmountFilterLabel(tipFilter)}
+                isActive={tipFilter !== null}
+                onClear={() => setTipFilter(null)}
+              >
+                <AmountFilterContent
+                  title={`Filtrar por: ${t('columns.tip').toLowerCase()}`}
+                  currentFilter={tipFilter}
+                  onApply={setTipFilter}
+                />
+              </FilterPill>
 
-          {/* Status Filter Pill */}
-          <FilterPill
-            label={t('columns.status')}
-            activeValue={getFilterDisplayLabel(
-              statusFilter,
-              statuses.map(s => ({ value: s, label: t(`statuses.${s}`, { defaultValue: s }) })),
-            )}
-            isActive={statusFilter.length > 0}
-            onClear={() => setStatusFilter([])}
-          >
-            <CheckboxFilterContent
-              title={`Filtrar por: ${t('columns.status').toLowerCase()}`}
-              options={statuses.map(s => ({ value: s, label: t(`statuses.${s}`, { defaultValue: s }) }))}
-              selectedValues={statusFilter}
-              onApply={setStatusFilter}
-            />
-          </FilterPill>
-
-          {/* Tip Filter Pill */}
-          <FilterPill
-            label={t('columns.tip')}
-            activeValue={getAmountFilterLabel(tipFilter)}
-            isActive={tipFilter !== null}
-            onClear={() => setTipFilter(null)}
-          >
-            <AmountFilterContent
-              title={`Filtrar por: ${t('columns.tip').toLowerCase()}`}
-              currentFilter={tipFilter}
-              onApply={setTipFilter}
-            />
-          </FilterPill>
-
-          {/* Total Filter Pill */}
-          <FilterPill
-            label={t('columns.total')}
-            activeValue={getAmountFilterLabel(totalFilter)}
-            isActive={totalFilter !== null}
-            onClear={() => setTotalFilter(null)}
-          >
-            <AmountFilterContent
-              title={`Filtrar por: ${t('columns.total').toLowerCase()}`}
-              currentFilter={totalFilter}
-              onApply={setTotalFilter}
-            />
-          </FilterPill>
-
-          {/* Reset filters - white background button with X icon */}
-          {activeFiltersCount > 0 && (
-            <Button variant="outline" size="sm" onClick={resetFilters} className="h-8 gap-1.5 rounded-full">
-              <X className="h-3.5 w-3.5" />
-              {t('filters.reset', { defaultValue: 'Borrar filtros' })}
-            </Button>
-          )}
-
-          {/* Action buttons - pushed right with ml-auto, wrap left when needed */}
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            {canCreateManualPayment && (
-              <Button size="sm" className="h-8 gap-1.5" onClick={() => setManualPaymentOpen(true)}>
-                <Plus className="h-3.5 w-3.5" />
-                Nuevo pago manual
-              </Button>
-            )}
-
-            {/* Pay Later - Navigate to dedicated report */}
-            <Button variant="outline" size="sm" className="h-8 gap-2" onClick={() => navigate('../reports/pay-later-aging')}>
-              <Clock className="h-3.5 w-3.5" />
-              {t('payLater.button', { defaultValue: 'Cuentas por Cobrar' })}
-            </Button>
-
-            {/* Export button — opens advanced ExportDialog */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5"
-              onClick={() => setExportOpen(true)}
-              data-tour="orders-export-btn"
-            >
-              <Download className="h-3.5 w-3.5" />
-              {t('export.button')}
-            </Button>
-
-            {/* Column Customizer */}
+              {/* Total Filter Pill */}
+              <FilterPill
+                label={t('columns.total')}
+                activeValue={getAmountFilterLabel(totalFilter)}
+                isActive={totalFilter !== null}
+                onClear={() => setTotalFilter(null)}
+              >
+                <AmountFilterContent
+                  title={`Filtrar por: ${t('columns.total').toLowerCase()}`}
+                  currentFilter={totalFilter}
+                  onApply={setTotalFilter}
+                />
+              </FilterPill>
+            </FilterPillBar>
+          </>
+        }
+        tableTab={
+          <>
             <ColumnCustomizer
               columns={[
                 { id: 'createdAt', label: t('columns.date'), visible: visibleColumns.includes('createdAt') },
@@ -1399,36 +1381,31 @@ export default function Orders() {
               onApply={setVisibleColumns}
               label={t('filters.columns', { defaultValue: 'Columnas' })}
               title={t('filters.editColumns', { defaultValue: 'Editar columnas' })}
+              triggerVariant="ghost"
+              triggerClassName="h-7 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60"
             />
-          </div>
-        </div>
-      </div>
-
-      <DataTable
-        data={sortedData}
-        rowCount={totalOrders}
-        columns={filteredColumns}
-        isLoading={isLoading}
-        enableSearch={false}
-        showColumnCustomizer={false}
-        tableId="orders:main"
-        clickableRow={row => ({
-          to: row.id,
-          state: { from: location.pathname },
-        })}
-        pagination={pagination}
-        setPagination={setPagination}
-        hidePagination
+            <span className="h-4 w-px bg-border" aria-hidden />
+            <button
+              type="button"
+              onClick={() => setExportOpen(true)}
+              data-tour="orders-export-btn"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+            >
+              <Download className="h-3.5 w-3.5" />
+              {t('export.button')}
+            </button>
+          </>
+        }
         footer={
           <InfiniteScrollFooter
-            loadedCount={ordersLoaded.length}
+            loadedCount={sortedData.length}
             totalCount={totalOrders || undefined}
             hasMore={!!hasNextPage}
             isFetching={isFetchingNextPage}
             onLoadMore={() => fetchNextPage()}
             softCap={SOFT_CAP}
             hardCap={HARD_CAP}
-            hidden={isLoading || ordersLoaded.length === 0}
+            hidden={isLoading || sortedData.length === 0}
           />
         }
         enableRowSelection

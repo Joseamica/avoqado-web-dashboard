@@ -18,13 +18,24 @@ interface ColumnCustomizerProps {
   onApply: (visibleColumnIds: string[]) => void
   label?: string
   title?: string
+  /** Override the trigger button variant (default 'outline'). Use 'ghost' inside compact toolbars/tabs. */
+  triggerVariant?: 'outline' | 'ghost'
+  /** Extra classes for the trigger button. Use to override default sizing/padding inside compact toolbars/tabs. */
+  triggerClassName?: string
 }
 
 /**
  * Column customizer popover for showing/hiding table columns.
  * Stripe-style "Edita las columnas" feature.
  */
-export function ColumnCustomizer({ columns, onApply, label = 'Columnas', title = 'Editar columnas' }: ColumnCustomizerProps) {
+export function ColumnCustomizer({
+  columns,
+  onApply,
+  label = 'Columnas',
+  title = 'Editar columnas',
+  triggerVariant = 'outline',
+  triggerClassName,
+}: ColumnCustomizerProps) {
   const [open, setOpen] = useState(false)
   const [localColumns, setLocalColumns] = useState<ColumnOption[]>(columns)
 
@@ -58,7 +69,7 @@ export function ColumnCustomizer({ columns, onApply, label = 'Columnas', title =
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-8 gap-1.5 font-normal">
+        <Button variant={triggerVariant} size="sm" className={cn('h-8 gap-1.5 font-normal', triggerClassName)}>
           <Settings2 className="h-3.5 w-3.5" />
           <span>{label}</span>
           {visibleCount < totalCount && (

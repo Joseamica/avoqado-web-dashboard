@@ -13,9 +13,10 @@
  */
 
 import DataTable from '@/components/data-table'
-import { CheckboxFilterContent, FilterPill } from '@/components/filters'
+import { CheckboxFilterContent, FilterPill, FilterPillBar } from '@/components/filters'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -33,7 +34,7 @@ import { StaffRole } from '@/types'
 import { getRoleBadgeColor } from '@/utils/role-permissions'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { AlertTriangle, Building2, RotateCcw, Save, Store, UserCheck, UserPlus, UserX, X } from 'lucide-react'
+import { AlertTriangle, Building2, RotateCcw, Save, Search, Store, UserCheck, UserPlus, UserX, X } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -96,6 +97,8 @@ export function UsersManagement() {
   const [roleFilter, setRoleFilter] = useState<string[]>([])
   const [statusFilter, setStatusFilter] = useState<string[]>([])
   const [storesFilter, setStoresFilter] = useState<string[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   // Invite dialog state
   const [showInviteDialog, setShowInviteDialog] = useState(false)
@@ -316,13 +319,12 @@ export function UsersManagement() {
     return `${values.length} seleccionados`
   }, [])
 
-  // Count active filters
-  const activeFiltersCount = [roleFilter.length > 0, statusFilter.length > 0, storesFilter.length > 0].filter(Boolean).length
-
   const resetFilters = useCallback(() => {
     setRoleFilter([])
     setStatusFilter([])
     setStoresFilter([])
+    setSearchTerm('')
+    setIsSearchOpen(false)
   }, [])
 
   // Apply all filters
@@ -337,8 +339,11 @@ export function UsersManagement() {
     if (storesFilter.length > 0) {
       rows = rows.filter(u => u.activeVenueIds.some(id => storesFilter.includes(id)))
     }
+    if (searchTerm) {
+      rows = rows.filter(u => includesNormalized(u.name ?? '', searchTerm) || includesNormalized(u.email ?? '', searchTerm))
+    }
     return rows
-  }, [userRows, roleFilter, statusFilter, storesFilter])
+  }, [userRows, roleFilter, statusFilter, storesFilter, searchTerm])
 
   const selectedUser = useMemo(() => usersFullData.find(u => u.id === selectedUserId) || null, [selectedUserId, usersFullData])
 
@@ -411,12 +416,6 @@ export function UsersManagement() {
     queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
     queryClient.invalidateQueries({ queryKey: ['team-invitations', venueId] })
   }, [venueId, queryClient])
-
-  // Client-side search for DataTable
-  const handleSearch = useCallback((search: string, rows: UserRow[]) => {
-    if (!search) return rows
-    return rows.filter(u => includesNormalized(u.name ?? '', search) || includesNormalized(u.email ?? '', search))
-  }, [])
 
   const isSaving = updateRoleMutation.isPending || updateStatusMutation.isPending || syncVenuesMutation.isPending
 
@@ -538,59 +537,9 @@ export function UsersManagement() {
 
   return (
     <>
-      {/* Stripe-style filter bar: filters left, actions right */}
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-3 mb-4">
-        {/* Rol filter — matches column order */}
-        <FilterPill
-          label="Rol"
-          activeValue={getFilterLabel(roleFilter, roleOptions)}
-          isActive={roleFilter.length > 0}
-          onClear={() => setRoleFilter([])}
-        >
-          <CheckboxFilterContent title="Filtrar por Rol" options={roleOptions} selectedValues={roleFilter} onApply={setRoleFilter} />
-        </FilterPill>
-
-        {/* Estado filter */}
-        <FilterPill
-          label="Estado"
-          activeValue={getFilterLabel(statusFilter, statusOptions)}
-          isActive={statusFilter.length > 0}
-          onClear={() => setStatusFilter([])}
-        >
-          <CheckboxFilterContent
-            title="Filtrar por Estado"
-            options={statusOptions}
-            selectedValues={statusFilter}
-            onApply={setStatusFilter}
-          />
-        </FilterPill>
-
-        {/* Tiendas filter */}
-        <FilterPill
-          label="Tiendas"
-          activeValue={getFilterLabel(storesFilter, storesOptions)}
-          isActive={storesFilter.length > 0}
-          onClear={() => setStoresFilter([])}
-        >
-          <CheckboxFilterContent
-            title="Filtrar por Tienda"
-            options={storesOptions}
-            selectedValues={storesFilter}
-            searchable={storesOptions.length > 5}
-            onApply={setStoresFilter}
-          />
-        </FilterPill>
-
-        {/* Reset filters button */}
-        {activeFiltersCount > 0 && (
-          <Button variant="outline" size="sm" onClick={resetFilters} className="h-8 gap-1.5 rounded-full cursor-pointer">
-            <X className="h-3.5 w-3.5" />
-            Borrar filtros
-          </Button>
-        )}
-
-        {/* Push toggle + invite button right */}
-        <div className="ml-auto flex items-center gap-3">
+      {/* Top row: toggle + invite */}
+      {(canViewAllOrgStaff && staffInfo?.role === 'SUPERADMIN') || staffInfo?.role === 'SUPERADMIN' ? (
+        <div className="flex items-center justify-end gap-3 mb-4">
           {canViewAllOrgStaff && staffInfo?.role === 'SUPERADMIN' && (
             <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground">
               <Building2 className="w-3.5 h-3.5" />
@@ -599,13 +548,13 @@ export function UsersManagement() {
             </label>
           )}
           {staffInfo?.role === 'SUPERADMIN' && (
-            <Button onClick={() => setShowInviteDialog(true)} className="h-10 gap-1.5 rounded-xl cursor-pointer px-4">
+            <Button onClick={() => setShowInviteDialog(true)} className="h-9 gap-1.5 cursor-pointer px-4">
               <UserPlus className="w-4 h-4" />
               {t('playtelecom:users.invite', { defaultValue: 'Invitar' })}
             </Button>
           )}
         </div>
-      </div>
+      ) : null}
 
       {/* Users Table */}
       <DataTable
@@ -615,9 +564,87 @@ export function UsersManagement() {
         isLoading={isLoading}
         onRowClick={row => setSelectedUserId(row.id)}
         tableId="playtelecom:users"
-        enableSearch
-        searchPlaceholder={t('playtelecom:users.searchPlaceholder', { defaultValue: 'Buscar usuario...' })}
-        onSearch={handleSearch}
+        enableSearch={false}
+        tableTabLeft={
+          <>
+            {/* Search */}
+            <div className="relative flex items-center">
+              {isSearchOpen ? (
+                <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder={t('playtelecom:users.searchPlaceholder', { defaultValue: 'Buscar usuario...' })}
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                      className="h-7 w-[180px] pl-8 pr-7 text-xs rounded-full"
+                      autoFocus
+                    />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-full"
+                    onClick={() => {
+                      setSearchTerm('')
+                      setIsSearchOpen(false)
+                    }}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant={searchTerm ? 'secondary' : 'ghost'}
+                  size="icon"
+                  className="h-7 w-7 rounded-full"
+                  onClick={() => setIsSearchOpen(true)}
+                >
+                  <Search className="h-3.5 w-3.5" />
+                </Button>
+              )}
+              {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
+            </div>
+
+            <FilterPillBar onReset={resetFilters}>
+              <FilterPill
+                label="Rol"
+                activeValue={getFilterLabel(roleFilter, roleOptions)}
+                isActive={roleFilter.length > 0}
+                onClear={() => setRoleFilter([])}
+              >
+                <CheckboxFilterContent title="Filtrar por Rol" options={roleOptions} selectedValues={roleFilter} onApply={setRoleFilter} />
+              </FilterPill>
+              <FilterPill
+                label="Estado"
+                activeValue={getFilterLabel(statusFilter, statusOptions)}
+                isActive={statusFilter.length > 0}
+                onClear={() => setStatusFilter([])}
+              >
+                <CheckboxFilterContent
+                  title="Filtrar por Estado"
+                  options={statusOptions}
+                  selectedValues={statusFilter}
+                  onApply={setStatusFilter}
+                />
+              </FilterPill>
+              <FilterPill
+                label="Tiendas"
+                activeValue={getFilterLabel(storesFilter, storesOptions)}
+                isActive={storesFilter.length > 0}
+                onClear={() => setStoresFilter([])}
+              >
+                <CheckboxFilterContent
+                  title="Filtrar por Tienda"
+                  options={storesOptions}
+                  selectedValues={storesFilter}
+                  searchable={storesOptions.length > 5}
+                  onApply={setStoresFilter}
+                />
+              </FilterPill>
+            </FilterPillBar>
+          </>
+        }
       />
 
       {/* User Detail Modal */}

@@ -3,7 +3,7 @@
 import api from '@/api'
 import { AddToAIButton } from '@/components/AddToAIButton'
 import DataTable from '@/components/data-table'
-import { AmountFilterContent, CheckboxFilterContent, ColumnCustomizer, FilterPill, type AmountFilter } from '@/components/filters'
+import { AmountFilterContent, CheckboxFilterContent, ColumnCustomizer, FilterPill, FilterPillBar, type AmountFilter } from '@/components/filters'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import {
@@ -422,19 +422,6 @@ export default function Payments() {
     }
   }, [filterOptionsData?.data])
 
-  // Count active filters (arrays with values count as active)
-  const activeFiltersCount = [
-    merchantAccountFilter.length > 0,
-    methodFilter.length > 0,
-    sourceFilter.length > 0,
-    waiterFilter.length > 0,
-    internationalFilter.length > 0,
-    cardBrandFilter.length > 0,
-    subtotalFilter !== null,
-    tipFilter !== null,
-    totalFilter !== null,
-    searchTerm !== '',
-  ].filter(Boolean).length
 
   // Reset all filters
   const resetFilters = useCallback(() => {
@@ -1260,17 +1247,25 @@ export default function Payments() {
   return (
     <div className={`p-4 bg-background text-foreground`}>
       {/* Header */}
-      <div className="mb-4">
-        <PageTitleWithInfo
-          title={t('title')}
-          className="text-xl font-semibold"
-          tooltip={t('info.list', {
-            defaultValue: 'Historial de pagos del venue con filtros, estado y acceso al detalle.',
-          })}
-        />
-        <p className="text-sm text-muted-foreground">
-          {t('filters.showing')} {filteredPayments.length} {t('filters.of')} {totalPayments} {t('filters.payments')}
-        </p>
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <PageTitleWithInfo
+            title={t('title')}
+            className="text-xl font-semibold"
+            tooltip={t('info.list', {
+              defaultValue: 'Historial de pagos del venue con filtros, estado y acceso al detalle.',
+            })}
+          />
+          <p className="text-sm text-muted-foreground">
+            {t('filters.showing')} {filteredPayments.length} {t('filters.of')} {totalPayments} {t('filters.payments')}
+          </p>
+        </div>
+        {canCreateManualPayment && (
+          <Button size="sm" className="h-9 gap-1.5 shrink-0" onClick={() => setManualPaymentOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Nuevo pago manual
+          </Button>
+        )}
       </div>
 
       {/* Status Filter Tabs */}
@@ -1278,330 +1273,6 @@ export default function Payments() {
 
       {/* Summary Cards */}
       <SummaryCards cards={summaryCards} isLoading={isLoading} className="mb-4" />
-
-      {/* Stripe-style Filter Bar */}
-      <div className="mb-4">
-        {/* Single row: Filters left, Actions right (wrap when needed) */}
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
-          {/* Expandable Search Icon */}
-          <div className="relative flex items-center">
-            {isSearchOpen ? (
-              <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder={t('filters.searchPlaceholder')}
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Escape') {
-                        if (!searchTerm) setIsSearchOpen(false)
-                      }
-                    }}
-                    className="h-8 w-[200px] pl-8 pr-8 text-sm rounded-full"
-                    autoFocus
-                  />
-                  {searchTerm && (
-                    <button
-                      onClick={() => setSearchTerm('')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-full"
-                  onClick={() => {
-                    setSearchTerm('')
-                    setIsSearchOpen(false)
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <Button
-                variant={searchTerm ? 'secondary' : 'ghost'}
-                size="icon"
-                className="h-8 w-8 rounded-full"
-                onClick={() => setIsSearchOpen(true)}
-              >
-                <Search className="h-4 w-4" />
-                {searchTerm && <span className="sr-only">{t('filters.searchActive', { defaultValue: 'Búsqueda activa' })}</span>}
-              </Button>
-            )}
-            {/* Active search indicator dot */}
-            {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
-          </div>
-
-          {/* Date Range Picker */}
-          <DateRangePicker
-            initialDateFrom={dateRange.from}
-            initialDateTo={dateRange.to}
-            showCompare={false}
-            align="start"
-            onUpdate={({ range }) => {
-              setDateRange({
-                from: range.from,
-                to: range.to ?? range.from,
-              })
-            }}
-          />
-
-          {/* Merchant Account Filter Pill */}
-          <FilterPill
-            label={t('columns.merchantAccount')}
-            activeValue={getFilterDisplayLabel(
-              merchantAccountFilter,
-              merchantAccounts.map(account => ({
-                value: account.id,
-                label: account.displayName || account.externalMerchantId,
-              })),
-            )}
-            isActive={merchantAccountFilter.length > 0}
-            onClear={() => setMerchantAccountFilter([])}
-          >
-            <CheckboxFilterContent
-              title={`Filtrar por: ${t('columns.merchantAccount').toLowerCase()}`}
-              options={merchantAccounts.map(account => ({
-                value: account.id,
-                label: account.displayName || account.externalMerchantId,
-              }))}
-              selectedValues={merchantAccountFilter}
-              onApply={setMerchantAccountFilter}
-              searchable={merchantAccounts.length > 5}
-              searchPlaceholder={t('filters.searchMerchant', { defaultValue: 'Buscar cuenta...' })}
-            />
-          </FilterPill>
-
-          {/* Method Filter Pill */}
-          <FilterPill
-            label={t('columns.method')}
-            activeValue={getFilterDisplayLabel(
-              methodFilter,
-              methods.map((method: string) => ({
-                value: method,
-                label:
-                  method === 'CASH'
-                    ? t('methods.cash')
-                    : method === 'CREDIT_CARD'
-                      ? t('methods.creditCard')
-                      : method === 'DEBIT_CARD'
-                        ? t('methods.debitCard')
-                        : t('methods.card'),
-              })),
-            )}
-            isActive={methodFilter.length > 0}
-            onClear={() => setMethodFilter([])}
-          >
-            <CheckboxFilterContent
-              title={`Filtrar por: ${t('columns.method').toLowerCase()}`}
-              options={methods.map((method: string) => ({
-                value: method,
-                label:
-                  method === 'CASH'
-                    ? t('methods.cash')
-                    : method === 'CREDIT_CARD'
-                      ? t('methods.creditCard')
-                      : method === 'DEBIT_CARD'
-                        ? t('methods.debitCard')
-                        : t('methods.card'),
-              }))}
-              selectedValues={methodFilter}
-              onApply={setMethodFilter}
-            />
-          </FilterPill>
-
-          {/* Card Brand Filter Pill — independent from method because the same
-              brand can show up as both CREDIT and DEBIT (e.g. AMEX, Visa). */}
-          <FilterPill
-            label={t('columns.cardBrand', { defaultValue: 'Marca' })}
-            activeValue={getFilterDisplayLabel(
-              cardBrandFilter,
-              cardBrands.map((brand: string) => ({ value: brand, label: formatCardBrandLabel(brand) })),
-            )}
-            isActive={cardBrandFilter.length > 0}
-            onClear={() => setCardBrandFilter([])}
-          >
-            <CheckboxFilterContent
-              title={`Filtrar por: ${t('columns.cardBrand', { defaultValue: 'Marca' }).toLowerCase()}`}
-              options={cardBrands.map((brand: string) => ({ value: brand, label: formatCardBrandLabel(brand) }))}
-              selectedValues={cardBrandFilter}
-              onApply={setCardBrandFilter}
-              searchable={cardBrands.length > 5}
-              searchPlaceholder={t('filters.searchBrand', { defaultValue: 'Buscar marca...' })}
-            />
-          </FilterPill>
-
-          {/* Source Filter Pill */}
-          <FilterPill
-            label={t('columns.source')}
-            activeValue={getFilterDisplayLabel(
-              sourceFilter,
-              sources.map((source: string) => ({
-                value: source,
-                label: t(`sources.${source}` as any),
-              })),
-            )}
-            isActive={sourceFilter.length > 0}
-            onClear={() => setSourceFilter([])}
-          >
-            <CheckboxFilterContent
-              title={`Filtrar por: ${t('columns.source').toLowerCase()}`}
-              options={sources.map((source: string) => ({
-                value: source,
-                label: t(`sources.${source}` as any),
-              }))}
-              selectedValues={sourceFilter}
-              onApply={setSourceFilter}
-            />
-          </FilterPill>
-
-          {/* International Filter Pill */}
-          <FilterPill
-            label={t('columns.international', { defaultValue: 'Internacional' })}
-            activeValue={getFilterDisplayLabel(
-              internationalFilter,
-              [
-                { value: 'yes', label: t('international.yes', { defaultValue: 'Sí' }) },
-                { value: 'no', label: t('international.no', { defaultValue: 'No' }) },
-              ],
-            )}
-            isActive={internationalFilter.length > 0}
-            onClear={() => setInternationalFilter([])}
-          >
-            <CheckboxFilterContent
-              title={`Filtrar por: ${t('columns.international', { defaultValue: 'Internacional' }).toLowerCase()}`}
-              options={[
-                { value: 'yes', label: t('international.yes', { defaultValue: 'Sí' }) },
-                { value: 'no', label: t('international.no', { defaultValue: 'No' }) },
-              ]}
-              selectedValues={internationalFilter}
-              onApply={setInternationalFilter}
-            />
-          </FilterPill>
-
-          {/* Waiter Filter Pill */}
-          <FilterPill
-            label={t('columns.waiter')}
-            activeValue={getFilterDisplayLabel(
-              waiterFilter,
-              waiters.map((waiter: any) => ({
-                value: waiter.id,
-                label: `${waiter.firstName} ${waiter.lastName}`.trim(),
-              })),
-            )}
-            isActive={waiterFilter.length > 0}
-            onClear={() => setWaiterFilter([])}
-          >
-            <CheckboxFilterContent
-              title={`Filtrar por: ${t('columns.waiter').toLowerCase()}`}
-              options={waiters.map((waiter: any) => ({
-                value: waiter.id,
-                label: `${waiter.firstName} ${waiter.lastName}`.trim(),
-              }))}
-              selectedValues={waiterFilter}
-              onApply={setWaiterFilter}
-              searchable={waiters.length > 5}
-              searchPlaceholder={t('filters.searchWaiter', { defaultValue: 'Buscar personal...' })}
-            />
-          </FilterPill>
-
-          {/* Subtotal Filter Pill */}
-          <FilterPill
-            label={t('columns.subtotal')}
-            activeValue={getAmountFilterLabel(subtotalFilter)}
-            isActive={subtotalFilter !== null}
-            onClear={() => setSubtotalFilter(null)}
-          >
-            <AmountFilterContent
-              title={`Filtrar por: ${t('columns.subtotal').toLowerCase()}`}
-              currentFilter={subtotalFilter}
-              onApply={setSubtotalFilter}
-            />
-          </FilterPill>
-
-          {/* Tip Filter Pill */}
-          <FilterPill
-            label={t('columns.tip')}
-            activeValue={getAmountFilterLabel(tipFilter)}
-            isActive={tipFilter !== null}
-            onClear={() => setTipFilter(null)}
-          >
-            <AmountFilterContent
-              title={`Filtrar por: ${t('columns.tip').toLowerCase()}`}
-              currentFilter={tipFilter}
-              onApply={setTipFilter}
-            />
-          </FilterPill>
-
-          {/* Total Filter Pill */}
-          <FilterPill
-            label={t('columns.total')}
-            activeValue={getAmountFilterLabel(totalFilter)}
-            isActive={totalFilter !== null}
-            onClear={() => setTotalFilter(null)}
-          >
-            <AmountFilterContent
-              title={`Filtrar por: ${t('columns.total').toLowerCase()}`}
-              currentFilter={totalFilter}
-              onApply={setTotalFilter}
-            />
-          </FilterPill>
-
-          {/* Reset filters - white background button with X icon */}
-          {activeFiltersCount > 0 && (
-            <Button variant="outline" size="sm" onClick={resetFilters} className="h-8 gap-1.5 rounded-full">
-              <X className="h-3.5 w-3.5" />
-              {t('filters.reset', { defaultValue: 'Borrar filtros' })}
-            </Button>
-          )}
-
-          {/* Action buttons - pushed right with ml-auto, wrap left when needed */}
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            {canCreateManualPayment && (
-              <Button size="sm" className="h-8 gap-1.5" onClick={() => setManualPaymentOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Nuevo pago manual
-              </Button>
-            )}
-            {/* Export button — opens advanced ExportDialog */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5"
-              onClick={() => setExportOpen(true)}
-              data-tour="payments-export-btn"
-            >
-              <Download className="h-3.5 w-3.5" />
-              {t('export.button')}
-            </Button>
-
-            {/* Column Customizer */}
-            <ColumnCustomizer
-              columns={[
-                { id: 'createdAt', label: t('columns.date'), visible: visibleColumns.includes('createdAt') },
-                { id: 'waiterName', label: t('columns.waiter'), visible: visibleColumns.includes('waiterName') },
-                { id: 'merchantAccount', label: t('columns.merchantAccount'), visible: visibleColumns.includes('merchantAccount') },
-                { id: 'method', label: t('columns.method'), visible: visibleColumns.includes('method') },
-                { id: 'source', label: t('columns.source'), visible: visibleColumns.includes('source') },
-                {
-                  id: 'international',
-                  label: t('columns.international', { defaultValue: 'Internacional' }),
-                  visible: visibleColumns.includes('international'),
-                },
-                { id: 'amount', label: t('columns.subtotal'), visible: visibleColumns.includes('amount') },
-                { id: 'totalTipAmount', label: t('columns.tip'), visible: visibleColumns.includes('totalTipAmount') },
-                { id: 'totalAmount', label: t('columns.total'), visible: visibleColumns.includes('totalAmount'), disabled: true },
-              ]}
-              onApply={setVisibleColumns}
-            />
-          </div>
-        </div>
-      </div>
 
       {error && (
         <div className={`p-4 mb-4 rounded bg-red-100 text-red-800`}>
@@ -1624,16 +1295,324 @@ export default function Payments() {
         pagination={pagination}
         setPagination={setPagination}
         hidePagination
+        tableTabLeft={
+          <>
+            {/* Expandable Search Icon */}
+            <div className="relative flex items-center">
+              {isSearchOpen ? (
+                <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder={t('filters.searchPlaceholder')}
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Escape') {
+                          if (!searchTerm) setIsSearchOpen(false)
+                        }
+                      }}
+                      className="h-7 w-[180px] pl-8 pr-7 text-xs rounded-full"
+                      autoFocus
+                    />
+                    {searchTerm && (
+                      <button
+                        onClick={() => setSearchTerm('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-full"
+                    onClick={() => {
+                      setSearchTerm('')
+                      setIsSearchOpen(false)
+                    }}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant={searchTerm ? 'secondary' : 'ghost'}
+                  size="icon"
+                  className="h-7 w-7 rounded-full"
+                  onClick={() => setIsSearchOpen(true)}
+                >
+                  <Search className="h-3.5 w-3.5" />
+                  {searchTerm && <span className="sr-only">{t('filters.searchActive', { defaultValue: 'Búsqueda activa' })}</span>}
+                </Button>
+              )}
+              {/* Active search indicator dot */}
+              {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
+            </div>
+
+            {/* Date Range Picker */}
+            <DateRangePicker
+              initialDateFrom={dateRange.from}
+              initialDateTo={dateRange.to}
+              showCompare={false}
+              align="start"
+              onUpdate={({ range }) => {
+                setDateRange({
+                  from: range.from,
+                  to: range.to ?? range.from,
+                })
+              }}
+            />
+
+            <FilterPillBar onReset={resetFilters} resetLabel={t('filters.reset', { defaultValue: 'Borrar filtros' })}>
+              {/* Merchant Account Filter Pill */}
+              <FilterPill
+                label={t('columns.merchantAccount')}
+                activeValue={getFilterDisplayLabel(
+                  merchantAccountFilter,
+                  merchantAccounts.map(account => ({
+                    value: account.id,
+                    label: account.displayName || account.externalMerchantId,
+                  })),
+                )}
+                isActive={merchantAccountFilter.length > 0}
+                onClear={() => setMerchantAccountFilter([])}
+              >
+                <CheckboxFilterContent
+                  title={`Filtrar por: ${t('columns.merchantAccount').toLowerCase()}`}
+                  options={merchantAccounts.map(account => ({
+                    value: account.id,
+                    label: account.displayName || account.externalMerchantId,
+                  }))}
+                  selectedValues={merchantAccountFilter}
+                  onApply={setMerchantAccountFilter}
+                  searchable={merchantAccounts.length > 5}
+                  searchPlaceholder={t('filters.searchMerchant', { defaultValue: 'Buscar cuenta...' })}
+                />
+              </FilterPill>
+
+              {/* Method Filter Pill */}
+              <FilterPill
+                label={t('columns.method')}
+                activeValue={getFilterDisplayLabel(
+                  methodFilter,
+                  methods.map((method: string) => ({
+                    value: method,
+                    label:
+                      method === 'CASH'
+                        ? t('methods.cash')
+                        : method === 'CREDIT_CARD'
+                          ? t('methods.creditCard')
+                          : method === 'DEBIT_CARD'
+                            ? t('methods.debitCard')
+                            : t('methods.card'),
+                  })),
+                )}
+                isActive={methodFilter.length > 0}
+                onClear={() => setMethodFilter([])}
+              >
+                <CheckboxFilterContent
+                  title={`Filtrar por: ${t('columns.method').toLowerCase()}`}
+                  options={methods.map((method: string) => ({
+                    value: method,
+                    label:
+                      method === 'CASH'
+                        ? t('methods.cash')
+                        : method === 'CREDIT_CARD'
+                          ? t('methods.creditCard')
+                          : method === 'DEBIT_CARD'
+                            ? t('methods.debitCard')
+                            : t('methods.card'),
+                  }))}
+                  selectedValues={methodFilter}
+                  onApply={setMethodFilter}
+                />
+              </FilterPill>
+
+              {/* Card Brand Filter Pill */}
+              <FilterPill
+                label={t('columns.cardBrand', { defaultValue: 'Marca' })}
+                activeValue={getFilterDisplayLabel(
+                  cardBrandFilter,
+                  cardBrands.map((brand: string) => ({ value: brand, label: formatCardBrandLabel(brand) })),
+                )}
+                isActive={cardBrandFilter.length > 0}
+                onClear={() => setCardBrandFilter([])}
+              >
+                <CheckboxFilterContent
+                  title={`Filtrar por: ${t('columns.cardBrand', { defaultValue: 'Marca' }).toLowerCase()}`}
+                  options={cardBrands.map((brand: string) => ({ value: brand, label: formatCardBrandLabel(brand) }))}
+                  selectedValues={cardBrandFilter}
+                  onApply={setCardBrandFilter}
+                  searchable={cardBrands.length > 5}
+                  searchPlaceholder={t('filters.searchBrand', { defaultValue: 'Buscar marca...' })}
+                />
+              </FilterPill>
+
+              {/* Source Filter Pill */}
+              <FilterPill
+                label={t('columns.source')}
+                activeValue={getFilterDisplayLabel(
+                  sourceFilter,
+                  sources.map((source: string) => ({
+                    value: source,
+                    label: t(`sources.${source}` as any),
+                  })),
+                )}
+                isActive={sourceFilter.length > 0}
+                onClear={() => setSourceFilter([])}
+              >
+                <CheckboxFilterContent
+                  title={`Filtrar por: ${t('columns.source').toLowerCase()}`}
+                  options={sources.map((source: string) => ({
+                    value: source,
+                    label: t(`sources.${source}` as any),
+                  }))}
+                  selectedValues={sourceFilter}
+                  onApply={setSourceFilter}
+                />
+              </FilterPill>
+
+              {/* International Filter Pill */}
+              <FilterPill
+                label={t('columns.international', { defaultValue: 'Internacional' })}
+                activeValue={getFilterDisplayLabel(
+                  internationalFilter,
+                  [
+                    { value: 'yes', label: t('international.yes', { defaultValue: 'Sí' }) },
+                    { value: 'no', label: t('international.no', { defaultValue: 'No' }) },
+                  ],
+                )}
+                isActive={internationalFilter.length > 0}
+                onClear={() => setInternationalFilter([])}
+              >
+                <CheckboxFilterContent
+                  title={`Filtrar por: ${t('columns.international', { defaultValue: 'Internacional' }).toLowerCase()}`}
+                  options={[
+                    { value: 'yes', label: t('international.yes', { defaultValue: 'Sí' }) },
+                    { value: 'no', label: t('international.no', { defaultValue: 'No' }) },
+                  ]}
+                  selectedValues={internationalFilter}
+                  onApply={setInternationalFilter}
+                />
+              </FilterPill>
+
+              {/* Waiter Filter Pill */}
+              <FilterPill
+                label={t('columns.waiter')}
+                activeValue={getFilterDisplayLabel(
+                  waiterFilter,
+                  waiters.map((waiter: any) => ({
+                    value: waiter.id,
+                    label: `${waiter.firstName} ${waiter.lastName}`.trim(),
+                  })),
+                )}
+                isActive={waiterFilter.length > 0}
+                onClear={() => setWaiterFilter([])}
+              >
+                <CheckboxFilterContent
+                  title={`Filtrar por: ${t('columns.waiter').toLowerCase()}`}
+                  options={waiters.map((waiter: any) => ({
+                    value: waiter.id,
+                    label: `${waiter.firstName} ${waiter.lastName}`.trim(),
+                  }))}
+                  selectedValues={waiterFilter}
+                  onApply={setWaiterFilter}
+                  searchable={waiters.length > 5}
+                  searchPlaceholder={t('filters.searchWaiter', { defaultValue: 'Buscar personal...' })}
+                />
+              </FilterPill>
+
+              {/* Subtotal Filter Pill */}
+              <FilterPill
+                label={t('columns.subtotal')}
+                activeValue={getAmountFilterLabel(subtotalFilter)}
+                isActive={subtotalFilter !== null}
+                onClear={() => setSubtotalFilter(null)}
+              >
+                <AmountFilterContent
+                  title={`Filtrar por: ${t('columns.subtotal').toLowerCase()}`}
+                  currentFilter={subtotalFilter}
+                  onApply={setSubtotalFilter}
+                />
+              </FilterPill>
+
+              {/* Tip Filter Pill */}
+              <FilterPill
+                label={t('columns.tip')}
+                activeValue={getAmountFilterLabel(tipFilter)}
+                isActive={tipFilter !== null}
+                onClear={() => setTipFilter(null)}
+              >
+                <AmountFilterContent
+                  title={`Filtrar por: ${t('columns.tip').toLowerCase()}`}
+                  currentFilter={tipFilter}
+                  onApply={setTipFilter}
+                />
+              </FilterPill>
+
+              {/* Total Filter Pill */}
+              <FilterPill
+                label={t('columns.total')}
+                activeValue={getAmountFilterLabel(totalFilter)}
+                isActive={totalFilter !== null}
+                onClear={() => setTotalFilter(null)}
+              >
+                <AmountFilterContent
+                  title={`Filtrar por: ${t('columns.total').toLowerCase()}`}
+                  currentFilter={totalFilter}
+                  onApply={setTotalFilter}
+                />
+              </FilterPill>
+            </FilterPillBar>
+          </>
+        }
+        tableTab={
+          <>
+            <ColumnCustomizer
+              columns={[
+                // Order matches the actual table column order (see `columns` useMemo above).
+                { id: 'createdAt', label: t('columns.date'), visible: visibleColumns.includes('createdAt') },
+                { id: 'merchantAccount', label: t('columns.merchantAccount'), visible: visibleColumns.includes('merchantAccount') },
+                { id: 'source', label: t('columns.source'), visible: visibleColumns.includes('source') },
+                {
+                  id: 'international',
+                  label: t('columns.international', { defaultValue: 'Internacional' }),
+                  visible: visibleColumns.includes('international'),
+                },
+                { id: 'method', label: t('columns.method'), visible: visibleColumns.includes('method') },
+                { id: 'waiterName', label: t('columns.waiter'), visible: visibleColumns.includes('waiterName') },
+                { id: 'amount', label: t('columns.subtotal'), visible: visibleColumns.includes('amount') },
+                { id: 'totalTipAmount', label: t('columns.tip'), visible: visibleColumns.includes('totalTipAmount') },
+                { id: 'totalAmount', label: t('columns.total'), visible: visibleColumns.includes('totalAmount'), disabled: true },
+              ]}
+              onApply={setVisibleColumns}
+              triggerVariant="ghost"
+              triggerClassName="h-7 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60"
+            />
+            <span className="h-4 w-px bg-border" aria-hidden />
+            <button
+              type="button"
+              onClick={() => setExportOpen(true)}
+              data-tour="payments-export-btn"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+            >
+              <Download className="h-3.5 w-3.5" />
+              {t('export.button')}
+            </button>
+          </>
+        }
         footer={
           <InfiniteScrollFooter
-            loadedCount={paymentsLoaded.length}
+            loadedCount={filteredPayments.length}
             totalCount={totalPayments || undefined}
             hasMore={!!hasNextPage}
             isFetching={isFetchingNextPage}
             onLoadMore={() => fetchNextPage()}
             softCap={SOFT_CAP}
             hardCap={HARD_CAP}
-            hidden={isLoading || paymentsLoaded.length === 0}
+            hidden={isLoading || filteredPayments.length === 0}
           />
         }
         getRowClassName={row =>

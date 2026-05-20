@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, Layers, MoreHorizontal, Pencil, Plus, Ticket, Trash2 } from 'lucide-react'
+import { ArrowUpDown, Layers, MoreHorizontal, Pencil, Plus, Search, Ticket, Trash2, X } from 'lucide-react'
 import { useState, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -20,6 +20,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,6 +56,8 @@ export default function Coupons() {
   const [activeFilter, setActiveFilter] = useState<string>('')
   const [deletingCoupon, setDeletingCoupon] = useState<Coupon | null>(null)
   const [showBulkGenerate, setShowBulkGenerate] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   // Fetch coupons
   const { data: couponsData, isLoading: isLoadingCoupons } = useQuery({
@@ -100,15 +103,15 @@ export default function Coupons() {
   // Memoized discounts list for filter
   const discounts = useMemo(() => discountsData?.data || [], [discountsData?.data])
 
-  // Client-side search
-  const handleSearch = useCallback((search: string, rows: Coupon[]) => {
-    if (!search) return rows
-    const q = search.toLowerCase()
-    return rows.filter(c => {
+  // Client-side search (applied before passing data to DataTable)
+  const filteredCoupons = useMemo(() => {
+    if (!searchTerm) return coupons
+    const q = searchTerm.toLowerCase()
+    return coupons.filter(c => {
       const code = (c.code || '').toLowerCase()
       return code.includes(q)
     })
-  }, [])
+  }, [coupons, searchTerm])
 
   // Format validity period
   const formatValidityPeriod = useCallback(
@@ -315,47 +318,83 @@ export default function Coupons() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-4 mb-4">
-        <Select value={selectedDiscountId || 'all'} onValueChange={value => setSelectedDiscountId(value === 'all' ? '' : value)}>
-          <SelectTrigger className="w-[250px]">
-            <SelectValue placeholder={t('coupons.list.filters.allDiscounts')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('coupons.list.filters.allDiscounts')}</SelectItem>
-            {discounts.map((discount: Discount) => (
-              <SelectItem key={discount.id} value={discount.id}>
-                {discount.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={activeFilter || 'all'} onValueChange={value => setActiveFilter(value === 'all' ? '' : value)}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder={t('coupons.list.filters.allDiscounts')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('coupons.list.filters.allDiscounts')}</SelectItem>
-            <SelectItem value="active">{t('coupons.list.filters.active')}</SelectItem>
-            <SelectItem value="inactive">{t('coupons.list.filters.inactive')}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
       {/* Data Table */}
       <DataTable
-        data={coupons}
+        data={filteredCoupons}
         columns={columns}
         isLoading={isLoadingCoupons}
         pagination={pagination}
         setPagination={setPagination}
         tableId="coupons:list"
         rowCount={couponsData?.meta.totalCount || 0}
-        enableSearch={true}
-        searchPlaceholder={t('coupons.list.searchPlaceholder')}
-        onSearch={handleSearch}
+        enableSearch={false}
         clickableRow={row => ({ to: row.id })}
+        tableTabLeft={
+          <>
+            <div className="relative flex items-center">
+              {isSearchOpen ? (
+                <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                      placeholder={t('coupons.list.searchPlaceholder')}
+                      className="h-7 w-[180px] pl-8 pr-7 text-xs rounded-full"
+                      autoFocus
+                    />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-full"
+                    onClick={() => {
+                      setIsSearchOpen(false)
+                      setSearchTerm('')
+                    }}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant={searchTerm ? 'secondary' : 'ghost'}
+                  size="icon"
+                  className="h-7 w-7 rounded-full"
+                  onClick={() => setIsSearchOpen(true)}
+                >
+                  <Search className="h-3.5 w-3.5" />
+                </Button>
+              )}
+              {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
+            </div>
+
+            <Select value={selectedDiscountId || 'all'} onValueChange={value => setSelectedDiscountId(value === 'all' ? '' : value)}>
+              <SelectTrigger className="h-7 w-auto rounded-full border-border/60 bg-transparent px-3 text-xs gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-50">
+                <SelectValue placeholder={t('coupons.list.filters.allDiscounts')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('coupons.list.filters.allDiscounts')}</SelectItem>
+                {discounts.map((discount: Discount) => (
+                  <SelectItem key={discount.id} value={discount.id}>
+                    {discount.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={activeFilter || 'all'} onValueChange={value => setActiveFilter(value === 'all' ? '' : value)}>
+              <SelectTrigger className="h-7 w-auto rounded-full border-border/60 bg-transparent px-3 text-xs gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-50">
+                <SelectValue placeholder={t('coupons.list.filters.allDiscounts')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('coupons.list.filters.allDiscounts')}</SelectItem>
+                <SelectItem value="active">{t('coupons.list.filters.active')}</SelectItem>
+                <SelectItem value="inactive">{t('coupons.list.filters.inactive')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </>
+        }
       />
 
       {/* Delete Coupon Alert */}

@@ -9,7 +9,7 @@ import DataTable from '@/components/data-table'
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { FilterPill, CheckboxFilterContent, AmountFilterContent, type AmountFilter } from '@/components/filters'
+import { FilterPill, FilterPillBar, CheckboxFilterContent, AmountFilterContent, type AmountFilter } from '@/components/filters'
 import { YieldStatusHoverCard } from './components/YieldStatusHoverCard'
 import { AdjustStockDialog } from './components/AdjustStockDialog'
 import { PermissionGate } from '@/components/PermissionGate'
@@ -525,50 +525,151 @@ export default function InventorySummary() {
     [],
   )
 
-  // Count active filters for reset button
-  const activeFiltersCount = (searchTerm ? 1 : 0) + stockFilter.length + disponibleFilter.length + (priceFilter ? 1 : 0)
+  const resetFilters = () => {
+    setSearchTerm('')
+    setStockFilter([])
+    setDisponibleFilter([])
+    setPriceFilter(null)
+    setIsSearchOpen(false)
+  }
+
+  // Filter row rendered inside each DataTable's tableTabLeft so it sits inline with the table chrome.
+  const filterRow = (
+    <>
+      {/* Expandable Search */}
+      <div className="relative flex items-center">
+        {isSearchOpen ? (
+          <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nombre o SKU..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Escape') {
+                    if (!searchTerm) setIsSearchOpen(false)
+                  }
+                }}
+                className="h-7 w-[180px] pl-8 pr-7 text-xs rounded-full"
+                autoFocus
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded-full"
+              onClick={() => {
+                setSearchTerm('')
+                setIsSearchOpen(false)
+              }}
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        ) : (
+          <Button
+            variant={searchTerm ? 'secondary' : 'ghost'}
+            size="icon"
+            className="h-7 w-7 rounded-full"
+            onClick={() => setIsSearchOpen(true)}
+          >
+            <Search className="h-3.5 w-3.5" />
+            {searchTerm && <span className="sr-only">Búsqueda activa</span>}
+          </Button>
+        )}
+        {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
+      </div>
+
+      <FilterPillBar onReset={resetFilters}>
+        <FilterPill
+          label="Estado"
+          activeValue={getFilterDisplayLabel(stockFilter, stockFilterOptions)}
+          isActive={stockFilter.length > 0}
+          onClear={() => setStockFilter([])}
+        >
+          <CheckboxFilterContent
+            title="Filtrar por: estado de stock"
+            options={stockFilterOptions}
+            selectedValues={stockFilter}
+            onApply={setStockFilter}
+          />
+        </FilterPill>
+        <FilterPill
+          label="Disponible"
+          activeValue={getFilterDisplayLabel(disponibleFilter, disponibleFilterOptions)}
+          isActive={disponibleFilter.length > 0}
+          onClear={() => setDisponibleFilter([])}
+        >
+          <CheckboxFilterContent
+            title="Filtrar por: cantidad disponible"
+            options={disponibleFilterOptions}
+            selectedValues={disponibleFilter}
+            onApply={setDisponibleFilter}
+          />
+        </FilterPill>
+        <FilterPill
+          label="Precio"
+          activeValue={getPriceFilterLabel(priceFilter)}
+          isActive={!!priceFilter}
+          onClear={() => setPriceFilter(null)}
+        >
+          <AmountFilterContent title="Filtrar por: precio" currentFilter={priceFilter} onApply={setPriceFilter} currency="$" />
+        </FilterPill>
+      </FilterPillBar>
+    </>
+  )
+
+  // Import / Export buttons live in the table tab on the right.
+  const importExportTab = (
+    <>
+      <button
+        type="button"
+        className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+      >
+        <Upload className="h-3.5 w-3.5" />
+        Importar
+      </button>
+      <span className="h-4 w-px bg-border" aria-hidden />
+      <button
+        type="button"
+        className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+      >
+        <Download className="h-3.5 w-3.5" />
+        Exportar
+      </button>
+    </>
+  )
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
       <div className="px-4 sm:px-6">
         {/* Title + Actions */}
-        <div className="flex items-center justify-between pt-6 pb-5">
+        <div className="flex items-start justify-between gap-4 pt-6 pb-5">
           <h1 className="text-2xl font-bold text-foreground">Resumen de Existencias</h1>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={startWelcomeTour}
-              className="gap-1.5"
-            >
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={startWelcomeTour} className="gap-1.5">
               <HelpCircle className="h-4 w-4" />
               <span className="hidden sm:inline">
-                {tInventory('tourWelcome.launchButton', {
-                  defaultValue: 'Tour completo del inventario (3 min)',
-                })}
+                {tInventory('tourWelcome.launchButton', { defaultValue: 'Tour completo del inventario (3 min)' })}
               </span>
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={startStockAdjustmentTour}
-              className="gap-1.5"
-            >
+            <Button variant="outline" size="sm" onClick={startStockAdjustmentTour} className="gap-1.5">
               <HelpCircle className="h-4 w-4" />
               <span className="hidden sm:inline">
-                {tInventory('tourStockAdjustment.launchButton', {
-                  defaultValue: '¿Cómo ajustar existencias?',
-                })}
+                {tInventory('tourStockAdjustment.launchButton', { defaultValue: '¿Cómo ajustar existencias?' })}
               </span>
             </Button>
-            <Button variant="outline" size="sm">
-              <Upload className="mr-2 h-4 w-4" /> Importar
-            </Button>
-            <Button variant="outline" size="sm">
-              <Download className="mr-2 h-4 w-4" /> Exportar
-            </Button>
-            <Button size="sm" onClick={() => setLabelModalOpen(true)}>
-              <Printer className="mr-2 h-4 w-4" /> Imprimir etiquetas
+            <Button size="sm" onClick={() => setLabelModalOpen(true)} className="gap-1.5">
+              <Printer className="h-4 w-4" /> Imprimir etiquetas
             </Button>
           </div>
         </div>
@@ -611,122 +712,6 @@ export default function InventorySummary() {
       {/* Content */}
       <div className="px-4 sm:px-6 pt-5">
 
-      {/* Stripe-style Filter Bar */}
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
-        {/* Expandable Search Icon */}
-        <div className="relative flex items-center">
-          {isSearchOpen ? (
-            <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por nombre o SKU..."
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Escape') {
-                      if (!searchTerm) setIsSearchOpen(false)
-                    }
-                  }}
-                  className="h-8 w-[200px] pl-8 pr-8 text-sm rounded-full"
-                  autoFocus
-                />
-                {searchTerm && (
-                  <button
-                    onClick={() => setSearchTerm('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-full"
-                onClick={() => {
-                  setSearchTerm('')
-                  setIsSearchOpen(false)
-                }}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <Button
-              variant={searchTerm ? 'secondary' : 'ghost'}
-              size="icon"
-              className="h-8 w-8 rounded-full"
-              onClick={() => setIsSearchOpen(true)}
-            >
-              <Search className="h-4 w-4" />
-              {searchTerm && <span className="sr-only">Búsqueda activa</span>}
-            </Button>
-          )}
-          {/* Active search indicator dot */}
-          {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
-        </div>
-
-        {/* Stock Filter Pill */}
-        <FilterPill
-          label="Estado"
-          activeValue={getFilterDisplayLabel(stockFilter, stockFilterOptions)}
-          isActive={stockFilter.length > 0}
-          onClear={() => setStockFilter([])}
-        >
-          <CheckboxFilterContent
-            title="Filtrar por: estado de stock"
-            options={stockFilterOptions}
-            selectedValues={stockFilter}
-            onApply={setStockFilter}
-          />
-        </FilterPill>
-
-        {/* Disponible Filter Pill */}
-        <FilterPill
-          label="Disponible"
-          activeValue={getFilterDisplayLabel(disponibleFilter, disponibleFilterOptions)}
-          isActive={disponibleFilter.length > 0}
-          onClear={() => setDisponibleFilter([])}
-        >
-          <CheckboxFilterContent
-            title="Filtrar por: cantidad disponible"
-            options={disponibleFilterOptions}
-            selectedValues={disponibleFilter}
-            onApply={setDisponibleFilter}
-          />
-        </FilterPill>
-
-        {/* Precio Filter Pill */}
-        <FilterPill
-          label="Precio"
-          activeValue={getPriceFilterLabel(priceFilter)}
-          isActive={!!priceFilter}
-          onClear={() => setPriceFilter(null)}
-        >
-          <AmountFilterContent title="Filtrar por: precio" currentFilter={priceFilter} onApply={setPriceFilter} currency="$" />
-        </FilterPill>
-
-        {/* Reset Filters Button */}
-        {activeFiltersCount > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setSearchTerm('')
-              setStockFilter([])
-              setDisponibleFilter([])
-              setPriceFilter(null)
-              setIsSearchOpen(false)
-            }}
-            className="h-8 gap-1.5 rounded-full"
-          >
-            <X className="h-3.5 w-3.5" />
-            Borrar filtros
-          </Button>
-        )}
-      </div>
-
       <TabsContent value="physical" className="mt-4">
         <DataTable
           data={filteredPhysicalRows}
@@ -736,6 +721,8 @@ export default function InventorySummary() {
           enableSearch={false}
           showColumnCustomizer={false}
           tableId="inventory:mixed"
+          tableTabLeft={filterRow}
+          tableTab={importExportTab}
         />
       </TabsContent>
       <TabsContent value="recipes" className="mt-4">
@@ -747,6 +734,8 @@ export default function InventorySummary() {
           enableSearch={false}
           showColumnCustomizer={false}
           tableId="inventory:recipes"
+          tableTabLeft={filterRow}
+          tableTab={importExportTab}
           onRowClick={row => {
             navigate(`${fullBasePath}/inventory/recipes?productId=${row.id}`)
           }}

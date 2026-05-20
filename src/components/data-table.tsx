@@ -64,6 +64,10 @@ type DataTableProps<TData> = {
   hidePagination?: boolean
   /** Optional content rendered directly below the table (replaces the pagination footer when hidePagination is true) */
   footer?: ReactNode
+  /** Optional content rendered as a Chrome-style tab attached to the top-right edge of the table border */
+  tableTab?: ReactNode
+  /** Optional content rendered as a Chrome-style tab attached to the top-LEFT edge of the table border. Expands toward the right tab. */
+  tableTabLeft?: ReactNode
 }
 
 function DataTable<TData>({
@@ -93,6 +97,8 @@ function DataTable<TData>({
   toolbarRight,
   hidePagination = false,
   footer,
+  tableTab,
+  tableTabLeft,
 }: DataTableProps<TData>) {
   // MUST call ALL hooks at the very top, before ANY conditional logic or returns
   const { t } = useTranslation()
@@ -379,6 +385,22 @@ function DataTable<TData>({
               </DropdownMenu>
             )}
           </div>
+        </div>
+      )}
+      {(tableTab || tableTabLeft) && (
+        <div className="flex items-end justify-between gap-2">
+          {tableTabLeft ? (
+            <div className="relative z-10 -mb-px ml-6 flex min-w-0 flex-1 items-center gap-2 rounded-t-xl border border-b-0 border-border bg-background px-2 py-1.5">
+              {tableTabLeft}
+            </div>
+          ) : (
+            <div />
+          )}
+          {tableTab && (
+            <div className="relative z-10 -mb-px mr-6 flex shrink-0 items-center gap-1 rounded-t-xl border border-b-0 border-border bg-background px-2 py-1.5">
+              {tableTab}
+            </div>
+          )}
         </div>
       )}
       <Table

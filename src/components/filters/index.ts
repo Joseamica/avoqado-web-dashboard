@@ -1,4 +1,5 @@
 export { FilterPill, FilterPopoverHeader, FilterPopoverFooter } from './FilterPill'
+export { FilterPillBar } from './FilterPillBar'
 export { CheckboxFilterContent } from './CheckboxFilterContent'
 export { ColumnCustomizer } from './ColumnCustomizer'
 export { AmountFilterContent, type AmountFilter } from './AmountFilterContent'

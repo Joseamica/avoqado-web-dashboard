@@ -11,7 +11,7 @@
  */
 
 import DataTable from '@/components/data-table'
-import { CheckboxFilterContent, FilterPill } from '@/components/filters'
+import { CheckboxFilterContent, FilterPill, FilterPillBar } from '@/components/filters'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -43,7 +43,7 @@ import { StaffRole } from '@/types'
 import { getRoleBadgeColor } from '@/utils/role-permissions'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Ban, Calendar, Eye, EyeOff, KeyRound, Mail, Phone, RotateCcw, Save, Store, UserCheck, UserPlus, UserX, X } from 'lucide-react'
+import { Ban, Calendar, Eye, EyeOff, KeyRound, Mail, Phone, RotateCcw, Save, Search, Store, UserCheck, UserPlus, UserX, X } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AuditLogTerminal, type AuditLogEntry } from '../Users/components/AuditLogTerminal'
@@ -125,6 +125,8 @@ export default function OrgUsersPage() {
   const [roleFilter, setRoleFilter] = useState<string[]>([])
   const [statusFilter, setStatusFilter] = useState<string[]>([])
   const [storesFilter, setStoresFilter] = useState<string[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   // Invite dialog
   const [showInviteDialog, setShowInviteDialog] = useState(false)
@@ -331,12 +333,12 @@ export default function OrgUsersPage() {
     return `${values.length} seleccionados`
   }, [])
 
-  const activeFiltersCount = [roleFilter.length > 0, statusFilter.length > 0, storesFilter.length > 0].filter(Boolean).length
-
   const resetFilters = useCallback(() => {
     setRoleFilter([])
     setStatusFilter([])
     setStoresFilter([])
+    setSearchTerm('')
+    setIsSearchOpen(false)
   }, [])
 
   // Apply filters
@@ -354,8 +356,11 @@ export default function OrgUsersPage() {
         return member?.venues.some(v => v.active && storesFilter.includes(v.id))
       })
     }
+    if (searchTerm) {
+      rows = rows.filter(u => includesNormalized(u.name ?? '', searchTerm) || includesNormalized(u.email ?? '', searchTerm))
+    }
     return rows
-  }, [userRows, roleFilter, statusFilter, storesFilter, teamMembers])
+  }, [userRows, roleFilter, statusFilter, storesFilter, teamMembers, searchTerm])
 
   // ---------- Role Hierarchy ----------
 
@@ -481,11 +486,6 @@ export default function OrgUsersPage() {
     queryClient.invalidateQueries({ queryKey: ['org-config', orgId, 'team'] })
     toast({ title: t('team:invite.success', { defaultValue: 'Invitacion enviada' }) })
   }, [orgId, queryClient, toast, t])
-
-  const handleSearch = useCallback((search: string, rows: OrgUserRow[]) => {
-    if (!search) return rows
-    return rows.filter(u => includesNormalized(u.name ?? '', search) || includesNormalized(u.email ?? '', search))
-  }, [])
 
   const handleVenueToggle = useCallback((venueId: string) => {
     setEditVenueIds(prev => {
@@ -659,60 +659,6 @@ export default function OrgUsersPage() {
           </Button>
         </div>
 
-        {/* Filter bar */}
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
-          <FilterPill
-            label={t('playtelecom:users.columns.role', { defaultValue: 'Rol' })}
-            activeValue={getFilterLabel(roleFilter, roleOptions)}
-            isActive={roleFilter.length > 0}
-            onClear={() => setRoleFilter([])}
-          >
-            <CheckboxFilterContent
-              title={t('playtelecom:users.filterByRole', { defaultValue: 'Filtrar por Rol' })}
-              options={roleOptions}
-              selectedValues={roleFilter}
-              onApply={setRoleFilter}
-            />
-          </FilterPill>
-
-          <FilterPill
-            label={t('playtelecom:users.columns.status', { defaultValue: 'Estado' })}
-            activeValue={getFilterLabel(statusFilter, statusOptions)}
-            isActive={statusFilter.length > 0}
-            onClear={() => setStatusFilter([])}
-          >
-            <CheckboxFilterContent
-              title={t('playtelecom:users.filterByStatus', { defaultValue: 'Filtrar por Estado' })}
-              options={statusOptions}
-              selectedValues={statusFilter}
-              onApply={setStatusFilter}
-            />
-          </FilterPill>
-
-          <FilterPill
-            label={t('playtelecom:users.filters.stores', { defaultValue: 'Tiendas' })}
-            activeValue={getFilterLabel(storesFilter, storeOptions)}
-            isActive={storesFilter.length > 0}
-            onClear={() => setStoresFilter([])}
-          >
-            <CheckboxFilterContent
-              title={t('playtelecom:users.filters.filterByStore', { defaultValue: 'Filtrar por Tienda' })}
-              options={storeOptions}
-              selectedValues={storesFilter}
-              onApply={setStoresFilter}
-              searchable
-              searchPlaceholder={t('playtelecom:users.filters.searchStores', { defaultValue: 'Buscar tienda...' })}
-            />
-          </FilterPill>
-
-          {activeFiltersCount > 0 && (
-            <Button variant="outline" size="sm" onClick={resetFilters} className="h-8 gap-1.5 rounded-full cursor-pointer">
-              <X className="h-3.5 w-3.5" />
-              {t('playtelecom:users.clearFilters', { defaultValue: 'Borrar filtros' })}
-            </Button>
-          )}
-        </div>
-
         {/* Table */}
         <DataTable
           data={filteredRows}
@@ -721,9 +667,96 @@ export default function OrgUsersPage() {
           isLoading={isLoading}
           onRowClick={handleRowClick}
           tableId="org:users"
-          enableSearch
-          searchPlaceholder={t('playtelecom:users.searchPlaceholder', { defaultValue: 'Buscar usuario...' })}
-          onSearch={handleSearch}
+          enableSearch={false}
+          tableTabLeft={
+            <>
+              {/* Search */}
+              <div className="relative flex items-center">
+                {isSearchOpen ? (
+                  <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        placeholder={t('playtelecom:users.searchPlaceholder', { defaultValue: 'Buscar usuario...' })}
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="h-7 w-[180px] pl-8 pr-7 text-xs rounded-full"
+                        autoFocus
+                      />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-full"
+                      onClick={() => {
+                        setSearchTerm('')
+                        setIsSearchOpen(false)
+                      }}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant={searchTerm ? 'secondary' : 'ghost'}
+                    size="icon"
+                    className="h-7 w-7 rounded-full"
+                    onClick={() => setIsSearchOpen(true)}
+                  >
+                    <Search className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
+              </div>
+
+              <FilterPillBar
+                onReset={resetFilters}
+                resetLabel={t('playtelecom:users.clearFilters', { defaultValue: 'Borrar filtros' })}
+              >
+                <FilterPill
+                  label={t('playtelecom:users.columns.role', { defaultValue: 'Rol' })}
+                  activeValue={getFilterLabel(roleFilter, roleOptions)}
+                  isActive={roleFilter.length > 0}
+                  onClear={() => setRoleFilter([])}
+                >
+                  <CheckboxFilterContent
+                    title={t('playtelecom:users.filterByRole', { defaultValue: 'Filtrar por Rol' })}
+                    options={roleOptions}
+                    selectedValues={roleFilter}
+                    onApply={setRoleFilter}
+                  />
+                </FilterPill>
+                <FilterPill
+                  label={t('playtelecom:users.columns.status', { defaultValue: 'Estado' })}
+                  activeValue={getFilterLabel(statusFilter, statusOptions)}
+                  isActive={statusFilter.length > 0}
+                  onClear={() => setStatusFilter([])}
+                >
+                  <CheckboxFilterContent
+                    title={t('playtelecom:users.filterByStatus', { defaultValue: 'Filtrar por Estado' })}
+                    options={statusOptions}
+                    selectedValues={statusFilter}
+                    onApply={setStatusFilter}
+                  />
+                </FilterPill>
+                <FilterPill
+                  label={t('playtelecom:users.filters.stores', { defaultValue: 'Tiendas' })}
+                  activeValue={getFilterLabel(storesFilter, storeOptions)}
+                  isActive={storesFilter.length > 0}
+                  onClear={() => setStoresFilter([])}
+                >
+                  <CheckboxFilterContent
+                    title={t('playtelecom:users.filters.filterByStore', { defaultValue: 'Filtrar por Tienda' })}
+                    options={storeOptions}
+                    selectedValues={storesFilter}
+                    onApply={setStoresFilter}
+                    searchable
+                    searchPlaceholder={t('playtelecom:users.filters.searchStores', { defaultValue: 'Buscar tienda...' })}
+                  />
+                </FilterPill>
+              </FilterPillBar>
+            </>
+          }
         />
       </div>
 
