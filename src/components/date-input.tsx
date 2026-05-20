@@ -13,7 +13,11 @@ interface DateParts {
 }
 
 const DateInput: React.FC<DateInputProps> = ({ value, onChange }) => {
-  const { t: tCommon } = useTranslation('common')
+  const { t: tCommon, i18n } = useTranslation('common')
+  // English uses M/D/Y; Spanish and French use D/M/Y.
+  // Why: showing "5 / 19 / 2025" to a Spanish reader who expects D/M/Y reads as "day 5 of month 19", which is invalid and confusing.
+  const lang = i18n.language ?? 'es'
+  const isMonthFirst = lang.startsWith('en')
   const [date, setDate] = React.useState<DateParts>(() => {
     const d = value ? new Date(value) : new Date()
     return {
@@ -167,8 +171,15 @@ const DateInput: React.FC<DateInputProps> = ({ value, onChange }) => {
         (e.currentTarget.selectionStart === 0 && e.currentTarget.selectionEnd === e.currentTarget.value.length)
       ) {
         e.preventDefault()
-        if (field === 'month') dayRef.current?.focus()
-        if (field === 'day') yearRef.current?.focus()
+        if (isMonthFirst) {
+          // M / D / Y
+          if (field === 'month') dayRef.current?.focus()
+          if (field === 'day') yearRef.current?.focus()
+        } else {
+          // D / M / Y
+          if (field === 'day') monthRef.current?.focus()
+          if (field === 'month') yearRef.current?.focus()
+        }
       }
     } else if (e.key === 'ArrowLeft') {
       if (
@@ -176,67 +187,98 @@ const DateInput: React.FC<DateInputProps> = ({ value, onChange }) => {
         (e.currentTarget.selectionStart === 0 && e.currentTarget.selectionEnd === e.currentTarget.value.length)
       ) {
         e.preventDefault()
-        if (field === 'day') monthRef.current?.focus()
-        if (field === 'year') dayRef.current?.focus()
+        if (isMonthFirst) {
+          // M / D / Y
+          if (field === 'day') monthRef.current?.focus()
+          if (field === 'year') dayRef.current?.focus()
+        } else {
+          // D / M / Y
+          if (field === 'month') dayRef.current?.focus()
+          if (field === 'year') monthRef.current?.focus()
+        }
       }
     }
   }
 
+  const monthInput = (
+    <input
+      type="text"
+      ref={monthRef}
+      max={12}
+      maxLength={2}
+      value={date.month.toString()}
+      onChange={handleInputChange('month')}
+      onKeyDown={handleKeyDown('month')}
+      onFocus={e => {
+        if (window.innerWidth > 1024) {
+          e.target.select()
+        }
+      }}
+      onBlur={handleBlur('month')}
+      className="p-0 outline-none w-6 border-none text-center bg-transparent"
+      placeholder={tCommon('date.M')}
+    />
+  )
+
+  const dayInput = (
+    <input
+      type="text"
+      ref={dayRef}
+      max={31}
+      maxLength={2}
+      value={date.day.toString()}
+      onChange={handleInputChange('day')}
+      onKeyDown={handleKeyDown('day')}
+      onFocus={e => {
+        if (window.innerWidth > 1024) {
+          e.target.select()
+        }
+      }}
+      onBlur={handleBlur('day')}
+      className="p-0 outline-none w-7 border-none text-center bg-transparent"
+      placeholder={tCommon('date.D')}
+    />
+  )
+
+  const yearInput = (
+    <input
+      type="text"
+      ref={yearRef}
+      max={9999}
+      maxLength={4}
+      value={date.year.toString()}
+      onChange={handleInputChange('year')}
+      onKeyDown={handleKeyDown('year')}
+      onFocus={e => {
+        if (window.innerWidth > 1024) {
+          e.target.select()
+        }
+      }}
+      onBlur={handleBlur('year')}
+      className="p-0 outline-none w-12 border-none text-center bg-transparent"
+      placeholder={tCommon('date.YYYY')}
+    />
+  )
+
+  const separator = <span className="opacity-20 -mx-px">/</span>
+
   return (
     <div className="flex border rounded-lg items-center text-sm px-1">
-      <input
-        type="text"
-        ref={monthRef}
-        max={12}
-        maxLength={2}
-        value={date.month.toString()}
-        onChange={handleInputChange('month')}
-        onKeyDown={handleKeyDown('month')}
-        onFocus={e => {
-          if (window.innerWidth > 1024) {
-            e.target.select()
-          }
-        }}
-        onBlur={handleBlur('month')}
-        className="p-0 outline-none w-6 border-none text-center"
-        placeholder={tCommon('date.M')}
-      />
-      <span className="opacity-20 -mx-px">/</span>
-      <input
-        type="text"
-        ref={dayRef}
-        max={31}
-        maxLength={2}
-        value={date.day.toString()}
-        onChange={handleInputChange('day')}
-        onKeyDown={handleKeyDown('day')}
-        onFocus={e => {
-          if (window.innerWidth > 1024) {
-            e.target.select()
-          }
-        }}
-        onBlur={handleBlur('day')}
-        className="p-0 outline-none w-7 border-none text-center"
-        placeholder={tCommon('date.D')}
-      />
-      <span className="opacity-20 -mx-px">/</span>
-      <input
-        type="text"
-        ref={yearRef}
-        max={9999}
-        maxLength={4}
-        value={date.year.toString()}
-        onChange={handleInputChange('year')}
-        onKeyDown={handleKeyDown('year')}
-        onFocus={e => {
-          if (window.innerWidth > 1024) {
-            e.target.select()
-          }
-        }}
-        onBlur={handleBlur('year')}
-        className="p-0 outline-none w-12 border-none text-center"
-        placeholder={tCommon('date.YYYY')}
-      />
+      {isMonthFirst ? (
+        <>
+          {monthInput}
+          {separator}
+          {dayInput}
+        </>
+      ) : (
+        <>
+          {dayInput}
+          {separator}
+          {monthInput}
+        </>
+      )}
+      {separator}
+      {yearInput}
     </div>
   )
 }

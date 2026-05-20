@@ -14,7 +14,7 @@ import { useTranslation } from 'react-i18next'
 import { getToday, getYesterday, getLast7Days, getLast30Days } from '@/utils/datetime'
 import { useAuth } from '@/context/AuthContext'
 import { DateTime } from 'luxon'
-import { getIntlLocale } from '@/utils/i18n-locale'
+import { getIntlLocale, getDateFnsLocale } from '@/utils/i18n-locale'
 
 export interface DateRangePickerProps {
   /** Click handler for applying the updates from DateRangePicker. */
@@ -90,12 +90,16 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
   initialCompareTo,
   onUpdate,
   align = 'end',
-  locale = 'en-US',
+  locale,
   showCompare = true,
 }): JSX.Element => {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { activeVenue } = useAuth()
   const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
+  // Resolve locale from i18n when not explicitly provided so day names and
+  // formatted dates match the user's current language.
+  const resolvedLocale = locale ?? getIntlLocale(i18n.language)
+  const dateFnsLocale = getDateFnsLocale(i18n.language)
   const [isOpen, setIsOpen] = useState(false)
 
   // Default to "today" in venue timezone if no initial date provided
@@ -413,13 +417,13 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
         <Button ref={triggerRef} size={'lg'} variant="outline">
           <div className="text-right">
             <div className="py-1">
-              <div>{`${formatDate(range.from, locale)}${range.to != null ? ' - ' + formatDate(range.to, locale) : ''}`}</div>
+              <div>{`${formatDate(range.from, resolvedLocale)}${range.to != null ? ' - ' + formatDate(range.to, resolvedLocale) : ''}`}</div>
             </div>
             {rangeCompare != null && (
               <div className="opacity-60 text-xs -mt-1">
                 <>
-                  vs. {formatDate(rangeCompare.from, locale)}
-                  {rangeCompare.to != null ? ` - ${formatDate(rangeCompare.to, locale)}` : ''}
+                  vs. {formatDate(rangeCompare.from, resolvedLocale)}
+                  {rangeCompare.to != null ? ` - ${formatDate(rangeCompare.to, resolvedLocale)}` : ''}
                 </>
               </div>
             )}
@@ -573,6 +577,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
                   selected={range}
                   numberOfMonths={isSmallScreen ? 1 : 2}
                   defaultMonth={new Date(new Date().setMonth(new Date().getMonth() - (isSmallScreen ? 0 : 1)))}
+                  locale={dateFnsLocale}
                 />
               </div>
             </div>
