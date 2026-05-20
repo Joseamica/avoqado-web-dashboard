@@ -15,6 +15,7 @@ import {
   BarChart3,
   ChevronsUpDown,
   ChevronRight,
+  Receipt,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
@@ -66,6 +67,11 @@ const WLOrgSidebar: React.FC<WLOrgSidebarProps> = (props) => {
           href: basePath,
           icon: LayoutDashboard,
           end: true,
+        },
+        {
+          name: t('organization:sidebar.sales', { defaultValue: 'Ventas' }),
+          href: `${basePath}/sales`,
+          icon: Receipt,
         },
         {
           name: t('organization:sidebar.reports', { defaultValue: 'Reportes' }),

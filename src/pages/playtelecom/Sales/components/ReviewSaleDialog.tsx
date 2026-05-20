@@ -27,22 +27,47 @@ import {
   type SaleVerificationRejectionReason,
   type ReviewSaleVerificationParams,
 } from '@/services/saleVerification.service'
+import { reviewOrgSaleVerification } from '@/services/saleVerification.org.service'
 
 export type ReviewMode = 'approve' | 'reject'
+
+/**
+ * Minimal shape required for the dialog. Both venue-scoped `SaleVerification`
+ * and org-scoped `OrgSaleRow` satisfy this — keeps the dialog reusable across
+ * both surfaces without coupling to either type fully.
+ *
+ * `payment.order.orderNumber` is venue-scoped only (org list doesn't surface
+ * it). When missing, the dialog falls back to the verification's `id` as a
+ * tracking handle.
+ */
+export interface ReviewableSale {
+  id: string
+  staff?: { firstName: string; lastName: string } | null
+  /** Optional. Venue-scoped SaleVerification surfaces the order number; org-scoped rows don't. */
+  payment?: unknown
+}
 
 interface ReviewSaleDialogProps {
   open: boolean
   mode: ReviewMode
-  verification: SaleVerification | null
-  venueId: string
+  verification: ReviewableSale | null
+  /** Provide ONE of these. Org scope takes precedence when both are given. */
+  venueId?: string
+  orgId?: string
   onClose: () => void
   /** Optional callback fired after a successful review. */
-  onReviewed?: (updated: SaleVerification) => void
+  onReviewed?: (updated: SaleVerification | unknown) => void
 }
 
-const REJECTION_REASONS: SaleVerificationRejectionReason[] = ['REVIEW_PORTABILIDAD', 'REVIEW_DUPLICATE_VINCULACION', 'OTHER']
+const REJECTION_REASONS: SaleVerificationRejectionReason[] = [
+  'REVIEW_MISSING_LINKING_IMAGE',
+  'REVIEW_PORTABILIDAD',
+  'REVIEW_ILLEGIBLE_IMAGES',
+  'REVIEW_DUPLICATE_VINCULACION',
+  'OTHER',
+]
 
-export function ReviewSaleDialog({ open, mode, verification, venueId, onClose, onReviewed }: ReviewSaleDialogProps) {
+export function ReviewSaleDialog({ open, mode, verification, venueId, orgId, onClose, onReviewed }: ReviewSaleDialogProps) {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [selectedReasons, setSelectedReasons] = useState<SaleVerificationRejectionReason[]>([])
@@ -61,6 +86,11 @@ export function ReviewSaleDialog({ open, mode, verification, venueId, onClose, o
   const reviewMutation = useMutation({
     mutationFn: (params: ReviewSaleVerificationParams) => {
       if (!verification) throw new Error('No verification selected')
+      // Org scope takes precedence — back-office reviewing across all venues.
+      if (orgId) {
+        return reviewOrgSaleVerification(orgId, verification.id, params)
+      }
+      if (!venueId) throw new Error('Either venueId or orgId is required')
       return reviewSaleVerification(venueId, verification.id, params)
     },
     onSuccess: updated => {
@@ -71,8 +101,14 @@ export function ReviewSaleDialog({ open, mode, verification, venueId, onClose, o
             ? 'El promotor verá la venta como correcta en la TPV.'
             : 'El promotor verá las observaciones en la TPV.',
       })
-      queryClient.invalidateQueries({ queryKey: ['sale-verifications', venueId] })
-      queryClient.invalidateQueries({ queryKey: ['sale-verifications-summary', venueId] })
+      if (orgId) {
+        queryClient.invalidateQueries({ queryKey: ['org', orgId, 'sale-verifications'] })
+        queryClient.invalidateQueries({ queryKey: ['org', orgId, 'sales-summary'] })
+      }
+      if (venueId) {
+        queryClient.invalidateQueries({ queryKey: ['sale-verifications', venueId] })
+        queryClient.invalidateQueries({ queryKey: ['sale-verifications-summary', venueId] })
+      }
       onReviewed?.(updated)
       onClose()
     },
@@ -110,10 +146,11 @@ export function ReviewSaleDialog({ open, mode, verification, venueId, onClose, o
   }
 
   const isLoading = reviewMutation.isPending
-  const orderNumber = verification?.payment?.order?.orderNumber ?? '—'
-  const sellerName = verification?.staff
-    ? `${verification.staff.firstName} ${verification.staff.lastName}`.trim()
-    : 'Promotor desconocido'
+  // Venue-scoped SaleVerification surfaces an order number on payment.order; org-scoped rows don't.
+  // Read it best-effort and fall back to verification id (last 6 chars) for a short tracking handle.
+  const paymentObj = verification?.payment as { order?: { orderNumber?: string } } | null | undefined
+  const orderNumber = paymentObj?.order?.orderNumber ?? (verification ? `…${verification.id.slice(-6)}` : '—')
+  const sellerName = verification?.staff ? `${verification.staff.firstName} ${verification.staff.lastName}`.trim() : 'Promotor desconocido'
 
   return (
     <Dialog open={open} onOpenChange={isOpen => !isOpen && !isLoading && onClose()}>

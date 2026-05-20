@@ -35,6 +35,28 @@ const SETUP_STEPS = [
   { id: 'bankAccount', component: BankAccountStep },
 ] as const
 
+const getStepIndexFromHash = (hash: string): number | null => {
+  const match = hash.match(/^#step-(\d+)$/)
+  if (!match) return null
+  const idx = parseInt(match[1], 10) - 1
+  if (idx >= 0 && idx < SETUP_STEPS.length) return idx
+  return null
+}
+
+const getHashFromStepIndex = (idx: number): string => `#step-${idx + 1}`
+
+// Backend stores v2SetupData nested by step keys ({ step2: {...}, step3: {...} }).
+// Frontend SetupData uses a flat shape, so flatten before merging into wizard state.
+const flattenV2SetupData = (raw: unknown): Partial<SetupData> => {
+  if (!raw || typeof raw !== 'object') return {}
+  return Object.values(raw as Record<string, unknown>).reduce<Partial<SetupData>>((acc, stepData) => {
+    if (stepData && typeof stepData === 'object') {
+      return { ...acc, ...(stepData as Partial<SetupData>) }
+    }
+    return acc
+  }, {})
+}
+
 export default function SetupWizard() {
   const { t } = useTranslation('setup')
   const navigate = useNavigate()
@@ -47,10 +69,15 @@ export default function SetupWizard() {
   const [currentStep, setCurrentStep] = useState(0)
   const [data, setData] = useState<SetupData>({})
   const [isSaving, setIsSaving] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
 
   // Ref for latest data to avoid stale closures in async handlers
   const dataRef = useRef(data)
   dataRef.current = data
+
+  // Max step the user is allowed to navigate to. Set from backend progress on mount
+  // and bumped as the user advances. Prevents URL hash / browser-back from jumping ahead.
+  const maxAllowedStepRef = useRef(0)
 
   // Fetch onboarding progress using org ID from AuthContext (avoids extra auth endpoint)
   const { data: progressData, isLoading } = useQuery({
@@ -63,46 +90,70 @@ export default function SetupWizard() {
     retry: false,
   })
 
-  // Restore saved data on mount
+  // Initialize wizard step + form data from backend progress + URL hash. Runs once
+  // when the progress query settles. Backend is the source of truth for max progress;
+  // URL hash decides which allowed step the user lands on (useful for refresh / direct links).
   useEffect(() => {
-    if (!progressData?.progress) return
+    if (isInitialized) return
+    if (isLoading) return
 
-    const progress = progressData.progress
+    const progress = progressData?.progress
 
-    // Restore v2 setup data if available
-    if (progress.v2SetupData) {
-      const saved = progress.v2SetupData as SetupData
-      setData((prev) => ({ ...prev, ...saved }))
+    // Backend currentStep is 1-indexed and includes step 1 (signup).
+    // Wizard is 0-indexed starting at businessInfo, so wizard.idx = backend.currentStep - 2.
+    let backendMaxStep = 0
+    if (progress?.currentStep && progress.currentStep >= 2) {
+      backendMaxStep = Math.max(0, Math.min(progress.currentStep - 2, SETUP_STEPS.length - 1))
+    }
 
-      // Restore to last completed step
-      if (progress.currentStep && progress.currentStep > 1) {
-        // currentStep from backend is 1-indexed and includes step 1 (signup)
-        // Our steps are 0-indexed starting from step 2
-        const resumeStep = Math.min(progress.currentStep - 1, SETUP_STEPS.length - 1)
-        setCurrentStep(resumeStep)
+    // Restore form data — backend stores it nested by step key, so flatten first.
+    if (progress?.v2SetupData) {
+      const restored = flattenV2SetupData(progress.v2SetupData)
+      if (Object.keys(restored).length > 0) {
+        setData((prev) => ({ ...prev, ...restored }))
+        dataRef.current = { ...dataRef.current, ...restored }
       }
     }
-  }, [progressData])
 
-  // Sync URL hash with current step
-  useEffect(() => {
-    const hash = `#step-${currentStep + 1}`
-    if (window.location.hash !== hash) {
-      window.history.replaceState(null, '', hash)
+    // Resolve target step: prefer URL hash if it points to a step the user can already access.
+    let targetStep = backendMaxStep
+    const hashStep = getStepIndexFromHash(window.location.hash)
+    if (hashStep !== null && hashStep <= backendMaxStep) {
+      targetStep = hashStep
     }
-  }, [currentStep])
 
-  // Restore step from URL hash on mount
+    maxAllowedStepRef.current = backendMaxStep
+    setCurrentStep(targetStep)
+
+    // Anchor the initial history entry to the resolved step (no extra entries pushed yet).
+    const targetHash = getHashFromStepIndex(targetStep)
+    if (window.location.hash !== targetHash) {
+      window.history.replaceState(null, '', targetHash)
+    }
+
+    setIsInitialized(true)
+  }, [progressData, isLoading, isInitialized])
+
+  // Sync state with browser back/forward navigation. Pop events occur when the user
+  // walks history entries pushed by handleNext (or types a hash manually).
   useEffect(() => {
-    const hash = window.location.hash
-    const match = hash.match(/^#step-(\d+)$/)
-    if (match) {
-      const stepIndex = parseInt(match[1], 10) - 1
-      if (stepIndex >= 0 && stepIndex < SETUP_STEPS.length) {
-        setCurrentStep(stepIndex)
+    if (!isInitialized) return
+
+    const handlePopState = () => {
+      const hashStep = getStepIndexFromHash(window.location.hash)
+      if (hashStep === null) return
+
+      if (hashStep <= maxAllowedStepRef.current) {
+        setCurrentStep(hashStep)
+      } else {
+        // Block jumping forward past the user's actual progress.
+        window.history.replaceState(null, '', getHashFromStepIndex(currentStep))
       }
     }
-  }, [])
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [isInitialized, currentStep])
 
   const handleNext = useCallback(
     async (stepData: Partial<SetupData>) => {
@@ -138,7 +189,15 @@ export default function SetupWizard() {
 
       // Advance to next step or complete
       if (currentStep < SETUP_STEPS.length - 1) {
-        setCurrentStep((prev) => prev + 1)
+        const newStep = currentStep + 1
+        setCurrentStep(newStep)
+        if (newStep > maxAllowedStepRef.current) {
+          maxAllowedStepRef.current = newStep
+        }
+        // Push a new history entry so browser back returns to the previous wizard step.
+        // The wizardStep marker lets handleBack distinguish wizard-pushed entries from
+        // the initial anchor (which used replaceState and has null state).
+        window.history.pushState({ wizardStep: newStep }, '', getHashFromStepIndex(newStep))
       } else {
         // Final step completed — finalize setup
         await handleComplete(merged)
@@ -148,8 +207,18 @@ export default function SetupWizard() {
   )
 
   const handleBack = useCallback(() => {
-    if (currentStep > 0) {
-      setCurrentStep((prev) => prev - 1)
+    if (currentStep <= 0) return
+
+    // If the current entry was pushed by handleNext, walk history backwards so popstate
+    // keeps URL/state aligned. If we're on the initial anchor entry (state === null),
+    // there's no prior wizard entry to pop to — update state and replace URL in place
+    // instead, otherwise history.back() would exit the wizard.
+    if ((window.history.state as { wizardStep?: number } | null)?.wizardStep != null) {
+      window.history.back()
+    } else {
+      const newStep = currentStep - 1
+      setCurrentStep(newStep)
+      window.history.replaceState(null, '', getHashFromStepIndex(newStep))
     }
   }, [currentStep])
 
@@ -179,7 +248,7 @@ export default function SetupWizard() {
     }
   }
 
-  if (isLoading) {
+  if (isLoading || !isInitialized) {
     return (
       <SetupWizardLayout hideFinishLater>
         <div className="flex items-center justify-center py-20">

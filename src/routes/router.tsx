@@ -104,6 +104,8 @@ import {
   // White-Label Organization pages
   WLOrganizationLayout,
   WLVisionGlobal,
+  WLSalesExecutive,
+  WLSalesDetail,
   WLTiendasList,
   WLManagersDashboard,
 } from './lazyComponents'
@@ -733,6 +735,8 @@ const router = createBrowserRouter(
                     { index: true, element: <WLVisionGlobal /> },
                     { path: 'venues', element: <WLTiendasList /> },
                     { path: 'managers', element: <WLManagersDashboard /> },
+                    { path: 'sales', element: <WLSalesExecutive /> },
+                    { path: 'sales/detail', element: <WLSalesDetail /> },
                     { path: 'reports', element: <ComingSoon feature="Cross-Store Reports" /> },
                   ],
                 },

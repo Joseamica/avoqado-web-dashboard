@@ -22,7 +22,11 @@
     "orgGoals": "Metas",
     "orgCategories": "Categorías",
     "orgMessages": "Mensajes",
-    "orgStockControl": "Control de Stock"
+    "orgStockControl": "Control de Stock",
+    "sales": "Ventas",
+    "visionGlobal": "Visión Global",
+    "reports": "Reportes",
+    "managers": "Supervisores"
   },
   "header": {
     "backToVenue": "Volver a Sucursal"

@@ -22,7 +22,11 @@
     "orgGoals": "Goals",
     "orgCategories": "Categories",
     "orgMessages": "Messages",
-    "orgStockControl": "Stock Control"
+    "orgStockControl": "Stock Control",
+    "sales": "Sales",
+    "visionGlobal": "Global Vision",
+    "reports": "Reports",
+    "managers": "Supervisors"
   },
   "header": {
     "backToVenue": "Back to Venue"

@@ -215,6 +215,8 @@ export const WLOrganizationLayout = lazyWithRetry(() => import('@/pages/organiza
 export const WLVisionGlobal = lazyWithRetry(() => import('@/pages/organizations/VisionGlobal/VisionGlobal'))
 export const WLTiendasList = lazyWithRetry(() => import('@/pages/organizations/TiendasList/TiendasList'))
 export const WLManagersDashboard = lazyWithRetry(() => import('@/pages/organizations/ManagersDashboard/ManagersDashboard'))
+export const WLSalesExecutive = lazyWithRetry(() => import('@/pages/organizations/SalesExecutive/SalesExecutive'))
+export const WLSalesDetail = lazyWithRetry(() => import('@/pages/organizations/SalesDetail/SalesDetail'))
 
 // Reports
 export const PayLaterAging = lazyWithRetry(() => import('@/pages/Reports/PayLaterAging'))

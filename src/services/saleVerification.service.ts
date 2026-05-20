@@ -17,11 +17,15 @@ export type SaleVerificationStatus = 'PENDING' | 'COMPLETED' | 'FAILED'
 export type SaleVerificationRejectionReason =
   | 'REVIEW_PORTABILIDAD'
   | 'REVIEW_DUPLICATE_VINCULACION'
+  | 'REVIEW_ILLEGIBLE_IMAGES'
+  | 'REVIEW_MISSING_LINKING_IMAGE'
   | 'OTHER'
 
 export const SALE_VERIFICATION_REJECTION_REASON_LABELS: Record<SaleVerificationRejectionReason, string> = {
-  REVIEW_PORTABILIDAD: 'Revisar portabilidad',
-  REVIEW_DUPLICATE_VINCULACION: 'Revisar número duplicado de vinculación',
+  REVIEW_PORTABILIDAD: 'Falta imagen de portabilidad',
+  REVIEW_DUPLICATE_VINCULACION: '# de vinculación duplicada',
+  REVIEW_ILLEGIBLE_IMAGES: 'Imágenes ilegibles',
+  REVIEW_MISSING_LINKING_IMAGE: 'Falta imagen de vinculación',
   OTHER: 'Otro motivo',
 }
 

@@ -1,0 +1,475 @@
+/**
+ * Org-level "Ventas — Detalle" view (PlayTelecom / Walmart).
+ *
+ * Back-office surface to approve or reject SIM-sale documentation across
+ * ALL venues in the organization in a single screen. Each row is one sale
+ * verification; clicking a row opens approve/reject dialogs that hit the
+ * org-scoped backend endpoint. The TPV gets a socket event on success.
+ *
+ * Patterns followed (mandatory per .claude/rules/ui-patterns.md):
+ *   - FilterPill for filters
+ *   - Expandable search bar (300ms debounce)
+ *   - DataTable with memoized columns
+ *   - Receipt photo zoom via Dialog (image preview)
+ */
+
+import { useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { Search, ImageIcon, CheckCircle2, XCircle, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useCurrentOrganization } from '@/hooks/use-current-organization'
+import { useDebounce } from '@/hooks/useDebounce'
+import { useVenueDateTime } from '@/utils/datetime'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { FilterPill } from '@/components/filters/FilterPill'
+import { CheckboxFilterContent } from '@/components/filters/CheckboxFilterContent'
+import { GlassCard } from '@/components/ui/glass-card'
+import { cn } from '@/lib/utils'
+import { ReviewSaleDialog, type ReviewMode } from '@/pages/playtelecom/Sales/components/ReviewSaleDialog'
+import {
+  listOrgSaleVerifications,
+  getOrgSalesSummary,
+  SALE_TYPE_LABELS,
+  PAYMENT_FORM_LABELS,
+  type OrgSaleRow,
+  type PaymentForm,
+  type PaymentMethod,
+  type SaleType,
+} from '@/services/saleVerification.org.service'
+import { SALE_VERIFICATION_REJECTION_REASON_LABELS, type SaleVerificationStatus } from '@/services/saleVerification.service'
+
+const PAGE_SIZE = 25
+
+const STATUS_OPTIONS: { value: SaleVerificationStatus; label: string }[] = [
+  { value: 'PENDING', label: 'Pendiente' },
+  { value: 'COMPLETED', label: 'Venta correcta' },
+  { value: 'FAILED', label: 'Revisar' },
+]
+
+const SALE_TYPE_OPTIONS: { value: SaleType; label: string }[] = [
+  { value: 'LINEA_NUEVA', label: SALE_TYPE_LABELS.LINEA_NUEVA },
+  { value: 'PORTABILIDAD', label: SALE_TYPE_LABELS.PORTABILIDAD },
+  { value: 'NO_APLICA', label: SALE_TYPE_LABELS.NO_APLICA },
+]
+
+const PAYMENT_FORM_OPTIONS: { value: PaymentForm; label: string }[] = [
+  { value: 'CASH', label: PAYMENT_FORM_LABELS.CASH },
+  { value: 'CARD', label: PAYMENT_FORM_LABELS.CARD },
+  { value: 'OTHER', label: PAYMENT_FORM_LABELS.OTHER },
+  { value: 'NONE', label: PAYMENT_FORM_LABELS.NONE },
+]
+
+function statusBadge(status: SaleVerificationStatus) {
+  if (status === 'COMPLETED')
+    return (
+      <Badge className="bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700">
+        Venta correcta
+      </Badge>
+    )
+  if (status === 'FAILED')
+    return (
+      <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700">
+        Revisar
+      </Badge>
+    )
+  return <Badge className="bg-muted text-muted-foreground border-input">Pendiente</Badge>
+}
+
+export default function SalesDetail() {
+  const { orgId, isLoading: orgLoading, organization } = useCurrentOrganization()
+  const { formatDate, formatTime } = useVenueDateTime()
+
+  // Filters
+  const [statusFilter, setStatusFilter] = useState<string[]>([])
+  const [saleTypeFilter, setSaleTypeFilter] = useState<string[]>([])
+  const [paymentFormFilter, setPaymentFormFilter] = useState<string[]>([])
+  const [venueFilter, setVenueFilter] = useState<string[]>([])
+
+  // Search + pagination
+  const [search, setSearch] = useState('')
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const debouncedSearch = useDebounce(search, 300)
+  const [pageNumber, setPageNumber] = useState(1)
+
+  // Review dialog state
+  const [reviewVerification, setReviewVerification] = useState<OrgSaleRow | null>(null)
+  const [reviewMode, setReviewMode] = useState<ReviewMode>('approve')
+  const [reviewOpen, setReviewOpen] = useState(false)
+
+  // Photo preview state
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+
+  const listParams = useMemo(
+    () => ({
+      pageSize: PAGE_SIZE,
+      pageNumber,
+      status: statusFilter.length === 1 ? (statusFilter[0] as SaleVerificationStatus) : undefined,
+      // Note: the backend supports a single value for these — when the user selects multiple
+      // we let the frontend display them all and skip server filter (broad fetch). For PlayTelecom's
+      // 38 venues with paginated results this is acceptable; can be tightened later.
+      venueId: venueFilter.length === 1 ? venueFilter[0] : undefined,
+      isPortabilidad:
+        saleTypeFilter.length === 1 && saleTypeFilter[0] === 'PORTABILIDAD'
+          ? true
+          : saleTypeFilter.length === 1 && saleTypeFilter[0] === 'LINEA_NUEVA'
+            ? false
+            : undefined,
+      paymentMethod: paymentFormFilter.length === 1 && paymentFormFilter[0] === 'CASH' ? ('CASH' as PaymentMethod) : undefined,
+      search: debouncedSearch.trim() || undefined,
+    }),
+    [pageNumber, statusFilter, venueFilter, saleTypeFilter, paymentFormFilter, debouncedSearch],
+  )
+
+  const listQuery = useQuery({
+    queryKey: ['org', orgId, 'sale-verifications', listParams],
+    queryFn: () => listOrgSaleVerifications(orgId!, listParams),
+    enabled: !!orgId,
+    staleTime: 30_000,
+  })
+
+  const summaryQuery = useQuery({
+    queryKey: ['org', orgId, 'sales-summary'],
+    queryFn: () => getOrgSalesSummary(orgId!),
+    enabled: !!orgId,
+    staleTime: 60_000,
+  })
+
+  // Client-side filter pass — handles multi-select cases the backend serves broadly
+  const rows = useMemo(() => {
+    const data = listQuery.data?.data ?? []
+    return data.filter(r => {
+      if (statusFilter.length > 1 && !statusFilter.includes(r.status)) return false
+      if (saleTypeFilter.length > 1 && !saleTypeFilter.includes(r.saleType)) return false
+      if (paymentFormFilter.length > 1 && !paymentFormFilter.includes(r.payment?.paymentForm ?? 'NONE')) return false
+      if (venueFilter.length > 1 && !venueFilter.includes(r.venue.id)) return false
+      return true
+    })
+  }, [listQuery.data?.data, statusFilter, saleTypeFilter, paymentFormFilter, venueFilter])
+
+  const pagination = listQuery.data?.pagination
+  const totalPages = pagination?.totalPages ?? 1
+  const totalCount = pagination?.totalCount ?? 0
+
+  // Build venue options dynamically from results so we don't need a separate endpoint.
+  const venueOptions = useMemo(() => {
+    const seen = new Map<string, string>()
+    for (const r of listQuery.data?.data ?? []) {
+      if (!seen.has(r.venue.id)) seen.set(r.venue.id, r.venue.name)
+    }
+    return Array.from(seen.entries()).map(([id, name]) => ({ value: id, label: name }))
+  }, [listQuery.data?.data])
+
+  const openReview = (row: OrgSaleRow, mode: ReviewMode) => {
+    setReviewVerification(row)
+    setReviewMode(mode)
+    setReviewOpen(true)
+  }
+
+  if (orgLoading) {
+    return (
+      <div className="p-6 space-y-4">
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-32 w-full" />
+      </div>
+    )
+  }
+
+  if (!orgId) {
+    return (
+      <div className="p-6">
+        <p className="text-muted-foreground">No se pudo determinar la organización.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-4 md:p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Ventas — Detalle</h1>
+          <p className="text-sm text-muted-foreground">
+            {organization?.name ?? 'Organización'} · Aprobar o rechazar documentación de ventas
+          </p>
+        </div>
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <SummaryCard label="Total ventas" value={summaryQuery.data?.totalCount ?? 0} loading={summaryQuery.isLoading} />
+        <SummaryCard label="Aprobadas" value={summaryQuery.data?.completedCount ?? 0} loading={summaryQuery.isLoading} tone="success" />
+        <SummaryCard label="Pendientes" value={summaryQuery.data?.pendingCount ?? 0} loading={summaryQuery.isLoading} tone="warning" />
+        <SummaryCard label="Por revisar" value={summaryQuery.data?.failedCount ?? 0} loading={summaryQuery.isLoading} tone="danger" />
+      </div>
+
+      {/* Filters + search bar */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <FilterPill label="Status" activeCount={statusFilter.length} onClear={() => setStatusFilter([])}>
+          <CheckboxFilterContent
+            title="Status de venta"
+            options={STATUS_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
+            selectedValues={statusFilter}
+            onApply={values => {
+              setStatusFilter(values)
+              setPageNumber(1)
+            }}
+          />
+        </FilterPill>
+        <FilterPill label="Tipo de venta" activeCount={saleTypeFilter.length} onClear={() => setSaleTypeFilter([])}>
+          <CheckboxFilterContent
+            title="Tipo de venta"
+            options={SALE_TYPE_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
+            selectedValues={saleTypeFilter}
+            onApply={values => {
+              setSaleTypeFilter(values)
+              setPageNumber(1)
+            }}
+          />
+        </FilterPill>
+        <FilterPill label="Forma de pago" activeCount={paymentFormFilter.length} onClear={() => setPaymentFormFilter([])}>
+          <CheckboxFilterContent
+            title="Forma de pago"
+            options={PAYMENT_FORM_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
+            selectedValues={paymentFormFilter}
+            onApply={values => {
+              setPaymentFormFilter(values)
+              setPageNumber(1)
+            }}
+          />
+        </FilterPill>
+        {venueOptions.length > 1 && (
+          <FilterPill label="Tienda" activeCount={venueFilter.length} onClear={() => setVenueFilter([])}>
+            <CheckboxFilterContent
+              title="Tienda"
+              options={venueOptions}
+              selectedValues={venueFilter}
+              onApply={values => {
+                setVenueFilter(values)
+                setPageNumber(1)
+              }}
+              searchable
+            />
+          </FilterPill>
+        )}
+
+        {/* Search */}
+        <div className="ml-auto">
+          {isSearchOpen ? (
+            <div className="animate-in fade-in slide-in-from-left-2 duration-200 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                onBlur={() => !search && setIsSearchOpen(false)}
+                autoFocus
+                placeholder="ID SIM, promotor…"
+                className="pl-9 rounded-full w-64"
+              />
+            </div>
+          ) : (
+            <Button size="icon" variant="outline" className="rounded-full relative" onClick={() => setIsSearchOpen(true)}>
+              <Search className="h-4 w-4" />
+              {debouncedSearch && <span className="absolute top-1 right-1 size-2 rounded-full bg-primary" />}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Table */}
+      <GlassCard className="overflow-hidden p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 text-left">ID SIM</th>
+                <th className="px-3 py-2 text-left">Tipo de SIM</th>
+                <th className="px-3 py-2 text-left">Fecha</th>
+                <th className="px-3 py-2 text-left">Hora</th>
+                <th className="px-3 py-2 text-left">Promotor</th>
+                <th className="px-3 py-2 text-left">Ciudad</th>
+                <th className="px-3 py-2 text-left">Tienda</th>
+                <th className="px-3 py-2 text-left">Tipo de venta</th>
+                <th className="px-3 py-2 text-left">Forma de pago</th>
+                <th className="px-3 py-2 text-right">Monto</th>
+                <th className="px-3 py-2 text-center">Evidencias</th>
+                <th className="px-3 py-2 text-left">Status</th>
+                <th className="px-3 py-2 text-left">Razón</th>
+                <th className="px-3 py-2 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {listQuery.isLoading ? (
+                Array.from({ length: 8 }).map((_, i) => (
+                  <tr key={i} className="border-t border-border/30">
+                    <td colSpan={14} className="px-3 py-3">
+                      <Skeleton className="h-6 w-full" />
+                    </td>
+                  </tr>
+                ))
+              ) : rows.length === 0 ? (
+                <tr>
+                  <td colSpan={14} className="px-3 py-10 text-center text-muted-foreground">
+                    No hay ventas que coincidan con los filtros.
+                  </td>
+                </tr>
+              ) : (
+                rows.map(row => (
+                  <tr key={row.id} className="border-t border-border/30 hover:bg-muted/20">
+                    <td className="px-3 py-2 font-mono text-xs">{row.serialNumbers[0] ?? '—'}</td>
+                    <td className="px-3 py-2">{row.category?.name ?? '—'}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">{formatDate(row.createdAt)}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">{formatTime(row.createdAt)}</td>
+                    <td className="px-3 py-2">{row.staff ? `${row.staff.firstName} ${row.staff.lastName}`.trim() : '—'}</td>
+                    <td className="px-3 py-2">{row.venue.city ?? '—'}</td>
+                    <td className="px-3 py-2">{row.venue.name}</td>
+                    <td className="px-3 py-2">{SALE_TYPE_LABELS[row.saleType]}</td>
+                    <td className="px-3 py-2">{PAYMENT_FORM_LABELS[row.payment?.paymentForm ?? 'NONE']}</td>
+                    <td className="px-3 py-2 text-right font-mono">
+                      {row.payment?.amount?.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }) ?? '—'}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center justify-center gap-1">
+                        {row.photos.length === 0 ? (
+                          <span className="text-muted-foreground text-xs">Sin foto</span>
+                        ) : (
+                          row.photos.map((url, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => setPhotoPreview(url)}
+                              className="rounded border border-input p-1 hover:border-foreground transition-colors"
+                              title={i === 0 ? 'Vinculación' : 'Portabilidad'}
+                            >
+                              <ImageIcon className="h-4 w-4" />
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">{statusBadge(row.status)}</td>
+                    <td className="px-3 py-2 text-xs">
+                      {row.rejectionReasons.length > 0 ? (
+                        <div className="space-y-0.5">
+                          {row.rejectionReasons.map(r => (
+                            <div key={r} className="text-yellow-700 dark:text-yellow-400">
+                              {SALE_VERIFICATION_REJECTION_REASON_LABELS[r]}
+                            </div>
+                          ))}
+                          {row.reviewNotes && <div className="text-muted-foreground italic">{row.reviewNotes}</div>}
+                        </div>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center justify-end gap-1">
+                        {row.status === 'PENDING' ? (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-green-700 border-green-200 hover:bg-green-50 dark:hover:bg-green-900/20"
+                              onClick={() => openReview(row, 'approve')}
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                              Aprobar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-700 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20"
+                              onClick={() => openReview(row, 'reject')}
+                            >
+                              <XCircle className="h-3.5 w-3.5 mr-1" />
+                              Revisar
+                            </Button>
+                          </>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            {row.reviewedBy ? `por ${row.reviewedBy.firstName}` : 'Revisada'}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        {totalCount > PAGE_SIZE && (
+          <div className="flex items-center justify-between px-3 py-2 border-t border-border/30 text-sm">
+            <span className="text-muted-foreground">
+              Página {pageNumber} de {totalPages} · {totalCount} ventas
+            </span>
+            <div className="flex items-center gap-1">
+              <Button size="icon" variant="outline" disabled={pageNumber === 1} onClick={() => setPageNumber(p => p - 1)}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button size="icon" variant="outline" disabled={pageNumber >= totalPages} onClick={() => setPageNumber(p => p + 1)}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </GlassCard>
+
+      {/* Review dialog (approve/reject) */}
+      <ReviewSaleDialog
+        open={reviewOpen}
+        mode={reviewMode}
+        verification={reviewVerification}
+        orgId={orgId}
+        onClose={() => setReviewOpen(false)}
+      />
+
+      {/* Photo zoom dialog */}
+      <Dialog open={!!photoPreview} onOpenChange={open => !open && setPhotoPreview(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Evidencia</DialogTitle>
+          </DialogHeader>
+          {photoPreview && (
+            <img
+              src={photoPreview}
+              alt="Evidencia de venta"
+              className={cn('w-full h-auto rounded-md max-h-[80vh] object-contain bg-muted')}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+function SummaryCard({
+  label,
+  value,
+  loading,
+  tone,
+}: {
+  label: string
+  value: number
+  loading?: boolean
+  tone?: 'success' | 'warning' | 'danger'
+}) {
+  const toneClass =
+    tone === 'success'
+      ? 'text-green-700 dark:text-green-400'
+      : tone === 'warning'
+        ? 'text-yellow-700 dark:text-yellow-400'
+        : tone === 'danger'
+          ? 'text-red-700 dark:text-red-400'
+          : 'text-foreground'
+  return (
+    <GlassCard className="p-4">
+      <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">{label}</p>
+      {loading ? <Skeleton className="h-7 w-16" /> : <p className={cn('text-2xl font-bold', toneClass)}>{value.toLocaleString('es-MX')}</p>}
+    </GlassCard>
+  )
+}

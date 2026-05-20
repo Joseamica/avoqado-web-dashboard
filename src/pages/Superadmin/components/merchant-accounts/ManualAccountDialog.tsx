@@ -330,7 +330,48 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
   const [pendingFetchUntil, setPendingFetchUntil] = useState<{
     accountId: string
     until: number
+    startedAt: number
   } | null>(null)
+
+  // Watch the global merchant-accounts list — when this query refetches with
+  // fresher data than our pending click, the discovery has landed and we can
+  // drop the spinner immediately instead of waiting for the 90s fallback. The
+  // staleTime: 0 + the invalidate burst in fetchMerchantsMutation.onSuccess
+  // (3, 6, 10, 15, 25, 45, 60s) drive frequent refetches, so the useEffect
+  // below typically fires within ~10s of the TPV completing. Reproduced 2026-
+  // 05-20: TPV reported 3 merchants at 11:10:37 → backend persisted at
+  // 11:10:38 → without this effect the dashboard spinner stayed up for the
+  // full 90s even though the merchants were already visible in the dialog.
+  const {
+    data: allMerchantAccounts = [],
+    dataUpdatedAt: merchantAccountsUpdatedAt,
+  } = useQuery({
+    queryKey: ['merchant-accounts-all'],
+    queryFn: () => paymentProviderAPI.getAllMerchantAccounts(),
+    enabled: open && isAngelPay,
+    staleTime: 0,
+  })
+
+  useEffect(() => {
+    if (!pendingFetchUntil) return
+    // Require the cached data to have been refreshed strictly AFTER the click
+    // (with a 1.5s grace to filter out the in-flight POST race that the
+    // invalidateAll() inside onSuccess kicks off). Without the grace, the
+    // very first invalidation immediately after dispatch ACK clears the
+    // spinner BEFORE the TPV has even started authenticating — defeating the
+    // whole point of the persistent loader.
+    if (merchantAccountsUpdatedAt <= pendingFetchUntil.startedAt + 1500) return
+    // Belt + suspenders: also require ≥1 merchant linked to this AngelPay
+    // account. If the TPV reports 0 merchants (stale session, AngelPay error)
+    // the spinner stays up until the 90s fallback timer — operator gets
+    // visible feedback that something went wrong instead of a deceptive
+    // "everything's fine" state.
+    const linkedCount = allMerchantAccounts.filter(
+      (ma: any) => ma.angelpayUserAccountId === pendingFetchUntil.accountId && ma.active,
+    ).length
+    if (linkedCount === 0) return
+    setPendingFetchUntil(null)
+  }, [pendingFetchUntil, merchantAccountsUpdatedAt, allMerchantAccounts])
 
   const fetchMerchantsMutation = useMutation({
     mutationFn: (angelpayUserAccountId: string) =>
@@ -341,7 +382,10 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
     onMutate: (angelpayUserAccountId: string) => {
       // 90s window covers: heartbeat receive (≤30s) + SDK 7-step auth + retries
       // + report POST + Prisma write. Adjust if AngelPay QA gets slower again.
-      setPendingFetchUntil({ accountId: angelpayUserAccountId, until: Date.now() + 90_000 })
+      // `startedAt` is consumed by the observe-and-clear useEffect above so we
+      // know which clicks have been satisfied by fresh server data.
+      const now = Date.now()
+      setPendingFetchUntil({ accountId: angelpayUserAccountId, until: now + 90_000, startedAt: now })
     },
     onSuccess: () => {
       toast({
