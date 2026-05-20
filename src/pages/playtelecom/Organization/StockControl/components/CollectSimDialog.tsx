@@ -24,25 +24,17 @@ interface Props {
   contextLabel?: string
 }
 
-const BASE_REASON_OPTIONS: { value: SimCustodyCollectionReason; label: string }[] = [
+const REASON_OPTIONS: { value: SimCustodyCollectionReason; label: string }[] = [
   { value: 'STAFF_TERMINATED', label: 'Baja de promotor' },
   { value: 'DAMAGED_SIM', label: 'SIM defectuoso' },
+  { value: 'SUPERVISOR_COLLECTION', label: 'Recolección de Supervisor' },
 ]
-
-// "Recolección de Supervisor" sólo aplica cuando el Supervisor recoge del Promotor;
-// no se ofrece cuando el Administrador recoge del Supervisor.
-const SUPERVISOR_FROM_PROMOTER_REASON: { value: SimCustodyCollectionReason; label: string } = {
-  value: 'SUPERVISOR_COLLECTION',
-  label: 'Recolección de Supervisor',
-}
 
 export function CollectSimDialog({ open, onOpenChange, serialNumber, from, onConfirm, contextLabel }: Props) {
   const [reason, setReason] = useState<SimCustodyCollectionReason | ''>('')
   const queryClient = useQueryClient()
 
-  const reasonOptions = from === 'promoter'
-    ? [...BASE_REASON_OPTIONS, SUPERVISOR_FROM_PROMOTER_REASON]
-    : BASE_REASON_OPTIONS
+  const reasonOptions = REASON_OPTIONS
 
   const mutation = useMutation({
     mutationFn: async () => {
