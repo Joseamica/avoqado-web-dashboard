@@ -90,7 +90,7 @@ function statusBadge(status: SaleVerificationStatus) {
 }
 
 export default function SalesDetail() {
-  const { orgId, isLoading: orgLoading, organization } = useCurrentOrganization()
+  const { orgId, orgSlug, isLoading: orgLoading, organization } = useCurrentOrganization()
   const { formatDate, formatTime } = useVenueDateTime()
   const { activeVenue } = useAuth()
   const { toast } = useToast()
@@ -278,7 +278,7 @@ export default function SalesDetail() {
         'Evidencias (count)': r.photos.length,
       }))
 
-      const filename = generateFilename(`ventas-${organization?.slug ?? orgId}`, `${fromDateStr}-a-${toDateStr}`)
+      const filename = generateFilename(`ventas-${orgSlug ?? orgId}`, `${fromDateStr}-a-${toDateStr}`)
 
       if (format === 'xlsx') {
         await exportToExcel(rows, filename, 'Ventas')
