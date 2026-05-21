@@ -41,6 +41,8 @@
     "loading": "Loading calendars…",
     "invalidSession": "The session expired. Please start the connection again.",
     "missingSession": "No valid session was provided.",
+    "cancelledTitle": "Connection cancelled",
+    "cancelledDescription": "You cancelled the Google Calendar connection. You can try again anytime from the reservation settings.",
     "back": "Back to My Account",
     "readOnlyBadge": "Read-only",
     "primaryBadge": "Primary"

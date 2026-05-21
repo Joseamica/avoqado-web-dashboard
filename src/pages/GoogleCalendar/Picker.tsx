@@ -34,11 +34,15 @@ export default function GoogleCalendarPicker() {
   const queryClient = useQueryClient()
   const [searchParams] = useSearchParams()
   const sessionToken = searchParams.get('session') ?? ''
+  const oauthError = searchParams.get('error') ?? ''
   const [selectedCalendarId, setSelectedCalendarId] = useState<string>('')
 
   // useCurrentVenue falls back to the user's activeVenue when there's no :slug
-  // in the URL (Picker is a top-level route). Use it to build venue-scoped
-  // return paths; if there's no active venue we fall back to '/'.
+  // in the URL (Picker is a top-level route). The Picker is mounted outside
+  // /venues/:slug so activeVenue may not be hydrated yet right after the OAuth
+  // redirect — that's why we prefer the venueSlug returned by listCalendars
+  // (resolved server-side from session.venueId) and only fall back to
+  // fullBasePath when the server didn't return one (e.g. staff_personal flow).
   const { fullBasePath } = useCurrentVenue()
 
   // ---------------------------------------------------------------------------
@@ -60,10 +64,16 @@ export default function GoogleCalendarPicker() {
   // session loads we don't know the intent yet, so back/error buttons fall
   // back to Mi Cuenta (safest default — never 404s when fullBasePath exists).
   const returnPath = useMemo(() => {
-    if (!fullBasePath) return '/'
-    if (data?.intent === 'venue_master') return `${fullBasePath}/reservations/settings`
-    return `${fullBasePath}/account`
-  }, [fullBasePath, data?.intent])
+    const isWhiteLabel = window.location.pathname.startsWith('/wl/')
+    const venueBasePath = isWhiteLabel ? '/wl/venues' : '/venues'
+    // Prefer the slug the server resolved from the OAuth session — it's
+    // authoritative even if activeVenue isn't hydrated yet.
+    const slug = data?.venueSlug ?? null
+    const base = slug ? `${venueBasePath}/${slug}` : fullBasePath
+    if (!base) return '/'
+    if (data?.intent === 'venue_master') return `${base}/reservations/settings`
+    return `${base}/account`
+  }, [fullBasePath, data?.intent, data?.venueSlug])
 
   // ---------------------------------------------------------------------------
   // Connect mutation — finalizes the connection on the backend. On success the
@@ -92,15 +102,16 @@ export default function GoogleCalendarPicker() {
   // the user knows to retry from Mi Cuenta / Reservation Settings.
   // ---------------------------------------------------------------------------
   if (!sessionToken) {
+    const isCancelled = oauthError === 'access_denied'
     return (
       <div className="min-h-[60vh] flex items-center justify-center p-6">
         <Card className="max-w-md w-full">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-destructive" />
-              {tCommon('error')}
+              <AlertCircle className={`h-5 w-5 ${isCancelled ? 'text-amber-500' : 'text-destructive'}`} />
+              {isCancelled ? t('picker.cancelledTitle') : tCommon('error')}
             </CardTitle>
-            <CardDescription>{t('picker.missingSession')}</CardDescription>
+            <CardDescription>{isCancelled ? t('picker.cancelledDescription') : t('picker.missingSession')}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild variant="outline">

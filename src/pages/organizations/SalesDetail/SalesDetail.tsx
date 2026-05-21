@@ -18,6 +18,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Search, ImageIcon, CheckCircle2, XCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useDebounce } from '@/hooks/useDebounce'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { useVenueDateTime } from '@/utils/datetime'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -81,6 +82,7 @@ function statusBadge(status: SaleVerificationStatus) {
 export default function SalesDetail() {
   const { orgId, isLoading: orgLoading, organization } = useCurrentOrganization()
   const { formatDate, formatTime } = useVenueDateTime()
+  const isMobile = useIsMobile()
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<string[]>([])
@@ -189,10 +191,10 @@ export default function SalesDetail() {
     <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Ventas — Detalle</h1>
-          <p className="text-sm text-muted-foreground">
-            {organization?.name ?? 'Organización'} · Aprobar o rechazar documentación de ventas
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Ventas — Detalle</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            {organization?.name ?? 'Organización'} · Aprobar o rechazar documentación
           </p>
         </div>
       </div>
@@ -207,56 +209,58 @@ export default function SalesDetail() {
 
       {/* Filters + search bar */}
       <div className="flex items-center gap-2 flex-wrap">
-        <FilterPill label="Status" activeCount={statusFilter.length} onClear={() => setStatusFilter([])}>
-          <CheckboxFilterContent
-            title="Status de venta"
-            options={STATUS_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
-            selectedValues={statusFilter}
-            onApply={values => {
-              setStatusFilter(values)
-              setPageNumber(1)
-            }}
-          />
-        </FilterPill>
-        <FilterPill label="Tipo de venta" activeCount={saleTypeFilter.length} onClear={() => setSaleTypeFilter([])}>
-          <CheckboxFilterContent
-            title="Tipo de venta"
-            options={SALE_TYPE_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
-            selectedValues={saleTypeFilter}
-            onApply={values => {
-              setSaleTypeFilter(values)
-              setPageNumber(1)
-            }}
-          />
-        </FilterPill>
-        <FilterPill label="Forma de pago" activeCount={paymentFormFilter.length} onClear={() => setPaymentFormFilter([])}>
-          <CheckboxFilterContent
-            title="Forma de pago"
-            options={PAYMENT_FORM_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
-            selectedValues={paymentFormFilter}
-            onApply={values => {
-              setPaymentFormFilter(values)
-              setPageNumber(1)
-            }}
-          />
-        </FilterPill>
-        {venueOptions.length > 1 && (
-          <FilterPill label="Tienda" activeCount={venueFilter.length} onClear={() => setVenueFilter([])}>
+        <div className="flex items-center gap-2 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible sm:flex-wrap pb-1 sm:pb-0">
+          <FilterPill label="Status" activeCount={statusFilter.length} onClear={() => setStatusFilter([])}>
             <CheckboxFilterContent
-              title="Tienda"
-              options={venueOptions}
-              selectedValues={venueFilter}
+              title="Status de venta"
+              options={STATUS_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
+              selectedValues={statusFilter}
               onApply={values => {
-                setVenueFilter(values)
+                setStatusFilter(values)
                 setPageNumber(1)
               }}
-              searchable
             />
           </FilterPill>
-        )}
+          <FilterPill label="Tipo de venta" activeCount={saleTypeFilter.length} onClear={() => setSaleTypeFilter([])}>
+            <CheckboxFilterContent
+              title="Tipo de venta"
+              options={SALE_TYPE_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
+              selectedValues={saleTypeFilter}
+              onApply={values => {
+                setSaleTypeFilter(values)
+                setPageNumber(1)
+              }}
+            />
+          </FilterPill>
+          <FilterPill label="Forma de pago" activeCount={paymentFormFilter.length} onClear={() => setPaymentFormFilter([])}>
+            <CheckboxFilterContent
+              title="Forma de pago"
+              options={PAYMENT_FORM_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
+              selectedValues={paymentFormFilter}
+              onApply={values => {
+                setPaymentFormFilter(values)
+                setPageNumber(1)
+              }}
+            />
+          </FilterPill>
+          {venueOptions.length > 1 && (
+            <FilterPill label="Tienda" activeCount={venueFilter.length} onClear={() => setVenueFilter([])}>
+              <CheckboxFilterContent
+                title="Tienda"
+                options={venueOptions}
+                selectedValues={venueFilter}
+                onApply={values => {
+                  setVenueFilter(values)
+                  setPageNumber(1)
+                }}
+                searchable
+              />
+            </FilterPill>
+          )}
+        </div>
 
         {/* Search */}
-        <div className="ml-auto">
+        <div className="ml-auto w-full sm:w-auto">
           {isSearchOpen ? (
             <div className="animate-in fade-in slide-in-from-left-2 duration-200 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -266,7 +270,7 @@ export default function SalesDetail() {
                 onBlur={() => !search && setIsSearchOpen(false)}
                 autoFocus
                 placeholder="ID SIM, promotor…"
-                className="pl-9 rounded-full w-64"
+                className="pl-9 rounded-full w-full sm:w-64"
               />
             </div>
           ) : (
@@ -278,7 +282,45 @@ export default function SalesDetail() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Mobile card list */}
+      {isMobile && (
+        <div className="space-y-3">
+          {listQuery.isLoading ? (
+            Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40 w-full" />)
+          ) : rows.length === 0 ? (
+            <GlassCard className="p-8 text-center text-sm text-muted-foreground">No hay ventas que coincidan con los filtros.</GlassCard>
+          ) : (
+            rows.map(row => (
+              <SaleCard
+                key={row.id}
+                row={row}
+                formatDate={formatDate}
+                formatTime={formatTime}
+                onPhotoClick={url => setPhotoPreview(url)}
+                onReview={mode => openReview(row, mode)}
+              />
+            ))
+          )}
+          {totalCount > PAGE_SIZE && (
+            <div className="flex items-center justify-between px-1 py-2 text-sm">
+              <span className="text-muted-foreground text-xs">
+                Pág. {pageNumber} de {totalPages} · {totalCount}
+              </span>
+              <div className="flex items-center gap-1">
+                <Button size="icon" variant="outline" disabled={pageNumber === 1} onClick={() => setPageNumber(p => p - 1)}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="outline" disabled={pageNumber >= totalPages} onClick={() => setPageNumber(p => p + 1)}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Desktop table */}
+      {!isMobile && (
       <GlassCard className="overflow-hidden p-0">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -418,6 +460,7 @@ export default function SalesDetail() {
           </div>
         )}
       </GlassCard>
+      )}
 
       {/* Review dialog (approve/reject) */}
       <ReviewSaleDialog
@@ -467,9 +510,132 @@ function SummaryCard({
           ? 'text-red-700 dark:text-red-400'
           : 'text-foreground'
   return (
-    <GlassCard className="p-4">
-      <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">{label}</p>
-      {loading ? <Skeleton className="h-7 w-16" /> : <p className={cn('text-2xl font-bold', toneClass)}>{value.toLocaleString('es-MX')}</p>}
+    <GlassCard className="p-3 sm:p-4">
+      <p className="text-[10px] sm:text-xs uppercase tracking-wide text-muted-foreground mb-1 leading-tight">{label}</p>
+      {loading ? (
+        <Skeleton className="h-7 w-16" />
+      ) : (
+        <p className={cn('text-lg sm:text-2xl font-bold leading-tight', toneClass)}>{value.toLocaleString('es-MX')}</p>
+      )}
     </GlassCard>
+  )
+}
+
+function SaleCard({
+  row,
+  formatDate,
+  formatTime,
+  onPhotoClick,
+  onReview,
+}: {
+  row: OrgSaleRow
+  formatDate: (d: string | Date | null | undefined) => string
+  formatTime: (d: string | Date | null | undefined) => string
+  onPhotoClick: (url: string) => void
+  onReview: (mode: ReviewMode) => void
+}) {
+  const promoter = row.staff ? `${row.staff.firstName} ${row.staff.lastName}`.trim() : '—'
+  const venueLabel = row.venue.city ? `${row.venue.name} · ${row.venue.city}` : row.venue.name
+  const amount = row.payment?.amount?.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }) ?? '—'
+
+  return (
+    <GlassCard className="p-4 space-y-3">
+      {/* Header: serial + status */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-mono text-xs text-muted-foreground">ID SIM</p>
+          <p className="font-mono text-sm break-all">{row.serialNumbers[0] ?? '—'}</p>
+        </div>
+        {statusBadge(row.status)}
+      </div>
+
+      {/* Venue + date */}
+      <div className="text-xs text-muted-foreground space-y-0.5">
+        <div className="truncate">{venueLabel}</div>
+        <div>
+          {formatDate(row.createdAt)} · {formatTime(row.createdAt)} · {promoter}
+        </div>
+      </div>
+
+      {/* Key fields grid */}
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        <Field label="Tipo SIM" value={row.category?.name ?? '—'} />
+        <Field label="Tipo venta" value={SALE_TYPE_LABELS[row.saleType]} />
+        <Field label="Forma pago" value={PAYMENT_FORM_LABELS[row.payment?.paymentForm ?? 'NONE']} />
+        <Field label="Monto" value={amount} mono />
+      </div>
+
+      {/* Photos */}
+      {row.photos.length > 0 && (
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Evidencias</span>
+          <div className="flex items-center gap-1">
+            {row.photos.map((url, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => onPhotoClick(url)}
+                className="rounded border border-input p-2 hover:border-foreground transition-colors"
+                title={i === 0 ? 'Vinculación' : 'Portabilidad'}
+              >
+                <ImageIcon className="h-4 w-4" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Rejection reasons */}
+      {row.rejectionReasons.length > 0 && (
+        <div className="text-xs space-y-0.5 pt-2 border-t border-border/30">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Razón</p>
+          {row.rejectionReasons.map(r => (
+            <div key={r} className="text-yellow-700 dark:text-yellow-400">
+              {SALE_VERIFICATION_REJECTION_REASON_LABELS[r]}
+            </div>
+          ))}
+          {row.reviewNotes && <div className="text-muted-foreground italic">{row.reviewNotes}</div>}
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="pt-2 border-t border-border/30">
+        {row.status === 'PENDING' ? (
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-green-700 border-green-200 hover:bg-green-50 dark:hover:bg-green-900/20"
+              onClick={() => onReview('approve')}
+            >
+              <CheckCircle2 className="h-4 w-4 mr-1" />
+              Aprobar
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-red-700 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20"
+              onClick={() => onReview('reject')}
+            >
+              <XCircle className="h-4 w-4 mr-1" />
+              Revisar
+            </Button>
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground text-center">{row.reviewedBy ? `Revisada por ${row.reviewedBy.firstName}` : 'Revisada'}</p>
+        )}
+      </div>
+    </GlassCard>
+  )
+}
+
+function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-tight">{label}</p>
+      <p className={cn('text-sm truncate', mono && 'font-mono')} title={value}>
+        {value}
+      </p>
+    </div>
   )
 }

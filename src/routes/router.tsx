@@ -111,6 +111,7 @@ import {
 } from './lazyComponents'
 
 import Root from '@/root'
+import { DashboardRouteResolver } from './DashboardRouteResolver'
 import { EmailVerifiedRoute } from './EmailVerifiedRoute'
 import { ProtectedRoute } from './ProtectedRoute'
 import { createVenueRoutes } from './venueRoutes'
@@ -191,6 +192,14 @@ const router = createBrowserRouter(
             {
               path: '/google-calendar/picker',
               element: <GoogleCalendarPicker />,
+            },
+            {
+              path: '/go',
+              element: <DashboardRouteResolver />,
+            },
+            {
+              path: '/go/*',
+              element: <DashboardRouteResolver />,
             },
             // Executive Analytics (org/venue scoped via backend auth)
             // Requires MANAGER+ or VIEWER role

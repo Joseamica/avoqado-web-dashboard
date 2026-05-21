@@ -8,7 +8,7 @@ import * as liveDemoService from '@/services/liveDemo.service'
 import { clearAllChatStorage } from '@/services/chatService'
 import { LoadingScreen } from '@/components/spinner'
 import { useToast } from '@/hooks/use-toast'
-import { User, Venue, StaffRole } from '@/types'
+import { User, Venue, SessionVenue, StaffRole } from '@/types'
 import { FEATURE_ROUTE_MAP } from '@/hooks/useWhiteLabelConfig'
 
 // Tipos y la Interfaz del Contexto
@@ -39,7 +39,7 @@ interface AuthContextType {
   checkFeatureAccess: (featureCode: string) => boolean // VenueFeature (billing)
   checkModuleAccess: (moduleCode: string) => boolean // VenueModule (configurable modules like SERIALIZED_INVENTORY)
   getVenueBySlug: (slug: string) => Venue | null // Nueva función para obtener venue por slug
-  getVenueBasePath: (venue: Venue) => string // Returns /wl/venues/:slug or /venues/:slug based on WHITE_LABEL_DASHBOARD module
+  getVenueBasePath: (venue: Venue | SessionVenue) => string // Returns /wl/venues/:slug or /venues/:slug based on WHITE_LABEL_DASHBOARD module
   allVenues: Venue[]
   staffInfo: any | null
   loginError: string | null // Error message for login failures
@@ -227,7 +227,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // --- FUNCIÓN 'getVenueBasePath' ---
   // Returns /wl/venues/:slug if WHITE_LABEL_DASHBOARD module is enabled, otherwise /venues/:slug
   // This ensures venue switcher and login redirect to the correct dashboard
-  const getVenueBasePath = useCallback((venue: Venue): string => {
+  const getVenueBasePath = useCallback((venue: Venue | SessionVenue): string => {
     // Check if venue has WHITE_LABEL_DASHBOARD module enabled
     if (venue?.modules) {
       const whiteLabelModule = venue.modules.find(m => m.module.code === 'WHITE_LABEL_DASHBOARD')
@@ -378,7 +378,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const isOnAdminRoute = currentPath.startsWith('/superadmin') || currentPath.startsWith('/admin')
         const isOnOrgRoute = currentPath.startsWith('/organizations')
         const isOnWhiteLabelRoute = currentPath.startsWith('/wl/')
-        if (!currentPath.includes('/venues/') && !isOnAdminRoute && !isOnOrgRoute && !isOnWhiteLabelRoute) {
+        const isOnDashboardResolverRoute = currentPath === '/go' || currentPath.startsWith('/go/')
+        if (!currentPath.includes('/venues/') && !isOnAdminRoute && !isOnOrgRoute && !isOnWhiteLabelRoute && !isOnDashboardResolverRoute) {
           const basePath = getVenueBasePath(activeVenue)
           const defaultPage = getVenueDefaultPage(activeVenue)
           navigate(`${basePath}/${defaultPage}`, { replace: true })

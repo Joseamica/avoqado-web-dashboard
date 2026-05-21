@@ -137,9 +137,11 @@ const googleCalendarService = {
    * Step 2 — after the OAuth callback redirects back with a session token,
    * fetch the user's writable calendars (filtered server-side per intent).
    */
-  listCalendars(sessionToken: string): Promise<{ calendars: CalendarPickerItem[]; intent: OAuthIntent }> {
+  listCalendars(
+    sessionToken: string,
+  ): Promise<{ calendars: CalendarPickerItem[]; intent: OAuthIntent; venueSlug: string | null }> {
     return api
-      .get<{ calendars: CalendarPickerItem[]; intent: OAuthIntent }>(`${BASE}/oauth/calendars`, {
+      .get<{ calendars: CalendarPickerItem[]; intent: OAuthIntent; venueSlug: string | null }>(`${BASE}/oauth/calendars`, {
         params: { session: sessionToken },
       })
       .then(r => r.data)

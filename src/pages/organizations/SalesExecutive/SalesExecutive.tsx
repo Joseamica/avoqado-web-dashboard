@@ -20,6 +20,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip as RechartsT
 import { Link } from 'react-router-dom'
 import { Receipt, ChevronRight } from 'lucide-react'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
@@ -62,6 +63,9 @@ function formatMonth(key: string): string {
 
 export default function SalesExecutive() {
   const { orgId, basePath, isLoading: orgLoading, organization } = useCurrentOrganization()
+  const isMobile = useIsMobile()
+  const chartHeight = isMobile ? 200 : 260
+  const weekChartHeight = isMobile ? 180 : 200
 
   const summary = useQuery({
     queryKey: ['org', orgId, 'sales-summary'],
@@ -161,14 +165,17 @@ export default function SalesExecutive() {
     <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Ventas</h1>
-          <p className="text-sm text-muted-foreground">{organization?.name ?? 'Organización'} · Solo ventas confirmadas</p>
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Ventas</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground truncate">
+            {organization?.name ?? 'Organización'} · Solo ventas confirmadas
+          </p>
         </div>
-        <Button asChild>
+        <Button asChild size={isMobile ? 'sm' : 'default'} className="shrink-0">
           <Link to={`${basePath}/sales/detail`} className="flex items-center gap-2">
             <Receipt className="h-4 w-4" />
-            Detalle y aprobación
+            <span className="hidden sm:inline">Detalle y aprobación</span>
+            <span className="sm:hidden">Detalle</span>
             <ChevronRight className="h-4 w-4" />
           </Link>
         </Button>
@@ -196,11 +203,11 @@ export default function SalesExecutive() {
           ) : monthData.length === 0 ? (
             <EmptyChart />
           ) : (
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={monthData}>
+            <ResponsiveContainer width="100%" height={chartHeight}>
+              <BarChart data={monthData} margin={isMobile ? { top: 5, right: 5, left: -20, bottom: 0 } : undefined}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                <XAxis dataKey="month" />
-                <YAxis />
+                <XAxis dataKey="month" tick={{ fontSize: isMobile ? 10 : 12 }} />
+                <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} width={isMobile ? 30 : 40} />
                 <RechartsTooltip
                   contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }}
                   formatter={(value: number) => [value, 'Ventas']}
@@ -218,15 +225,15 @@ export default function SalesExecutive() {
           ) : simTypeData.data.length === 0 ? (
             <EmptyChart />
           ) : (
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={simTypeData.data}>
+            <ResponsiveContainer width="100%" height={chartHeight}>
+              <BarChart data={simTypeData.data} margin={isMobile ? { top: 5, right: 5, left: -20, bottom: 0 } : undefined}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                <XAxis dataKey="month" />
-                <YAxis />
+                <XAxis dataKey="month" tick={{ fontSize: isMobile ? 10 : 12 }} />
+                <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} width={isMobile ? 30 : 40} />
                 <RechartsTooltip
                   contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }}
                 />
-                <Legend wrapperStyle={{ fontSize: '0.75rem' }} />
+                <Legend wrapperStyle={{ fontSize: isMobile ? '0.625rem' : '0.75rem' }} />
                 {simTypeData.categories.map((cat, i) => (
                   <Bar
                     key={cat}
@@ -250,11 +257,11 @@ export default function SalesExecutive() {
         ) : weekData.length === 0 ? (
           <EmptyChart />
         ) : (
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={weekData}>
+          <ResponsiveContainer width="100%" height={weekChartHeight}>
+            <BarChart data={weekData} margin={isMobile ? { top: 5, right: 5, left: -20, bottom: 0 } : undefined}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-              <XAxis dataKey="week" />
-              <YAxis />
+              <XAxis dataKey="week" tick={{ fontSize: isMobile ? 9 : 12 }} interval={isMobile ? 'preserveStartEnd' : 0} />
+              <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} width={isMobile ? 30 : 40} />
               <RechartsTooltip
                 contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }}
                 formatter={(value: number) => [value, 'Ventas']}
@@ -342,12 +349,14 @@ function KpiCard({
           ? 'text-red-700 dark:text-red-400'
           : 'text-foreground'
   return (
-    <GlassCard className="p-4">
-      <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">{label}</p>
+    <GlassCard className="p-3 sm:p-4">
+      <p className="text-[10px] sm:text-xs uppercase tracking-wide text-muted-foreground mb-1 leading-tight">{label}</p>
       {loading ? (
         <Skeleton className="h-7 w-20" />
       ) : (
-        <p className={cn('text-2xl font-bold', toneClass)}>{asString ? value : (value as number).toLocaleString('es-MX')}</p>
+        <p className={cn('text-lg sm:text-2xl font-bold leading-tight break-words', toneClass)}>
+          {asString ? value : (value as number).toLocaleString('es-MX')}
+        </p>
       )}
     </GlassCard>
   )
@@ -372,6 +381,8 @@ function HeatmapTable({
   rowLabel: string
   sortBuckets: (keys: string[]) => { key: string; label: string }[]
 }) {
+  const isMobile = useIsMobile()
+
   // Build the column list from all buckets across rows
   const allBuckets = useMemo(() => {
     const set = new Set<string>()
@@ -388,35 +399,55 @@ function HeatmapTable({
     return Math.max(p95, 1)
   }, [rows])
 
+  const cellPad = isMobile ? 'px-1.5 py-1.5' : 'px-3 py-2'
+  const firstColPad = isMobile ? 'px-2 py-1.5' : 'px-3 py-2'
+  const cellText = isMobile ? 'text-[10px]' : 'text-xs'
+
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      <table className={cn('w-full', isMobile ? 'text-xs' : 'text-sm')}>
         <thead>
-          <tr className="text-xs uppercase text-muted-foreground">
-            <th className="px-3 py-2 text-left">{rowLabel}</th>
+          <tr className={cn(cellText, 'uppercase text-muted-foreground')}>
+            <th
+              className={cn(
+                firstColPad,
+                'text-left sticky left-0 z-10 bg-card whitespace-nowrap',
+              )}
+            >
+              {rowLabel}
+            </th>
             {allBuckets.map(b => (
-              <th key={b.key} className="px-3 py-2 text-center">
+              <th key={b.key} className={cn(cellPad, 'text-center whitespace-nowrap')}>
                 {b.label}
               </th>
             ))}
-            <th className="px-3 py-2 text-right">Total</th>
+            <th className={cn(cellPad, 'text-right')}>Total</th>
           </tr>
         </thead>
         <tbody>
           {rows.map(row => (
             <tr key={row.name} className="border-t border-border/30">
-              <td className="px-3 py-2 font-medium whitespace-nowrap">{row.name}</td>
+              <td
+                className={cn(
+                  firstColPad,
+                  'font-medium whitespace-nowrap sticky left-0 z-10 bg-card',
+                  isMobile && 'max-w-[120px] truncate',
+                )}
+                title={row.name}
+              >
+                {row.name}
+              </td>
               {allBuckets.map(b => {
                 const v = row.byBucket[b.key] ?? 0
                 const intensity = v === 0 ? 0 : Math.min(v / maxValue, 1)
                 const bg = intensity === 0 ? 'transparent' : `hsla(217, 91%, 60%, ${Math.max(intensity * 0.6, 0.1)})`
                 return (
-                  <td key={b.key} className="px-3 py-2 text-center font-mono text-xs" style={{ backgroundColor: bg }}>
+                  <td key={b.key} className={cn(cellPad, 'text-center font-mono', cellText)} style={{ backgroundColor: bg }}>
                     {v || ''}
                   </td>
                 )
               })}
-              <td className="px-3 py-2 text-right font-bold font-mono">{row.total}</td>
+              <td className={cn(cellPad, 'text-right font-bold font-mono')}>{row.total}</td>
             </tr>
           ))}
         </tbody>

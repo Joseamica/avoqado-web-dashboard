@@ -41,6 +41,8 @@
     "loading": "Chargement des calendriers…",
     "invalidSession": "La session a expiré. Relancez la connexion.",
     "missingSession": "Aucune session valide fournie.",
+    "cancelledTitle": "Connexion annulée",
+    "cancelledDescription": "Vous avez annulé la connexion Google Calendar. Vous pouvez réessayer à tout moment depuis les paramètres des réservations.",
     "back": "Retour à Mon Compte",
     "readOnlyBadge": "Lecture seule",
     "primaryBadge": "Principal"
