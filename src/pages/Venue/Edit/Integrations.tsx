@@ -5,8 +5,8 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { AlertCircle, ArrowRight, CheckCircle2, Plus, Power, ShoppingCart, Trash2, XCircle } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { AlertCircle, ArrowRight, CheckCircle2, Link2, Plus, Power, ShoppingCart, Trash2, Unlink, XCircle } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
@@ -55,6 +55,11 @@ export default function VenueIntegrations() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { setActions } = useVenueEditActions()
+  const { user } = useAuth()
+  // Crypto config requires venue-crypto:manage permission, which only OWNER+
+  // has. Skipping the render for ADMIN/MANAGER eliminates noisy 403 warnings
+  // from the API call inside CryptoConfigSection.
+  const canManageCrypto = user?.role === StaffRole.OWNER || user?.role === StaffRole.SUPERADMIN
 
   const { data: venue, isLoading } = useQuery<VenueIntegrations>({
     queryKey: ['venue-integrations', venueId],
@@ -277,10 +282,14 @@ export default function VenueIntegrations() {
         </CardContent>
       </Card>
 
-      <Separator />
-
-      {/* B4Bit Crypto Payments */}
-      <CryptoConfigSection />
+      {canManageCrypto && (
+        <>
+          <Separator />
+          {/* B4Bit Crypto Payments — OWNER+ only (backend gates with
+              `venue-crypto:manage`). */}
+          <CryptoConfigSection />
+        </>
+      )}
     </div>
   )
 }
@@ -309,6 +318,34 @@ function EcommercePaymentsSection({ venueId }: { venueId: string }) {
     queryFn: () => ecommerceMerchantAPI.listByVenue(venueId),
     enabled: !!venueId,
   })
+
+  // Mercado Pago OAuth return handling. The backend `/callback` endpoint
+  // redirects here with `?mp_status=connected&ecommerceMerchantId=…` on success
+  // or `?mp_status=error&reason=…[&description=…]` on failure.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const mpStatus = searchParams.get('mp_status')
+  const mpReason = searchParams.get('reason')
+  const mpDescription = searchParams.get('description')
+  const mpMerchantId = searchParams.get('ecommerceMerchantId')
+
+  useEffect(() => {
+    if (!mpStatus) return
+    if (mpStatus === 'connected') {
+      queryClient.invalidateQueries({ queryKey: ['ecommerce-merchants', venueId] })
+    }
+    // Clear params after a short delay so the banner has a chance to display
+    // before the URL becomes shareable.
+    const timeout = setTimeout(() => {
+      const next = new URLSearchParams(searchParams)
+      next.delete('mp_status')
+      next.delete('reason')
+      next.delete('description')
+      next.delete('ecommerceMerchantId')
+      setSearchParams(next, { replace: true })
+    }, 4000)
+    return () => clearTimeout(timeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mpStatus])
 
   const deleteMutation = useMutation({
     mutationFn: (merchantId: string) => ecommerceMerchantAPI.delete(venueId, merchantId),
@@ -354,6 +391,40 @@ function EcommercePaymentsSection({ venueId }: { venueId: string }) {
    */
   const requiresSoftDelete = (m: EcommerceMerchant): boolean =>
     m.provider?.code === 'STRIPE_CONNECT' && !!m.chargesEnabled
+
+  /**
+   * Mercado Pago — disconnect just wipes the OAuth tokens from the merchant
+   * row; the EcommerceMerchant itself stays so the operator can reconnect
+   * later (or rotate the seller account). For "is this merchant connected?"
+   * we trust `providerMerchantId` — it's only populated after OAuth completes.
+   */
+  const isMpConnected = (m: EcommerceMerchant): boolean =>
+    m.provider?.code === 'MERCADO_PAGO' && !!m.providerMerchantId
+
+  const handleConnectMercadoPago = (m: EcommerceMerchant) => {
+    const url = ecommerceMerchantAPI.getMercadoPagoConnectUrl(venueId, m.id)
+    window.location.assign(url)
+  }
+
+  const disconnectMercadoPagoMutation = useMutation({
+    mutationFn: async (m: EcommerceMerchant) => {
+      await ecommerceMerchantAPI.disconnectMercadoPago(venueId, m.id)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ecommerce-merchants', venueId] })
+      toast({
+        title: 'Mercado Pago desconectado',
+        description: 'Los tokens del vendedor se borraron. Puedes reconectar cuando quieras.',
+      })
+    },
+    onError: (err: any) => {
+      toast({
+        variant: 'destructive',
+        title: 'Error al desconectar',
+        description: err?.response?.data?.error || err?.message || 'Intenta de nuevo.',
+      })
+    },
+  })
 
   // SUPERADMIN-only: update the platform fee (Avoqado margin).
   const platformFeeMutation = useMutation({
@@ -419,6 +490,28 @@ function EcommercePaymentsSection({ venueId }: { venueId: string }) {
 
   return (
     <>
+      {mpStatus === 'connected' && (
+        <Alert className="mb-4 border-emerald-500/40 bg-emerald-500/5">
+          <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <AlertTitle className="text-emerald-700 dark:text-emerald-300">Mercado Pago conectado</AlertTitle>
+          <AlertDescription className="text-emerald-700 dark:text-emerald-300">
+            {mpMerchantId && merchants.find(m => m.id === mpMerchantId)
+              ? `Canal "${merchants.find(m => m.id === mpMerchantId)?.channelName}" listo para cobrar.`
+              : 'El canal quedó listo para cobrar.'}
+          </AlertDescription>
+        </Alert>
+      )}
+      {mpStatus === 'error' && (
+        <Alert className="mb-4 border-red-500/40 bg-red-500/5">
+          <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+          <AlertTitle className="text-red-700 dark:text-red-300">Error al conectar Mercado Pago</AlertTitle>
+          <AlertDescription className="text-red-700 dark:text-red-300">
+            {mpReason && <span>{mpReason}.</span>}
+            {mpDescription && <span className="block opacity-80 text-xs mt-1">{mpDescription}</span>}
+            <span className="block mt-1">Vuelve a intentarlo o contacta a soporte.</span>
+          </AlertDescription>
+        </Alert>
+      )}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -486,6 +579,29 @@ function EcommercePaymentsSection({ venueId }: { venueId: string }) {
                         <ArrowRight className="h-4 w-4 text-muted-foreground" />
                       </div>
                     </button>
+                    {m.provider?.code === 'MERCADO_PAGO' &&
+                      (isMpConnected(m) ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => disconnectMercadoPagoMutation.mutate(m)}
+                          disabled={disconnectMercadoPagoMutation.isPending}
+                          className="h-8 w-8 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          title="Desconectar Mercado Pago (mantiene el canal, borra tokens)"
+                        >
+                          <Unlink className="h-4 w-4 text-red-600" />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleConnectMercadoPago(m)}
+                          className="h-8 w-8 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          title="Conectar Mercado Pago"
+                        >
+                          <Link2 className="h-4 w-4 text-blue-600" />
+                        </Button>
+                      ))}
                     {requiresSoftDelete(m) ? (
                       /* COMPLETED Stripe → toggle active (soft delete). Hard
                          delete needs Superadmin offboarding because the live

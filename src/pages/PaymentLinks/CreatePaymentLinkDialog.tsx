@@ -125,6 +125,9 @@ export default function CreatePaymentLinkDialog({ open, onClose, editingLinkId }
       if (code === 'STRIPE_CONNECT') return !!m.chargesEnabled
       // Blumon: has working ecommerce inline flow.
       if (code === 'BLUMON') return true
+      // Mercado Pago: requires completed OAuth (providerMerchantId =
+      // seller's MP user_id is populated by the OAuth callback).
+      if (code === 'MERCADO_PAGO') return !!m.providerMerchantId
       // Everything else (Menta, AngelPay, Clip, ...) → TPV providers; no
       // online payment flow wired up today. Exclude from payment-link UI.
       return false

@@ -42,6 +42,8 @@ import {
   RefreshCcw,
   CheckCircle2,
   PlayCircle,
+  Link2,
+  Unlink,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -72,6 +74,14 @@ const EcommerceMerchants: React.FC = () => {
   // `?status=retry&merchantId=X`   → amber banner (user didn't complete onboarding)
   const returnStatus = searchParams.get('status')
   const returnMerchantId = searchParams.get('merchantId')
+
+  // Post-MercadoPago OAuth return state — driven by query params our /callback
+  // endpoint redirects us with.
+  // `?mp_status=connected&ecommerceMerchantId=X` → green banner
+  // `?mp_status=error&reason=...`                → red banner
+  const mpStatus = searchParams.get('mp_status')
+  const mpReason = searchParams.get('reason')
+  const mpMerchantId = searchParams.get('ecommerceMerchantId')
 
   // Get venue by slug from AuthContext
   const venue = getVenueBySlug(slug!)
@@ -135,6 +145,25 @@ const EcommerceMerchants: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [returnStatus])
+
+  // Same param-cleanup for MP — refresh the merchant list once and clear URL.
+  useEffect(() => {
+    if (mpStatus) {
+      if (mpStatus === 'connected' && venue?.id) {
+        queryClient.invalidateQueries({ queryKey: ['ecommerce-merchants', venue.id] })
+      }
+      const timeout = setTimeout(() => {
+        const next = new URLSearchParams(searchParams)
+        next.delete('mp_status')
+        next.delete('reason')
+        next.delete('description')
+        next.delete('ecommerceMerchantId')
+        setSearchParams(next, { replace: true })
+      }, 1500)
+      return () => clearTimeout(timeout)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mpStatus])
 
   // (Create/update mutations live inside EcommerceMerchantWizard now — it handles
   // the multi-step Stripe Connect flow + polling on return.)
@@ -248,6 +277,49 @@ const EcommerceMerchants: React.FC = () => {
     return <Badge variant="outline">Stripe sin alta</Badge>
   }
 
+  /**
+   * Mercado Pago marketplace OAuth status badge.
+   * - COMPLETED: token valid, seller authorized — green.
+   * - RESTRICTED: token expired, seller must reconnect — red.
+   * - NOT_STARTED: never connected — outline.
+   */
+  const renderMercadoPagoStatus = (merchant: EcommerceMerchant) => {
+    if (merchant.provider?.code !== 'MERCADO_PAGO') return null
+    if (merchant.onboardingStatus === 'COMPLETED') return <Badge variant="default">MP conectado</Badge>
+    if (merchant.onboardingStatus === 'RESTRICTED') return <Badge variant="destructive">MP token expirado</Badge>
+    return <Badge variant="outline">MP sin conectar</Badge>
+  }
+
+  /**
+   * Kick off MP OAuth: redirect the browser to the backend's connect endpoint,
+   * which signs a state JWT and bounces to MP's authorize page. After the
+   * seller approves, the backend callback persists tokens and bounces them
+   * back to this page with `?mp_status=connected`.
+   */
+  const handleConnectMercadoPago = (merchant: EcommerceMerchant) => {
+    if (!venue) return
+    const url = ecommerceMerchantAPI.getMercadoPagoConnectUrl(venue.id, merchant.id)
+    window.location.assign(url)
+  }
+
+  const disconnectMercadoPagoMutation = useMutation({
+    mutationFn: async (merchant: EcommerceMerchant) => {
+      if (!venue) throw new Error('Venue no disponible')
+      await ecommerceMerchantAPI.disconnectMercadoPago(venue.id, merchant.id)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ecommerce-merchants', venue?.id] })
+      toast({ title: 'Mercado Pago desconectado', description: 'El comercio ya no procesará pagos vía MP.' })
+    },
+    onError: (err: any) => {
+      toast({
+        variant: 'destructive',
+        title: 'Error al desconectar',
+        description: err?.response?.data?.error || err?.message || 'Intenta de nuevo.',
+      })
+    },
+  })
+
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text)
     toast({
@@ -287,6 +359,29 @@ const EcommerceMerchants: React.FC = () => {
           <AlertDescription className="text-amber-700 dark:text-amber-300">
             <strong>{t('wizard.returnBanner.retryTitle')}</strong>
             {returnedMerchant && <> — {returnedMerchant.channelName}.</>} {t('wizard.returnBanner.retryDesc')}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Return-from-MercadoPago banners */}
+      {mpStatus === 'connected' && (
+        <Alert className="border-emerald-500/40 bg-emerald-500/5">
+          <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <AlertDescription className="text-emerald-700 dark:text-emerald-300">
+            <strong>Mercado Pago conectado</strong>
+            {mpMerchantId && merchants.find(m => m.id === mpMerchantId) && (
+              <> — {merchants.find(m => m.id === mpMerchantId)?.channelName}.</>
+            )}{' '}
+            El comercio ya puede recibir pagos vía MP.
+          </AlertDescription>
+        </Alert>
+      )}
+      {mpStatus === 'error' && (
+        <Alert className="border-red-500/40 bg-red-500/5">
+          <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+          <AlertDescription className="text-red-700 dark:text-red-300">
+            <strong>Error al conectar Mercado Pago</strong>
+            {mpReason && <>: {mpReason}.</>} Vuelve a intentarlo o contacta a soporte.
           </AlertDescription>
         </Alert>
       )}
@@ -392,6 +487,7 @@ const EcommerceMerchants: React.FC = () => {
                         {merchant.active ? 'Activo' : 'Inactivo'}
                       </Badge>
                       <div className="mt-1">{renderStripeStatus(merchant)}</div>
+                      <div className="mt-1">{renderMercadoPagoStatus(merchant)}</div>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -416,6 +512,34 @@ const EcommerceMerchants: React.FC = () => {
                             >
                               <RefreshCcw className="h-4 w-4" />
                             </Button>
+                          </>
+                        )}
+                        {merchant.provider?.code === 'MERCADO_PAGO' && (
+                          <>
+                            {merchant.onboardingStatus === 'COMPLETED' ? (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => disconnectMercadoPagoMutation.mutate(merchant)}
+                                disabled={disconnectMercadoPagoMutation.isPending}
+                                title="Desconectar Mercado Pago"
+                              >
+                                <Unlink className="h-4 w-4 text-red-600" />
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleConnectMercadoPago(merchant)}
+                                title={
+                                  merchant.onboardingStatus === 'RESTRICTED'
+                                    ? 'Reconectar Mercado Pago (token expirado)'
+                                    : 'Conectar Mercado Pago'
+                                }
+                              >
+                                <Link2 className="h-4 w-4 text-blue-600" />
+                              </Button>
+                            )}
                           </>
                         )}
                         <Button

@@ -25,6 +25,13 @@ export interface EcommerceMerchant {
   website?: string
   publicKey: string
   providerId: string
+  /**
+   * Provider-side merchant identifier populated after the seller authorizes
+   * Avoqado (OAuth complete). For MERCADO_PAGO this is the seller's MP
+   * user_id; null until the seller finishes OAuth. Used by the UI to
+   * distinguish "connected" vs "needs OAuth" for MP merchants.
+   */
+  providerMerchantId?: string | null
   active: boolean
   sandboxMode: boolean
   onboardingStatus?: 'NOT_STARTED' | 'IN_PROGRESS' | 'PENDING_VERIFICATION' | 'COMPLETED' | 'RESTRICTED' | 'REJECTED'
@@ -315,5 +322,34 @@ export const ecommerceMerchantAPI = {
       `/api/v1/dashboard/venues/${venueId}/ecommerce-merchants/${merchantId}/onboarding-status`,
     )
     return response.data.data
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Mercado Pago — marketplace OAuth flow
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Returns the URL that initiates Mercado Pago OAuth for this merchant.
+   * The dashboard should `window.location.assign(url)` to start the flow.
+   * The backend will redirect the browser to MP's authorize page, and after
+   * the seller approves, MP will bounce back to our callback (Phase 7) which
+   * persists tokens and redirects the user back to the dashboard.
+   */
+  getMercadoPagoConnectUrl(venueId: string, merchantId: string): string {
+    const base = (api.defaults?.baseURL || window.location.origin).replace(/\/$/, '')
+    const params = new URLSearchParams({ venueId, ecommerceMerchantId: merchantId })
+    return `${base}/api/v1/integrations/mercadopago/oauth/connect?${params.toString()}`
+  },
+
+  /**
+   * Disconnect Mercado Pago for this merchant — removes the encrypted tokens
+   * from EcommerceMerchant.providerCredentials and clears providerMerchantId.
+   * Does NOT revoke the token on MP's side — the seller can do that from
+   * their own MP account.
+   */
+  async disconnectMercadoPago(venueId: string, merchantId: string): Promise<void> {
+    await api.delete(
+      `/api/v1/integrations/mercadopago/venues/${venueId}/ecommerce-merchants/${merchantId}/oauth`,
+    )
   },
 }

@@ -38,6 +38,7 @@ import {
   type AvailablePaymentProvider,
   type CreateEcommerceMerchantData,
   type EcommerceMerchant,
+  type UpdateEcommerceMerchantData,
 } from '@/services/ecommerceMerchant.service'
 import { formatStripeRequirement } from './stripeRequirementLabels'
 
@@ -299,7 +300,101 @@ function Step2Stripe({
   )
 }
 
-// ─── Step 2B: generic schema-driven form ───────────────────────────────────
+// ─── Step 2B: Mercado Pago (marketplace OAuth) ─────────────────────────────
+//
+// Asks only for the basics — channelName + businessName + contactEmail.
+// Credentials (mpUserId, access_token, etc.) are filled by the OAuth callback
+// after the seller authorizes Avoqado on mercadopago.com.mx.
+
+function Step2MercadoPago({
+  form,
+  setForm,
+  onBack,
+  showBack,
+}: {
+  form: FormData
+  setForm: React.Dispatch<React.SetStateAction<FormData>>
+  onBack: () => void
+  showBack: boolean
+}) {
+  return (
+    <div className="mx-auto max-w-2xl space-y-6 pb-12">
+      {showBack && (
+        <Button type="button" variant="ghost" size="sm" onClick={onBack} className="gap-2 -ml-3">
+          <ArrowLeft className="h-4 w-4" /> Volver
+        </Button>
+      )}
+
+      <div>
+        <h2 className="text-2xl font-semibold">Conectar Mercado Pago</h2>
+        <p className="text-sm text-muted-foreground mt-2">
+          Después de guardar, te llevaremos a Mercado Pago para que el dueño del comercio autorice a
+          Avoqado a cobrar a su nombre. Las credenciales se llenan automáticamente — no las pidas ni
+          las teclees.
+        </p>
+      </div>
+
+      <div className="rounded-2xl border border-input bg-card p-6 space-y-5">
+        <div className="space-y-2">
+          <Label htmlFor="channelName">
+            Nombre del canal <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="channelName"
+            className="h-12 text-base"
+            value={form.channelName}
+            onChange={e => setForm(f => ({ ...f, channelName: e.target.value }))}
+            placeholder="Web Principal"
+            autoComplete="off"
+            data-1p-ignore
+          />
+          <p className="text-xs text-muted-foreground">Identificador interno — no lo verán tus clientes.</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="businessName">
+            Nombre del negocio <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="businessName"
+            className="h-12 text-base"
+            value={form.businessName}
+            onChange={e => setForm(f => ({ ...f, businessName: e.target.value }))}
+            placeholder="Mi Negocio SA de CV"
+            autoComplete="off"
+            data-1p-ignore
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="contactEmail">
+            Email de contacto <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="contactEmail"
+            type="email"
+            className="h-12 text-base"
+            value={form.contactEmail}
+            onChange={e => setForm(f => ({ ...f, contactEmail: e.target.value }))}
+            placeholder="pagos@negocio.com"
+            autoComplete="off"
+            data-1p-ignore
+          />
+        </div>
+      </div>
+
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription className="text-sm">
+          Al hacer click en "Conectar Mercado Pago" te redirigimos a MP. Inicia sesión como el dueño
+          del comercio (no como Avoqado) y autoriza el acceso. Volverás aquí automáticamente.
+        </AlertDescription>
+      </Alert>
+    </div>
+  )
+}
+
+// ─── Step 2C: generic schema-driven form ───────────────────────────────────
 
 function Step2Generic({
   provider,
@@ -720,11 +815,17 @@ export function EcommerceMerchantWizard({ open, onClose, venueId, merchant }: Pr
     [providers, providerId, merchant],
   )
   const isStripe = (selectedProvider?.code ?? merchant?.provider?.code) === 'STRIPE_CONNECT'
+  const isMercadoPago = (selectedProvider?.code ?? merchant?.provider?.code) === 'MERCADO_PAGO'
 
   // ── Mutations ────────────────────────────────────────────────────────────
 
   const createMutation = useMutation({
     mutationFn: (data: CreateEcommerceMerchantData) => ecommerceMerchantAPI.create(venueId, data),
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ merchantId, data }: { merchantId: string; data: UpdateEcommerceMerchantData }) =>
+      ecommerceMerchantAPI.update(venueId, merchantId, data),
   })
 
   const stripeOnboardMutation = useMutation({
@@ -796,6 +897,62 @@ export function EcommerceMerchantWizard({ open, onClose, venueId, merchant }: Pr
       toast({
         title: t('common:error', 'Error'),
         description: err?.response?.data?.error || err?.message || 'No se pudo conectar con Stripe',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  /**
+   * Mercado Pago create flow: create record with EMPTY providerCredentials →
+   * redirect browser to MP OAuth connect URL. The backend callback persists
+   * the seller's encrypted access_token + refresh_token into providerCredentials
+   * after the seller authorizes.
+   */
+  const handleMercadoPagoSubmit = async () => {
+    if (!providerId) return
+    try {
+      // Resume mode: merchant row already exists (incomplete connection) → skip
+      // create, jump straight to OAuth. Persist any edited basic fields first
+      // so the form changes aren't lost.
+      let merchantId: string
+      if (isResume && merchant) {
+        const editedChannel = form.channelName.trim()
+        const editedBusiness = form.businessName.trim() || editedChannel
+        const editedEmail = form.contactEmail.trim()
+        const changed =
+          editedChannel !== merchant.channelName ||
+          editedBusiness !== (merchant.businessName || '') ||
+          editedEmail !== merchant.contactEmail
+        if (changed) {
+          await updateMutation.mutateAsync({
+            merchantId: merchant.id,
+            data: {
+              channelName: editedChannel,
+              businessName: editedBusiness,
+              contactEmail: editedEmail,
+            },
+          })
+        }
+        merchantId = merchant.id
+      } else {
+        const created = await createMutation.mutateAsync({
+          channelName: form.channelName.trim(),
+          businessName: form.businessName.trim() || form.channelName.trim(),
+          contactEmail: form.contactEmail.trim(),
+          providerId,
+          providerCredentials: {}, // filled by OAuth callback
+          sandboxMode: true, // MP credentials work for both — see plan v3 notes
+          active: true,
+        })
+        merchantId = created.id
+      }
+      queryClient.invalidateQueries({ queryKey: ['ecommerce-merchants', venueId] })
+      const connectUrl = ecommerceMerchantAPI.getMercadoPagoConnectUrl(venueId, merchantId)
+      window.location.assign(connectUrl)
+    } catch (err: any) {
+      toast({
+        title: t('common:error', 'Error'),
+        description: err?.response?.data?.error || err?.message || 'No se pudo conectar Mercado Pago',
         variant: 'destructive',
       })
     }
@@ -880,6 +1037,9 @@ export function EcommerceMerchantWizard({ open, onClose, venueId, merchant }: Pr
           onSelect={setProviderId}
         />
       )
+    }
+    if (isMercadoPago) {
+      return <Step2MercadoPago form={form} setForm={setForm} onBack={() => setStep(1)} showBack={!isResume} />
     }
     if (isStripe) {
       return (
@@ -1006,6 +1166,29 @@ export function EcommerceMerchantWizard({ open, onClose, venueId, merchant }: Pr
       return (
         <Button onClick={() => setStep(2)} disabled={!providerId}>
           {t('wizard.step1.nextButton')}
+        </Button>
+      )
+    }
+    if (isMercadoPago) {
+      return (
+        <Button
+          onClick={handleMercadoPagoSubmit}
+          disabled={
+            createMutation.isPending ||
+            !form.channelName.trim() ||
+            !form.businessName.trim() ||
+            !form.contactEmail.trim()
+          }
+        >
+          {createMutation.isPending ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin mr-2" /> Conectando…
+            </>
+          ) : (
+            <>
+              Conectar Mercado Pago <ExternalLink className="h-4 w-4 ml-2" />
+            </>
+          )}
         </Button>
       )
     }
