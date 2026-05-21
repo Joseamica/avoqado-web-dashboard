@@ -117,6 +117,22 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
   // AngelPay-aware piece of UI (banner, prereq lookup, payload) consumes.
   const [internalSelectedVenueId, setInternalSelectedVenueId] = useState<string | null>(null)
 
+  // Blumon Re-fetch (rotate credentials on an existing account). Two-step UX:
+  // 1) Operator clicks "Re-fetch credenciales", we open a confirm dialog with
+  //    risks + current values. 2) On confirm, mutation hits the backend; on
+  //    success we surface a diff (previous → new posId/serial) so the operator
+  //    can verify Blumon returned the expected merchant.
+  const [refetchConfirmOpen, setRefetchConfirmOpen] = useState(false)
+  const [refetchResult, setRefetchResult] = useState<{
+    migrated: boolean
+    previousPosId: string | null
+    newPosId: string
+    previousSerial: string | null
+    newSerial: string
+    affectedTerminalsNotified: number
+    refetchedAt: string
+  } | null>(null)
+
   const [formData, setFormData] = useState({
     providerId: '',
     externalMerchantId: '',
@@ -471,6 +487,52 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
       toast({
         title: err?.response?.status === 409 ? 'Slot ocupado' : 'No se pudo reservar el slot',
         description: msg,
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Blumon Re-fetch mutation. Pulls fresh OAuth/RSA/DUKPT credentials from
+  // Blumon for the CURRENT account.id (no new row created). Uses the values
+  // typed in the dialog (so the operator can override serial/brand/model/env
+  // if Blumon's portal reassigned the device). Backend keeps Payment history
+  // intact and notifies affected TPVs via socket (urgent=true).
+  const refetchBlumonMutation = useMutation({
+    mutationFn: () => {
+      if (!account) return Promise.reject(new Error('No account to re-fetch'))
+      return paymentProviderAPI.refetchBlumonCredentials(account.id, {
+        serialNumber: formData.blumonSerialNumber || undefined,
+        brand: formData.blumonBrand || undefined,
+        model: formData.blumonModel || undefined,
+        environment: formData.blumonEnvironment || undefined,
+      })
+    },
+    onSuccess: (data) => {
+      setRefetchResult({
+        migrated: data.migrated,
+        previousPosId: data.previousPosId,
+        newPosId: data.newPosId,
+        previousSerial: data.previousSerial,
+        newSerial: data.newSerial,
+        affectedTerminalsNotified: data.affectedTerminalsNotified,
+        refetchedAt: data.refetchedAt,
+      })
+      setRefetchConfirmOpen(false)
+      // Refresh listings so the new posId / serial show up.
+      queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
+      queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
+      toast({
+        title: data.migrated ? 'Migración detectada y aplicada' : 'Credenciales rotadas',
+        description: data.migrated
+          ? `posId cambió de ${data.previousPosId ?? 'N/A'} → ${data.newPosId}. ${data.affectedTerminalsNotified} terminal(es) notificada(s).`
+          : `${data.affectedTerminalsNotified} terminal(es) notificada(s). Nuevo posId: ${data.newPosId}.`,
+      })
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message || err?.message || 'Error desconocido al contactar Blumon'
+      toast({
+        title: 'Re-fetch falló',
+        description: `${msg} (las credenciales actuales NO se modificaron, la TPV sigue funcionando)`,
         variant: 'destructive',
       })
     },
@@ -879,8 +941,133 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
                     </div>
                   </div>
                 </div>
+
+                {/* Re-fetch credentials block — only when editing an existing account.
+                    Pulls fresh OAuth/RSA/DUKPT from Blumon for the CURRENT account.id,
+                    preserving all Payment history. Use when a serial was reassigned
+                    in Blumon's portal or credentials are stale/PENDING_AFFILIATION. */}
+                {account && (
+                  <div className="border-t border-amber-500/30 pt-4 mt-2 space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-medium">Re-fetch de credenciales</p>
+                        <p className="text-xs text-muted-foreground">
+                          Pide a Blumon las credenciales actuales del serial. Se conservan los pagos previos y la cuenta.
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!formData.blumonSerialNumber || refetchBlumonMutation.isPending}
+                        onClick={() => {
+                          setRefetchResult(null)
+                          setRefetchConfirmOpen(true)
+                        }}
+                      >
+                        {refetchBlumonMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Re-fetcheando...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Re-fetch credenciales
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
+                    {refetchResult && (
+                      <Alert variant={refetchResult.migrated ? 'destructive' : 'default'} className="mt-2">
+                        {refetchResult.migrated ? (
+                          <AlertTriangle className="h-4 w-4" />
+                        ) : (
+                          <CheckCircle2 className="h-4 w-4" />
+                        )}
+                        <AlertTitle>
+                          {refetchResult.migrated ? 'Migración detectada' : 'Credenciales rotadas'}
+                        </AlertTitle>
+                        <AlertDescription className="space-y-1 text-xs">
+                          <div>
+                            posId: <span className="font-mono">{refetchResult.previousPosId ?? 'N/A'}</span>{' '}
+                            → <span className="font-mono font-bold">{refetchResult.newPosId}</span>
+                          </div>
+                          <div>
+                            serial: <span className="font-mono">{refetchResult.previousSerial ?? 'N/A'}</span>{' '}
+                            → <span className="font-mono font-bold">{refetchResult.newSerial}</span>
+                          </div>
+                          <div>
+                            {refetchResult.affectedTerminalsNotified} terminal(es) notificadas vía socket urgente
+                          </div>
+                          {refetchResult.migrated && (
+                            <div className="text-amber-700 dark:text-amber-300 font-medium pt-1">
+                              ⚠️ Pagos previos ya quedaron liquidados al comercio anterior. Pagos nuevos en este serial irán al merchant actual de Blumon.
+                            </div>
+                          )}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
+                )}
               </div>
             )}
+
+            {/* Re-fetch confirm dialog — separate Dialog mounted at root level to
+                avoid nesting issues with the parent form. */}
+            <Dialog open={refetchConfirmOpen} onOpenChange={setRefetchConfirmOpen}>
+              <DialogContent className="sm:max-w-[480px]">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <RefreshCw className="h-4 w-4" />
+                    Re-fetch de credenciales Blumon
+                  </DialogTitle>
+                  <DialogDescription>
+                    Esto descargará credenciales actuales desde Blumon para el serial indicado.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3 text-sm">
+                  <div className="rounded-md border bg-muted/40 p-3 space-y-1 font-mono text-xs">
+                    <div>Serial: <span className="font-bold">{formData.blumonSerialNumber || '(vacío)'}</span></div>
+                    <div>Marca / Modelo: <span className="font-bold">{formData.blumonBrand} / {formData.blumonModel}</span></div>
+                    <div>Ambiente: <span className="font-bold">{formData.blumonEnvironment}</span></div>
+                  </div>
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Qué se conserva</AlertTitle>
+                    <AlertDescription className="text-xs">
+                      Pagos previos, settlement configs, cost structure, asignación a venue/terminal — todo intacto.
+                    </AlertDescription>
+                  </Alert>
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Qué cambia</AlertTitle>
+                    <AlertDescription className="text-xs">
+                      OAuth / RSA / DUKPT keys se rotan. Si Blumon reasignó este serial a otro comercio, los <strong>cobros futuros</strong> irán a esa nueva cuenta. Si Blumon API falla, no se escribe nada y la TPV sigue cobrando con las credenciales actuales.
+                    </AlertDescription>
+                  </Alert>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setRefetchConfirmOpen(false)} disabled={refetchBlumonMutation.isPending}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={() => refetchBlumonMutation.mutate()}
+                    disabled={refetchBlumonMutation.isPending || !formData.blumonSerialNumber}
+                  >
+                    {refetchBlumonMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Contactando Blumon...
+                      </>
+                    ) : (
+                      'Confirmar re-fetch'
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             {/* ═══════════════════════════════════════════════════ */}
             {/* ANGELPAY-SPECIFIC PATH (Task 54 — inline 3-section wizard) */}
