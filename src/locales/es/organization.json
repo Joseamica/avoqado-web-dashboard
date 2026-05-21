@@ -174,8 +174,15 @@
       "allStatuses": "Todos los Estados",
       "type": "Tipo",
       "allTypes": "Todos los Tipos",
+      "version": "Versión",
       "clearAll": "Limpiar todo",
       "activeFilters": "Filtros activos"
+    },
+    "versionStatus": {
+      "upToDate": "Actualizado",
+      "outdated": "Desactualizado",
+      "unknown": "Sin versión",
+      "outdatedTooltip": "Última versión disponible: {{latest}}"
     },
     "columnCustomizer": {
       "label": "Columnas",

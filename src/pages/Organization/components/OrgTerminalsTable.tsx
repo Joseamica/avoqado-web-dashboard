@@ -20,6 +20,8 @@ export interface SortState {
 interface OrgTerminalsTableProps {
   data: OrgTerminal[]
   total: number
+  /** Highest version in the org fleet — terminals below it render as outdated. */
+  latestVersion: string | null
   isLoading: boolean
   sort: SortState
   onSortChange: (next: SortState) => void
@@ -71,6 +73,7 @@ function SortHeader({
 export function OrgTerminalsTable({
   data,
   total,
+  latestVersion,
   isLoading,
   sort,
   onSortChange,
@@ -239,9 +242,37 @@ export function OrgTerminalsTable({
         enableSorting: false,
         meta: { label: t('terminals.columns.version') },
         header: t('terminals.columns.version'),
-        cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground font-mono">{row.original.version ?? '—'}</span>
-        ),
+        cell: ({ row }) => {
+          const version = row.original.version
+          if (!version) return <span className="text-sm text-muted-foreground font-mono">—</span>
+          const isOutdated = latestVersion !== null && version !== latestVersion
+          return (
+            <div className="flex items-center gap-1.5">
+              <span
+                className={`text-sm font-mono ${
+                  isOutdated ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'
+                }`}
+              >
+                {version}
+              </span>
+              {isOutdated && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant="outline"
+                      className="h-4 px-1.5 text-[10px] border-amber-500/40 text-amber-600 dark:text-amber-400"
+                    >
+                      {t('terminals.versionStatus.outdated')}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p className="text-xs">{t('terminals.versionStatus.outdatedTooltip', { latest: latestVersion })}</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+          )
+        },
       },
       {
         id: 'lastSeen',
@@ -256,7 +287,7 @@ export function OrgTerminalsTable({
         ),
       },
     ]
-  }, [t, sort, onSortChange, formatDateTime, dateFnsLocale])
+  }, [t, sort, onSortChange, formatDateTime, dateFnsLocale, latestVersion])
 
   return (
     <DataTable<OrgTerminal>

@@ -51,6 +51,7 @@ const DEFAULT_SORT: SortState = { sortBy: 'lastHeartbeat', sortOrder: 'desc' }
 
 const STATUS_OPTIONS = ['ACTIVE', 'INACTIVE', 'PENDING_ACTIVATION', 'MAINTENANCE', 'RETIRED'] as const
 const TYPE_OPTIONS = ['TPV_ANDROID', 'TPV_IOS', 'PRINTER_RECEIPT', 'PRINTER_KITCHEN', 'KDS'] as const
+const VERSION_OPTIONS = ['upToDate', 'outdated', 'unknown'] as const
 
 const TAB_TO_STATUSES: Record<string, string[]> = {
   all: [],
@@ -98,6 +99,7 @@ export default function OrganizationTerminals() {
   const statusFilter = parseCsv(searchParams.get('status'))
   const typeFilter = parseCsv(searchParams.get('type'))
   const venueFilter = parseCsv(searchParams.get('venue'))
+  const versionFilter = parseCsv(searchParams.get('version'))
   const drawerTerminalId = searchParams.get('terminal')
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10))
   const sortBy = searchParams.get('sortBy')
@@ -126,6 +128,8 @@ export default function OrganizationTerminals() {
     statuses: statusFilter.length > 0 ? statusFilter : undefined,
     types: typeFilter.length > 0 ? typeFilter : undefined,
     venueIds: venueFilter.length > 0 ? venueFilter : undefined,
+    versionStatuses:
+      versionFilter.length > 0 ? (versionFilter as OrgTerminalsFilters['versionStatuses']) : undefined,
     sortBy: sort.sortBy,
     sortOrder: sort.sortOrder,
   }
@@ -186,6 +190,12 @@ export default function OrganizationTerminals() {
       else p.delete('venue')
     }, { resetPage: true })
 
+  const setVersionValues = (values: string[]) =>
+    updateParams(p => {
+      if (values.length > 0) p.set('version', values.join(','))
+      else p.delete('version')
+    }, { resetPage: true })
+
   const setSort = (next: SortState) =>
     updateParams(p => {
       if (next.sortBy === DEFAULT_SORT.sortBy && next.sortOrder === DEFAULT_SORT.sortOrder) {
@@ -214,6 +224,7 @@ export default function OrganizationTerminals() {
       p.delete('status')
       p.delete('type')
       p.delete('venue')
+      p.delete('version')
     }, { resetPage: true })
   }
 
@@ -429,7 +440,11 @@ export default function OrganizationTerminals() {
   const isOrgEmpty = (summary?.total ?? 0) === 0
   const isFilterEmpty =
     !isOrgEmpty && terminals.length === 0 &&
-    (debouncedSearch.length > 0 || statusFilter.length > 0 || typeFilter.length > 0 || venueFilter.length > 0)
+    (debouncedSearch.length > 0 ||
+      statusFilter.length > 0 ||
+      typeFilter.length > 0 ||
+      venueFilter.length > 0 ||
+      versionFilter.length > 0)
 
   const fromCacheTerminal = drawerTerminalId ? terminals.find(t => t.id === drawerTerminalId) ?? null : null
 
@@ -507,6 +522,12 @@ export default function OrganizationTerminals() {
               venueOptions={(venues ?? []).map(v => ({ value: v.id, label: v.name }))}
               venueFilter={venueFilter}
               onVenueChange={setVenueValues}
+              versionOptions={VERSION_OPTIONS.map(v => ({
+                value: v,
+                label: t(`terminals.versionStatus.${v}` as const),
+              }))}
+              versionFilter={versionFilter}
+              onVersionChange={setVersionValues}
               onClearAll={handleClearAll}
               onRefresh={() => refetch()}
               isRefreshing={isFetching}
@@ -520,6 +541,7 @@ export default function OrganizationTerminals() {
                 <OrgTerminalsTable
                   data={terminals}
                   total={paginationData?.total ?? 0}
+                  latestVersion={summary?.latestVersion ?? null}
                   isLoading={isFetching && terminals.length === 0}
                   sort={sort}
                   onSortChange={setSort}

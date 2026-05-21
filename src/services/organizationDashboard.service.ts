@@ -381,7 +381,11 @@ export interface OrgTerminalsSummary {
   offline: number
   byStatus: Record<string, number>
   byType: Record<string, number>
+  /** Highest app version present across the org's terminal fleet. */
+  latestVersion: string | null
 }
+
+export type OrgTerminalVersionStatus = 'upToDate' | 'outdated' | 'unknown'
 
 export interface OrgTerminalsResponse {
   terminals: OrgTerminal[]
@@ -405,6 +409,7 @@ export interface OrgTerminalsFilters {
   venueIds?: string[]
   statuses?: string[]
   types?: string[]
+  versionStatuses?: OrgTerminalVersionStatus[]
   search?: string
   sortBy?: OrgTerminalSortBy
   sortOrder?: 'asc' | 'desc'
@@ -432,6 +437,8 @@ export async function getOrgTerminals(orgId: string, filters?: OrgTerminalsFilte
   if (statusCsv) params.status = statusCsv
   const typeCsv = arrayToCsv(filters?.types)
   if (typeCsv) params.type = typeCsv
+  const versionCsv = arrayToCsv(filters?.versionStatuses)
+  if (versionCsv) params.versionStatus = versionCsv
   if (filters?.sortBy) params.sortBy = filters.sortBy
   if (filters?.sortOrder) params.sortOrder = filters.sortOrder
 

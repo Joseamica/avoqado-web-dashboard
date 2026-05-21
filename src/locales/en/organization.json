@@ -174,8 +174,15 @@
       "allStatuses": "All Statuses",
       "type": "Type",
       "allTypes": "All Types",
+      "version": "Version",
       "clearAll": "Clear all",
       "activeFilters": "Active filters"
+    },
+    "versionStatus": {
+      "upToDate": "Up to date",
+      "outdated": "Outdated",
+      "unknown": "No version",
+      "outdatedTooltip": "Latest available version: {{latest}}"
     },
     "columnCustomizer": {
       "label": "Columns",

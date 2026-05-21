@@ -21,6 +21,10 @@ interface OrgTerminalsToolbarProps {
   venueFilter: string[]
   onVenueChange: (values: string[]) => void
 
+  versionOptions: { value: string; label: string }[]
+  versionFilter: string[]
+  onVersionChange: (values: string[]) => void
+
   onClearAll: () => void
 
   onRefresh: () => void
@@ -47,6 +51,9 @@ export function OrgTerminalsToolbar({
   venueOptions,
   venueFilter,
   onVenueChange,
+  versionOptions,
+  versionFilter,
+  onVersionChange,
   onClearAll,
   onRefresh,
   isRefreshing = false,
@@ -71,7 +78,12 @@ export function OrgTerminalsToolbar({
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
-  const hasActiveFilters = statusFilter.length > 0 || typeFilter.length > 0 || venueFilter.length > 0 || searchTerm.length > 0
+  const hasActiveFilters =
+    statusFilter.length > 0 ||
+    typeFilter.length > 0 ||
+    venueFilter.length > 0 ||
+    versionFilter.length > 0 ||
+    searchTerm.length > 0
 
   return (
     <div className="space-y-2">
@@ -180,6 +192,21 @@ export function OrgTerminalsToolbar({
           />
         </FilterPill>
 
+        {/* Versión */}
+        <FilterPill
+          label={t('terminals.filters.version')}
+          activeValue={getFilterDisplayLabel(versionFilter, versionOptions, t)}
+          isActive={versionFilter.length > 0}
+          onClear={() => onVersionChange([])}
+        >
+          <CheckboxFilterContent
+            title={t('terminals.filters.version')}
+            options={versionOptions}
+            selectedValues={versionFilter}
+            onApply={onVersionChange}
+          />
+        </FilterPill>
+
         {/* Spacer */}
         <div className="flex-1" />
 
@@ -214,6 +241,11 @@ export function OrgTerminalsToolbar({
           {venueFilter.map(v => (
             <ActiveChip key={`v-${v}`} onRemove={() => onVenueChange(venueFilter.filter(x => x !== v))}>
               {venueOptions.find(o => o.value === v)?.label ?? v}
+            </ActiveChip>
+          ))}
+          {versionFilter.map(v => (
+            <ActiveChip key={`ver-${v}`} onRemove={() => onVersionChange(versionFilter.filter(x => x !== v))}>
+              {versionOptions.find(o => o.value === v)?.label ?? v}
             </ActiveChip>
           ))}
           <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-muted-foreground cursor-pointer" onClick={onClearAll}>
