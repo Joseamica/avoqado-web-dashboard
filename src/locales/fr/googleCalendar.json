@@ -65,7 +65,8 @@
     "toggle": "Afficher les blocages Google",
     "busyLabel": "Occupé",
     "sourceTooltip": "Blocage Google Calendar",
-    "account": "Compte : {{email}}"
+    "account": "Compte : {{email}}",
+    "clickToOpen": "Cliquez pour ouvrir dans Google Calendar →"
   },
   "deadLetter": {
     "bannerSingular": "1 réservation n'a pas pu être synchronisée avec Google Calendar.",

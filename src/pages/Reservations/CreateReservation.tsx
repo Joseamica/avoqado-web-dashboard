@@ -141,6 +141,8 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
   const watchPartySize = watch('partySize')
   const watchDuration = watch('duration')
   const watchProductId = watch('productId')
+  const watchTableId = watch('tableId')
+  const watchAssignedStaffId = watch('assignedStaffId')
   const watchStartTime = watch('startTime')
 
   // Fetch APPOINTMENTS_SERVICE products for the service selector
@@ -248,21 +250,42 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
 
   // Fetch availability for selected date
   const { data: availabilityData } = useQuery({
-    queryKey: ['reservation-availability', venueId, watchDate, watchPartySize, watchDuration],
+    queryKey: [
+      'reservation-availability',
+      venueId,
+      watchDate,
+      watchPartySize,
+      watchDuration,
+      watchProductId,
+      watchTableId,
+      watchAssignedStaffId,
+    ],
     queryFn: () =>
       reservationService.getAvailability(venueId, {
         date: watchDate,
         partySize: watchPartySize || undefined,
         duration: watchDuration || undefined,
+        productId: watchProductId || undefined,
+        tableId: watchTableId || undefined,
+        staffId: watchAssignedStaffId || undefined,
       }),
     enabled: !!watchDate,
   })
 
-  const availableSlots = availabilityData?.slots || []
+  const availableSlots = useMemo(() => availabilityData?.slots ?? [], [availabilityData?.slots])
 
   // When a slot is selected, update start/end time and available tables
   const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null)
   const showTables = venue?.type ? VENUE_TYPES_WITH_TABLES.has(venue.type) : false
+
+  useEffect(() => {
+    if (!selectedSlot) return
+    const slotStillAvailable = availableSlots.some(slot => slot.startsAt === selectedSlot.startsAt)
+    if (!slotStillAvailable) {
+      setSelectedSlot(null)
+      setValue('tableId', '')
+    }
+  }, [availableSlots, selectedSlot, setValue])
 
   const handleSlotSelect = (slot: AvailableSlot) => {
     setSelectedSlot(slot)

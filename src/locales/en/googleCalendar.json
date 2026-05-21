@@ -65,7 +65,8 @@
     "toggle": "Show Google blocks",
     "busyLabel": "Busy",
     "sourceTooltip": "Google Calendar block",
-    "account": "Account: {{email}}"
+    "account": "Account: {{email}}",
+    "clickToOpen": "Click to open in Google Calendar →"
   },
   "deadLetter": {
     "bannerSingular": "1 reservation couldn't sync to Google Calendar.",

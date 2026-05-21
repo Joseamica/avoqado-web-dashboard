@@ -47,6 +47,18 @@ export function GoogleCalendarBusyBlock({ block, top, height }: GoogleCalendarBu
     { locale: venueLocale },
   )
 
+  // Deep-link to Google Calendar at the day of the event. We don't link to the
+  // specific event because we don't store the event's htmlLink; the day view
+  // surfaces all events for that date and the user can click the right one to
+  // edit it inside Google Calendar (Avoqado never edits user-created events).
+  const blockStart = DateTime.fromISO(block.startsAt)
+  const googleCalendarDayUrl = `https://calendar.google.com/calendar/u/0/r/day/${blockStart.year}/${blockStart.month}/${blockStart.day}`
+
+  const handleOpenInGoogle = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    window.open(googleCalendarDayUrl, '_blank', 'noopener,noreferrer')
+  }
+
   return (
     <TooltipProvider delayDuration={200}>
       <Tooltip>
@@ -56,24 +68,44 @@ export function GoogleCalendarBusyBlock({ block, top, height }: GoogleCalendarBu
             // click handlers can ignore it (we don't want hovering a Google
             // block to count as a "create reservation here" intent).
             data-gcal-overlay="true"
+            onClick={handleOpenInGoogle}
+            role="button"
+            tabIndex={0}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                handleOpenInGoogle(e as unknown as React.MouseEvent)
+              }
+            }}
             // z-index sits BELOW reservation blocks (which use z-30 during
             // drag). 5 keeps it above grid hour lines (z-default) but well
             // below real reservation blocks.
-            className="absolute left-1 right-1 rounded-md border border-zinc-400/40 px-2 py-1 text-xs text-zinc-700 dark:text-zinc-300 overflow-hidden cursor-default select-none"
+            className="absolute left-1 right-1 rounded-md border border-input bg-muted/90 px-2 py-1 text-xs text-foreground overflow-hidden cursor-pointer select-none shadow-sm transition-colors hover:bg-muted hover:border-foreground/30 focus:outline-none focus:ring-2 focus:ring-ring"
             style={{
               top: `${top}px`,
               height: `${height}px`,
               zIndex: 5,
-              // Diagonal stripes — light, never aggressive. Using the muted
-              // foreground at low alpha keeps it readable in both themes
-              // without competing with the colored reservation blocks.
+              // Subtle diagonal stripes over a solid theme-aware base. Stripes
+              // are decorative only — text reads on the muted bg-color, not on
+              // the stripe pattern. Uses hsl(...) tied to the muted-foreground
+              // token at low alpha so it adapts to both light and dark themes.
               backgroundImage:
-                'repeating-linear-gradient(45deg, rgba(113,113,122,0.18) 0px, rgba(113,113,122,0.18) 6px, rgba(228,228,231,0.6) 6px, rgba(228,228,231,0.6) 12px)',
+                'repeating-linear-gradient(45deg, transparent 0px, transparent 8px, hsl(var(--muted-foreground) / 0.12) 8px, hsl(var(--muted-foreground) / 0.12) 10px)',
             }}
           >
-            <div className="font-medium truncate">{showTitle}</div>
+            <div className="flex items-center gap-1.5">
+              <svg
+                viewBox="0 0 24 24"
+                className="h-3 w-3 shrink-0 text-muted-foreground"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5z" />
+              </svg>
+              <span className="font-medium truncate">{showTitle}</span>
+            </div>
             {height > 28 && (
-              <div className="opacity-70 truncate text-[10px]">
+              <div className="text-muted-foreground truncate text-[10px] mt-0.5">
                 {t('overlay.sourceTooltip')}
               </div>
             )}
@@ -87,6 +119,9 @@ export function GoogleCalendarBusyBlock({ block, top, height }: GoogleCalendarBu
             </div>
             <div className="text-muted-foreground">
               {t('overlay.account', { email: block.connection.googleAccountEmail })}
+            </div>
+            <div className="text-foreground/80 pt-1 border-t border-border/50 mt-1">
+              {t('overlay.clickToOpen')}
             </div>
           </div>
         </TooltipContent>
