@@ -15,26 +15,33 @@
 
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Search, ImageIcon, CheckCircle2, XCircle, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, ImageIcon, CheckCircle2, XCircle, ChevronLeft, ChevronRight, Download, Loader2, FileSpreadsheet, FileText } from 'lucide-react'
+import { DateTime } from 'luxon'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { useVenueDateTime } from '@/utils/datetime'
+import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/context/AuthContext'
+import { useVenueDateTime, getLast30Days } from '@/utils/datetime'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { FilterPill } from '@/components/filters/FilterPill'
 import { CheckboxFilterContent } from '@/components/filters/CheckboxFilterContent'
+import { DateRangePicker } from '@/components/date-range-picker'
 import { GlassCard } from '@/components/ui/glass-card'
 import { cn } from '@/lib/utils'
+import { exportToExcel, exportToCSV, generateFilename } from '@/utils/export'
 import { ReviewSaleDialog, type ReviewMode } from '@/pages/playtelecom/Sales/components/ReviewSaleDialog'
 import {
   listOrgSaleVerifications,
   getOrgSalesSummary,
   SALE_TYPE_LABELS,
   PAYMENT_FORM_LABELS,
+  type ListOrgSalesParams,
   type OrgSaleRow,
   type PaymentForm,
   type PaymentMethod,
@@ -43,6 +50,9 @@ import {
 import { SALE_VERIFICATION_REJECTION_REASON_LABELS, type SaleVerificationStatus } from '@/services/saleVerification.service'
 
 const PAGE_SIZE = 25
+const EXPORT_PAGE_SIZE = 200 // backend cap
+const MAX_EXPORT_ROWS = 10_000
+const EXPORT_TZ = 'America/Mexico_City'
 
 const STATUS_OPTIONS: { value: SaleVerificationStatus; label: string }[] = [
   { value: 'PENDING', label: 'Pendiente' },
@@ -82,7 +92,21 @@ function statusBadge(status: SaleVerificationStatus) {
 export default function SalesDetail() {
   const { orgId, isLoading: orgLoading, organization } = useCurrentOrganization()
   const { formatDate, formatTime } = useVenueDateTime()
+  const { activeVenue } = useAuth()
+  const { toast } = useToast()
   const isMobile = useIsMobile()
+
+  const venueTz = activeVenue?.timezone || EXPORT_TZ
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(() => {
+    const r = getLast30Days(venueTz)
+    return { from: r.from, to: r.to }
+  })
+  const fromDateStr = useMemo(() => DateTime.fromJSDate(dateRange.from).setZone(venueTz).toFormat('yyyy-LL-dd'), [dateRange.from, venueTz])
+  const toDateStr = useMemo(() => DateTime.fromJSDate(dateRange.to).setZone(venueTz).toFormat('yyyy-LL-dd'), [dateRange.to, venueTz])
+
+  // Export state
+  const [exporting, setExporting] = useState(false)
+  const [exportProgress, setExportProgress] = useState<{ fetched: number; total: number } | null>(null)
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<string[]>([])
@@ -104,7 +128,7 @@ export default function SalesDetail() {
   // Photo preview state
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
 
-  const listParams = useMemo(
+  const listParams = useMemo<ListOrgSalesParams>(
     () => ({
       pageSize: PAGE_SIZE,
       pageNumber,
@@ -121,8 +145,10 @@ export default function SalesDetail() {
             : undefined,
       paymentMethod: paymentFormFilter.length === 1 && paymentFormFilter[0] === 'CASH' ? ('CASH' as PaymentMethod) : undefined,
       search: debouncedSearch.trim() || undefined,
+      fromDate: fromDateStr,
+      toDate: toDateStr,
     }),
-    [pageNumber, statusFilter, venueFilter, saleTypeFilter, paymentFormFilter, debouncedSearch],
+    [pageNumber, statusFilter, venueFilter, saleTypeFilter, paymentFormFilter, debouncedSearch, fromDateStr, toDateStr],
   )
 
   const listQuery = useQuery({
@@ -133,8 +159,8 @@ export default function SalesDetail() {
   })
 
   const summaryQuery = useQuery({
-    queryKey: ['org', orgId, 'sales-summary'],
-    queryFn: () => getOrgSalesSummary(orgId!),
+    queryKey: ['org', orgId, 'sales-summary', fromDateStr, toDateStr],
+    queryFn: () => getOrgSalesSummary(orgId!, { fromDate: fromDateStr, toDate: toDateStr }),
     enabled: !!orgId,
     staleTime: 60_000,
   })
@@ -168,6 +194,113 @@ export default function SalesDetail() {
     setReviewVerification(row)
     setReviewMode(mode)
     setReviewOpen(true)
+  }
+
+  // ============================================================
+  // Export handler — chunked fetch, capped at MAX_EXPORT_ROWS
+  // ============================================================
+  // Loops pageSize=200 (backend cap) until totalPages reached.
+  // Sequential to keep DB pool pressure predictable, with progress
+  // toast and a hard cap so the browser never balloons memory on
+  // a runaway query.
+  const handleExport = async (format: 'xlsx' | 'csv') => {
+    if (!orgId || exporting) return
+    setExporting(true)
+    setExportProgress({ fetched: 0, total: 0 })
+
+    try {
+      const baseParams: ListOrgSalesParams = {
+        ...listParams,
+        pageNumber: 1,
+        pageSize: EXPORT_PAGE_SIZE,
+      }
+
+      const accumulated: OrgSaleRow[] = []
+      let pageNumber = 1
+      let totalPages = 1
+      let totalCount = 0
+
+      // First request seeds totalPages / totalCount
+      while (pageNumber <= totalPages) {
+        const resp = await listOrgSaleVerifications(orgId, { ...baseParams, pageNumber })
+        accumulated.push(...resp.data)
+        totalPages = resp.pagination.totalPages
+        totalCount = resp.pagination.totalCount
+        setExportProgress({ fetched: accumulated.length, total: totalCount })
+
+        if (accumulated.length >= MAX_EXPORT_ROWS) {
+          toast({
+            title: 'Demasiados registros',
+            description: `Hay ${totalCount.toLocaleString('es-MX')} ventas que cumplen los filtros (máx ${MAX_EXPORT_ROWS.toLocaleString('es-MX')}). Acorta el rango de fechas y vuelve a exportar.`,
+            variant: 'destructive',
+          })
+          return
+        }
+        pageNumber++
+      }
+
+      if (accumulated.length === 0) {
+        toast({
+          title: 'Sin datos para exportar',
+          description: 'No hay ventas en el rango y filtros seleccionados.',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      const rows = accumulated.map((r, idx) => ({
+        '#': idx + 1,
+        'ID Venta': r.id,
+        'ID SIM': r.serialNumbers[0] ?? '',
+        'SIMs Adicionales': r.serialNumbers.slice(1).join(', '),
+        'Tipo SIM': r.category?.name ?? '',
+        Fecha: DateTime.fromISO(r.createdAt, { zone: 'utc' }).setZone(venueTz).toFormat('yyyy-LL-dd'),
+        Hora: DateTime.fromISO(r.createdAt, { zone: 'utc' }).setZone(venueTz).toFormat('HH:mm:ss'),
+        Promotor: r.staff ? `${r.staff.firstName} ${r.staff.lastName}`.trim() : '',
+        'Email Promotor': r.staff?.email ?? '',
+        Ciudad: r.venue.city ?? '',
+        Tienda: r.venue.name,
+        'Tipo de Venta': SALE_TYPE_LABELS[r.saleType],
+        'Forma de Pago': PAYMENT_FORM_LABELS[r.payment?.paymentForm ?? 'NONE'],
+        'Monto MXN': r.payment?.amount ?? 0,
+        Status:
+          r.status === 'COMPLETED'
+            ? 'Venta correcta'
+            : r.status === 'FAILED'
+              ? 'Revisar'
+              : r.status === 'PENDING'
+                ? 'Pendiente'
+                : r.status,
+        'Razones de Rechazo': r.rejectionReasons.map(rr => SALE_VERIFICATION_REJECTION_REASON_LABELS[rr] ?? rr).join('; '),
+        'Notas de Revisión': r.reviewNotes ?? '',
+        'Revisado Por': r.reviewedBy ? `${r.reviewedBy.firstName} ${r.reviewedBy.lastName}`.trim() : '',
+        'Fecha Revisión': r.reviewedAt ? DateTime.fromISO(r.reviewedAt, { zone: 'utc' }).setZone(venueTz).toFormat('yyyy-LL-dd HH:mm:ss') : '',
+        'Evidencias (count)': r.photos.length,
+      }))
+
+      const filename = generateFilename(`ventas-${organization?.slug ?? orgId}`, `${fromDateStr}-a-${toDateStr}`)
+
+      if (format === 'xlsx') {
+        await exportToExcel(rows, filename, 'Ventas')
+      } else {
+        exportToCSV(rows, filename)
+      }
+
+      toast({
+        title: format === 'xlsx' ? 'Excel descargado' : 'CSV descargado',
+        description: `${rows.length.toLocaleString('es-MX')} ventas · ${filename}.${format}`,
+      })
+    } catch (err: any) {
+      console.error('Export error:', err)
+      toast({
+        title: 'Error al exportar',
+        description: err?.message || 'Intenta de nuevo en unos momentos.',
+        variant: 'destructive',
+      })
+    } finally {
+      setExporting(false)
+      setExportProgress(null)
+    }
   }
 
   if (orgLoading) {
@@ -205,6 +338,41 @@ export default function SalesDetail() {
         <SummaryCard label="Aprobadas" value={summaryQuery.data?.completedCount ?? 0} loading={summaryQuery.isLoading} tone="success" />
         <SummaryCard label="Pendientes" value={summaryQuery.data?.pendingCount ?? 0} loading={summaryQuery.isLoading} tone="warning" />
         <SummaryCard label="Por revisar" value={summaryQuery.data?.failedCount ?? 0} loading={summaryQuery.isLoading} tone="danger" />
+      </div>
+
+      {/* Date range + export */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <DateRangePicker
+          initialDateFrom={dateRange.from}
+          initialDateTo={dateRange.to}
+          showCompare={false}
+          align="start"
+          onUpdate={({ range }) => {
+            if (!range.to) return
+            setDateRange({ from: range.from, to: range.to })
+            setPageNumber(1)
+          }}
+        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" disabled={exporting || listQuery.isLoading} className="gap-2">
+              {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {exporting && exportProgress
+                ? `${exportProgress.fetched.toLocaleString('es-MX')}${exportProgress.total ? ` / ${exportProgress.total.toLocaleString('es-MX')}` : ''}`
+                : 'Exportar'}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleExport('xlsx')} disabled={exporting}>
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Excel (.xlsx)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleExport('csv')} disabled={exporting}>
+              <FileText className="h-4 w-4 mr-2" />
+              CSV (.csv)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Filters + search bar */}
