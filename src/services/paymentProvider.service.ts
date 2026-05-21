@@ -417,6 +417,43 @@ export async function autoFetchBlumonCredentials(data: {
 }
 
 /**
+ * Re-fetch OAuth/RSA/DUKPT credentials from Blumon for an EXISTING MerchantAccount.
+ *
+ * Use this when a serial was reassigned in Blumon's portal (e.g. moved from one
+ * comercio to another) or when credentials are stale/PENDING_AFFILIATION.
+ *
+ * Safety: backend keeps the same MerchantAccount.id (and all Payment/Settlement
+ * history) and ONLY rotates credentials + Blumon-internal fields. If Blumon's
+ * API call fails, NO DB write happens — TPVs keep cobrando with the existing
+ * credentials.
+ *
+ * Backend endpoint: POST /api/v1/superadmin/merchant-accounts/:id/blumon/refetch
+ */
+export async function refetchBlumonCredentials(
+  id: string,
+  data: {
+    serialNumber?: string
+    brand?: string
+    model?: string
+    environment?: 'SANDBOX' | 'PRODUCTION'
+  } = {},
+): Promise<{
+  id: string
+  migrated: boolean
+  previousPosId: string | null
+  newPosId: string
+  previousSerial: string | null
+  newSerial: string
+  blumonEnvironment: string | null
+  dukptKeysAvailable: boolean
+  affectedTerminalsNotified: number
+  refetchedAt: string
+}> {
+  const response = await api.post(`/api/v1/superadmin/merchant-accounts/${id}/blumon/refetch`, data)
+  return response.data.data
+}
+
+/**
  * Batch auto-fetch Blumon credentials for multiple terminals
  *
  * This is a SEPARATE endpoint that processes multiple serials in parallel.
@@ -1179,6 +1216,7 @@ export const paymentProviderAPI = {
   getMerchantAccountCredentials,
   createMerchantAccount,
   autoFetchBlumonCredentials, // Blumon-specific auto-fetch (single terminal)
+  refetchBlumonCredentials, // Blumon refetch: rotate credentials on an existing account
   batchAutoFetchBlumonCredentials, // Blumon batch auto-fetch (multiple terminals)
   updateMerchantAccount,
   toggleMerchantAccountStatus,
