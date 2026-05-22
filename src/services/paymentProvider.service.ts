@@ -875,8 +875,8 @@ export async function updateVenuePaymentConfigByVenueId(
   configId: string,
   data: {
     primaryAccountId?: string
-    secondaryAccountId?: string
-    tertiaryAccountId?: string
+    secondaryAccountId?: string | null
+    tertiaryAccountId?: string | null
     routingRules?: any
     preferredProcessor?: string
   },

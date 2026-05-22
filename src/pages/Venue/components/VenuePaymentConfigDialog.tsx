@@ -28,8 +28,8 @@ interface VenuePaymentConfigDialogProps {
   venueId: string
   onSave: (data: {
     primaryAccountId: string
-    secondaryAccountId?: string
-    tertiaryAccountId?: string
+    secondaryAccountId?: string | null
+    tertiaryAccountId?: string | null
     preferredProcessor?: string
   }) => Promise<void>
 }
@@ -79,8 +79,8 @@ export const VenuePaymentConfigDialog: React.FC<VenuePaymentConfigDialogProps> =
     try {
       await onSave({
         primaryAccountId,
-        secondaryAccountId: secondaryAccountId !== 'none' ? secondaryAccountId : undefined,
-        tertiaryAccountId: tertiaryAccountId !== 'none' ? tertiaryAccountId : undefined,
+        secondaryAccountId: secondaryAccountId !== 'none' ? secondaryAccountId : null,
+        tertiaryAccountId: tertiaryAccountId !== 'none' ? tertiaryAccountId : null,
         preferredProcessor,
       })
       onOpenChange(false)
