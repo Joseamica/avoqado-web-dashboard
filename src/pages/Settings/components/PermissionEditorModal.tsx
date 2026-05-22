@@ -85,7 +85,7 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
   const selectedPermissionsSet = useMemo(() => new Set(modifiedPermissions), [modifiedPermissions])
 
   // Fetch role permissions
-  const { data: rolePermissionsData } = useQuery({
+  const { data: rolePermissionsData, isLoading: isLoadingPermissions } = useQuery({
     queryKey: ['rolePermissions', venueId],
     queryFn: () => rolePermissionService.getAllRolePermissions(venueId),
     enabled: !!venueId && open,
@@ -281,7 +281,7 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
   }, [open, roleDisplayName, roleDescription, roleColor, roleConfigs, role])
 
   const handleSave = useCallback(async () => {
-    // Save role config changes if any
+    // Save role config changes if any (display name, description, color)
     if (hasConfigChanges) {
       try {
         const configUpdate: RoleConfigInput = {
@@ -302,16 +302,29 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
       }
     }
 
-    // Save permissions
-    let permissionsToSave = modifiedPermissions
-    if (
-      modifiedPermissions.length === allPermissions.length &&
-      allPermissions.every(p => modifiedPermissions.includes(p))
-    ) {
-      permissionsToSave = ['*:*']
+    // Save permissions ONLY when the user actually changed them. Two reasons:
+    // (a) If only appearance was edited, the permission save would re-send the
+    //     local modifiedPermissions which can be stale or even [] if the
+    //     useQuery for rolePermissionsData hadn't resolved before the user
+    //     clicked Save — sending [] wipes the role's effective custom perms.
+    // (b) Avoids unnecessary round-trip writes that could collapse a stored
+    //     ['*:*'] into a literal list snapshot if the catalog later grows
+    //     (since allPermissions is derived from the dashboard's PERMISSION_CATEGORIES).
+    if (hasChanges) {
+      let permissionsToSave = modifiedPermissions
+      if (
+        modifiedPermissions.length === allPermissions.length &&
+        allPermissions.every(p => modifiedPermissions.includes(p))
+      ) {
+        permissionsToSave = ['*:*']
+      }
+      updateMutation.mutate(permissionsToSave)
+    } else if (hasConfigChanges) {
+      // Appearance-only save already succeeded above; just close the modal.
+      setHasConfigChanges(false)
+      onClose()
     }
-    updateMutation.mutate(permissionsToSave)
-  }, [modifiedPermissions, allPermissions, updateMutation, hasConfigChanges, role, roleDisplayName, roleDescription, roleColor, updateConfigsAsync, toast, tCommon, t])
+  }, [modifiedPermissions, allPermissions, updateMutation, hasChanges, hasConfigChanges, role, roleDisplayName, roleDescription, roleColor, updateConfigsAsync, toast, tCommon, t, onClose])
 
   const handleClose = useCallback(() => {
     if (hasChanges || hasConfigChanges) {
@@ -344,7 +357,15 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
       )}
       <Button
         onClick={handleSave}
-        disabled={(!hasChanges && !hasConfigChanges) || updateMutation.isPending || isUpdatingConfig}
+        disabled={
+          (!hasChanges && !hasConfigChanges) ||
+          updateMutation.isPending ||
+          isUpdatingConfig ||
+          // Wait for rolePermissionsData to load before allowing save. Without
+          // this guard a click during the initial fetch sends modifiedPermissions=[]
+          // and wipes the role (see handleSave comment).
+          (hasChanges && isLoadingPermissions)
+        }
         size="sm"
         className="min-w-[100px]"
       >

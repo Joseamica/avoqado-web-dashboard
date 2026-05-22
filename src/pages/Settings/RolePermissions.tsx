@@ -168,7 +168,7 @@ export default function RolePermissions() {
               </p>
             </div>
 
-            <PermissionGate permission="role-permissions:update">
+            <PermissionGate permission="settings:manage">
               <Button onClick={() => setCreatingPermissionSet(true)} size="default" className="w-full sm:w-auto shrink-0">
                 <Plus className="h-4 w-4 mr-2" />
                 {t('rolePermissions.permissionSets.create', 'Crear conjunto de permisos')}

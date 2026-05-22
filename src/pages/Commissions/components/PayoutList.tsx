@@ -221,7 +221,7 @@ export default function PayoutList({ payouts, isLoading }: PayoutListProps) {
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end">
 								{canProcess && (
-									<PermissionGate permission="commissions:process_payout">
+									<PermissionGate permission="commissions:payout">
 										<DropdownMenuItem onClick={() => handleProcess(payout.id)}>
 											<Clock className="h-4 w-4 mr-2" />
 											{t('payout.process')}
@@ -229,7 +229,7 @@ export default function PayoutList({ payouts, isLoading }: PayoutListProps) {
 									</PermissionGate>
 								)}
 								{canComplete && (
-									<PermissionGate permission="commissions:process_payout">
+									<PermissionGate permission="commissions:payout">
 										<DropdownMenuItem onClick={() => handleComplete(payout.id)}>
 											<CheckCircle2 className="h-4 w-4 mr-2" />
 											{t('payout.complete')}
@@ -239,7 +239,7 @@ export default function PayoutList({ payouts, isLoading }: PayoutListProps) {
 								{canCancel && (
 									<>
 										<DropdownMenuSeparator />
-										<PermissionGate permission="commissions:process_payout">
+										<PermissionGate permission="commissions:payout">
 											<DropdownMenuItem
 												onClick={() => handleCancel(payout.id)}
 												className="text-destructive"

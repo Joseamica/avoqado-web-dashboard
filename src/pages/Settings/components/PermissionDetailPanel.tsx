@@ -362,19 +362,32 @@ export function PermissionDetailPanel({
 
   // Category-level stats
   const enabledCount = categoryPermissions.filter(p => selectedPermissions.has(p)).length
+  const totalCount = categoryPermissions.length
+  // hasAnyEnabled drives the visual switch indicator (checked when ≥1 perm is on).
+  // Kept as-is for visual continuity. The bug was in toggleAll, not the indicator.
   const hasAnyEnabled = enabledCount > 0
+  const isFullyEnabled = totalCount > 0 && enabledCount === totalCount
 
+  // Tri-state toggle semantics:
+  //   none enabled    → enable all
+  //   partial enabled → enable the rest (fill the category)
+  //   all enabled     → disable all (clear the category)
+  // Previously this branched on hasAnyEnabled which collapsed "partial" into
+  // "clear all" — a user with 3/5 active who clicked the toggle hoping to fill
+  // the category instead lost the 3 they already had. Now partial → fill.
   const toggleAll = useCallback(() => {
     if (disabled) return
-    categoryPermissions.forEach(permission => {
-      if (!hasAnyEnabled) {
-        if (!selectedPermissions.has(permission)) onChange(permission, true)
-      } else {
+    if (isFullyEnabled) {
+      categoryPermissions.forEach(permission => {
         if (isOwnRole && CRITICAL_PERMISSIONS.includes(permission)) return
         if (selectedPermissions.has(permission)) onChange(permission, false)
-      }
-    })
-  }, [disabled, categoryPermissions, hasAnyEnabled, selectedPermissions, onChange, isOwnRole])
+      })
+    } else {
+      categoryPermissions.forEach(permission => {
+        if (!selectedPermissions.has(permission)) onChange(permission, true)
+      })
+    }
+  }, [disabled, categoryPermissions, isFullyEnabled, selectedPermissions, onChange, isOwnRole])
 
   if (!category) return null
 
