@@ -40,8 +40,8 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { GlassCard } from '@/components/ui/glass-card'
 import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { MetricCard } from '@/components/ui/metric-card'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { StatusPulse } from '@/components/ui/status-pulse'
@@ -268,6 +268,10 @@ export default function Tpvs() {
   const [openPopoverId, setOpenPopoverId] = useState<string | null>(null)
   const [linkingMerchant, setLinkingMerchant] = useState<{ terminalId: string; merchantId: string } | null>(null)
   const [unlinkingMerchant, setUnlinkingMerchant] = useState<{ terminalId: string; merchantId: string } | null>(null)
+  // Account being viewed in the detail dialog (clicked from a badge inside the Cuentas column)
+  const [viewingAccount, setViewingAccount] = useState<MerchantAccount | null>(null)
+  // Per-row search for the "Vincular cuenta" popover
+  const [vincularSearch, setVincularSearch] = useState('')
 
   // SUPERADMIN: Link merchant account to terminal
   const handleLinkMerchant = async (terminalId: string, merchantId: string) => {
@@ -557,39 +561,48 @@ export default function Tpvs() {
 
               return (
                 <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                  {/* Show assigned accounts as small badges */}
+                  {/* Show ALL assigned accounts as badges (wrap to multiple rows when needed) */}
                   {assignedAccounts.length > 0 ? (
-                    <div className="flex items-center gap-1 flex-wrap max-w-[180px]">
-                      {assignedAccounts.slice(0, 2).map((account: MerchantAccount) => (
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {assignedAccounts.map((account: MerchantAccount) => (
                         <Badge
                           key={account.id}
                           variant="outline"
-                          className="text-xs py-0 px-1.5 h-5 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 group cursor-default"
+                          onClick={e => {
+                            e.stopPropagation()
+                            setViewingAccount(account)
+                          }}
+                          className="text-xs py-0 px-1.5 h-5 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 group cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-950/30"
                         >
-                          <span className="truncate max-w-[60px]">
-                            {account.displayName?.split(' ')[0] || account.provider?.name?.slice(0, 6)}
+                          <span className="truncate max-w-[80px]">
+                            {account.displayName?.split(' ')[0] || account.provider?.name?.slice(0, 8)}
                           </span>
-                          <button
+                          <span
+                            role="button"
+                            tabIndex={0}
                             onClick={e => {
                               e.stopPropagation()
+                              e.preventDefault()
                               handleUnlinkMerchant(terminal.id, account.id)
                             }}
-                            disabled={unlinkingMerchant?.terminalId === terminal.id && unlinkingMerchant?.merchantId === account.id}
-                            className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-500"
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.stopPropagation()
+                                e.preventDefault()
+                                handleUnlinkMerchant(terminal.id, account.id)
+                              }
+                            }}
+                            aria-label="Desvincular"
+                            className="ml-1 inline-flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-500"
                           >
                             {unlinkingMerchant?.terminalId === terminal.id && unlinkingMerchant?.merchantId === account.id ? (
                               <Loader2 className="w-3 h-3 animate-spin" />
                             ) : (
                               <X className="w-3 h-3" />
                             )}
-                          </button>
+                          </span>
                         </Badge>
                       ))}
-                      {assignedAccounts.length > 2 && (
-                        <Badge variant="outline" className="text-xs py-0 px-1.5 h-5">
-                          +{assignedAccounts.length - 2}
-                        </Badge>
-                      )}
                     </div>
                   ) : hasNoMerchantAccounts ? (
                     <Tooltip>
@@ -607,37 +620,70 @@ export default function Tpvs() {
 
                   {/* Add button with popover */}
                   {availableAccounts.length > 0 && (
-                    <Popover open={openPopoverId === terminal.id} onOpenChange={open => setOpenPopoverId(open ? terminal.id : null)}>
+                    <Popover
+                      open={openPopoverId === terminal.id}
+                      onOpenChange={open => {
+                        setOpenPopoverId(open ? terminal.id : null)
+                        if (!open) setVincularSearch('')
+                      }}
+                    >
                       <PopoverTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={e => e.stopPropagation()}>
                           <Plus className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-56 p-2" align="end">
-                        <div className="space-y-1">
-                          <p className="text-xs font-medium text-muted-foreground px-2 py-1">Vincular cuenta</p>
-                          {availableAccounts.map((account: MerchantAccount) => (
-                            <button
-                              key={account.id}
-                              onClick={e => {
-                                e.stopPropagation()
-                                handleLinkMerchant(terminal.id, account.id)
-                                setOpenPopoverId(null)
-                              }}
-                              disabled={linkingMerchant?.terminalId === terminal.id}
-                              className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md hover:bg-muted transition-colors text-left"
-                            >
-                              {linkingMerchant?.terminalId === terminal.id && linkingMerchant?.merchantId === account.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
-                              ) : (
-                                <CreditCard className="w-4 h-4 text-amber-500" />
-                              )}
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate font-medium">{account.displayName || account.externalMerchantId}</p>
-                                <p className="text-xs text-muted-foreground truncate">{account.provider?.name}</p>
-                              </div>
-                            </button>
-                          ))}
+                      <PopoverContent className="w-72 p-0" align="end">
+                        <div className="px-3 py-2 border-b border-border">
+                          <p className="text-xs font-medium text-muted-foreground mb-2">Vincular cuenta</p>
+                          <div className="relative">
+                            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              autoFocus
+                              value={vincularSearch}
+                              onChange={e => setVincularSearch(e.target.value)}
+                              placeholder="Buscar cuenta…"
+                              className="h-8 pl-8 text-xs"
+                            />
+                          </div>
+                        </div>
+                        <div className="max-h-[260px] overflow-y-auto p-1">
+                          {(() => {
+                            const q = vincularSearch.trim().toLowerCase()
+                            const filtered = q
+                              ? availableAccounts.filter(
+                                  (a: MerchantAccount) =>
+                                    (a.displayName || '').toLowerCase().includes(q) ||
+                                    (a.externalMerchantId || '').toLowerCase().includes(q) ||
+                                    (a.provider?.name || '').toLowerCase().includes(q),
+                                )
+                              : availableAccounts
+                            if (filtered.length === 0) {
+                              return <p className="px-3 py-4 text-xs text-center text-muted-foreground">Sin resultados</p>
+                            }
+                            return filtered.map((account: MerchantAccount) => (
+                              <button
+                                key={account.id}
+                                onClick={e => {
+                                  e.stopPropagation()
+                                  handleLinkMerchant(terminal.id, account.id)
+                                  setOpenPopoverId(null)
+                                  setVincularSearch('')
+                                }}
+                                disabled={linkingMerchant?.terminalId === terminal.id}
+                                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md hover:bg-muted transition-colors text-left"
+                              >
+                                {linkingMerchant?.terminalId === terminal.id && linkingMerchant?.merchantId === account.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin text-amber-500 shrink-0" />
+                                ) : (
+                                  <CreditCard className="w-4 h-4 text-amber-500 shrink-0" />
+                                )}
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate font-medium">{account.displayName || account.externalMerchantId}</p>
+                                  <p className="text-xs text-muted-foreground truncate">{account.provider?.name}</p>
+                                </div>
+                              </button>
+                            ))
+                          })()}
                         </div>
                       </PopoverContent>
                     </Popover>
@@ -857,8 +903,8 @@ export default function Tpvs() {
           />
         </div>
 
-        {/* Data Table in GlassCard */}
-        <GlassCard data-tour="tpv-list" className="p-0 overflow-hidden">
+        {/* Data Table — wrapper kept only for the tour anchor */}
+        <div data-tour="tpv-list">
           <DataTable
             data={filteredData}
             rowCount={filteredData.length}
@@ -986,7 +1032,7 @@ export default function Tpvs() {
               </>
             }
           />
-        </GlassCard>
+        </div>
 
         <TerminalPurchaseWizard
           open={wizardOpen}
@@ -1044,6 +1090,89 @@ export default function Tpvs() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Merchant Account detail dialog — opened by clicking a Cuentas badge */}
+        <Dialog open={!!viewingAccount} onOpenChange={open => !open && setViewingAccount(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                {viewingAccount?.displayName || viewingAccount?.externalMerchantId || 'Cuenta'}
+              </DialogTitle>
+              <DialogDescription>
+                {viewingAccount?.provider?.name}
+                {viewingAccount?.provider?.type ? ` · ${viewingAccount.provider.type}` : ''}
+              </DialogDescription>
+            </DialogHeader>
+            {viewingAccount && (
+              <div className="space-y-3 text-sm">
+                <div className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-2">
+                  <span className="text-muted-foreground">ID externo</span>
+                  <span className="font-mono text-xs break-all">{viewingAccount.externalMerchantId}</span>
+                  {viewingAccount.alias && (
+                    <>
+                      <span className="text-muted-foreground">Alias</span>
+                      <span>{viewingAccount.alias}</span>
+                    </>
+                  )}
+                  {viewingAccount.bankName && (
+                    <>
+                      <span className="text-muted-foreground">Banco</span>
+                      <span>{viewingAccount.bankName}</span>
+                    </>
+                  )}
+                  {viewingAccount.accountHolder && (
+                    <>
+                      <span className="text-muted-foreground">Titular</span>
+                      <span>{viewingAccount.accountHolder}</span>
+                    </>
+                  )}
+                  {viewingAccount.clabeNumber && (
+                    <>
+                      <span className="text-muted-foreground">CLABE</span>
+                      <span className="font-mono text-xs">{viewingAccount.clabeNumber}</span>
+                    </>
+                  )}
+                  {viewingAccount.blumonMerchantId && (
+                    <>
+                      <span className="text-muted-foreground">Blumon merchant</span>
+                      <span className="font-mono text-xs">{viewingAccount.blumonMerchantId}</span>
+                    </>
+                  )}
+                  {viewingAccount.blumonSerialNumber && (
+                    <>
+                      <span className="text-muted-foreground">Blumon serial</span>
+                      <span className="font-mono text-xs">{viewingAccount.blumonSerialNumber}</span>
+                    </>
+                  )}
+                  {viewingAccount.blumonEnvironment && (
+                    <>
+                      <span className="text-muted-foreground">Entorno</span>
+                      <Badge variant="outline" className="w-fit">
+                        {viewingAccount.blumonEnvironment}
+                      </Badge>
+                    </>
+                  )}
+                  {viewingAccount.angelpayAffiliation && (
+                    <>
+                      <span className="text-muted-foreground">Afiliación AngelPay</span>
+                      <span className="font-mono text-xs">{viewingAccount.angelpayAffiliation}</span>
+                    </>
+                  )}
+                  <span className="text-muted-foreground">Estado</span>
+                  <Badge variant={viewingAccount.active ? 'default' : 'outline'} className="w-fit">
+                    {viewingAccount.active ? 'Activa' : 'Inactiva'}
+                  </Badge>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setViewingAccount(null)}>
+                Cerrar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </TooltipProvider>
   )
