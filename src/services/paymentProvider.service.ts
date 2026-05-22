@@ -307,10 +307,7 @@ export async function getAllMerchantAccounts(filters?: { providerId?: string; ac
  * Get merchant accounts list (simplified for dropdowns)
  * Includes providerName and environment for better UX
  */
-export async function getMerchantAccountsList(filters?: {
-  providerId?: string
-  active?: boolean
-}): Promise<MerchantAccountListItem[]> {
+export async function getMerchantAccountsList(filters?: { providerId?: string; active?: boolean }): Promise<MerchantAccountListItem[]> {
   const response = await api.get('/api/v1/dashboard/superadmin/merchant-accounts/list', { params: filters })
   return response.data.data
 }
@@ -582,9 +579,7 @@ export async function getProviderCostStructures(filters?: {
  * Get provider cost structures by merchant account ID
  * Convenience wrapper for getProviderCostStructures with merchantAccountId filter
  */
-export async function getProviderCostStructuresByMerchantAccount(
-  merchantAccountId: string,
-): Promise<ProviderCostStructure[]> {
+export async function getProviderCostStructuresByMerchantAccount(merchantAccountId: string): Promise<ProviderCostStructure[]> {
   return getProviderCostStructures({ merchantAccountId })
 }
 
@@ -1081,9 +1076,7 @@ export async function getVenuePaymentReadiness(venueId: string): Promise<Payment
  * Get payment readiness status for multiple venues (superadmin)
  * Backend endpoint: GET /api/v1/dashboard/superadmin/payment-readiness
  */
-export async function getMultipleVenuesPaymentReadiness(
-  venueIds?: string[],
-): Promise<MultipleVenuesPaymentReadinessResponse> {
+export async function getMultipleVenuesPaymentReadiness(venueIds?: string[]): Promise<MultipleVenuesPaymentReadinessResponse> {
   const params = venueIds ? { venueIds: venueIds.join(',') } : undefined
   const response = await api.get('/api/v1/dashboard/superadmin/payment-readiness', { params })
   return response.data.data
@@ -1189,10 +1182,7 @@ export async function batchAssignTerminals(
  * Get full payment setup summary for wizard pre-fill
  * Backend endpoint: GET /api/v1/superadmin/merchant-accounts/payment-setup/summary
  */
-export async function getPaymentSetupSummary(
-  targetType: 'venue' | 'organization',
-  targetId: string,
-): Promise<PaymentSetupSummary> {
+export async function getPaymentSetupSummary(targetType: 'venue' | 'organization', targetId: string): Promise<PaymentSetupSummary> {
   const response = await api.get('/api/v1/superadmin/merchant-accounts/payment-setup/summary', {
     params: { targetType, targetId },
   })

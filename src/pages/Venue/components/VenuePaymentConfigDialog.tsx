@@ -218,10 +218,7 @@ function AccountPicker({
 }: AccountPickerProps) {
   const [search, setSearch] = useState('')
   const excludedSet = useMemo(() => new Set(excludeIds), [excludeIds])
-  const selected = useMemo(
-    () => (value && value !== 'none' ? accounts.find(a => a.id === value) ?? null : null),
-    [accounts, value],
-  )
+  const selected = useMemo(() => (value && value !== 'none' ? (accounts.find(a => a.id === value) ?? null) : null), [accounts, value])
 
   const items = useMemo<SearchComboboxItem[]>(() => {
     const base = accounts.filter(a => !excludedSet.has(a.id))
