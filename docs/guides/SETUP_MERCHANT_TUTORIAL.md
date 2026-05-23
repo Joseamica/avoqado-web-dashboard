@@ -43,15 +43,39 @@ Guía paso a paso para configurar un merchant en producción, asumiendo que el v
 
 ---
 
-## ⚡ Atajo: el Wizard de AngelPay hace TODO en 1 flujo
+## ⚡ Atajo: el Panel de Setup hace TODO en 1 pantalla
+
+> **Cambio importante (mayo 2026):** el wizard linear de 10 pasos fue
+> reemplazado por un **panel object-centric** estilo AWS Console. Mismo
+> resultado, pero ahora ves las 9 tarjetas a la vez y llenas las que
+> necesites en cualquier orden.
 
 Para un merchant nuevo, **NO necesitas tocar las páginas dedicadas**. Solo:
 
 1. Ve a `/superadmin/merchant-accounts`
-2. Click en **Agregar AngelPay**
-3. Sigue los 10 pasos. Te cubre layers 2 + 3 + 4.
+2. Click en **Agregar AngelPay** (botón índigo arriba)
+3. Llena las 7 tarjetas obligatorias. Te cubre layers 2 + 3 + 4.
+4. Click en **Activar merchant**
 
-El wizard tiene "Configurar después" en pasos 5-9, así que solo lo crítico es obligatorio. Los pasos opcionales los puedes llenar luego desde las páginas dedicadas (Layer 1 para providers, `/superadmin/aggregators` para Layer 2 + 4).
+Las 9 tarjetas:
+
+| # | Tarjeta | Obligatoria | Equivalente legacy |
+|---|---------|-------------|--------------------|
+| 1 | Venue | ✅ | Paso 2 del wizard |
+| 2 | Cuenta AngelPay (login) | ✅ | Paso 3 |
+| 3 | Merchant (External ID + datos) | ✅ | Paso 4 |
+| 4 | Slot del venue (PRIMARY/SEC/TER) | ✅ | Paso 5 |
+| 5 | Costo del procesador | ✅ | Paso 7 |
+| 6 | Precio al venue | ✅ | Paso 8 |
+| 7 | Liquidación (T+N por tipo) | ✅ (defaults sanos) | Paso 9 |
+| 8 | Reparto de ganancias | Opcional | Paso 10 |
+| 9 | Terminales TPV | Opcional | Paso 6 |
+
+Cada tarjeta tiene un badge: `Listo` (verde), `Pendiente` (gris), `Opcional` (outline) o `Configurar después`. La tarjeta es un botón — clic abre un diálogo con los campos. Llenas, clic en **Guardar X**, badge cambia a Listo. El header arriba muestra `N de 7 obligatorios ✓`. Cuando llegas a `7 de 7`, el botón **Activar merchant** se habilita.
+
+**El panel guarda tu borrador automáticamente** en localStorage (debounce 500ms). Si cierras y vuelves, te aparece un banner ámbar **"Encontramos un borrador sin terminar"** con opciones de Continuar / Empezar de nuevo. Útil para abandonar la pantalla a mitad y retomar sin perder lo escrito.
+
+**Para editar un merchant existente**: en la lista de cuentas, click en el botón **⚙️ Configurar (panel completo)** del row del merchant. El panel se abre en modo `edit`, hidrata cada tarjeta desde la DB y cada Guardar dispara un PUT específico al endpoint correspondiente (no es atómico — cada cambio es individual).
 
 ---
 
@@ -71,18 +95,18 @@ Si vas a usar un **agregador nuevo que no esté en el catálogo**:
 
 > 💡 Lo que viste en el dialog es **catálogo nada más**. Las tarifas reales se definen al asignar el agregador a un merchant (paso 4 abajo).
 
-### Paso 1 — Abrir el wizard
+### Paso 1 — Abrir el panel
 
 1. Ve a `/superadmin/merchant-accounts`
-2. Click en **Agregar AngelPay** (botón amarillo arriba).
+2. Click en **Agregar AngelPay** (botón índigo arriba).
 
-El wizard tiene 10 pasos. Te van guiando con tabs arriba.
+El panel muestra las 9 tarjetas en grid. Las llenas en cualquier orden, pero algunas dependen de otras: el merchant card está deshabilitado hasta elegir login, el cost/pricing hasta elegir merchant, etc.
 
 ### Paso 2 — Venue
 
 Elige el venue al que vas a agregar el merchant.
 
-> ⚠️ Cuidado: cambiar de venue después de avanzar resetea TODO el wizard. Asegúrate del venue antes de pasar.
+> ⚠️ Cuidado: cambiar de venue después de avanzar **resetea TODAS las tarjetas dependientes** (login, merchant, slot, cost, pricing, settlement, revenueShare, terminals). El reducer lo hace a propósito porque las opciones de cada paso dependen del venue. Asegúrate del venue antes de seguir.
 
 ### Paso 3 — Cuenta AngelPay (login)
 
@@ -214,13 +238,13 @@ Después, **fuera de la transacción**, se hace un POST de revenue-share (si lo 
 
 ## 🔧 Editar revenue-share después de la alta
 
-Si saltaste el paso 10 del wizard o quieres ajustar el reparto:
+Si saltaste la tarjeta "Reparto de ganancias" del panel o quieres ajustarla después:
 
 1. Ve a `/superadmin/aggregators`
 2. Baja a **📊 Reporte de revenue-share**
 3. Encuentra el merchant en la tabla
 4. **Click en la fila** → se abre el dialog de edición
-5. Configura igual que en el paso 10 del wizard
+5. Configura igual que en la tarjeta "Reparto de ganancias" del panel
 6. **Guardar cambios** (o **Eliminar** para volver al legacy 100% Avoqado)
 
 Los cambios afectan corridas futuras del reporte. No tocan transacciones ya cobradas ni la liquidación legacy.
@@ -229,11 +253,19 @@ Los cambios afectan corridas futuras del reporte. No tocan transacciones ya cobr
 
 ## 🆘 Troubleshooting
 
-### "No me deja avanzar en el wizard"
-El botón **Siguiente** está deshabilitado si el paso actual no es válido. Revisa:
-- Paso 3 (Login): email válido + PIN de 6 dígitos
-- Paso 4 (Merchant): External Merchant ID numérico + casilla "Confirmar ID" marcada
-- Paso 5 (Slot): si modo `replace`, hay que seleccionar el merchant a reemplazar
+### "No se habilita el botón Activar merchant"
+El botón solo se enciende cuando las **7 tarjetas obligatorias** muestran badge "Listo". Revisa qué tarjeta sigue en "Pendiente" — los blockers más comunes:
+- Login: email válido + PIN de 6 dígitos (modo "new"), o cuenta del dropdown (modo "existing")
+- Merchant: External Merchant ID numérico + casilla "Confirmar ID" marcada
+- Slot: si modo `replace`, hay que seleccionar el merchant a reemplazar
+- Cost/Pricing: las 4 tasas (Débito/Crédito/Amex/Internacional) tienen que tener un número (vacío ≠ 0)
+
+### "Está deshabilitada una tarjeta y no sé por qué"
+Las tarjetas tienen dependencias:
+- Cost, Pricing, Settlement, RevenueShare están deshabilitadas hasta que **Merchant** sea válido.
+- Terminals está deshabilitada hasta que **Venue** esté elegido.
+- Slot está deshabilitada hasta que **Login** y **Merchant** estén listos.
+El badge te dice qué falta ("Configura el merchant primero", "Elige el venue primero", etc.).
 
 ### "El TPV dice 'Heartbeat from unactivated terminal'"
 La terminal está en estado `PENDING_CREATION`. Ve a `/superadmin/terminals`, busca la terminal y dale **"Activar ahorita"** — eso stamps `activatedAt`.

@@ -1,0 +1,301 @@
+import { useEffect, useMemo, useReducer, useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Clock, Loader2, X } from 'lucide-react'
+import { FullScreenModal } from '@/components/ui/full-screen-modal'
+import { Button } from '@/components/ui/button'
+import { useToast } from '@/hooks/use-toast'
+import { paymentProviderAPI } from '@/services/paymentProvider.service'
+import { merchantRevenueShareAPI } from '@/services/merchantRevenueShare.service'
+import { initialState, setupReducer, isCardValid, isRequiredComplete } from './useSetupReducer'
+import { useDraftAutosave, clearDraft, findActiveDraft } from './useDraftStorage'
+import { assemblePayload } from './assemblePayload'
+import { useMerchantBundle, bundleToSetupState } from './useMerchantBundle'
+import { REQUIRED_CARDS, type SetupState } from './types'
+import VenueCard from './cards/VenueCard'
+import AngelPayLoginCard from './cards/AngelPayLoginCard'
+import MerchantCard from './cards/MerchantCard'
+import SlotCard from './cards/SlotCard'
+import CostCard from './cards/CostCard'
+import PricingCard from './cards/PricingCard'
+import SettlementCard from './cards/SettlementCard'
+import RevenueShareCard from './cards/RevenueShareCard'
+import TerminalsCard from './cards/TerminalsCard'
+
+interface MerchantSetupPanelProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  /** `create` mode (no merchantId) opens an empty panel + checks draft.
+   *  `edit` mode loads everything from DB and saves per card. */
+  mode: 'create' | 'edit'
+  /** Required when mode='edit'. */
+  merchantAccountId?: string
+}
+
+/**
+ * Object-centric panel for AngelPay merchant configuration. Replaces the
+ * linear AngelPayWizard. See spec:
+ * docs/superpowers/specs/2026-05-23-merchant-setup-panel-design.md
+ *
+ * In create mode the reducer holds local state, debounced to localStorage.
+ * On "Activar merchant" the state is assembled and POSTed to the existing
+ * fullSetupAngelPayMerchant endpoint. In edit mode, each card hits its own
+ * CRUD endpoint and the panel acts as a dashboard.
+ */
+export default function MerchantSetupPanel({
+  open,
+  onOpenChange,
+  mode,
+  merchantAccountId,
+}: MerchantSetupPanelProps) {
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const [state, dispatch] = useReducer(setupReducer, undefined, initialState)
+
+  // Resolve the user account id (only known once login card has chosen one)
+  const userAccountId = state.login.mode === 'existing' ? state.login.angelpayUserAccountId : null
+
+  // Draft autosave — only in create mode
+  useDraftAutosave(state.venue.id, userAccountId, state, mode === 'create')
+
+  // Draft recovery banner (Task 5.1): when the panel opens in create mode,
+  // scan localStorage for any usable draft. If found, surface a banner so the
+  // operator can resume or discard. Banner is dismissible (per-session); we
+  // don't auto-load the draft because the operator may have legitimately
+  // wanted to start a new merchant on top of an abandoned draft.
+  const [pendingDraft, setPendingDraft] = useState<{ key: string; state: SetupState } | null>(null)
+  useEffect(() => {
+    if (mode !== 'create' || !open) {
+      setPendingDraft(null)
+      return
+    }
+    const found = findActiveDraft()
+    if (found) setPendingDraft(found)
+  }, [mode, open])
+
+  const handleResumeDraft = () => {
+    if (!pendingDraft) return
+    dispatch({ type: 'LOAD_DRAFT', state: pendingDraft.state })
+    setPendingDraft(null)
+  }
+  const handleDiscardDraft = () => {
+    if (!pendingDraft) return
+    try {
+      localStorage.removeItem(pendingDraft.key)
+    } catch {
+      /* no-op */
+    }
+    setPendingDraft(null)
+  }
+
+  // Edit-mode hydration: fire 8 parallel queries and load the bundle into the
+  // reducer once. `hydrated` guards against re-hydration on refetch/refocus —
+  // per-card edits in Task 4.2 will mutate local state and we don't want a
+  // background refetch to clobber them.
+  const { bundle, isLoading: bundleLoading, isError: bundleError } = useMerchantBundle(
+    merchantAccountId,
+    mode === 'edit' && open,
+  )
+  const [hydrated, setHydrated] = useState(false)
+  useEffect(() => {
+    if (mode === 'edit' && bundle && !hydrated) {
+      dispatch({ type: 'LOAD_DRAFT', state: bundleToSetupState(bundle) })
+      setHydrated(true)
+    }
+  }, [mode, bundle, hydrated])
+
+  // Reset hydration flag when the panel closes so a re-open re-hydrates fresh.
+  useEffect(() => {
+    if (!open) setHydrated(false)
+  }, [open])
+
+  // Progress for the header
+  const progress = useMemo(() => {
+    const completed = REQUIRED_CARDS.filter(k => isCardValid(state, k)).length
+    return { completed, total: REQUIRED_CARDS.length, ready: isRequiredComplete(state) }
+  }, [state])
+
+  const activateMutation = useMutation({
+    mutationFn: () => paymentProviderAPI.fullSetupAngelPayMerchant(assemblePayload(state)),
+    onSuccess: async result => {
+      queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
+
+      // Follow-up: revenue share (non-atomic, non-blocking)
+      if (!state.revenueShare.skipped) {
+        try {
+          await merchantRevenueShareAPI.create({
+            merchantAccountId: result.merchantAccountId,
+            aggregatorPrice: state.revenueShare.useAggregator
+              ? {
+                  DEBIT: state.revenueShare.aggregatorDebitRate ?? 0,
+                  CREDIT: state.revenueShare.aggregatorCreditRate ?? 0,
+                  AMEX: state.revenueShare.aggregatorAmexRate ?? 0,
+                  INTERNATIONAL: state.revenueShare.aggregatorInternationalRate ?? 0,
+                }
+              : null,
+            aggregatorPriceIncludesTax: state.revenueShare.aggregatorPriceIncludesTax,
+            avoqadoShareOfProviderMargin: state.revenueShare.avoqadoShareOfProviderMargin,
+            avoqadoShareOfAggregatorMargin: state.revenueShare.useAggregator
+              ? state.revenueShare.avoqadoShareOfAggregatorMargin ?? 0.5
+              : null,
+            taxRate: state.revenueShare.taxRate,
+          })
+          toast({ title: 'Éxito', description: 'Merchant activado y reparto guardado' })
+        } catch (rsErr: any) {
+          toast({
+            title: 'Merchant activado · reparto pendiente',
+            description: rsErr?.response?.data?.message || 'El reparto no se guardó. Configúralo en /superadmin/aggregators.',
+            variant: 'destructive',
+          })
+        }
+      } else {
+        toast({ title: 'Éxito', description: 'Merchant activado' })
+      }
+
+      // Clear draft + close
+      clearDraft(state.venue.id, userAccountId)
+      onOpenChange(false)
+    },
+    onError: (err: any) => {
+      toast({
+        title: 'No pudimos activar el merchant',
+        description: err?.response?.data?.message || 'Error en el servidor. Reintenta.',
+        variant: 'destructive',
+      })
+    },
+  })
+
+  const handleActivate = () => activateMutation.mutate()
+
+  // Title — in edit mode, include the merchant's display label once the bundle resolves
+  const merchantLabel =
+    bundle?.merchant.displayName ?? bundle?.merchant.alias ?? bundle?.merchant.externalMerchantId ?? ''
+  const title =
+    mode === 'create'
+      ? 'Nuevo merchant AngelPay'
+      : merchantLabel
+        ? `Configuración · ${merchantLabel}`
+        : 'Configuración del merchant'
+
+  const showSkeleton = mode === 'edit' && bundleLoading && !hydrated
+
+  return (
+    <FullScreenModal
+      open={open}
+      onClose={() => onOpenChange(false)}
+      title={title}
+      contentClassName="bg-muted/30"
+      actions={
+        <div className="flex items-center gap-3">
+          {mode === 'create' && (
+            <p className="text-xs text-muted-foreground">
+              {progress.completed} de {progress.total} obligatorios ✓
+            </p>
+          )}
+          {mode === 'create' && (
+            <Button
+              onClick={handleActivate}
+              disabled={!progress.ready || activateMutation.isPending}
+              data-tour="setup-panel-activate"
+            >
+              {activateMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Activar merchant
+            </Button>
+          )}
+        </div>
+      }
+    >
+      {mode === 'edit' && bundleError && (
+        <div className="mx-6 mt-6 rounded-md border border-destructive bg-destructive/10 p-4 text-sm">
+          No pudimos cargar la configuración del merchant. Reintenta o cierra el panel.
+        </div>
+      )}
+
+      {/* Draft recovery banner — only in create mode, only when an unsaved
+       *  draft was found in localStorage. The banner is the FIRST piece of
+       *  UI the operator sees; we want it to be unmistakable so they don't
+       *  accidentally overwrite a real abandoned session. */}
+      {mode === 'create' && pendingDraft && (
+        <div
+          className="mx-6 mt-6 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 flex items-start gap-3"
+          data-testid="setup-panel-draft-banner"
+        >
+          <Clock className="w-5 h-5 mt-0.5 text-amber-600 dark:text-amber-400 shrink-0" />
+          <div className="flex-1 space-y-2">
+            <div>
+              <p className="text-sm font-medium">Encontramos un borrador sin terminar</p>
+              <p className="text-xs text-muted-foreground">
+                Una sesión anterior quedó incompleta. Puedes retomarla o empezar desde cero.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleResumeDraft} data-testid="setup-panel-resume-draft">
+                Continuar borrador
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleDiscardDraft}>
+                Empezar de nuevo
+              </Button>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPendingDraft(null)}
+            className="text-muted-foreground hover:text-foreground"
+            aria-label="Cerrar"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      <div className="relative">
+        {showSkeleton && (
+          <div
+            className="absolute inset-0 z-10 flex items-center justify-center bg-muted/40 backdrop-blur-[1px]"
+            data-testid="setup-panel-hydrating"
+          >
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          </div>
+        )}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-6">
+          <VenueCard state={state} dispatch={dispatch} mode={mode} />
+          <AngelPayLoginCard state={state} dispatch={dispatch} mode={mode} />
+          <MerchantCard state={state} dispatch={dispatch} mode={mode} />
+          <SlotCard
+            state={state}
+            dispatch={dispatch}
+            mode={mode}
+            merchantAccountId={mode === 'edit' ? merchantAccountId : undefined}
+          />
+          <CostCard
+            state={state}
+            dispatch={dispatch}
+            mode={mode}
+            merchantAccountId={mode === 'edit' ? merchantAccountId : undefined}
+            providerId={mode === 'edit' ? bundle?.merchant.providerId : undefined}
+          />
+          <PricingCard
+            state={state}
+            dispatch={dispatch}
+            mode={mode}
+            merchantAccountId={mode === 'edit' ? merchantAccountId : undefined}
+          />
+          <SettlementCard
+            state={state}
+            dispatch={dispatch}
+            mode={mode}
+            merchantAccountId={mode === 'edit' ? merchantAccountId : undefined}
+          />
+          <RevenueShareCard
+            state={state}
+            dispatch={dispatch}
+            mode={mode}
+            merchantAccountId={mode === 'edit' ? merchantAccountId : undefined}
+          />
+          <TerminalsCard state={state} dispatch={dispatch} mode={mode} />
+        </div>
+      </div>
+
+      {/* Draft recovery banner: Task 5.1 */}
+    </FullScreenModal>
+  )
+}

@@ -10,6 +10,7 @@ import {
   DollarSign,
   Pencil,
   Power,
+  Settings,
   Shield,
   Smartphone,
   Trash2,
@@ -27,6 +28,11 @@ interface MerchantAccountCardProps {
   onManageTerminals: (account: MerchantAccount) => void
   onManageCosts: (account: MerchantAccount) => void
   onAssignToVenue: (account: MerchantAccount) => void
+  /**
+   * Optional: opens the MerchantSetupPanel in edit mode for this merchant.
+   * Currently only AngelPay merchants — Blumon has its own flow.
+   */
+  onConfigure?: (account: MerchantAccount) => void
 }
 
 export const MerchantAccountCard: React.FC<MerchantAccountCardProps> = ({
@@ -37,6 +43,7 @@ export const MerchantAccountCard: React.FC<MerchantAccountCardProps> = ({
   onManageTerminals,
   onManageCosts,
   onAssignToVenue,
+  onConfigure,
 }) => {
   const costStructuresCount = account._count?.costStructures || 0
   const venueConfigsCount = account._count?.venueConfigs || 0
@@ -147,13 +154,30 @@ export const MerchantAccountCard: React.FC<MerchantAccountCardProps> = ({
                 <TooltipContent side="bottom">Asignar a Venue</TooltipContent>
               </Tooltip>
 
+              {onConfigure && account.provider?.code === 'ANGELPAY' && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 cursor-pointer"
+                      onClick={() => onConfigure(account)}
+                      data-tour="merchant-card-configure"
+                    >
+                      <Settings className="w-3.5 h-3.5 text-indigo-600" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Configurar (panel completo)</TooltipContent>
+                </Tooltip>
+              )}
+
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer" onClick={() => onEdit(account)}>
                     <Pencil className="w-3.5 h-3.5" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom">Editar</TooltipContent>
+                <TooltipContent side="bottom">Editar (sólo identidad)</TooltipContent>
               </Tooltip>
 
               <div className="w-px h-4 bg-border mx-0.5" />
