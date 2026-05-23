@@ -1,4 +1,4 @@
-import { useMemo, useReducer } from 'react'
+import { useEffect, useMemo, useReducer, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
@@ -9,6 +9,7 @@ import { merchantRevenueShareAPI } from '@/services/merchantRevenueShare.service
 import { initialState, setupReducer, isCardValid, isRequiredComplete } from './useSetupReducer'
 import { useDraftAutosave, clearDraft } from './useDraftStorage'
 import { assemblePayload } from './assemblePayload'
+import { useMerchantBundle, bundleToSetupState } from './useMerchantBundle'
 import { REQUIRED_CARDS } from './types'
 import VenueCard from './cards/VenueCard'
 import AngelPayLoginCard from './cards/AngelPayLoginCard'
@@ -44,7 +45,7 @@ export default function MerchantSetupPanel({
   open,
   onOpenChange,
   mode,
-  merchantAccountId: _merchantAccountId,
+  merchantAccountId,
 }: MerchantSetupPanelProps) {
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -55,6 +56,27 @@ export default function MerchantSetupPanel({
 
   // Draft autosave — only in create mode
   useDraftAutosave(state.venue.id, userAccountId, state, mode === 'create')
+
+  // Edit-mode hydration: fire 8 parallel queries and load the bundle into the
+  // reducer once. `hydrated` guards against re-hydration on refetch/refocus —
+  // per-card edits in Task 4.2 will mutate local state and we don't want a
+  // background refetch to clobber them.
+  const { bundle, isLoading: bundleLoading, isError: bundleError } = useMerchantBundle(
+    merchantAccountId,
+    mode === 'edit' && open,
+  )
+  const [hydrated, setHydrated] = useState(false)
+  useEffect(() => {
+    if (mode === 'edit' && bundle && !hydrated) {
+      dispatch({ type: 'LOAD_DRAFT', state: bundleToSetupState(bundle) })
+      setHydrated(true)
+    }
+  }, [mode, bundle, hydrated])
+
+  // Reset hydration flag when the panel closes so a re-open re-hydrates fresh.
+  useEffect(() => {
+    if (!open) setHydrated(false)
+  }, [open])
 
   // Progress for the header
   const progress = useMemo(() => {
@@ -114,17 +136,31 @@ export default function MerchantSetupPanel({
 
   const handleActivate = () => activateMutation.mutate()
 
+  // Title — in edit mode, include the merchant's display label once the bundle resolves
+  const merchantLabel =
+    bundle?.merchant.displayName ?? bundle?.merchant.alias ?? bundle?.merchant.externalMerchantId ?? ''
+  const title =
+    mode === 'create'
+      ? 'Nuevo merchant AngelPay'
+      : merchantLabel
+        ? `Configuración · ${merchantLabel}`
+        : 'Configuración del merchant'
+
+  const showSkeleton = mode === 'edit' && bundleLoading && !hydrated
+
   return (
     <FullScreenModal
       open={open}
       onClose={() => onOpenChange(false)}
-      title={mode === 'create' ? 'Nuevo merchant AngelPay' : 'Configuración del merchant'}
+      title={title}
       contentClassName="bg-muted/30"
       actions={
         <div className="flex items-center gap-3">
-          <p className="text-xs text-muted-foreground">
-            {progress.completed} de {progress.total} obligatorios ✓
-          </p>
+          {mode === 'create' && (
+            <p className="text-xs text-muted-foreground">
+              {progress.completed} de {progress.total} obligatorios ✓
+            </p>
+          )}
           {mode === 'create' && (
             <Button
               onClick={handleActivate}
@@ -138,16 +174,32 @@ export default function MerchantSetupPanel({
         </div>
       }
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-6">
-        <VenueCard state={state} dispatch={dispatch} mode={mode} />
-        <AngelPayLoginCard state={state} dispatch={dispatch} mode={mode} />
-        <MerchantCard state={state} dispatch={dispatch} mode={mode} />
-        <SlotCard state={state} dispatch={dispatch} mode={mode} />
-        <CostCard state={state} dispatch={dispatch} mode={mode} />
-        <PricingCard state={state} dispatch={dispatch} mode={mode} />
-        <SettlementCard state={state} dispatch={dispatch} mode={mode} />
-        <RevenueShareCard state={state} dispatch={dispatch} mode={mode} />
-        <TerminalsCard state={state} dispatch={dispatch} mode={mode} />
+      {mode === 'edit' && bundleError && (
+        <div className="mx-6 mt-6 rounded-md border border-destructive bg-destructive/10 p-4 text-sm">
+          No pudimos cargar la configuración del merchant. Reintenta o cierra el panel.
+        </div>
+      )}
+
+      <div className="relative">
+        {showSkeleton && (
+          <div
+            className="absolute inset-0 z-10 flex items-center justify-center bg-muted/40 backdrop-blur-[1px]"
+            data-testid="setup-panel-hydrating"
+          >
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          </div>
+        )}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-6">
+          <VenueCard state={state} dispatch={dispatch} mode={mode} />
+          <AngelPayLoginCard state={state} dispatch={dispatch} mode={mode} />
+          <MerchantCard state={state} dispatch={dispatch} mode={mode} />
+          <SlotCard state={state} dispatch={dispatch} mode={mode} />
+          <CostCard state={state} dispatch={dispatch} mode={mode} />
+          <PricingCard state={state} dispatch={dispatch} mode={mode} />
+          <SettlementCard state={state} dispatch={dispatch} mode={mode} />
+          <RevenueShareCard state={state} dispatch={dispatch} mode={mode} />
+          <TerminalsCard state={state} dispatch={dispatch} mode={mode} />
+        </div>
       </div>
 
       {/* Draft recovery banner: Task 5.1 */}
