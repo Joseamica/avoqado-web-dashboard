@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useReducer, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Loader2 } from 'lucide-react'
+import { Clock, Loader2, X } from 'lucide-react'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { paymentProviderAPI } from '@/services/paymentProvider.service'
 import { merchantRevenueShareAPI } from '@/services/merchantRevenueShare.service'
 import { initialState, setupReducer, isCardValid, isRequiredComplete } from './useSetupReducer'
-import { useDraftAutosave, clearDraft } from './useDraftStorage'
+import { useDraftAutosave, clearDraft, findActiveDraft } from './useDraftStorage'
 import { assemblePayload } from './assemblePayload'
 import { useMerchantBundle, bundleToSetupState } from './useMerchantBundle'
-import { REQUIRED_CARDS } from './types'
+import { REQUIRED_CARDS, type SetupState } from './types'
 import VenueCard from './cards/VenueCard'
 import AngelPayLoginCard from './cards/AngelPayLoginCard'
 import MerchantCard from './cards/MerchantCard'
@@ -56,6 +56,36 @@ export default function MerchantSetupPanel({
 
   // Draft autosave — only in create mode
   useDraftAutosave(state.venue.id, userAccountId, state, mode === 'create')
+
+  // Draft recovery banner (Task 5.1): when the panel opens in create mode,
+  // scan localStorage for any usable draft. If found, surface a banner so the
+  // operator can resume or discard. Banner is dismissible (per-session); we
+  // don't auto-load the draft because the operator may have legitimately
+  // wanted to start a new merchant on top of an abandoned draft.
+  const [pendingDraft, setPendingDraft] = useState<{ key: string; state: SetupState } | null>(null)
+  useEffect(() => {
+    if (mode !== 'create' || !open) {
+      setPendingDraft(null)
+      return
+    }
+    const found = findActiveDraft()
+    if (found) setPendingDraft(found)
+  }, [mode, open])
+
+  const handleResumeDraft = () => {
+    if (!pendingDraft) return
+    dispatch({ type: 'LOAD_DRAFT', state: pendingDraft.state })
+    setPendingDraft(null)
+  }
+  const handleDiscardDraft = () => {
+    if (!pendingDraft) return
+    try {
+      localStorage.removeItem(pendingDraft.key)
+    } catch {
+      /* no-op */
+    }
+    setPendingDraft(null)
+  }
 
   // Edit-mode hydration: fire 8 parallel queries and load the bundle into the
   // reducer once. `hydrated` guards against re-hydration on refetch/refocus —
@@ -177,6 +207,43 @@ export default function MerchantSetupPanel({
       {mode === 'edit' && bundleError && (
         <div className="mx-6 mt-6 rounded-md border border-destructive bg-destructive/10 p-4 text-sm">
           No pudimos cargar la configuración del merchant. Reintenta o cierra el panel.
+        </div>
+      )}
+
+      {/* Draft recovery banner — only in create mode, only when an unsaved
+       *  draft was found in localStorage. The banner is the FIRST piece of
+       *  UI the operator sees; we want it to be unmistakable so they don't
+       *  accidentally overwrite a real abandoned session. */}
+      {mode === 'create' && pendingDraft && (
+        <div
+          className="mx-6 mt-6 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 flex items-start gap-3"
+          data-testid="setup-panel-draft-banner"
+        >
+          <Clock className="w-5 h-5 mt-0.5 text-amber-600 dark:text-amber-400 shrink-0" />
+          <div className="flex-1 space-y-2">
+            <div>
+              <p className="text-sm font-medium">Encontramos un borrador sin terminar</p>
+              <p className="text-xs text-muted-foreground">
+                Una sesión anterior quedó incompleta. Puedes retomarla o empezar desde cero.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleResumeDraft} data-testid="setup-panel-resume-draft">
+                Continuar borrador
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleDiscardDraft}>
+                Empezar de nuevo
+              </Button>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPendingDraft(null)}
+            className="text-muted-foreground hover:text-foreground"
+            aria-label="Cerrar"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
