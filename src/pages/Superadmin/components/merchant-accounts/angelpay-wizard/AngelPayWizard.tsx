@@ -421,8 +421,23 @@ const AngelPayWizard: React.FC<AngelPayWizardProps> = ({ open, onOpenChange }) =
               !!s.merchant.affiliation.trim() &&
               !!s.merchant.displayName.trim() &&
               s.merchant.idConfirmed
-      case 'slot':
-        return s.slot.mode !== 'replace' || !!s.slot.replacedAccountId
+      case 'slot': {
+        // Validación robusta: el slot elegido debe ser USABLE.
+        //
+        // - mode='fill' → el slot debe estar LIBRE (occupant == null).
+        //   Antes solo validábamos modo replace, lo que dejaba pasar el caso
+        //   default (PRIMARY + fill) aunque PRIMARY ya estuviera ocupado.
+        //   El backend `fullSetupAngelPayMerchant` rechazaba después con
+        //   "El slot X ya está ocupado" — frustrante porque el operador ya
+        //   había recorrido los 9 pasos antes de ver el error.
+        // - mode='replace' → debe haber `replacedAccountId` Y debe seguir
+        //   coincidiendo con el ocupante actual (chequeo race-condition).
+        if (s.slot.mode === 'fill') {
+          return slotOccupant(s.slot.accountType) === null
+        }
+        // replace mode: id de reemplazo debe existir y coincidir con el ocupante actual
+        return !!s.slot.replacedAccountId && slotOccupant(s.slot.accountType) === s.slot.replacedAccountId
+      }
       case 'pricing':
         // Pricing required only in replace mode; then it cannot be skipped.
         return !isPricingRequired(s) || !s.pricing.skipped
@@ -482,7 +497,18 @@ const AngelPayWizard: React.FC<AngelPayWizardProps> = ({ open, onOpenChange }) =
       settlement: state.settlement.skipped
         ? undefined
         : {
-            settlementDays: state.settlement.settlementDays ?? 1,
+            // `settlementDays` (legacy, scalar) sigue requerido por el endpoint
+            // como fallback. Para enviar valores DISTINTOS por tipo de tarjeta,
+            // el backend lee `settlementDaysByCard` con precedencia sobre el
+            // scalar. Si el operador no llenó nada para un tipo, ese se queda
+            // con el valor scalar (default 1).
+            settlementDays: state.settlement.settlementDaysDebit ?? state.settlement.settlementDaysCredit ?? 1,
+            settlementDaysByCard: {
+              DEBIT: state.settlement.settlementDaysDebit,
+              CREDIT: state.settlement.settlementDaysCredit,
+              AMEX: state.settlement.settlementDaysAmex,
+              INTERNATIONAL: state.settlement.settlementDaysInternational,
+            },
             settlementDayType: state.settlement.settlementDayType,
             cutoffTime: state.settlement.cutoffTime || '23:00',
             cutoffTimezone: state.settlement.cutoffTimezone || 'America/Mexico_City',
@@ -630,6 +656,20 @@ const AngelPayWizard: React.FC<AngelPayWizardProps> = ({ open, onOpenChange }) =
             </button>
             {state.login.mode === 'new' && (
               <div className="space-y-3 pt-1">
+                {/* Heads-up operacional: si el TPV ya estaba logueado con otra
+                    cuenta AngelPay (común al venir de un wizard previo), el
+                    auto-fetch del paso 3 NO va a poder descubrir merchants
+                    con esta cuenta nueva hasta que el TPV se re-loguee. */}
+                {activeLogins.length > 0 && (
+                  <p className="flex items-start gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-2 text-[11px] text-blue-700 dark:text-blue-400">
+                    <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    <span>
+                      Este venue ya tiene cuentas AngelPay (ver lista arriba). Si vas a usar el TPV para
+                      descubrir merchants en el paso 3, el TPV tiene que re-loguearse con esta cuenta nueva
+                      primero — recomendable crear y configurar <strong>1 cuenta a la vez</strong>.
+                    </span>
+                  </p>
+                )}
                 <div className="space-y-1">
                   <Label className="text-xs">Correo</Label>
                   <Input
@@ -678,6 +718,19 @@ const AngelPayWizard: React.FC<AngelPayWizardProps> = ({ open, onOpenChange }) =
           })
         return (
           <Section title="Datos del merchant" icon={<CreditCard className="w-4 h-4 text-muted-foreground" />}>
+            {/* Heads-up: el auto-descubrimiento de merchants vía TPV es solo una
+                AYUDA — no auto-crea nada. El form de abajo sigue requerido para
+                CREAR un MerchantAccount al confirmar el wizard. Si ya elegiste
+                un merchant descubierto, sus campos se autollenan; aún así los
+                puedes editar manualmente antes de avanzar. */}
+            <p className="flex items-start gap-1.5 rounded-lg border border-input bg-muted/20 px-3 py-2 text-[11px] text-muted-foreground">
+              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              <span>
+                Aquí defines el <strong>MerchantAccount</strong> que se va a crear (o reutilizar). Crear la
+                cuenta AngelPay del paso anterior <strong>NO crea automáticamente un merchant</strong> — el
+                merchant nace al confirmar este wizard.
+              </span>
+            </p>
             {/* NEXGO terminal — required for AngelPay (live discovery + payments). */}
             <div className="rounded-lg border border-input bg-muted/30 p-3 space-y-2">
               <div className="flex items-center justify-between gap-3">
@@ -934,6 +987,20 @@ const AngelPayWizard: React.FC<AngelPayWizardProps> = ({ open, onOpenChange }) =
             <p className="text-xs text-muted-foreground">
               ¿En qué slot de ruteo de pagos va esta cuenta? Reemplazar un slot ocupado obliga a recapturar el precio.
             </p>
+            {/* Warning banner: el operador entró a este paso pero el slot
+                seleccionado por default (PRIMARY) ya está ocupado y aún no
+                acciona nada. Antes pasaba esto silenciosamente y el backend
+                fallaba 9 pasos después con un 409. */}
+            {state.slot.mode === 'fill' && slotOccupant(state.slot.accountType) !== null && (
+              <p className="flex items-start gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>
+                  El slot <strong>{state.slot.accountType}</strong> ya está ocupado por{' '}
+                  <strong>{merchantLabel(slotOccupant(state.slot.accountType)!)}</strong>. Elige otro slot
+                  libre, o haz click sobre {state.slot.accountType} para reemplazarlo.
+                </span>
+              </p>
+            )}
             {alreadyInSlot && (
               <p className="flex items-center gap-1.5 rounded-lg border border-green-600/30 bg-green-600/5 px-3 py-2 text-xs text-green-700 dark:text-green-400">
                 <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
@@ -1246,36 +1313,96 @@ const AngelPayWizard: React.FC<AngelPayWizardProps> = ({ open, onOpenChange }) =
               Configurar después
             </label>
             {!state.settlement.skipped && (
-              <div className="grid grid-cols-2 gap-3">
-                <NumberField label="Días de liquidación" value={state.settlement.settlementDays} onChange={v => dispatch({ type: 'SET_SETTLEMENT', settlement: { ...state.settlement, settlementDays: v } })} />
-                <div className="space-y-1">
-                  <Label className="text-xs">Tipo de día</Label>
-                  <Select
-                    value={state.settlement.settlementDayType}
-                    onValueChange={v => dispatch({ type: 'SET_SETTLEMENT', settlement: { ...state.settlement, settlementDayType: v as 'BUSINESS_DAYS' | 'CALENDAR_DAYS' } })}
-                  >
-                    <SelectTrigger className="h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="BUSINESS_DAYS">Días hábiles</SelectItem>
-                      <SelectItem value="CALENDAR_DAYS">Días naturales</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <>
+                {/* Días de liquidación POR TIPO DE TARJETA — caso típico:
+                    débito/crédito T+1, AMEX/Internacional T+3. El schema soporta
+                    valores distintos por card type; antes el wizard solo enviaba
+                    1 número y lo aplicaba a los 4. */}
+                <div className="space-y-2 rounded-lg border border-input p-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-medium">Días de liquidación por tipo de tarjeta</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-[11px]"
+                      onClick={() => {
+                        // Toma el valor de DÉBITO como referencia y lo aplica a los otros 3.
+                        // Si DÉBITO está vacío, usa CRÉDITO. Útil cuando todos son iguales (T+1).
+                        const ref = state.settlement.settlementDaysDebit ?? state.settlement.settlementDaysCredit ?? 1
+                        dispatch({
+                          type: 'SET_SETTLEMENT',
+                          settlement: {
+                            ...state.settlement,
+                            settlementDaysDebit: ref,
+                            settlementDaysCredit: ref,
+                            settlementDaysAmex: ref,
+                            settlementDaysInternational: ref,
+                          },
+                        })
+                      }}
+                    >
+                      Aplicar a todos
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <NumberField
+                      label="Débito"
+                      value={state.settlement.settlementDaysDebit}
+                      hint="T+N días"
+                      onChange={v => dispatch({ type: 'SET_SETTLEMENT', settlement: { ...state.settlement, settlementDaysDebit: v } })}
+                    />
+                    <NumberField
+                      label="Crédito"
+                      value={state.settlement.settlementDaysCredit}
+                      hint="T+N días"
+                      onChange={v => dispatch({ type: 'SET_SETTLEMENT', settlement: { ...state.settlement, settlementDaysCredit: v } })}
+                    />
+                    <NumberField
+                      label="AMEX"
+                      value={state.settlement.settlementDaysAmex}
+                      hint="típicamente T+3"
+                      onChange={v => dispatch({ type: 'SET_SETTLEMENT', settlement: { ...state.settlement, settlementDaysAmex: v } })}
+                    />
+                    <NumberField
+                      label="Internacional"
+                      value={state.settlement.settlementDaysInternational}
+                      hint="típicamente T+3"
+                      onChange={v => dispatch({ type: 'SET_SETTLEMENT', settlement: { ...state.settlement, settlementDaysInternational: v } })}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Hora de corte</Label>
-                  <Input value={state.settlement.cutoffTime} onChange={e => dispatch({ type: 'SET_SETTLEMENT', settlement: { ...state.settlement, cutoffTime: e.target.value } })} placeholder="23:00" className="h-10" />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Tipo de día</Label>
+                    <Select
+                      value={state.settlement.settlementDayType}
+                      onValueChange={v => dispatch({ type: 'SET_SETTLEMENT', settlement: { ...state.settlement, settlementDayType: v as 'BUSINESS_DAYS' | 'CALENDAR_DAYS' } })}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="BUSINESS_DAYS">Días hábiles</SelectItem>
+                        <SelectItem value="CALENDAR_DAYS">Días naturales</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Hora de corte</Label>
+                    <Input value={state.settlement.cutoffTime} onChange={e => dispatch({ type: 'SET_SETTLEMENT', settlement: { ...state.settlement, cutoffTime: e.target.value } })} placeholder="23:00" className="h-10" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Zona horaria</Label>
+                    <Input value={state.settlement.cutoffTimezone} onChange={e => dispatch({ type: 'SET_SETTLEMENT', settlement: { ...state.settlement, cutoffTimezone: e.target.value } })} placeholder="America/Mexico_City" className="h-10" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Vigente desde</Label>
+                    <Input type="date" value={state.settlement.effectiveFrom} onChange={e => dispatch({ type: 'SET_SETTLEMENT', settlement: { ...state.settlement, effectiveFrom: e.target.value } })} className="h-10" />
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Zona horaria</Label>
-                  <Input value={state.settlement.cutoffTimezone} onChange={e => dispatch({ type: 'SET_SETTLEMENT', settlement: { ...state.settlement, cutoffTimezone: e.target.value } })} placeholder="America/Mexico_City" className="h-10" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Vigente desde</Label>
-                  <Input type="date" value={state.settlement.effectiveFrom} onChange={e => dispatch({ type: 'SET_SETTLEMENT', settlement: { ...state.settlement, effectiveFrom: e.target.value } })} className="h-10" />
-                </div>
-              </div>
+              </>
             )}
           </Section>
         )

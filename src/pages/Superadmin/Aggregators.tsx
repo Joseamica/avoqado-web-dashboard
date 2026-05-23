@@ -1,6 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Building2, Percent, Users, Pencil, Trash2, Layers, Loader2, ToggleLeft, Link2, Copy, X } from 'lucide-react'
+import {
+  Plus,
+  Building2,
+  Percent,
+  Users,
+  Pencil,
+  Trash2,
+  Layers,
+  Loader2,
+  ToggleLeft,
+  Link2,
+  Copy,
+  X,
+  PanelRightOpen,
+} from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -28,6 +42,7 @@ import {
   type CreateVenueCommissionInput,
 } from '@/services/aggregator.service'
 import RevenueShareReportSection from './components/RevenueShareReportSection'
+import AggregatorDetailSheet from './components/AggregatorDetailSheet'
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -119,6 +134,19 @@ function AggregatorDialog({
         <DialogHeader>
           <DialogTitle>{aggregator ? 'Editar Agregador' : 'Nuevo Agregador'}</DialogTitle>
         </DialogHeader>
+
+        {/* Banner explicativo — el agregador es solo CATÁLOGO. Las tarifas reales (% por
+            tipo de tarjeta + reparto Avoqado/agregador) se configuran POR MERCHANT en el
+            reporte de revenue-share o vía el wizard de AngelPay. */}
+        <div className="rounded-lg border border-input bg-muted/30 p-3 text-xs text-muted-foreground">
+          <p>
+            Esto solo registra al agregador en el catálogo (nombre + IVA del CFDI).
+            Las <strong>tarifas reales por tipo de tarjeta</strong> y el <strong>reparto Avoqado / agregador</strong>{' '}
+            se configuran <strong>por merchant</strong> en el "Reporte de revenue-share" (abajo en esta página)
+            o en el paso 9 del wizard de AngelPay.
+          </p>
+        </div>
+
         <div className="space-y-4 py-2">
           <div className="space-y-2">
             <Label>Nombre *</Label>
@@ -129,7 +157,7 @@ function AggregatorDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label>Tarifa base — fallback (%)</Label>
+            <Label className="text-muted-foreground">Tarifa de referencia (informativa, no afecta cálculos)</Label>
             <div className="grid grid-cols-2 gap-3">
               {(['DEBIT', 'CREDIT', 'AMEX', 'INTERNATIONAL'] as const).map(key => (
                 <div key={key} className="space-y-1">
@@ -144,8 +172,9 @@ function AggregatorDialog({
                 </div>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Opcional. Tarifa de referencia del agregador. Porcentaje (ej. 3.5 = 3.5%).
+            <p className="text-[11px] text-muted-foreground">
+              Solo memo. Las tarifas que realmente se cobran viven en <code>MerchantRevenueShare</code> por merchant.
+              Porcentaje (ej. 3.5 = 3.5%).
             </p>
           </div>
           <div className="space-y-2">
@@ -310,6 +339,10 @@ export default function Aggregators() {
   const queryClient = useQueryClient()
 
   const [selectedAggId, setSelectedAggId] = useState<string | null>(null)
+  // Sheet de detalle del agregador — separate state from selectedAggId so
+  // clicking the card body filters the commissions table (existing behavior)
+  // while a dedicated "Ver detalle" button opens the sheet (new behavior).
+  const [detailAggId, setDetailAggId] = useState<string | null>(null)
 
   // Aggregator dialog state
   const [aggDialogOpen, setAggDialogOpen] = useState(false)
@@ -348,10 +381,21 @@ export default function Aggregators() {
         },
         ivaRate: data.ivaRate ? parseFloat(data.ivaRate) / 100 : 0.16,
       }),
-    onSuccess: () => {
+    onSuccess: created => {
       queryClient.invalidateQueries({ queryKey: ['aggregators'] })
-      toast({ title: 'Agregador creado' })
+      toast({
+        title: `Agregador "${created.name}" creado`,
+        description:
+          'Solo metadata por ahora. Para que afecte cálculos, asígnalo a un merchant (en el wizard de AngelPay paso 6) y configura el reparto en el reporte de abajo ↓',
+      })
       setAggDialogOpen(false)
+      // Scroll al reporte para que el operador vea de inmediato dónde asignar
+      // el revenue-share — guía visual sutil sin redirect ni modal extra.
+      setTimeout(() => {
+        document
+          .getElementById('revenue-share-report-section')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 200)
     },
     onError: (error: any) => {
       toast({ title: 'Error', description: error?.response?.data?.error || 'Error al crear', variant: 'destructive' })
@@ -689,6 +733,18 @@ export default function Aggregators() {
                         className="h-7 w-7 cursor-pointer"
                         onClick={e => {
                           e.stopPropagation()
+                          setDetailAggId(agg.id)
+                        }}
+                        title="Ver detalle (merchants asignados, reparto)"
+                      >
+                        <PanelRightOpen className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 cursor-pointer"
+                        onClick={e => {
+                          e.stopPropagation()
                           handleEditAgg(agg)
                         }}
                         title="Editar"
@@ -717,10 +773,24 @@ export default function Aggregators() {
       </div>
 
       {/* ── Section 2: Revenue-share report (modelo nuevo) ── */}
-      <RevenueShareReportSection />
+      {/* id used by post-create-aggregator toast to scrollIntoView, guiding the
+          operator to the next step. */}
+      <div id="revenue-share-report-section">
+        <RevenueShareReportSection />
+      </div>
 
-      {/* ── Section 3: Venue Commissions ── */}
-      <div className="space-y-4">
+      {/* ── Section 3: Venue Commissions (LEGACY, RETIRADO DE LA UI) ──
+          La sección original mostraba `VenueCommission` rows — un modelo viejo
+          de comisión de REFERIDO que conviven en la DB con `MerchantRevenueShare`
+          pero modelan cosas distintas. El settlement job que las consumiría está
+          deshabilitado en producción (server.ts línea ~350). Decisión de Jose:
+          retirar la UI por ahora, dejar las rows en DB como histórico, y migrar
+          eventualmente a `MerchantRevenueShare` (ver
+          `docs/guides/VENUE_COMMISSION_MIGRATION.md`).
+
+          El código backend (controller/service/routes/job) sigue intacto por si
+          alguna vez se reactiva. */}
+      <div className="space-y-4 hidden">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold text-foreground">
@@ -880,6 +950,21 @@ export default function Aggregators() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Aggregator detail sheet — opens from the per-card "Ver detalle" button.
+          Shows assigned merchants with per-merchant revenue-share status and a
+          button to open the existing edit dialog. The `key` forces a clean
+          remount per aggregator so internal queries are scoped correctly. */}
+      <AggregatorDetailSheet
+        key={detailAggId ?? 'closed'}
+        open={!!detailAggId}
+        onOpenChange={o => !o && setDetailAggId(null)}
+        aggregatorId={detailAggId}
+        onEditAggregator={agg => {
+          setDetailAggId(null)
+          handleEditAgg(agg)
+        }}
+      />
     </div>
   )
 }

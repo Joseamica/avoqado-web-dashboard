@@ -8,12 +8,13 @@
  */
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Loader2, Wallet, Building2, BarChart3 } from 'lucide-react'
+import { Loader2, Wallet, Building2, BarChart3, Pencil } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { merchantRevenueShareAPI } from '@/services/merchantRevenueShare.service'
+import RevenueShareEditDialog from './RevenueShareEditDialog'
 
 /** Default = últimos 30 días (UTC). */
 function defaultRange() {
@@ -33,6 +34,14 @@ export default function RevenueShareReportSection() {
   const init = useMemo(defaultRange, [])
   const [fromISO, setFromISO] = useState(init.fromISO)
   const [toISO, setToISO] = useState(init.toISO)
+  /**
+   * Click on a report row → opens the inline edit dialog. We only need the id +
+   * label here; the dialog itself fetches the actual share (if any) and lazy-
+   * initializes the form. Closing simply nulls this state.
+   */
+  const [editing, setEditing] = useState<{ merchantAccountId: string; merchantLabel: string } | null>(
+    null,
+  )
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ['revenue-share-report', fromISO, toISO],
@@ -148,11 +157,19 @@ export default function RevenueShareReportSection() {
                   <th className="text-right px-4 py-3 font-medium text-muted-foreground">Avoqado</th>
                   <th className="text-right px-4 py-3 font-medium text-muted-foreground">Agregador</th>
                   <th className="text-right px-4 py-3 font-medium text-muted-foreground">Provider</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground w-[60px]"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
                 {rows.map(r => (
-                  <tr key={r.merchantAccountId} className="hover:bg-muted/20 transition-colors">
+                  <tr
+                    key={r.merchantAccountId}
+                    className="hover:bg-muted/20 transition-colors cursor-pointer"
+                    onClick={() =>
+                      setEditing({ merchantAccountId: r.merchantAccountId, merchantLabel: r.merchantLabel })
+                    }
+                    title="Click para configurar el reparto de este merchant"
+                  >
                     <td className="px-4 py-3 font-medium text-foreground">{r.merchantLabel}</td>
                     <td className="px-4 py-3 text-muted-foreground">{r.providerCode}</td>
                     <td className="px-4 py-3">
@@ -179,6 +196,9 @@ export default function RevenueShareReportSection() {
                     <td className="px-4 py-3 text-right font-mono text-muted-foreground">
                       {fmtMoney(r.providerNet)}
                     </td>
+                    <td className="px-2 py-3 text-right">
+                      <Pencil className="w-3.5 h-3.5 text-muted-foreground/60 inline" />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -186,6 +206,18 @@ export default function RevenueShareReportSection() {
           </div>
           {isFetching && <p className="px-4 py-2 text-[11px] text-muted-foreground">Actualizando…</p>}
         </GlassCard>
+      )}
+
+      {/* Inline edit dialog — opens when the operator clicks a row above. The
+          `key` ensures internal form state is fresh on each open + per merchant. */}
+      {editing && (
+        <RevenueShareEditDialog
+          key={editing.merchantAccountId}
+          open
+          onOpenChange={o => !o && setEditing(null)}
+          merchantAccountId={editing.merchantAccountId}
+          merchantLabel={editing.merchantLabel}
+        />
       )}
     </div>
   )

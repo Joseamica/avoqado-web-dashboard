@@ -84,7 +84,18 @@ export interface AngelPayPricing {
 
 export interface AngelPaySettlement {
   skipped: boolean
-  settlementDays?: number
+  /**
+   * Días de liquidación por tipo de tarjeta. El schema de Prisma soporta una
+   * `SettlementConfiguration` distinta por `(merchantAccountId, cardType,
+   * effectiveFrom)`, así que cada tipo puede liquidar a un T+N distinto.
+   * Caso común: débito/crédito T+1, AMEX y Internacional T+3.
+   * El backend cae al `settlementDays` legacy si estos están todos undefined,
+   * para mantener compatibilidad con el endpoint v1.
+   */
+  settlementDaysDebit?: number
+  settlementDaysCredit?: number
+  settlementDaysAmex?: number
+  settlementDaysInternational?: number
   settlementDayType: 'BUSINESS_DAYS' | 'CALENDAR_DAYS'
   cutoffTime: string
   cutoffTimezone: string

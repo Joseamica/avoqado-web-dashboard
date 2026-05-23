@@ -1241,7 +1241,19 @@ export interface FullSetupAngelPayPayload {
   cost?: AngelPayCostInput
   pricing?: AngelPayPricingInput
   settlement?: {
+    /** Scalar legacy — usado para los tipos de tarjeta que NO tengan override en `settlementDaysByCard`. */
     settlementDays: number
+    /**
+     * Override por tipo de tarjeta. Si un campo es undefined, ese tipo usa `settlementDays`.
+     * Mantiene compatibilidad con clientes que no envíen este campo (default a scalar).
+     * El schema de Prisma soporta una row por (merchant, cardType, effectiveFrom).
+     */
+    settlementDaysByCard?: {
+      DEBIT?: number
+      CREDIT?: number
+      AMEX?: number
+      INTERNATIONAL?: number
+    }
     settlementDayType: 'BUSINESS_DAYS' | 'CALENDAR_DAYS'
     cutoffTime: string
     cutoffTimezone: string
