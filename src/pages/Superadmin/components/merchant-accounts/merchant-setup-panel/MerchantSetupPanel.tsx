@@ -15,6 +15,7 @@ import AngelPayLoginCard from './cards/AngelPayLoginCard'
 import MerchantCard from './cards/MerchantCard'
 import SlotCard from './cards/SlotCard'
 import CostCard from './cards/CostCard'
+import PricingCard from './cards/PricingCard'
 
 interface MerchantSetupPanelProps {
   open: boolean
@@ -140,7 +141,8 @@ export default function MerchantSetupPanel({
         <MerchantCard state={state} dispatch={dispatch} mode={mode} />
         <SlotCard state={state} dispatch={dispatch} mode={mode} />
         <CostCard state={state} dispatch={dispatch} mode={mode} />
-        {/* More cards added in Tasks 3.6 - 3.9 */}
+        <PricingCard state={state} dispatch={dispatch} mode={mode} />
+        {/* More cards added in Tasks 3.7 - 3.9 */}
       </div>
 
       {/* Draft recovery banner: Task 5.1 */}
