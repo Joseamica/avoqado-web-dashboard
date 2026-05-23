@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { aggregatorAPI, type Aggregator } from '@/services/aggregator.service'
+import { upsertProviderCostStructure } from '@/services/cost-management.service'
 import { decimalToPercent, percentToDecimal } from '@/utils/fees'
 import { cn } from '@/lib/utils'
 import type { CostSlice, MerchantSlice, SetupState } from '../types'
@@ -25,6 +26,10 @@ interface Props {
   state: SetupState
   dispatch: (action: SetupAction) => void
   mode: 'create' | 'edit'
+  /** Required when mode='edit'. */
+  merchantAccountId?: string
+  /** Required when mode='edit' — needed by the cost-structures POST. */
+  providerId?: string
 }
 
 const MERCHANT_ID_RE = /^\d+$/
@@ -55,12 +60,17 @@ function isCostValid(c: CostSlice): boolean {
 
 const fmtPercent = (d?: number) => (d === undefined ? '–' : `${decimalToPercent(d)}%`)
 
-export default function CostCard({ state, dispatch, mode }: Props) {
+export default function CostCard({ state, dispatch, mode, merchantAccountId, providerId }: Props) {
   const [open, setOpen] = useState(false)
 
   const merchantReady = isMerchantValid(state.merchant)
   const isValid = isCostValid(state.cost)
-  const disabled = mode === 'edit' || !merchantReady
+  // In edit mode the card is enabled once we have the ids needed to PUT.
+  // In create mode we still gate on `merchantReady` so the operator can't fill
+  // costs without first picking/typing a merchant.
+  const disabled =
+    (mode === 'edit' && (!merchantAccountId || !providerId)) ||
+    (mode === 'create' && !merchantReady)
 
   const summary = useMemo(() => {
     if (!isValid) return null
@@ -121,7 +131,14 @@ export default function CostCard({ state, dispatch, mode }: Props) {
           <DialogHeader>
             <DialogTitle>Costo del procesador</DialogTitle>
           </DialogHeader>
-          <CostDialogBody state={state} dispatch={dispatch} onClose={() => setOpen(false)} />
+          <CostDialogBody
+            state={state}
+            dispatch={dispatch}
+            mode={mode}
+            merchantAccountId={merchantAccountId}
+            providerId={providerId}
+            onClose={() => setOpen(false)}
+          />
         </DialogContent>
       </Dialog>
     </>
@@ -131,10 +148,16 @@ export default function CostCard({ state, dispatch, mode }: Props) {
 function CostDialogBody({
   state,
   dispatch,
+  mode,
+  merchantAccountId,
+  providerId,
   onClose,
 }: {
   state: SetupState
   dispatch: (action: SetupAction) => void
+  mode: 'create' | 'edit'
+  merchantAccountId?: string
+  providerId?: string
   onClose: () => void
 }) {
   const { toast } = useToast()
@@ -185,8 +208,54 @@ function CostDialogBody({
 
   const canSave = isCostValid(draft)
 
+  // Edit-mode upsert. The backend route UPSERTs based on
+  // (providerId, merchantAccountId, effectiveFrom) so saving the same date
+  // updates the row in place. We invalidate the cost-structures query so the
+  // next hydration sees the new values.
+  const saveMutation = useMutation({
+    mutationFn: () => {
+      if (!merchantAccountId || !providerId) {
+        // Guarded by `disabled` on the card surface — defensive only.
+        return Promise.reject(new Error('merchantAccountId / providerId required in edit mode'))
+      }
+      return upsertProviderCostStructure({
+        providerId,
+        merchantAccountId,
+        debitRate: draft.debitRate!,
+        creditRate: draft.creditRate!,
+        amexRate: draft.amexRate!,
+        internationalRate: draft.internationalRate!,
+        fixedCostPerTransaction: draft.fixedCostPerTransaction,
+        monthlyFee: draft.monthlyFee,
+        effectiveFrom: draft.effectiveFrom || new Date().toISOString().slice(0, 10),
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['cost-structures-by-merchant', merchantAccountId],
+      })
+      queryClient.invalidateQueries({ queryKey: ['merchant', merchantAccountId] })
+      // Mirror the new values into the reducer so the card summary stays in
+      // sync without waiting for a refetch round-trip.
+      dispatch({ type: 'SET_COST', cost: draft })
+      toast({ title: 'Costo actualizado' })
+      onClose()
+    },
+    onError: (err: any) => {
+      toast({
+        title: 'No se pudo actualizar el costo',
+        description: err?.response?.data?.message || 'Error en el servidor',
+        variant: 'destructive',
+      })
+    },
+  })
+
   const handleSave = () => {
     if (!canSave) return
+    if (mode === 'edit' && merchantAccountId && providerId) {
+      saveMutation.mutate()
+      return
+    }
     dispatch({ type: 'SET_COST', cost: draft })
     onClose()
   }
@@ -326,17 +395,19 @@ function CostDialogBody({
         <button
           type="button"
           onClick={onClose}
-          className="text-xs text-muted-foreground hover:underline"
+          disabled={saveMutation.isPending}
+          className="text-xs text-muted-foreground hover:underline disabled:opacity-50"
         >
           Cancelar
         </button>
         <button
           type="button"
           onClick={handleSave}
-          disabled={!canSave}
-          className="text-xs font-medium bg-foreground text-background rounded-md px-3 py-1.5 disabled:opacity-50"
+          disabled={!canSave || saveMutation.isPending}
+          className="inline-flex items-center text-xs font-medium bg-foreground text-background rounded-md px-3 py-1.5 disabled:opacity-50"
         >
-          Guardar costo
+          {saveMutation.isPending && <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />}
+          {mode === 'edit' ? 'Guardar cambios' : 'Guardar costo'}
         </button>
       </div>
 

@@ -194,7 +194,13 @@ export default function MerchantSetupPanel({
           <AngelPayLoginCard state={state} dispatch={dispatch} mode={mode} />
           <MerchantCard state={state} dispatch={dispatch} mode={mode} />
           <SlotCard state={state} dispatch={dispatch} mode={mode} />
-          <CostCard state={state} dispatch={dispatch} mode={mode} />
+          <CostCard
+            state={state}
+            dispatch={dispatch}
+            mode={mode}
+            merchantAccountId={mode === 'edit' ? merchantAccountId : undefined}
+            providerId={mode === 'edit' ? bundle?.merchant.providerId : undefined}
+          />
           <PricingCard state={state} dispatch={dispatch} mode={mode} />
           <SettlementCard state={state} dispatch={dispatch} mode={mode} />
           <RevenueShareCard state={state} dispatch={dispatch} mode={mode} />
