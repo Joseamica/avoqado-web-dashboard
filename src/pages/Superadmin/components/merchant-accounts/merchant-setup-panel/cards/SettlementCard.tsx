@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { CalendarClock, CheckCircle2 } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { CalendarClock, CheckCircle2, Loader2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,6 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useToast } from '@/hooks/use-toast'
+import {
+  getSettlementConfigurations,
+  updateSettlementConfiguration,
+  type SettlementConfiguration,
+  type TransactionCardType,
+} from '@/services/settlementConfiguration.service'
 import { cn } from '@/lib/utils'
 import type { SettlementSlice, SetupState } from '../types'
 import type { SetupAction } from '../useSetupReducer'
@@ -20,6 +28,8 @@ interface Props {
   state: SetupState
   dispatch: (action: SetupAction) => void
   mode: 'create' | 'edit'
+  /** Required when mode='edit'. */
+  merchantAccountId?: string
 }
 
 /** Local mirror of `isCardValid(s, 'settlement')`. All 4 day-counts must be set
@@ -38,13 +48,14 @@ function isSettlementValid(s: SettlementSlice): boolean {
 const dayTypeLabel = (t: SettlementSlice['dayType']) =>
   t === 'BUSINESS_DAYS' ? 'días hábiles' : 'días naturales'
 
-export default function SettlementCard({ state, dispatch, mode }: Props) {
+export default function SettlementCard({ state, dispatch, mode, merchantAccountId }: Props) {
   const [open, setOpen] = useState(false)
 
   const isValid = isSettlementValid(state.settlement)
-  // Settlement has sane defaults — the only thing that disables the card is
-  // edit mode (where per-card save lives elsewhere).
-  const disabled = mode === 'edit'
+  // In edit mode the card is enabled once we have the merchantAccountId so we
+  // can look up the active rows by card type and PUT them. In create mode the
+  // slice has sane defaults so the card is always enabled.
+  const disabled = mode === 'edit' && !merchantAccountId
 
   const summary = useMemo(() => {
     if (!isValid) return null
@@ -98,6 +109,8 @@ export default function SettlementCard({ state, dispatch, mode }: Props) {
           <SettlementDialogBody
             state={state}
             dispatch={dispatch}
+            mode={mode}
+            merchantAccountId={merchantAccountId}
             onClose={() => setOpen(false)}
           />
         </DialogContent>
@@ -109,12 +122,27 @@ export default function SettlementCard({ state, dispatch, mode }: Props) {
 function SettlementDialogBody({
   state,
   dispatch,
+  mode,
+  merchantAccountId,
   onClose,
 }: {
   state: SetupState
   dispatch: (action: SetupAction) => void
+  mode: 'create' | 'edit'
+  merchantAccountId?: string
   onClose: () => void
 }) {
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+
+  // In edit mode we need the existing settlement rows so we know which row id
+  // to PUT per card type. Same query key as useMerchantBundle so the cache is
+  // shared with the panel's hydration round-trip.
+  const { data: existingConfigs = [] } = useQuery<SettlementConfiguration[]>({
+    queryKey: ['settlement-configs-by-merchant', merchantAccountId],
+    queryFn: () => getSettlementConfigurations({ merchantAccountId: merchantAccountId! }),
+    enabled: mode === 'edit' && !!merchantAccountId,
+  })
   // Local form buffer — only commit to reducer when user clicks "Guardar".
   // Opening the dialog should not flip the panel's progress indicator.
   const [draft, setDraft] = useState<SettlementSlice>(state.settlement)
@@ -136,8 +164,80 @@ function SettlementDialogBody({
     })
   }
 
+  // In edit mode, settlement state is split server-side into one row per
+  // TransactionCardType. We update each row independently with the day count
+  // for that card type, plus the shared cutoff/timezone/dayType fields. If a
+  // card type has no existing active row we skip it (a full create-on-missing
+  // flow is a follow-up). The Promise.all + multi-PUT shape is acceptable
+  // because each row is independent — the backend rejects partial updates per
+  // card with its own validation error and the toast surfaces the first one.
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!merchantAccountId) {
+        throw new Error('merchantAccountId required in edit mode')
+      }
+      const byCard = (cardType: TransactionCardType) =>
+        existingConfigs.find(c => c.cardType === cardType && c.effectiveTo === null)
+
+      const desired: Array<{ cardType: TransactionCardType; days: number | undefined }> = [
+        { cardType: 'DEBIT', days: draft.daysDebit },
+        { cardType: 'CREDIT', days: draft.daysCredit },
+        { cardType: 'AMEX', days: draft.daysAmex },
+        { cardType: 'INTERNATIONAL', days: draft.daysInternational },
+      ]
+
+      const updates: Array<Promise<unknown>> = []
+      for (const { cardType, days } of desired) {
+        if (days === undefined) continue
+        const existing = byCard(cardType)
+        if (!existing) {
+          // No active row for this card type. Skipping rather than auto-creating
+          // is intentional — a full create flow needs SettlementConfiguration's
+          // POST schema (cardType, merchantAccountId, etc.). Tracked separately.
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[SettlementCard] No active settlement row for cardType=${cardType} on merchant ${merchantAccountId} — skipping update`,
+          )
+          continue
+        }
+        updates.push(
+          updateSettlementConfiguration(existing.id, {
+            settlementDays: days,
+            settlementDayType: draft.dayType,
+            cutoffTime: draft.cutoffTime,
+            cutoffTimezone: draft.cutoffTimezone,
+            // effectiveFrom is omitted: the route treats it as a versioning
+            // boundary — patching the day count on the same row is what we
+            // want from the panel.
+          }),
+        )
+      }
+
+      await Promise.all(updates)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['settlement-configs-by-merchant', merchantAccountId],
+      })
+      dispatch({ type: 'SET_SETTLEMENT', settlement: draft })
+      toast({ title: 'Liquidación actualizada' })
+      onClose()
+    },
+    onError: (err: any) => {
+      toast({
+        title: 'No se pudo actualizar la liquidación',
+        description: err?.response?.data?.message || 'Error en el servidor',
+        variant: 'destructive',
+      })
+    },
+  })
+
   const handleSave = () => {
     if (!canSave) return
+    if (mode === 'edit' && merchantAccountId) {
+      saveMutation.mutate()
+      return
+    }
     dispatch({ type: 'SET_SETTLEMENT', settlement: draft })
     onClose()
   }
@@ -246,17 +346,19 @@ function SettlementDialogBody({
         <button
           type="button"
           onClick={onClose}
-          className="text-xs text-muted-foreground hover:underline"
+          disabled={saveMutation.isPending}
+          className="text-xs text-muted-foreground hover:underline disabled:opacity-50"
         >
           Cancelar
         </button>
         <button
           type="button"
           onClick={handleSave}
-          disabled={!canSave}
-          className="text-xs font-medium bg-foreground text-background rounded-md px-3 py-1.5 disabled:opacity-50"
+          disabled={!canSave || saveMutation.isPending}
+          className="inline-flex items-center text-xs font-medium bg-foreground text-background rounded-md px-3 py-1.5 disabled:opacity-50"
         >
-          Guardar liquidación
+          {saveMutation.isPending && <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />}
+          {mode === 'edit' ? 'Guardar cambios' : 'Guardar liquidación'}
         </button>
       </div>
     </div>
