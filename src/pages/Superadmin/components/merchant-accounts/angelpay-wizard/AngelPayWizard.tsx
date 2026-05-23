@@ -23,7 +23,7 @@ import { AngelPayAccountDetailsDialog } from './AngelPayAccountDetailsDialog'
 import { paymentProviderAPI, type FullSetupAngelPayPayload } from '@/services/paymentProvider.service'
 import { aggregatorAPI } from '@/services/aggregator.service'
 import { merchantRevenueShareAPI } from '@/services/merchantRevenueShare.service'
-import { decimalToPercent, percentToDecimal } from './feeTemplate'
+import { decimalToPercent, percentToDecimal } from '@/utils/fees'
 import {
   wizardReducer,
   initialState,
