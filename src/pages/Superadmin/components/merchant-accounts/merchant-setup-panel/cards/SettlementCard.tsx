@@ -194,7 +194,7 @@ function SettlementDialogBody({
           // No active row for this card type. Skipping rather than auto-creating
           // is intentional — a full create flow needs SettlementConfiguration's
           // POST schema (cardType, merchantAccountId, etc.). Tracked separately.
-          // eslint-disable-next-line no-console
+           
           console.warn(
             `[SettlementCard] No active settlement row for cardType=${cardType} on merchant ${merchantAccountId} — skipping update`,
           )
