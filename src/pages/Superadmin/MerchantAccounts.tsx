@@ -18,6 +18,7 @@ import {
   Plus,
   Power,
   Search,
+  Settings,
   Shield,
   Smartphone,
   Trash2,
@@ -85,6 +86,10 @@ const MerchantAccounts: React.FC = () => {
   const [costDialogOpen, setCostDialogOpen] = useState(false)
   const [assignToVenueDialogOpen, setAssignToVenueDialogOpen] = useState(false)
   const [setupPanelOpen, setSetupPanelOpen] = useState(false)
+  /** ID of the merchant whose setup panel is open in EDIT mode (Task 4.3).
+   *  When set, the panel hydrates the merchant via useMerchantBundle and lets
+   *  the operator update each card via per-card mutations (Task 4.2). */
+  const [editingMerchantId, setEditingMerchantId] = useState<string | null>(null)
   const [selectedAccount, setSelectedAccount] = useState<MerchantAccount | null>(null)
 
   // Fetch ALL merchant accounts (superadmin endpoint returns enriched venues/terminals)
@@ -347,6 +352,17 @@ const MerchantAccounts: React.FC = () => {
     setAssignToVenueDialogOpen(true)
   }, [])
 
+  /**
+   * Task 4.3: Open the MerchantSetupPanel in edit mode for an AngelPay
+   * merchant. Only AngelPay accounts surface the "Configurar" button — Blumon
+   * keeps its own dedicated flow (BlumonAutoFetchWizard) and is not touched
+   * by the setup panel.
+   */
+  const handleOpenSetupPanel = useCallback((account: MerchantAccount) => {
+    if (account.provider?.code !== 'ANGELPAY') return
+    setEditingMerchantId(account.id)
+  }, [])
+
   // Table columns — mirror the data shown on the account cards
   const columns = useMemo<ColumnDef<MerchantAccount, any>[]>(
     () => [
@@ -514,7 +530,19 @@ const MerchantAccounts: React.FC = () => {
               >
                 <Building2 className="w-3.5 h-3.5 text-amber-600" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer" title="Editar" onClick={() => handleEdit(a)}>
+              {a.provider?.code === 'ANGELPAY' && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 cursor-pointer"
+                  title="Configurar (panel completo)"
+                  onClick={() => handleOpenSetupPanel(a)}
+                  data-tour="merchant-row-configure"
+                >
+                  <Settings className="w-3.5 h-3.5 text-indigo-600" />
+                </Button>
+              )}
+              <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer" title="Editar (sólo identidad)" onClick={() => handleEdit(a)}>
                 <Pencil className="w-3.5 h-3.5" />
               </Button>
               <Button
@@ -540,7 +568,7 @@ const MerchantAccounts: React.FC = () => {
         },
       },
     ],
-    [handleManageCosts, handleManageTerminals, handleAssignToVenue, handleEdit, handleToggle, handleDelete],
+    [handleManageCosts, handleManageTerminals, handleAssignToVenue, handleEdit, handleToggle, handleDelete, handleOpenSetupPanel],
   )
 
   // Calculate stats
@@ -902,6 +930,7 @@ const MerchantAccounts: React.FC = () => {
                       onManageTerminals={handleManageTerminals}
                       onManageCosts={handleManageCosts}
                       onAssignToVenue={handleAssignToVenue}
+                      onConfigure={handleOpenSetupPanel}
                     />
                   ))}
                 </div>
@@ -929,6 +958,7 @@ const MerchantAccounts: React.FC = () => {
                       onManageTerminals={handleManageTerminals}
                       onManageCosts={handleManageCosts}
                       onAssignToVenue={handleAssignToVenue}
+                      onConfigure={handleOpenSetupPanel}
                     />
                   ))}
                 </div>
@@ -990,6 +1020,19 @@ const MerchantAccounts: React.FC = () => {
         onOpenChange={setSetupPanelOpen}
         mode="create"
       />
+
+      {/* Edit-mode panel — separate instance keyed by merchantId so state
+       *  is rebuilt cleanly each time the operator picks a different merchant
+       *  to configure. Task 4.3. */}
+      {editingMerchantId && (
+        <MerchantSetupPanel
+          key={editingMerchantId}
+          open={!!editingMerchantId}
+          onOpenChange={o => !o && setEditingMerchantId(null)}
+          mode="edit"
+          merchantAccountId={editingMerchantId}
+        />
+      )}
     </div>
   )
 }
