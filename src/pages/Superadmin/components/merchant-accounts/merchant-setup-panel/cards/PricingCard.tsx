@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, DollarSign, Info } from 'lucide-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { CheckCircle2, DollarSign, Info, Loader2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
+import { useToast } from '@/hooks/use-toast'
+import { upsertVenuePricingStructure } from '@/services/cost-management.service'
 import { decimalToPercent, percentToDecimal } from '@/utils/fees'
 import { cn } from '@/lib/utils'
 import type { MerchantSlice, PricingSlice, SetupState } from '../types'
@@ -14,6 +17,8 @@ interface Props {
   state: SetupState
   dispatch: (action: SetupAction) => void
   mode: 'create' | 'edit'
+  /** Required when mode='edit'. */
+  merchantAccountId?: string
 }
 
 const MERCHANT_ID_RE = /^\d+$/
@@ -44,12 +49,15 @@ function isPricingValid(p: PricingSlice): boolean {
 
 const fmtPercent = (d?: number) => (d === undefined ? '–' : `${decimalToPercent(d)}%`)
 
-export default function PricingCard({ state, dispatch, mode }: Props) {
+export default function PricingCard({ state, dispatch, mode, merchantAccountId }: Props) {
   const [open, setOpen] = useState(false)
 
   const merchantReady = isMerchantValid(state.merchant)
   const isValid = isPricingValid(state.pricing)
-  const disabled = mode === 'edit' || !merchantReady
+  // In edit mode the card is enabled once we have the merchantAccountId; the
+  // venueId and slot's accountType are derived from the hydrated state.
+  const disabled =
+    (mode === 'edit' && !merchantAccountId) || (mode === 'create' && !merchantReady)
 
   const summary = useMemo(() => {
     if (!isValid) return null
@@ -110,7 +118,13 @@ export default function PricingCard({ state, dispatch, mode }: Props) {
           <DialogHeader>
             <DialogTitle>Precio al venue</DialogTitle>
           </DialogHeader>
-          <PricingDialogBody state={state} dispatch={dispatch} onClose={() => setOpen(false)} />
+          <PricingDialogBody
+            state={state}
+            dispatch={dispatch}
+            mode={mode}
+            merchantAccountId={merchantAccountId}
+            onClose={() => setOpen(false)}
+          />
         </DialogContent>
       </Dialog>
     </>
@@ -120,12 +134,18 @@ export default function PricingCard({ state, dispatch, mode }: Props) {
 function PricingDialogBody({
   state,
   dispatch,
+  mode,
+  merchantAccountId,
   onClose,
 }: {
   state: SetupState
   dispatch: (action: SetupAction) => void
+  mode: 'create' | 'edit'
+  merchantAccountId?: string
   onClose: () => void
 }) {
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
   // Local form buffer — only commit to reducer when user clicks "Guardar".
   // Opening the dialog should not flip the panel's progress indicator.
   const [draft, setDraft] = useState<PricingSlice>(state.pricing)
@@ -136,8 +156,56 @@ function PricingDialogBody({
 
   const canSave = isPricingValid(draft)
 
+  // In edit mode the venueId comes from the hydrated venue slice and the
+  // accountType comes from the slot we resolved when loading the bundle. The
+  // backend UPSERTs on (venueId, accountType, effectiveFrom) so a same-day
+  // save replaces the row in place.
+  const venueId = state.venue.id
+  const slotAccountType: 'PRIMARY' | 'SECONDARY' | 'TERTIARY' =
+    state.slot.mode !== 'empty' ? state.slot.accountType : 'PRIMARY'
+
+  const saveMutation = useMutation({
+    mutationFn: () => {
+      if (!merchantAccountId || !venueId) {
+        return Promise.reject(
+          new Error('merchantAccountId / venueId required in edit mode'),
+        )
+      }
+      return upsertVenuePricingStructure({
+        venueId,
+        accountType: slotAccountType,
+        debitRate: draft.debitRate!,
+        creditRate: draft.creditRate!,
+        amexRate: draft.amexRate!,
+        internationalRate: draft.internationalRate!,
+        fixedFeePerTransaction: draft.fixedFeePerTransaction,
+        monthlyServiceFee: draft.monthlyServiceFee,
+        effectiveFrom: draft.effectiveFrom || new Date().toISOString().slice(0, 10),
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['venue-pricing-by-merchant', merchantAccountId],
+      })
+      dispatch({ type: 'SET_PRICING', pricing: draft })
+      toast({ title: 'Precio actualizado' })
+      onClose()
+    },
+    onError: (err: any) => {
+      toast({
+        title: 'No se pudo actualizar el precio',
+        description: err?.response?.data?.message || 'Error en el servidor',
+        variant: 'destructive',
+      })
+    },
+  })
+
   const handleSave = () => {
     if (!canSave) return
+    if (mode === 'edit' && merchantAccountId && venueId) {
+      saveMutation.mutate()
+      return
+    }
     dispatch({ type: 'SET_PRICING', pricing: draft })
     onClose()
   }
@@ -232,17 +300,19 @@ function PricingDialogBody({
         <button
           type="button"
           onClick={onClose}
-          className="text-xs text-muted-foreground hover:underline"
+          disabled={saveMutation.isPending}
+          className="text-xs text-muted-foreground hover:underline disabled:opacity-50"
         >
           Cancelar
         </button>
         <button
           type="button"
           onClick={handleSave}
-          disabled={!canSave}
-          className="text-xs font-medium bg-foreground text-background rounded-md px-3 py-1.5 disabled:opacity-50"
+          disabled={!canSave || saveMutation.isPending}
+          className="inline-flex items-center text-xs font-medium bg-foreground text-background rounded-md px-3 py-1.5 disabled:opacity-50"
         >
-          Guardar precio
+          {saveMutation.isPending && <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />}
+          {mode === 'edit' ? 'Guardar cambios' : 'Guardar precio'}
         </button>
       </div>
     </div>

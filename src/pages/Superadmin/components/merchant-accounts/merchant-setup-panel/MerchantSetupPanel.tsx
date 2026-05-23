@@ -201,7 +201,12 @@ export default function MerchantSetupPanel({
             merchantAccountId={mode === 'edit' ? merchantAccountId : undefined}
             providerId={mode === 'edit' ? bundle?.merchant.providerId : undefined}
           />
-          <PricingCard state={state} dispatch={dispatch} mode={mode} />
+          <PricingCard
+            state={state}
+            dispatch={dispatch}
+            mode={mode}
+            merchantAccountId={mode === 'edit' ? merchantAccountId : undefined}
+          />
           <SettlementCard state={state} dispatch={dispatch} mode={mode} />
           <RevenueShareCard state={state} dispatch={dispatch} mode={mode} />
           <TerminalsCard state={state} dispatch={dispatch} mode={mode} />
