@@ -42,7 +42,7 @@ import {
   MerchantAccountCard,
   AssignAccountToVenueDialog,
 } from './components/merchant-accounts'
-import AngelPayWizard from './components/merchant-accounts/angelpay-wizard/AngelPayWizard'
+import MerchantSetupPanel from './components/merchant-accounts/merchant-setup-panel/MerchantSetupPanel'
 
 /** Bucket a raw merchant-account environment into PROD / SANDBOX (mirrors MerchantAccountCard). */
 const envBucket = (raw?: string | null): 'PRODUCTION' | 'SANDBOX' | null => {
@@ -84,7 +84,7 @@ const MerchantAccounts: React.FC = () => {
   const [terminalsDialogOpen, setTerminalsDialogOpen] = useState(false)
   const [costDialogOpen, setCostDialogOpen] = useState(false)
   const [assignToVenueDialogOpen, setAssignToVenueDialogOpen] = useState(false)
-  const [angelPayWizardOpen, setAngelPayWizardOpen] = useState(false)
+  const [setupPanelOpen, setSetupPanelOpen] = useState(false)
   const [selectedAccount, setSelectedAccount] = useState<MerchantAccount | null>(null)
 
   // Fetch ALL merchant accounts (superadmin endpoint returns enriched venues/terminals)
@@ -583,7 +583,7 @@ const MerchantAccounts: React.FC = () => {
             Batch (x10+)
           </Button>
           <Button
-            onClick={() => setAngelPayWizardOpen(true)}
+            onClick={() => setSetupPanelOpen(true)}
             className="bg-indigo-600 hover:bg-indigo-700 text-primary-foreground"
             data-tour="angelpay-wizard-btn"
           >
@@ -985,7 +985,11 @@ const MerchantAccounts: React.FC = () => {
 
       <AssignAccountToVenueDialog open={assignToVenueDialogOpen} onOpenChange={setAssignToVenueDialogOpen} account={selectedAccount} />
 
-      <AngelPayWizard open={angelPayWizardOpen} onOpenChange={setAngelPayWizardOpen} />
+      <MerchantSetupPanel
+        open={setupPanelOpen}
+        onOpenChange={setSetupPanelOpen}
+        mode="create"
+      />
     </div>
   )
 }
