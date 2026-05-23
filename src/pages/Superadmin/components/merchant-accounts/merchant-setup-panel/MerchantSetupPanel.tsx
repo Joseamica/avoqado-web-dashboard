@@ -218,7 +218,12 @@ export default function MerchantSetupPanel({
             mode={mode}
             merchantAccountId={mode === 'edit' ? merchantAccountId : undefined}
           />
-          <RevenueShareCard state={state} dispatch={dispatch} mode={mode} />
+          <RevenueShareCard
+            state={state}
+            dispatch={dispatch}
+            mode={mode}
+            merchantAccountId={mode === 'edit' ? merchantAccountId : undefined}
+          />
           <TerminalsCard state={state} dispatch={dispatch} mode={mode} />
         </div>
       </div>

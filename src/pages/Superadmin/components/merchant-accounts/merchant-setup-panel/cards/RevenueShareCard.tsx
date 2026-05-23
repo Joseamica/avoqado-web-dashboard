@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
+import RevenueShareEditDialog from '@/pages/Superadmin/components/RevenueShareEditDialog'
 import { decimalToPercent, percentToDecimal } from '@/utils/fees'
 import { cn } from '@/lib/utils'
 import type { MerchantSlice, RevenueShareSlice, SetupState } from '../types'
@@ -14,6 +15,8 @@ interface Props {
   state: SetupState
   dispatch: (action: SetupAction) => void
   mode: 'create' | 'edit'
+  /** Required when mode='edit' — drives the RevenueShareEditDialog CRUD. */
+  merchantAccountId?: string
 }
 
 const MERCHANT_ID_RE = /^\d+$/
@@ -132,13 +135,21 @@ function previewSplit({
   }
 }
 
-export default function RevenueShareCard({ state, dispatch, mode }: Props) {
+export default function RevenueShareCard({
+  state,
+  dispatch,
+  mode,
+  merchantAccountId,
+}: Props) {
   const [open, setOpen] = useState(false)
 
   const merchantReady = isMerchantValid(state.merchant)
   const configured = isRevenueShareConfigured(state.revenueShare)
-  // Edit mode is wired in Task 4.2 — this card stays disabled until then.
-  const disabled = mode === 'edit' || !merchantReady
+  // In edit mode the operator opens the full RevenueShareEditDialog (which
+  // owns its own CRUD against the API). In create mode we still gate on a
+  // ready merchant slice because the local form just writes to the reducer.
+  const disabled =
+    (mode === 'edit' && !merchantAccountId) || (mode === 'create' && !merchantReady)
 
   const summary = useMemo(() => {
     if (!configured) return null
@@ -156,6 +167,16 @@ export default function RevenueShareCard({ state, dispatch, mode }: Props) {
       : !merchantReady
         ? 'Configura el merchant primero'
         : 'Opcional'
+
+  // Friendly label for the edit dialog title — prefer the merchant slice's
+  // captured display name, then the venue's name as a fallback. We don't have
+  // a Blumon-style "(Sandbox)" suffix here because the panel is AngelPay-only.
+  const merchantLabel =
+    (state.merchant.mode === 'existing'
+      ? state.merchant.existingMerchantLabel
+      : state.merchant.displayName) ||
+    state.venue.name ||
+    'Merchant'
 
   return (
     <>
@@ -195,18 +216,31 @@ export default function RevenueShareCard({ state, dispatch, mode }: Props) {
         </p>
       </button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[640px] max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Reparto de ganancias</DialogTitle>
-          </DialogHeader>
-          <RevenueShareDialogBody
-            state={state}
-            dispatch={dispatch}
-            onClose={() => setOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
+      {mode === 'edit' && merchantAccountId ? (
+        // Delegate to the shared revenue-share editor used from
+        // /superadmin/aggregators. It owns its own CRUD (create / update /
+        // delete) against merchantRevenueShareAPI and invalidates the relevant
+        // caches on success — no reducer mirroring needed.
+        <RevenueShareEditDialog
+          open={open}
+          onOpenChange={setOpen}
+          merchantAccountId={merchantAccountId}
+          merchantLabel={merchantLabel}
+        />
+      ) : (
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent className="sm:max-w-[640px] max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Reparto de ganancias</DialogTitle>
+            </DialogHeader>
+            <RevenueShareDialogBody
+              state={state}
+              dispatch={dispatch}
+              onClose={() => setOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   )
 }
