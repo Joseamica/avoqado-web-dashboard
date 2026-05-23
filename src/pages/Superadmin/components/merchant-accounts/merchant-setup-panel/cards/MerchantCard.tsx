@@ -172,11 +172,19 @@ function MerchantDialogBody({
     setTpvFetchMsg('Buscando merchants en la terminal…')
     const before = allMerchants.filter(m => m.angelpayUserAccountId === loginId).length
 
+    // `mode: 'PREVIEW_ONLY'` tells the report endpoint to SKIP the legacy
+    // zero-touch auto-onboarding when the TPV reports back. The panel owns
+    // merchant creation when the operator clicks "Activar merchant"
+    // (`fullSetupAngelPayMerchant`); without this flag the TPV report would
+    // silently create a MerchantAccount + take a slot mid-setup, and the
+    // activation would then 409 with "slot ya ocupado" after the operator
+    // spent several minutes filling cards.
     try {
       await fetchAngelPayMerchantsFromTpv({
         venueId,
         terminalId: nexgoTerminal.id,
         angelpayUserAccountId: loginId,
+        mode: 'PREVIEW_ONLY',
       })
     } catch {
       setTpvFetchState('error')

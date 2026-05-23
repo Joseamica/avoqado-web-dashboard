@@ -112,6 +112,19 @@ export interface FetchAngelPayMerchantsRequest {
    * use whichever account the SDK is currently authenticated as.
    */
   angelpayUserAccountId?: string
+  /**
+   * Discovery mode hint persisted on `AngelPayUserAccount.pendingDiscoveryMode`
+   * and consumed by `POST /tpv/angelpay/report-discovered-merchants`:
+   *   - 'AUTO_ONBOARD' (default): legacy zero-touch behavior — TPV report
+   *     auto-creates MerchantAccount + takes a slot. For callers without
+   *     their own creation flow.
+   *   - 'PREVIEW_ONLY': the wizard owns merchant creation in its step 9
+   *     (`fullSetupAngelPayMerchant`), so the report only feeds the
+   *     "merchants descubiertos" picker without persisting.
+   * Only takes effect when `angelpayUserAccountId` is also provided (the
+   * flag is keyed per-account).
+   */
+  mode?: 'AUTO_ONBOARD' | 'PREVIEW_ONLY'
 }
 
 export interface FetchAngelPayMerchantsResult {
@@ -129,10 +142,15 @@ export interface FetchAngelPayMerchantsResult {
 export async function fetchAngelPayMerchantsFromTpv(
   payload: FetchAngelPayMerchantsRequest,
 ): Promise<FetchAngelPayMerchantsResult> {
-  const { venueId, terminalId, angelpayUserAccountId } = payload
-  const body: { terminalId?: string; angelpayUserAccountId?: string } = {}
+  const { venueId, terminalId, angelpayUserAccountId, mode } = payload
+  const body: {
+    terminalId?: string
+    angelpayUserAccountId?: string
+    mode?: 'AUTO_ONBOARD' | 'PREVIEW_ONLY'
+  } = {}
   if (terminalId) body.terminalId = terminalId
   if (angelpayUserAccountId) body.angelpayUserAccountId = angelpayUserAccountId
+  if (mode) body.mode = mode
   const { data } = await api.post<ApiEnvelope<FetchAngelPayMerchantsResult>>(
     `/api/v1/superadmin/venues/${venueId}/angelpay-fetch-merchants`,
     body,
