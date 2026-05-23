@@ -47,6 +47,9 @@ export interface MerchantAccount {
   // AngelPay display fields (optional caches for SDK MerchantOption display data)
   angelpayAffiliation?: string | null
   angelpayMerchantName?: string | null
+  // Links an AngelPay MerchantAccount back to the AngelPayUserAccount (login) it
+  // belongs to. Null for non-AngelPay providers and legacy rows.
+  angelpayUserAccountId?: string | null
   // Enriched relationship data (from superadmin endpoint)
   venues?: Array<{ id: string; name: string; slug: string }>
   terminals?: Array<{ id: string; serialNumber: string }>
@@ -1189,6 +1192,83 @@ export async function getPaymentSetupSummary(targetType: 'venue' | 'organization
   return response.data.data
 }
 
+// ===== ANGELPAY FULL-SETUP WIZARD =====
+
+interface AngelPayCostInput {
+  debitRate: number
+  creditRate: number
+  amexRate: number
+  internationalRate: number
+  includesTax: boolean
+  taxRate: number
+  effectiveFrom: string
+  fixedCostPerTransaction?: number
+  monthlyFee?: number
+}
+
+interface AngelPayPricingInput {
+  debitRate: number
+  creditRate: number
+  amexRate: number
+  internationalRate: number
+  includesTax: boolean
+  taxRate: number
+  effectiveFrom: string
+  fixedFeePerTransaction?: number
+  monthlyServiceFee?: number
+}
+
+export interface FullSetupAngelPayPayload {
+  /** Optional client-generated UUID — traceability only. */
+  idempotencyKey?: string
+  venueId: string
+  /** Optional payment aggregator the merchant routes through (applied on create). */
+  aggregatorId?: string
+  login:
+    | { mode: 'existing'; angelpayUserAccountId: string }
+    | { mode: 'new'; email: string; pin: string; environment: 'QA' | 'PROD' }
+  merchant:
+    | { mode: 'create'; externalMerchantId: string; name: string; affiliation: string; displayName: string }
+    | { mode: 'existing'; merchantAccountId: string }
+  slot: {
+    accountType: 'PRIMARY' | 'SECONDARY' | 'TERTIARY'
+    mode: 'fill' | 'replace'
+    replacedAccountId?: string
+    fromSlot?: 'PRIMARY' | 'SECONDARY' | 'TERTIARY'
+    moveStrategy?: 'swap' | 'vacate'
+  }
+  terminalIds?: string[]
+  cost?: AngelPayCostInput
+  pricing?: AngelPayPricingInput
+  settlement?: {
+    settlementDays: number
+    settlementDayType: 'BUSINESS_DAYS' | 'CALENDAR_DAYS'
+    cutoffTime: string
+    cutoffTimezone: string
+    effectiveFrom: string
+  }
+}
+
+export interface FullSetupAngelPayResult {
+  merchantAccountId: string
+  angelpayUserAccountId: string
+  venuePaymentConfigUpdated: boolean
+  terminalIds: string[]
+  costStructureId?: string
+  pricingStructureId?: string
+  settlementIds: string[]
+}
+
+/**
+ * One-shot AngelPay account setup — creates login + merchant + slot + terminals
+ * + cost + pricing + settlement in a single backend transaction.
+ * Backend endpoint: POST /api/v1/superadmin/merchant-accounts/full-setup-angelpay
+ */
+export async function fullSetupAngelPayMerchant(payload: FullSetupAngelPayPayload): Promise<FullSetupAngelPayResult> {
+  const response = await api.post('/api/v1/superadmin/merchant-accounts/full-setup-angelpay', payload)
+  return response.data.data
+}
+
 // Convenience API object for importing
 export const paymentProviderAPI = {
   // Payment Providers
@@ -1213,6 +1293,7 @@ export const paymentProviderAPI = {
   deleteMerchantAccount,
   getTerminalsByMerchantAccount,
   removeMerchantFromTerminal,
+  fullSetupAngelPayMerchant, // AngelPay wizard: one-shot full account setup
 
   // Provider Cost Structures
   getProviderCostStructures,

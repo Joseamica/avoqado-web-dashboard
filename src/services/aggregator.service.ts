@@ -103,6 +103,11 @@ export const aggregatorAPI = {
     return data.data
   },
 
+  /** Hard-delete. Falla con 400 si el agregador tiene merchants/comisiones/tarifas ligadas. */
+  remove: async (id: string): Promise<void> => {
+    await api.delete(`${BASE}/aggregators/${id}`)
+  },
+
   // Venue Commissions
   getCommissions: async (filters?: { aggregatorId?: string; active?: boolean }): Promise<VenueCommissionWithVenue[]> => {
     const params = new URLSearchParams()

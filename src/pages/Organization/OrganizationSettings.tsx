@@ -328,6 +328,7 @@ const DEFAULT_TPV_SETTINGS: TpvSettings = {
   showGoals: true,
   showMessages: true,
   showTrainings: true,
+  showCheckout: true,
   showCryptoOption: false,
   // Cellular Failover — OFF by default (org-level editor shouldn't push this;
   // the UI for these fields is per-terminal only, canary rollout)

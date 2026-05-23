@@ -27,6 +27,7 @@ import {
   Mail,
   GraduationCap,
   Signal,
+  HandCoins,
 } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -505,6 +506,14 @@ export function TpvSettingsFields({
                 description={t('tpvSettings.showQuickPaymentDesc')}
                 checked={settings.showQuickPayment}
                 onCheckedChange={checked => handleToggle('showQuickPayment', checked)}
+                disabled={isDisabled}
+              />
+              <SettingRow
+                icon={HandCoins}
+                label={t('tpvSettings.showCheckout')}
+                description={t('tpvSettings.showCheckoutDesc')}
+                checked={settings.showCheckout}
+                onCheckedChange={checked => handleToggle('showCheckout', checked)}
                 disabled={isDisabled}
               />
               <SettingRow

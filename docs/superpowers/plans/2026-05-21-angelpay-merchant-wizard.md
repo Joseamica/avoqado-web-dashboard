@@ -14,13 +14,84 @@
 - Backend: `/Users/amieva/Documents/Programming/Avoqado/avoqado-server`
 - Frontend: `/Users/amieva/Documents/Programming/Avoqado/avoqado-web-dashboard`
 
-**Commit policy:** This project requires explicit per-commit user permission. The "Commit" steps below are checkpoints — pause and ask the user before running `git commit`.
+**Commit policy:** This project requires explicit per-commit user permission. The "Commit" steps below are checkpoints — pause and ask the user before running `git commit`. As of this progress note, NOTHING has been committed — all changes are uncommitted working-tree edits.
+
+---
+
+## Implementation progress (2026-05-21)
+
+- **Phase A — DONE & verified.** PIN plaintext lazy-migration. See the Phase A STATUS note below for the revised (single-deploy-safe) approach actually built.
+- **Phase B — DONE & build-verified.** Endpoint `POST /api/v1/superadmin/merchant-accounts/full-setup-angelpay` (note: prefix is `/superadmin/`, not `/dashboard/superadmin/` — matches the Blumon full-setup precedent). Files: `src/lib/angelpayValidators.ts` (+ unit test, passing), `src/schemas/dashboard/angelpay-full-setup.schema.ts`, `src/services/superadmin/angelpayFullSetup.service.ts`, controller `fullSetupAngelPayMerchant` + route in `merchantAccount.controller.ts` / `merchantAccount.routes.ts`. **B3 idempotency:** resolved WITHOUT a dedicated table — relies on the `MerchantAccount`/`AngelPayUserAccount` unique constraints + a conditional slot guard + frontend button-disable; `idempotencyKey` is optional/traceability-only. **OUTSTANDING:** B4 integration tests (transaction rollback, P2002 conflict, replace-without-pricing) — not written; needs the project's `tests/integration/` harness.
+- **Phase C — DONE & typecheck-verified.** `fullSetupAngelPayMerchant` client fn + `FullSetupAngelPayPayload`/`FullSetupAngelPayResult` types in `paymentProvider.service.ts`, added to `paymentProviderAPI`.
+- **Phase D — DONE & tested.** `angelpay-wizard/wizardReducer.ts` — `AngelPayWizardState`, `initialState()`, `wizardReducer`, `isPricingRequired`. 7 vitest tests pass (`__tests__/wizardReducer.test.ts`): RESET_DOWNSTREAM on venue change, same-venue preserves downstream, replace-mode forces pricing required, non-invalidating slot change preserves typed rates.
+- **Phase E — DONE & build-verified.** `angelpay-wizard/AngelPayWizard.tsx` — full 9-step wizard (Venue, Login, Merchant, Slot, Terminals, Cost, Pricing, Settlement, Summary) in one cohesive file: `FullScreenModal` shell, step indicator, live summary panel, wired to `wizardReducer` + `paymentProviderAPI.fullSetupAngelPayMerchant`. "Agregar AngelPay" button (indigo, `data-tour="angelpay-wizard-btn"`) added to the `MerchantAccounts.tsx` header. `npm run build` passes. **NOT yet browser-verified** — needs `npm run dev` click-through (project rule). Pragmatic deviation from the plan: steps live in one file instead of 9, and rate inputs take decimals directly (0.025) — both fine for v1, polish candidates.
+- **Phase F — DONE & tests pass.** `e2e/tests/superadmin/angelpay-wizard.spec.ts` — 2 Playwright tests pass: full happy-path (open → venue → new login → merchant → PRIMARY slot → skip optional → confirm, asserts the captured `full-setup-angelpay` payload) and a "wizard hidden until button clicked" check.
+- **Extra (post-plan, user-requested) — DONE.** AngelPay account management from the wizard: each existing-login row in the Login step has a "Gestionar" gear button that opens the existing `AngelPayAccountManageSheet` over the FullScreenModal (view data, rotate PIN, suspend, delete with email-retype confirmation). The wizard auto-resets the login selection if the selected account is deleted/suspended.
+
+**B4 backend integration tests — DONE & passing.** `avoqado-server/tests/integration/dashboard/angelpay-full-setup.test.ts` — 4 tests pass against the real test DB: happy-path atomic create, full rollback on an intermediate failure, replace-without-pricing rejection, and existing-merchant reuse (no duplicate). Note: the test DB (`av-db-25-test`) had to be brought current with `prisma migrate deploy`.
+
+**OUTSTANDING:** Browser click-through verification of the wizard (project rule) — recommended before shipping. Phase G (TPV live discovery) below.
+
+---
+
+## Phase G — TPV live discovery (DONE — frontend; needs live verification)
+
+Built in `AngelPayWizard.tsx` step 3 (when an existing login is selected):
+- **"Buscar en TPV" button** — dispatches `fetchAngelPayMerchantsFromTpv`, then polls
+  the merchant list for ~30s; discovered merchants surface in the step-3 picker
+  (`loginMerchants`) so the operator picks one (existing-merchant mode).
+- **TPV online detection** — a NEXGO terminal with `status === 'ACTIVE'` is treated as
+  reachable; the panel shows "en línea" vs "sin terminal NEXGO activa" and disables the
+  button when none.
+- **Fetch feedback** — `fetching` / `done` / `error` states with a message
+  (success count, 30s timeout, or dispatch failure).
+
+Build + lint + E2E pass. **NOT verified against a live TPV** — the async round-trip
+needs a real NEXGO terminal online; verify manually before relying on it. Possible
+refinement: use a recent `lastHeartbeat` window for a stricter "online" signal than
+`status === 'ACTIVE'`.
+
+The original notes (kept for reference):
+
+- **"Buscar en TPV" button** on each existing login in the wizard's Login step. Calls
+  `fetchAngelPayMerchantsFromTpv` (dispatches `FETCH_ANGELPAY_MERCHANTS`), then surfaces
+  the discovered merchants so the operator picks one → `merchant.mode = 'existing'` →
+  step 3 auto-satisfied.
+- **TPV online detection** — before offering/enabling the fetch, show whether the venue
+  has a NEXGO terminal online. Source: `Terminal.status` + `Terminal.lastHeartbeat`
+  (terminals already carry these). Optionally driven by webhooks/heartbeat so the wizard
+  reflects live state.
+- **Fetch result feedback** — the fetch is async (202 + commandId, then the TPV reports
+  back). The wizard must show success/error: poll the discovered-merchants endpoint, or
+  receive a webhook/socket event, with a clear "descubrimiento exitoso / falló" state.
+- This is async + needs a live TPV to verify — do it in a focused session.
+
+The "Falta info" badge (login rows + details dialog) for accounts without a configured
+merchant is DONE.
 
 ---
 
 ## Phase A — Backend: AngelPay PIN → plaintext
 
-The AngelPay account PIN is currently stored encrypted (`AngelPayUserAccount.pinEncrypted` JSON) and decrypted by the TPV auth path. Per spec §6.1 it becomes plaintext. This phase must land before Phase B so the new endpoint writes a consistent shape. It does not require a TPV/PAX deploy — the TPV already receives a plain PIN in the auth payload.
+> **STATUS: IMPLEMENTED (2026-05-21).** Approach revised from the original A1-A4 below
+> for **single-deploy safety** — a column drop + mandatory backfill would lose
+> production PINs if both migrations applied in one `prisma migrate deploy`. As built:
+> - One migration `20260522014803_angelpay_pin_plaintext` — **adds** `pin String?`,
+>   **keeps** `pinEncrypted` (no drop).
+> - Writers (`angelpayUserAccount.service.ts`) store plaintext `pin`, stop encrypting.
+> - Readers (`terminal.tpv.controller.ts`) use **lazy fallback**:
+>   `account.pin ?? decryptCredentials(account.pinEncrypted)` — old rows keep working
+>   with no backfill, new rows use `pin`.
+> - `sanitize` (`angelpayUserAccount.controller.ts`) strips both `pin` + `pinEncrypted`.
+> - Result: a single merge deploys safely to production. No manual backfill, no data
+>   loss. `pinEncrypted` lingers (unused for new writes) and is droppable later once
+>   all rows have `pin`. An optional one-off backfill script can plaintext-migrate old
+>   rows immediately but is not required for correctness.
+>
+> The A1-A4 tasks below are kept for historical context; the implemented approach
+> above supersedes them.
+
+The AngelPay account PIN was stored encrypted (`AngelPayUserAccount.pinEncrypted` JSON) and decrypted by the TPV auth path. Per spec §6.1 it becomes plaintext. It does not require a TPV/PAX deploy — the TPV already receives a plain PIN in the auth payload.
 
 ### Task A1: Prisma schema — replace `pinEncrypted` with `pin`
 

@@ -26,7 +26,7 @@ import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { KeyRound, Loader2, Pencil, ShieldAlert, ShieldOff, Trash2 } from 'lucide-react'
+import { Loader2, Pencil, ShieldOff, Trash2 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -80,8 +80,6 @@ const STATUS_CHIP_CLASSES: Record<AngelPayAccountStatus, string> = {
   DELETED: 'bg-muted/50 text-muted-foreground/70 hover:bg-muted/50',
 }
 
-const PIN_REGEX = /^\d{6}$/
-
 function formatRelative(iso: string | null): string {
   if (!iso) return 'Sin registro'
   try {
@@ -122,15 +120,13 @@ export function AngelPayAccountManageSheet({
   const { toast } = useToast()
 
   // Inline action panels (one open at a time).
-  type ActionPanel = null | 'rotate' | 'markRotation' | 'suspend' | 'editCredentials'
+  type ActionPanel = null | 'suspend' | 'editCredentials'
   const [activePanel, setActivePanel] = useState<ActionPanel>(null)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [showFullError, setShowFullError] = useState(false)
 
   // Form state for inline panels — kept locally so we can validate before
   // calling the mutations.
-  const [pin, setPin] = useState('')
-  const [pinError, setPinError] = useState<string | null>(null)
   const [reason, setReason] = useState('')
   const [reasonError, setReasonError] = useState<string | null>(null)
   // Delete confirmation requires retyping the email to prevent accidents.
@@ -143,8 +139,6 @@ export function AngelPayAccountManageSheet({
   const [editEmailError, setEditEmailError] = useState<string | null>(null)
 
   const resetPanelForms = () => {
-    setPin('')
-    setPinError(null)
     setReason('')
     setReasonError(null)
     setEditEmail(account.email)
@@ -181,29 +175,6 @@ export function AngelPayAccountManageSheet({
   )
 
   // -------------------- Mutations --------------------
-  const setPinMutation = useMutation({
-    mutationFn: (newPin: string) => angelpayUserAccountAPI.setPin(account.id, newPin),
-    onSuccess: () => {
-      toast({ title: 'PIN actualizado', description: 'La cuenta queda activa.' })
-      setActivePanel(null)
-      resetPanelForms()
-      notifyChange()
-    },
-    onError: err => handleApiError(err, 'No se pudo actualizar el PIN'),
-  })
-
-  const markRotationMutation = useMutation({
-    mutationFn: (reasonText: string) =>
-      angelpayUserAccountAPI.markRotationRequired(account.id, reasonText),
-    onSuccess: () => {
-      toast({ title: 'PIN marcado para rotación' })
-      setActivePanel(null)
-      resetPanelForms()
-      notifyChange()
-    },
-    onError: err => handleApiError(err, 'No se pudo marcar el PIN para rotación'),
-  })
-
   const suspendMutation = useMutation({
     mutationFn: (reasonText: string) => angelpayUserAccountAPI.suspend(account.id, reasonText),
     onSuccess: () => {
@@ -247,8 +218,6 @@ export function AngelPayAccountManageSheet({
 
   // -------------------- Status-based action gating --------------------
   const status = account.status
-  const canSetPin = status === 'PENDING_PIN' || status === 'PIN_ROTATION_REQUIRED' || status === 'ACTIVE'
-  const canMarkRotation = status === 'ACTIVE'
   const canSuspend = status !== 'SUSPENDED' && status !== 'DELETED'
   const canDelete = status !== 'DELETED'
   // Edit email/env ONLY allowed while the account hasn't been confirmed (no
@@ -264,22 +233,6 @@ export function AngelPayAccountManageSheet({
   const errPreview = errIsLong && !showFullError ? `${lastErr!.slice(0, 120)}…` : lastErr || 'Sin errores'
 
   // -------------------- Inline panel handlers --------------------
-  const submitRotate = () => {
-    if (!PIN_REGEX.test(pin)) {
-      setPinError('El PIN debe tener exactamente 6 dígitos')
-      return
-    }
-    setPinMutation.mutate(pin)
-  }
-
-  const submitMarkRotation = () => {
-    if (!reason.trim()) {
-      setReasonError('Describe el motivo (queda en bitácora)')
-      return
-    }
-    markRotationMutation.mutate(reason.trim())
-  }
-
   const submitSuspend = () => {
     if (!reason.trim()) {
       setReasonError('Describe el motivo (queda en bitácora)')
@@ -299,8 +252,6 @@ export function AngelPayAccountManageSheet({
   }
 
   const anyPending =
-    setPinMutation.isPending ||
-    markRotationMutation.isPending ||
     suspendMutation.isPending ||
     deleteMutation.isPending ||
     updateCredentialsMutation.isPending
@@ -472,24 +423,6 @@ export function AngelPayAccountManageSheet({
                 </Button>
               )}
               <Button
-                variant="default"
-                size="sm"
-                disabled={!canSetPin || anyPending}
-                onClick={() => openPanel('rotate')}
-              >
-                <KeyRound className="w-4 h-4 mr-2" />
-                Rotar PIN
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!canMarkRotation || anyPending}
-                onClick={() => openPanel('markRotation')}
-              >
-                <ShieldAlert className="w-4 h-4 mr-2" />
-                Forzar rotación de PIN
-              </Button>
-              <Button
                 variant="outline"
                 size="sm"
                 disabled={!canSuspend || anyPending}
@@ -588,102 +521,6 @@ export function AngelPayAccountManageSheet({
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     )}
                     Guardar
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Inline panel — Rotar PIN */}
-            {activePanel === 'rotate' && (
-              <div className="rounded-md border border-border bg-muted/30 p-4 space-y-3">
-                <div className="space-y-1">
-                  <h4 className="text-sm font-medium">Rotar PIN</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Ingresa el nuevo PIN de 6 dígitos. La cuenta quedará en estado ACTIVE y los errores
-                    previos se limpiarán.
-                  </p>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="rotate-pin-input">Nuevo PIN</Label>
-                  <Input
-                    id="rotate-pin-input"
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]{6}"
-                    maxLength={6}
-                    value={pin}
-                    onChange={e => {
-                      setPin(e.target.value.replace(/\D/g, ''))
-                      setPinError(null)
-                    }}
-                    placeholder="123456"
-                    autoComplete="off"
-                    className="font-mono bg-background"
-                  />
-                  {pinError && <p className="text-xs text-destructive">{pinError}</p>}
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={closePanel}
-                    disabled={setPinMutation.isPending}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button size="sm" onClick={submitRotate} disabled={setPinMutation.isPending}>
-                    {setPinMutation.isPending && (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    )}
-                    Guardar PIN
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Inline panel — Forzar rotación */}
-            {activePanel === 'markRotation' && (
-              <div className="rounded-md border border-border bg-muted/30 p-4 space-y-3">
-                <div className="space-y-1">
-                  <h4 className="text-sm font-medium">Forzar rotación de PIN</h4>
-                  <p className="text-xs text-muted-foreground">
-                    La TPV rechazará autenticación hasta que ops establezca un nuevo PIN. Describe el
-                    motivo (queda en bitácora).
-                  </p>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="mark-rotation-reason">Motivo</Label>
-                  <Textarea
-                    id="mark-rotation-reason"
-                    rows={3}
-                    value={reason}
-                    onChange={e => {
-                      setReason(e.target.value)
-                      setReasonError(null)
-                    }}
-                    placeholder="Ej. PIN comprometido reportado por ops"
-                    className="bg-background"
-                  />
-                  {reasonError && <p className="text-xs text-destructive">{reasonError}</p>}
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={closePanel}
-                    disabled={markRotationMutation.isPending}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={submitMarkRotation}
-                    disabled={markRotationMutation.isPending}
-                  >
-                    {markRotationMutation.isPending && (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    )}
-                    Marcar para rotación
                   </Button>
                 </div>
               </div>

@@ -7,6 +7,16 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { useToast } from '@/hooks/use-toast'
@@ -17,6 +27,7 @@ import {
   type VenueCommissionWithVenue,
   type CreateVenueCommissionInput,
 } from '@/services/aggregator.service'
+import RevenueShareReportSection from './components/RevenueShareReportSection'
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -74,14 +85,22 @@ function AggregatorDialog({
         aggregator
           ? {
               name: aggregator.name,
-              ivaRate: aggregator.ivaRate != null ? String(parseFloat(aggregator.ivaRate) * 100) : '16',
-              baseFees: {
-                DEBIT: aggregator.baseFees.DEBIT != null ? String(aggregator.baseFees.DEBIT * 100) : '',
-                CREDIT: aggregator.baseFees.CREDIT != null ? String(aggregator.baseFees.CREDIT * 100) : '',
-                AMEX: aggregator.baseFees.AMEX != null ? String(aggregator.baseFees.AMEX * 100) : '',
-                INTERNATIONAL:
-                  aggregator.baseFees.INTERNATIONAL != null ? String(aggregator.baseFees.INTERNATIONAL * 100) : '',
-              },
+              ivaRate:
+                aggregator.ivaRate != null
+                  ? String(parseFloat((parseFloat(aggregator.ivaRate) * 100).toFixed(6)))
+                  : '16',
+              // toPct evita el drift de punto flotante (p.ej. 0.035 * 100 = 3.5000000000000004)
+              // usando un redondeo a 6 decimales antes de convertir a string.
+              baseFees: (() => {
+                const toPct = (d: number | null | undefined) =>
+                  d == null ? '' : String(parseFloat((d * 100).toFixed(6)))
+                return {
+                  DEBIT: toPct(aggregator.baseFees.DEBIT),
+                  CREDIT: toPct(aggregator.baseFees.CREDIT),
+                  AMEX: toPct(aggregator.baseFees.AMEX),
+                  INTERNATIONAL: toPct(aggregator.baseFees.INTERNATIONAL),
+                }
+              })(),
             }
           : DEFAULT_AGG_FORM,
       )
@@ -110,7 +129,7 @@ function AggregatorDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label>Comisiones Base (%)</Label>
+            <Label>Tarifa base — fallback (%)</Label>
             <div className="grid grid-cols-2 gap-3">
               {(['DEBIT', 'CREDIT', 'AMEX', 'INTERNATIONAL'] as const).map(key => (
                 <div key={key} className="space-y-1">
@@ -125,7 +144,9 @@ function AggregatorDialog({
                 </div>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground">Ingresa los valores como porcentaje (ej. 3.5 = 3.5%)</p>
+            <p className="text-xs text-muted-foreground">
+              Opcional. Tarifa de referencia del agregador. Porcentaje (ej. 3.5 = 3.5%).
+            </p>
           </div>
           <div className="space-y-2">
             <Label>Tasa IVA (%)</Label>
@@ -298,6 +319,9 @@ export default function Aggregators() {
   const [commDialogOpen, setCommDialogOpen] = useState(false)
   const [editingComm, setEditingComm] = useState<VenueCommissionWithVenue | null>(null)
 
+  // Aggregator delete state — AlertDialog para confirmar (regla UI: destructivo = AlertDialog).
+  const [deletingAgg, setDeletingAgg] = useState<Aggregator | null>(null)
+
   // ─── Queries ──────────────────────────────────────────────
 
   const { data: aggregators = [], isLoading: loadingAgg } = useQuery({
@@ -369,6 +393,23 @@ export default function Aggregators() {
     },
     onError: (error: any) => {
       toast({ title: 'Error', description: error?.response?.data?.error || 'Error', variant: 'destructive' })
+    },
+  })
+
+  const deleteAggMutation = useMutation({
+    mutationFn: (id: string) => aggregatorAPI.remove(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['aggregators'] })
+      toast({ title: 'Agregador eliminado' })
+      setDeletingAgg(null)
+    },
+    onError: (error: any) => {
+      // El backend manda mensaje claro si hay merchants o comisiones ligadas.
+      toast({
+        title: 'No se pudo eliminar',
+        description: error?.response?.data?.error || error?.response?.data?.message || 'Error',
+        variant: 'destructive',
+      })
     },
   })
 
@@ -503,7 +544,9 @@ export default function Aggregators() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">Agregadores</h1>
             <p className="text-sm text-muted-foreground">
-              Administra los agregadores de pago y sus comisiones base
+              Un agregador es un intermediario de pago. Sus tarifas reales viven{' '}
+              <strong className="text-foreground">por proveedor</strong> — un mismo agregador puede cobrar distinto
+              para AngelPay y para Blumon. Cada tarjeta muestra esas tarifas; se editan en la sección de abajo.
             </p>
           </div>
           <Button onClick={handleNewAgg}>
@@ -555,19 +598,8 @@ export default function Aggregators() {
                     </div>
                   </div>
 
-                  {/* Base fees */}
-                  {Object.keys(agg.baseFees).length > 0 && (
-                    <div className="mb-3 grid grid-cols-2 gap-1.5 text-xs">
-                      {Object.entries(agg.baseFees).map(([key, val]) => (
-                        <div key={key} className="flex items-center justify-between rounded bg-muted/50 px-2 py-1">
-                          <span className="text-muted-foreground">{key}</span>
-                          <span className="font-mono font-medium">
-                            {typeof val === 'number' ? (val * 100).toFixed(2) : val}%
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  {/* Las tasas reales viven por merchant en MerchantRevenueShare;
+                      el desglose se ve en el "Reporte de revenue-share" debajo. */}
 
                   {/* IVA rate */}
                   <div className="mb-3 flex items-center gap-2 text-xs">
@@ -654,13 +686,26 @@ export default function Aggregators() {
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-7 w-7"
+                        className="h-7 w-7 cursor-pointer"
                         onClick={e => {
                           e.stopPropagation()
                           handleEditAgg(agg)
                         }}
+                        title="Editar"
                       >
                         <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 cursor-pointer text-destructive hover:text-destructive"
+                        onClick={e => {
+                          e.stopPropagation()
+                          setDeletingAgg(agg)
+                        }}
+                        title="Eliminar"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </div>
                   </div>
@@ -671,7 +716,10 @@ export default function Aggregators() {
         )}
       </div>
 
-      {/* ── Section 2: Venue Commissions ── */}
+      {/* ── Section 2: Revenue-share report (modelo nuevo) ── */}
+      <RevenueShareReportSection />
+
+      {/* ── Section 3: Venue Commissions ── */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
@@ -682,9 +730,9 @@ export default function Aggregators() {
               )}
             </h2>
             <p className="text-sm text-muted-foreground">
-              {selectedAgg
-                ? `Comisiones asignadas al agregador ${selectedAgg.name}`
-                : 'Todas las comisiones registradas (haz clic en un agregador para filtrar)'}
+              Comisión de <strong className="text-foreground">referido</strong> por venue — cuánto cobra el agregador
+              por cada venue que refirió. No son tasas de tarjeta.{' '}
+              {selectedAgg ? `Filtrado: ${selectedAgg.name}.` : 'Haz clic en un agregador para filtrar.'}
             </p>
           </div>
           <Button onClick={handleNewComm}>
@@ -808,6 +856,30 @@ export default function Aggregators() {
         onSave={handleSaveComm}
         isSaving={isSavingComm}
       />
+
+      {/* Confirmación de eliminación (regla UI: destructivo = AlertDialog). */}
+      <AlertDialog open={!!deletingAgg} onOpenChange={open => !open && setDeletingAgg(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar agregador "{deletingAgg?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción es <strong>permanente</strong>. Solo se puede eliminar si el agregador no tiene
+              comercios ni comisiones ligadas — si los tiene, mejor desactívalo (toggle).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteAggMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deletingAgg && deleteAggMutation.mutate(deletingAgg.id)}
+              disabled={deleteAggMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteAggMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

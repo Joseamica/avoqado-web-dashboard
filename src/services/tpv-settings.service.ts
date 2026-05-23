@@ -30,6 +30,7 @@ export interface TpvSettings {
   showGoals: boolean // Show sales goals pager on home screen
   showMessages: boolean // Show "Mensajes" button on home screen
   showTrainings: boolean // Show "Entrenamientos" button on home screen
+  showCheckout: boolean // Show "Cobro" button on home screen
   // Crypto payment option (B4Bit integration)
   showCryptoOption: boolean // Show crypto payment button in merchant selection
   // Evidence rules (PlayTelecom — boolean toggles)
@@ -81,6 +82,7 @@ export const DEFAULT_TPV_SETTINGS: TpvSettings = {
   showGoals: true,
   showMessages: true,
   showTrainings: true,
+  showCheckout: true,
   // Crypto payment disabled by default
   showCryptoOption: false,
   // Cellular Failover — OFF by default (canary rollout per terminal)

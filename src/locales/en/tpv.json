@@ -373,6 +373,8 @@
     "showReviewScreenDesc": "Allow customer to leave a review after payment",
     "showReceiptScreen": "Show receipt options",
     "showReceiptScreenDesc": "Display options to send or print receipt after payment",
+    "showCheckout": "Show Checkout",
+    "showCheckoutDesc": "Display the Checkout button on the home screen",
     "requirePinLogin": "Require PIN for login",
     "requirePinLoginDesc": "Require staff to enter a PIN to log in to the terminal",
     "defaultTipPercentage": "Pre-selected tip",

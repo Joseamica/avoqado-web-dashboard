@@ -21,6 +21,7 @@ import {
   Shield,
   Smartphone,
   Trash2,
+  Wallet,
   Zap,
 } from 'lucide-react'
 import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
@@ -41,6 +42,7 @@ import {
   MerchantAccountCard,
   AssignAccountToVenueDialog,
 } from './components/merchant-accounts'
+import AngelPayWizard from './components/merchant-accounts/angelpay-wizard/AngelPayWizard'
 
 /** Bucket a raw merchant-account environment into PROD / SANDBOX (mirrors MerchantAccountCard). */
 const envBucket = (raw?: string | null): 'PRODUCTION' | 'SANDBOX' | null => {
@@ -82,6 +84,7 @@ const MerchantAccounts: React.FC = () => {
   const [terminalsDialogOpen, setTerminalsDialogOpen] = useState(false)
   const [costDialogOpen, setCostDialogOpen] = useState(false)
   const [assignToVenueDialogOpen, setAssignToVenueDialogOpen] = useState(false)
+  const [angelPayWizardOpen, setAngelPayWizardOpen] = useState(false)
   const [selectedAccount, setSelectedAccount] = useState<MerchantAccount | null>(null)
 
   // Fetch ALL merchant accounts (superadmin endpoint returns enriched venues/terminals)
@@ -579,6 +582,14 @@ const MerchantAccounts: React.FC = () => {
             <Layers className="w-4 h-4 mr-2" />
             Batch (x10+)
           </Button>
+          <Button
+            onClick={() => setAngelPayWizardOpen(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-primary-foreground"
+            data-tour="angelpay-wizard-btn"
+          >
+            <Wallet className="w-4 h-4 mr-2" />
+            Agregar AngelPay
+          </Button>
         </div>
       </div>
 
@@ -973,6 +984,8 @@ const MerchantAccounts: React.FC = () => {
       <CostStructureDialog open={costDialogOpen} onOpenChange={setCostDialogOpen} account={selectedAccount} />
 
       <AssignAccountToVenueDialog open={assignToVenueDialogOpen} onOpenChange={setAssignToVenueDialogOpen} account={selectedAccount} />
+
+      <AngelPayWizard open={angelPayWizardOpen} onOpenChange={setAngelPayWizardOpen} />
     </div>
   )
 }

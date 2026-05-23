@@ -333,6 +333,8 @@
     "showReviewScreenDesc": "Permettre au client de laisser un avis après le paiement",
     "showReceiptScreen": "Afficher les options de reçu",
     "showReceiptScreenDesc": "Afficher les options d'envoi ou d'impression du reçu après le paiement",
+    "showCheckout": "Afficher Encaissement",
+    "showCheckoutDesc": "Afficher le bouton d Encaissement sur l écran d accueil",
     "requirePinLogin": "Exiger un PIN pour la connexion",
     "requirePinLoginDesc": "Exiger que le personnel entre un PIN pour se connecter au terminal",
     "defaultTipPercentage": "Pourboire présélectionné",

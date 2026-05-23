@@ -455,6 +455,8 @@
     "showMessagesDesc": "Muestra el botón de mensajes en la pantalla de inicio",
     "showTrainings": "Mostrar Entrenamientos",
     "showTrainingsDesc": "Muestra el botón de entrenamientos en la pantalla de inicio",
+    "showCheckout": "Mostrar Cobrar",
+    "showCheckoutDesc": "Muestra el botón de Cobrar (Checkout unificado) en la pantalla de inicio",
     "showCryptoOption": "Pago con Crypto",
     "showCryptoOptionDesc": "Muestra la opción de pago con criptomonedas en la selección de método de pago",
     "experimental": "Experimental",

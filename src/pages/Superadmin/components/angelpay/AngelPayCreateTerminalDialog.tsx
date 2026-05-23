@@ -4,9 +4,16 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-import { terminalAPI, TerminalType, type ActivationCodeResponse, type CreateTerminalRequest } from '@/services/superadmin-terminals.service'
+import {
+  terminalAPI,
+  TerminalType,
+  TerminalStatus,
+  type ActivationCodeResponse,
+  type CreateTerminalRequest,
+  type Terminal,
+} from '@/services/superadmin-terminals.service'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Check, Copy, Loader2, Smartphone, Tablet } from 'lucide-react'
+import { Check, Copy, Loader2, Smartphone, Tablet, Zap } from 'lucide-react'
 import React, { useState } from 'react'
 
 interface AngelPayCreateTerminalDialogProps {
@@ -17,11 +24,13 @@ interface AngelPayCreateTerminalDialogProps {
   venueId: string
   /** Human-readable venue name shown in the activation card. */
   venueName?: string
-  /** Fires after a successful create so the parent can refresh lists. */
-  onCreated?: () => void
+  /** Fires after a successful create (and after "activate now") so the parent
+   *  can refresh lists and auto-select the new terminal. */
+  onCreated?: (terminal: Terminal) => void
 }
 
-type NexgoModel = 'N62' | 'N86' | 'N3'
+/** AngelPay terminals are always NEXGO; only the N62 and N86 models are supported. */
+type NexgoModel = 'N62' | 'N86'
 
 /**
  * AngelPay-specific terminal creation dialog. Replaces the generic TerminalDialog
@@ -50,14 +59,18 @@ export const AngelPayCreateTerminalDialog: React.FC<AngelPayCreateTerminalDialog
   const [name, setName] = useState('')
   const [model, setModel] = useState<NexgoModel>('N62')
   const [activationCode, setActivationCode] = useState<ActivationCodeResponse | null>(null)
+  const [createdTerminal, setCreatedTerminal] = useState<Terminal | null>(null)
   const [copied, setCopied] = useState(false)
+  const [confirmingActivate, setConfirmingActivate] = useState(false)
 
   const resetForm = () => {
     setSerialNumber('')
     setName('')
     setModel('N62')
     setActivationCode(null)
+    setCreatedTerminal(null)
     setCopied(false)
+    setConfirmingActivate(false)
   }
 
   const handleClose = (next: boolean) => {
@@ -65,10 +78,10 @@ export const AngelPayCreateTerminalDialog: React.FC<AngelPayCreateTerminalDialog
       // On close, ensure parent queries refresh — covers the case where the
       // operator created the terminal but closed before any explicit refetch
       // (e.g., didn't copy the activation code, just dismissed).
-      if (activationCode) {
+      if (createdTerminal) {
         queryClient.invalidateQueries({ queryKey: ['superadmin-terminals'] })
         queryClient.refetchQueries({ queryKey: ['superadmin-terminals'] })
-        onCreated?.()
+        onCreated?.(createdTerminal)
       }
       resetForm()
     }
@@ -79,11 +92,12 @@ export const AngelPayCreateTerminalDialog: React.FC<AngelPayCreateTerminalDialog
     mutationFn: (payload: CreateTerminalRequest) => terminalAPI.createTerminal(payload),
     onSuccess: (data) => {
       setActivationCode(data.activationCode ?? null)
+      setCreatedTerminal(data.terminal)
       // Refresh immediately so Section 1 of the parent wizard shows the new
       // terminal even before the operator closes this dialog.
       queryClient.invalidateQueries({ queryKey: ['superadmin-terminals'] })
       queryClient.refetchQueries({ queryKey: ['superadmin-terminals'] })
-      onCreated?.()
+      onCreated?.(data.terminal)
       if (!data.activationCode) {
         toast({
           title: 'Terminal creada',
@@ -95,6 +109,37 @@ export const AngelPayCreateTerminalDialog: React.FC<AngelPayCreateTerminalDialog
     onError: (err: any) => {
       toast({
         title: 'No se pudo crear la terminal',
+        description: err?.response?.data?.message || err?.message || 'Error desconocido',
+        variant: 'destructive',
+      })
+    },
+  })
+
+  /**
+   * "Activar ahorita" — superadmin override that marks the freshly-created
+   * terminal ACTIVE immediately, without waiting for a physical device to
+   * enter the activation code. Unblocks the TPV-fetch gate in the wizard.
+   * Reversible (status can be changed back), so it only needs a light
+   * two-click confirm rather than a full AlertDialog.
+   */
+  const activateMutation = useMutation({
+    mutationFn: () => {
+      if (!activationCode) throw new Error('Terminal no disponible')
+      return terminalAPI.updateTerminal(activationCode.terminalId, { status: TerminalStatus.ACTIVE })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['superadmin-terminals'] })
+      queryClient.refetchQueries({ queryKey: ['superadmin-terminals'] })
+      if (createdTerminal) onCreated?.({ ...createdTerminal, status: TerminalStatus.ACTIVE })
+      toast({
+        title: 'Terminal activada',
+        description: 'La terminal quedó ACTIVE. Ya puedes buscar merchants en la TPV.',
+      })
+      handleClose(false)
+    },
+    onError: (err: any) => {
+      toast({
+        title: 'No se pudo activar la terminal',
         description: err?.response?.data?.message || err?.message || 'Error desconocido',
         variant: 'destructive',
       })
@@ -189,7 +234,6 @@ export const AngelPayCreateTerminalDialog: React.FC<AngelPayCreateTerminalDialog
                 <SelectContent>
                   <SelectItem value="N62">N62</SelectItem>
                   <SelectItem value="N86">N86</SelectItem>
-                  <SelectItem value="N3">N3</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -251,6 +295,49 @@ export const AngelPayCreateTerminalDialog: React.FC<AngelPayCreateTerminalDialog
                 <li>La terminal se vinculará a {venueName ?? 'este venue'} automáticamente</li>
                 <li>Cuando autentique con AngelPay, los merchants se descubren solos</li>
               </ol>
+            </div>
+
+            {/* "Activar ahorita" — superadmin override, skips the physical activation code. */}
+            <div className="border-t border-input pt-3">
+              {!confirmingActivate ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => setConfirmingActivate(true)}
+                  disabled={activateMutation.isPending}
+                >
+                  <Zap className="w-4 h-4 mr-2" />
+                  Activar ahorita (sin código)
+                </Button>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    Marcará la terminal como <span className="font-mono">ACTIVE</span> de inmediato, sin esperar a que un
+                    dispositivo físico ingrese el código. Úsalo solo para pruebas o configuración.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setConfirmingActivate(false)}
+                      disabled={activateMutation.isPending}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="button"
+                      className="flex-1"
+                      onClick={() => activateMutation.mutate()}
+                      disabled={activateMutation.isPending}
+                    >
+                      {activateMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      Confirmar activación
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
