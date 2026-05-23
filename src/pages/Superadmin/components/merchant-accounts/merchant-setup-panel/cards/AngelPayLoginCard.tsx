@@ -36,12 +36,12 @@ export default function AngelPayLoginCard({ state, dispatch, mode }: Props) {
         ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.login.email) && /^\d{6}$/.test(state.login.pin)
         : false
 
-  const summary =
-    state.login.mode === 'empty'
-      ? null
-      : state.login.mode === 'existing'
-        ? activeOnly.find(a => a.id === state.login.angelpayUserAccountId)?.email
-        : state.login.email
+  const summary = (() => {
+    const login = state.login
+    if (login.mode === 'empty') return null
+    if (login.mode === 'existing') return activeOnly.find(a => a.id === login.angelpayUserAccountId)?.email
+    return login.email
+  })()
 
   return (
     <>

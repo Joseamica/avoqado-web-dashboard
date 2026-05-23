@@ -35,6 +35,7 @@ describe('assemblePayload', () => {
     // settlement, revenueShare.
     s.login = { mode: 'new', email: 'a@b.com', pin: '123456', environment: 'QA' }
     s.merchant = { ...s.merchant, mode: 'existing', existingMerchantId: 'm1' }
+    s.slot = { accountType: 'PRIMARY', mode: 'fill' }
     s.terminals.skipped = true
     s.cost.skipped = true
     s.pricing.skipped = true

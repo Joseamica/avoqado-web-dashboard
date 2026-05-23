@@ -1,4 +1,4 @@
-import type { SetupState } from './types'
+import type { AccountSlot, SetupState } from './types'
 import type { FullSetupAngelPayPayload } from '@/services/paymentProvider.service'
 
 /**
@@ -38,7 +38,20 @@ export function assemblePayload(s: SetupState): FullSetupAngelPayPayload {
           : (() => {
               throw new Error('assemblePayload: merchant is empty')
             })(),
-    slot: s.slot,
+    slot: ((): { accountType: AccountSlot; mode: 'replace' | 'fill'; replacedAccountId?: string; fromSlot?: AccountSlot; moveStrategy?: 'swap' | 'vacate' } => {
+      if (s.slot.mode === 'empty') {
+        throw new Error('assemblePayload: slot is empty')
+      }
+      // mode is narrowed at runtime above; SlotSlice is an interface (not
+      // a discriminated union) so we project it explicitly.
+      return {
+        accountType: s.slot.accountType,
+        mode: s.slot.mode,
+        replacedAccountId: s.slot.replacedAccountId,
+        fromSlot: s.slot.fromSlot,
+        moveStrategy: s.slot.moveStrategy,
+      }
+    })(),
     terminalIds: s.terminals.skipped || s.terminals.terminalIds.length === 0 ? undefined : s.terminals.terminalIds,
     cost: s.cost.skipped
       ? undefined
