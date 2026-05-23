@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, CheckCircle2, Layers } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AlertTriangle, CheckCircle2, Layers, Loader2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import { useToast } from '@/hooks/use-toast'
 import {
   paymentProviderAPI,
   type MerchantAccount,
@@ -16,6 +17,8 @@ interface Props {
   state: SetupState
   dispatch: (action: SetupAction) => void
   mode: 'create' | 'edit'
+  /** Required when mode='edit'. */
+  merchantAccountId?: string
 }
 
 const SLOTS: AccountSlot[] = ['PRIMARY', 'SECONDARY', 'TERTIARY']
@@ -45,12 +48,15 @@ function isSlotValid(slot: SlotSlice): boolean {
   return true
 }
 
-export default function SlotCard({ state, dispatch, mode }: Props) {
+export default function SlotCard({ state, dispatch, mode, merchantAccountId }: Props) {
   const [open, setOpen] = useState(false)
 
   const venueReady = !!state.venue.id
   const isValid = isSlotValid(state.slot)
-  const disabled = mode === 'edit' || !venueReady
+  // In edit mode the card is enabled once we know which merchant we're
+  // re-binding. In create mode we still gate on a chosen venue.
+  const disabled =
+    (mode === 'edit' && !merchantAccountId) || (mode === 'create' && !venueReady)
 
   const summary = useMemo(() => {
     if (state.slot.mode === 'empty') return null
@@ -101,7 +107,13 @@ export default function SlotCard({ state, dispatch, mode }: Props) {
           <DialogHeader>
             <DialogTitle>Slot del venue</DialogTitle>
           </DialogHeader>
-          <SlotDialogBody state={state} dispatch={dispatch} onClose={() => setOpen(false)} />
+          <SlotDialogBody
+            state={state}
+            dispatch={dispatch}
+            mode={mode}
+            merchantAccountId={merchantAccountId}
+            onClose={() => setOpen(false)}
+          />
         </DialogContent>
       </Dialog>
     </>
@@ -111,12 +123,18 @@ export default function SlotCard({ state, dispatch, mode }: Props) {
 function SlotDialogBody({
   state,
   dispatch,
+  mode,
+  merchantAccountId,
   onClose,
 }: {
   state: SetupState
   dispatch: (action: SetupAction) => void
+  mode: 'create' | 'edit'
+  merchantAccountId?: string
   onClose: () => void
 }) {
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
   const venueId = state.venue.id
 
   // Live VenuePaymentConfig is the source of truth for slot occupancy. Same
@@ -173,8 +191,60 @@ function SlotDialogBody({
     draft.mode === 'replace' && draftOccupant !== (draft.replacedAccountId ?? null)
   const canSave = isSlotValid(draft) && !fillIntoOccupiedSlot && !replaceMismatch
 
+  // Edit-mode save: re-bind the merchant into the chosen slot via
+  // updateVenuePaymentConfig. The backend auto-clears the merchant from
+  // whichever slot it currently occupies before reassigning, so we only need
+  // to PUT the new slot field. The backend rejects PRIMARY→{SECONDARY,
+  // TERTIARY} moves that would leave PRIMARY empty — we surface that
+  // BadRequestError as a toast so the operator knows to designate a
+  // replacement PRIMARY first.
+  const saveMutation = useMutation({
+    mutationFn: () => {
+      if (!merchantAccountId || !venueId) {
+        return Promise.reject(
+          new Error('merchantAccountId / venueId required in edit mode'),
+        )
+      }
+      const payload =
+        draft.accountType === 'PRIMARY'
+          ? { primaryAccountId: merchantAccountId }
+          : draft.accountType === 'SECONDARY'
+            ? { secondaryAccountId: merchantAccountId }
+            : { tertiaryAccountId: merchantAccountId }
+      return paymentProviderAPI.updateVenuePaymentConfig(venueId, payload)
+    },
+    onSuccess: () => {
+      // The hydration hook keyed the VenuePaymentConfig fetch by merchant id;
+      // the SlotCard's local picker uses ['venue-payment-config', venueId];
+      // and the wider merchant list might be displaying slot occupancy too.
+      // Invalidate all three so nothing goes stale.
+      queryClient.invalidateQueries({
+        queryKey: ['venue-payment-config-by-merchant', merchantAccountId],
+      })
+      queryClient.invalidateQueries({ queryKey: ['venue-payment-config', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
+      dispatch({ type: 'SET_SLOT', slot: draft })
+      toast({ title: 'Slot actualizado' })
+      onClose()
+    },
+    onError: (err: any) => {
+      toast({
+        title: 'No se pudo actualizar el slot',
+        description:
+          err?.response?.data?.message ||
+          err?.message ||
+          'Error en el servidor',
+        variant: 'destructive',
+      })
+    },
+  })
+
   const handleSave = () => {
     if (!canSave) return
+    if (mode === 'edit' && merchantAccountId && venueId) {
+      saveMutation.mutate()
+      return
+    }
     dispatch({ type: 'SET_SLOT', slot: draft })
     onClose()
   }
@@ -255,17 +325,19 @@ function SlotDialogBody({
         <button
           type="button"
           onClick={onClose}
-          className="text-xs text-muted-foreground hover:underline"
+          disabled={saveMutation.isPending}
+          className="text-xs text-muted-foreground hover:underline disabled:opacity-50"
         >
           Cancelar
         </button>
         <button
           type="button"
           onClick={handleSave}
-          disabled={!canSave}
-          className="text-xs font-medium bg-foreground text-background rounded-md px-3 py-1.5 disabled:opacity-50"
+          disabled={!canSave || saveMutation.isPending}
+          className="inline-flex items-center text-xs font-medium bg-foreground text-background rounded-md px-3 py-1.5 disabled:opacity-50"
         >
-          Guardar slot
+          {saveMutation.isPending && <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />}
+          {mode === 'edit' ? 'Guardar cambios' : 'Guardar slot'}
         </button>
       </div>
     </div>
