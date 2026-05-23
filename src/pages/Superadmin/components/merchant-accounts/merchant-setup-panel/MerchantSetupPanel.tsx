@@ -16,6 +16,7 @@ import MerchantCard from './cards/MerchantCard'
 import SlotCard from './cards/SlotCard'
 import CostCard from './cards/CostCard'
 import PricingCard from './cards/PricingCard'
+import SettlementCard from './cards/SettlementCard'
 
 interface MerchantSetupPanelProps {
   open: boolean
@@ -142,7 +143,8 @@ export default function MerchantSetupPanel({
         <SlotCard state={state} dispatch={dispatch} mode={mode} />
         <CostCard state={state} dispatch={dispatch} mode={mode} />
         <PricingCard state={state} dispatch={dispatch} mode={mode} />
-        {/* More cards added in Tasks 3.7 - 3.9 */}
+        <SettlementCard state={state} dispatch={dispatch} mode={mode} />
+        {/* More cards added in Tasks 3.8 - 3.9 */}
       </div>
 
       {/* Draft recovery banner: Task 5.1 */}
