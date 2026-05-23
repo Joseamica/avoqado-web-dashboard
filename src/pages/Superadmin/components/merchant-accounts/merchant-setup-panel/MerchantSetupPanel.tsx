@@ -10,6 +10,7 @@ import { initialState, setupReducer, isCardValid, isRequiredComplete } from './u
 import { useDraftAutosave, clearDraft } from './useDraftStorage'
 import { assemblePayload } from './assemblePayload'
 import { REQUIRED_CARDS } from './types'
+import VenueCard from './cards/VenueCard'
 
 interface MerchantSetupPanelProps {
   open: boolean
@@ -105,9 +106,6 @@ export default function MerchantSetupPanel({
 
   const handleActivate = () => activateMutation.mutate()
 
-  // Acknowledge intentionally-unused props until later tasks wire them up.
-  void dispatch
-
   return (
     <FullScreenModal
       open={open}
@@ -133,10 +131,8 @@ export default function MerchantSetupPanel({
       }
     >
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-6">
-        {/* Cards rendered in Phase 3. Placeholder so the file compiles. */}
-        <div className="rounded-2xl border border-border/50 bg-card p-6">
-          <p className="text-sm text-muted-foreground">Cards aparecerán aquí (Phase 3).</p>
-        </div>
+        <VenueCard state={state} dispatch={dispatch} mode={mode} />
+        {/* More cards added in Tasks 3.2 - 3.9 */}
       </div>
 
       {/* Draft recovery banner: Task 5.1 */}
