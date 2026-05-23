@@ -91,6 +91,35 @@ export interface AngelPaySettlement {
   effectiveFrom: string
 }
 
+/**
+ * Revenue-share split between Avoqado, an aggregator (optional), and the
+ * underlying processor margin. Captured at wizard time and persisted as a
+ * `MerchantRevenueShare` row AFTER the main fullSetup transaction completes
+ * (additive — failure here doesn't roll back the merchant). When `skipped`
+ * is true, NO row is created and the merchant falls back to the legacy
+ * 100%-to-Avoqado behavior, identical to today.
+ *
+ * Rates are decimals (0.04 = 4%) to match how `MerchantRevenueShare.aggregatorPrice`
+ * is stored. The UI converts user-typed percentages via `percentToDecimal`.
+ */
+export interface AngelPayRevenueShare {
+  skipped: boolean
+  /** When true, also capture `aggregatorPrice` + `avoqadoShareOfAggregatorMargin`. */
+  useAggregator: boolean
+  /** Per-card rates the aggregator charges Avoqado (decimal). */
+  aggregatorDebitRate?: number
+  aggregatorCreditRate?: number
+  aggregatorAmexRate?: number
+  aggregatorInternationalRate?: number
+  /** If true, `aggregatorPrice` is treated as IVA-inclusive (else +IVA). */
+  aggregatorPriceIncludesTax: boolean
+  /** Share of (provider→aggregator) margin that goes to Avoqado. 0..1. */
+  avoqadoShareOfProviderMargin: number
+  /** Share of (aggregator→venue) margin that goes to Avoqado. 0..1. Only used when useAggregator. */
+  avoqadoShareOfAggregatorMargin?: number
+  taxRate: number
+}
+
 export interface AngelPayWizardState {
   idempotencyKey: string
   venue: AngelPayVenue | null
@@ -101,6 +130,7 @@ export interface AngelPayWizardState {
   cost: AngelPayCost
   pricing: AngelPayPricing
   settlement: AngelPaySettlement
+  revenueShare: AngelPayRevenueShare
 }
 
 const freshLogin = (): AngelPayLogin => ({ mode: 'new', email: '', pin: '', environment: 'QA' })
@@ -123,6 +153,16 @@ const freshSettlement = (): AngelPaySettlement => ({
   cutoffTimezone: '',
   effectiveFrom: '',
 })
+// Default: SKIPPED. Operators opt in per merchant. When opted-in the defaults
+// match the most common arrangement we discussed with the user: 50/50 direct
+// split, IVA 16%, no aggregator.
+const freshRevenueShare = (): AngelPayRevenueShare => ({
+  skipped: true,
+  useAggregator: false,
+  aggregatorPriceIncludesTax: true,
+  avoqadoShareOfProviderMargin: 0.5,
+  taxRate: 0.16,
+})
 
 /** Build a fresh wizard state. Generates a new idempotencyKey each call. */
 export function initialState(): AngelPayWizardState {
@@ -136,6 +176,7 @@ export function initialState(): AngelPayWizardState {
     cost: freshCost(),
     pricing: freshPricing(),
     settlement: freshSettlement(),
+    revenueShare: freshRevenueShare(),
   }
 }
 
@@ -148,6 +189,7 @@ export type AngelPayWizardAction =
   | { type: 'SET_COST'; cost: AngelPayCost }
   | { type: 'SET_PRICING'; pricing: AngelPayPricing }
   | { type: 'SET_SETTLEMENT'; settlement: AngelPaySettlement }
+  | { type: 'SET_REVENUE_SHARE'; revenueShare: AngelPayRevenueShare }
   | { type: 'RESET' }
 
 export function wizardReducer(state: AngelPayWizardState, action: AngelPayWizardAction): AngelPayWizardState {
@@ -169,6 +211,7 @@ export function wizardReducer(state: AngelPayWizardState, action: AngelPayWizard
         cost: freshCost(),
         pricing: freshPricing(),
         settlement: freshSettlement(),
+        revenueShare: freshRevenueShare(),
       }
     }
     case 'SET_LOGIN':
@@ -192,6 +235,8 @@ export function wizardReducer(state: AngelPayWizardState, action: AngelPayWizard
       return { ...state, pricing: action.pricing }
     case 'SET_SETTLEMENT':
       return { ...state, settlement: action.settlement }
+    case 'SET_REVENUE_SHARE':
+      return { ...state, revenueShare: action.revenueShare }
     case 'RESET':
       return initialState()
     default:

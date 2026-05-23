@@ -22,6 +22,7 @@ import { AngelPayCreateTerminalDialog } from '../../angelpay/AngelPayCreateTermi
 import { AngelPayAccountDetailsDialog } from './AngelPayAccountDetailsDialog'
 import { paymentProviderAPI, type FullSetupAngelPayPayload } from '@/services/paymentProvider.service'
 import { aggregatorAPI } from '@/services/aggregator.service'
+import { merchantRevenueShareAPI } from '@/services/merchantRevenueShare.service'
 import { decimalToPercent, percentToDecimal } from './feeTemplate'
 import {
   wizardReducer,
@@ -45,6 +46,7 @@ const STEPS = [
   { key: 'cost', title: 'Costo del procesador', optional: true },
   { key: 'pricing', title: 'Precio al venue', optional: true },
   { key: 'settlement', title: 'Liquidación', optional: true },
+  { key: 'revenueShare', title: 'Reparto Avoqado/agregador', optional: true },
   { key: 'summary', title: 'Resumen', optional: false },
 ] as const
 
@@ -337,11 +339,35 @@ const AngelPayWizard: React.FC<AngelPayWizardProps> = ({ open, onOpenChange }) =
   })
 
   // ----- Mutation -----
+  // The main fullSetup endpoint is the atomic transaction. The revenue-share is
+  // a follow-up POST that's intentionally NON-atomic: if it fails, the merchant
+  // is still created and the operator can configure the split later from the
+  // aggregators page or by re-running this step. We surface the failure as a
+  // warning toast (not an error) so the operator knows what to do next.
   const mutation = useMutation({
     mutationFn: (payload: FullSetupAngelPayPayload) => paymentProviderAPI.fullSetupAngelPayMerchant(payload),
-    onSuccess: () => {
+    onSuccess: async (result) => {
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
-      toast({ title: 'Éxito', description: 'Cuenta AngelPay configurada exitosamente' })
+
+      // Optional follow-up: persist MerchantRevenueShare if the operator opted in.
+      if (!state.revenueShare.skipped) {
+        try {
+          await merchantRevenueShareAPI.create(buildRevenueSharePayload(result.merchantAccountId))
+          toast({ title: 'Éxito', description: 'Cuenta AngelPay configurada y reparto guardado' })
+        } catch (rsErr: any) {
+          // Non-blocking — the merchant is fine, just the share didn't save.
+          toast({
+            title: 'Cuenta creada — reparto no guardado',
+            description:
+              rsErr?.response?.data?.message ||
+              'La cuenta quedó OK pero el reparto Avoqado/agregador no se guardó. Configúralo después en /superadmin/aggregators.',
+            variant: 'destructive',
+          })
+        }
+      } else {
+        toast({ title: 'Éxito', description: 'Cuenta AngelPay configurada exitosamente' })
+      }
+
       handleClose()
     },
     onError: (err: any) => {
@@ -462,6 +488,41 @@ const AngelPayWizard: React.FC<AngelPayWizardProps> = ({ open, onOpenChange }) =
             cutoffTimezone: state.settlement.cutoffTimezone || 'America/Mexico_City',
             effectiveFrom: iso(state.settlement.effectiveFrom),
           },
+    }
+  }
+
+  /**
+   * Build the MerchantRevenueShare payload for the post-setup follow-up POST.
+   * Only called when `state.revenueShare.skipped === false`.
+   *
+   * - When `useAggregator` is false → no aggregatorPrice, no aggregator share.
+   *   The split is purely the provider→venue margin × `avoqadoShareOfProviderMargin`.
+   * - When `useAggregator` is true → all 4 card rates required, plus the second share.
+   */
+  const buildRevenueSharePayload = (merchantAccountId: string) => {
+    const rs = state.revenueShare
+    if (rs.useAggregator) {
+      return {
+        merchantAccountId,
+        aggregatorPrice: {
+          DEBIT: rs.aggregatorDebitRate ?? 0,
+          CREDIT: rs.aggregatorCreditRate ?? 0,
+          AMEX: rs.aggregatorAmexRate ?? 0,
+          INTERNATIONAL: rs.aggregatorInternationalRate ?? 0,
+        },
+        aggregatorPriceIncludesTax: rs.aggregatorPriceIncludesTax,
+        avoqadoShareOfProviderMargin: rs.avoqadoShareOfProviderMargin,
+        avoqadoShareOfAggregatorMargin: rs.avoqadoShareOfAggregatorMargin ?? 0.5,
+        taxRate: rs.taxRate,
+      }
+    }
+    return {
+      merchantAccountId,
+      aggregatorPrice: null,
+      aggregatorPriceIncludesTax: false,
+      avoqadoShareOfProviderMargin: rs.avoqadoShareOfProviderMargin,
+      avoqadoShareOfAggregatorMargin: null,
+      taxRate: rs.taxRate,
     }
   }
 
@@ -1219,6 +1280,205 @@ const AngelPayWizard: React.FC<AngelPayWizardProps> = ({ open, onOpenChange }) =
           </Section>
         )
 
+      case 'revenueShare':
+        return (
+          <Section
+            title="Reparto Avoqado / agregador (opcional)"
+            icon={<CreditCard className="w-4 h-4 text-muted-foreground" />}
+          >
+            <p className="text-xs text-muted-foreground">
+              Define cómo se reparte la ganancia entre Avoqado y el agregador para este merchant.
+              Si dejas "Configurar después", el comportamiento es el legacy: 100% del margen va a Avoqado.
+              Lo puedes editar después en <strong>Superadmin → Agregadores → Reporte de revenue-share</strong>.
+            </p>
+            <label className="flex items-center gap-2 cursor-pointer text-sm">
+              <Checkbox
+                checked={state.revenueShare.skipped}
+                onCheckedChange={c =>
+                  dispatch({
+                    type: 'SET_REVENUE_SHARE',
+                    revenueShare: { ...state.revenueShare, skipped: !!c },
+                  })
+                }
+              />
+              Configurar después
+            </label>
+
+            {!state.revenueShare.skipped && (
+              <div className="space-y-4">
+                {/* ¿Hay agregador en medio? */}
+                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                  <Checkbox
+                    checked={state.revenueShare.useAggregator}
+                    onCheckedChange={c =>
+                      dispatch({
+                        type: 'SET_REVENUE_SHARE',
+                        revenueShare: { ...state.revenueShare, useAggregator: !!c },
+                      })
+                    }
+                  />
+                  <span>
+                    Hay un <strong>agregador</strong> intermediario (ej. Moneygiver) entre Avoqado y el
+                    venue
+                  </span>
+                </label>
+
+                {/* Tarifas del agregador (cuando aplica) */}
+                {state.revenueShare.useAggregator && (
+                  <div className="space-y-2 rounded-lg border border-input p-3">
+                    <Label className="text-xs">Tarifas del agregador → Avoqado (%)</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <PercentField
+                        label="Débito"
+                        value={state.revenueShare.aggregatorDebitRate}
+                        onChange={v =>
+                          dispatch({
+                            type: 'SET_REVENUE_SHARE',
+                            revenueShare: { ...state.revenueShare, aggregatorDebitRate: v },
+                          })
+                        }
+                      />
+                      <PercentField
+                        label="Crédito"
+                        value={state.revenueShare.aggregatorCreditRate}
+                        onChange={v =>
+                          dispatch({
+                            type: 'SET_REVENUE_SHARE',
+                            revenueShare: { ...state.revenueShare, aggregatorCreditRate: v },
+                          })
+                        }
+                      />
+                      <PercentField
+                        label="Amex"
+                        value={state.revenueShare.aggregatorAmexRate}
+                        onChange={v =>
+                          dispatch({
+                            type: 'SET_REVENUE_SHARE',
+                            revenueShare: { ...state.revenueShare, aggregatorAmexRate: v },
+                          })
+                        }
+                      />
+                      <PercentField
+                        label="Internacional"
+                        value={state.revenueShare.aggregatorInternationalRate}
+                        onChange={v =>
+                          dispatch({
+                            type: 'SET_REVENUE_SHARE',
+                            revenueShare: { ...state.revenueShare, aggregatorInternationalRate: v },
+                          })
+                        }
+                      />
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer text-xs">
+                      <Checkbox
+                        checked={state.revenueShare.aggregatorPriceIncludesTax}
+                        onCheckedChange={c =>
+                          dispatch({
+                            type: 'SET_REVENUE_SHARE',
+                            revenueShare: {
+                              ...state.revenueShare,
+                              aggregatorPriceIncludesTax: !!c,
+                            },
+                          })
+                        }
+                      />
+                      Las tasas del agregador ya incluyen IVA
+                    </label>
+                  </div>
+                )}
+
+                {/* Splits (slider-style number inputs) */}
+                <div className="space-y-2 rounded-lg border border-input p-3">
+                  <Label className="text-xs">
+                    % que se queda Avoqado del margen{' '}
+                    <span className="text-muted-foreground">
+                      (provider → {state.revenueShare.useAggregator ? 'agregador' : 'venue'})
+                    </span>
+                  </Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={decimalToPercent(state.revenueShare.avoqadoShareOfProviderMargin)}
+                    onChange={e => {
+                      const raw = e.target.value
+                      const pct = raw === '' ? 0 : parseFloat(raw)
+                      dispatch({
+                        type: 'SET_REVENUE_SHARE',
+                        revenueShare: {
+                          ...state.revenueShare,
+                          avoqadoShareOfProviderMargin: Math.max(0, Math.min(1, percentToDecimal(pct))),
+                        },
+                      })
+                    }}
+                    className="h-10"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    50 = Avoqado y la contraparte se reparten 50/50 ese margen. 100 = todo el margen a
+                    Avoqado.
+                  </p>
+                </div>
+
+                {state.revenueShare.useAggregator && (
+                  <div className="space-y-2 rounded-lg border border-input p-3">
+                    <Label className="text-xs">
+                      % que se queda Avoqado del margen{' '}
+                      <span className="text-muted-foreground">(agregador → venue)</span>
+                    </Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={decimalToPercent(state.revenueShare.avoqadoShareOfAggregatorMargin ?? 0.5)}
+                      onChange={e => {
+                        const raw = e.target.value
+                        const pct = raw === '' ? 0 : parseFloat(raw)
+                        dispatch({
+                          type: 'SET_REVENUE_SHARE',
+                          revenueShare: {
+                            ...state.revenueShare,
+                            avoqadoShareOfAggregatorMargin: Math.max(
+                              0,
+                              Math.min(1, percentToDecimal(pct)),
+                            ),
+                          },
+                        })
+                      }}
+                      className="h-10"
+                    />
+                  </div>
+                )}
+
+                {/* Tax rate */}
+                <div className="space-y-2 rounded-lg border border-input p-3">
+                  <Label className="text-xs">IVA (%)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.01}
+                    value={decimalToPercent(state.revenueShare.taxRate)}
+                    onChange={e => {
+                      const raw = e.target.value
+                      const pct = raw === '' ? 0 : parseFloat(raw)
+                      dispatch({
+                        type: 'SET_REVENUE_SHARE',
+                        revenueShare: {
+                          ...state.revenueShare,
+                          taxRate: Math.max(0, Math.min(1, percentToDecimal(pct))),
+                        },
+                      })
+                    }}
+                    className="h-10"
+                  />
+                </div>
+              </div>
+            )}
+          </Section>
+        )
+
       case 'summary':
         return (
           <Section title="Confirmar" icon={<CheckCircle2 className="w-4 h-4 text-muted-foreground" />}>
@@ -1328,6 +1588,19 @@ const AngelPayWizard: React.FC<AngelPayWizardProps> = ({ open, onOpenChange }) =
             {summaryRow('Costo', state.cost.skipped ? pendingBadge : <CheckCircle2 className="w-3.5 h-3.5 text-green-600 inline" />)}
             {summaryRow('Precio', state.pricing.skipped ? pendingBadge : <CheckCircle2 className="w-3.5 h-3.5 text-green-600 inline" />)}
             {summaryRow('Liquidación', state.settlement.skipped ? pendingBadge : <CheckCircle2 className="w-3.5 h-3.5 text-green-600 inline" />)}
+            {summaryRow(
+              'Reparto',
+              state.revenueShare.skipped ? (
+                pendingBadge
+              ) : (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-green-600 inline mr-1" />
+                  <span className="text-[10px] text-muted-foreground">
+                    {state.revenueShare.useAggregator ? 'con agregador' : 'directo'}
+                  </span>
+                </>
+              ),
+            )}
           </div>
         </div>
       </div>

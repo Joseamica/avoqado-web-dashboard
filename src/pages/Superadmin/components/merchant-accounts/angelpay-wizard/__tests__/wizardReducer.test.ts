@@ -82,4 +82,50 @@ describe('wizardReducer', () => {
     s = wizardReducer(s, { type: 'RESET' })
     expect(s.venue).toBeNull()
   })
+
+  it('revenueShare slice: defaults to skipped + 50/50 direct (no aggregator)', () => {
+    const s = initialState()
+    expect(s.revenueShare.skipped).toBe(true)
+    expect(s.revenueShare.useAggregator).toBe(false)
+    expect(s.revenueShare.avoqadoShareOfProviderMargin).toBe(0.5)
+    expect(s.revenueShare.taxRate).toBe(0.16)
+    expect(s.revenueShare.avoqadoShareOfAggregatorMargin).toBeUndefined()
+  })
+
+  it('SET_REVENUE_SHARE updates only the revenueShare slice (other slices intact)', () => {
+    let s = initialState()
+    // Seed an unrelated slice
+    s = wizardReducer(s, { type: 'SET_PRICING', pricing: { ...s.pricing, debitRate: 0.02 } })
+    s = wizardReducer(s, {
+      type: 'SET_REVENUE_SHARE',
+      revenueShare: {
+        ...s.revenueShare,
+        skipped: false,
+        useAggregator: true,
+        avoqadoShareOfProviderMargin: 0.5,
+        avoqadoShareOfAggregatorMargin: 0.5,
+        aggregatorDebitRate: 0.03,
+      },
+    })
+    expect(s.revenueShare.skipped).toBe(false)
+    expect(s.revenueShare.useAggregator).toBe(true)
+    expect(s.revenueShare.aggregatorDebitRate).toBe(0.03)
+    // Unrelated slice preserved
+    expect(s.pricing.debitRate).toBe(0.02)
+  })
+
+  it('SET_VENUE on a new venue also resets the revenueShare slice', () => {
+    let s = initialState()
+    s = wizardReducer(s, { type: 'SET_VENUE', venue: { id: 'v1', name: 'V1', slug: 'v1' } })
+    s = wizardReducer(s, {
+      type: 'SET_REVENUE_SHARE',
+      revenueShare: { ...s.revenueShare, skipped: false, useAggregator: true, aggregatorCreditRate: 0.07 },
+    })
+    expect(s.revenueShare.skipped).toBe(false)
+    // Switching venue must wipe downstream revenue-share state.
+    s = wizardReducer(s, { type: 'SET_VENUE', venue: { id: 'v2', name: 'V2', slug: 'v2' } })
+    expect(s.revenueShare.skipped).toBe(true)
+    expect(s.revenueShare.useAggregator).toBe(false)
+    expect(s.revenueShare.aggregatorCreditRate).toBeUndefined()
+  })
 })

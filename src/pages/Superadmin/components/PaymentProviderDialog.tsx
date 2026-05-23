@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -56,33 +56,27 @@ export const PaymentProviderDialog: React.FC<PaymentProviderDialogProps> = ({
   onSave,
 }) => {
   const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    code: '',
-    name: '',
-    type: 'PAYMENT_PROCESSOR' as PaymentProvider['type'],
-    countryCode: [] as string[],
-    active: true,
-  })
-
-  useEffect(() => {
-    if (provider) {
-      setFormData({
-        code: provider.code,
-        name: provider.name,
-        type: provider.type,
-        countryCode: provider.countryCode || [],
-        active: provider.active,
-      })
-    } else {
-      setFormData({
-        code: '',
-        name: '',
-        type: 'PAYMENT_PROCESSOR',
-        countryCode: [],
-        active: true,
-      })
-    }
-  }, [provider, open])
+  // Lazy init: the component is remounted by the parent (via `key`) whenever
+  // the target provider changes, so reading `provider` once at mount is safe
+  // and avoids the useEffect→setState→re-render loop that crashed Radix's
+  // Presence with `Maximum update depth exceeded`.
+  const [formData, setFormData] = useState(() =>
+    provider
+      ? {
+          code: provider.code,
+          name: provider.name,
+          type: provider.type,
+          countryCode: provider.countryCode || [],
+          active: provider.active,
+        }
+      : {
+          code: '',
+          name: '',
+          type: 'PAYMENT_PROCESSOR' as PaymentProvider['type'],
+          countryCode: [] as string[],
+          active: true,
+        },
+  )
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

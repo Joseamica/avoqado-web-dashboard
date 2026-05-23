@@ -500,8 +500,12 @@ const PaymentProviders: React.FC = () => {
         </div>
       )}
 
-      {/* Dialog */}
+      {/* Dialog — key forces a clean remount per provider/open transition so the
+          internal formData is always initialized from the freshly-selected row.
+          Fixes the Radix Presence/composeRefs infinite-loop (React #185) that
+          fired on edit when the previous useEffect re-set state mid-mount. */}
       <PaymentProviderDialog
+        key={dialogOpen ? selectedProvider?.id ?? 'new' : 'closed'}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         provider={selectedProvider}
