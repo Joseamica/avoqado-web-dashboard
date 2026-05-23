@@ -12,6 +12,7 @@ import { assemblePayload } from './assemblePayload'
 import { REQUIRED_CARDS } from './types'
 import VenueCard from './cards/VenueCard'
 import AngelPayLoginCard from './cards/AngelPayLoginCard'
+import MerchantCard from './cards/MerchantCard'
 
 interface MerchantSetupPanelProps {
   open: boolean
@@ -134,7 +135,8 @@ export default function MerchantSetupPanel({
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-6">
         <VenueCard state={state} dispatch={dispatch} mode={mode} />
         <AngelPayLoginCard state={state} dispatch={dispatch} mode={mode} />
-        {/* More cards added in Tasks 3.3 - 3.9 */}
+        <MerchantCard state={state} dispatch={dispatch} mode={mode} />
+        {/* More cards added in Tasks 3.4 - 3.9 */}
       </div>
 
       {/* Draft recovery banner: Task 5.1 */}
