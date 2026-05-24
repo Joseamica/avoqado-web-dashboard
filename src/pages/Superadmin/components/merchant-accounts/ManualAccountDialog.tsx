@@ -382,8 +382,13 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
     // the spinner stays up until the 90s fallback timer — operator gets
     // visible feedback that something went wrong instead of a deceptive
     // "everything's fine" state.
+    //
+    // NOTE: we count active AND inactive merchants because the TPV report
+    // endpoint now creates them as inactive (PREVIEW_ONLY mode — see the
+    // mutation below). The "fetch succeeded" signal is "any merchant row
+    // for this login appeared", not "an active one appeared".
     const linkedCount = allMerchantAccounts.filter(
-      (ma: any) => ma.angelpayUserAccountId === pendingFetchUntil.accountId && ma.active,
+      (ma: any) => ma.angelpayUserAccountId === pendingFetchUntil.accountId,
     ).length
     if (linkedCount === 0) return
     setPendingFetchUntil(null)
@@ -394,6 +399,19 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
       angelpayUserAccountAPI.fetchMerchantsFromTpv({
         venueId: effectiveVenueId as string,
         angelpayUserAccountId,
+        // ALWAYS pass PREVIEW_ONLY here. Without an explicit mode the backend
+        // leaves `pendingDiscoveryMode` at whatever the previous value was —
+        // for fresh accounts that's `null`, which the TPV report endpoint
+        // treats as legacy AUTO_ONBOARD → it auto-creates MerchantAccount
+        // rows active + assigns slots zero-touch. That used to be the design,
+        // but in practice produces duplicates the operator has to clean up.
+        // The dashboard ALWAYS wants the operator to be the one approving the
+        // merchant in the panel (Activar merchant) or in this dialog's manual
+        // entry. The discovered list (visible below as "merchants descubiertos")
+        // still gets populated from the report — backend keeps the inactive
+        // rows for the picker — so the operator can pick one and approve it
+        // via the existing approve flow.
+        mode: 'PREVIEW_ONLY',
       }),
     onMutate: (angelpayUserAccountId: string) => {
       // 90s window covers: heartbeat receive (≤30s) + SDK 7-step auth + retries
