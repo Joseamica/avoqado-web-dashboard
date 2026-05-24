@@ -518,6 +518,14 @@ export async function updateMerchantAccount(
     displayOrder?: number
     credentials?: Partial<MerchantAccountCredentials>
     providerConfig?: any
+    /**
+     * Re-bind (or unbind) this merchant from an AngelPayUserAccount.
+     * - string → attach to that login
+     * - null   → detach (leaves merchant orphan w.r.t. AngelPay credentials;
+     *            useful when consolidating logins or before re-attaching to
+     *            another account). Backend must accept null on this column.
+     */
+    angelpayUserAccountId?: string | null
   },
 ): Promise<MerchantAccount> {
   const response = await api.put(`/api/v1/dashboard/superadmin/merchant-accounts/${id}`, data)

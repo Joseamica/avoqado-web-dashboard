@@ -1,12 +1,24 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { CheckCircle2, Info, Wallet } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { CheckCircle2, Info, Loader2, Unlink, Wallet } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { listAngelPayUserAccountsForVenue } from '@/services/superadmin-angelpay-user-account.service'
+import { paymentProviderAPI } from '@/services/paymentProvider.service'
+import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import type { SetupState } from '../types'
 import type { SetupAction } from '../useSetupReducer'
@@ -15,11 +27,54 @@ interface Props {
   state: SetupState
   dispatch: (action: SetupAction) => void
   mode: 'create' | 'edit'
+  /**
+   * Required when `mode === 'edit'`. Enables the "Desanexar" action which
+   * unbinds this merchant from its AngelPayUserAccount (sets
+   * angelpayUserAccountId to null on the merchant). Useful when consolidating
+   * logins across multiple merchant accounts.
+   */
+  merchantAccountId?: string
+  /**
+   * Optional. When the operator confirms detach, the panel typically wants to
+   * close because the merchant no longer has a login → activating in TPV is
+   * blocked anyway. The parent passes a callback that closes the panel.
+   */
+  onDetached?: () => void
 }
 
-export default function AngelPayLoginCard({ state, dispatch, mode }: Props) {
+export default function AngelPayLoginCard({ state, dispatch, mode, merchantAccountId, onDetached }: Props) {
   const [open, setOpen] = useState(false)
+  const [confirmDetachOpen, setConfirmDetachOpen] = useState(false)
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
   const venueId = state.venue.id
+
+  const detachMutation = useMutation({
+    mutationFn: () => {
+      if (!merchantAccountId) throw new Error('merchantAccountId required')
+      return paymentProviderAPI.updateMerchantAccount(merchantAccountId, { angelpayUserAccountId: null })
+    },
+    onSuccess: () => {
+      // Invalidate every cache that knows about this merchant or its login.
+      queryClient.invalidateQueries({ queryKey: ['merchant', merchantAccountId] })
+      queryClient.invalidateQueries({ queryKey: ['merchant-angelpay-account', merchantAccountId] })
+      queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
+      queryClient.invalidateQueries({ queryKey: ['angelpay-logins', venueId] })
+      toast({
+        title: 'Merchant desanexado',
+        description: 'Ya no está ligado a esta cuenta AngelPay. Asígnalo a otra cuenta antes de operarlo en TPV.',
+      })
+      setConfirmDetachOpen(false)
+      onDetached?.()
+    },
+    onError: (err: any) => {
+      toast({
+        title: 'No se pudo desanexar',
+        description: err?.response?.data?.message || 'Error en el servidor. Reintenta.',
+        variant: 'destructive',
+      })
+    },
+  })
 
   const { data: existing = [] } = useQuery({
     queryKey: ['angelpay-logins', venueId],
@@ -76,6 +131,55 @@ export default function AngelPayLoginCard({ state, dispatch, mode }: Props) {
           {summary || <span className="text-muted-foreground">Login del adquirente</span>}
         </p>
       </button>
+
+      {/* Detach action — only available in edit mode AND only when the
+       *  merchant is currently bound to a login (no point detaching if there
+       *  isn't one). Sits OUTSIDE the card button so clicking it doesn't try
+       *  to open the (disabled) edit dialog. */}
+      {mode === 'edit' && merchantAccountId && state.login.mode === 'existing' && (
+        <button
+          type="button"
+          onClick={() => setConfirmDetachOpen(true)}
+          disabled={detachMutation.isPending}
+          className="-mt-3 mb-1 ml-5 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+          data-tour="setup-panel-detach-angelpay"
+        >
+          {detachMutation.isPending ? (
+            <Loader2 className="w-3 h-3 animate-spin" />
+          ) : (
+            <Unlink className="w-3 h-3" />
+          )}
+          Desanexar este merchant de la cuenta AngelPay
+        </button>
+      )}
+
+      <AlertDialog open={confirmDetachOpen} onOpenChange={setConfirmDetachOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Desanexar de la cuenta AngelPay?</AlertDialogTitle>
+            <AlertDialogDescription>
+              El merchant <strong>{state.merchant.existingMerchantLabel ?? state.merchant.displayName ?? ''}</strong> dejará
+              de estar ligado a esta cuenta AngelPay. Quedará huérfano: no podrá procesar pagos en TPV hasta que lo asignes
+              a otra cuenta. Los costos, precios, slot y liquidación se mantienen — solo se rompe el vínculo con el login.
+              Esto NO afecta a los demás merchants anexados a la misma cuenta.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={detachMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={e => {
+                e.preventDefault()
+                detachMutation.mutate()
+              }}
+              disabled={detachMutation.isPending}
+            >
+              {detachMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Sí, desanexar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[520px]">

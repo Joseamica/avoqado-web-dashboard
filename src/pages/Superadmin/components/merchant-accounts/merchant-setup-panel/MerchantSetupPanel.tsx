@@ -258,7 +258,13 @@ export default function MerchantSetupPanel({
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-6">
           <VenueCard state={state} dispatch={dispatch} mode={mode} />
-          <AngelPayLoginCard state={state} dispatch={dispatch} mode={mode} />
+          <AngelPayLoginCard
+            state={state}
+            dispatch={dispatch}
+            mode={mode}
+            merchantAccountId={mode === 'edit' ? merchantAccountId : undefined}
+            onDetached={() => onOpenChange(false)}
+          />
           <MerchantCard state={state} dispatch={dispatch} mode={mode} />
           <SlotCard
             state={state}
