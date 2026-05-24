@@ -14,7 +14,7 @@
  *
  * Per-card edit-save lives in Task 4.2, NOT here.
  */
-import { useQueries } from '@tanstack/react-query'
+import { useQueries, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import {
   paymentProviderAPI,
   type MerchantAccount,
@@ -269,23 +269,55 @@ export interface UseMerchantBundleResult {
   errors: unknown[]
 }
 
+/**
+ * Fetch a merchant with its `venues[]` relation guaranteed populated.
+ *
+ * Why: the singular endpoint `GET /merchant-accounts/:id` does NOT include
+ * `venues[]` in its response — only the LIST endpoint does. In edit mode
+ * the panel needs `merchant.venues[0].id` to hydrate venue, slot, pricing,
+ * and the AngelPay account picker. Without it, those four cards stay
+ * "Pendiente" forever even though the merchant is fully configured.
+ *
+ * This helper falls back to `getAllMerchantAccounts()` (served from cache
+ * via `queryClient.fetchQuery` on `['merchant-accounts-all']` — the same
+ * key the parent page uses) when the singular response omits venues.
+ */
+async function getMerchantWithVenues(
+  queryClient: QueryClient,
+  id: string,
+): Promise<MerchantAccount> {
+  const m = await paymentProviderAPI.getMerchantAccount(id)
+  if (m.venues && m.venues.length > 0) return m
+  const all = await queryClient.fetchQuery({
+    queryKey: ['merchant-accounts-all'],
+    queryFn: () => paymentProviderAPI.getAllMerchantAccounts(),
+    staleTime: 30_000,
+  })
+  const enriched = all.find(a => a.id === id)
+  if (enriched?.venues && enriched.venues.length > 0) {
+    return { ...m, venues: enriched.venues }
+  }
+  return m
+}
+
 export function useMerchantBundle(merchantAccountId: string | undefined, enabled: boolean): UseMerchantBundleResult {
   const id = merchantAccountId ?? ''
   const isEnabled = enabled && !!id
+  const queryClient = useQueryClient()
 
   const queries = useQueries({
     queries: [
-      // 0. Merchant
+      // 0. Merchant (enriched with venues relation)
       {
         queryKey: ['merchant', id],
-        queryFn: () => paymentProviderAPI.getMerchantAccount(id),
+        queryFn: () => getMerchantWithVenues(queryClient, id),
         enabled: isEnabled,
       },
       // 1. AngelPay user account (depends on merchant — derive once it resolves)
       {
         queryKey: ['merchant-angelpay-account', id],
         queryFn: async (): Promise<AngelPayUserAccount | null> => {
-          const m = await paymentProviderAPI.getMerchantAccount(id)
+          const m = await getMerchantWithVenues(queryClient, id)
           if (!m.angelpayUserAccountId) return null
           const venueId = m.venues?.[0]?.id
           if (!venueId) return null
@@ -304,7 +336,7 @@ export function useMerchantBundle(merchantAccountId: string | undefined, enabled
       {
         queryKey: ['venue-pricing-by-merchant', id],
         queryFn: async (): Promise<VenuePricingStructure[]> => {
-          const m = await paymentProviderAPI.getMerchantAccount(id)
+          const m = await getMerchantWithVenues(queryClient, id)
           const venueId = m.venues?.[0]?.id
           if (!venueId) return []
           return paymentProviderAPI.getVenuePricingStructures({ venueId, active: true })
@@ -333,7 +365,7 @@ export function useMerchantBundle(merchantAccountId: string | undefined, enabled
       {
         queryKey: ['venue-payment-config-by-merchant', id],
         queryFn: async (): Promise<VenuePaymentConfig | null> => {
-          const m = await paymentProviderAPI.getMerchantAccount(id)
+          const m = await getMerchantWithVenues(queryClient, id)
           const venueId = m.venues?.[0]?.id
           if (!venueId) return null
           return paymentProviderAPI.getVenuePaymentConfig(venueId)
