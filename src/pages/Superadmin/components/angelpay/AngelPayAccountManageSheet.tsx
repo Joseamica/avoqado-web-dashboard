@@ -26,7 +26,7 @@ import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Loader2, Pencil, ShieldOff, Trash2 } from 'lucide-react'
+import { Loader2, Pencil, RotateCcw, ShieldOff, Trash2 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -123,6 +123,11 @@ export function AngelPayAccountManageSheet({
   type ActionPanel = null | 'suspend' | 'editCredentials'
   const [activePanel, setActivePanel] = useState<ActionPanel>(null)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  /** 'soft' (default) sets status=DELETED; 'hard' physically removes the row. */
+  const [deleteMode, setDeleteMode] = useState<'soft' | 'hard'>('soft')
+  /** When hard-deleting an account with bound merchants, this opt-in detaches
+   *  them first (sets angelpayUserAccountId=null) so the DELETE doesn't 409. */
+  const [cascadeMerchants, setCascadeMerchants] = useState(false)
   const [showFullError, setShowFullError] = useState(false)
 
   // Form state for inline panels — kept locally so we can validate before
@@ -187,18 +192,46 @@ export function AngelPayAccountManageSheet({
   })
 
   const deleteMutation = useMutation({
-    mutationFn: () => angelpayUserAccountAPI.delete(account.id),
-    onSuccess: () => {
-      toast({ title: 'Cuenta eliminada' })
+    mutationFn: () =>
+      angelpayUserAccountAPI.delete(account.id, {
+        hard: deleteMode === 'hard',
+        cascade: deleteMode === 'hard' && cascadeMerchants,
+      }),
+    onSuccess: result => {
+      if (result.kind === 'hard') {
+        const detached = result.detachedMerchantIds.length
+        toast({
+          title: 'Cuenta eliminada permanentemente',
+          description:
+            detached > 0
+              ? `Se desligaron ${detached} merchant${detached === 1 ? '' : 's'} (quedan sin login).`
+              : 'La fila se borró de la base de datos.',
+        })
+      } else {
+        toast({ title: 'Cuenta marcada como eliminada' })
+      }
       setDeleteOpen(false)
       setDeleteEmailConfirm('')
+      setDeleteMode('soft')
+      setCascadeMerchants(false)
       notifyChange()
-      // Close the sheet entirely — the account row in the parent list
-      // will rerender as DELETED but managing a soft-deleted account
-      // from this sheet has no further actions available.
+      // Close the sheet — there's no further action on a deleted account
+      // from this sheet (the parent list will refresh).
       onOpenChange(false)
     },
     onError: err => handleApiError(err, 'No se pudo eliminar la cuenta'),
+  })
+
+  const reactivateMutation = useMutation({
+    mutationFn: () => angelpayUserAccountAPI.reactivate(account.id),
+    onSuccess: () => {
+      toast({
+        title: 'Cuenta reactivada',
+        description: 'La cuenta vuelve a estar disponible.',
+      })
+      notifyChange()
+    },
+    onError: err => handleApiError(err, 'No se pudo reactivar la cuenta'),
   })
 
   const updateCredentialsMutation = useMutation({
@@ -219,7 +252,12 @@ export function AngelPayAccountManageSheet({
   // -------------------- Status-based action gating --------------------
   const status = account.status
   const canSuspend = status !== 'SUSPENDED' && status !== 'DELETED'
-  const canDelete = status !== 'DELETED'
+  // Soft delete only makes sense from a non-DELETED state. Hard delete is
+  // separately gated below and is allowed on DELETED rows too (cleanup path).
+  const canSoftDelete = status !== 'DELETED'
+  /** Reactivation flips DELETED back to ACTIVE/PENDING_PIN. Backend enforces
+   *  this constraint; we mirror it here so the button only shows when relevant. */
+  const canReactivate = status === 'DELETED'
   // Edit email/env ONLY allowed while the account hasn't been confirmed (no
   // PIN set, no SDK validation yet). After PIN_ROTATION_REQUIRED / ACTIVE the
   // AngelPay SDK has likely already validated against the email
@@ -254,6 +292,7 @@ export function AngelPayAccountManageSheet({
   const anyPending =
     suspendMutation.isPending ||
     deleteMutation.isPending ||
+    reactivateMutation.isPending ||
     updateCredentialsMutation.isPending
 
   return (
@@ -431,17 +470,39 @@ export function AngelPayAccountManageSheet({
                 <ShieldOff className="w-4 h-4 mr-2" />
                 Suspender cuenta
               </Button>
+              {canReactivate && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={anyPending}
+                  onClick={() => reactivateMutation.mutate()}
+                  className="border-green-500/40 text-green-700 hover:bg-green-500/10 dark:text-green-400"
+                  data-tour="angelpay-reactivate"
+                >
+                  {reactivateMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                  )}
+                  Reactivar cuenta
+                </Button>
+              )}
               <Button
                 variant="destructive"
                 size="sm"
-                disabled={!canDelete || anyPending}
+                disabled={anyPending}
                 onClick={() => {
                   setDeleteEmailConfirm('')
+                  // DELETED rows can only be hard-deleted (no point soft-deleting
+                  // something already soft-deleted). Default the toggle so the
+                  // dialog opens to the right mode.
+                  setDeleteMode(canSoftDelete ? 'soft' : 'hard')
+                  setCascadeMerchants(false)
                   setDeleteOpen(true)
                 }}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Eliminar cuenta
+                {canSoftDelete ? 'Eliminar cuenta' : 'Eliminar permanentemente'}
               </Button>
             </div>
 
@@ -582,32 +643,114 @@ export function AngelPayAccountManageSheet({
           open={deleteOpen}
           onOpenChange={v => {
             setDeleteOpen(v)
-            if (!v) setDeleteEmailConfirm('')
+            if (!v) {
+              setDeleteEmailConfirm('')
+              setCascadeMerchants(false)
+            }
           }}
         >
-          <AlertDialogContent>
+          <AlertDialogContent className="max-w-lg">
             <AlertDialogHeader>
               <AlertDialogTitle>¿Eliminar la cuenta AngelPay?</AlertDialogTitle>
               <AlertDialogDescription>
-                Esta acción soft-deletea la cuenta. Los merchant accounts AngelPay del venue se
-                desactivan. Para reactivar, contacta a AngelPay. Escribe{' '}
+                Para confirmar, escribe{' '}
                 <code className="bg-muted px-1 py-0.5 rounded font-mono text-xs">
                   {account.email}
-                </code>{' '}
-                para confirmar.
+                </code>
+                .
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <div className="space-y-1.5">
-              <Label htmlFor="delete-email-confirm">Email de la cuenta</Label>
-              <Input
-                id="delete-email-confirm"
-                value={deleteEmailConfirm}
-                onChange={e => setDeleteEmailConfirm(e.target.value)}
-                placeholder={account.email}
-                autoComplete="off"
-                className="font-mono"
-              />
+
+            <div className="space-y-4 py-1">
+              {/* Mode selector — only when both modes are valid. DELETED rows
+               *  are forced to hard mode (no point soft-deleting twice). */}
+              {canSoftDelete && (
+                <div className="space-y-2">
+                  <Label className="text-xs">Tipo de eliminación</Label>
+                  <div className="space-y-1.5">
+                    <label className="flex items-start gap-2 rounded-md border border-input p-3 cursor-pointer hover:bg-muted/40">
+                      <input
+                        type="radio"
+                        name="delete-mode"
+                        value="soft"
+                        checked={deleteMode === 'soft'}
+                        onChange={() => setDeleteMode('soft')}
+                        className="mt-0.5"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Suave (Recomendado)</p>
+                        <p className="text-xs text-muted-foreground">
+                          Marca la cuenta como <code>DELETED</code>. La fila se conserva en la BD
+                          (audit trail, FK references). Si vuelves a crear una cuenta con el
+                          mismo correo en este venue, el sistema la resucita.
+                        </p>
+                      </div>
+                    </label>
+                    <label className="flex items-start gap-2 rounded-md border border-input p-3 cursor-pointer hover:bg-muted/40">
+                      <input
+                        type="radio"
+                        name="delete-mode"
+                        value="hard"
+                        checked={deleteMode === 'hard'}
+                        onChange={() => setDeleteMode('hard')}
+                        className="mt-0.5"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-destructive">Permanente</p>
+                        <p className="text-xs text-muted-foreground">
+                          Borra físicamente la fila de la base de datos. Pierdes el audit trail.
+                          Reservado para limpieza (datos de prueba, GDPR).
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Cascade option — only visible when hard mode + there are
+               *  bound merchants. Without it, backend returns 409. */}
+              {deleteMode === 'hard' && linkedMerchants.length > 0 && (
+                <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 space-y-2">
+                  <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
+                    {linkedMerchants.length} merchant{linkedMerchants.length === 1 ? '' : 's'} todavía
+                    están ligados a esta cuenta.
+                  </p>
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={cascadeMerchants}
+                      onChange={e => setCascadeMerchants(e.target.checked)}
+                      className="mt-0.5"
+                    />
+                    <span className="text-xs">
+                      Desligar esos merchants automáticamente (
+                      <code>angelpayUserAccountId = null</code>) antes de borrar. Los merchants
+                      quedan huérfanos: no se borran, pero no pueden operar hasta que los asignes
+                      a otra cuenta.
+                    </span>
+                  </label>
+                  {!cascadeMerchants && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Sin esto, la operación será rechazada (409). Alternativa: desliga los merchants
+                      manualmente y vuelve a intentar.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <Label htmlFor="delete-email-confirm">Email de la cuenta</Label>
+                <Input
+                  id="delete-email-confirm"
+                  value={deleteEmailConfirm}
+                  onChange={e => setDeleteEmailConfirm(e.target.value)}
+                  placeholder={account.email}
+                  autoComplete="off"
+                  className="font-mono"
+                />
+              </div>
             </div>
+
             <AlertDialogFooter>
               <AlertDialogCancel disabled={deleteMutation.isPending}>Cancelar</AlertDialogCancel>
               <AlertDialogAction
@@ -617,11 +760,13 @@ export function AngelPayAccountManageSheet({
                 }}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 disabled={
-                  deleteMutation.isPending || deleteEmailConfirm.trim() !== account.email
+                  deleteMutation.isPending ||
+                  deleteEmailConfirm.trim() !== account.email ||
+                  (deleteMode === 'hard' && linkedMerchants.length > 0 && !cascadeMerchants)
                 }
               >
                 {deleteMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Eliminar
+                {deleteMode === 'hard' ? 'Eliminar permanentemente' : 'Eliminar'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

@@ -226,10 +226,65 @@ export async function suspendAngelPayUserAccount(id: string, reason: string): Pr
   return data.data
 }
 
-/** Soft delete (status=DELETED). Row is preserved for audit / FK integrity. */
-export async function deleteAngelPayUserAccount(id: string): Promise<AngelPayUserAccount> {
-  const { data } = await api.delete<ApiEnvelope<AngelPayUserAccount>>(
-    `/api/v1/superadmin/angelpay-accounts/${id}`,
+/**
+ * Soft delete (status=DELETED) by default. The row is preserved for audit /
+ * FK integrity / future resurrection on re-create.
+ *
+ * Opt-in hard delete:
+ *   - `hard: true`              → physically removes the row from the DB.
+ *                                  Backend returns 409 if any merchant is
+ *                                  still bound.
+ *   - `hard: true, cascade: true` → detach every bound merchant first
+ *                                  (angelpayUserAccountId=null), then
+ *                                  physically delete the row. Backend
+ *                                  responds with `{ detachedMerchantIds[] }`
+ *                                  so the UI can summarize what got unlinked.
+ *
+ * Return shape differs by mode:
+ *   - soft → `{ kind: 'soft', account }` (full AngelPayUserAccount row)
+ *   - hard → `{ kind: 'hard', accountId, detachedMerchantIds }` (the row is gone)
+ */
+export type DeleteAngelPayUserAccountResult =
+  | { kind: 'soft'; account: AngelPayUserAccount }
+  | { kind: 'hard'; accountId: string; detachedMerchantIds: string[] }
+
+export async function deleteAngelPayUserAccount(
+  id: string,
+  opts: { hard?: boolean; cascade?: boolean } = {},
+): Promise<DeleteAngelPayUserAccountResult> {
+  const params = new URLSearchParams()
+  if (opts.hard) params.set('hard', 'true')
+  if (opts.cascade) params.set('cascade', 'true')
+  const qs = params.toString() ? `?${params.toString()}` : ''
+  const { data } = await api.delete<
+    ApiEnvelope<
+      | AngelPayUserAccount
+      | { deleted: true; mode: 'hard'; accountId: string; detachedMerchantIds: string[] }
+    >
+  >(`/api/v1/superadmin/angelpay-accounts/${id}${qs}`)
+
+  // Discriminate by response shape — hard deletes return a summary object,
+  // soft deletes return the updated row.
+  const body = data.data as any
+  if (body && body.mode === 'hard') {
+    return {
+      kind: 'hard',
+      accountId: body.accountId,
+      detachedMerchantIds: body.detachedMerchantIds ?? [],
+    }
+  }
+  return { kind: 'soft', account: body as AngelPayUserAccount }
+}
+
+/**
+ * Reactivate a soft-deleted account (DELETED → ACTIVE / PENDING_PIN).
+ * Backend enforces that the source status is DELETED; any other source
+ * status yields a 409 ConflictError surfaced as an axios rejection.
+ */
+export async function reactivateAngelPayUserAccount(id: string): Promise<AngelPayUserAccount> {
+  const { data } = await api.patch<ApiEnvelope<AngelPayUserAccount>>(
+    `/api/v1/superadmin/angelpay-accounts/${id}/status`,
+    { status: 'ACTIVE' as const },
   )
   return data.data
 }
@@ -340,6 +395,7 @@ export const angelpayUserAccountAPI = {
   setPin: setAngelPayUserAccountPin,
   markRotationRequired: markAngelPayUserAccountRotationRequired,
   suspend: suspendAngelPayUserAccount,
+  reactivate: reactivateAngelPayUserAccount,
   delete: deleteAngelPayUserAccount,
   approveDiscoveredMerchant: approveDiscoveredAngelPayMerchant,
   reserveSlot: reserveAngelPaySlot,
