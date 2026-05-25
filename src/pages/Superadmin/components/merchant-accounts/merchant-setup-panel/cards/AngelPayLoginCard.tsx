@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { listAngelPayUserAccountsForVenue } from '@/services/superadmin-angelpay-user-account.service'
+import { listAngelPayUserAccountsForVenue, angelpayUserAccountAPI } from '@/services/superadmin-angelpay-user-account.service'
 import { paymentProviderAPI } from '@/services/paymentProvider.service'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
@@ -215,6 +215,7 @@ export default function AngelPayLoginCard({ state, dispatch, mode, merchantAccou
             <NewLoginInline
               state={state}
               dispatch={dispatch}
+              venueId={venueId}
               hasExisting={activeOnly.length > 0}
               onCancel={() => setOpen(false)}
               onSaved={() => setOpen(false)}
@@ -229,16 +230,20 @@ export default function AngelPayLoginCard({ state, dispatch, mode, merchantAccou
 function NewLoginInline({
   state,
   dispatch,
+  venueId,
   hasExisting,
   onCancel,
   onSaved,
 }: {
   state: SetupState
   dispatch: (action: SetupAction) => void
+  venueId: string | undefined
   hasExisting: boolean
   onCancel: () => void
   onSaved: () => void
 }) {
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
   const newLogin =
     state.login.mode === 'new'
       ? state.login
@@ -248,6 +253,52 @@ function NewLoginInline({
 
   const valid =
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newLogin.email) && /^\d{6}$/.test(newLogin.pin)
+
+  /**
+   * Creates the AngelPayUserAccount in the backend immediately when the
+   * operator clicks "Usar esta cuenta". Previously this only kept the data
+   * in local state and the row was created during "Activar merchant" — but
+   * that meant the Merchant card couldn't use the TPV auto-discovery
+   * panel (it requires `state.login.mode === 'existing'` with a real
+   * `angelpayUserAccountId`). For multi-account setups where the operator
+   * doesn't know the merchant ID/affiliation, this was a hard blocker.
+   *
+   * After create succeeds we flip `state.login` to `mode='existing'` so
+   * the next card sees a real backend account.
+   */
+  const createMutation = useMutation({
+    mutationFn: () => {
+      if (!venueId) throw new Error('venueId required')
+      return angelpayUserAccountAPI.create(venueId, {
+        email: newLogin.email,
+        pin: newLogin.pin,
+        environment: newLogin.environment,
+      })
+    },
+    onSuccess: created => {
+      // Refresh the "Cuentas existentes en este venue" list above so the new
+      // row appears as selected and future re-opens of the dialog see it.
+      queryClient.invalidateQueries({ queryKey: ['angelpay-logins', venueId] })
+      // Flip to existing-mode with the real id so MerchantCard's TPV
+      // auto-discovery panel becomes available.
+      dispatch({
+        type: 'SET_LOGIN',
+        login: { mode: 'existing', angelpayUserAccountId: created.id },
+      })
+      toast({
+        title: 'Cuenta AngelPay creada',
+        description: `Lista para descubrir merchants vía TPV (${created.email}).`,
+      })
+      onSaved()
+    },
+    onError: (err: any) => {
+      toast({
+        title: 'No se pudo crear la cuenta AngelPay',
+        description: err?.response?.data?.message || 'Error en el servidor. Reintenta.',
+        variant: 'destructive',
+      })
+    },
+  })
 
   return (
     <div className="space-y-3 rounded-lg border border-input p-3">
@@ -294,16 +345,22 @@ function NewLoginInline({
         </div>
       </div>
       <div className="flex justify-end gap-2 pt-1">
-        <button type="button" onClick={onCancel} className="text-xs text-muted-foreground hover:underline">
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={createMutation.isPending}
+          className="text-xs text-muted-foreground hover:underline disabled:opacity-50"
+        >
           Cancelar
         </button>
         <button
           type="button"
-          onClick={onSaved}
-          disabled={!valid}
-          className="text-xs font-medium bg-foreground text-background rounded-md px-3 py-1 disabled:opacity-50"
+          onClick={() => createMutation.mutate()}
+          disabled={!valid || !venueId || createMutation.isPending}
+          className="inline-flex items-center text-xs font-medium bg-foreground text-background rounded-md px-3 py-1 disabled:opacity-50"
         >
-          Usar esta cuenta
+          {createMutation.isPending && <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />}
+          {createMutation.isPending ? 'Creando cuenta…' : 'Usar esta cuenta'}
         </button>
       </div>
     </div>

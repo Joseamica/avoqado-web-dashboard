@@ -151,24 +151,18 @@ function TerminalsDialogBody({
     enabled: !!venueId,
   })
 
-  // Split: terminals available to attach (not retired, not bound to another
-  // merchant) vs. those already attached to a different merchant (read-only
-  // tail group so the operator understands what's missing from the list).
-  const { available, alreadyAttached } = useMemo(() => {
-    const avail: Terminal[] = []
-    const taken: Terminal[] = []
-    for (const t of terminals) {
-      if (t.status === 'RETIRED') continue
-      const isAttached = (t.assignedMerchantIds?.length ?? 0) > 0
-      if (isAttached) taken.push(t)
-      else avail.push(t)
-    }
-    return { available: avail, alreadyAttached: taken }
-  }, [terminals])
+  // All non-retired terminals are eligible to attach to THIS merchant — even
+  // ones that already operate other merchants. Terminal.assignedMerchantIds
+  // is an array by design: a single NEXGO can route to multiple merchants
+  // concurrently (multi-account flow, e.g. one venue running two AngelPay
+  // logins with separate merchants). Each row carries an informative badge
+  // when it already operates others; selection logic doesn't change.
+  const available = useMemo(
+    () => terminals.filter(t => t.status !== 'RETIRED'),
+    [terminals],
+  )
 
-  // Substring filter applied only to the "available" pool. Already-attached
-  // ones stay in the bottom group regardless of search so they keep their
-  // explanatory role.
+  // Substring filter on the unified pool.
   const filtered = useMemo(() => {
     if (!search.trim()) return available
     return available.filter(
@@ -348,6 +342,19 @@ function TerminalsDialogBody({
                       {terminal.status}
                     </Badge>
                   )}
+                  {/* Informative badge — terminal already operates other
+                   *  merchant(s). Doesn't block selection (multi-merchant per
+                   *  terminal is supported by design); just helps the operator
+                   *  understand the existing routing context. */}
+                  {(terminal.assignedMerchantIds?.length ?? 0) > 0 && (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] px-1.5 py-0 border-amber-500/40 text-amber-700 dark:text-amber-400"
+                    >
+                      Ya opera {terminal.assignedMerchantIds!.length} merchant
+                      {terminal.assignedMerchantIds!.length > 1 ? 's' : ''}
+                    </Badge>
+                  )}
                 </div>
                 {!isCompatible && (
                   <Badge variant="secondary" className="text-[10px] flex-shrink-0">
@@ -358,40 +365,6 @@ function TerminalsDialogBody({
               </label>
             )
           })}
-        </div>
-      )}
-
-      {/* Already-attached tail group — informative, not interactive. */}
-      {alreadyAttached.length > 0 && (
-        <div className="space-y-2 pt-2 border-t border-input">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
-              Ya atadas a otro merchant
-            </p>
-            <Badge variant="outline" className="text-[10px]">
-              {alreadyAttached.length} asignación{alreadyAttached.length > 1 ? 'es' : ''}
-            </Badge>
-          </div>
-          <div className="space-y-1 max-h-[120px] overflow-y-auto pr-1">
-            {alreadyAttached.map(terminal => (
-              <div
-                key={terminal.id}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/40 opacity-60"
-              >
-                <span className="text-sm truncate">
-                  {terminal.name?.trim() || 'Sin nombre'}
-                </span>
-                {terminal.serialNumber && (
-                  <span className="text-[11px] text-muted-foreground font-mono truncate">
-                    {terminal.serialNumber}
-                  </span>
-                )}
-                <Badge variant="outline" className="text-[10px] ml-auto">
-                  {terminal.type}
-                </Badge>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
