@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 // Select and Tabs removed — view toggle now uses dropdown
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { useToast } from '@/hooks/use-toast'
@@ -723,30 +724,84 @@ export default function ReservationCalendar() {
       ? `${reservation.customer.firstName} ${reservation.customer.lastName}`
       : reservation.guestName || t('unnamedGuest')
 
+    // Service + modifiers are the booking's content. Salons need to see them
+    // at a glance on the calendar block (matching how Vagaro / Booksy surface
+    // them) instead of having to open the detail page for every reservation.
+    const serviceName = reservation.product?.name
+    const modifiers = reservation.modifiers ?? []
+    const modifiersTotal = modifiers.reduce((sum, m) => sum + (m.price ?? 0) * (m.quantity ?? 1), 0)
+
     return (
-      <div
-        key={reservation.id}
-        data-reservation="true"
-        className={`absolute left-1 right-1 rounded-md border px-2 py-1 text-xs cursor-pointer transition-opacity hover:opacity-80 overflow-hidden ${statusColorMap[reservation.status]}`}
-        style={{ top: `${top}px`, height: `${height}px` }}
-        onClick={() => navigate(`${fullBasePath}/reservations/${reservation.id}`)}
-      >
-        <div className="font-medium truncate">{guestName}</div>
-        <div className="opacity-70 truncate">
-          {formatTime(reservation.startsAt)} – {formatTime(reservation.endsAt)}
-        </div>
-        {height > 40 && (
-          <div className="flex items-center gap-1 opacity-70">
-            <Users className="h-3 w-3" />
-            <span>{reservation.partySize}</span>
-            {reservation.table && (
-              <Badge variant="outline" className="text-[10px] h-4 px-1 ml-1">
-                {reservation.table.number}
-              </Badge>
-            )}
-          </div>
-        )}
-      </div>
+      <TooltipProvider delayDuration={300}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              key={reservation.id}
+              data-reservation="true"
+              className={`absolute left-1 right-1 rounded-md border px-2 py-1 text-xs cursor-pointer transition-opacity hover:opacity-80 overflow-hidden ${statusColorMap[reservation.status]}`}
+              style={{ top: `${top}px`, height: `${height}px` }}
+              onClick={() => navigate(`${fullBasePath}/reservations/${reservation.id}`)}
+            >
+              <div className="font-medium truncate">{guestName}</div>
+              {serviceName && height > 28 && (
+                <div className="truncate text-[11px] opacity-90">
+                  {serviceName}
+                  {modifiers.length > 0 && <span className="ml-1 opacity-75">+{modifiers.length}</span>}
+                </div>
+              )}
+              <div className="opacity-70 truncate">
+                {formatTime(reservation.startsAt)} – {formatTime(reservation.endsAt)}
+              </div>
+              {height > 56 && (
+                <div className="flex items-center gap-1 opacity-70">
+                  <Users className="h-3 w-3" />
+                  <span>{reservation.partySize}</span>
+                  {reservation.table && (
+                    <Badge variant="outline" className="text-[10px] h-4 px-1 ml-1">
+                      {reservation.table.number}
+                    </Badge>
+                  )}
+                </div>
+              )}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="right" align="start" className="max-w-xs text-xs leading-relaxed">
+            <div className="space-y-1">
+              <div className="font-semibold">{guestName}</div>
+              {serviceName && <div>{serviceName}</div>}
+              {modifiers.length > 0 && (
+                <div className="pt-1 border-t border-border/40">
+                  {modifiers.map(m => (
+                    <div key={m.id} className="flex justify-between gap-3">
+                      <span>
+                        {m.name}
+                        {m.quantity > 1 ? ` ×${m.quantity}` : ''}
+                      </span>
+                      {m.price > 0 && (
+                        <span className="tabular-nums opacity-80">
+                          +{(m.price * m.quantity).toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 })}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                  {modifiersTotal > 0 && (
+                    <div className="flex justify-between gap-3 pt-1 font-medium border-t border-border/40 mt-1">
+                      <span>Extras</span>
+                      <span className="tabular-nums">
+                        +{modifiersTotal.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 })}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="text-muted-foreground pt-1">
+                {formatTime(reservation.startsAt)} – {formatTime(reservation.endsAt)} · {reservation.partySize}p
+                {reservation.table && ` · Mesa ${reservation.table.number}`}
+              </div>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     )
   }
 
