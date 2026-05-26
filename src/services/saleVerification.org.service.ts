@@ -16,14 +16,13 @@ import type { SaleVerificationRejectionReason, SaleVerificationStatus } from './
 
 export type PaymentMethod = 'CASH' | 'CREDIT_CARD' | 'DEBIT_CARD' | 'DIGITAL_WALLET' | 'BANK_TRANSFER' | 'CRYPTOCURRENCY' | 'OTHER'
 
-export type SaleType = 'LINEA_NUEVA' | 'PORTABILIDAD' | 'NO_APLICA'
+export type SaleType = 'LINEA_NUEVA' | 'PORTABILIDAD'
 
 export type PaymentForm = 'CASH' | 'CARD' | 'OTHER' | 'NONE'
 
 export const SALE_TYPE_LABELS: Record<SaleType, string> = {
   LINEA_NUEVA: 'Línea nueva',
   PORTABILIDAD: 'Portabilidad',
-  NO_APLICA: 'No aplica',
 }
 
 export const PAYMENT_FORM_LABELS: Record<PaymentForm, string> = {

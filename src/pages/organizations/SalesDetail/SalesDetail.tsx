@@ -63,7 +63,6 @@ const STATUS_OPTIONS: { value: SaleVerificationStatus; label: string }[] = [
 const SALE_TYPE_OPTIONS: { value: SaleType; label: string }[] = [
   { value: 'LINEA_NUEVA', label: SALE_TYPE_LABELS.LINEA_NUEVA },
   { value: 'PORTABILIDAD', label: SALE_TYPE_LABELS.PORTABILIDAD },
-  { value: 'NO_APLICA', label: SALE_TYPE_LABELS.NO_APLICA },
 ]
 
 const PAYMENT_FORM_OPTIONS: { value: PaymentForm; label: string }[] = [
