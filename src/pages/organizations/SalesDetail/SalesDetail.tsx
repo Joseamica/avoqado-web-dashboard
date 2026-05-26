@@ -98,6 +98,16 @@ function saleTypeLabel(row: OrgSaleRow): string {
   return SALE_TYPE_LABELS[row.saleType]
 }
 
+/** Receiving venue (where the SIM was registered into inventory). */
+function receivedFromLabel(row: OrgSaleRow): string {
+  return row.registeredFromVenue?.name ?? '—'
+}
+
+/** A "Virtual" receiving venue is operationally significant — flag it for control. */
+function isVirtualOrigin(row: OrgSaleRow): boolean {
+  return row.registeredFromVenue?.name?.trim().toLowerCase() === 'virtual'
+}
+
 export default function SalesDetail() {
   const { orgId, orgSlug, isLoading: orgLoading, organization } = useCurrentOrganization()
   const { formatDate, formatTime } = useVenueDateTime()
@@ -263,6 +273,7 @@ export default function SalesDetail() {
         'ID SIM': r.serialNumbers[0] ?? '',
         'SIMs Adicionales': r.serialNumbers.slice(1).join(', '),
         'Tipo SIM': r.category?.name ?? '',
+        'Sucursal Receptora': receivedFromLabel(r),
         Fecha: DateTime.fromISO(r.createdAt, { zone: 'utc' }).setZone(venueTz).toFormat('yyyy-LL-dd'),
         Hora: DateTime.fromISO(r.createdAt, { zone: 'utc' }).setZone(venueTz).toFormat('HH:mm:ss'),
         Promotor: r.staff ? `${r.staff.firstName} ${r.staff.lastName}`.trim() : '',
@@ -505,6 +516,7 @@ export default function SalesDetail() {
               <tr>
                 <th className="px-3 py-2 text-left">ID SIM</th>
                 <th className="px-3 py-2 text-left">Tipo de SIM</th>
+                <th className="px-3 py-2 text-left">Sucursal receptora</th>
                 <th className="px-3 py-2 text-left">Fecha</th>
                 <th className="px-3 py-2 text-left">Hora</th>
                 <th className="px-3 py-2 text-left">Promotor</th>
@@ -523,14 +535,14 @@ export default function SalesDetail() {
               {listQuery.isLoading ? (
                 Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i} className="border-t border-border/30">
-                    <td colSpan={14} className="px-3 py-3">
+                    <td colSpan={15} className="px-3 py-3">
                       <Skeleton className="h-6 w-full" />
                     </td>
                   </tr>
                 ))
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={14} className="px-3 py-10 text-center text-muted-foreground">
+                  <td colSpan={15} className="px-3 py-10 text-center text-muted-foreground">
                     No hay ventas que coincidan con los filtros.
                   </td>
                 </tr>
@@ -539,6 +551,15 @@ export default function SalesDetail() {
                   <tr key={row.id} className="border-t border-border/30 hover:bg-muted/20">
                     <td className="px-3 py-2 font-mono text-xs">{row.serialNumbers[0] ?? '—'}</td>
                     <td className="px-3 py-2">{row.category?.name ?? '—'}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      {isVirtualOrigin(row) ? (
+                        <Badge className="bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700">
+                          Virtual
+                        </Badge>
+                      ) : (
+                        <span>{receivedFromLabel(row)}</span>
+                      )}
+                    </td>
                     <td className="px-3 py-2 whitespace-nowrap">{formatDate(row.createdAt)}</td>
                     <td className="px-3 py-2 whitespace-nowrap">{formatTime(row.createdAt)}</td>
                     <td className="px-3 py-2">{row.staff ? `${row.staff.firstName} ${row.staff.lastName}`.trim() : '—'}</td>
@@ -737,6 +758,7 @@ function SaleCard({
       {/* Key fields grid */}
       <div className="grid grid-cols-2 gap-2 text-xs">
         <Field label="Tipo SIM" value={row.category?.name ?? '—'} />
+        <Field label="Sucursal receptora" value={receivedFromLabel(row)} highlight={isVirtualOrigin(row)} />
         <Field label="Tipo venta" value={saleTypeLabel(row)} />
         <Field label="Forma pago" value={PAYMENT_FORM_LABELS[row.payment?.paymentForm ?? 'NONE']} />
         <Field label="Monto" value={amount} mono />
@@ -806,11 +828,14 @@ function SaleCard({
   )
 }
 
-function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+function Field({ label, value, mono, highlight }: { label: string; value: string; mono?: boolean; highlight?: boolean }) {
   return (
     <div className="min-w-0">
       <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-tight">{label}</p>
-      <p className={cn('text-sm truncate', mono && 'font-mono')} title={value}>
+      <p
+        className={cn('text-sm truncate', mono && 'font-mono', highlight && 'font-semibold text-purple-700 dark:text-purple-300')}
+        title={value}
+      >
         {value}
       </p>
     </div>

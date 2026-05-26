@@ -68,6 +68,12 @@ export interface OrgSaleCategory {
   name: string
 }
 
+export interface OrgSaleRegisteredFromVenue {
+  id: string
+  name: string
+  slug: string
+}
+
 export interface OrgSaleRow {
   id: string
   paymentId: string
@@ -87,6 +93,7 @@ export interface OrgSaleRow {
   reviewedBy: OrgSaleReviewer | null
   payment: OrgSalePayment | null
   category: OrgSaleCategory | null
+  registeredFromVenue: OrgSaleRegisteredFromVenue | null
 }
 
 export interface OrgSalePagination {
