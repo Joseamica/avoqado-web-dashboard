@@ -68,7 +68,14 @@
       "staffCommissions": "Comisiones pagadas a empleados según las configuraciones de comisiones del venue",
       "totalSales": "Ventas netas (los impuestos ya están incluidos en los precios)",
       "totalCollected": "Dinero recibido: ventas netas + propinas - comisiones de plataforma",
+      "totalCollectedSettlement": "El tiempo de depósito varía según el método de pago: tarjetas de débito y crédito se liquidan en {{debitDays}} día(s) hábil(es), mientras que Amex e internacionales tardan {{amexDays}} día(s) hábil(es).",
       "netProfit": "Ganancia real después de todos los costos: ventas netas - comisiones de plataforma - comisiones a empleados"
+    },
+    "settlement": {
+      "label": "Liquidación",
+      "businessDay": "{{count}} día hábil",
+      "businessDays": "{{count}} días hábiles",
+      "immediate": "Inmediato"
     },
     "paymentTypes": {
       "card": "Tarjeta",

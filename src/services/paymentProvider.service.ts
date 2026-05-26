@@ -933,6 +933,21 @@ export async function getVenueCostStructuresByVenueId(venueId: string): Promise<
   return response.data.data
 }
 
+/**
+ * Get settlement configuration for a specific venue's merchant accounts
+ */
+export interface SettlementInfo {
+  merchantAccountId: string
+  cardType: 'DEBIT' | 'CREDIT' | 'AMEX' | 'INTERNATIONAL' | 'OTHER'
+  settlementDays: number
+  settlementDayType: 'BUSINESS_DAYS' | 'CALENDAR_DAYS'
+}
+
+export async function getVenueSettlementInfo(venueId: string): Promise<SettlementInfo[]> {
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payment-config/settlement-info`)
+  return response.data.data
+}
+
 // ===== MCC LOOKUP API FUNCTIONS =====
 
 export interface MccLookupResult {
@@ -1348,6 +1363,7 @@ export const paymentProviderAPI = {
   getVenueMerchantAccountsByVenueId,
   getVenuePricingStructuresByVenueId,
   getVenueCostStructuresByVenueId,
+  getVenueSettlementInfo,
 
   // Payment Analytics
   getProfitMetrics,

@@ -24,7 +24,7 @@ import {
   type ReportType,
   type GroupBy as ApiGroupBy,
 } from '@/services/reports/salesSummary.service'
-import { getVenueMerchantAccountsByVenueId, type MerchantAccount } from '@/services/paymentProvider.service'
+import { getVenueMerchantAccountsByVenueId, getVenueSettlementInfo, type MerchantAccount, type SettlementInfo } from '@/services/paymentProvider.service'
 import {
   ChevronDown,
   ChevronRight,
@@ -43,6 +43,7 @@ import {
   BarChart3,
   LayoutGrid,
   Store,
+  Clock,
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { PeriodBreakdownTable } from './components/PeriodBreakdownTable'
@@ -581,10 +582,19 @@ const PaymentMethodRow: React.FC<{
   amount: number
   count: number
   percentage: number
-}> = ({ icon, label, amount, count, percentage }) => (
+  settlementLabel?: string
+}> = ({ icon, label, amount, count, percentage, settlementLabel }) => (
   <div className="grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-4 px-4 py-3 hover:bg-muted/30 rounded-lg transition-colors">
     <div className="p-2 rounded-lg bg-muted/50">{icon}</div>
-    <span className="text-sm font-medium">{label}</span>
+    <div className="flex flex-col">
+      <span className="text-sm font-medium">{label}</span>
+      {settlementLabel && (
+        <span className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+          <Clock className="w-3 h-3" />
+          {settlementLabel}
+        </span>
+      )}
+    </div>
     <span className="text-sm text-muted-foreground text-right">{count} trans.</span>
     <span className="text-sm text-muted-foreground text-right min-w-[50px]">{percentage.toFixed(1)}%</span>
     <span className="text-sm font-mono text-right min-w-[100px]">{Currency(amount)}</span>
@@ -669,6 +679,49 @@ export default function SalesSummary() {
     queryFn: () => getVenueMerchantAccountsByVenueId(venueId),
     staleTime: 1000 * 60 * 30,
   })
+
+  const { data: settlementConfigs = [] } = useQuery({
+    queryKey: ['venueSettlementInfo', venueId],
+    queryFn: () => getVenueSettlementInfo(venueId),
+    staleTime: 1000 * 60 * 30,
+  })
+
+  const settlementLabels = useMemo(() => {
+    if (settlementConfigs.length === 0) return { card: undefined, cash: undefined, other: undefined, debitDays: 1, amexDays: 3 }
+
+    const formatDays = (days: number) =>
+      days <= 1
+        ? t('salesSummary.settlement.businessDay', { count: days })
+        : t('salesSummary.settlement.businessDays', { count: days })
+
+    const debit = settlementConfigs.find(s => s.cardType === 'DEBIT')
+    const credit = settlementConfigs.find(s => s.cardType === 'CREDIT')
+    const amex = settlementConfigs.find(s => s.cardType === 'AMEX')
+    const intl = settlementConfigs.find(s => s.cardType === 'INTERNATIONAL')
+
+    const debitDays = debit?.settlementDays ?? 1
+    const creditDays = credit?.settlementDays ?? 1
+    const amexDays = amex?.settlementDays ?? 3
+
+    const cardMax = Math.max(debitDays, creditDays)
+    const cardParts: string[] = []
+    if (debitDays === creditDays) {
+      cardParts.push(formatDays(debitDays))
+    } else {
+      cardParts.push(`${t('salesSummary.settlement.label')}: ${formatDays(debitDays)} (débito), ${formatDays(creditDays)} (crédito)`)
+    }
+    if (amex && amexDays !== cardMax) {
+      cardParts.push(`Amex ${formatDays(amexDays)}`)
+    }
+
+    return {
+      card: `${t('salesSummary.settlement.label')}: ${cardParts.join(' · ')}`,
+      cash: `${t('salesSummary.settlement.label')}: ${t('salesSummary.settlement.immediate')}`,
+      other: undefined,
+      debitDays,
+      amexDays,
+    }
+  }, [settlementConfigs, t])
 
   // Pending control values (temporary state while editing in drawer)
   const [pendingReportType, setPendingReportType] = useState<ReportType>('summary')
@@ -1867,7 +1920,11 @@ export default function SalesSummary() {
                     value={data.summary.totalCollected}
                     type="positive"
                     bold
-                    tooltip={t('salesSummary.tooltips.totalCollected')}
+                    tooltip={
+                      settlementConfigs.length > 0
+                        ? `${t('salesSummary.tooltips.totalCollected')}. ${t('salesSummary.tooltips.totalCollectedSettlement', { debitDays: settlementLabels.debitDays, amexDays: settlementLabels.amexDays })}`
+                        : t('salesSummary.tooltips.totalCollected')
+                    }
                   />
                 </>
               )}
@@ -1928,6 +1985,7 @@ export default function SalesSummary() {
                 amount={data.paymentMethods.card.amount}
                 count={data.paymentMethods.card.count}
                 percentage={data.paymentMethods.card.percentage}
+                settlementLabel={settlementLabels.card}
               />
               <PaymentMethodRow
                 icon={<Banknote className="w-4 h-4 text-green-600 dark:text-green-400" />}
@@ -1935,6 +1993,7 @@ export default function SalesSummary() {
                 amount={data.paymentMethods.cash.amount}
                 count={data.paymentMethods.cash.count}
                 percentage={data.paymentMethods.cash.percentage}
+                settlementLabel={settlementLabels.cash}
               />
               <PaymentMethodRow
                 icon={<Smartphone className="w-4 h-4 text-orange-600 dark:text-orange-400" />}

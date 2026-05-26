@@ -68,7 +68,14 @@
       "staffCommissions": "Commissions paid to employees based on venue commission configurations",
       "totalSales": "Net sales (taxes are already included in prices)",
       "totalCollected": "Money received: net sales + tips - platform fees",
+      "totalCollectedSettlement": "Deposit timing varies by payment method: debit and credit cards settle in {{debitDays}} business day(s), while Amex and international cards take {{amexDays}} business day(s).",
       "netProfit": "True profit after all costs: net sales - platform fees - staff commissions"
+    },
+    "settlement": {
+      "label": "Settlement",
+      "businessDay": "{{count}} business day",
+      "businessDays": "{{count}} business days",
+      "immediate": "Immediate"
     },
     "paymentTypes": {
       "card": "Card",
