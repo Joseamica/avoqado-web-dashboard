@@ -123,6 +123,20 @@
           "allDesc": "Incluir todas las terminales"
         }
       },
+      "merchant": {
+        "label": "Comercio",
+        "description": "Filtra ventas por cuenta de comercio",
+        "longDescription": "Selecciona una cuenta de comercio específica para ver solo las ventas procesadas a través de ella. Útil cuando tienes múltiples afiliaciones o procesadores.",
+        "options": {
+          "all": "Todos",
+          "allDesc": "Incluir todos los comercios"
+        },
+        "primary": "Principal",
+        "secondary": "Secundario",
+        "tertiary": "Terciario",
+        "provider": "Proveedor",
+        "affiliation": "Afiliación"
+      },
       "groupBy": {
         "label": "Agrupar las métricas por",
         "description": "Agrupar las métricas en la tabla de datos",

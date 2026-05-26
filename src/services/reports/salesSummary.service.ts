@@ -66,6 +66,7 @@ export interface SalesSummaryFilters {
   endDate: string
   groupBy?: GroupBy
   reportType?: ReportType
+  merchantAccountId?: string
 }
 
 export interface ApiResponse<T> {
@@ -94,6 +95,7 @@ export async function fetchSalesSummary(
         endDate: filters.endDate,
         groupBy: filters.groupBy || 'none',
         reportType: filters.reportType || 'summary',
+        ...(filters.merchantAccountId ? { merchantAccountId: filters.merchantAccountId } : {}),
       },
       withCredentials: true,
     },

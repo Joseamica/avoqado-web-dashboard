@@ -123,6 +123,20 @@
           "allDesc": "Include all terminals"
         }
       },
+      "merchant": {
+        "label": "Merchant",
+        "description": "Filter sales by merchant account",
+        "longDescription": "Select a specific merchant account to view only sales processed through it. Useful when you have multiple affiliations or processors.",
+        "options": {
+          "all": "All",
+          "allDesc": "Include all merchants"
+        },
+        "primary": "Primary",
+        "secondary": "Secondary",
+        "tertiary": "Tertiary",
+        "provider": "Provider",
+        "affiliation": "Affiliation"
+      },
       "groupBy": {
         "label": "Group metrics by",
         "description": "Group metrics in the data table",

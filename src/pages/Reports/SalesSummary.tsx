@@ -24,6 +24,7 @@ import {
   type ReportType,
   type GroupBy as ApiGroupBy,
 } from '@/services/reports/salesSummary.service'
+import { getVenueMerchantAccountsByVenueId, type MerchantAccount } from '@/services/paymentProvider.service'
 import {
   ChevronDown,
   ChevronRight,
@@ -41,6 +42,7 @@ import {
   Table2,
   BarChart3,
   LayoutGrid,
+  Store,
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { PeriodBreakdownTable } from './components/PeriodBreakdownTable'
@@ -640,7 +642,7 @@ export default function SalesSummary() {
 
   // State for controls drawer
   const [controlsOpen, setControlsOpen] = useState(false)
-  const [activePanel, setActivePanel] = useState<'main' | 'reportType' | 'viewType' | 'groupBy' | 'terminal' | 'metrics' | null>('main')
+  const [activePanel, setActivePanel] = useState<'main' | 'reportType' | 'viewType' | 'groupBy' | 'terminal' | 'metrics' | 'merchant' | null>('main')
 
   // Load saved preferences from localStorage
   const savedPrefs = useMemo(() => loadPreferences(), [])
@@ -656,6 +658,17 @@ export default function SalesSummary() {
   const [chartMetric, setChartMetric] = useState<MetricKey>(
     () => savedPrefs?.chartMetric || DEFAULT_CHART_METRIC
   )
+
+  // Merchant filter state
+  const [merchantAccountId, setMerchantAccountId] = useState<string | null>(null)
+  const [pendingMerchantAccountId, setPendingMerchantAccountId] = useState<string | null>(null)
+
+  // Fetch venue merchant accounts
+  const { data: merchantAccounts = [] } = useQuery({
+    queryKey: ['venueMerchantAccounts', venueId],
+    queryFn: () => getVenueMerchantAccountsByVenueId(venueId),
+    staleTime: 1000 * 60 * 30,
+  })
 
   // Pending control values (temporary state while editing in drawer)
   const [pendingReportType, setPendingReportType] = useState<ReportType>('summary')
@@ -687,9 +700,10 @@ export default function SalesSummary() {
   const hasGroupByChange = pendingGroupBy !== groupBy
   const hasTerminalChange = pendingTerminal !== terminal
   const hasMetricsChange = JSON.stringify(pendingSelectedMetrics) !== JSON.stringify(selectedMetrics) || pendingChartMetric !== chartMetric
+  const hasMerchantChange = pendingMerchantAccountId !== merchantAccountId
 
   // Open sheet and navigate to specific panel, initialize pending with current value
-  const openControlPanel = (panel: 'main' | 'reportType' | 'viewType' | 'groupBy' | 'terminal' | 'metrics') => {
+  const openControlPanel = (panel: 'main' | 'reportType' | 'viewType' | 'groupBy' | 'terminal' | 'metrics' | 'merchant') => {
     // Initialize pending values with current values when opening
     setPendingReportType(reportType)
     setPendingViewType(viewType)
@@ -697,6 +711,7 @@ export default function SalesSummary() {
     setPendingTerminal(terminal)
     setPendingSelectedMetrics([...selectedMetrics])
     setPendingChartMetric(chartMetric)
+    setPendingMerchantAccountId(merchantAccountId)
     setActivePanel(panel)
     setControlsOpen(true)
   }
@@ -729,6 +744,12 @@ export default function SalesSummary() {
   const applyMetrics = () => {
     setSelectedMetrics([...pendingSelectedMetrics])
     setChartMetric(pendingChartMetric)
+    setControlsOpen(false)
+    setActivePanel('main')
+  }
+
+  const applyMerchant = () => {
+    setMerchantAccountId(pendingMerchantAccountId)
     setControlsOpen(false)
     setActivePanel('main')
   }
@@ -821,9 +842,10 @@ export default function SalesSummary() {
     venueId,
     startDate: dateRange.from.toISOString(),
     endDate: dateRange.to.toISOString(),
-    groupBy: 'paymentMethod' as ApiGroupBy, // Always get payment breakdown for visualization
+    groupBy: 'paymentMethod' as ApiGroupBy,
     reportType: reportType as ReportType,
-  }), [venueId, dateRange.from, dateRange.to, reportType])
+    ...(merchantAccountId ? { merchantAccountId } : {}),
+  }), [venueId, dateRange.from, dateRange.to, reportType, merchantAccountId])
 
   // Fetch sales summary data from API
   const {
@@ -1072,6 +1094,22 @@ export default function SalesSummary() {
                     onClick={() => setActivePanel('terminal')}
                   />
                   <Separator />
+                  {merchantAccounts.length > 1 && (
+                    <>
+                      <ControlRow
+                        label={t('salesSummary.controls.merchant.label')}
+                        description={t('salesSummary.controls.merchant.description')}
+                        value={merchantAccountId
+                          ? merchantAccounts.find(m => m.id === merchantAccountId)?.displayName
+                            || merchantAccounts.find(m => m.id === merchantAccountId)?.provider.name
+                            || t('salesSummary.controls.merchant.options.all')
+                          : t('salesSummary.controls.merchant.options.all')
+                        }
+                        onClick={() => setActivePanel('merchant')}
+                      />
+                      <Separator />
+                    </>
+                  )}
                   <ControlRow
                     label={t('salesSummary.controls.viewType.label')}
                     description={t('salesSummary.controls.viewType.description')}
@@ -1212,6 +1250,76 @@ export default function SalesSummary() {
                         isSelected={pendingTerminal === key}
                       />
                     ))}
+                  </RadioGroup>
+                </div>
+              </div>
+
+              {/* Merchant Sub-Panel */}
+              <div
+                className={cn(
+                  'absolute inset-0 transition-transform duration-300 ease-in-out bg-background flex flex-col',
+                  activePanel === 'merchant' ? 'translate-x-0' : 'translate-x-full'
+                )}
+              >
+                <div className="flex items-center justify-between p-4 border-b">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 rounded-full cursor-pointer"
+                    onClick={() => setActivePanel('main')}
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </Button>
+                  <Button
+                    className="rounded-full px-6 cursor-pointer"
+                    disabled={!hasMerchantChange}
+                    onClick={applyMerchant}
+                  >
+                    {t('salesSummary.controls.apply')}
+                  </Button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  <div className="space-y-3">
+                    <h2 className="text-2xl font-bold">{t('salesSummary.controls.merchant.label')}</h2>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {t('salesSummary.controls.merchant.longDescription')}
+                    </p>
+                  </div>
+                  <RadioGroup
+                    value={pendingMerchantAccountId || 'all'}
+                    onValueChange={(v) => setPendingMerchantAccountId(v === 'all' ? null : v)}
+                    className="space-y-1"
+                  >
+                    <ControlOption
+                      value="all"
+                      label={t('salesSummary.controls.merchant.options.all')}
+                      description={t('salesSummary.controls.merchant.options.allDesc')}
+                      isSelected={pendingMerchantAccountId === null}
+                      icon={<Store className="w-4 h-4 text-muted-foreground" />}
+                    />
+                    {merchantAccounts.map((account) => {
+                      const accountLabel = account.displayName
+                        || account.alias
+                        || account.angelpayMerchantName
+                        || account.provider.name
+                      const accountDesc = [
+                        account.provider.name,
+                        account.angelpayAffiliation && `${t('salesSummary.controls.merchant.affiliation')}: ${account.angelpayAffiliation}`,
+                        (account as MerchantAccount & { accountType: string }).accountType &&
+                          t(`salesSummary.controls.merchant.${(account as MerchantAccount & { accountType: string }).accountType.toLowerCase()}`),
+                      ].filter(Boolean).join(' · ')
+
+                      return (
+                        <ControlOption
+                          key={account.id}
+                          value={account.id}
+                          label={accountLabel}
+                          description={accountDesc}
+                          isSelected={pendingMerchantAccountId === account.id}
+                          icon={<Store className="w-4 h-4 text-muted-foreground" />}
+                        />
+                      )
+                    })}
                   </RadioGroup>
                 </div>
               </div>
@@ -1460,6 +1568,19 @@ export default function SalesSummary() {
           value={getSelectedLabel('terminal', terminal)}
           onClick={() => openControlPanel('terminal')}
         />
+        {merchantAccounts.length > 1 && (
+          <ControlPill
+            label={t('salesSummary.controls.merchant.label')}
+            value={merchantAccountId
+              ? merchantAccounts.find(m => m.id === merchantAccountId)?.displayName
+                || merchantAccounts.find(m => m.id === merchantAccountId)?.alias
+                || merchantAccounts.find(m => m.id === merchantAccountId)?.provider.name
+                || t('salesSummary.controls.merchant.options.all')
+              : t('salesSummary.controls.merchant.options.all')
+            }
+            onClick={() => openControlPanel('merchant')}
+          />
+        )}
         <ControlPill
           label={t('salesSummary.controls.viewType.label')}
           value={getSelectedLabel('viewType', viewType)}
