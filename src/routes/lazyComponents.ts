@@ -184,6 +184,7 @@ export const OnlineBookingPage = lazyWithRetry(() => import('@/pages/Reservation
 export const PaymentLinks = lazyWithRetry(() => import('@/pages/PaymentLinks/PaymentLinks'))
 export const PaymentLinkSettings = lazyWithRetry(() => import('@/pages/PaymentLinks/PaymentLinkSettings'))
 export const PaymentLinkBranding = lazyWithRetry(() => import('@/pages/PaymentLinks/PaymentLinkBranding'))
+export const ReservationBranding = lazyWithRetry(() => import('@/pages/Reservations/ReservationBranding'))
 
 // New Sales sub-pages (Coming Soon)
 export const Disputes = lazyWithRetry(() => import('@/pages/Disputes/Disputes'))

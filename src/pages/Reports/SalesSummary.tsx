@@ -24,7 +24,7 @@ import {
   type ReportType,
   type GroupBy as ApiGroupBy,
 } from '@/services/reports/salesSummary.service'
-import { getVenueMerchantAccountsByVenueId, getVenueSettlementInfo, type MerchantAccount, type SettlementInfo } from '@/services/paymentProvider.service'
+import { getVenueMerchantAccountsByVenueId, getVenueSettlementInfo, type MerchantAccount } from '@/services/paymentProvider.service'
 import {
   ChevronDown,
   ChevronRight,

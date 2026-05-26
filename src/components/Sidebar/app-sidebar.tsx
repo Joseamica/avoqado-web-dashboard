@@ -415,6 +415,7 @@ export function AppSidebar({
         url: '#reservations-settings',
         items: [
           { title: t('sidebar:reservationsMenu.general', { defaultValue: 'General' }), url: 'reservations/settings', permission: 'reservations:read' },
+          { title: t('sidebar:reservationsMenu.branding', { defaultValue: 'Identidad de marca' }), url: 'reservations/branding', permission: 'reservations:read', keywords: ['marca', 'branding', 'color', 'logo', 'tipografía', 'apariencia', 'identidad'] },
           { title: t('sidebar:reservationsMenu.communications', { defaultValue: 'Comunicaciones' }), url: 'reservations/communications', permission: 'reservations:read', comingSoon: true },
         ],
       },

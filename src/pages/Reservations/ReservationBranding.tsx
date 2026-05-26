@@ -1,0 +1,413 @@
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useToast } from '@/hooks/use-toast'
+import reservationBrandingService, {
+  DEFAULT_RESERVATION_BRANDING,
+  type ReservationBranding as ReservationBrandingConfig,
+} from '@/services/reservationBranding.service'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Check, Loader2, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
+import { fontFamilyValue } from '../PaymentLinks/font-loader'
+// Side-effect import: registers all 40 @font-face declarations the moment
+// this route chunk is parsed, so the dropdown opens with every option
+// already pre-rendering in its own face (no FOUT cascade per row).
+import '../PaymentLinks/fonts-eager'
+import { FONT_CATEGORY_LABELS, PAYMENT_LINK_FONTS } from '../PaymentLinks/payment-link-fonts'
+import { includesNormalized } from '@/lib/utils'
+
+const BUTTON_SHAPES = ['rounded', 'square', 'pill'] as const
+type ButtonShape = (typeof BUTTON_SHAPES)[number]
+
+const PRESET_COLORS = [
+  '#006aff', // blue
+  '#000000', // black
+  '#e53935', // red
+  '#43a047', // green
+  '#f4511e', // orange
+  '#8e24aa', // purple
+]
+
+const SHAPE_CLASSES: Record<ButtonShape, string> = {
+  rounded: 'rounded-lg',
+  square: 'rounded-none',
+  pill: 'rounded-full',
+}
+
+// Color used in the live preview when the admin hasn't picked an accent
+// color (accentColor === null = "inherit the venue's brand color"). The
+// server resolves the real venue primaryColor on read; this is just a
+// visually-sensible placeholder so the preview never renders a colorless CTA.
+const INHERIT_PREVIEW_COLOR = '#006aff'
+
+export default function ReservationBranding() {
+  const { t } = useTranslation('reservations')
+  const { venue, venueId } = useCurrentVenue()
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+
+  // Load persisted branding. Backend always merges with defaults so the
+  // response shape is guaranteed — only `accentColor` is intentionally
+  // nullable (null = inherit the venue primaryColor).
+  const { data: branding } = useQuery({
+    queryKey: ['reservation-branding', venueId],
+    queryFn: () => reservationBrandingService.getBranding(venueId),
+    enabled: !!venueId,
+    staleTime: 60_000,
+  })
+
+  // Local editable copy, hydrated from the server. `dirty` tracks whether
+  // the user has unsaved edits — Save button is disabled until something
+  // changes (Stripe Dashboard pattern).
+  const [draft, setDraft] = useState<ReservationBrandingConfig>(DEFAULT_RESERVATION_BRANDING)
+  const [dirty, setDirty] = useState(false)
+
+  // Hydrate the draft once the server responds. If the user has already
+  // started editing (dirty=true) we keep their in-flight changes; otherwise
+  // we replace the draft so the UI reflects the latest persisted state.
+  useEffect(() => {
+    if (branding && !dirty) {
+      setDraft(branding)
+    }
+  }, [branding, dirty])
+
+  // Font picker — controlled SearchCombobox state. The input shows the
+  // selected family name when collapsed and the user's search term while
+  // typing. Items are filtered client-side (40 entries — no need for paging).
+  //
+  // No imperative preload here — `../PaymentLinks/fonts-eager` registers every
+  // @font-face at module init, so the dropdown opens with all faces already
+  // pre-rendering. The .woff2 files stream in via parallel HTTP/2 requests
+  // the moment a row references the family.
+  const [fontSearch, setFontSearch] = useState('')
+  const fontItems: SearchComboboxItem[] = (() => {
+    const q = fontSearch.trim()
+    const matches = q ? PAYMENT_LINK_FONTS.filter(f => includesNormalized(f.label, q)) : PAYMENT_LINK_FONTS
+    return matches.map(f => ({
+      id: f.id,
+      label: f.label,
+      endLabel: FONT_CATEGORY_LABELS[f.category],
+      // Render each option in its own face so the dropdown doubles as a
+      // visual catalog. fontFamilyValue() appends a fallback stack.
+      labelStyle: { fontFamily: fontFamilyValue(f.id), fontSize: '15px' },
+    }))
+  })()
+
+  const update = <K extends keyof ReservationBrandingConfig>(key: K, value: ReservationBrandingConfig[K]) => {
+    setDraft(prev => ({ ...prev, [key]: value }))
+    setDirty(true)
+  }
+
+  const mutation = useMutation({
+    mutationFn: () => reservationBrandingService.updateBranding(venueId, draft),
+    onSuccess: data => {
+      queryClient.setQueryData(['reservation-branding', venueId], data)
+      setDirty(false)
+      toast({ title: t('branding.savedTitle', { defaultValue: 'Cambios guardados' }) })
+    },
+    onError: (err: any) => {
+      toast({
+        title: t('branding.saveErrorTitle', { defaultValue: 'No se pudo guardar' }),
+        description: err?.response?.data?.error || err?.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // accentColor === null means "inherit the venue's brand color". The picker
+  // must reflect that empty state instead of coercing null to a hex.
+  const inheritsColor = draft.accentColor == null
+
+  return (
+    <div className="p-4 bg-background text-foreground">
+      <div className="max-w-4xl">
+        {/* Header */}
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{t('branding.title')}</h1>
+            <p className="text-muted-foreground mt-1">{t('branding.description')}</p>
+          </div>
+          {/* Top-right actions. Discard only shows when there are unsaved
+              changes — destructive action shouldn't be one click away when
+              nothing is at stake. */}
+          <div className="flex items-center gap-2">
+            {dirty && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (branding) setDraft(branding)
+                  setDirty(false)
+                }}
+                disabled={mutation.isPending}
+                className="cursor-pointer"
+              >
+                {t('branding.discard', { defaultValue: 'Descartar' })}
+              </Button>
+            )}
+            <Button
+              type="button"
+              onClick={() => mutation.mutate()}
+              disabled={!dirty || mutation.isPending}
+              className="cursor-pointer"
+              data-tour="reservation-branding-save"
+            >
+              {mutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {t('branding.saving', { defaultValue: 'Guardando…' })}
+                </>
+              ) : !dirty ? (
+                <>
+                  <Check className="h-4 w-4" />
+                  {t('branding.saved', { defaultValue: 'Guardado' })}
+                </>
+              ) : (
+                t('branding.save', { defaultValue: 'Guardar cambios' })
+              )}
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
+          {/* Left: Settings */}
+          <div className="lg:col-span-3 space-y-10">
+            {/* ── Venue selector ──────────────────────────── */}
+            <section className="space-y-4">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wide">{t('branding.venue')}</Label>
+              <div className="flex items-center gap-3 rounded-xl border border-input p-4">
+                {venue?.logo ? (
+                  <img src={venue.logo} alt={venue?.name} className="h-8 w-8 rounded-full object-cover" />
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-xs font-bold text-primary">{(venue?.name || 'A').charAt(0)}</span>
+                  </div>
+                )}
+                <span className="font-medium">{venue?.name}</span>
+              </div>
+            </section>
+
+            {/* ── Logo ────────────────────────────────────── */}
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold">{t('branding.logo')}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">{t('branding.logoHint')}</p>
+                </div>
+                <Switch checked={draft.showLogo} onCheckedChange={v => update('showLogo', v)} className="cursor-pointer" />
+              </div>
+            </section>
+
+            <hr className="border-border" />
+
+            {/* ── Accent color + button shape ─────────────── */}
+            <section className="space-y-5">
+              <h3 className="font-semibold">{t('branding.button')}</h3>
+
+              {/* Accent color. null = inherit the venue's brand color. */}
+              <div className="space-y-3">
+                <Label className="text-sm">{t('branding.accentColor')}</Label>
+                <div className="flex items-center gap-3">
+                  {PRESET_COLORS.map(color => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => update('accentColor', color)}
+                      className={`w-8 h-8 rounded-full transition-all cursor-pointer ${
+                        !inheritsColor && draft.accentColor === color ? 'ring-2 ring-offset-2 ring-foreground/50' : 'hover:scale-110'
+                      }`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                  <div className="relative">
+                    <input
+                      type="color"
+                      value={draft.accentColor ?? INHERIT_PREVIEW_COLOR}
+                      onChange={e => update('accentColor', e.target.value)}
+                      className="absolute inset-0 opacity-0 w-8 h-8 cursor-pointer"
+                    />
+                    <div className="w-8 h-8 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-foreground/50 transition-colors">
+                      <span className="text-xs text-muted-foreground">+</span>
+                    </div>
+                  </div>
+                  {/* "Inherit brand color" affordance — only shown once an
+                      explicit color is set, so the admin can return to null. */}
+                  {!inheritsColor && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-muted-foreground cursor-pointer"
+                      onClick={() => update('accentColor', null)}
+                    >
+                      <X className="h-3.5 w-3.5 mr-1" />
+                      {t('branding.accentColorInherit', { defaultValue: 'Heredar' })}
+                    </Button>
+                  )}
+                </div>
+                {inheritsColor ? (
+                  <p className="text-xs text-muted-foreground">
+                    {t('branding.accentColorInheritHint', { defaultValue: 'Hereda el color de marca del negocio' })}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground font-mono">{draft.accentColor}</p>
+                )}
+              </div>
+
+              {/* Shape */}
+              <div className="space-y-3">
+                <Label className="text-sm">{t('branding.buttonShape')}</Label>
+                <div className="flex rounded-lg border border-input bg-muted/50 p-1">
+                  {BUTTON_SHAPES.map(shape => (
+                    <button
+                      key={shape}
+                      type="button"
+                      onClick={() => update('buttonShape', shape)}
+                      className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
+                        draft.buttonShape === shape ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {t(`branding.buttonShape${shape.charAt(0).toUpperCase() + shape.slice(1)}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            <hr className="border-border" />
+
+            {/* ── Font ────────────────────────────────────── */}
+            <section className="space-y-3">
+              <h3 className="font-semibold">{t('branding.font')}</h3>
+              <p className="text-xs text-muted-foreground -mt-1">
+                {t('branding.fontHint', {
+                  defaultValue: '40 fuentes auto-hostadas. Solo se descarga la que elijas.',
+                })}
+              </p>
+              {/* Two-state picker mirroring the payment-link branding page:
+                  - When a font is selected → frozen pill with name (in its
+                    own face) + X/Cambiar to clear and re-open the search.
+                  - When empty → SearchCombobox with all 40 options. */}
+              {draft.fontFamily ? (
+                <div className="flex items-center gap-2 h-12 px-3 rounded-lg border border-input bg-transparent">
+                  <span className="text-sm flex-1 truncate" style={{ fontFamily: fontFamilyValue(draft.fontFamily) }}>
+                    {draft.fontFamily}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-muted-foreground cursor-pointer"
+                    onClick={() => {
+                      update('fontFamily', '')
+                      setFontSearch('')
+                    }}
+                  >
+                    <X className="h-3.5 w-3.5 mr-1" />
+                    {t('branding.fontChange', { defaultValue: 'Cambiar' })}
+                  </Button>
+                </div>
+              ) : (
+                <SearchCombobox
+                  placeholder={t('branding.fontPlaceholder', { defaultValue: 'Buscar fuente…' })}
+                  items={fontItems}
+                  value={fontSearch}
+                  onChange={setFontSearch}
+                  onSelect={item => {
+                    update('fontFamily', item.id)
+                    setFontSearch('')
+                  }}
+                />
+              )}
+            </section>
+
+            <hr className="border-border" />
+
+            {/* ── Toggle visibility ───────────────────────── */}
+            <section className="space-y-4">
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm font-medium">{t('branding.showHeroImage')}</span>
+                <Switch checked={draft.showHeroImage} onCheckedChange={v => update('showHeroImage', v)} className="cursor-pointer" />
+              </div>
+              <hr className="border-border" />
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm font-medium">{t('branding.showDescriptions')}</span>
+                <Switch
+                  checked={draft.showDescriptions}
+                  onCheckedChange={v => update('showDescriptions', v)}
+                  className="cursor-pointer"
+                />
+              </div>
+              <hr className="border-border" />
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm font-medium">{t('branding.showDuration')}</span>
+                <Switch checked={draft.showDuration} onCheckedChange={v => update('showDuration', v)} className="cursor-pointer" />
+              </div>
+              <hr className="border-border" />
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm font-medium">{t('branding.showPrices')}</span>
+                <Switch checked={draft.showPrices} onCheckedChange={v => update('showPrices', v)} className="cursor-pointer" />
+              </div>
+            </section>
+          </div>
+
+          {/* Right: Live preview */}
+          <div className="lg:col-span-2">
+            <div className="sticky top-24 space-y-6">
+              <p className="text-sm font-medium text-muted-foreground text-center">{t('branding.preview')}</p>
+
+              <div
+                className="rounded-2xl border border-input bg-muted/30 p-8 flex flex-col items-center gap-6"
+                style={{ fontFamily: fontFamilyValue(draft.fontFamily) }}
+              >
+                <div className="w-full max-w-[260px] rounded-xl border border-input bg-card overflow-hidden shadow-sm">
+                  {draft.showHeroImage && (
+                    <div className="h-28 bg-muted flex items-center justify-center">
+                      {draft.showLogo && venue?.logo ? (
+                        <img src={venue.logo} alt="" className="h-10 w-10 rounded-full object-cover" />
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-foreground/5 flex items-center justify-center">
+                          <span className="text-lg text-foreground/20">{(venue?.name || 'A').charAt(0)}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <div className="p-4 space-y-3">
+                    {/* Sample service card */}
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold text-foreground">{t('branding.sampleServiceName', { defaultValue: 'Manicura express' })}</p>
+                      {draft.showDescriptions && (
+                        <p className="text-xs text-muted-foreground">
+                          {t('branding.sampleServiceDescription', {
+                            defaultValue: 'Quitarle pellejitos y dejar limpia la uña',
+                          })}
+                        </p>
+                      )}
+                      {(draft.showPrices || draft.showDuration) && (
+                        <p className="text-xs font-medium text-foreground/70">
+                          {draft.showPrices && <span>{t('branding.samplePrice', { defaultValue: '$250' })}</span>}
+                          {draft.showPrices && draft.showDuration && <span> · </span>}
+                          {draft.showDuration && <span>{t('branding.sampleDuration', { defaultValue: '15 min' })}</span>}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      className={`w-full py-2.5 text-sm font-semibold text-white transition-all ${SHAPE_CLASSES[draft.buttonShape]}`}
+                      style={{ backgroundColor: draft.accentColor ?? INHERIT_PREVIEW_COLOR }}
+                    >
+                      {t('branding.previewCta', { defaultValue: 'Siguiente' })}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
