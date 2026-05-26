@@ -550,22 +550,29 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
           <SectionHeader icon={BarChart3} title={t('rawMaterials.fields.currentStock')} />
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Current Stock */}
+            {/* Current Stock — IMPORTANT: read-only in edit mode to prevent stock changes
+               that bypass FIFO batch tracking. Stock must be changed via "Adjust Stock". */}
             <div>
               <FieldLabel
                 htmlFor="currentStock"
                 label={t('rawMaterials.fields.currentStock')}
-                required
+                required={mode === 'create'}
                 helpKey="rawMaterials.fieldHelp.currentStock"
               />
               <Input
                 id="currentStock"
                 type="number"
                 step="0.01"
-                {...register('currentStock', { required: true, valueAsNumber: true })}
-                className="h-12 text-base"
+                {...register('currentStock', { required: mode === 'create', valueAsNumber: true })}
+                className={`h-12 text-base ${mode === 'edit' ? 'bg-muted cursor-not-allowed opacity-70' : ''}`}
                 placeholder="0"
+                disabled={mode === 'edit'}
               />
+              {mode === 'edit' && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                  {t('rawMaterials.fieldHelp.currentStockReadonly')}
+                </p>
+              )}
               {errors.currentStock && <p className="text-xs text-destructive mt-1">{t('validation.required')}</p>}
             </div>
 

@@ -200,6 +200,7 @@
       "gtin": "Global Trade Item Number - Universal product barcode (UPC/EAN). Used to identify standard commercial products. Example: 7501234567890",
       "unit": "Unit of measurement for this ingredient. This defines how you'll track stock, make purchases, and calculate costs. Choose the unit that makes most sense for this ingredient.",
       "currentStock": "The quantity you currently have in inventory right now. This will be measured in the unit you selected above.",
+      "currentStockReadonly": "To modify stock use \"Adjust Stock\" from the ingredient detail. This ensures FIFO inventory is updated correctly.",
       "minimumStock": "The absolute lowest quantity you want in stock. System triggers alerts when stock falls below this level.",
       "reorderPoint": "The stock level that triggers a purchase order. Should be higher than minimum stock to account for delivery time. Example: If minimum is 5kg and delivery takes 3 days, set reorder point to 10kg.",
       "maximumStock": "Maximum storage capacity for this ingredient. Helps prevent over-ordering and waste. Optional but recommended for perishable items.",

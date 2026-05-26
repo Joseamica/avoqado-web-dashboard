@@ -200,6 +200,7 @@
       "gtin": "Global Trade Item Number - Código de barras universal del producto (UPC/EAN). Se usa para identificar productos comerciales estándar. Ejemplo: 7501234567890",
       "unit": "Unidad de medida para este ingrediente. Define cómo rastrearás el stock, harás compras y calcularás costos. Elige la unidad que tenga más sentido para este ingrediente.",
       "currentStock": "La cantidad que tienes actualmente en inventario en este momento. Se medirá en la unidad que seleccionaste arriba.",
+      "currentStockReadonly": "Para modificar el stock usa \"Ajustar Stock\" desde el detalle del ingrediente. Esto garantiza que el inventario FIFO se actualice correctamente.",
       "minimumStock": "La cantidad mínima absoluta que quieres tener en stock. El sistema genera alertas cuando el stock cae por debajo de este nivel.",
       "reorderPoint": "El nivel de stock que activa una orden de compra. Debe ser mayor que el stock mínimo para considerar el tiempo de entrega. Ejemplo: Si el mínimo es 5kg y la entrega toma 3 días, configura el punto de reorden en 10kg.",
       "maximumStock": "Capacidad máxima de almacenamiento para este ingrediente. Ayuda a prevenir exceso de pedidos y desperdicio. Opcional pero recomendado para items perecederos.",
