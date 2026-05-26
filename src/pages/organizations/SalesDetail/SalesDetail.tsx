@@ -89,6 +89,15 @@ function statusBadge(status: SaleVerificationStatus) {
   return <Badge className="bg-muted text-muted-foreground border-input">Pendiente</Badge>
 }
 
+/**
+ * Display label for the "Tipo de venta" column. A sale with a $0 payment is a
+ * giveaway, so it shows "Gratis" regardless of the underlying saleType enum.
+ */
+function saleTypeLabel(row: OrgSaleRow): string {
+  if (row.payment != null && Number(row.payment.amount) === 0) return 'Gratis'
+  return SALE_TYPE_LABELS[row.saleType]
+}
+
 export default function SalesDetail() {
   const { orgId, orgSlug, isLoading: orgLoading, organization } = useCurrentOrganization()
   const { formatDate, formatTime } = useVenueDateTime()
@@ -260,7 +269,7 @@ export default function SalesDetail() {
         'Email Promotor': r.staff?.email ?? '',
         Ciudad: r.venue.city ?? '',
         Tienda: r.venue.name,
-        'Tipo de Venta': SALE_TYPE_LABELS[r.saleType],
+        'Tipo de Venta': saleTypeLabel(r),
         'Forma de Pago': PAYMENT_FORM_LABELS[r.payment?.paymentForm ?? 'NONE'],
         'Monto MXN': r.payment?.amount ?? 0,
         Status:
@@ -535,7 +544,7 @@ export default function SalesDetail() {
                     <td className="px-3 py-2">{row.staff ? `${row.staff.firstName} ${row.staff.lastName}`.trim() : '—'}</td>
                     <td className="px-3 py-2">{row.venue.city ?? '—'}</td>
                     <td className="px-3 py-2">{row.venue.name}</td>
-                    <td className="px-3 py-2">{SALE_TYPE_LABELS[row.saleType]}</td>
+                    <td className="px-3 py-2">{saleTypeLabel(row)}</td>
                     <td className="px-3 py-2">{PAYMENT_FORM_LABELS[row.payment?.paymentForm ?? 'NONE']}</td>
                     <td className="px-3 py-2 text-right font-mono">
                       {row.payment?.amount?.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }) ?? '—'}
@@ -728,7 +737,7 @@ function SaleCard({
       {/* Key fields grid */}
       <div className="grid grid-cols-2 gap-2 text-xs">
         <Field label="Tipo SIM" value={row.category?.name ?? '—'} />
-        <Field label="Tipo venta" value={SALE_TYPE_LABELS[row.saleType]} />
+        <Field label="Tipo venta" value={saleTypeLabel(row)} />
         <Field label="Forma pago" value={PAYMENT_FORM_LABELS[row.payment?.paymentForm ?? 'NONE']} />
         <Field label="Monto" value={amount} mono />
       </div>
