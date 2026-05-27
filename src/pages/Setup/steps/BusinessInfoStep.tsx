@@ -105,7 +105,7 @@ export function BusinessInfoStep({ data, onNext }: StepProps) {
         <div className="grid gap-2">
           <Label htmlFor="businessEmail">
             {t('step2.emailLabel', { defaultValue: 'Correo del negocio' })}
-            <span className="ml-2 text-xs font-normal text-muted-foreground">{t('common.optional', { defaultValue: '(opcional)' })}</span>
+            <span className="ml-2 text-xs font-normal text-muted-foreground">{t('common:optional', { defaultValue: '(opcional)' })}</span>
           </Label>
           <Input
             id="businessEmail"

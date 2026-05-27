@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { format, parse, isValid as isValidDate } from 'date-fns'
 import { es, enUS } from 'date-fns/locale'
-import { Tag, CalendarIcon, Infinity } from 'lucide-react'
+import { Tag, CalendarIcon, Infinity as InfinityIcon } from 'lucide-react'
 import {
 	Dialog,
 	DialogContent,
@@ -242,7 +242,7 @@ export default function NameCard({ state, dispatch }: NameCardProps) {
 										if (checked) setLocalTo(undefined)
 									}}
 								/>
-								<Infinity className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+								<InfinityIcon className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
 								<span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
 									{t('setup.name.indefiniteLabel')}
 								</span>
