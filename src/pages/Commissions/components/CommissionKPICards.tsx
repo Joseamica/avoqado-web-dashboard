@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
-import { DollarSign, Clock, CheckCircle2, Users, Trophy, Medal, Award } from 'lucide-react'
+import { DollarSign, Clock, CheckCircle2, Users, Trophy, Medal, Award, Settings2, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import type { CommissionStats } from '@/types/commission'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -63,9 +64,14 @@ const rankConfig = [
 interface CommissionKPICardsProps {
 	stats: CommissionStats | undefined
 	isLoading: boolean
+	/** Whether any commission configs exist */
+	hasConfigs?: boolean
+	isLoadingConfigs?: boolean
+	/** Navigate to the config tab */
+	onGoToConfig?: () => void
 }
 
-export default function CommissionKPICards({ stats, isLoading }: CommissionKPICardsProps) {
+export default function CommissionKPICards({ stats, isLoading, hasConfigs = true, isLoadingConfigs = false, onGoToConfig }: CommissionKPICardsProps) {
 	const { t, i18n } = useTranslation('commissions')
 
 	// Format currency
@@ -79,6 +85,31 @@ export default function CommissionKPICards({ stats, isLoading }: CommissionKPICa
 	}
 
 	const topEarners = stats?.topEarners?.slice(0, 3) || []
+
+	// First-time experience: no configs exist → show setup guidance instead of empty KPIs
+	if (!isLoadingConfigs && !hasConfigs) {
+		return (
+			<GlassCard className="p-8">
+				<div className="flex flex-col items-center justify-center text-center space-y-4">
+					<div className="p-4 rounded-full bg-muted">
+						<Settings2 className="h-8 w-8 text-muted-foreground" />
+					</div>
+					<div className="space-y-2">
+						<h3 className="text-lg font-semibold">{t('overview.noConfigTitle')}</h3>
+						<p className="text-sm text-muted-foreground max-w-md">
+							{t('overview.noConfigDescription')}
+						</p>
+					</div>
+					{onGoToConfig && (
+						<Button onClick={onGoToConfig} className="mt-2">
+							{t('overview.goToConfig')}
+							<ArrowRight className="h-4 w-4 ml-2" />
+						</Button>
+					)}
+				</div>
+			</GlassCard>
+		)
+	}
 
 	return (
 		<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

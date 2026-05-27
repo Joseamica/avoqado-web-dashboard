@@ -5,11 +5,23 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { AddressAutocomplete, type PlaceDetails } from '@/components/address-autocomplete'
+import { useAuth } from '@/context/AuthContext'
 import type { StepProps } from '../types'
+
+// Lightweight email format check. The full validation lives on the backend
+// (`Venue.email` accepts NULL but rejects malformed strings via prisma). We
+// just stop the wizard from advancing with obvious typos.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function BusinessInfoStep({ data, onNext }: StepProps) {
   const { t } = useTranslation('setup')
+  const { user } = useAuth()
   const [businessName, setBusinessName] = useState(data.businessName || '')
+  // Pre-fill with the signup email so the operator doesn't have to retype it;
+  // they can still override before submitting. Without this default the field
+  // was previously never collected at all (V2 wizard skipped it) and venues
+  // landed with `Venue.email = NULL`.
+  const [email, setEmail] = useState(data.email || user?.email || '')
   const [address, setAddress] = useState(data.address || '')
   const [city, setCity] = useState(data.city || '')
   const [state, setState] = useState(data.state || '')
@@ -19,6 +31,7 @@ export function BusinessInfoStep({ data, onNext }: StepProps) {
   const [longitude, setLongitude] = useState(data.longitude || 0)
   const [noPhysicalAddress, setNoPhysicalAddress] = useState(data.noPhysicalAddress || false)
   const [error, setError] = useState('')
+  const [emailError, setEmailError] = useState('')
 
   const handleAddressSelect = (place: PlaceDetails) => {
     setAddress(place.address)
@@ -35,11 +48,20 @@ export function BusinessInfoStep({ data, onNext }: StepProps) {
   const handleNext = () => {
     const nameErr = !businessName.trim() ? t('step2.businessNameRequired') : ''
     const addrErr = !noPhysicalAddress && !address.trim() ? t('step2.addressRequired') : ''
+    const trimmedEmail = email.trim()
+    // Email is OPTIONAL: if left empty the backend falls back to the signup
+    // email (Staff.email). We only validate format when the user actually
+    // typed something — otherwise empty is a valid value.
+    const emailErr = trimmedEmail && !EMAIL_RE.test(trimmedEmail)
+      ? t('step2.emailInvalid', { defaultValue: 'Correo inválido' })
+      : ''
     setError(nameErr)
     setAddressError(addrErr)
-    if (nameErr || addrErr) return
+    setEmailError(emailErr)
+    if (nameErr || addrErr || emailErr) return
     onNext({
       businessName: businessName.trim(),
+      email: trimmedEmail,
       address,
       city,
       state,
@@ -54,9 +76,7 @@ export function BusinessInfoStep({ data, onNext }: StepProps) {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-          {t('step2.title')}
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{t('step2.title')}</h1>
         <p className="text-sm text-muted-foreground">{t('step2.subtitle')}</p>
       </div>
 
@@ -67,7 +87,7 @@ export function BusinessInfoStep({ data, onNext }: StepProps) {
           <Input
             id="businessName"
             value={businessName}
-            onChange={(e) => {
+            onChange={e => {
               setBusinessName(e.target.value)
               if (error) setError('')
             }}
@@ -78,13 +98,43 @@ export function BusinessInfoStep({ data, onNext }: StepProps) {
           {error && <p className="text-xs text-destructive">{error}</p>}
         </div>
 
+        {/* Business contact email — OPTIONAL. Pre-filled with the signup email
+            but the operator can clear it (backend falls back to Staff.email) or
+            replace it with a shared business mailbox. Persisted as `Venue.email`
+            on completion. */}
+        <div className="grid gap-2">
+          <Label htmlFor="businessEmail">
+            {t('step2.emailLabel', { defaultValue: 'Correo del negocio' })}
+            <span className="ml-2 text-xs font-normal text-muted-foreground">{t('common.optional', { defaultValue: '(opcional)' })}</span>
+          </Label>
+          <Input
+            id="businessEmail"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            value={email}
+            onChange={e => {
+              setEmail(e.target.value)
+              if (emailError) setEmailError('')
+            }}
+            placeholder={t('step2.emailPlaceholder', { defaultValue: 'hola@tunegocio.com' })}
+            className="rounded-lg h-12 text-base"
+          />
+          <p className="text-xs text-muted-foreground">
+            {t('step2.emailHint', {
+              defaultValue: 'Pre-llenado con el correo con el que te registraste. Cámbialo si prefieres recibir las notificaciones en otro buzón.',
+            })}
+          </p>
+          {emailError && <p className="text-xs text-destructive">{emailError}</p>}
+        </div>
+
         {/* Address */}
         {!noPhysicalAddress && (
           <div className="grid gap-2">
             <Label>{t('step2.addressLabel')}</Label>
             <AddressAutocomplete
               value={address}
-              onAddressSelect={(place) => {
+              onAddressSelect={place => {
                 handleAddressSelect(place)
                 if (addressError) setAddressError('')
               }}
@@ -101,7 +151,7 @@ export function BusinessInfoStep({ data, onNext }: StepProps) {
           <Checkbox
             id="noPhysicalAddress"
             checked={noPhysicalAddress}
-            onCheckedChange={(checked) => setNoPhysicalAddress(checked === true)}
+            onCheckedChange={checked => setNoPhysicalAddress(checked === true)}
           />
           <Label htmlFor="noPhysicalAddress" className="text-sm font-normal cursor-pointer">
             {t('step2.noPhysicalAddress')}

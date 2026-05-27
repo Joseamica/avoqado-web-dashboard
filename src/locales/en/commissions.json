@@ -9,6 +9,11 @@
 		"approvals": "Approvals & Payouts",
 		"payouts": "Payouts"
 	},
+	"overview": {
+		"noConfigTitle": "Set up commissions for your team",
+		"noConfigDescription": "To see the commissions overview, you first need to create a configuration. Define how much your staff earns and how it's calculated.",
+		"goToConfig": "Go to Configuration"
+	},
 	"ranking": {
 		"title": "Commission Ranking",
 		"description": "Accumulated commissions per staff member",
@@ -47,6 +52,117 @@
 		"averageCommission": "Average Commission",
 		"thisMonth": "This Month",
 		"lastMonth": "Last Month"
+	},
+	"setup": {
+		"title": "New Commission Configuration",
+		"requiredLabel": "required",
+		"createButton": "Create Configuration",
+		"status": {
+			"ready": "Ready",
+			"pending": "Pending",
+			"optional": "Optional"
+		},
+		"rate": {
+			"title": "Commission Rate",
+			"pending": "Set the rate",
+			"recipientLabel": "Who receives the commission?"
+		},
+		"name": {
+			"title": "Name & Validity",
+			"pending": "Set a name",
+			"label": "Configuration name",
+			"placeholder": "E.g.: Waiter Commission",
+			"validitySection": "Validity period",
+			"from": "From",
+			"to": "Until",
+			"pickDate": "Pick a date",
+			"clearDate": "Clear date",
+			"indefiniteLabel": "Always active (no end date)",
+			"indefiniteShort": "No limit",
+			"datesHint": "Dates are optional. No start date = starts today."
+		},
+		"staff": {
+			"title": "Staff",
+			"allStaff": "All staff",
+			"excludedCount": "{{count}} excluded",
+			"customCount": "{{count}} with custom rate",
+			"noneSelected": "No staff selected",
+			"selectedCount": "{{count}} selected",
+			"modeAll": "All staff",
+			"modeAllDesc": "Commission applies to the entire team. Add exceptions below.",
+			"modeSelected": "Selected only",
+			"modeSelectedDesc": "Commission only applies to the staff you add.",
+			"switchToSelected": "Switch to selected",
+			"switchToAll": "Switch to all",
+			"exceptions": "Exceptions",
+			"assigned": "Assigned staff",
+			"excluded": "Excluded",
+			"exclude": "Exclude",
+			"addException": "Add exception",
+			"addStaff": "Add staff member",
+			"searchPlaceholder": "Search staff...",
+			"noResults": "No staff found"
+		},
+		"calcBase": {
+			"title": "Calculation Base",
+			"subtotalOnly": "Subtotal only",
+			"tax": "Tax",
+			"tips": "Tips",
+			"discounts": "Discounts",
+			"description": "Choose which sale components are included when calculating commission."
+		},
+		"categories": {
+			"title": "Categories",
+			"allCategories": "All categories",
+			"selectedCount": "{{count}} categories",
+			"noneSelected": "No categories selected",
+			"filterLabel": "Filter by categories",
+			"filterDesc": "Only calculate commission on sales from specific categories"
+		},
+		"period": {
+			"title": "Summary Period",
+			"description": "How often are commissions grouped for payroll?",
+			"options": {
+				"WEEKLY": "Weekly",
+				"BIWEEKLY": "Biweekly",
+				"MONTHLY": "Monthly"
+			},
+			"hints": {
+				"WEEKLY": "Resets every Monday. Ideal for weekly payroll.",
+				"BIWEEKLY": "Resets every two weeks. Common in many regions.",
+				"MONTHLY": "Resets on the 1st. Aligned with monthly payroll."
+			}
+		},
+		"tiers": {
+			"title": "Tiered Commission",
+			"enabledDesc": "{{count}} tiers configured",
+			"disabledDesc": "Flat rate for everyone",
+			"enablePrompt": "Enable tiers to give higher commission to top sellers.",
+			"enable": "Enable tiers",
+			"disable": "Disable tiers",
+			"levelName": "Level {{n}}"
+		},
+		"roleRates": {
+			"title": "Rates by Role",
+			"enabledDesc": "{{count}} roles configured",
+			"disabledDesc": "Same rate for all roles",
+			"enablePrompt": "Enable role rates to set different commissions per position.",
+			"enable": "Enable role rates",
+			"disable": "Disable role rates",
+			"description": "Set a different commission rate for each role.",
+			"addRole": "Add role"
+		},
+		"limits": {
+			"title": "Commission Limits",
+			"disabledDesc": "No limits",
+			"maxOnly": "Max {{max}}",
+			"minOnly": "Min {{min}}",
+			"enabledNoValues": "Limits enabled",
+			"enablePrompt": "Enable limits to set a minimum or maximum per commission.",
+			"enable": "Enable limits",
+			"disable": "Disable limits",
+			"description": "Set a minimum or maximum commission amount per transaction."
+		}
 	},
 	"config": {
 		"title": "Commission Configurations",
@@ -111,12 +227,12 @@
 		"MANUAL_DESC": "Manually assigned commissions"
 	},
 	"recipients": {
-		"CREATOR": "Order Creator",
-		"CREATOR_DESC": "Who entered the order",
-		"SERVER": "Server",
-		"SERVER_DESC": "Who served the customer",
-		"PROCESSOR": "Payment Processor",
-		"PROCESSOR_DESC": "Who processed the payment"
+		"CREATOR": "Who took the order",
+		"CREATOR_DESC": "Who entered the order in the system",
+		"SERVER": "Who attended",
+		"SERVER_DESC": "Who served the customer at the table",
+		"PROCESSOR": "Who charged",
+		"PROCESSOR_DESC": "Who processed the payment at the terminal"
 	},
 	"tiers": {
 		"title": "Tiers",
@@ -286,8 +402,18 @@
 		"assignToHint": "Select employees or choose a venue-wide goal",
 		"searchStaff": "Search employee...",
 		"multipleStaff": "{{count}} employees selected",
+		"goalType": "Goal type",
+		"goalTypes": {
+			"AMOUNT": "By amount",
+			"AMOUNT_DESC": "Target in money ($)",
+			"QUANTITY": "By quantity",
+			"QUANTITY_DESC": "Target in number of sales"
+		},
 		"goalAmount": "Sales Goal",
 		"goalAmountHint": "The target sales amount for this period",
+		"goalQuantityLabel": "Sales quantity",
+		"goalQuantityHint": "The target number of sales for this period",
+		"currentQuantity": "Sold",
 		"period": "Period",
 		"selectPeriod": "Select period",
 		"periodHint": "How often the goal resets",

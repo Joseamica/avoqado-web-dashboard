@@ -1,6 +1,13 @@
 export interface SetupData {
   // Step 2: Business Info
   businessName?: string
+  /**
+   * Business contact email. Pre-populated from the signup `Staff.email` but
+   * editable so the operator can route notifications to a shared mailbox
+   * (e.g. `gerencia@negocio.com`) instead of their personal one. Persisted
+   * to `Venue.email` on completion.
+   */
+  email?: string
   address?: string
   city?: string
   state?: string

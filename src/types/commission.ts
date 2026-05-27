@@ -450,12 +450,14 @@ export interface MyCommissionsResponse {
 // ============================================
 
 export type SalesGoalPeriod = 'DAILY' | 'WEEKLY' | 'MONTHLY'
+export type SalesGoalType = 'AMOUNT' | 'QUANTITY'
 
 export interface SalesGoal {
 	id: string
 	venueId: string
 	staffId: string | null // null = venue-wide goal
 	goal: number
+	goalType: SalesGoalType // AMOUNT = money target, QUANTITY = unit count target
 	period: SalesGoalPeriod
 	currentSales: number
 	active: boolean
@@ -467,11 +469,13 @@ export interface SalesGoal {
 export interface CreateSalesGoalInput {
 	staffId?: string | null
 	goal: number
+	goalType?: SalesGoalType
 	period: SalesGoalPeriod
 }
 
 export interface UpdateSalesGoalInput {
 	goal?: number
+	goalType?: SalesGoalType
 	period?: SalesGoalPeriod
 	active?: boolean
 }

@@ -238,6 +238,12 @@
       "locationInfo": "Ubicación",
       "brandingInfo": "Identidad de Marca"
     },
+    "subtitles": {
+      "basicInfo": "Nombre, tipo de negocio y datos generales del local",
+      "contact": "Información de contacto pública, logo y foto de portada del local",
+      "locationInfo": "Dirección física y zona horaria",
+      "brandingInfo": "Colores de marca y personalización visual"
+    },
     "nav": {
       "general": "General",
       "basicInfo": "Información Básica",

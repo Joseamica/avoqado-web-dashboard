@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Check, ChevronsUpDown, Building2, Users } from 'lucide-react'
+import { Check, ChevronsUpDown, Building2, Users, DollarSign, Hash } from 'lucide-react'
 import {
 	Dialog,
 	DialogContent,
@@ -50,11 +50,12 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useCreateSalesGoal, useUpdateSalesGoal } from '@/hooks/useCommissions'
 import { teamService } from '@/services/team.service'
 import { useToast } from '@/hooks/use-toast'
-import type { SalesGoal, SalesGoalPeriod } from '@/types/commission'
+import type { SalesGoal, SalesGoalPeriod, SalesGoalType } from '@/types/commission'
 import { cn, includesNormalized } from '@/lib/utils'
 
 const goalSchema = z.object({
-	goal: z.number().min(1, 'La meta debe ser mayor a 0'),
+	goal: z.number({ invalid_type_error: 'La meta es requerida' }).min(1, 'La meta debe ser mayor a 0'),
+	goalType: z.enum(['AMOUNT', 'QUANTITY'] as const),
 	period: z.enum(['DAILY', 'WEEKLY', 'MONTHLY'] as const),
 	active: z.boolean(),
 })
@@ -110,6 +111,7 @@ export default function CreateGoalDialog({
 		resolver: zodResolver(goalSchema),
 		defaultValues: {
 			goal: goal?.goal || 10000,
+			goalType: goal?.goalType || 'AMOUNT',
 			period: goal?.period || 'DAILY',
 			active: goal?.active ?? true,
 		},
@@ -123,6 +125,7 @@ export default function CreateGoalDialog({
 				setSelectedIds(goal.staffId ? [goal.staffId] : [VENUE_WIDE])
 				form.reset({
 					goal: goal.goal,
+					goalType: goal.goalType || 'AMOUNT',
 					period: goal.period,
 					active: goal.active ?? true,
 				})
@@ -130,6 +133,7 @@ export default function CreateGoalDialog({
 				setSelectedIds([VENUE_WIDE])
 				form.reset({
 					goal: 10000,
+					goalType: 'AMOUNT',
 					period: 'DAILY',
 					active: true,
 				})
@@ -184,6 +188,7 @@ export default function CreateGoalDialog({
 					goalId: goal.id,
 					data: {
 						goal: data.goal,
+						goalType: data.goalType as SalesGoalType,
 						period: data.period as SalesGoalPeriod,
 						active: data.active,
 					},
@@ -202,6 +207,7 @@ export default function CreateGoalDialog({
 						await createGoalMutation.mutateAsync({
 							staffId,
 							goal: data.goal,
+							goalType: data.goalType as SalesGoalType,
 							period: data.period as SalesGoalPeriod,
 						})
 						created++
@@ -337,29 +343,90 @@ export default function CreateGoalDialog({
 							</div>
 						)}
 
-						{/* Goal Amount */}
+						{/* Goal Type */}
 						<FormField
 							control={form.control}
-							name="goal"
+							name="goalType"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>{t('goals.goalAmount')}</FormLabel>
-									<FormControl>
-										<div className="relative">
-											<span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-											<Input
-												type="number"
-												className="pl-7"
-												placeholder="10000"
-												{...field}
-												onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
-											/>
-										</div>
-									</FormControl>
-									<FormDescription>{t('goals.goalAmountHint')}</FormDescription>
+									<FormLabel>{t('goals.goalType')}</FormLabel>
+									<div className="grid grid-cols-2 gap-2">
+										<button
+											type="button"
+											onClick={() => field.onChange('AMOUNT')}
+											className={cn(
+												'flex items-center gap-2 rounded-lg border p-3 text-left text-sm transition-colors cursor-pointer',
+												field.value === 'AMOUNT'
+													? 'border-primary bg-primary/5 text-foreground'
+													: 'border-input bg-transparent text-muted-foreground hover:bg-muted/50'
+											)}
+										>
+											<DollarSign className="h-4 w-4 shrink-0" />
+											<div>
+												<p className="font-medium">{t('goals.goalTypes.AMOUNT')}</p>
+												<p className="text-xs text-muted-foreground">{t('goals.goalTypes.AMOUNT_DESC')}</p>
+											</div>
+										</button>
+										<button
+											type="button"
+											onClick={() => field.onChange('QUANTITY')}
+											className={cn(
+												'flex items-center gap-2 rounded-lg border p-3 text-left text-sm transition-colors cursor-pointer',
+												field.value === 'QUANTITY'
+													? 'border-primary bg-primary/5 text-foreground'
+													: 'border-input bg-transparent text-muted-foreground hover:bg-muted/50'
+											)}
+										>
+											<Hash className="h-4 w-4 shrink-0" />
+											<div>
+												<p className="font-medium">{t('goals.goalTypes.QUANTITY')}</p>
+												<p className="text-xs text-muted-foreground">{t('goals.goalTypes.QUANTITY_DESC')}</p>
+											</div>
+										</button>
+									</div>
 									<FormMessage />
 								</FormItem>
 							)}
+						/>
+
+						{/* Goal Amount / Quantity */}
+						<FormField
+							control={form.control}
+							name="goal"
+							render={({ field }) => {
+								const isQuantity = form.watch('goalType') === 'QUANTITY'
+								return (
+									<FormItem>
+										<FormLabel>
+											{isQuantity ? t('goals.goalQuantityLabel') : t('goals.goalAmount')}
+										</FormLabel>
+										<FormControl>
+											<div className="relative">
+												{!isQuantity && (
+													<span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+												)}
+												{isQuantity && (
+													<Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+												)}
+												<Input
+													type="number"
+													className="pl-7"
+													placeholder={isQuantity ? '50' : '10000'}
+													value={field.value ?? ''}
+													onChange={(e) => {
+														const raw = e.target.value
+														field.onChange(raw === '' ? undefined : parseFloat(raw))
+													}}
+												/>
+											</div>
+										</FormControl>
+										<FormDescription>
+											{isQuantity ? t('goals.goalQuantityHint') : t('goals.goalAmountHint')}
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)
+							}}
 						/>
 
 						{/* Period */}

@@ -238,6 +238,12 @@
       "locationInfo": "Location",
       "brandingInfo": "Branding"
     },
+    "subtitles": {
+      "basicInfo": "Name, business type and general venue details",
+      "contact": "Public contact details, logo and cover photo for your venue",
+      "locationInfo": "Physical address and timezone",
+      "brandingInfo": "Brand colors and visual customization"
+    },
     "nav": {
       "general": "General",
       "basicInfo": "Basic Information",

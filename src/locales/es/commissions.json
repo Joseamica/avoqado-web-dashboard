@@ -9,6 +9,11 @@
 		"approvals": "Aprobaciones y Pagos",
 		"payouts": "Pagos"
 	},
+	"overview": {
+		"noConfigTitle": "Configura comisiones para tu equipo",
+		"noConfigDescription": "Para ver el resumen de comisiones, primero necesitas crear una configuración. Define cuánto ganan tus empleados y cómo se calcula.",
+		"goToConfig": "Ir a Configuración"
+	},
 	"ranking": {
 		"title": "Ranking de Comisiones",
 		"description": "Acumulado de comisiones por empleado",
@@ -47,6 +52,117 @@
 		"averageCommission": "Comisión Promedio",
 		"thisMonth": "Este Mes",
 		"lastMonth": "Mes Anterior"
+	},
+	"setup": {
+		"title": "Nueva Configuración de Comisión",
+		"requiredLabel": "obligatorios",
+		"createButton": "Crear Configuración",
+		"status": {
+			"ready": "Listo",
+			"pending": "Pendiente",
+			"optional": "Opcional"
+		},
+		"rate": {
+			"title": "Tasa de Comisión",
+			"pending": "Configura la tasa",
+			"recipientLabel": "¿Quién recibe la comisión?"
+		},
+		"name": {
+			"title": "Nombre y Vigencia",
+			"pending": "Asigna un nombre",
+			"label": "Nombre de la configuración",
+			"placeholder": "Ej: Comisión Meseros",
+			"validitySection": "Vigencia",
+			"from": "Desde",
+			"to": "Hasta",
+			"pickDate": "Elegir fecha",
+			"clearDate": "Quitar fecha",
+			"indefiniteLabel": "Aplica siempre (sin fecha de fin)",
+			"indefiniteShort": "Sin límite",
+			"datesHint": "Las fechas son opcionales. Sin fecha de inicio = empieza hoy."
+		},
+		"staff": {
+			"title": "Empleados",
+			"allStaff": "Todos los empleados",
+			"excludedCount": "{{count}} excluidos",
+			"customCount": "{{count}} con tasa especial",
+			"noneSelected": "Sin empleados seleccionados",
+			"selectedCount": "{{count}} seleccionados",
+			"modeAll": "Todos los empleados",
+			"modeAllDesc": "La comisión aplica a todo el equipo. Agrega excepciones abajo.",
+			"modeSelected": "Solo seleccionados",
+			"modeSelectedDesc": "La comisión solo aplica a los empleados que agregues.",
+			"switchToSelected": "Cambiar a seleccionados",
+			"switchToAll": "Cambiar a todos",
+			"exceptions": "Excepciones",
+			"assigned": "Empleados asignados",
+			"excluded": "Excluido",
+			"exclude": "Excluir",
+			"addException": "Agregar excepción",
+			"addStaff": "Agregar empleado",
+			"searchPlaceholder": "Buscar empleado...",
+			"noResults": "No se encontraron empleados"
+		},
+		"calcBase": {
+			"title": "Base de Cálculo",
+			"subtotalOnly": "Solo subtotal",
+			"tax": "Impuesto",
+			"tips": "Propinas",
+			"discounts": "Descuentos",
+			"description": "Elige qué componentes de la venta se incluyen al calcular la comisión."
+		},
+		"categories": {
+			"title": "Categorías",
+			"allCategories": "Todas las categorías",
+			"selectedCount": "{{count}} categorías",
+			"noneSelected": "Sin categorías seleccionadas",
+			"filterLabel": "Filtrar por categorías",
+			"filterDesc": "Solo calcular comisión sobre ventas de categorías específicas"
+		},
+		"period": {
+			"title": "Período de Resumen",
+			"description": "¿Cada cuándo se agrupan las comisiones para nómina?",
+			"options": {
+				"WEEKLY": "Semanal",
+				"BIWEEKLY": "Quincenal",
+				"MONTHLY": "Mensual"
+			},
+			"hints": {
+				"WEEKLY": "Se reinicia cada lunes. Ideal para pagos semanales.",
+				"BIWEEKLY": "Se reinicia cada quincena. El más común en México.",
+				"MONTHLY": "Se reinicia el día 1. Alineado con nómina mensual."
+			}
+		},
+		"tiers": {
+			"title": "Comisión por Niveles",
+			"enabledDesc": "{{count}} niveles configurados",
+			"disabledDesc": "Tasa fija para todos",
+			"enablePrompt": "Activa los niveles para dar mayor comisión a quien vende más.",
+			"enable": "Activar niveles",
+			"disable": "Desactivar niveles",
+			"levelName": "Nivel {{n}}"
+		},
+		"roleRates": {
+			"title": "Tasas por Rol",
+			"enabledDesc": "{{count}} roles configurados",
+			"disabledDesc": "Misma tasa para todos los roles",
+			"enablePrompt": "Activa tasas por rol para dar diferente comisión según el puesto.",
+			"enable": "Activar tasas por rol",
+			"disable": "Desactivar tasas por rol",
+			"description": "Configura una tasa de comisión diferente para cada rol.",
+			"addRole": "Agregar rol"
+		},
+		"limits": {
+			"title": "Límites de Comisión",
+			"disabledDesc": "Sin límites",
+			"maxOnly": "Máximo {{max}}",
+			"minOnly": "Mínimo {{min}}",
+			"enabledNoValues": "Límites activados",
+			"enablePrompt": "Activa límites para poner un mínimo o máximo a cada comisión.",
+			"enable": "Activar límites",
+			"disable": "Desactivar límites",
+			"description": "Define un monto mínimo o máximo de comisión por transacción."
+		}
 	},
 	"config": {
 		"title": "Configuraciones de Comisión",
@@ -111,12 +227,12 @@
 		"MANUAL_DESC": "Comisiones asignadas manualmente"
 	},
 	"recipients": {
-		"CREATOR": "Creador de Orden",
-		"CREATOR_DESC": "Quien capturó la orden",
-		"SERVER": "Servidor",
-		"SERVER_DESC": "Quien atendió al cliente",
-		"PROCESSOR": "Procesador de Pago",
-		"PROCESSOR_DESC": "Quien procesó el pago"
+		"CREATOR": "Quien tomó la orden",
+		"CREATOR_DESC": "Quien capturó la orden en el sistema",
+		"SERVER": "Quien atendió",
+		"SERVER_DESC": "Quien atendió al cliente en la mesa",
+		"PROCESSOR": "Quien cobró",
+		"PROCESSOR_DESC": "Quien procesó el pago en la terminal"
 	},
 	"tiers": {
 		"title": "Niveles",
@@ -286,8 +402,18 @@
 		"assignToHint": "Selecciona empleados o elige una meta general de la sucursal",
 		"searchStaff": "Buscar empleado...",
 		"multipleStaff": "{{count}} empleados seleccionados",
+		"goalType": "Tipo de meta",
+		"goalTypes": {
+			"AMOUNT": "Por monto",
+			"AMOUNT_DESC": "Meta en pesos ($)",
+			"QUANTITY": "Por cantidad",
+			"QUANTITY_DESC": "Meta en número de ventas"
+		},
 		"goalAmount": "Meta de ventas",
 		"goalAmountHint": "El monto objetivo de ventas para este período",
+		"goalQuantityLabel": "Cantidad de ventas",
+		"goalQuantityHint": "El número de ventas objetivo para este período",
+		"currentQuantity": "Vendidos",
 		"period": "Período",
 		"selectPeriod": "Seleccionar período",
 		"periodHint": "Cada cuándo se reinicia la meta",

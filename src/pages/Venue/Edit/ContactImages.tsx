@@ -2,6 +2,7 @@ import api from '@/api'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { PhoneInput } from '@/components/phone-input'
 import { ColorPicker } from '@/components/ui/color-picker'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -30,12 +31,7 @@ const contactImagesFormSchema = z.object({
   email: z.string().email({ message: 'Debe ser un email válido.' }),
   website: z.string().nullable().optional(),
   logo: z.string().nullable().optional(),
-  heroImageUrl: z
-    .string()
-    .url({ message: 'Debe ser una URL válida (https://…)' })
-    .or(z.literal(''))
-    .nullable()
-    .optional(),
+  heroImageUrl: z.string().url({ message: 'Debe ser una URL válida (https://…)' }).or(z.literal('')).nullable().optional(),
   primaryColor: z.string().nullable().optional(),
   secondaryColor: z.string().nullable().optional(),
   latitude: z.number().nullable().optional(),
@@ -148,13 +144,13 @@ export default function ContactImages() {
     uploadTask.on(
       'state_changed',
       () => {},
-      (error) => {
+      error => {
         console.error('Error uploading hero:', error)
         setHeroUploading(false)
         toast({ title: 'Error al subir', description: 'No se pudo subir la imagen. Intenta de nuevo.', variant: 'destructive' })
       },
       () => {
-        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+        getDownloadURL(uploadTask.snapshot.ref).then(downloadURL => {
           setHeroUploading(false)
           form.setValue('heroImageUrl', downloadURL, { shouldDirty: true })
           toast({
@@ -253,7 +249,8 @@ export default function ContactImages() {
       if (contrast === 'too-white') {
         toast({
           title: 'Logo casi invisible',
-          description: 'La imagen es casi toda blanca. Si tu logo tiene fondo transparente, usa una versión con texto oscuro para que se vea en los tickets.',
+          description:
+            'La imagen es casi toda blanca. Si tu logo tiene fondo transparente, usa una versión con texto oscuro para que se vea en los tickets.',
           variant: 'destructive',
         })
       } else if (contrast === 'too-dark') {
@@ -416,7 +413,15 @@ export default function ContactImages() {
                     <FormItem>
                       <FormLabel>{t('edit.labels.phone', { defaultValue: 'Teléfono' })}</FormLabel>
                       <FormControl>
-                        <Input placeholder={t('edit.placeholders.phone', { defaultValue: '+52 123 456 7890' })} {...field} />
+                        {/* PhoneInput emits E.164 (`+526648442154`) so the backend
+                            always receives a canonical, dialable format — fixes
+                            the legacy bug where users could save raw 10-digit
+                            numbers with no country prefix. */}
+                        <PhoneInput
+                          value={field.value || ''}
+                          onChange={field.onChange}
+                          placeholder={t('edit.placeholders.phone', { defaultValue: '664 844 2154' })}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -450,9 +455,7 @@ export default function ContactImages() {
                   name="heroImageUrl"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        {t('edit.labels.heroImageUrl', { defaultValue: 'Foto de portada (booking)' })}
-                      </FormLabel>
+                      <FormLabel>{t('edit.labels.heroImageUrl', { defaultValue: 'Foto de portada (booking)' })}</FormLabel>
 
                       {field.value ? (
                         <div className="mt-2 space-y-2">
@@ -461,7 +464,7 @@ export default function ContactImages() {
                               src={field.value}
                               alt=""
                               className="w-full max-h-56 object-cover"
-                              onError={(e) => {
+                              onError={e => {
                                 ;(e.currentTarget as HTMLImageElement).style.display = 'none'
                               }}
                             />
@@ -530,8 +533,7 @@ export default function ContactImages() {
 
                       <p className="text-xs text-muted-foreground mt-2">
                         {t('edit.helpers.heroImageUrl', {
-                          defaultValue:
-                            '16:9 recomendado, mín. 1200px de ancho. Aparece como hero en book.avoqado.io.',
+                          defaultValue: '16:9 recomendado, mín. 1200px de ancho. Aparece como hero en book.avoqado.io.',
                         })}
                       </p>
                       <FormMessage />
@@ -805,13 +807,7 @@ export default function ContactImages() {
  * matches what the customer will actually see, without iframe-ing the live
  * widget (which would need data + venue to exist).
  */
-function BookingBrandPreview({
-  control,
-  venueName,
-}: {
-  control: any
-  venueName: string
-}) {
+function BookingBrandPreview({ control, venueName }: { control: any; venueName: string }) {
   const primaryColor = useWatch({ control, name: 'primaryColor' }) as string | undefined
   const heroImageUrl = useWatch({ control, name: 'heroImageUrl' }) as string | undefined
   const accent = (primaryColor && primaryColor.trim()) || '#6366F1'
@@ -820,12 +816,8 @@ function BookingBrandPreview({
   return (
     <div className="mt-3 rounded-xl border border-border bg-muted/40 overflow-hidden">
       <div className="px-3 py-2 border-b border-border bg-muted/60 flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground tracking-wide uppercase">
-          Vista previa en book.avoqado.io
-        </span>
-        <span className="text-[10px] font-mono text-muted-foreground/80">
-          {isHexish ? accent : 'usando default'}
-        </span>
+        <span className="text-xs font-medium text-muted-foreground tracking-wide uppercase">Vista previa en book.avoqado.io</span>
+        <span className="text-[10px] font-mono text-muted-foreground/80">{isHexish ? accent : 'usando default'}</span>
       </div>
 
       <div className="p-4 space-y-3">

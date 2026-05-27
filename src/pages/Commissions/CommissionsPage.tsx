@@ -14,7 +14,7 @@ import CommissionConfigList from './components/CommissionConfigList'
 import SummaryApprovalList from './components/SummaryApprovalList'
 import PayoutList from './components/PayoutList'
 import GoalsTab from './components/GoalsTab'
-import CreateConfigDialog from './components/CreateConfigDialog'
+import CommissionSetupPanel from './components/setup-panel/CommissionSetupPanel'
 
 const VALID_TABS = ['overview', 'goals', 'config', 'approvals'] as const
 type TabValue = typeof VALID_TABS[number]
@@ -24,7 +24,7 @@ export default function CommissionsPage() {
 	const location = useLocation()
 	const navigate = useNavigate()
 	const { can } = useAccess()
-	const [showCreateDialog, setShowCreateDialog] = useState(false)
+	const [showSetupPanel, setShowSetupPanel] = useState(false)
 
 	// Check permissions
 	const canViewPayouts = can('commissions:payout')
@@ -136,7 +136,7 @@ export default function CommissionsPage() {
 
 				{/* Overview Tab */}
 				<TabsContent value="overview" className="space-y-6">
-					<CommissionKPICards stats={stats} isLoading={isLoadingStats} />
+					<CommissionKPICards stats={stats} isLoading={isLoadingStats} hasConfigs={configCount > 0} isLoadingConfigs={isLoadingConfigs} onGoToConfig={() => handleTabChange('config')} />
 					<TeamCommissionTable />
 				</TabsContent>
 
@@ -153,7 +153,7 @@ export default function CommissionsPage() {
 							<p className="text-sm text-muted-foreground">{t('config.subtitle')}</p>
 						</div>
 						<PermissionGate permission="commissions:create">
-							<Button onClick={() => setShowCreateDialog(true)}>
+							<Button data-tour="commission-new-btn" onClick={() => setShowSetupPanel(true)}>
 								<Plus className="h-4 w-4 mr-2" />
 								{t('config.create')}
 							</Button>
@@ -177,10 +177,10 @@ export default function CommissionsPage() {
 				</TabsContent>
 			</Tabs>
 
-			{/* Create Config Dialog */}
-			<CreateConfigDialog
-				open={showCreateDialog}
-				onOpenChange={setShowCreateDialog}
+			{/* Create Config Panel */}
+			<CommissionSetupPanel
+				open={showSetupPanel}
+				onOpenChange={setShowSetupPanel}
 			/>
 		</div>
 	)

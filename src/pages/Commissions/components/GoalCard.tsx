@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { Target, TrendingUp, User, Trash2, Pencil, Trophy } from 'lucide-react'
+import { Target, TrendingUp, User, Trash2, Pencil, Trophy, DollarSign, Hash } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -29,6 +29,7 @@ interface GoalCardProps {
 export default function GoalCard({ goal, onEdit, onDelete, isDeleting }: GoalCardProps) {
 	const { t, i18n } = useTranslation('commissions')
 
+	const isQuantity = goal.goalType === 'QUANTITY'
 	const progress = goal.goal > 0 ? Math.min((goal.currentSales / goal.goal) * 100, 100) : 0
 	const progressPercentage = goal.goal > 0 ? (goal.currentSales / goal.goal) * 100 : 0
 	const isGoalAchieved = goal.currentSales >= goal.goal
@@ -41,6 +42,13 @@ export default function GoalCard({ goal, onEdit, onDelete, isDeleting }: GoalCar
 			minimumFractionDigits: 0,
 			maximumFractionDigits: 0,
 		}).format(amount)
+	}
+
+	const formatValue = (value: number) => {
+		if (isQuantity) {
+			return new Intl.NumberFormat(i18n.language === 'es' ? 'es-MX' : 'en-US').format(value)
+		}
+		return formatCurrency(value)
 	}
 
 	const getPeriodColor = (period: string) => {
@@ -96,9 +104,13 @@ export default function GoalCard({ goal, onEdit, onDelete, isDeleting }: GoalCar
 							<h4 className="font-medium text-sm">
 								{goal.staff ? `${goal.staff.firstName} ${goal.staff.lastName}` : t('goals.venueGoal')}
 							</h4>
-							<div className="flex items-center gap-2 mt-1">
+							<div className="flex items-center gap-2 mt-1 flex-wrap">
 								<Badge variant="secondary" className={cn('text-xs', getPeriodColor(goal.period))}>
 									{t(`goals.periods.${goal.period}`)}
+								</Badge>
+								<Badge variant="secondary" className={cn('text-xs gap-1', isQuantity ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400')}>
+									{isQuantity ? <Hash className="h-3 w-3" /> : <DollarSign className="h-3 w-3" />}
+									{t(`goals.goalTypes.${goal.goalType || 'AMOUNT'}`)}
 								</Badge>
 								{!goal.active && (
 									<Badge variant="secondary" className="text-xs">
@@ -171,14 +183,16 @@ export default function GoalCard({ goal, onEdit, onDelete, isDeleting }: GoalCar
 				{/* Stats */}
 				<div className="grid grid-cols-3 gap-2 text-center">
 					<div className="space-y-1">
-						<p className="text-xs text-muted-foreground">{t('goals.current')}</p>
+						<p className="text-xs text-muted-foreground">
+							{isQuantity ? t('goals.currentQuantity') : t('goals.current')}
+						</p>
 						<p className={cn('text-sm font-semibold', isGoalAchieved ? 'text-green-600 dark:text-green-400' : 'text-foreground')}>
-							{formatCurrency(goal.currentSales)}
+							{formatValue(goal.currentSales)}
 						</p>
 					</div>
 					<div className="space-y-1">
 						<p className="text-xs text-muted-foreground">{t('goals.target')}</p>
-						<p className="text-sm font-semibold">{formatCurrency(goal.goal)}</p>
+						<p className="text-sm font-semibold">{formatValue(goal.goal)}</p>
 					</div>
 					<div className="space-y-1">
 						<p className="text-xs text-muted-foreground">{t('goals.remaining')}</p>
@@ -189,7 +203,7 @@ export default function GoalCard({ goal, onEdit, onDelete, isDeleting }: GoalCar
 									{t('goals.achieved')}
 								</span>
 							) : (
-								formatCurrency(remaining)
+								formatValue(remaining)
 							)}
 						</p>
 					</div>

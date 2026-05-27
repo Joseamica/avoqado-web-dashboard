@@ -8,7 +8,7 @@ import { useCommissionSummaries } from '@/hooks/useCommissions'
 import { cn } from '@/lib/utils'
 import type { CommissionSummary, CommissionSummaryStatus } from '@/types/commission'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Eye, MoreHorizontal } from 'lucide-react'
+import { Eye, MoreHorizontal, FileText } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -134,6 +134,26 @@ export default function TeamCommissionTable() {
     )
   }
 
+  // Empty state — no summaries yet
+  if (!summaries || summaries.length === 0) {
+    return (
+      <div className="relative rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm">
+        <div className="p-4 border-b border-border/50">
+          <h3 className="font-semibold">{t('summary.title')}</h3>
+        </div>
+        <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+          <div className="p-4 rounded-full bg-muted mb-4">
+            <FileText className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-base font-medium mb-1">{t('summary.noSummaries')}</h3>
+          <p className="text-sm text-muted-foreground max-w-sm">
+            {t('summary.noSummariesDescription')}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="relative rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm">
       <div className="p-4 border-b border-border/50">
@@ -141,11 +161,11 @@ export default function TeamCommissionTable() {
       </div>
       <DataTable<CommissionSummary>
         columns={columns}
-        data={summaries || []}
+        data={summaries}
         showColumnCustomizer={false}
         pagination={pagination}
         setPagination={setPagination}
-        rowCount={summaries?.length || 0}
+        rowCount={summaries.length}
       />
     </div>
   )
