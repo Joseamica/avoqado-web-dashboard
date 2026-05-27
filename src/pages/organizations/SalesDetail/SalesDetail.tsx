@@ -63,6 +63,7 @@ const STATUS_OPTIONS: { value: SaleVerificationStatus; label: string }[] = [
 const SALE_TYPE_OPTIONS: { value: SaleType; label: string }[] = [
   { value: 'LINEA_NUEVA', label: SALE_TYPE_LABELS.LINEA_NUEVA },
   { value: 'PORTABILIDAD', label: SALE_TYPE_LABELS.PORTABILIDAD },
+  { value: 'ESIM', label: SALE_TYPE_LABELS.ESIM },
 ]
 
 const PAYMENT_FORM_OPTIONS: { value: PaymentForm; label: string }[] = [
@@ -88,13 +89,18 @@ function statusBadge(status: SaleVerificationStatus) {
   return <Badge className="bg-muted text-muted-foreground border-input">Pendiente</Badge>
 }
 
-/**
- * Display label for the "Tipo de venta" column. A sale with a $0 payment is a
- * giveaway, so it shows "Gratis" regardless of the underlying saleType enum.
- */
+/** "Tipo de venta" column: the actual sale type (Línea nueva / Portabilidad). */
 function saleTypeLabel(row: OrgSaleRow): string {
-  if (row.payment != null && Number(row.payment.amount) === 0) return 'Gratis'
   return SALE_TYPE_LABELS[row.saleType]
+}
+
+/**
+ * "Forma de pago" column. A $0 sale is a giveaway, so the payment form is
+ * "Gratis" — otherwise map the payment method (Efectivo / Tarjeta / …).
+ */
+function paymentFormLabel(row: OrgSaleRow): string {
+  if (row.payment != null && Number(row.payment.amount) === 0) return 'Gratis'
+  return PAYMENT_FORM_LABELS[row.payment?.paymentForm ?? 'NONE']
 }
 
 /** Receiving venue (where the SIM was registered into inventory). */
@@ -188,7 +194,10 @@ export default function SalesDetail() {
     const data = listQuery.data?.data ?? []
     return data.filter(r => {
       if (statusFilter.length > 1 && !statusFilter.includes(r.status)) return false
-      if (saleTypeFilter.length > 1 && !saleTypeFilter.includes(r.saleType)) return false
+      // saleType filtered client-side for any selection: the server only knows
+      // isPortabilidad (bool), but saleType now has 3 values (eSIM overrides),
+      // so the boolean pre-narrow alone can't isolate eSIM / línea nueva.
+      if (saleTypeFilter.length >= 1 && !saleTypeFilter.includes(r.saleType)) return false
       if (paymentFormFilter.length > 1 && !paymentFormFilter.includes(r.payment?.paymentForm ?? 'NONE')) return false
       if (venueFilter.length > 1 && !venueFilter.includes(r.venue.id)) return false
       return true
@@ -280,7 +289,7 @@ export default function SalesDetail() {
         Ciudad: r.venue.city ?? '',
         Tienda: r.venue.name,
         'Tipo de Venta': saleTypeLabel(r),
-        'Forma de Pago': PAYMENT_FORM_LABELS[r.payment?.paymentForm ?? 'NONE'],
+        'Forma de Pago': paymentFormLabel(r),
         'Monto MXN': r.payment?.amount ?? 0,
         Status:
           r.status === 'COMPLETED'
@@ -565,7 +574,7 @@ export default function SalesDetail() {
                     <td className="px-3 py-2">{row.venue.city ?? '—'}</td>
                     <td className="px-3 py-2">{row.venue.name}</td>
                     <td className="px-3 py-2">{saleTypeLabel(row)}</td>
-                    <td className="px-3 py-2">{PAYMENT_FORM_LABELS[row.payment?.paymentForm ?? 'NONE']}</td>
+                    <td className="px-3 py-2">{paymentFormLabel(row)}</td>
                     <td className="px-3 py-2 text-right font-mono">
                       {row.payment?.amount?.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }) ?? '—'}
                     </td>
@@ -759,7 +768,7 @@ function SaleCard({
         <Field label="Tipo SIM" value={row.category?.name ?? '—'} />
         <Field label="Sucursal receptora" value={receivedFromLabel(row)} highlight={isVirtualOrigin(row)} />
         <Field label="Tipo venta" value={saleTypeLabel(row)} />
-        <Field label="Forma pago" value={PAYMENT_FORM_LABELS[row.payment?.paymentForm ?? 'NONE']} />
+        <Field label="Forma pago" value={paymentFormLabel(row)} />
         <Field label="Monto" value={amount} mono />
       </div>
 
