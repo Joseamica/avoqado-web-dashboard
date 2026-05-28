@@ -258,3 +258,20 @@ export async function reviewOrgSaleVerification(orgId: string, saleVerificationI
   const response = await api.patch(url, params)
   return response.data.data
 }
+
+/**
+ * Reopen an approved (COMPLETED) sale verification — flips it back to PENDING
+ * so the back-office can re-evaluate. OWNER-only (gated by the backend
+ * `sale-verifications:reopen` permission). The reason is mandatory (min 5
+ * chars) and is recorded in server logs for audit. SIM/payment/commission
+ * state is NOT touched by the backend — only the verification status moves.
+ */
+export async function reopenOrgSaleVerification(
+  orgId: string,
+  saleVerificationId: string,
+  params: { reason: string },
+): Promise<unknown> {
+  const url = `/api/v1/dashboard/organizations/${orgId}/sale-verifications/${saleVerificationId}/reopen`
+  const response = await api.post(url, params)
+  return response.data.data
+}

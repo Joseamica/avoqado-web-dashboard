@@ -14,8 +14,23 @@
  */
 
 import { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Search, ImageIcon, CheckCircle2, XCircle, ChevronLeft, ChevronRight, Download, Loader2, FileSpreadsheet, FileText } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  Search,
+  ImageIcon,
+  CheckCircle2,
+  XCircle,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Loader2,
+  FileSpreadsheet,
+  FileText,
+  RotateCcw,
+  ExternalLink,
+  ZoomIn,
+  ZoomOut,
+} from 'lucide-react'
 import { DateTime } from 'luxon'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -27,7 +42,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { FilterPill } from '@/components/filters/FilterPill'
 import { CheckboxFilterContent } from '@/components/filters/CheckboxFilterContent'
@@ -39,6 +55,7 @@ import { ReviewSaleDialog, type ReviewMode } from '@/pages/playtelecom/Sales/com
 import {
   listOrgSaleVerifications,
   getOrgSalesSummary,
+  reopenOrgSaleVerification,
   SALE_TYPE_LABELS,
   PAYMENT_FORM_LABELS,
   type ListOrgSalesParams,
@@ -116,7 +133,7 @@ function isVirtualOrigin(row: OrgSaleRow): boolean {
 export default function SalesDetail() {
   const { orgId, orgSlug, isLoading: orgLoading, organization } = useCurrentOrganization()
   const { formatDate, formatTime } = useVenueDateTime()
-  const { activeVenue } = useAuth()
+  const { activeVenue, user } = useAuth()
   const { toast } = useToast()
   const isMobile = useIsMobile()
 
@@ -149,8 +166,28 @@ export default function SalesDetail() {
   const [reviewMode, setReviewMode] = useState<ReviewMode>('approve')
   const [reviewOpen, setReviewOpen] = useState(false)
 
+  // Reopen-approved dialog state (OWNER-only flow per spec)
+  const [reopenRow, setReopenRow] = useState<OrgSaleRow | null>(null)
+  const [reopenReason, setReopenReason] = useState('')
+  const [reopenSubmitting, setReopenSubmitting] = useState(false)
+  const queryClient = useQueryClient()
+  // Gate the "Reabrir" button by user role. useAccess() doesn't work here
+  // because the org-portal context has no venueId — its query is disabled and
+  // can() always returns false (see use-access.ts: enabled: !!venueId). Per
+  // spec: only OWNER (Isaac, Daniel) + SUPERADMIN can reopen approved sales.
+  // The backend additionally enforces `sale-verifications:reopen` permission
+  // and SERIALIZED_INVENTORY-active on the venue's org, so this client gate is
+  // purely for UX (hide a button that would 403 anyway).
+  const canReopen = user?.role === 'OWNER' || user?.role === 'SUPERADMIN'
+
   // Photo preview state
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  // Per Isaac's request (2026-05-28): zoom support inside the Evidencia modal.
+  // Click the image toggles fit-to-screen <-> native 1:1 (with scroll if it overflows).
+  // The "Abrir original" link opens the raw URL in a new tab as a bulletproof fallback
+  // — the browser's native zoom (Cmd+= / scroll) always works, even if our in-modal
+  // zoom misbehaves on a weird device.
+  const [photoZoomed, setPhotoZoomed] = useState(false)
 
   const listParams = useMemo<ListOrgSalesParams>(
     () => ({
@@ -216,6 +253,45 @@ export default function SalesDetail() {
     }
     return Array.from(seen.entries()).map(([id, name]) => ({ value: id, label: name }))
   }, [listQuery.data?.data])
+
+  const openReopen = (row: OrgSaleRow) => {
+    setReopenRow(row)
+    setReopenReason('')
+  }
+
+  const submitReopen = async () => {
+    if (!orgId || !reopenRow) return
+    const trimmed = reopenReason.trim()
+    if (trimmed.length < 5) {
+      toast({
+        title: 'Motivo muy corto',
+        description: 'Escribe al menos 5 caracteres explicando por qué reabres la revisión.',
+        variant: 'destructive',
+      })
+      return
+    }
+    setReopenSubmitting(true)
+    try {
+      await reopenOrgSaleVerification(orgId, reopenRow.id, { reason: trimmed })
+      toast({
+        title: 'Revisión reabierta',
+        description: `La venta volvió a estado Pendiente. Queda registrado el motivo y quién la reabrió.`,
+      })
+      setReopenRow(null)
+      setReopenReason('')
+      // Refresh list + summary counts
+      await queryClient.invalidateQueries({ queryKey: ['org', orgId, 'sale-verifications'] })
+      await queryClient.invalidateQueries({ queryKey: ['org', orgId, 'sales-summary'] })
+    } catch (err: any) {
+      toast({
+        title: 'No se pudo reabrir',
+        description: err?.response?.data?.message ?? err?.message ?? 'Intenta de nuevo.',
+        variant: 'destructive',
+      })
+    } finally {
+      setReopenSubmitting(false)
+    }
+  }
 
   const openReview = (row: OrgSaleRow, mode: ReviewMode) => {
     setReviewVerification(row)
@@ -494,6 +570,7 @@ export default function SalesDetail() {
                 formatTime={formatTime}
                 onPhotoClick={url => setPhotoPreview(url)}
                 onReview={mode => openReview(row, mode)}
+                onReopen={canReopen ? () => openReopen(row) : undefined}
               />
             ))
           )}
@@ -636,9 +713,23 @@ export default function SalesDetail() {
                             </Button>
                           </>
                         ) : (
-                          <span className="text-xs text-muted-foreground">
-                            {row.reviewedBy ? `por ${row.reviewedBy.firstName}` : 'Revisada'}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">
+                              {row.reviewedBy ? `por ${row.reviewedBy.firstName}` : 'Revisada'}
+                            </span>
+                            {row.status === 'COMPLETED' && canReopen && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-amber-700 hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-900/20"
+                                onClick={() => openReopen(row)}
+                                title="Reabrir revisión (revertir a Pendiente)"
+                              >
+                                <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                                Reabrir
+                              </Button>
+                            )}
+                          </div>
                         )}
                       </div>
                     </td>
@@ -677,19 +768,142 @@ export default function SalesDetail() {
         onClose={() => setReviewOpen(false)}
       />
 
-      {/* Photo zoom dialog */}
-      <Dialog open={!!photoPreview} onOpenChange={open => !open && setPhotoPreview(null)}>
+      {/* Photo zoom dialog — click image toggles fit <-> native 1:1; "Abrir original" falls back to native browser zoom. */}
+      <Dialog
+        open={!!photoPreview}
+        onOpenChange={open => {
+          if (!open) {
+            setPhotoPreview(null)
+            setPhotoZoomed(false) // reset zoom when closing so the next photo opens fitted
+          }
+        }}
+      >
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Evidencia</DialogTitle>
+            <div className="flex items-center justify-between gap-2 pr-6">
+              <DialogTitle>Evidencia</DialogTitle>
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-1.5 text-xs"
+                  onClick={() => setPhotoZoomed(v => !v)}
+                  title={photoZoomed ? 'Ajustar a la ventana' : 'Ver tamaño real'}
+                >
+                  {photoZoomed ? <ZoomOut className="h-3.5 w-3.5" /> : <ZoomIn className="h-3.5 w-3.5" />}
+                  {photoZoomed ? 'Ajustar' : 'Acercar'}
+                </Button>
+                {photoPreview && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 gap-1.5 text-xs"
+                    asChild
+                    title="Abrir la imagen original en una pestaña nueva (usa el zoom del navegador)"
+                  >
+                    <a href={photoPreview} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      Abrir original
+                    </a>
+                  </Button>
+                )}
+              </div>
+            </div>
           </DialogHeader>
           {photoPreview && (
-            <img
-              src={photoPreview}
-              alt="Evidencia de venta"
-              className={cn('w-full h-auto rounded-md max-h-[80vh] object-contain bg-muted')}
-            />
+            // When zoomed: image renders at its natural size and we let the wrapper scroll
+            // in both axes so any tiny text (process IDs, signatures) becomes readable.
+            // When not zoomed: classic object-contain fit.
+            <div
+              className={cn(
+                'rounded-md bg-muted',
+                photoZoomed ? 'max-h-[80vh] overflow-auto' : 'flex items-center justify-center',
+              )}
+            >
+              <img
+                src={photoPreview}
+                alt="Evidencia de venta"
+                onClick={() => setPhotoZoomed(v => !v)}
+                className={cn(
+                  'select-none transition-[max-height,width] duration-150',
+                  photoZoomed
+                    ? 'max-w-none cursor-zoom-out' // native size, scroll if needed
+                    : 'w-full h-auto max-h-[80vh] object-contain cursor-zoom-in',
+                )}
+                draggable={false}
+              />
+            </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Reopen-approved dialog — flips a COMPLETED sale back to PENDING with a mandatory reason */}
+      <Dialog
+        open={!!reopenRow}
+        onOpenChange={open => {
+          if (!open && !reopenSubmitting) {
+            setReopenRow(null)
+            setReopenReason('')
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reabrir revisión</DialogTitle>
+            <DialogDescription>
+              Esta venta volverá a estado <span className="font-semibold">Pendiente</span> y deberá revisarse de nuevo. El pago, el SIM y la
+              comisión no se modifican — solo el estado de revisión.
+            </DialogDescription>
+          </DialogHeader>
+          {reopenRow && (
+            <div className="space-y-3 text-sm">
+              <div className="rounded-md border border-input bg-muted/30 p-3 space-y-1">
+                <div className="font-mono text-xs">{reopenRow.serialNumbers[0] ?? '—'}</div>
+                <div className="text-muted-foreground text-xs">
+                  {reopenRow.venue.name} · {formatDate(reopenRow.createdAt)}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label htmlFor="reopen-reason" className="text-xs font-medium">
+                  Motivo <span className="text-red-600">*</span>
+                </label>
+                <Textarea
+                  id="reopen-reason"
+                  value={reopenReason}
+                  onChange={e => setReopenReason(e.target.value)}
+                  placeholder="Explica por qué se reabre (mínimo 5 caracteres). Queda registrado para auditoría."
+                  rows={3}
+                  disabled={reopenSubmitting}
+                  autoFocus
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  {reopenReason.trim().length}/5 mínimo · queda en el log junto con tu nombre y la fecha.
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setReopenRow(null)
+                setReopenReason('')
+              }}
+              disabled={reopenSubmitting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={submitReopen}
+              disabled={reopenSubmitting || reopenReason.trim().length < 5}
+              className="bg-amber-600 hover:bg-amber-700 text-primary-foreground"
+            >
+              {reopenSubmitting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-1" />}
+              Reabrir revisión
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
@@ -733,12 +947,15 @@ function SaleCard({
   formatTime,
   onPhotoClick,
   onReview,
+  onReopen,
 }: {
   row: OrgSaleRow
   formatDate: (d: string | Date | null | undefined) => string
   formatTime: (d: string | Date | null | undefined) => string
   onPhotoClick: (url: string) => void
   onReview: (mode: ReviewMode) => void
+  /** Provided only when the current user has `sale-verifications:reopen`. */
+  onReopen?: () => void
 }) {
   const promoter = row.staff ? `${row.staff.firstName} ${row.staff.lastName}`.trim() : '—'
   const venueLabel = row.venue.city ? `${row.venue.name} · ${row.venue.city}` : row.venue.name
@@ -829,7 +1046,20 @@ function SaleCard({
             </Button>
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground text-center">{row.reviewedBy ? `Revisada por ${row.reviewedBy.firstName}` : 'Revisada'}</p>
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-xs text-muted-foreground text-center">{row.reviewedBy ? `Revisada por ${row.reviewedBy.firstName}` : 'Revisada'}</p>
+            {row.status === 'COMPLETED' && onReopen && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 text-amber-700 hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-900/20"
+                onClick={onReopen}
+              >
+                <RotateCcw className="h-4 w-4 mr-1" />
+                Reabrir revisión
+              </Button>
+            )}
+          </div>
         )}
       </div>
     </GlassCard>
