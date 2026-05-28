@@ -17,6 +17,7 @@
   Handshake,
   Home,
   LayoutDashboard,
+  Code2,
   Link2,
   Package,
   Receipt,
@@ -343,6 +344,14 @@ export function AppSidebar({
         ],
       },
       {
+        title: t('sidebar:salesMenu.ecommerce', { defaultValue: 'E-commerce' }),
+        url: 'ecommerce',
+        icon: Code2,
+        permission: 'payment-link:read',
+        locked: !hasKYCAccess,
+        keywords: ['ecommerce', 'e-commerce', 'widget', 'embebido', 'insertar', 'sitio web', 'cobrar en mi pagina', 'embed', 'checkout', 'stripe', 'mercado pago'],
+      },
+      {
         title: t('sidebar:salesMenu.virtualTerminal', { defaultValue: 'Terminal Virtual' }),
         url: 'virtual-terminal',
         icon: Monitor,
@@ -375,6 +384,7 @@ export function AppSidebar({
         if (item.url === 'payments' && !canWL('AVOQADO_PAYMENTS')) return false
         if (item.url === 'orders' && !canWL('AVOQADO_ORDERS')) return false
         if (item.url === '#payment-links' && !canWL('AVOQADO_PAYMENT_LINKS')) return false
+        if (item.url === 'ecommerce' && !canWL('AVOQADO_PAYMENT_LINKS')) return false
       }
       return true
     }) as any[]

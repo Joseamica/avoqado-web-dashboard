@@ -72,6 +72,7 @@ import {
   PayLaterAging,
   PaymentLinkBranding,
   PaymentLinks,
+  Ecommerce,
   PaymentLinkSettings,
   ReservationBranding,
   Payments,
@@ -381,6 +382,13 @@ export function createVenueRoutes(): RouteObject[] {
         { path: 'settings', element: <PaymentLinkSettings /> },
         { path: 'branding', element: <PaymentLinkBranding /> },
       ],
+    },
+
+    // E-commerce (connected processors + embeddable checkout widget)
+    {
+      path: 'ecommerce',
+      element: <PermissionProtectedRoute permission="payment-link:read" />,
+      children: [{ index: true, element: <Ecommerce /> }],
     },
 
     // Disputes (Coming Soon)
