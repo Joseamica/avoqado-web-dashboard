@@ -168,7 +168,10 @@ export default function VenueIntegrations() {
         <p className="text-muted-foreground mt-2">{t('edit.integrations.subtitle')}</p>
       </div>
 
-      <Card>
+      {/* TEMP HIDDEN: Integración con POS — la integración con sistemas externos (Square / Toast /
+          Clover / Aloha / Micros / NCR / Custom / SoftRestaurant) no está lista todavía. Se oculta
+          temporalmente; restaurar este bloque cuando esté implementada. */}
+      {/* <Card>
         <CardHeader>
           <CardTitle>{t('edit.integrations.pos.title')}</CardTitle>
           <CardDescription>{t('edit.integrations.pos.description')}</CardDescription>
@@ -211,7 +214,7 @@ export default function VenueIntegrations() {
         </CardContent>
       </Card>
 
-      <Separator />
+      <Separator /> */}
 
       {/* E-commerce / Pagos online (Stripe Connect, Blumon eCommerce, ...) */}
       <EcommercePaymentsSection venueId={venueId!} />
