@@ -6,16 +6,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { ecommerceMerchantAPI, type EcommerceMerchant } from '@/services/ecommerceMerchant.service'
 import { EcommerceMerchantWizard } from '@/pages/Venue/components/EcommerceMerchantWizard'
-import { Code2, Copy, Check, AlertCircle, ArrowRight, CreditCard } from 'lucide-react'
+import { Code2, Copy, Check, AlertCircle, ArrowRight, CreditCard, Share2, ExternalLink } from 'lucide-react'
 
 const WIDGET_SRC = 'https://cdn.avoqado.io/checkout-widget.js'
+const PAY_BASE = 'https://pay.avoqado.io'
 
 /** A merchant is "usable" for online charging when it can actually take money:
  *  Stripe with charges enabled, or a connected Mercado Pago. */
@@ -28,6 +29,7 @@ const Ecommerce: React.FC = () => {
   const { venueId, venueSlug, fullBasePath } = useCurrentVenue()
   const queryClient = useQueryClient()
   const [copied, setCopied] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
   /** When set, opens the full-screen wizard to manage that processor in place. */
   const [managingMerchant, setManagingMerchant] = useState<EcommerceMerchant | null>(null)
 
@@ -52,12 +54,27 @@ const Ecommerce: React.FC = () => {
   if (amountType === 'fixed' && amount.trim()) attrs.push(`data-amount="${amount.trim()}"`)
   const snippet = `<script src="${WIDGET_SRC}" async></script>\n<avoqado-checkout ${attrs.join(' ')}></avoqado-checkout>`
 
+  // Shareable hosted-checkout link — same venue checkout, opened in the browser.
+  // No payment link is created; the amount (if fixed) just rides in the URL.
+  const shareUrl = `${PAY_BASE}/?venue=${venueSlug}${amountType === 'fixed' && amount.trim() ? `&amount=${amount.trim()}` : ''}`
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(snippet)
       setCopied(true)
       toast({ title: t('paymentWidget.copied') })
       setTimeout(() => setCopied(false), 2000)
+    } catch {
+      toast({ title: t('paymentWidget.copyError'), variant: 'destructive' })
+    }
+  }
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setLinkCopied(true)
+      toast({ title: t('paymentWidget.linkCopied') })
+      setTimeout(() => setLinkCopied(false), 2000)
     } catch {
       toast({ title: t('paymentWidget.copyError'), variant: 'destructive' })
     }
@@ -145,12 +162,15 @@ const Ecommerce: React.FC = () => {
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>{t('paymentWidget.amountTypeLabel')}</Label>
-              <Tabs value={amountType} onValueChange={v => setAmountType(v as 'fixed' | 'open')}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="fixed">{t('paymentWidget.amountFixed')}</TabsTrigger>
-                  <TabsTrigger value="open">{t('paymentWidget.amountOpen')}</TabsTrigger>
-                </TabsList>
-              </Tabs>
+              <Select value={amountType} onValueChange={v => setAmountType(v as 'fixed' | 'open')}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fixed">{t('paymentWidget.amountFixed')}</SelectItem>
+                  <SelectItem value="open">{t('paymentWidget.amountOpen')}</SelectItem>
+                </SelectContent>
+              </Select>
               {amountType === 'fixed' ? (
                 <div className="relative">
                   <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
@@ -171,12 +191,15 @@ const Ecommerce: React.FC = () => {
 
             <div className="space-y-2">
               <Label>{t('paymentWidget.modeLabel')}</Label>
-              <Tabs value={mode} onValueChange={v => setMode(v as 'inline' | 'modal')}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="inline">{t('paymentWidget.modeInline')}</TabsTrigger>
-                  <TabsTrigger value="modal">{t('paymentWidget.modeModal')}</TabsTrigger>
-                </TabsList>
-              </Tabs>
+              <Select value={mode} onValueChange={v => setMode(v as 'inline' | 'modal')}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="inline">{t('paymentWidget.modeInline')}</SelectItem>
+                  <SelectItem value="modal">{t('paymentWidget.modeModal')}</SelectItem>
+                </SelectContent>
+              </Select>
               <p className="text-xs text-muted-foreground">
                 {mode === 'inline' ? t('paymentWidget.modeInlineHint') : t('paymentWidget.modeModalHint')}
               </p>
@@ -204,6 +227,47 @@ const Ecommerce: React.FC = () => {
           <p className="text-sm text-muted-foreground">
             <code className="rounded bg-muted px-1 py-0.5 text-xs">avoqado:pago-exitoso</code> {t('paymentWidget.eventBody')}
           </p>
+        </CardContent>
+      </Card>
+
+      {/* Shareable hosted-checkout link — reflects the amount chosen above */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Share2 className="h-5 w-5 text-muted-foreground" />
+            <CardTitle>{t('paymentWidget.shareTitle')}</CardTitle>
+          </div>
+          <CardDescription>{t('paymentWidget.shareHint')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <code
+              className={`min-w-0 flex-1 truncate rounded-lg bg-muted px-3 py-2.5 font-mono text-[13px] text-muted-foreground ${
+                canTransact ? '' : 'opacity-50'
+              }`}
+            >
+              {shareUrl}
+            </code>
+            <div className="flex shrink-0 gap-2">
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={handleCopyLink} disabled={!canTransact}>
+                {linkCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {linkCopied ? t('paymentWidget.copiedShort') : t('paymentWidget.copy')}
+              </Button>
+              {canTransact ? (
+                <Button asChild size="sm" className="gap-1.5">
+                  <a href={shareUrl} target="_blank" rel="noopener noreferrer">
+                    {t('paymentWidget.openLink')}
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </Button>
+              ) : (
+                <Button size="sm" className="gap-1.5" disabled>
+                  {t('paymentWidget.openLink')}
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+          </div>
         </CardContent>
       </Card>
 

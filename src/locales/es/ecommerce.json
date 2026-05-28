@@ -166,6 +166,10 @@
     "modeInline": "Inline",
     "modeModal": "Modal",
     "modeInlineHint": "Formulario embebido en tu página.",
-    "modeModalHint": "Botón que abre el pago en una ventana."
+    "modeModalHint": "Botón que abre el pago en una ventana.",
+    "shareTitle": "Link para compartir",
+    "shareHint": "Compártelo por WhatsApp, redes o donde quieras. No necesitas generar nada — el monto va en el link.",
+    "openLink": "Abrir",
+    "linkCopied": "Link copiado al portapapeles"
   }
 }

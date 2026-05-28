@@ -166,6 +166,10 @@
     "modeInline": "Inline",
     "modeModal": "Modal",
     "modeInlineHint": "Embedded form on your page.",
-    "modeModalHint": "Button that opens checkout in a window."
+    "modeModalHint": "Button that opens checkout in a window.",
+    "shareTitle": "Shareable link",
+    "shareHint": "Share it via WhatsApp, social, anywhere. Nothing to generate — the amount rides in the link.",
+    "openLink": "Open",
+    "linkCopied": "Link copied to clipboard"
   }
 }
