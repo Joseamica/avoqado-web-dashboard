@@ -28,6 +28,8 @@ import { TPV_CATALOG, formatMxnCents } from '@/config/tpvCatalog'
 import { tpvOrderService } from '@/services/tpvOrder.service'
 import { TerminalPurchaseWizard } from '@/pages/Tpv/components/purchase-wizard/TerminalPurchaseWizard'
 import type { StepProps } from '../types'
+// (venueId is threaded explicitly to the wizard — required on /setup where
+//  useCurrentVenue() has no URL slug to resolve a venue from.)
 
 interface BuyTpvStepProps extends StepProps {
   /** Provisional venue created by the backend's ensureVenueForOnboarding. */
@@ -346,6 +348,7 @@ export function BuyTpvStep({ onNext, venueId, tpvOrderId }: BuyTpvStepProps) {
         <TerminalPurchaseWizard
           open={wizardOpen}
           onOpenChange={setWizardOpen}
+          venueId={venueId}
           from="setup"
           onComplete={handleWizardComplete}
         />

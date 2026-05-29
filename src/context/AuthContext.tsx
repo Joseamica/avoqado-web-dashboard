@@ -270,12 +270,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const userVenues = user.venues || []
     const isSuperAdmin = user.role === 'SUPERADMIN'
     const accessibleVenues = isSuperAdmin ? allVenues : userVenues
-    // Authoritative onboarding-done signal from the backend (org.onboardingCompletedAt).
-    // With the provisional-venue feature (Steps 8/9), an OWNER can have a venue mid-
-    // onboarding, so `userVenues.length` is no longer a reliable proxy. We gate ONLY on
-    // an explicit `=== false` so a missing field (older API payload) preserves today's
-    // behavior. The backend login service already trusts this same flag (auth.service.ts).
-    const onboardingIncomplete = (user as any).onboardingCompleted === false
+    // "Still onboarding" detection for the provisional-venue feature (Steps 8/9).
+    // An OWNER can now have a venue mid-onboarding, so `userVenues.length` alone is
+    // not a reliable proxy. We require BOTH signals to avoid two false positives:
+    //   1. org.onboardingCompletedAt is null (wizard not finished) — but LEGACY orgs
+    //      that completed before this field existed also have null, even with active
+    //      venues. So we also require...
+    //   2. no operational venue exists — every venue is still status=ONBOARDING (a
+    //      provisional venue), or there are none. A user with any ACTIVE/PENDING
+    //      venue is past onboarding regardless of the (possibly-stale) timestamp.
+    // Gate on explicit `=== false` so a missing field (older API payload) is a no-op.
+    const hasOperationalVenue = userVenues.some((v: any) => v.status && v.status !== 'ONBOARDING')
+    const stillOnboarding = (user as any).onboardingCompleted === false && !hasOperationalVenue
 
     // PRIORITY 1: URL-based returnTo parameter (Stripe/GitHub pattern)
     // This is the industry-standard way to preserve navigation state across login
@@ -295,7 +301,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // is explicitly incomplete (provisional venue exists but org.onboardingCompletedAt
     // is still null). Without the second condition, a mid-onboarding OWNER with a
     // provisional venue would fall through to the dashboard-redirect branch below.
-    if ((userVenues.length === 0 || onboardingIncomplete) && userRole === StaffRole.OWNER) {
+    if ((userVenues.length === 0 || stillOnboarding) && userRole === StaffRole.OWNER) {
       // Don't redirect if already on onboarding, setup, signup, or auth routes
       const isOnOnboardingRoute = location.pathname.startsWith('/onboarding')
       const isOnSetupRoute = location.pathname.startsWith('/setup')
@@ -515,14 +521,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         const userVenues = freshUser.venues || []
-        // Same provisional-venue handling as the resolution effect: route an OWNER
-        // back to the wizard on re-login when onboarding isn't finished, even if a
-        // provisional venue already exists. Gate on explicit `=== false` so a missing
-        // field (older API payload) keeps today's behavior.
-        const onboardingIncomplete = (freshUser as any).onboardingCompleted === false
+        // Same provisional-venue handling as the resolution effect. Require BOTH
+        // signals (onboarding not finished AND no operational venue) so legacy orgs
+        // with active venues but a null onboardingCompletedAt are NOT bounced into
+        // the wizard. Gate on explicit `=== false` so a missing field is a no-op.
+        const hasOperationalVenue = userVenues.some((v: any) => v.status && v.status !== 'ONBOARDING')
+        const stillOnboarding = (freshUser as any).onboardingCompleted === false && !hasOperationalVenue
 
         // 3. OWNER who hasn't finished onboarding → /setup (v2) or /onboarding (legacy)
-        if (userVenues.length === 0 || onboardingIncomplete) {
+        if (userVenues.length === 0 || stillOnboarding) {
           const wizardDest = freshUser.wizardVersion === 2 ? '/setup' : '/onboarding'
           console.log(`[AUTH] 🆕 Onboarding incomplete, redirect to ${wizardDest}`)
           toast({ title: t('toast.login_success') })
