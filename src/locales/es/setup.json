@@ -108,6 +108,27 @@
     "securityNotice": "Tu informacion bancaria esta protegida con encriptacion de nivel bancario. Solo la usamos para depositar tus pagos.",
     "invalidClabe": "La CLABE debe tener exactamente 18 digitos"
   },
+  "step8": {
+    "title": "Activa cobros online (opcional)",
+    "titleConnected": "¡Una cuenta lista!",
+    "subtitle": "Conecta Mercado Pago o Stripe para recibir pagos por checkout y ligas de pago.",
+    "connect": "Conectar",
+    "connected": "Conectado",
+    "skip": "Saltar por ahora →",
+    "finish": "Terminar onboarding →",
+    "tryItPrompt": "¿Quieres probarlo con una liga de pago real?",
+    "generateTestLink": "Generar liga de prueba",
+    "amountLabel": "$",
+    "send": "Enviar",
+    "sending": "Generando…",
+    "copy": "Copiar liga",
+    "waSent": "Liga enviada por WhatsApp",
+    "waFailed": "No pudimos enviar por WhatsApp.",
+    "waFallback": "La liga sigue disponible aquí.",
+    "stripe": {
+      "todo": "Conexión Stripe en breve"
+    }
+  },
   "businessType": {
     "categories": {
       "foodService": "Alimentos y bebidas",

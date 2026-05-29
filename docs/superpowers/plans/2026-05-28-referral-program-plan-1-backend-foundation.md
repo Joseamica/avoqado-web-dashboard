@@ -30,12 +30,147 @@
 - Backend: `/Users/amieva/Documents/Programming/Avoqado/avoqado-server`
 - Plan + spec: `/Users/amieva/Documents/Programming/Avoqado/avoqado-web-dashboard/docs/superpowers/`
 
-**Pre-implementation checks (NO empezar sin estas confirmaciones):**
+**Pre-implementation checks** (✅ TODOS HECHOS 2026-05-28 — schema confirmado):
 
-- [ ] **Pre-1**: Verificar campos actuales en `Coupon` model (Read del schema). Si no existen `active`, `deactivatedReason`, `source`, `redeemedAt`, se agregan en Task 5.
-- [ ] **Pre-2**: Identificar el nombre exacto del model de auditoría (`AuditLog`, `Audit`, `ActionLog`, etc.) para usar en Task 8.
-- [ ] **Pre-3**: Confirmar que existe model `StaffVenue` con campo apropiado para `capturedByStaffVenueId` (debe ser cuid string).
-- [ ] **Pre-4**: Identificar el feature flag mechanism — buscar `FEATURE_FLAG`, `featureFlag`, o variable de entorno pattern. Si no existe, este plan agrega un check por `process.env.REFERRAL_PROGRAM_ENABLED === 'true'`.
+- [x] **Pre-1**: ✅ No existe `model Coupon`. Avoqado usa `model Discount` (parent), `model CouponCode` (código compartible, ligado a Discount), `model CouponRedemption` (cada redemption). Phase A Task 5 agregó `source`, `deactivatedReason`, `deactivatedAt` al model `Discount`.
+- [x] **Pre-2**: ✅ Model de auditoría se llama `ActivityLog` (no `AuditLog`). Schema: `{ id, staffId?, venueId?, action, entity?, entityId?, data: Json?, ipAddress?, userAgent?, createdAt }`. **Field es `data` (JSON), no `metadata`.**
+- [x] **Pre-3**: ✅ `StaffVenue` confirmado con `id String @id @default(cuid())`.
+- [x] **Pre-4**: ✅ No existe feature flag mechanism. Phase B usa `process.env.REFERRAL_PROGRAM_ENABLED === 'true'` como check inline en endpoints.
+
+---
+
+## ⚠️ SCHEMA CORRECTIONS — Sobrescribe snippets de código en Tasks 12 y 13
+
+**Lo que el plan original asumía (incorrecto):**
+- `prisma.coupon.create(...)` para emitir premio de tier
+- `prisma.coupon.update({ data: { active: false } })` para revocar
+- `coupon.redeemedAt` para chequear si ya se redimió
+
+**La realidad y el approach correcto:**
+
+### Emitir premio de tier (sobrescribe Task 12 `emitTierCoupon`)
+
+```ts
+async function emitTierReward(ctx: {
+  venueId: string
+  referrer: { id: string; name: string | null }
+  tier: ReferralTier
+  config: ReferralProgramConfig
+}): Promise<{ discount: Discount; couponCode: CouponCode; customerDiscount: CustomerDiscount }> {
+  const percent = {
+    TIER_1: ctx.config.tier1RewardPercent,
+    TIER_2: ctx.config.tier2RewardPercent,
+    TIER_3: ctx.config.tier3RewardPercent,
+  }[ctx.tier]
+  const prefix = ctx.config.codePrefix ?? 'VENUE'
+  const tierNum = ctx.tier.split('_')[1]
+  const customerShort = ctx.referrer.id.slice(-6).toUpperCase()
+  const validUntil = new Date()
+  validUntil.setDate(validUntil.getDate() + ctx.config.rewardCouponExpiryDays)
+
+  return prisma.$transaction(async tx => {
+    // 1. Discount (entidad padre con el porcentaje + vigencia + source)
+    const discount = await tx.discount.create({
+      data: {
+        venueId: ctx.venueId,
+        name: `Referral ${ctx.tier} reward — ${ctx.referrer.name ?? 'customer'}`,
+        type: 'PERCENTAGE', // enum DiscountType — verifica el valor exacto (PERCENTAGE no PERCENT)
+        value: percent,
+        scope: 'ORDER',
+        validUntil,
+        maxUsesPerCustomer: 1,
+        maxTotalUses: 1,
+        active: true,
+        source: 'REFERRAL_TIER',
+      },
+    })
+
+    // 2. CustomerDiscount (entitlement personal del referidor)
+    const customerDiscount = await tx.customerDiscount.create({
+      data: {
+        customerId: ctx.referrer.id,
+        discountId: discount.id,
+        active: true,
+        validUntil,
+        maxUses: 1,
+      },
+    })
+
+    // 3. CouponCode (el código que el referidor dicta al cobrar)
+    const couponCode = await tx.couponCode.create({
+      data: {
+        discountId: discount.id,
+        code: `${prefix}-TIER${tierNum}-${customerShort}`,
+        maxUses: 1,
+        maxUsesPerCustomer: 1,
+        active: true,
+        validFrom: new Date(),
+        validUntil,
+      },
+    })
+
+    return { discount, couponCode, customerDiscount }
+  })
+}
+```
+
+### Verificar si el premio ya se redimió (sobrescribe lógica en Task 13)
+
+```ts
+async function isRewardRedeemed(discountId: string): Promise<boolean> {
+  // CouponRedemption queda registrado cuando el cupón se aplica a un Order
+  const redemption = await prisma.couponRedemption.findFirst({
+    where: { couponCode: { discountId } },
+  })
+  return redemption !== null
+}
+```
+
+### Revocar premio en refund (sobrescribe Task 13 `revoke` logic)
+
+```ts
+async function revokeTierReward(discountId: string, reason: string): Promise<void> {
+  await prisma.$transaction(async tx => {
+    // Desactivar el Discount padre (cascading effect a CouponCode + CustomerDiscount)
+    await tx.discount.update({
+      where: { id: discountId },
+      data: {
+        active: false,
+        deactivatedReason: reason, // e.g., 'TIER_REVERSED_BY_REFUND'
+        deactivatedAt: new Date(),
+      },
+    })
+    // Desactivar el CouponCode también para que validación TPV rechace explícito
+    await tx.couponCode.updateMany({
+      where: { discountId },
+      data: { active: false },
+    })
+    // Desactivar CustomerDiscount
+    await tx.customerDiscount.updateMany({
+      where: { discountId },
+      data: { active: false },
+    })
+  })
+}
+```
+
+### ActivityLog shape (sobrescribe `metadata:` → `data:`)
+
+El plan original usa `metadata: {...}` adentro de `prisma.activityLog.create`. La columna real se llama `data`. Patrón correcto:
+
+```ts
+await prisma.activityLog.create({
+  data: {                                    // ← outer = Prisma "data" wrapper
+    venueId: ctx.venueId,
+    action: 'REFERRAL_PROGRAM_ACTIVATED',
+    entity: 'ReferralProgramConfig',         // ← agregar entity + entityId
+    entityId: config.id,
+    data: { legacyCustomersMigrated: 234 }, // ← inner = ActivityLog.data (JSON column)
+  },
+})
+```
+
+Si la operación se hizo via staff específico, agregar `staffId: staffVenue.staffId` (NO staffVenueId — la FK de ActivityLog apunta a Staff). Para guardar `staffVenueId` info, ponerlo dentro de `data: { ... }`.
 
 ---
 
@@ -644,7 +779,7 @@ jest.mock('@/utils/prismaClient', () => ({
     },
     venue: { findUnique: jest.fn() },
     customer: { findMany: jest.fn(), update: jest.fn() },
-    auditLog: { create: jest.fn() },
+    activityLog: { create: jest.fn() },
   },
 }))
 
@@ -724,7 +859,7 @@ describe('referralProgram.service', () => {
       mockedPrisma.referralProgramConfig.upsert.mockResolvedValue({ id: 'cfg_1' })
       mockedPrisma.customer.findMany.mockResolvedValue([{ id: 'c1', name: 'X' }])
       await activateReferralProgram(input)
-      expect(mockedPrisma.auditLog.create).toHaveBeenCalledWith(
+      expect(mockedPrisma.activityLog.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             action: 'REFERRAL_PROGRAM_ACTIVATED',
@@ -743,7 +878,7 @@ describe('referralProgram.service', () => {
         where: { venueId: 'venue_1' },
         data: { active: false },
       })
-      expect(mockedPrisma.auditLog.create).toHaveBeenCalledWith(
+      expect(mockedPrisma.activityLog.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             action: 'REFERRAL_PROGRAM_DEACTIVATED',
@@ -892,7 +1027,7 @@ export async function activateReferralProgram(input: ActivateInput): Promise<voi
       })
     }
 
-    await tx.auditLog.create({
+    await tx.activityLog.create({
       data: {
         venueId: input.venueId,
         action: 'REFERRAL_PROGRAM_ACTIVATED',
@@ -912,7 +1047,7 @@ export async function deactivateReferralProgram(input: DeactivateInput): Promise
     where: { venueId: input.venueId },
     data: { active: false },
   })
-  await prisma.auditLog.create({
+  await prisma.activityLog.create({
     data: {
       venueId: input.venueId,
       action: 'REFERRAL_PROGRAM_DEACTIVATED',
@@ -1283,7 +1418,7 @@ jest.mock('@/utils/prismaClient', () => ({
     referral: { create: jest.fn(), update: jest.fn(), findUnique: jest.fn() },
     order: { count: jest.fn() },
     discount: { create: jest.fn() },
-    auditLog: { create: jest.fn() },
+    activityLog: { create: jest.fn() },
   },
 }))
 
@@ -1327,7 +1462,7 @@ describe('forceOverrideReferral', () => {
         overrideReason: 'Cliente histórica, no se le había mencionado',
       }),
     })
-    expect(mockedPrisma.auditLog.create).toHaveBeenCalledWith(
+    expect(mockedPrisma.activityLog.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           action: 'REFERRAL_FORCE_OVERRIDE',
@@ -1351,7 +1486,7 @@ describe('manualVoidReferral', () => {
         voidReason: 'Fraude detectado',
       }),
     })
-    expect(mockedPrisma.auditLog.create).toHaveBeenCalled()
+    expect(mockedPrisma.activityLog.create).toHaveBeenCalled()
   })
 
   it('rejects when Referral is already QUALIFIED (use refund flow instead)', async () => {
@@ -1417,7 +1552,7 @@ export async function forceOverrideReferral(input: ForceOverrideInput): Promise<
     },
   })
 
-  await prisma.auditLog.create({
+  await prisma.activityLog.create({
     data: {
       venueId: input.venueId,
       action: 'REFERRAL_FORCE_OVERRIDE',
@@ -1454,7 +1589,7 @@ export async function manualVoidReferral(input: ManualVoidInput): Promise<Referr
     },
   })
 
-  await prisma.auditLog.create({
+  await prisma.activityLog.create({
     data: {
       venueId: existing.venueId,
       action: 'REFERRAL_MANUAL_VOID',

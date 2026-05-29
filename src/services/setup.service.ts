@@ -35,4 +35,11 @@ export const setupService = {
   /** Start/initialize onboarding progress */
   startOnboarding: (orgId: string) =>
     api.post(`/api/v1/onboarding/organizations/${orgId}/start`),
+
+  /**
+   * Generate a real test payment link via the venue's connected MP/Stripe merchant.
+   * Wizard-only — backend route returns 404 when the env flag is off.
+   */
+  testPaymentLink: (venueId: string, body: { amount: number; providerCode: 'MERCADO_PAGO' | 'STRIPE' }) =>
+    api.post(`/api/v1/onboarding/venues/${venueId}/test-payment-link`, body),
 }

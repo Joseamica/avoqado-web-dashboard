@@ -25,8 +25,15 @@ import { EntityTypeStep } from './steps/EntityTypeStep'
 import { IdentityStep } from './steps/IdentityStep'
 import { TermsStep } from './steps/TermsStep'
 import { BankAccountStep } from './steps/BankAccountStep'
+import { PaymentProvidersStep } from './steps/PaymentProvidersStep'
 
-const SETUP_STEPS = [
+// Always show Step 8 in the wizard. Backend gates the API (test-payment-link
+// endpoint, OAuth callback wizard-routing) with ENABLE_ONBOARDING_PAYMENT_PROVIDERS;
+// the frontend opts into showing the step unconditionally so every new
+// merchant sees the option to connect MP/Stripe during onboarding.
+const PAYMENT_PROVIDERS_ENABLED = true
+
+const BASE_SETUP_STEPS = [
   { id: 'businessInfo', component: BusinessInfoStep },
   { id: 'businessType', component: BusinessTypeStep },
   { id: 'entityType', component: EntityTypeStep },
@@ -34,6 +41,10 @@ const SETUP_STEPS = [
   { id: 'terms', component: TermsStep },
   { id: 'bankAccount', component: BankAccountStep },
 ] as const
+
+const SETUP_STEPS = PAYMENT_PROVIDERS_ENABLED
+  ? ([...BASE_SETUP_STEPS, { id: 'paymentProviders', component: PaymentProvidersStep }] as const)
+  : BASE_SETUP_STEPS
 
 const getStepIndexFromHash = (hash: string): number | null => {
   const match = hash.match(/^#step-(\d+)$/)
@@ -115,6 +126,15 @@ export default function SetupWizard() {
       }
     }
 
+    // Hydrate paymentProviders from the backend even if `v2SetupData` didn't surface it
+    // under a step key (covers the "user came back days later" case where they connected
+    // a merchant out-of-band and just want to see the green checkmark).
+    const persistedProviders = (progressData as any)?.paymentProviders ?? null
+    if (persistedProviders) {
+      setData((prev) => ({ ...prev, paymentProviders: persistedProviders }))
+      dataRef.current = { ...dataRef.current, paymentProviders: persistedProviders }
+    }
+
     // Resolve target step: prefer URL hash if it points to a step the user can already access.
     let targetStep = backendMaxStep
     const hashStep = getStepIndexFromHash(window.location.hash)
@@ -129,6 +149,37 @@ export default function SetupWizard() {
     const targetHash = getHashFromStepIndex(targetStep)
     if (window.location.hash !== targetHash) {
       window.history.replaceState(null, '', targetHash)
+    }
+
+    // OAuth round-trip hydration. The MP callback sends users back to
+    // /setup?mp_status=success&merchantId=X#step-7, and Stripe Connect uses the
+    // same pattern with stripe_status. We jump straight to step 8 and seed the
+    // merchant ID into the wizard state so the right tile renders green.
+    const url = new URL(window.location.href)
+    const mpStatus = url.searchParams.get('mp_status')
+    const mpMerchantId = url.searchParams.get('merchantId')
+    const stripeStatus = url.searchParams.get('stripe_status')
+
+    if (PAYMENT_PROVIDERS_ENABLED && (mpStatus === 'success' || stripeStatus === 'success')) {
+      // Force step 8 (last visible step when the flag is on).
+      const step8Index = SETUP_STEPS.length - 1
+      maxAllowedStepRef.current = Math.max(maxAllowedStepRef.current, step8Index)
+      setCurrentStep(step8Index)
+      setData((prev) => {
+        const next = {
+          ...prev,
+          paymentProviders: {
+            ...(prev.paymentProviders ?? {}),
+            ...(mpStatus === 'success' && mpMerchantId ? { mpMerchantId } : {}),
+            ...(stripeStatus === 'success' && mpMerchantId ? { stripeMerchantId: mpMerchantId } : {}),
+          },
+        }
+        dataRef.current = next
+        return next
+      })
+      // Clean the URL so a refresh doesn't loop.
+      url.search = ''
+      window.history.replaceState(null, '', `${url.pathname}#step-${step8Index + 1}`)
     }
 
     setIsInitialized(true)
@@ -258,7 +309,8 @@ export default function SetupWizard() {
     )
   }
 
-  const StepComponent = SETUP_STEPS[currentStep].component
+  const StepComponent = SETUP_STEPS[currentStep].component as any
+  const stepId = SETUP_STEPS[currentStep].id
   const isFirstStep = currentStep === 0
 
   return (
@@ -274,13 +326,21 @@ export default function SetupWizard() {
       <div className="relative">
         {/* Step indicator */}
         <p className="mb-6 text-xs text-muted-foreground">
-          {t('wizard.step', { current: currentStep + 2, total: 7 })}
+          {t('wizard.step', { current: currentStep + 2, total: SETUP_STEPS.length + 1 })}
         </p>
 
         <StepComponent
           data={data}
           onNext={handleNext}
           onBack={isFirstStep ? undefined : handleBack}
+          {...(stepId === 'paymentProviders'
+            ? {
+                venueId: (data as any).venueId,
+                organizationId: orgId,
+                mpMerchantId: data.paymentProviders?.mpMerchantId,
+                stripeMerchantId: data.paymentProviders?.stripeMerchantId,
+              }
+            : {})}
         />
       </div>
     </SetupWizardLayout>

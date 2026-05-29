@@ -44,6 +44,12 @@ export interface SetupData {
   bankName?: string
   accountHolder?: string
   accountType?: string
+  // Step 8: Payment Providers (optional)
+  paymentProviders?: {
+    mpMerchantId?: string | null
+    stripeMerchantId?: string | null
+    skipped?: boolean
+  }
 }
 
 export interface StepProps {

@@ -108,6 +108,27 @@
     "securityNotice": "Your banking information is protected with bank-level encryption. We only use it to deposit your payments.",
     "invalidClabe": "CLABE must be exactly 18 digits"
   },
+  "step8": {
+    "title": "Activate online payments (optional)",
+    "titleConnected": "One account ready!",
+    "subtitle": "Connect Mercado Pago or Stripe to accept checkout and payment-link payments.",
+    "connect": "Connect",
+    "connected": "Connected",
+    "skip": "Skip for now →",
+    "finish": "Finish onboarding →",
+    "tryItPrompt": "Want to try a real payment link?",
+    "generateTestLink": "Generate test link",
+    "amountLabel": "$",
+    "send": "Send",
+    "sending": "Generating…",
+    "copy": "Copy link",
+    "waSent": "Link sent via WhatsApp",
+    "waFailed": "Couldn't send via WhatsApp.",
+    "waFallback": "The link is still available here.",
+    "stripe": {
+      "todo": "Stripe connection coming soon"
+    }
+  },
   "businessType": {
     "categories": {
       "foodService": "Food & Beverage",
