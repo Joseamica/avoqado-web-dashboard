@@ -459,6 +459,10 @@ export function AppSidebar({
         items.push({ title: t('sidebar:customersMenu.loyalty'), url: 'loyalty', permission: 'loyalty:read', keywords: ['lealtad', 'puntos', 'fidelidad'] })
       }
 
+      // Referral program — same gating posture as loyalty (per-venue toggle + per-org WL feature).
+      // Backend permission 'referral:read' filters the menu out for staff that can't see it.
+      items.push({ title: t('sidebar:customersMenu.referrals'), url: 'referrals', permission: 'referral:read', keywords: ['referidos', 'codigo', 'recomienda', 'referral'] })
+
       if (canWL('AVOQADO_REVIEWS')) {
         items.push({ title: t('sidebar:routes.reviews'), url: 'reviews', permission: 'reviews:read', keywords: ['comentarios', 'opiniones', 'calificaciones', 'feedback', 'ratings'] })
       }

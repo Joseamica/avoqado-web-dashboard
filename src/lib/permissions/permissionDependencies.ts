@@ -284,6 +284,19 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   ],
 
   // ===========================
+  // REFERRAL PROGRAM
+  // ===========================
+  'referral:read': [
+    'referral:read',
+    'customers:read',   // Need to display the referrer / referred customer in lists
+  ],
+  'referral:configure': [
+    'referral:read',
+    'referral:configure',
+    'customers:read',
+  ],
+
+  // ===========================
   // ORG-LEVEL MANAGEMENT
   // ===========================
   'goals:org-manage': [

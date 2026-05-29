@@ -31,6 +31,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'loyalty:read',
     'discounts:read',
     'coupons:read',
+    'referral:read',
   ],
 
   /**
@@ -50,6 +51,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'teams:read',
     'customers:read',
     'loyalty:read',
+    'referral:read',
   ],
 
   /**
@@ -85,6 +87,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'tpv:read', // Can view TPV terminals (but not create/edit/command)
     'customers:read',
     'loyalty:read',
+    'referral:read',
     'discounts:read',
     'discounts:apply',
     'commissions:view_own', // Can view their own commissions
@@ -108,6 +111,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'customers:read',
     'loyalty:read',
     'loyalty:redeem', // Can redeem points at POS
+    'referral:read',
     'discounts:read',
     'discounts:apply',
     'coupons:read', // Can validate coupons at POS
@@ -175,6 +179,9 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'loyalty:update',
     'loyalty:redeem',
     'loyalty:adjust',
+    // Referral Program (MANAGER: read + override existing customer; void/configure/export are ADMIN+)
+    'referral:read',
+    'referral:override-existing-customer',
     // Promotions (Discounts & Coupons)
     'discounts:read',
     'discounts:create',
@@ -337,6 +344,16 @@ export const PERMISSION_CATEGORIES = {
   LOYALTY: {
     label: 'Loyalty Program',
     permissions: ['loyalty:read', 'loyalty:create', 'loyalty:update', 'loyalty:delete', 'loyalty:redeem', 'loyalty:adjust'],
+  },
+  REFERRAL: {
+    label: 'Referral Program',
+    permissions: [
+      'referral:read',
+      'referral:configure',
+      'referral:override-existing-customer',
+      'referral:void-manual',
+      'referral:export-csv',
+    ],
   },
   DISCOUNTS: {
     label: 'Discounts',

@@ -14,7 +14,8 @@
     "title": "Customers",
     "all": "All Customers",
     "groups": "Customer Groups",
-    "loyalty": "Loyalty Program"
+    "loyalty": "Loyalty Program",
+    "referrals": "Referral Program"
   },
   "promotionsMenu": {
     "title": "Promotions",

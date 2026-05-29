@@ -1,0 +1,82 @@
+{
+  "title": "Programa de Referidos",
+  "subtitle": "Configura tu programa de referidos por tiers (premio por traer nuevos clientes)",
+  "activate": {
+    "header": "Activar el programa de referidos",
+    "description": "Permite que tus clientes recomienden a otros y ganen descuentos al alcanzar tiers de referidos calificados.",
+    "newCustomerDiscount": "Premio al referido (su primera compra)",
+    "newCustomerDiscountHint": "% de descuento que recibe la nueva persona en su primera compra usando el código",
+    "tiers": "Tiers del referidor",
+    "tierLevel": "Nivel",
+    "tierReferralsRequired": "Referidos requeridos",
+    "tierRewardPercent": "Premio %",
+    "tierExpiry": "Vigencia del cupón (días)",
+    "submit": "Activar programa de referidos",
+    "submitting": "Activando...",
+    "success": "Programa activado correctamente",
+    "error": "No se pudo activar el programa"
+  },
+  "active": {
+    "banner": "✓ Activo desde {{date}}",
+    "summaryHeading": "Resumen del mes",
+    "metrics": {
+      "referralsThisMonth": "Referidos este mes",
+      "conversionRate": "Conversión",
+      "couponsEmitted": "Premios emitidos",
+      "topReferrer": "Top referidor"
+    },
+    "pauseButton": "Pausar programa",
+    "pauseConfirmTitle": "Pausar programa de referidos",
+    "pauseConfirmDescription": "Los códigos existentes se conservan pero la captura nueva en TPV quedará deshabilitada hasta reactivar.",
+    "pauseReasonLabel": "Razón de pausa",
+    "pauseSubmit": "Pausar",
+    "paused": "Programa pausado"
+  },
+  "permissions": {
+    "noConfigureAccess": "No tienes permisos para configurar el programa de referidos. Pídelo a un administrador."
+  },
+  "card": {
+    "title": "Programa de Referidos",
+    "stateA_progress": "{{count}} de {{required}} hacia Nivel {{level}}",
+    "stateB_tierLabel": "Nivel {{level}} · desde {{date}}",
+    "stateC_noCode": "Esta persona aún no tiene código activo.",
+    "stateC_activate": "Activar código ahora",
+    "tier3Reached": "Nivel 3 alcanzado",
+    "copyButton": "Copiar",
+    "copied": "Código copiado al portapapeles",
+    "whatsappButton": "WhatsApp",
+    "whatsappMessage": "¡Te recomiendo {{venue}}! Usa mi código *{{code}}* y te dan 10% en tu primera compra.",
+    "referredBy": "Referida por {{name}}",
+    "referredCount": "Ha referido a {{count}} personas",
+    "viewReferralsList": "Ver lista",
+    "hideReferralsList": "Ocultar lista",
+    "activateError": "No se pudo generar el código",
+    "activateSuccess": "Código generado correctamente",
+    "loadingReferrals": "Cargando referidos...",
+    "noReferralsYet": "Aún no ha referido a nadie"
+  },
+  "hallOfFame": {
+    "title": "Hall of Fame",
+    "loading": "Cargando referidores...",
+    "empty": "Aún nadie ha referido. Cuando un cliente use el código de otro al cobrar, aparecerá aquí.",
+    "unknown": "Sin nombre"
+  },
+  "table": {
+    "title": "Referidos recientes",
+    "columnDate": "Fecha",
+    "columnReferrer": "Referidor",
+    "columnReferred": "Referido",
+    "columnStatus": "Estado",
+    "columnReward": "Premio",
+    "statusPending": "Pendiente",
+    "statusQualified": "Calificado",
+    "statusVoid": "Anulado",
+    "noRewardYet": "—",
+    "filterStatusAll": "Todos los estados",
+    "empty": "No hay referidos registrados",
+    "loading": "Cargando referidos...",
+    "previousPage": "Anterior",
+    "nextPage": "Siguiente",
+    "pageInfo": "Página {{page}} de {{total}}"
+  }
+}

@@ -13,7 +13,8 @@
     "title": "Clientes",
     "all": "Todos los Clientes",
     "groups": "Grupos de Clientes",
-    "loyalty": "Programa de Lealtad"
+    "loyalty": "Programa de Lealtad",
+    "referrals": "Programa de Referidos"
   },
   "promotionsMenu": {
     "title": "Promociones",

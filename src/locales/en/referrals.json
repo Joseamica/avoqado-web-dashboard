@@ -1,0 +1,82 @@
+{
+  "title": "Referral Program",
+  "subtitle": "Configure your tier-based referral program (reward customers for bringing new ones)",
+  "activate": {
+    "header": "Activate the referral program",
+    "description": "Let your customers recommend others and earn discounts when they reach qualified-referral tiers.",
+    "newCustomerDiscount": "Reward for the referred customer (their first purchase)",
+    "newCustomerDiscountHint": "% discount the new person receives on their first purchase using the code",
+    "tiers": "Referrer tiers",
+    "tierLevel": "Level",
+    "tierReferralsRequired": "Referrals required",
+    "tierRewardPercent": "Reward %",
+    "tierExpiry": "Coupon validity (days)",
+    "submit": "Activate referral program",
+    "submitting": "Activating...",
+    "success": "Program activated successfully",
+    "error": "Could not activate the program"
+  },
+  "active": {
+    "banner": "✓ Active since {{date}}",
+    "summaryHeading": "This month's summary",
+    "metrics": {
+      "referralsThisMonth": "Referrals this month",
+      "conversionRate": "Conversion",
+      "couponsEmitted": "Rewards issued",
+      "topReferrer": "Top referrer"
+    },
+    "pauseButton": "Pause program",
+    "pauseConfirmTitle": "Pause referral program",
+    "pauseConfirmDescription": "Existing codes are preserved but new captures in TPV will be disabled until reactivated.",
+    "pauseReasonLabel": "Pause reason",
+    "pauseSubmit": "Pause",
+    "paused": "Program paused"
+  },
+  "permissions": {
+    "noConfigureAccess": "You don't have permission to configure the referral program. Ask an administrator."
+  },
+  "card": {
+    "title": "Referral Program",
+    "stateA_progress": "{{count}} of {{required}} toward Level {{level}}",
+    "stateB_tierLabel": "Level {{level}} · since {{date}}",
+    "stateC_noCode": "This person doesn't have an active code yet.",
+    "stateC_activate": "Activate code now",
+    "tier3Reached": "Level 3 reached",
+    "copyButton": "Copy",
+    "copied": "Code copied to clipboard",
+    "whatsappButton": "WhatsApp",
+    "whatsappMessage": "I recommend {{venue}}! Use my code *{{code}}* and get 10% off your first purchase.",
+    "referredBy": "Referred by {{name}}",
+    "referredCount": "Has referred {{count}} people",
+    "viewReferralsList": "View list",
+    "hideReferralsList": "Hide list",
+    "activateError": "Could not generate the code",
+    "activateSuccess": "Code generated successfully",
+    "loadingReferrals": "Loading referrals...",
+    "noReferralsYet": "Has not referred anyone yet"
+  },
+  "hallOfFame": {
+    "title": "Hall of Fame",
+    "loading": "Loading referrers...",
+    "empty": "No one has referred anyone yet. When a customer uses someone's code at checkout, they'll appear here.",
+    "unknown": "Unnamed"
+  },
+  "table": {
+    "title": "Recent referrals",
+    "columnDate": "Date",
+    "columnReferrer": "Referrer",
+    "columnReferred": "Referred",
+    "columnStatus": "Status",
+    "columnReward": "Reward",
+    "statusPending": "Pending",
+    "statusQualified": "Qualified",
+    "statusVoid": "Void",
+    "noRewardYet": "—",
+    "filterStatusAll": "All statuses",
+    "empty": "No referrals recorded",
+    "loading": "Loading referrals...",
+    "previousPage": "Previous",
+    "nextPage": "Next",
+    "pageInfo": "Page {{page}} of {{total}}"
+  }
+}

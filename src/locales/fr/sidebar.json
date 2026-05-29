@@ -13,7 +13,8 @@
     "title": "Clients",
     "all": "Tous les Clients",
     "groups": "Groupes de Clients",
-    "loyalty": "Programme de Fidélité"
+    "loyalty": "Programme de Fidélité",
+    "referrals": "Programme de Parrainage"
   },
   "promotionsMenu": {
     "title": "Promotions",

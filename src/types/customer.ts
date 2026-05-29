@@ -18,6 +18,17 @@ export interface Customer {
 	updatedAt: string
 	pendingOrderCount: number  // Count of pay-later orders
 	pendingBalance: number      // Total balance pending
+	// Referral program fields (Plan 1 backend additions)
+	referralCode?: string | null
+	referralCount?: number
+	referralTier?: 'TIER_1' | 'TIER_2' | 'TIER_3' | null
+	tierUnlockedAt?: string | null
+	referredByCustomerId?: string | null
+	referredByCustomer?: {
+		id: string
+		firstName: string | null
+		lastName: string | null
+	} | null
 }
 
 export interface CustomerGroupBasic {

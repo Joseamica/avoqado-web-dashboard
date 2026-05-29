@@ -53,6 +53,7 @@ import {
   InventorySummary,
   InventoryHistory,
   LoyaltySettings,
+  ReferralsSettings,
   MenuId,
   MenuMakerLayout,
   MenuOverview,
@@ -421,6 +422,13 @@ export function createVenueRoutes(): RouteObject[] {
       path: 'loyalty',
       element: <PermissionProtectedRoute permission="loyalty:read" />,
       children: [{ index: true, element: <LoyaltySettings /> }],
+    },
+
+    // Referrals Program (requires referral:read permission)
+    {
+      path: 'referrals',
+      element: <PermissionProtectedRoute permission="referral:read" />,
+      children: [{ index: true, element: <ReferralsSettings /> }],
     },
 
     // Promotions - Discounts (requires discounts:read permission)

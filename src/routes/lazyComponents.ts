@@ -195,6 +195,9 @@ export const VirtualTerminal = lazyWithRetry(() => import('@/pages/VirtualTermin
 // Loyalty
 export const LoyaltySettings = lazyWithRetry(() => import('@/pages/Loyalty/LoyaltySettings'))
 
+// Referrals
+export const ReferralsSettings = lazyWithRetry(() => import('@/pages/Referrals/ReferralsSettings'))
+
 // Promotions
 export const Discounts = lazyWithRetry(() => import('@/pages/Promotions/Discounts'))
 export const DiscountForm = lazyWithRetry(() => import('@/pages/Promotions/DiscountForm'))

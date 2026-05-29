@@ -87,7 +87,7 @@ export const DASHBOARD_SUPER_CATEGORIES: SuperCategory[] = [
     descriptionKey: 'rolePermissions.superCategories.marketingLoyaltyDesc',
     icon: 'Heart',
     accentColor: 'purple',
-    categoryKeys: ['CUSTOMERS', 'CUSTOMER_GROUPS', 'LOYALTY', 'DISCOUNTS', 'COUPONS', 'TPV_SETTINGS'],
+    categoryKeys: ['CUSTOMERS', 'CUSTOMER_GROUPS', 'LOYALTY', 'REFERRAL', 'DISCOUNTS', 'COUPONS', 'TPV_SETTINGS'],
   },
 ]
 
