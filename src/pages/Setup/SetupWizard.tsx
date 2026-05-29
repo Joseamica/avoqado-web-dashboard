@@ -142,7 +142,9 @@ export default function SetupWizard() {
     // Hydrate paymentProviders from the backend even if `v2SetupData` didn't surface it
     // under a step key (covers the "user came back days later" case where they connected
     // a merchant out-of-band and just want to see the green checkmark).
-    const persistedProviders = (progressData as any)?.paymentProviders ?? null
+    // NOTE: these are top-level fields on `progress` (the controller computes them
+    // separately from v2SetupData), so read from `progress.X`, NOT `progressData.X`.
+    const persistedProviders = progress?.paymentProviders ?? null
     if (persistedProviders) {
       setData((prev) => ({ ...prev, paymentProviders: persistedProviders }))
       dataRef.current = { ...dataRef.current, paymentProviders: persistedProviders }
@@ -152,7 +154,7 @@ export default function SetupWizard() {
     // makes Steps 8 (payment providers) and 9 (buy TPV) functional during the
     // wizard — without it those steps would have no real venueId to call
     // backend APIs against.
-    const persistedVenueId = (progressData as any)?.venueId ?? null
+    const persistedVenueId = progress?.venueId ?? null
     if (persistedVenueId) {
       setData((prev) => ({ ...prev, venueId: persistedVenueId } as any))
       dataRef.current = { ...dataRef.current, venueId: persistedVenueId } as any
@@ -161,7 +163,7 @@ export default function SetupWizard() {
     // Hydrate tpvPurchase (Step 9) the same way as paymentProviders. The
     // backend's resolveTpvPurchaseForOnboarding returns this when the env
     // flag is on; otherwise the field is undefined and Step 9 renders View A.
-    const persistedTpvPurchase = (progressData as any)?.tpvPurchase ?? null
+    const persistedTpvPurchase = progress?.tpvPurchase ?? null
     if (persistedTpvPurchase) {
       setData((prev) => ({ ...prev, tpvPurchase: persistedTpvPurchase }))
       dataRef.current = { ...dataRef.current, tpvPurchase: persistedTpvPurchase }
@@ -313,6 +315,16 @@ export default function SetupWizard() {
         // The wizardStep marker lets handleBack distinguish wizard-pushed entries from
         // the initial anchor (which used replaceState and has null state).
         window.history.pushState({ wizardStep: newStep }, '', getHashFromStepIndex(newStep))
+
+        // Steps 8 (paymentProviders) and 9 (buyTpv) need a real venueId. The
+        // backend lazily creates a provisional venue on GET progress once
+        // businessName exists — but the progress query only ran on mount (when
+        // businessName was empty). Refetching now triggers venue creation and
+        // surfaces `progress.venueId`, which we derive fresh at render time.
+        const newStepId = SETUP_STEPS[newStep]?.id
+        if (newStepId === 'paymentProviders' || newStepId === 'buyTpv') {
+          void queryClient.invalidateQueries({ queryKey: ['onboarding-progress', orgId] })
+        }
       } else {
         // Final step completed — finalize setup
         await handleComplete(merged)
@@ -377,6 +389,13 @@ export default function SetupWizard() {
   const stepId = SETUP_STEPS[currentStep].id
   const isFirstStep = currentStep === 0
 
+  // Provisional venueId for Steps 8/9. Prefer the FRESH query result over the
+  // once-hydrated `data` state — after the refetch triggered in handleNext, the
+  // backend has created the venue and `progress.venueId` is populated, but the
+  // init effect (which copies into `data`) only ran on mount. Reading fresh
+  // here means the step gets the venueId as soon as the refetch lands.
+  const provisionalVenueId = (progressData as any)?.progress?.venueId ?? (data as any).venueId ?? undefined
+
   return (
     <SetupWizardLayout
       onBack={isFirstStep ? undefined : handleBack}
@@ -399,7 +418,7 @@ export default function SetupWizard() {
           onBack={isFirstStep ? undefined : handleBack}
           {...(stepId === 'paymentProviders'
             ? {
-                venueId: (data as any).venueId,
+                venueId: provisionalVenueId,
                 organizationId: orgId,
                 mpMerchantId: data.paymentProviders?.mpMerchantId,
                 stripeMerchantId: data.paymentProviders?.stripeMerchantId,
@@ -407,7 +426,7 @@ export default function SetupWizard() {
             : {})}
           {...(stepId === 'buyTpv'
             ? {
-                venueId: (data as any).venueId,
+                venueId: provisionalVenueId,
                 tpvOrderId: data.tpvPurchase?.tpvOrderId,
               }
             : {})}

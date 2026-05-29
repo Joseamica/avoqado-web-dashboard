@@ -74,6 +74,12 @@ export interface OrgSaleRegisteredFromVenue {
   slug: string
 }
 
+export interface OrgSaleTerminal {
+  id: string
+  name: string
+  serialNumber: string
+}
+
 export interface OrgSaleRow {
   id: string
   paymentId: string
@@ -94,6 +100,8 @@ export interface OrgSaleRow {
   payment: OrgSalePayment | null
   category: OrgSaleCategory | null
   registeredFromVenue: OrgSaleRegisteredFromVenue | null
+  /** TPV terminal that captured the sale (resolved from deviceId). Null if no match. */
+  terminal: OrgSaleTerminal | null
 }
 
 export interface OrgSalePagination {

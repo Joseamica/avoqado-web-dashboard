@@ -125,20 +125,28 @@ function deriveOrderState(order: { paymentStatus: string; fulfillmentStatus: str
 export function BuyTpvStep({ onNext, venueId, tpvOrderId }: BuyTpvStepProps) {
   const { t } = useTranslation('setup')
   const [wizardOpen, setWizardOpen] = useState(false)
+  // Order id from a SPEI purchase completed THIS session (before the user
+  // clicked "Terminar onboarding"). Distinct from the `tpvOrderId` prop, which
+  // comes from backend hydration / URL round-trip. Either resolves View B.
+  const [justCreatedOrderId, setJustCreatedOrderId] = useState<string | null>(null)
+
+  // Effective order id: a just-created SPEI order takes priority, then the
+  // hydrated prop. When neither is set we fall back to the venue's most-recent
+  // order (covers "user came back days later").
+  const resolvedOrderId = justCreatedOrderId ?? tpvOrderId ?? null
 
   // Resolve the order to show. Priority:
-  //   1. `tpvOrderId` from props (step9 or URL hydration) → fetch by ID.
-  //   2. No ID but venue exists → query latest order as fallback (covers the
-  //      "user came back days later" case). The backend's resolveTpvPurchase
-  //      already does this server-side, but we also do it client-side so the
-  //      UI hydrates even if the backend payload missed it.
+  //   1. resolvedOrderId set → fetch by ID.
+  //   2. No ID but venue exists → query latest order as fallback. The backend's
+  //      resolveTpvPurchase already does this server-side, but we also do it
+  //      client-side so the UI hydrates even if the backend payload missed it.
   //   3. No venueId → can't query; render View A.
   const { data: order, isLoading: orderLoading } = useQuery({
-    queryKey: ['tpv-order-onboarding', venueId, tpvOrderId],
+    queryKey: ['tpv-order-onboarding', venueId, resolvedOrderId],
     queryFn: async () => {
       if (!venueId) return null
-      if (tpvOrderId) {
-        return tpvOrderService.getById(venueId, tpvOrderId).catch(() => null)
+      if (resolvedOrderId) {
+        return tpvOrderService.getById(venueId, resolvedOrderId).catch(() => null)
       }
       const list = await tpvOrderService.listForVenue(venueId)
       return list[0] ?? null
@@ -158,27 +166,29 @@ export function BuyTpvStep({ onNext, venueId, tpvOrderId }: BuyTpvStepProps) {
       },
     })
 
+  // "Terminar onboarding →" — the ONLY action that completes the wizard.
+  // handleNext on the last step calls handleComplete → completeSetup. This is
+  // why handleWizardComplete below does NOT call onNext: completing a purchase
+  // must not auto-finish onboarding; the user reviews View B first.
   const handleFinish = () =>
     onNext({
       tpvPurchase: {
-        tpvOrderId: order?.id ?? null,
+        tpvOrderId: order?.id ?? resolvedOrderId ?? null,
         skipped: false,
         lastUpdatedAt: new Date().toISOString(),
       },
     })
 
-  // SPEI completion from the embedded wizard. Card flow doesn't reach here
-  // (Stripe redirect takes over before onComplete fires); on return, the
-  // URL params drive hydration in SetupWizard, not this callback.
+  // SPEI completion from the embedded wizard. We ONLY flip to View B locally —
+  // we must NOT call onNext here, because buyTpv is the last wizard step and
+  // onNext would immediately complete onboarding + navigate away, so the user
+  // would never see their order confirmation. The order is recoverable on
+  // refresh via the backend's most-recent-order fallback. Card flow doesn't
+  // reach here (Stripe redirect takes over before onComplete fires); on
+  // return, URL params drive hydration in SetupWizard.
   const handleWizardComplete = (result: { orderId: string; paymentMethod: 'CARD_STRIPE' | 'SPEI' }) => {
     setWizardOpen(false)
-    onNext({
-      tpvPurchase: {
-        tpvOrderId: result.orderId,
-        skipped: false,
-        lastUpdatedAt: new Date().toISOString(),
-      },
-    })
+    setJustCreatedOrderId(result.orderId)
   }
 
   // Loading: brief skeleton so we don't flash View A then flip to View B.
@@ -261,6 +271,7 @@ export function BuyTpvStep({ onNext, venueId, tpvOrderId }: BuyTpvStepProps) {
           <TerminalPurchaseWizard
             open={wizardOpen}
             onOpenChange={setWizardOpen}
+            venueId={venueId}
             from="setup"
             onComplete={handleWizardComplete}
           />

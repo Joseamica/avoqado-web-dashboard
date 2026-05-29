@@ -41,6 +41,13 @@ interface TerminalPurchaseWizardProps {
    * behavior — the caller is responsible for closing the modal and routing.
    */
   onComplete?: (result: { orderId: string; paymentMethod: 'CARD_STRIPE' | 'SPEI' }) => void
+  /**
+   * Explicit venue id. REQUIRED when the wizard is opened outside a
+   * `/venues/:slug/` route (e.g. the onboarding wizard at `/setup`), because
+   * `useCurrentVenue()` can't resolve a venue from the URL there. When omitted,
+   * falls back to the current-venue context (normal post-onboarding usage).
+   */
+  venueId?: string
 }
 
 type WizardStep = 1 | 2 | 3 | 4
@@ -52,13 +59,17 @@ export function TerminalPurchaseWizard({
   onSuccess,
   from = 'tpv',
   onComplete,
+  venueId: venueIdProp,
 }: TerminalPurchaseWizardProps) {
   const { t } = useTranslation('tpv')
   const { t: tCommon } = useTranslation()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const { venue, venueId, fullBasePath } = useCurrentVenue()
+  const { venue, venueId: venueIdFromContext, fullBasePath } = useCurrentVenue()
+  // Explicit prop wins (onboarding /setup has no venue in the URL); otherwise
+  // use the current-venue context (normal /venues/:slug/tpv usage).
+  const venueId = venueIdProp ?? venueIdFromContext
 
   const [currentStep, setCurrentStep] = useState<WizardStep>(1)
   const [cart, setCart] = useState<CartLine[]>([])

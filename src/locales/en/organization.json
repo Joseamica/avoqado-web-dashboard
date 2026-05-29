@@ -75,7 +75,6 @@
     "itemName": "Product",
     "category": "Category",
     "quantitySold": "Qty Sold",
-    "totalRevenue": "Total Revenue",
     "avgPrice": "Avg Price",
     "trending": {
       "up": "Growing",
@@ -243,7 +242,11 @@
       "recentCommandsEmpty": "No recent actions",
       "dangerZone": "Danger zone",
       "dangerZoneToggle": "Show destructive actions",
-      "notFound": "Terminal not found"
+      "notFound": "Terminal not found",
+      "updateApp": "Update app",
+      "selectVersion": "Select version",
+      "latest": "latest",
+      "updateAppHint": "The operator must authorize the install on the terminal."
     },
     "tour": {
       "step1": "See every terminal in your organization here.",
@@ -296,7 +299,8 @@
       "clearCache": "Clear Cache",
       "exportLogs": "Export Logs",
       "assignMerchants": "Assign Merchants",
-      "error": "Error"
+      "error": "Error",
+      "update": "Update"
     },
     "dialog": {
       "createTitle": "Create Terminal",

@@ -270,6 +270,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const userVenues = user.venues || []
     const isSuperAdmin = user.role === 'SUPERADMIN'
     const accessibleVenues = isSuperAdmin ? allVenues : userVenues
+    // Authoritative onboarding-done signal from the backend (org.onboardingCompletedAt).
+    // With the provisional-venue feature (Steps 8/9), an OWNER can have a venue mid-
+    // onboarding, so `userVenues.length` is no longer a reliable proxy. We gate ONLY on
+    // an explicit `=== false` so a missing field (older API payload) preserves today's
+    // behavior. The backend login service already trusts this same flag (auth.service.ts).
+    const onboardingIncomplete = (user as any).onboardingCompleted === false
 
     // PRIORITY 1: URL-based returnTo parameter (Stripe/GitHub pattern)
     // This is the industry-standard way to preserve navigation state across login
@@ -284,9 +290,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     }
 
-    // World-Class Pattern (Stripe/Shopify): OWNER without venues → redirect to onboarding
-    // This handles the case where user verified email but hasn't completed onboarding yet
-    if (userVenues.length === 0 && userRole === StaffRole.OWNER) {
+    // World-Class Pattern (Stripe/Shopify): OWNER who hasn't finished onboarding →
+    // redirect to the wizard. Triggers when they have no venues OR when onboarding
+    // is explicitly incomplete (provisional venue exists but org.onboardingCompletedAt
+    // is still null). Without the second condition, a mid-onboarding OWNER with a
+    // provisional venue would fall through to the dashboard-redirect branch below.
+    if ((userVenues.length === 0 || onboardingIncomplete) && userRole === StaffRole.OWNER) {
       // Don't redirect if already on onboarding, setup, signup, or auth routes
       const isOnOnboardingRoute = location.pathname.startsWith('/onboarding')
       const isOnSetupRoute = location.pathname.startsWith('/setup')
@@ -379,7 +388,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const isOnOrgRoute = currentPath.startsWith('/organizations')
         const isOnWhiteLabelRoute = currentPath.startsWith('/wl/')
         const isOnDashboardResolverRoute = currentPath === '/go' || currentPath.startsWith('/go/')
-        if (!currentPath.includes('/venues/') && !isOnAdminRoute && !isOnOrgRoute && !isOnWhiteLabelRoute && !isOnDashboardResolverRoute) {
+        // Don't redirect away from the setup wizard. A user mid-onboarding can
+        // now have a PROVISIONAL venue (status=ONBOARDING, created lazily so
+        // Steps 8/9 — payment providers + buy TPV — have a real venueId). That
+        // venue makes `accessibleVenues.length > 0`, but the user hasn't
+        // finished onboarding yet, so they must stay on /setup until they click
+        // "Terminar onboarding" (which navigates to '/' explicitly). Without
+        // this guard, refreshing /setup would bounce them into the half-built
+        // venue's dashboard. (/onboarding is the deprecated legacy wizard route,
+        // kept here for safety.)
+        const isOnSetupRoute = currentPath.startsWith('/setup') || currentPath.startsWith('/onboarding')
+        if (
+          !currentPath.includes('/venues/') &&
+          !isOnAdminRoute &&
+          !isOnOrgRoute &&
+          !isOnWhiteLabelRoute &&
+          !isOnDashboardResolverRoute &&
+          !isOnSetupRoute
+        ) {
           const basePath = getVenueBasePath(activeVenue)
           const defaultPage = getVenueDefaultPage(activeVenue)
           navigate(`${basePath}/${defaultPage}`, { replace: true })
@@ -489,11 +515,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         const userVenues = freshUser.venues || []
+        // Same provisional-venue handling as the resolution effect: route an OWNER
+        // back to the wizard on re-login when onboarding isn't finished, even if a
+        // provisional venue already exists. Gate on explicit `=== false` so a missing
+        // field (older API payload) keeps today's behavior.
+        const onboardingIncomplete = (freshUser as any).onboardingCompleted === false
 
-        // 3. OWNER without venues → /setup (v2) or /onboarding (legacy)
-        if (userVenues.length === 0) {
+        // 3. OWNER who hasn't finished onboarding → /setup (v2) or /onboarding (legacy)
+        if (userVenues.length === 0 || onboardingIncomplete) {
           const wizardDest = freshUser.wizardVersion === 2 ? '/setup' : '/onboarding'
-          console.log(`[AUTH] 🆕 No venues, redirect to ${wizardDest}`)
+          console.log(`[AUTH] 🆕 Onboarding incomplete, redirect to ${wizardDest}`)
           toast({ title: t('toast.login_success') })
           navigate(wizardDest, { replace: true })
           setLoginError(null)

@@ -327,8 +327,8 @@ export default function OrganizationTerminals() {
   })
 
   const commandMutation = useMutation({
-    mutationFn: ({ terminalId, command }: { terminalId: string; command: OrgTerminalCommand }) =>
-      sendOrgTerminalCommand(orgId!, terminalId, command),
+    mutationFn: ({ terminalId, command, versionCode }: { terminalId: string; command: OrgTerminalCommand; versionCode?: number }) =>
+      sendOrgTerminalCommand(orgId!, terminalId, command, versionCode),
     onSuccess: (_d, variables) => {
       invalidateTerminals()
       toast({ title: t(`terminals.toast.command.${variables.command}` as const, { defaultValue: 'Comando enviado' }) })
@@ -341,6 +341,17 @@ export default function OrganizationTerminals() {
       })
     },
   })
+
+  // "Actualizar" from the drawer: REQUEST_UPDATE asks the TPV to update to the
+  // chosen version — the operator authorizes the install on the terminal. The
+  // versionCode targets a specific build (older TPV builds ignore it → latest).
+  const handleUpdateVersion = (terminal: OrgTerminal, versionCode: number, versionName: string) => {
+    confirmAction(
+      'Actualizar TPV',
+      `Se le pedirá a "${terminal.name}" actualizar a la versión ${versionName}. El operador deberá autorizar la instalación en la terminal.`,
+      () => commandMutation.mutate({ terminalId: terminal.id, command: 'REQUEST_UPDATE', versionCode }),
+    )
+  }
 
   const assignMerchantsMutation = useMutation({
     mutationFn: ({ terminalId, merchantIds }: { terminalId: string; merchantIds: string[] }) =>
@@ -577,6 +588,7 @@ export default function OrganizationTerminals() {
             fromCache={fromCacheTerminal}
             onClose={closeDrawer}
             onCommand={handleCommandFromDrawer}
+            onUpdateVersion={handleUpdateVersion}
             onEdit={terminal => {
               setEditingTerminal(terminal)
               setTerminalDialogOpen(true)

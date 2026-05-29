@@ -596,11 +596,36 @@ export async function sendOrgTerminalCommand(
   orgId: string,
   terminalId: string,
   command: OrgTerminalCommand,
+  /** Target app version (AppUpdate.versionCode) — only meaningful for REQUEST_UPDATE. */
+  versionCode?: number,
 ): Promise<OrgCommandResult> {
-  const response = await api.post(
-    `/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/command`,
-    { command },
-  )
+  const response = await api.post(`/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/command`, {
+    command,
+    ...(typeof versionCode === 'number' ? { versionCode } : {}),
+  })
+  return response.data.data
+}
+
+export type OrgAppEnvironment = 'SANDBOX' | 'PRODUCTION'
+
+export interface OrgAppVersion {
+  versionName: string
+  versionCode: number
+  environment: OrgAppEnvironment
+  releaseNotes: string | null
+  isLatest: boolean
+  createdAt: string
+}
+
+/**
+ * List TPV app versions available to push to a terminal, newest first.
+ * `environment` should match the terminal's build (inferred from its version
+ * string suffix — "-sandbox" → SANDBOX, else PRODUCTION).
+ */
+export async function getOrgAppVersions(orgId: string, environment: OrgAppEnvironment): Promise<OrgAppVersion[]> {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/terminals/app-versions`, {
+    params: { environment },
+  })
   return response.data.data
 }
 

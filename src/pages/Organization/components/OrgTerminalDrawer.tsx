@@ -6,11 +6,18 @@ import { StatusPulse } from '@/components/ui/status-pulse'
 import { useVenueDateTime } from '@/utils/datetime'
 import { getDateFnsLocale } from '@/utils/i18n-locale'
 import { getTerminalStatusInfo } from '@/lib/terminal-status'
-import { getOrgTerminalById, type OrgTerminal, type OrgTerminalCommand } from '@/services/organizationDashboard.service'
+import {
+  getOrgTerminalById,
+  getOrgAppVersions,
+  type OrgTerminal,
+  type OrgTerminalCommand,
+  type OrgAppEnvironment,
+} from '@/services/organizationDashboard.service'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useQuery } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
-import { ChevronDown, ChevronUp, Lock, RefreshCcw, RefreshCw, Unlock, Wrench, X, Zap } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { ArrowUpCircle, ChevronDown, ChevronUp, Lock, RefreshCcw, RefreshCw, Unlock, Wrench, X, Zap } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 interface OrgTerminalDrawerProps {
@@ -19,6 +26,8 @@ interface OrgTerminalDrawerProps {
   fromCache?: OrgTerminal | null
   onClose: () => void
   onCommand: (terminal: OrgTerminal, command: OrgTerminalCommand) => void
+  /** Push a specific app version to the terminal (REQUEST_UPDATE w/ versionCode). */
+  onUpdateVersion?: (terminal: OrgTerminal, versionCode: number, versionName: string) => void
   onEditMerchants?: (terminal: OrgTerminal) => void
   onDelete?: (terminal: OrgTerminal) => void
   onEdit?: (terminal: OrgTerminal) => void
@@ -33,6 +42,7 @@ export function OrgTerminalDrawer({
   fromCache,
   onClose,
   onCommand,
+  onUpdateVersion,
   onEditMerchants,
   onDelete,
   onEdit,
@@ -44,6 +54,7 @@ export function OrgTerminalDrawer({
   const { formatDateTime } = useVenueDateTime()
   const dateFnsLocale = getDateFnsLocale(i18n.language)
   const [showDanger, setShowDanger] = useState(false)
+  const [selectedVersion, setSelectedVersion] = useState<string>('')
 
   // Only fetch when the URL has a terminal id we don't have in the list cache
   const { data: fetched, isLoading } = useQuery({
@@ -53,6 +64,33 @@ export function OrgTerminalDrawer({
   })
 
   const terminal: OrgTerminal | null = fromCache ?? fetched ?? null
+
+  // Infer the build environment from the terminal's version suffix
+  // ("2.4.2-sandbox" → SANDBOX, otherwise PRODUCTION) so we list the right
+  // versions to push. Matches how AppUpdate.versionName stores the suffix.
+  const appEnvironment: OrgAppEnvironment = useMemo(
+    () => (terminal?.version?.toLowerCase().includes('sandbox') ? 'SANDBOX' : 'PRODUCTION'),
+    [terminal?.version],
+  )
+
+  const { data: appVersions } = useQuery({
+    queryKey: ['org-app-versions', orgId, appEnvironment],
+    queryFn: () => getOrgAppVersions(orgId, appEnvironment),
+    enabled: !!terminalId && !!onUpdateVersion,
+  })
+
+  const versions = useMemo(() => appVersions ?? [], [appVersions])
+  const latestVersion = versions.find(v => v.isLatest) ?? versions[0] ?? null
+
+  // Default the dropdown to the latest version once the list loads.
+  useEffect(() => {
+    if (!selectedVersion && latestVersion) setSelectedVersion(String(latestVersion.versionCode))
+  }, [latestVersion, selectedVersion])
+
+  // Reset selection when switching terminals.
+  useEffect(() => {
+    setSelectedVersion('')
+  }, [terminalId])
 
   useEffect(() => {
     if (!terminalId) setShowDanger(false)
@@ -191,6 +229,49 @@ export function OrgTerminalDrawer({
                   />
                 </dl>
               </section>
+
+              {/* Update app version (OWNER pushes a build; operator authorizes on the TPV) */}
+              {onUpdateVersion && versions.length > 0 && (
+                <section>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {t('terminals.drawer.updateApp', { defaultValue: 'Actualizar aplicación' })}
+                  </h3>
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1 min-w-0">
+                      <Select value={selectedVersion} onValueChange={setSelectedVersion}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder={t('terminals.drawer.selectVersion', { defaultValue: 'Selecciona versión' })} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {versions.map(v => (
+                            <SelectItem key={v.versionCode} value={String(v.versionCode)}>
+                              {v.versionName}
+                              {v.isLatest ? ` · ${t('terminals.drawer.latest', { defaultValue: 'más reciente' })}` : ''}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="h-9 gap-1.5 cursor-pointer"
+                      disabled={!selectedVersion}
+                      onClick={() => {
+                        const v = versions.find(x => String(x.versionCode) === selectedVersion)
+                        if (v) onUpdateVersion(terminal, v.versionCode, v.versionName)
+                      }}
+                    >
+                      <ArrowUpCircle className="h-3.5 w-3.5" />
+                      {t('terminals.actions.update', { defaultValue: 'Actualizar' })}
+                    </Button>
+                  </div>
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    {t('terminals.drawer.updateAppHint', {
+                      defaultValue: 'El operador deberá autorizar la instalación en la terminal.',
+                    })}
+                  </p>
+                </section>
+              )}
 
               {/* Health */}
               <section>

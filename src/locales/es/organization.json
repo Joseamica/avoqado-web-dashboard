@@ -75,7 +75,6 @@
     "itemName": "Producto",
     "category": "Categoría",
     "quantitySold": "Cant. Vendida",
-    "totalRevenue": "Ingresos Totales",
     "avgPrice": "Precio Prom.",
     "trending": {
       "up": "Creciendo",
@@ -243,7 +242,11 @@
       "recentCommandsEmpty": "Sin acciones recientes",
       "dangerZone": "Zona peligrosa",
       "dangerZoneToggle": "Mostrar acciones destructivas",
-      "notFound": "Terminal no encontrada"
+      "notFound": "Terminal no encontrada",
+      "updateApp": "Actualizar aplicación",
+      "selectVersion": "Selecciona versión",
+      "latest": "más reciente",
+      "updateAppHint": "El operador deberá autorizar la instalación en la terminal."
     },
     "tour": {
       "step1": "Aquí ves todas las terminales de tu organización.",
@@ -296,7 +299,8 @@
       "clearCache": "Limpiar Caché",
       "exportLogs": "Exportar Logs",
       "assignMerchants": "Asignar Comercios",
-      "error": "Error"
+      "error": "Error",
+      "update": "Actualizar"
     },
     "dialog": {
       "createTitle": "Crear Terminal",

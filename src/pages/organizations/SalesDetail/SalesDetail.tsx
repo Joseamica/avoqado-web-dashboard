@@ -14,6 +14,7 @@
  */
 
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Search,
@@ -30,6 +31,7 @@ import {
   ExternalLink,
   ZoomIn,
   ZoomOut,
+  Smartphone,
 } from 'lucide-react'
 import { DateTime } from 'luxon'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
@@ -136,6 +138,14 @@ export default function SalesDetail() {
   const { activeVenue, user } = useAuth()
   const { toast } = useToast()
   const isMobile = useIsMobile()
+  const navigate = useNavigate()
+
+  // Jump from a sale to its TPV in the org Terminals page. The terminals page
+  // reads `?terminal=<id>` from the URL and opens that terminal's drawer.
+  const goToTerminal = (terminalId: string) => {
+    if (!orgId) return
+    navigate(`/organizations/${orgId}/terminals?terminal=${terminalId}`)
+  }
 
   const venueTz = activeVenue?.timezone || EXPORT_TZ
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(() => {
@@ -364,6 +374,8 @@ export default function SalesDetail() {
         'Email Promotor': r.staff?.email ?? '',
         Ciudad: r.venue.city ?? '',
         Tienda: r.venue.name,
+        TPV: r.terminal?.name ?? '',
+        'TPV Serial': r.terminal?.serialNumber ?? '',
         'Tipo de Venta': saleTypeLabel(r),
         'Forma de Pago': paymentFormLabel(r),
         'Monto MXN': r.payment?.amount ?? 0,
@@ -571,6 +583,7 @@ export default function SalesDetail() {
                 onPhotoClick={url => setPhotoPreview(url)}
                 onReview={mode => openReview(row, mode)}
                 onReopen={canReopen ? () => openReopen(row) : undefined}
+                onTerminalClick={row.terminal ? () => goToTerminal(row.terminal!.id) : undefined}
               />
             ))
           )}
@@ -607,6 +620,7 @@ export default function SalesDetail() {
                 <th className="px-3 py-2 text-left">Promotor</th>
                 <th className="px-3 py-2 text-left">Ciudad</th>
                 <th className="px-3 py-2 text-left">Tienda</th>
+                <th className="px-3 py-2 text-left">TPV</th>
                 <th className="px-3 py-2 text-left">Tipo de venta</th>
                 <th className="px-3 py-2 text-left">Forma de pago</th>
                 <th className="px-3 py-2 text-right">Monto</th>
@@ -620,14 +634,14 @@ export default function SalesDetail() {
               {listQuery.isLoading ? (
                 Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i} className="border-t border-border/30">
-                    <td colSpan={15} className="px-3 py-3">
+                    <td colSpan={16} className="px-3 py-3">
                       <Skeleton className="h-6 w-full" />
                     </td>
                   </tr>
                 ))
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={15} className="px-3 py-10 text-center text-muted-foreground">
+                  <td colSpan={16} className="px-3 py-10 text-center text-muted-foreground">
                     No hay ventas que coincidan con los filtros.
                   </td>
                 </tr>
@@ -650,6 +664,21 @@ export default function SalesDetail() {
                     <td className="px-3 py-2">{row.staff ? `${row.staff.firstName} ${row.staff.lastName}`.trim() : '—'}</td>
                     <td className="px-3 py-2">{row.venue.city ?? '—'}</td>
                     <td className="px-3 py-2">{row.venue.name}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      {row.terminal ? (
+                        <button
+                          type="button"
+                          onClick={() => goToTerminal(row.terminal!.id)}
+                          className="inline-flex items-center gap-1 text-primary hover:underline cursor-pointer"
+                          title={`Ver terminal ${row.terminal.name} (${row.terminal.serialNumber})`}
+                        >
+                          <Smartphone className="h-3.5 w-3.5" />
+                          {row.terminal.name}
+                        </button>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
                     <td className="px-3 py-2">{saleTypeLabel(row)}</td>
                     <td className="px-3 py-2">{paymentFormLabel(row)}</td>
                     <td className="px-3 py-2 text-right font-mono">
@@ -948,6 +977,7 @@ function SaleCard({
   onPhotoClick,
   onReview,
   onReopen,
+  onTerminalClick,
 }: {
   row: OrgSaleRow
   formatDate: (d: string | Date | null | undefined) => string
@@ -956,6 +986,8 @@ function SaleCard({
   onReview: (mode: ReviewMode) => void
   /** Provided only when the current user has `sale-verifications:reopen`. */
   onReopen?: () => void
+  /** Provided only when the sale resolved to a known TPV terminal. */
+  onTerminalClick?: () => void
 }) {
   const promoter = row.staff ? `${row.staff.firstName} ${row.staff.lastName}`.trim() : '—'
   const venueLabel = row.venue.city ? `${row.venue.name} · ${row.venue.city}` : row.venue.name
@@ -987,6 +1019,21 @@ function SaleCard({
         <Field label="Tipo venta" value={saleTypeLabel(row)} />
         <Field label="Forma pago" value={paymentFormLabel(row)} />
         <Field label="Monto" value={amount} mono />
+        <div className="min-w-0">
+          <p className="text-muted-foreground">TPV</p>
+          {row.terminal && onTerminalClick ? (
+            <button
+              type="button"
+              onClick={onTerminalClick}
+              className="inline-flex items-center gap-1 text-primary hover:underline cursor-pointer max-w-full"
+            >
+              <Smartphone className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{row.terminal.name}</span>
+            </button>
+          ) : (
+            <p>—</p>
+          )}
+        </div>
       </div>
 
       {/* Photos */}
