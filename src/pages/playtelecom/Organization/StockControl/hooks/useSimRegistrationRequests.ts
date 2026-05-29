@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/use-toast'
 import api from '@/api'
 
 export interface SimRegRequestItem {
@@ -53,12 +53,12 @@ export function useApproveSimRegistration(orgId: string | undefined) {
       return data.data
     },
     onSuccess: () => {
-      toast.success('Solicitud aprobada')
+      toast({ title: 'Solicitud aprobada' })
       qc.invalidateQueries({ queryKey: ['sim-registration-requests', orgId] })
       qc.invalidateQueries({ queryKey: ['sim-registration-requests-count', orgId] })
       qc.invalidateQueries({ queryKey: ['org-stock-control', orgId] })
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Error al aprobar'),
+    onError: (err: any) => toast({ title: err?.response?.data?.message ?? 'Error al aprobar', variant: 'destructive' }),
   })
 }
 
@@ -73,10 +73,10 @@ export function useRejectSimRegistration(orgId: string | undefined) {
       return data.data
     },
     onSuccess: () => {
-      toast.success('Solicitud rechazada')
+      toast({ title: 'Solicitud rechazada' })
       qc.invalidateQueries({ queryKey: ['sim-registration-requests', orgId] })
       qc.invalidateQueries({ queryKey: ['sim-registration-requests-count', orgId] })
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Error al rechazar'),
+    onError: (err: any) => toast({ title: err?.response?.data?.message ?? 'Error al rechazar', variant: 'destructive' }),
   })
 }
