@@ -241,9 +241,9 @@ model Referral {
   voidedAt   DateTime?
   voidReason String? @db.Text
 
-  // Cupón emitido al desbloquear tier (FK)
-  rewardCouponId String?
-  rewardCoupon   Coupon? @relation(fields: [rewardCouponId], references: [id], onDelete: SetNull)
+  // Premio emitido al desbloquear tier (FK al Discount padre, que tiene CouponCode + CustomerDiscount)
+  rewardDiscountId String?
+  rewardDiscount   Discount? @relation("ReferralReward", fields: [rewardDiscountId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
 
@@ -274,10 +274,10 @@ En `model Order` (junto a las otras relaciones):
   referralsTriggered Referral[]
 ```
 
-En `model Coupon`:
+En `model Discount`:
 
 ```prisma
-  referrals Referral[]
+  referralRewards Referral[] @relation("ReferralReward")
 ```
 
 - [ ] **Step 3: Validar Prisma compila**
@@ -298,50 +298,33 @@ git commit -m "feat(referrals): add Referral model and inverse relations"
 
 ---
 
-### Task 5: Verificar / agregar campos faltantes en `Coupon`
+### Task 5: Agregar `source` + `deactivatedReason` al model `Discount`
+
+> **Schema correction discovered during pre-checks (2026-05-28):** Avoqado no tiene un model `Coupon` independiente — usa `Discount` como entidad padre y `CouponCode` como código compartible. Para tracking de origen y razón de desactivación, los campos van en `Discount` (no en `CouponCode`).
+>
+> `CouponCode.active` y `Discount.active` ya existen — no requieren cambios. Para revocación, en Tasks 12-13 se usará `CouponCode.active = false` (revoca el código) + `CustomerDiscount.active = false` (revoca la entitlement individual del referidor).
 
 **Files:**
-- Modify: `avoqado-server/prisma/schema.prisma` (model `Coupon`)
+- Modify: `avoqado-server/prisma/schema.prisma` (model `Discount`, ~líneas 4982-5070)
 
-- [ ] **Step 1: Inspeccionar el model `Coupon` actual**
+- [ ] **Step 1: Localizar `model Discount`**
 
 ```bash
-grep -A 30 "^model Coupon" prisma/schema.prisma
+grep -n "^model Discount " prisma/schema.prisma
 ```
 
-Confirmar cuáles de estos 4 campos ya existen:
-- `active: Boolean @default(true)`
-- `deactivatedReason: String?`
-- `source: String?` (o `CouponSource?` si hay enum)
-- `redeemedAt: DateTime?`
+- [ ] **Step 2: Agregar 2 campos nuevos**
 
-- [ ] **Step 2: Agregar los que falten**
-
-Si falta `active`:
+Dentro de `model Discount`, después de los campos existentes de `// Status` (línea ~5047 donde está `active Boolean @default(true)`), agregar:
 
 ```prisma
-  active Boolean @default(true)
+  // Source tracking (analytics)
+  source String? // e.g., "REFERRAL_TIER", "MANUAL", "CAMPAIGN", "PROMO". Null = legacy/unspecified.
+  
+  // Deactivation audit
+  deactivatedReason String? @db.Text // Por qué se marcó active=false (e.g., "TIER_REVERSED_BY_REFUND", "MANUAL_REVOCATION")
+  deactivatedAt     DateTime?
 ```
-
-Si falta `deactivatedReason`:
-
-```prisma
-  deactivatedReason String? @db.Text
-```
-
-Si falta `source`:
-
-```prisma
-  source String? // E.g., "REFERRAL_TIER", "MANUAL", "CAMPAIGN"
-```
-
-Si falta `redeemedAt`:
-
-```prisma
-  redeemedAt DateTime?
-```
-
-(El comentario explica para futuros lectores; el implementer evalúa si meterlos como enum.)
 
 - [ ] **Step 3: Validar**
 
@@ -350,14 +333,14 @@ npx prisma format
 npx prisma validate
 ```
 
+Expected: 0 errors.
+
 - [ ] **Step 4: Commit**
 
 ```bash
 git add prisma/schema.prisma
-git commit -m "feat(referrals): add Coupon fields needed for tier-up rewards (only if missing)"
+git commit -m "feat(referrals): add source + deactivatedReason to Discount for referral tier tracking"
 ```
-
-(Si todos los campos ya existen, este task se salta el commit y solo se documenta "no changes needed".)
 
 ---
 
@@ -384,7 +367,7 @@ Read del migration.sql. Verificar:
 - `ALTER TABLE "Customer" ADD CONSTRAINT ... UNIQUE ("venueId", "referralCode")`
 - `CREATE INDEX "Customer_referredByCustomerId_idx"`
 - `CREATE INDEX "Referral_venueId_idx"`, `_referrerCustomerId_idx`, `_referredCustomerId_idx`, `_status_idx`
-- Si Task 5 agregó campos a Coupon: `ALTER TABLE "Coupon" ADD COLUMN ...`
+- Si Task 5 agregó campos a Discount: `ALTER TABLE "Discount" ADD COLUMN "source" ...`, `ADD COLUMN "deactivatedReason" ...`, `ADD COLUMN "deactivatedAt" ...`
 
 Si falta algo, ajustar el schema y regenerar.
 
