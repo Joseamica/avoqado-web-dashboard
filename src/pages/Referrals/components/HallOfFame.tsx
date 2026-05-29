@@ -39,7 +39,7 @@ export function HallOfFame({ venueId, limit = 10 }: HallOfFameProps) {
     )
   }
 
-  if (!data || data.length === 0) {
+  if (!Array.isArray(data) || data.length === 0) {
     return (
       <div data-testid="hall-of-fame-empty">
         <div className="flex items-center gap-2 mb-3">

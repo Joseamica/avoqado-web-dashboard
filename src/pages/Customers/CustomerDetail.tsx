@@ -51,9 +51,10 @@ import type { LoyaltyTransaction, CustomerGroup, LoyaltyTransactionType } from '
 import type { CreditPackPurchase } from '@/types/creditPack'
 
 import CustomerForm from './components/CustomerForm'
+import ReferralCard from './components/ReferralCard'
 
 export default function CustomerDetail() {
-	const { venueId, fullBasePath } = useCurrentVenue()
+	const { venueId, fullBasePath, venue } = useCurrentVenue()
 	const { customerId } = useParams<{ customerId: string }>()
 	const navigate = useNavigate()
 	const { toast } = useToast()
@@ -427,6 +428,13 @@ export default function CustomerDetail() {
 							</CardContent>
 						</Card>
 					</div>
+
+					{/* Referral program card */}
+					<ReferralCard
+						customer={customer}
+						venueId={venueId}
+						venueName={venue?.name || venue?.slug || ''}
+					/>
 
 					{/* Tabs */}
 					<Tabs defaultValue="orders" className="space-y-4">

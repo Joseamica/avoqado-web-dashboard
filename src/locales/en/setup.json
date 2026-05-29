@@ -129,6 +129,39 @@
       "todo": "Stripe connection coming soon"
     }
   },
+  "step9": {
+    "title": "Buy your payment terminal (optional)",
+    "subtitle": "Charge in person with a physical terminal. 4G SIM included at no extra cost.",
+    "catalogHeading": "Available models",
+    "plusIVA": "+ tax",
+    "openWizard": "View catalog and buy →",
+    "venueNotReady": "Complete the previous steps to enable the purchase.",
+    "skip": "Skip for now →",
+    "orderCreated": "Order",
+    "product": "Product:",
+    "total": "Total:",
+    "includeTax": "(with tax)",
+    "shippingTo": "Ship to:",
+    "retry": "Try again",
+    "finish": "Finish onboarding →",
+    "state": {
+      "label": "Status:",
+      "awaitingSpei": "Awaiting SPEI proof",
+      "speiReceived": "Proof received — reviewing",
+      "paid": "Payment confirmed",
+      "shipped": "Your terminal is on the way",
+      "delivered": "Delivered",
+      "rejected": "Order cancelled"
+    },
+    "help": {
+      "awaitingSpei": "Upload your proof from TPV → Orders when you're ready.",
+      "speiReceived": "We'll email you once we approve it.",
+      "paid": "We'll assign your terminal in the next few hours.",
+      "shipped": "We sent the shipping details to your email.",
+      "delivered": "Start charging from TPV → Equipment.",
+      "rejected": "You can try again or skip this step."
+    }
+  },
   "businessType": {
     "categories": {
       "foodService": "Food & Beverage",

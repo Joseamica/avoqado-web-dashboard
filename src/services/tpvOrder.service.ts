@@ -36,6 +36,13 @@ export interface CreateOrderPayload {
   shippingZip: string
   shippingCountry?: string
   paymentMethod: TerminalOrderPaymentMethod
+  /**
+   * Origin of the purchase — affects Stripe Checkout success/cancel URLs.
+   * - `'tpv'` (default): land at `/venues/:slug/tpv/orders/:id` after payment.
+   * - `'setup'`: round-trip back to the V2 onboarding wizard Step 9.
+   * Spec: avoqado-server/docs/superpowers/specs/2026-05-29-onboarding-tpv-purchase-design.md
+   */
+  from?: 'tpv' | 'setup'
 }
 
 export interface CreateOrderResponse {

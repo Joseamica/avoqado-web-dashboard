@@ -50,6 +50,13 @@ export interface SetupData {
     stripeMerchantId?: string | null
     skipped?: boolean
   }
+  // Step 9: TPV Purchase (optional)
+  // Spec: ../../../avoqado-server/docs/superpowers/specs/2026-05-29-onboarding-tpv-purchase-design.md
+  tpvPurchase?: {
+    tpvOrderId?: string | null
+    skipped?: boolean
+    lastUpdatedAt?: string
+  }
 }
 
 export interface StepProps {

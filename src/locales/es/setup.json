@@ -129,6 +129,39 @@
       "todo": "Conexión Stripe en breve"
     }
   },
+  "step9": {
+    "title": "Compra tu terminal de pago (opcional)",
+    "subtitle": "Cobra presencial con una terminal física. SIM con internet 4G incluida, sin costo adicional.",
+    "catalogHeading": "Modelos disponibles",
+    "plusIVA": "+ IVA",
+    "openWizard": "Ver catálogo y comprar →",
+    "venueNotReady": "Completa los pasos anteriores para habilitar la compra.",
+    "skip": "Saltar por ahora →",
+    "orderCreated": "Pedido",
+    "product": "Producto:",
+    "total": "Total:",
+    "includeTax": "(con IVA)",
+    "shippingTo": "Envío a:",
+    "retry": "Intentar de nuevo",
+    "finish": "Terminar onboarding →",
+    "state": {
+      "label": "Estado:",
+      "awaitingSpei": "Esperando comprobante SPEI",
+      "speiReceived": "Comprobante recibido — revisando",
+      "paid": "Pago confirmado",
+      "shipped": "Tu terminal está en camino",
+      "delivered": "Entregada",
+      "rejected": "Pedido cancelado"
+    },
+    "help": {
+      "awaitingSpei": "Sube tu comprobante desde TPV → Pedidos cuando estés listo.",
+      "speiReceived": "Te notificaremos por correo cuando lo aprobemos.",
+      "paid": "Asignaremos tu terminal en las próximas horas.",
+      "shipped": "Te enviamos los detalles de envío al correo.",
+      "delivered": "Empieza a cobrar desde TPV → Equipos.",
+      "rejected": "Puedes intentar de nuevo o saltar este paso."
+    }
+  },
   "businessType": {
     "categories": {
       "foodService": "Alimentos y bebidas",

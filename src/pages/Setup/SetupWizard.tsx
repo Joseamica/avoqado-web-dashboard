@@ -26,12 +26,18 @@ import { IdentityStep } from './steps/IdentityStep'
 import { TermsStep } from './steps/TermsStep'
 import { BankAccountStep } from './steps/BankAccountStep'
 import { PaymentProvidersStep } from './steps/PaymentProvidersStep'
+import { BuyTpvStep } from './steps/BuyTpvStep'
 
 // Always show Step 8 in the wizard. Backend gates the API (test-payment-link
 // endpoint, OAuth callback wizard-routing) with ENABLE_ONBOARDING_PAYMENT_PROVIDERS;
 // the frontend opts into showing the step unconditionally so every new
 // merchant sees the option to connect MP/Stripe during onboarding.
 const PAYMENT_PROVIDERS_ENABLED = true
+
+// Same strategy for Step 9: always show, backend gates the API behavior
+// (resolveTpvPurchase only surfaces tpvOrderId when ENABLE_ONBOARDING_TPV_PURCHASE=true).
+// Spec: ../../../avoqado-server/docs/superpowers/specs/2026-05-29-onboarding-tpv-purchase-design.md
+const TPV_PURCHASE_ENABLED = true
 
 const BASE_SETUP_STEPS = [
   { id: 'businessInfo', component: BusinessInfoStep },
@@ -42,9 +48,16 @@ const BASE_SETUP_STEPS = [
   { id: 'bankAccount', component: BankAccountStep },
 ] as const
 
-const SETUP_STEPS = PAYMENT_PROVIDERS_ENABLED
-  ? ([...BASE_SETUP_STEPS, { id: 'paymentProviders', component: PaymentProvidersStep }] as const)
-  : BASE_SETUP_STEPS
+const SETUP_STEPS = (() => {
+  const steps: Array<{ id: string; component: any }> = [...BASE_SETUP_STEPS]
+  if (PAYMENT_PROVIDERS_ENABLED) {
+    steps.push({ id: 'paymentProviders', component: PaymentProvidersStep })
+  }
+  if (TPV_PURCHASE_ENABLED) {
+    steps.push({ id: 'buyTpv', component: BuyTpvStep })
+  }
+  return steps
+})()
 
 const getStepIndexFromHash = (hash: string): number | null => {
   const match = hash.match(/^#step-(\d+)$/)
@@ -135,6 +148,25 @@ export default function SetupWizard() {
       dataRef.current = { ...dataRef.current, paymentProviders: persistedProviders }
     }
 
+    // Hydrate provisional venueId from ensureVenueForOnboarding. This is what
+    // makes Steps 8 (payment providers) and 9 (buy TPV) functional during the
+    // wizard — without it those steps would have no real venueId to call
+    // backend APIs against.
+    const persistedVenueId = (progressData as any)?.venueId ?? null
+    if (persistedVenueId) {
+      setData((prev) => ({ ...prev, venueId: persistedVenueId } as any))
+      dataRef.current = { ...dataRef.current, venueId: persistedVenueId } as any
+    }
+
+    // Hydrate tpvPurchase (Step 9) the same way as paymentProviders. The
+    // backend's resolveTpvPurchaseForOnboarding returns this when the env
+    // flag is on; otherwise the field is undefined and Step 9 renders View A.
+    const persistedTpvPurchase = (progressData as any)?.tpvPurchase ?? null
+    if (persistedTpvPurchase) {
+      setData((prev) => ({ ...prev, tpvPurchase: persistedTpvPurchase }))
+      dataRef.current = { ...dataRef.current, tpvPurchase: persistedTpvPurchase }
+    }
+
     // Resolve target step: prefer URL hash if it points to a step the user can already access.
     let targetStep = backendMaxStep
     const hashStep = getStepIndexFromHash(window.location.hash)
@@ -161,25 +193,57 @@ export default function SetupWizard() {
     const stripeStatus = url.searchParams.get('stripe_status')
 
     if (PAYMENT_PROVIDERS_ENABLED && (mpStatus === 'success' || stripeStatus === 'success')) {
-      // Force step 8 (last visible step when the flag is on).
-      const step8Index = SETUP_STEPS.length - 1
-      maxAllowedStepRef.current = Math.max(maxAllowedStepRef.current, step8Index)
-      setCurrentStep(step8Index)
-      setData((prev) => {
-        const next = {
-          ...prev,
-          paymentProviders: {
-            ...(prev.paymentProviders ?? {}),
-            ...(mpStatus === 'success' && mpMerchantId ? { mpMerchantId } : {}),
-            ...(stripeStatus === 'success' && mpMerchantId ? { stripeMerchantId: mpMerchantId } : {}),
-          },
-        }
-        dataRef.current = next
-        return next
-      })
-      // Clean the URL so a refresh doesn't loop.
-      url.search = ''
-      window.history.replaceState(null, '', `${url.pathname}#step-${step8Index + 1}`)
+      // PaymentProviders is at index `length-2` when TPV step is enabled,
+      // `length-1` otherwise. Compute by id so this stays correct if the
+      // step order changes.
+      const ppIndex = SETUP_STEPS.findIndex(s => s.id === 'paymentProviders')
+      if (ppIndex >= 0) {
+        maxAllowedStepRef.current = Math.max(maxAllowedStepRef.current, ppIndex)
+        setCurrentStep(ppIndex)
+        setData((prev) => {
+          const next = {
+            ...prev,
+            paymentProviders: {
+              ...(prev.paymentProviders ?? {}),
+              ...(mpStatus === 'success' && mpMerchantId ? { mpMerchantId } : {}),
+              ...(stripeStatus === 'success' && mpMerchantId ? { stripeMerchantId: mpMerchantId } : {}),
+            },
+          }
+          dataRef.current = next
+          return next
+        })
+        // Clean the URL so a refresh doesn't loop.
+        url.search = ''
+        window.history.replaceState(null, '', `${url.pathname}#step-${ppIndex + 1}`)
+      }
+    }
+
+    // TPV purchase round-trip from Stripe Checkout. The backend's
+    // buildStripeCheckoutUrls sends success/cancel back to
+    // /setup?tpv_status=...&orderId=...#step-8 when `from=setup`.
+    const tpvStatus = url.searchParams.get('tpv_status')
+    const tpvOrderIdParam = url.searchParams.get('orderId')
+
+    if (TPV_PURCHASE_ENABLED && (tpvStatus === 'success' || tpvStatus === 'cancel')) {
+      const buyTpvIndex = SETUP_STEPS.findIndex(s => s.id === 'buyTpv')
+      if (buyTpvIndex >= 0) {
+        maxAllowedStepRef.current = Math.max(maxAllowedStepRef.current, buyTpvIndex)
+        setCurrentStep(buyTpvIndex)
+        setData((prev) => {
+          const next = {
+            ...prev,
+            tpvPurchase: {
+              ...(prev.tpvPurchase ?? {}),
+              ...(tpvStatus === 'success' && tpvOrderIdParam ? { tpvOrderId: tpvOrderIdParam } : {}),
+              skipped: false,
+            },
+          }
+          dataRef.current = next
+          return next
+        })
+        url.search = ''
+        window.history.replaceState(null, '', `${url.pathname}#step-${buyTpvIndex + 1}`)
+      }
     }
 
     setIsInitialized(true)
@@ -339,6 +403,12 @@ export default function SetupWizard() {
                 organizationId: orgId,
                 mpMerchantId: data.paymentProviders?.mpMerchantId,
                 stripeMerchantId: data.paymentProviders?.stripeMerchantId,
+              }
+            : {})}
+          {...(stepId === 'buyTpv'
+            ? {
+                venueId: (data as any).venueId,
+                tpvOrderId: data.tpvPurchase?.tpvOrderId,
               }
             : {})}
         />

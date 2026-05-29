@@ -23,12 +23,36 @@ interface TerminalPurchaseWizardProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess?: () => void
+  /**
+   * Origin of the purchase — forwarded to the backend so Stripe Checkout
+   * `success_url` routes back to the right place after Card payments:
+   *   - `'tpv'` (default): land at the venue's order detail page.
+   *   - `'setup'`: round-trip back to the V2 onboarding wizard Step 9.
+   */
+  from?: 'tpv' | 'setup'
+  /**
+   * Called when the wizard completes WITHOUT a Stripe redirect (SPEI path).
+   * Receives the new order id + payment method so the caller can hydrate
+   * downstream UI (e.g. the onboarding step's View B). For Card payments,
+   * the Stripe redirect happens before this fires — the caller observes
+   * completion via URL params on return instead.
+   *
+   * When provided, also OVERRIDES the default "navigate to order detail"
+   * behavior — the caller is responsible for closing the modal and routing.
+   */
+  onComplete?: (result: { orderId: string; paymentMethod: 'CARD_STRIPE' | 'SPEI' }) => void
 }
 
 type WizardStep = 1 | 2 | 3 | 4
 const TOTAL_STEPS = 4
 
-export function TerminalPurchaseWizard({ open, onOpenChange, onSuccess }: TerminalPurchaseWizardProps) {
+export function TerminalPurchaseWizard({
+  open,
+  onOpenChange,
+  onSuccess,
+  from = 'tpv',
+  onComplete,
+}: TerminalPurchaseWizardProps) {
   const { t } = useTranslation('tpv')
   const { t: tCommon } = useTranslation()
   const { toast } = useToast()
@@ -131,16 +155,27 @@ export function TerminalPurchaseWizard({ open, onOpenChange, onSuccess }: Termin
         shippingZip: step2Data.postalCode,
         shippingCountry: step2Data.country,
         paymentMethod: step3Data.method,
+        from,
       })
     },
     onSuccess: result => {
       if (result.redirectUrl) {
-        // Stripe Card → redirect to hosted checkout
+        // Stripe Card → redirect to hosted checkout. Backend already routed
+        // success_url to the right destination based on `from`.
         window.location.href = result.redirectUrl
         return
       }
-      // SPEI path (Plan 2 will use this) → navigate to confirmation page
+      // SPEI path: order created, no redirect. Two completion strategies:
+      //   1. Caller provided `onComplete` → hand off to them (used by the
+      //      onboarding wizard's BuyTpvStep so it can hydrate View B).
+      //      They take responsibility for closing the modal + any routing.
+      //   2. No `onComplete` → default behavior: invalidate queries, close
+      //      modal, navigate to order detail page.
       queryClient.invalidateQueries({ queryKey: ['tpv-orders', venueId] })
+      if (onComplete) {
+        onComplete({ orderId: result.orderId, paymentMethod: step3Data!.method })
+        return
+      }
       onOpenChange(false)
       navigate(`${fullBasePath}/tpv/orders/${result.orderId}`)
       onSuccess?.()
