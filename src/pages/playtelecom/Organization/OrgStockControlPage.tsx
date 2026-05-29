@@ -26,10 +26,12 @@ import { OrgCargasTab } from './StockControl/tabs/OrgCargasTab'
 import { OrgDetalleSimsTab } from './StockControl/tabs/OrgDetalleSimsTab'
 import { OrgPorSucursalTab } from './StockControl/tabs/OrgPorSucursalTab'
 import { OrgPorCategoriaTab } from './StockControl/tabs/OrgPorCategoriaTab'
+import { OrgSolicitudesTab } from './StockControl/tabs/OrgSolicitudesTab'
 import { AssignToSupervisorDialog } from './StockControl/components/AssignToSupervisorDialog'
 import { OrgBulkUploadDialog } from './StockControl/components/OrgBulkUploadDialog'
 import { useAccess } from '@/hooks/use-access'
 import { useAuth } from '@/context/AuthContext'
+import { useSimRegistrationRequestsCount } from './StockControl/hooks/useSimRegistrationRequests'
 
 const TABS = [
   { value: 'resumen', label: 'Resumen' },
@@ -37,6 +39,7 @@ const TABS = [
   { value: 'detalle', label: 'Detalle SIMs' },
   { value: 'sucursal', label: 'Por Sucursal' },
   { value: 'categoria', label: 'Por Categoría' },
+  { value: 'solicitudes', label: 'Solicitudes' },
 ] as const
 
 type TabValue = (typeof TABS)[number]['value']
@@ -106,6 +109,7 @@ export default function OrgStockControlPage() {
   )
 
   const { data, isLoading, isError, error, refetch } = useOrgStockControl(orgId, queryParams)
+  const { data: pendingCount = 0 } = useSimRegistrationRequestsCount(orgId)
 
   // ─── Loading ─── (matches existing StockControl.tsx skeleton structure)
   if (isLoading) {
@@ -261,11 +265,16 @@ export default function OrgStockControlPage() {
               <button
                 key={tab.value}
                 onClick={() => setActiveTab(tab.value)}
-                className={`relative pb-3 text-sm font-medium transition-colors whitespace-nowrap ${
+                className={`relative pb-3 text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 ${
                   activeTab === tab.value ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {tab.label}
+                {tab.value === 'solicitudes' && pendingCount > 0 && (
+                  <span className="rounded-full bg-primary text-primary-foreground text-xs px-1.5 py-0.5 leading-none">
+                    {pendingCount}
+                  </span>
+                )}
                 {activeTab === tab.value && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
               </button>
             ))}
@@ -286,6 +295,9 @@ export default function OrgStockControlPage() {
         </TabsContent>
         <TabsContent value="categoria" className="space-y-6 mt-4">
           <OrgPorCategoriaTab data={data} />
+        </TabsContent>
+        <TabsContent value="solicitudes" className="space-y-6 mt-4">
+          <OrgSolicitudesTab orgId={orgId!} />
         </TabsContent>
       </Tabs>
     </div>
