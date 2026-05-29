@@ -4,8 +4,6 @@ import { Package, Info } from 'lucide-react'
 
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AddressAutocomplete, type PlaceDetails } from '@/components/address-autocomplete'
@@ -20,7 +18,6 @@ export interface Step2Data {
   state: string
   postalCode: string
   country: string
-  shippingSpeed: 'standard' | 'express' | 'overnight'
 }
 
 interface Step2ShippingInfoProps {
@@ -30,12 +27,6 @@ interface Step2ShippingInfoProps {
 
 export function Step2ShippingInfo({ form, wasPreFilled }: Step2ShippingInfoProps) {
   const { t } = useTranslation('tpv')
-
-  const shippingOptions = [
-    { value: 'standard', label: t('purchaseWizard.step2.shippingOptions.standard') },
-    { value: 'express', label: t('purchaseWizard.step2.shippingOptions.express') },
-    { value: 'overnight', label: t('purchaseWizard.step2.shippingOptions.overnight') },
-  ]
 
   return (
     <div className="space-y-6">
@@ -235,30 +226,6 @@ export function Step2ShippingInfo({ form, wasPreFilled }: Step2ShippingInfoProps
           </div>
         </CardContent>
       </Card>
-
-      {/* Shipping Speed */}
-      <FormField
-        control={form.control}
-        name="shippingSpeed"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>{t('purchaseWizard.step2.shippingSpeed')}</FormLabel>
-            <FormControl>
-              <RadioGroup value={field.value} onValueChange={field.onChange} className="flex flex-col gap-3">
-                {shippingOptions.map(option => (
-                  <div key={option.value} className="flex items-center space-x-2">
-                    <RadioGroupItem value={option.value} id={option.value} />
-                    <Label htmlFor={option.value} className="font-normal cursor-pointer flex-1">
-                      {option.label}
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
     </div>
   )
 }

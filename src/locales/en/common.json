@@ -456,7 +456,8 @@
     "delete": "Delete",
     "edit": "Edit",
     "create": "Create",
-    "add": "Add"
+    "add": "Add",
+    "comingSoon": "Coming soon"
   },
   "chooseColor": "Choose color",
   "screenReaderOnly": {

@@ -5,15 +5,16 @@ import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
-import api from '@/api'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Form } from '@/components/ui/form'
+import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Progress } from '@/components/ui/progress'
+import { CartLine } from '@/config/tpvCatalog'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { tpvOrderService } from '@/services/tpvOrder.service'
 
-import { Step1Configuration, Step1Data } from './wizard-steps/Step1Configuration'
+import { Step1Configuration } from './wizard-steps/Step1Configuration'
 import { Step2Data, Step2ShippingInfo } from './wizard-steps/Step2ShippingInfo'
 import { Step3Data, Step3PaymentMethod } from './wizard-steps/Step3PaymentMethod'
 import { Step4Data, Step4ReviewConfirm } from './wizard-steps/Step4ReviewConfirm'
@@ -36,18 +37,18 @@ export function TerminalPurchaseWizard({ open, onOpenChange, onSuccess }: Termin
   const { venue, venueId, fullBasePath } = useCurrentVenue()
 
   const [currentStep, setCurrentStep] = useState<WizardStep>(1)
-  const [step1Data, setStep1Data] = useState<Step1Data | null>(null)
+  const [cart, setCart] = useState<CartLine[]>([])
+  const [showEmptyCartError, setShowEmptyCartError] = useState(false)
   const [step2Data, setStep2Data] = useState<Step2Data | null>(null)
   const [step3Data, setStep3Data] = useState<Step3Data | null>(null)
   const [wasPreFilled, setWasPreFilled] = useState<boolean | undefined>(undefined)
 
-  // Step 1 Form
-  const step1Form = useForm<Step1Data>({
-    defaultValues: {
-      quantity: 1,
-      namePrefix: 'Terminal',
-    },
-  })
+  // Clear the empty-cart error as soon as the user adds at least one item.
+  useEffect(() => {
+    if (cart.length > 0 && showEmptyCartError) {
+      setShowEmptyCartError(false)
+    }
+  }, [cart.length, showEmptyCartError])
 
   // Step 2 Form - Pre-fill with venue data
   const step2Form = useForm<Step2Data>({
@@ -61,20 +62,12 @@ export function TerminalPurchaseWizard({ open, onOpenChange, onSuccess }: Termin
       state: venue?.state || '',
       postalCode: venue?.zipCode || '',
       country: venue?.country || 'México',
-      shippingSpeed: 'standard',
     },
   })
 
   // Step 3 Form
   const step3Form = useForm<Step3Data>({
-    defaultValues: {
-      method: 'card',
-      cardNumber: '',
-      cardExpiry: '',
-      cardCVV: '',
-      cardName: '',
-      mockToken: '',
-    },
+    defaultValues: { method: 'CARD_STRIPE' },
   })
 
   // Step 4 Form
@@ -88,12 +81,12 @@ export function TerminalPurchaseWizard({ open, onOpenChange, onSuccess }: Termin
   useEffect(() => {
     if (open) {
       setCurrentStep(1)
-      setStep1Data(null)
+      setCart([])
+      setShowEmptyCartError(false)
       setStep2Data(null)
       setStep3Data(null)
       setWasPreFilled(undefined)
 
-      step1Form.reset()
       step3Form.reset()
       step4Form.reset()
     }
@@ -103,7 +96,6 @@ export function TerminalPurchaseWizard({ open, onOpenChange, onSuccess }: Termin
   // Pre-fill Step 2 when wizard opens (backup - main pre-fill happens in handleNext)
   useEffect(() => {
     if (open && venue && currentStep === 2) {
-      console.log('🔧 [useEffect] Pre-filling Step 2 with venue data')
       step2Form.reset({
         contactName: venue.name || '',
         contactEmail: venue.email || '',
@@ -114,87 +106,53 @@ export function TerminalPurchaseWizard({ open, onOpenChange, onSuccess }: Termin
         state: venue.state || '',
         postalCode: venue.zipCode || '',
         country: venue.country || 'México',
-        shippingSpeed: 'standard',
       })
     }
   }, [open, venue, currentStep, step2Form])
 
-  // Create terminals mutation
-  const createTerminalsMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const createdTerminals = []
-      const errors = []
-
-      for (let i = 0; i < data.quantity; i++) {
-        try {
-          const payload = {
-            name: `${data.namePrefix} ${i + 1}`,
-            // Serial number will be added later during activation
-            brand: 'PAX',
-            model: 'A910S',
-            type: 'TPV_ANDROID',
-            status: 'PENDING_ACTIVATION', // Terminal awaiting hardware serial number
-            config: {
-              purchaseOrder: {
-                orderDate: new Date().toISOString(),
-                product: {
-                  name: 'PAX A910S',
-                  price: 349,
-                },
-                quantity: data.quantity,
-                shipping: data.shipping,
-                payment: {
-                  method: data.payment.method,
-                  mockToken: data.payment.mockToken,
-                  status: 'demo_completed',
-                },
-                totalAmount: data.totalAmount,
-                currency: 'USD',
-                sendEmail: i === 0, // Only send email for first terminal to avoid duplicates
-              },
-            },
-          }
-
-          const response = await api.post(`/api/v1/dashboard/venues/${venueId}/tpvs`, payload)
-          createdTerminals.push(response.data)
-        } catch (error: any) {
-          errors.push({ index: i, error: error.response?.data?.message || error.message })
-        }
+  // Create order mutation — POSTs to /tpv-orders and (for Stripe Card) redirects to hosted checkout.
+  const createOrderMutation = useMutation({
+    mutationFn: async () => {
+      if (cart.length === 0 || !step2Data || !step3Data) {
+        throw new Error('Missing wizard data')
       }
-
-      return { createdTerminals, errors, total: data.quantity }
+      return tpvOrderService.create(venueId!, {
+        items: cart.map(line => ({
+          catalogKey: line.catalogKey,
+          quantity: line.quantity,
+        })),
+        contactName: step2Data.contactName,
+        contactEmail: step2Data.contactEmail,
+        contactPhone: step2Data.contactPhone,
+        shippingAddress: step2Data.address,
+        shippingAddress2: step2Data.addressLine2 || undefined,
+        shippingCity: step2Data.city,
+        shippingState: step2Data.state,
+        shippingZip: step2Data.postalCode,
+        shippingCountry: step2Data.country,
+        paymentMethod: step3Data.method,
+      })
     },
-    onSuccess: data => {
-      if (data.errors.length === 0) {
-        // All terminals created successfully
-        toast({
-          title: t('purchaseWizard.success.title'),
-          description: t('purchaseWizard.success.message'),
-        })
-      } else if (data.createdTerminals.length > 0) {
-        // Partial success
-        toast({
-          title: t('purchaseWizard.success.title'),
-          description: t('purchaseWizard.errors.partialSuccess', {
-            success: data.createdTerminals.length,
-            total: data.total,
-            failed: data.errors.length,
-          }),
-          variant: 'destructive',
-        })
+    onSuccess: result => {
+      if (result.redirectUrl) {
+        // Stripe Card → redirect to hosted checkout
+        window.location.href = result.redirectUrl
+        return
       }
-
-      queryClient.invalidateQueries({ queryKey: ['tpvs', venueId] })
-      onSuccess?.()
+      // SPEI path (Plan 2 will use this) → navigate to confirmation page
+      queryClient.invalidateQueries({ queryKey: ['tpv-orders', venueId] })
       onOpenChange(false)
-
-      // Navigate to TPV list
-      navigate(`${fullBasePath}/tpv`)
+      navigate(`${fullBasePath}/tpv/orders/${result.orderId}`)
+      onSuccess?.()
     },
     onError: (error: any) => {
       toast({
-        title: tCommon('common.error'),
-        description: error.response?.data?.message || t('purchaseWizard.errors.createFailed'),
+        title: tCommon('error', { defaultValue: 'Error' }),
+        description:
+          error.response?.data?.message ??
+          error.response?.data?.error ??
+          error.message ??
+          t('purchaseWizard.errors.createFailed'),
         variant: 'destructive',
       })
     },
@@ -208,51 +166,42 @@ export function TerminalPurchaseWizard({ open, onOpenChange, onSuccess }: Termin
     let isValid = false
 
     if (currentStep === 1) {
-      isValid = await step1Form.trigger()
-      if (isValid) {
-        setStep1Data(step1Form.getValues())
-        setCurrentStep(2)
-
-        // Pre-fill Step 2 form when user advances to it
-        if (venue) {
-          // Check if venue has complete data
-          const hasCompleteData = Boolean(
-            venue.name && venue.email && venue.phone && venue.address && venue.city && venue.state && venue.zipCode,
-          )
-
-          console.log('🔧 Pre-filling Step 2 with venue data:', {
-            name: venue.name,
-            email: venue.email,
-            phone: venue.phone,
-            address: venue.address,
-            city: venue.city,
-            state: venue.state,
-            zipCode: venue.zipCode,
-            country: venue.country,
-            hasCompleteData,
-          })
-
-          setWasPreFilled(hasCompleteData)
-
-          // Use setTimeout to ensure form is ready
-          setTimeout(() => {
-            step2Form.reset({
-              contactName: venue.name || '',
-              contactEmail: venue.email || '',
-              contactPhone: venue.phone || '',
-              address: venue.address || '',
-              addressLine2: '',
-              city: venue.city || '',
-              state: venue.state || '',
-              postalCode: venue.zipCode || '',
-              country: venue.country || 'México',
-              shippingSpeed: 'standard',
-            })
-          }, 0)
-        } else {
-          setWasPreFilled(false)
-        }
+      if (cart.length === 0) {
+        // Inline error in Step1 (catalog cards highlight + cart card shows the message)
+        // — no toast, no i18n-broken "common.error" title.
+        setShowEmptyCartError(true)
+        return
       }
+      setShowEmptyCartError(false)
+      setCurrentStep(2)
+
+      // Pre-fill Step 2 form when user advances to it
+      if (venue) {
+        // Check if venue has complete data
+        const hasCompleteData = Boolean(
+          venue.name && venue.email && venue.phone && venue.address && venue.city && venue.state && venue.zipCode,
+        )
+
+        setWasPreFilled(hasCompleteData)
+
+        // Use setTimeout to ensure form is ready
+        setTimeout(() => {
+          step2Form.reset({
+            contactName: venue.name || '',
+            contactEmail: venue.email || '',
+            contactPhone: venue.phone || '',
+            address: venue.address || '',
+            addressLine2: '',
+            city: venue.city || '',
+            state: venue.state || '',
+            postalCode: venue.zipCode || '',
+            country: venue.country || 'México',
+          })
+        }, 0)
+      } else {
+        setWasPreFilled(false)
+      }
+      return
     } else if (currentStep === 2) {
       isValid = await step2Form.trigger()
       if (isValid) {
@@ -262,10 +211,7 @@ export function TerminalPurchaseWizard({ open, onOpenChange, onSuccess }: Termin
     } else if (currentStep === 3) {
       isValid = await step3Form.trigger()
       if (isValid) {
-        const formData = step3Form.getValues()
-        // Generate mock token
-        const mockToken = `mock_tok_${Date.now()}`
-        setStep3Data({ ...formData, mockToken })
+        setStep3Data(step3Form.getValues())
         setCurrentStep(4)
       }
     } else if (currentStep === 4) {
@@ -288,49 +234,21 @@ export function TerminalPurchaseWizard({ open, onOpenChange, onSuccess }: Termin
     setCurrentStep(step as WizardStep)
   }
 
-  // Handle complete - collect all data and submit
+  // Handle complete - submit the new cart-based order mutation
   const handleComplete = () => {
-    if (!step1Data || !step2Data || !step3Data) {
-      toast({
-        title: tCommon('common.error'),
-        description: t('purchaseWizard.errors.validationFailed'),
-        variant: 'destructive',
-      })
-      return
-    }
-
     const step4Values = step4Form.getValues()
-
     if (!step4Values.acceptTerms) {
       toast({
-        title: tCommon('common.error'),
+        title: tCommon('error', { defaultValue: 'Error' }),
         description: t('purchaseWizard.errors.termsRequired'),
         variant: 'destructive',
       })
       return
     }
-
-    // Calculate total
-    const subtotal = 349 * step1Data.quantity
-    const shippingCost = step2Data.shippingSpeed === 'express' ? 15 : step2Data.shippingSpeed === 'overnight' ? 35 : 0
-    const tax = (subtotal + shippingCost) * 0.16
-    const totalAmount = subtotal + shippingCost + tax
-
-    // Build complete data
-    const completeData = {
-      quantity: step1Data.quantity,
-      namePrefix: step1Data.namePrefix,
-      autoGenerate: step1Data.autoGenerate,
-      serialNumbers: step1Data.serialNumbers,
-      shipping: step2Data,
-      payment: step3Data,
-      totalAmount,
-    }
-
-    createTerminalsMutation.mutate(completeData)
+    createOrderMutation.mutate()
   }
 
-  const isLoading = createTerminalsMutation.isPending
+  const isLoading = createOrderMutation.isPending
 
   // Get step title
   const getStepTitle = () => {
@@ -349,13 +267,38 @@ export function TerminalPurchaseWizard({ open, onOpenChange, onSuccess }: Termin
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{t('purchaseWizard.title')}</DialogTitle>
-          <DialogDescription>{t('purchaseWizard.subtitle')}</DialogDescription>
-        </DialogHeader>
-
+    <FullScreenModal
+      open={open}
+      onClose={() => onOpenChange(false)}
+      title={t('purchaseWizard.title')}
+      subtitle={t('purchaseWizard.subtitle')}
+      contentClassName="bg-muted/30"
+      actions={
+        <div className="flex items-center gap-2">
+          {currentStep > 1 && (
+            <Button type="button" variant="outline" onClick={handleBack} disabled={isLoading}>
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              {tCommon('back')}
+            </Button>
+          )}
+          <Button onClick={handleNext} disabled={isLoading} data-tour="tpv-wizard-next">
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {currentStep < TOTAL_STEPS ? (
+              <>
+                {tCommon('next')}
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </>
+            ) : (
+              <>
+                {t('purchaseWizard.step4.placeOrder')}
+                <Check className="ml-2 h-4 w-4" />
+              </>
+            )}
+          </Button>
+        </div>
+      }
+    >
+      <div className="mx-auto w-full max-w-3xl px-6 py-8 space-y-6">
         {/* Progress Bar */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm text-muted-foreground">
@@ -368,11 +311,9 @@ export function TerminalPurchaseWizard({ open, onOpenChange, onSuccess }: Termin
         </div>
 
         {/* Step Content */}
-        <div className="py-4">
+        <div>
           {currentStep === 1 && (
-            <Form {...step1Form}>
-              <Step1Configuration form={step1Form} />
-            </Form>
+            <Step1Configuration cart={cart} onChange={setCart} showEmptyError={showEmptyCartError} />
           )}
 
           {currentStep === 2 && (
@@ -387,11 +328,11 @@ export function TerminalPurchaseWizard({ open, onOpenChange, onSuccess }: Termin
             </Form>
           )}
 
-          {currentStep === 4 && step1Data && step2Data && step3Data && (
+          {currentStep === 4 && step2Data && step3Data && (
             <Form {...step4Form}>
               <Step4ReviewConfirm
                 form={step4Form}
-                step1Data={step1Data}
+                cart={cart}
                 step2Data={step2Data}
                 step3Data={step3Data}
                 onEditStep={handleEditStep}
@@ -399,34 +340,7 @@ export function TerminalPurchaseWizard({ open, onOpenChange, onSuccess }: Termin
             </Form>
           )}
         </div>
-
-        {/* Navigation */}
-        <DialogFooter className="flex justify-between sm:justify-between">
-          <Button type="button" variant="outline" onClick={handleBack} disabled={currentStep === 1 || isLoading}>
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            {tCommon('back')}
-          </Button>
-          <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
-              {tCommon('cancel')}
-            </Button>
-            <Button onClick={handleNext} disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {currentStep < TOTAL_STEPS ? (
-                <>
-                  {tCommon('next')}
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </>
-              ) : (
-                <>
-                  {t('purchaseWizard.step4.placeOrder')}
-                  <Check className="ml-2 h-4 w-4" />
-                </>
-              )}
-            </Button>
-          </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </FullScreenModal>
   )
 }

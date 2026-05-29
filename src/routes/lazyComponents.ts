@@ -33,6 +33,7 @@ export const ReceiptViewer = lazyWithRetry(() => import('@/pages/Payment/Receipt
 export const CreateTpv = lazyWithRetry(() => import('@/pages/Tpv/createTpv'))
 export const Tpv = lazyWithRetry(() => import('@/pages/Tpv/Tpvs'))
 export const TpvId = lazyWithRetry(() => import('@/pages/Tpv/TpvId'))
+export const TerminalOrderDetail = lazyWithRetry(() => import('@/pages/Tpv/TerminalOrderDetail'))
 export const Account = lazyWithRetry(() => import('@/pages/Account/Account'))
 export const Payments = lazyWithRetry(() => import('@/pages/Payment/Payments'))
 export const PaymentId = lazyWithRetry(() => import('@/pages/Payment/PaymentId'))
@@ -118,7 +119,6 @@ export { default as ServerHealth } from '@/pages/Superadmin/ServerHealth'
 export { default as SuperadminActivityLog } from '@/pages/Superadmin/ActivityLog'
 export { default as TrainingManagement } from '@/pages/Superadmin/TrainingManagement'
 export { default as TrainingDetail } from '@/pages/Superadmin/TrainingDetail'
-
 // Superadmin V2 Layout
 export { default as SuperadminV2Layout } from '@/pages/SuperadminV2/SuperadminV2Layout'
 

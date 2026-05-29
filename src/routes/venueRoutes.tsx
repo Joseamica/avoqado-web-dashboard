@@ -104,6 +104,7 @@ import {
   InventoryTransferDetailPage,
   TeamId,
   Teams,
+  TerminalOrderDetail,
   Tpv,
   TpvId,
   VenueDocuments,
@@ -302,6 +303,9 @@ export function createVenueRoutes(): RouteObject[] {
           element: <KYCProtectedRoute />,
           children: [
             { path: 'tpv', element: <Tpv /> },
+            // Order detail comes BEFORE :tpvId so it matches first
+            // (otherwise `tpv/orders/:id` would be captured by `tpv/:tpvId`).
+            { path: 'tpv/orders/:id', element: <TerminalOrderDetail /> },
             { path: 'tpv/:tpvId', element: <TpvId /> },
           ],
         },

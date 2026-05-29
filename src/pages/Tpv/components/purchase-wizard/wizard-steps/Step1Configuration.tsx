@@ -1,153 +1,264 @@
-import { UseFormReturn } from 'react-hook-form'
+import { AlertCircle, ChevronDown, Minus, Plus, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Minus } from 'lucide-react'
 
-import { Card, CardContent } from '@/components/ui/card'
-import { FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import {
+  calculateCartTotals,
+  formatMxnCents,
+  TPV_CATALOG,
+  TpvCatalogKey,
+  type CartLine,
+  type TpvCatalogEntry,
+} from '@/config/tpvCatalog'
 
 export interface Step1Data {
-  quantity: number
-  namePrefix: string
+  cart: CartLine[]
+  // Legacy fields kept optional until Task 22 rewrites Step4ReviewConfirm + parent.
+  // Do not rely on these in new code — they are scaffolding.
+  quantity?: number
+  namePrefix?: string
   autoGenerate?: boolean
   serialNumbers?: string[]
 }
 
 interface Step1ConfigurationProps {
-  form: UseFormReturn<Step1Data>
+  cart: CartLine[]
+  onChange: (cart: CartLine[]) => void
+  /** Parent sets this true when the user clicks "Siguiente" with an empty cart. */
+  showEmptyError?: boolean
 }
 
-const PRODUCT = {
-  id: 'pax-a910s',
-  name: 'PAX A910S',
-  brand: 'PAX',
-  model: 'A910S',
-  price: 349,
-  imageUrl: 'https://custom-images.strikinglycdn.com/res/hrscywv4p/image/upload/c_limit,fl_lossy,h_9000,w_1200,f_auto,q_auto/1402119/570292_470056.png',
-}
+const CATALOG_ORDER: TpvCatalogKey[] = ['PAX_A910S', 'NEXGO_N62', 'NEXGO_N86']
+const MAX_TOTAL_UNITS = 10
 
-export function Step1Configuration({ form }: Step1ConfigurationProps) {
+export function Step1Configuration({ cart, onChange, showEmptyError }: Step1ConfigurationProps) {
   const { t } = useTranslation('tpv')
+  const { t: tCommon } = useTranslation()
+  const totals = calculateCartTotals(cart)
+  const totalUnits = cart.reduce((sum, l) => sum + l.quantity, 0)
+  // Highlight catalog "Agregar" buttons when the user clicked Siguiente with an empty cart.
+  const cartEmpty = cart.length === 0
+  const highlightAdd = Boolean(showEmptyError) && cartEmpty
 
-  const quantity = form.watch('quantity')
-  const namePrefix = form.watch('namePrefix')
-
-  const handleQuantityChange = (delta: number) => {
-    const newQuantity = Math.max(1, Math.min(10, quantity + delta))
-    form.setValue('quantity', newQuantity)
+  const updateQuantity = (key: TpvCatalogKey, delta: number) => {
+    const existing = cart.find(l => l.catalogKey === key)
+    if (!existing) {
+      if (delta > 0) onChange([...cart, { catalogKey: key, quantity: 1 }])
+      return
+    }
+    const newQty = existing.quantity + delta
+    if (newQty <= 0) {
+      onChange(cart.filter(l => l.catalogKey !== key))
+    } else if (newQty <= MAX_TOTAL_UNITS) {
+      onChange(cart.map(l => (l.catalogKey === key ? { ...l, quantity: newQty } : l)))
+    }
   }
 
-  // Generate terminal name preview
-  const terminalNames = Array.from({ length: Math.min(quantity, 3) }, (_, i) => `${namePrefix} ${i + 1}`)
-  const preview = terminalNames.join(', ') + (quantity > 3 ? `, ...` : '')
+  const removeFromCart = (key: TpvCatalogKey) => onChange(cart.filter(l => l.catalogKey !== key))
 
   return (
     <div className="space-y-6">
-      {/* Product Display */}
-      <Card className="border-primary bg-accent/50">
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-6">
-            <div className="w-32 h-32 flex items-center justify-center bg-background rounded-lg overflow-hidden border border-border">
-              <img
-                src={PRODUCT.imageUrl}
-                alt={PRODUCT.name}
-                className="w-full h-full object-contain p-2"
-              />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-xl font-bold">{t('purchaseWizard.step1.product.name')}</h3>
-              <p className="text-muted-foreground">{t('purchaseWizard.step1.product.description')}</p>
-              <p className="text-sm text-muted-foreground mt-1">{t('purchaseWizard.step1.product.features')}</p>
-              <p className="text-3xl font-bold text-primary mt-2">${PRODUCT.price}</p>
-            </div>
-          </div>
-        </CardContent>
+      {/* Catalog cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {CATALOG_ORDER.map(key => {
+          const entry = TPV_CATALOG[key]
+          const inCart = cart.find(l => l.catalogKey === key)
+          const modelSlug = entry.model.toLowerCase().replace(/[^a-z0-9]/g, '')
+          return (
+            <Card key={key} data-tour={`tpv-catalog-${modelSlug}`} className="p-4 flex flex-col gap-3 border-input">
+              <div className="aspect-square w-full bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                <img
+                  src={entry.image}
+                  alt={entry.name}
+                  className="object-contain max-w-full max-h-full"
+                  onError={e => {
+                    ;(e.target as HTMLImageElement).style.display = 'none'
+                  }}
+                />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-semibold text-lg">{entry.name}</h3>
+                <p className="text-sm text-muted-foreground">{entry.description}</p>
+              </div>
+              <ul className="space-y-1 text-sm text-muted-foreground flex-1">
+                {entry.features.map(f => (
+                  <li key={f}>• {f}</li>
+                ))}
+              </ul>
+              <div className="pt-2">
+                <div className="text-2xl font-bold">{formatMxnCents(entry.unitPriceCents)}</div>
+                <div className="text-xs text-muted-foreground">{t('purchaseWizard.step1.catalog.perUnitTaxNote')}</div>
+              </div>
+              <SpecsDrawer entry={entry} />
+              {inCart ? (
+                <div className="flex items-center justify-center gap-2 pt-2">
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    onClick={() => updateQuantity(key, -1)}
+                    data-tour={`tpv-cart-decrement-${modelSlug}`}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span className="w-10 text-center font-semibold text-lg">{inCart.quantity}</span>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    onClick={() => updateQuantity(key, 1)}
+                    disabled={totalUnits >= MAX_TOTAL_UNITS}
+                    data-tour={`tpv-cart-increment-${modelSlug}`}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  onClick={() => updateQuantity(key, 1)}
+                  className={`w-full ${
+                    highlightAdd ? 'ring-2 ring-destructive/70 ring-offset-2 ring-offset-card animate-pulse' : ''
+                  }`}
+                  data-tour={`tpv-cart-add-${modelSlug}`}
+                  disabled={totalUnits >= MAX_TOTAL_UNITS}
+                >
+                  {t('purchaseWizard.step1.catalog.add')}
+                </Button>
+              )}
+            </Card>
+          )
+        })}
+      </div>
+
+      {/* Cart summary */}
+      <Card
+        className={`transition-colors ${highlightAdd ? 'border-destructive/70' : 'border-input'}`}
+        data-tour="tpv-cart-summary"
+      >
+        <div className="p-5 space-y-3">
+          <h3 className="font-semibold">{t('purchaseWizard.step1.cart.title')}</h3>
+          {cartEmpty ? (
+            showEmptyError ? (
+              <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span>{t('purchaseWizard.step1.cart.validationEmpty')}</span>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">{t('purchaseWizard.step1.cart.empty')}</p>
+            )
+          ) : (
+            <>
+              <div className="space-y-2">
+                {cart.map(line => {
+                  const entry = TPV_CATALOG[line.catalogKey]
+                  if (!entry) return null
+                  return (
+                    <div key={line.catalogKey} className="flex items-center justify-between text-sm">
+                      <span>
+                        {entry.name} × {line.quantity}
+                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="font-medium">{formatMxnCents(entry.unitPriceCents * line.quantity)}</span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => removeFromCart(line.catalogKey as TpvCatalogKey)}
+                          aria-label={tCommon('common.delete')}
+                          className="cursor-pointer"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <hr className="border-input" />
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t('purchaseWizard.step1.cart.subtotal')}</span>
+                  <span>{formatMxnCents(totals.subtotalCents)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t('purchaseWizard.step1.cart.tax')}</span>
+                  <span>{formatMxnCents(totals.taxCents)}</span>
+                </div>
+                <div className="flex justify-between text-base font-bold pt-1 border-t border-input">
+                  <span>{t('purchaseWizard.step1.cart.total')}</span>
+                  <span>{formatMxnCents(totals.totalCents)} MXN</span>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </Card>
 
-      {/* Quantity Selector */}
-      <FormField
-        control={form.control}
-        name="quantity"
-        rules={{
-          required: { value: true, message: t('purchaseWizard.step1.validation.quantityRequired') },
-          min: { value: 1, message: t('purchaseWizard.step1.validation.quantityMin') },
-          max: { value: 10, message: t('purchaseWizard.step1.validation.quantityMax') },
-        }}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>{t('purchaseWizard.step1.quantity')}</FormLabel>
-            <FormDescription>{t('purchaseWizard.step1.quantityDesc')}</FormDescription>
-            <FormControl>
-              <div className="flex items-center gap-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => handleQuantityChange(-1)}
-                  disabled={quantity <= 1}
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <div className="flex-1 max-w-[100px]">
-                  <Input
-                    type="number"
-                    min={1}
-                    max={10}
-                    {...field}
-                    onChange={e => {
-                      const val = parseInt(e.target.value) || 1
-                      handleQuantityChange(val - quantity)
-                    }}
-                    className="text-center"
-                  />
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => handleQuantityChange(1)}
-                  disabled={quantity >= 10}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      {/* Name Prefix */}
-      <FormField
-        control={form.control}
-        name="namePrefix"
-        rules={{
-          required: { value: true, message: t('purchaseWizard.step1.validation.namePrefixRequired') },
-          minLength: { value: 3, message: t('purchaseWizard.step1.validation.namePrefixMin') },
-          maxLength: { value: 50, message: t('purchaseWizard.step1.validation.namePrefixMax') },
-        }}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>{t('purchaseWizard.step1.namePrefix')}</FormLabel>
-            <FormDescription>
-              {t('purchaseWizard.step1.namePrefixDesc', { prefix: namePrefix || t('purchaseWizard.step1.namePrefixPlaceholder') })}
-            </FormDescription>
-            <FormControl>
-              <Input placeholder={t('purchaseWizard.step1.namePrefixPlaceholder')} {...field} />
-            </FormControl>
-            {namePrefix && <p className="text-sm text-muted-foreground mt-1">{preview}</p>}
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      {/* Note about serial numbers */}
-      <div className="bg-muted/50 p-4 rounded-lg border border-border">
-        <p className="text-sm text-muted-foreground">
-          {t('purchaseWizard.step1.serialNote')}
-        </p>
-      </div>
+      {totalUnits >= MAX_TOTAL_UNITS && (
+        <p className="text-sm text-amber-700 dark:text-amber-300">{t('purchaseWizard.step1.cart.maxUnits')}</p>
+      )}
     </div>
+  )
+}
+
+function SpecsDrawer({ entry }: { entry: TpvCatalogEntry }) {
+  const { t } = useTranslation('tpv')
+  const [open, setOpen] = useState(false)
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger asChild>
+        <Button variant="ghost" size="sm" className="w-full justify-between text-xs">
+          {t('purchaseWizard.step1.catalog.viewSpecs')}
+          <ChevronDown className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} />
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="pt-2 text-xs text-muted-foreground space-y-1">
+        {entry.specs.dimensions && (
+          <div>
+            <strong>{t('purchaseWizard.step1.specs.dimensions')}:</strong> {entry.specs.dimensions}
+          </div>
+        )}
+        {entry.specs.weight && (
+          <div>
+            <strong>{t('purchaseWizard.step1.specs.weight')}:</strong> {entry.specs.weight}
+          </div>
+        )}
+        {entry.specs.display && (
+          <div>
+            <strong>{t('purchaseWizard.step1.specs.display')}:</strong> {entry.specs.display}
+          </div>
+        )}
+        {entry.specs.battery && (
+          <div>
+            <strong>{t('purchaseWizard.step1.specs.battery')}:</strong> {entry.specs.battery}
+          </div>
+        )}
+        {entry.specs.os && (
+          <div>
+            <strong>{t('purchaseWizard.step1.specs.os')}:</strong> {entry.specs.os}
+          </div>
+        )}
+        {entry.specs.connectivity && (
+          <div>
+            <strong>{t('purchaseWizard.step1.specs.connectivity')}:</strong> {entry.specs.connectivity.join(', ')}
+          </div>
+        )}
+        {entry.specs.scanner && (
+          <div>
+            <strong>{t('purchaseWizard.step1.specs.scanner')}:</strong> {entry.specs.scanner}
+          </div>
+        )}
+        {entry.specs.camera && (
+          <div>
+            <strong>{t('purchaseWizard.step1.specs.camera')}:</strong> {entry.specs.camera}
+          </div>
+        )}
+        {entry.specs.printer && (
+          <div>
+            <strong>{t('purchaseWizard.step1.specs.printer')}:</strong> {entry.specs.printer}
+          </div>
+        )}
+      </CollapsibleContent>
+    </Collapsible>
   )
 }

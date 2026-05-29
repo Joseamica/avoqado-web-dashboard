@@ -510,10 +510,35 @@
   },
   "purchaseWizard": {
     "title": "Purchase Terminal",
-    "subtitle": "Configure and order your PAX A910S terminal",
+    "subtitle": "Choose the models for your order",
     "step1": {
-      "title": "Configuration",
+      "title": "Catalog",
       "description": "Configure your terminal order",
+      "catalog": {
+        "add": "Add",
+        "viewSpecs": "View specs",
+        "perUnitTaxNote": "+ VAT (16%) per unit"
+      },
+      "cart": {
+        "title": "Your order",
+        "empty": "You haven't added any terminals yet.",
+        "subtotal": "Subtotal",
+        "tax": "VAT (16%)",
+        "total": "Total",
+        "maxUnits": "Maximum 10 units per order.",
+        "validationEmpty": "Add at least one terminal to the cart."
+      },
+      "specs": {
+        "dimensions": "Dimensions",
+        "weight": "Weight",
+        "display": "Display",
+        "battery": "Battery",
+        "os": "OS",
+        "connectivity": "Connectivity",
+        "scanner": "Scanner",
+        "camera": "Camera",
+        "printer": "Printer"
+      },
       "product": {
         "name": "PAX A910S",
         "description": "Powerful pocket-sized POS with integrated payments",
@@ -587,11 +612,19 @@
       "title": "Payment Method",
       "description": "Complete your purchase (Demo Mode)",
       "demoWarning": "This is a demonstration. No actual charges will be processed.",
-      "selectMethod": "Select payment method",
+      "selectMethod": "How would you like to pay?",
       "methods": {
         "card": "Credit / Debit Card",
         "bank": "Bank Transfer",
-        "balance": "Account Balance"
+        "balance": "Account Balance",
+        "cardStripe": {
+          "label": "Credit card",
+          "desc": "Secure payment via Stripe. Immediate confirmation."
+        },
+        "spei": {
+          "label": "SPEI bank transfer",
+          "desc": "Upload your receipt afterwards. 1-2 day confirmation."
+        }
       },
       "cardNumber": "Card number",
       "cardNumberPlaceholder": "1234 5678 9012 3456",
@@ -616,6 +649,9 @@
       "title": "Review & Confirm",
       "description": "Review your order before placing",
       "orderSummary": "Order Summary",
+      "itemsTitle": "Items",
+      "shippingTitle": "Shipping",
+      "paymentTitle": "Payment method",
       "terminalSelected": "Terminal",
       "configuration": "Configuration",
       "quantity": "Quantity",
@@ -635,11 +671,11 @@
       "tax": "Tax (estimated)",
       "total": "Total",
       "termsAndConditions": "Terms & Conditions",
-      "acceptTerms": "I accept the terms and conditions",
-      "placeOrder": "Place Order",
+      "acceptTerms": "I accept the order terms and conditions",
+      "placeOrder": "Confirm order",
       "edit": "Edit",
       "validation": {
-        "termsRequired": "You must accept the terms and conditions"
+        "termsRequired": "You must accept the terms"
       }
     },
     "success": {
@@ -650,9 +686,99 @@
     },
     "errors": {
       "validationFailed": "Please complete all required fields",
-      "createFailed": "Error creating terminals. Please try again.",
-      "termsRequired": "You must accept the terms and conditions",
+      "createFailed": "Could not create the order",
+      "termsRequired": "You must accept the terms",
       "partialSuccess": "{{success}} of {{total}} terminals created. {{failed}} failed."
+    },
+    "cancelled": {
+      "title": "Payment cancelled",
+      "description": "No charges were made. You can try again anytime."
+    }
+  },
+  "tabs": {
+    "terminals": "Terminals",
+    "orders": "Orders"
+  },
+  "orders": {
+    "loadingPlaceholder": "Loading orders…",
+    "empty": "No orders.",
+    "columns": {
+      "orderNumber": "Order #",
+      "date": "Date",
+      "items": "Items",
+      "total": "Total",
+      "method": "Method",
+      "status": "Status"
+    },
+    "method": {
+      "card": "Card",
+      "spei": "SPEI"
+    },
+    "filters": {
+      "payment": "Payment status",
+      "fulfillment": "Shipping"
+    },
+    "search": {
+      "placeholder": "Search by order #"
+    },
+    "paymentStatus": {
+      "AWAITING_PAYMENT": "Awaiting payment",
+      "AWAITING_PROOF": "Awaiting proof",
+      "PROOF_UPLOADED": "Proof received",
+      "PAID": "Paid",
+      "REJECTED": "Rejected",
+      "EXPIRED": "Expired",
+      "REFUNDED": "Refunded"
+    },
+    "fulfillmentStatus": {
+      "NEW": "New",
+      "AWAITING_SERIALS": "Assigning serials",
+      "SERIALS_ASSIGNED": "In preparation",
+      "SHIPPED": "Shipped",
+      "DELIVERED": "Delivered",
+      "CANCELLED": "Cancelled"
+    },
+    "detail": {
+      "title": "Order",
+      "notFound": "Order not found",
+      "items": "Items",
+      "shipping": "Shipping address",
+      "assignedTerminals": "Assigned terminals",
+      "activationCode": "Activation code",
+      "viewReceipt": "View receipt",
+      "stripeReturn": {
+        "title": "Thank you!",
+        "description": "We're processing your payment. This may take a few seconds."
+      },
+      "spei": {
+        "bankDetailsTitle": "Bank details for your SPEI transfer",
+        "bankDetailsHelp": "Copy the details and make the transfer from your bank. The concept must be exactly the order number.",
+        "beneficiary": "Beneficiary",
+        "bank": "Bank",
+        "amount": "Exact amount",
+        "concept": "Concept",
+        "uploadTitle": "Upload your receipt",
+        "uploading": "Uploading receipt…",
+        "fileTooLarge": "File is too large (maximum 10 MB).",
+        "dropzone": {
+          "title": "Drag your receipt here",
+          "help": "or click to select. PDF or image, max 10 MB."
+        },
+        "uploadSuccess": {
+          "title": "Receipt received",
+          "description": "We'll notify you once we verify it."
+        },
+        "rejected": {
+          "title": "We need to verify your payment",
+          "fallbackReason": "There was a problem with the receipt.",
+          "callToAction": "Please verify the details and upload it again."
+        },
+        "proofUploaded": {
+          "title": "We received your receipt",
+          "message": "Within 1-2 business days we'll confirm the deposit and notify you.",
+          "viewProof": "View my receipt"
+        }
+      }
     }
   }
 }

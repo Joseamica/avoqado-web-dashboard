@@ -77,8 +77,8 @@ src/
 16. **Onboarding tours (`driver.js`)**: the project ships interactive step-by-step tours via `driver.js`. Every new primary CTA, wizard
     field, form section, or destination the user is guided toward MUST have a stable `data-tour="<kebab-case-key>"` attribute so tours can
     target it reliably. Never target by class or generated id. Existing hooks: `useProductCreationTour`, `useRecipeCreationTour` (under
-    `src/hooks/`). Create a new hook per long flow, reuse the `waitForElement` + `exists` + `onNextClick` pattern for flow-aware auto-advance.
-    Full pattern + i18n keys live in `docs/guides/onboarding-tours.md`.
+    `src/hooks/`). Create a new hook per long flow, reuse the `waitForElement` + `exists` + `onNextClick` pattern for flow-aware
+    auto-advance. Full pattern + i18n keys live in `docs/guides/onboarding-tours.md`.
 
 ## API Integration
 
@@ -151,7 +151,7 @@ Three environments deployed via GitHub Actions + Cloudflare Pages:
 | ---------- | ------------------------------ | --------------------- |
 | Demo       | `demo.dashboard.avoqado.io`    | `demo.api.avoqado.io` |
 | Staging    | `staging.dashboard.avoqado.io` | Render staging        |
-| Production | `dashboardv2.avoqado.io`       | `api.avoqado.io`      |
+| Production | `dashboard.avoqado.io`         | `api.avoqado.io`      |
 
 Auto-deploy: push to `develop` (demo + staging), push to `main` (production). Manual: `gh workflow run ci-cd.yml --field environment=demo`
 

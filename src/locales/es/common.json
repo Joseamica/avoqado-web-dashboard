@@ -456,7 +456,8 @@
     "delete": "Eliminar",
     "edit": "Editar",
     "create": "Crear",
-    "add": "Agregar"
+    "add": "Agregar",
+    "comingSoon": "Muy pronto"
   },
   "chooseColor": "Elegir color",
   "screenReaderOnly": {

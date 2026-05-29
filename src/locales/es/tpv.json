@@ -531,10 +531,35 @@
   },
   "purchaseWizard": {
     "title": "Comprar Terminal",
-    "subtitle": "Configura y ordena tu terminal PAX A910S",
+    "subtitle": "Elige los modelos para tu pedido",
     "step1": {
-      "title": "Configuración",
+      "title": "Catálogo",
       "description": "Configura tu orden de terminales",
+      "catalog": {
+        "add": "Agregar",
+        "viewSpecs": "Ver specs",
+        "perUnitTaxNote": "+ IVA (16%) por unidad"
+      },
+      "cart": {
+        "title": "Tu pedido",
+        "empty": "Aún no has agregado ningún terminal.",
+        "subtotal": "Subtotal",
+        "tax": "IVA (16%)",
+        "total": "Total",
+        "maxUnits": "Máximo 10 unidades por pedido.",
+        "validationEmpty": "Agrega al menos un terminal al carrito."
+      },
+      "specs": {
+        "dimensions": "Dimensiones",
+        "weight": "Peso",
+        "display": "Pantalla",
+        "battery": "Batería",
+        "os": "SO",
+        "connectivity": "Conectividad",
+        "scanner": "Escáner",
+        "camera": "Cámara",
+        "printer": "Impresora"
+      },
       "product": {
         "name": "PAX A910S",
         "description": "Potente TPV de bolsillo con pagos integrados",
@@ -608,11 +633,19 @@
       "title": "Método de Pago",
       "description": "Completa tu compra (Modo Demo)",
       "demoWarning": "Esta es una demostración. No se procesará ningún cargo real.",
-      "selectMethod": "Selecciona método de pago",
+      "selectMethod": "¿Cómo quieres pagar?",
       "methods": {
         "card": "Tarjeta de Crédito / Débito",
         "bank": "Transferencia Bancaria",
-        "balance": "Saldo de Cuenta"
+        "balance": "Saldo de Cuenta",
+        "cardStripe": {
+          "label": "Tarjeta de crédito",
+          "desc": "Pago seguro vía Stripe. Confirmación inmediata."
+        },
+        "spei": {
+          "label": "Transferencia SPEI",
+          "desc": "Sube tu comprobante después. Confirmación 1-2 días."
+        }
       },
       "cardNumber": "Número de tarjeta",
       "cardNumberPlaceholder": "1234 5678 9012 3456",
@@ -637,6 +670,9 @@
       "title": "Revisar y Confirmar",
       "description": "Revisa tu orden antes de realizar el pedido",
       "orderSummary": "Resumen del Pedido",
+      "itemsTitle": "Artículos",
+      "shippingTitle": "Envío",
+      "paymentTitle": "Método de pago",
       "terminalSelected": "Terminal",
       "configuration": "Configuración",
       "quantity": "Cantidad",
@@ -656,11 +692,11 @@
       "tax": "Impuestos (estimado)",
       "total": "Total",
       "termsAndConditions": "Términos y Condiciones",
-      "acceptTerms": "Acepto los términos y condiciones",
-      "placeOrder": "Realizar Pedido",
+      "acceptTerms": "Acepto los términos y condiciones del pedido",
+      "placeOrder": "Confirmar pedido",
       "edit": "Editar",
       "validation": {
-        "termsRequired": "Debes aceptar los términos y condiciones"
+        "termsRequired": "Debes aceptar los términos"
       }
     },
     "success": {
@@ -671,9 +707,99 @@
     },
     "errors": {
       "validationFailed": "Por favor completa todos los campos requeridos",
-      "createFailed": "Error al crear terminales. Por favor intenta de nuevo.",
-      "termsRequired": "Debes aceptar los términos y condiciones",
+      "createFailed": "No se pudo crear el pedido",
+      "termsRequired": "Debes aceptar los términos",
       "partialSuccess": "{{success}} de {{total}} terminales creadas. {{failed}} fallaron."
+    },
+    "cancelled": {
+      "title": "Pago cancelado",
+      "description": "No se cobró nada. Puedes volver a intentar en cualquier momento."
+    }
+  },
+  "tabs": {
+    "terminals": "Terminales",
+    "orders": "Pedidos"
+  },
+  "orders": {
+    "loadingPlaceholder": "Cargando pedidos…",
+    "empty": "No hay pedidos.",
+    "columns": {
+      "orderNumber": "# Pedido",
+      "date": "Fecha",
+      "items": "Items",
+      "total": "Total",
+      "method": "Método",
+      "status": "Estado"
+    },
+    "method": {
+      "card": "Tarjeta",
+      "spei": "SPEI"
+    },
+    "filters": {
+      "payment": "Estado de pago",
+      "fulfillment": "Envío"
+    },
+    "search": {
+      "placeholder": "Buscar por # pedido"
+    },
+    "paymentStatus": {
+      "AWAITING_PAYMENT": "Esperando pago",
+      "AWAITING_PROOF": "Esperando comprobante",
+      "PROOF_UPLOADED": "Comprobante recibido",
+      "PAID": "Pagado",
+      "REJECTED": "Rechazado",
+      "EXPIRED": "Expirado",
+      "REFUNDED": "Reembolsado"
+    },
+    "fulfillmentStatus": {
+      "NEW": "Nuevo",
+      "AWAITING_SERIALS": "Asignando serials",
+      "SERIALS_ASSIGNED": "En preparación",
+      "SHIPPED": "Enviado",
+      "DELIVERED": "Entregado",
+      "CANCELLED": "Cancelado"
+    },
+    "detail": {
+      "title": "Pedido",
+      "notFound": "Pedido no encontrado",
+      "items": "Items",
+      "shipping": "Dirección de envío",
+      "assignedTerminals": "Terminales asignados",
+      "activationCode": "Código de activación",
+      "viewReceipt": "Ver recibo",
+      "stripeReturn": {
+        "title": "¡Gracias!",
+        "description": "Estamos procesando tu pago. Esto puede tardar unos segundos."
+      },
+      "spei": {
+        "bankDetailsTitle": "Datos para tu transferencia SPEI",
+        "bankDetailsHelp": "Copia los datos y haz la transferencia desde tu banco. El concepto debe ser exactamente el número de pedido.",
+        "beneficiary": "Beneficiario",
+        "bank": "Banco",
+        "amount": "Monto exacto",
+        "concept": "Concepto",
+        "uploadTitle": "Sube tu comprobante",
+        "uploading": "Subiendo comprobante…",
+        "fileTooLarge": "El archivo es demasiado grande (máximo 10 MB).",
+        "dropzone": {
+          "title": "Arrastra el comprobante aquí",
+          "help": "o haz click para seleccionar. PDF o imagen, máx 10 MB."
+        },
+        "uploadSuccess": {
+          "title": "Comprobante recibido",
+          "description": "Te avisaremos cuando lo verifiquemos."
+        },
+        "rejected": {
+          "title": "Necesitamos verificar tu pago",
+          "fallbackReason": "Hubo un problema con el comprobante.",
+          "callToAction": "Por favor verifica los datos y vuelve a subirlo."
+        },
+        "proofUploaded": {
+          "title": "Recibimos tu comprobante",
+          "message": "En 1-2 días hábiles confirmamos el depósito y te avisamos.",
+          "viewProof": "Ver mi comprobante"
+        }
+      }
     }
   }
 }

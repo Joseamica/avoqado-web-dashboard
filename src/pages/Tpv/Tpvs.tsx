@@ -21,13 +21,14 @@ import {
   X,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
 import { FilterPill, FilterPillBar, CheckboxFilterContent } from '@/components/filters'
 import { getTerminalStatusInfo, type TerminalStatusKey } from '@/lib/terminal-status'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { PermissionGate } from '@/components/PermissionGate'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,6 +58,7 @@ import { useTranslation } from 'react-i18next'
 import { ActivateTerminalModal } from './components/ActivateTerminalModal'
 import { TerminalPurchaseWizard } from './components/purchase-wizard/TerminalPurchaseWizard'
 import { SuperadminTerminalDialog } from './components/SuperadminTerminalDialog'
+import { TerminalOrdersTab } from './components/TerminalOrdersTab'
 
 // ⚠️ COHERENCIA con tours interactivos:
 // Esta página tiene un tour driver.js (`useTpvTour`) que enseña al usuario
@@ -70,8 +72,33 @@ export default function Tpvs() {
   const location = useLocation()
   const { t } = useTranslation()
   const { t: tCommon } = useTranslation('common')
+  const { t: tTpv } = useTranslation('tpv')
   const { toast } = useToast()
   const queryClient = useQueryClient()
+
+  // Detect Stripe-cancel redirect and show toast.
+  const [searchParams, setSearchParams] = useSearchParams()
+  useEffect(() => {
+    if (searchParams.get('cancelled') === 'true') {
+      toast({
+        title: tTpv('purchaseWizard.cancelled.title'),
+        description: tTpv('purchaseWizard.cancelled.description'),
+        variant: 'destructive',
+      })
+      // Clean URL so refresh doesn't re-trigger the toast
+      const next = new URLSearchParams(searchParams)
+      next.delete('cancelled')
+      setSearchParams(next, { replace: true })
+    }
+  }, [searchParams, setSearchParams, toast, tTpv])
+
+  // Pill-tab state synced to ?tab=...
+  const activeTab = searchParams.get('tab') === 'orders' ? 'orders' : 'terminals'
+  const setActiveTab = (value: string) => {
+    const next = new URLSearchParams(searchParams)
+    next.set('tab', value)
+    setSearchParams(next, { replace: true })
+  }
 
   // Tour driver.js — auto-arranca cuando `requestAtomicTour('tpv-onboarding')`
   // se dispara externamente. Ver `useTpvTour.ts`.
@@ -874,37 +901,55 @@ export default function Tpvs() {
           </div>
         </div>
 
-        {/* Metrics Summary Row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <MetricCard
-            label={t('tpv.metrics.total', { defaultValue: 'Total' })}
-            value={metrics.total}
-            icon={<Terminal className="w-4 h-4" />}
-            accent="blue"
-          />
-          <MetricCard
-            label={t('tpv.metrics.online', { defaultValue: 'En línea' })}
-            value={metrics.online}
-            icon={<Wifi className="w-4 h-4" />}
-            accent="green"
-            trend={metrics.online > 0 ? 'up' : 'neutral'}
-          />
-          <MetricCard
-            label={t('tpv.metrics.pendingActivation', { defaultValue: 'Sin activar' })}
-            value={metrics.pendingActivation}
-            icon={<Package className="w-4 h-4" />}
-            accent={metrics.pendingActivation > 0 ? 'yellow' : 'blue'}
-          />
-          <MetricCard
-            label={t('tpv.metrics.maintenance', { defaultValue: 'Mantenimiento' })}
-            value={metrics.inMaintenance}
-            icon={<Wrench className="w-4 h-4" />}
-            accent={metrics.inMaintenance > 0 ? 'orange' : 'blue'}
-          />
-        </div>
+        {/* Pill tabs: Terminals (existing list + metrics) vs Pedidos (orders list) */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="rounded-full bg-muted/60 px-1 py-1 border border-input h-auto w-fit">
+            <TabsTrigger
+              value="terminals"
+              className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background text-xs px-3 py-1"
+            >
+              {tTpv('tabs.terminals', { defaultValue: 'Terminales' })}
+            </TabsTrigger>
+            <TabsTrigger
+              value="orders"
+              className="rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background text-xs px-3 py-1"
+            >
+              {tTpv('tabs.orders', { defaultValue: 'Pedidos' })}
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Data Table — wrapper kept only for the tour anchor */}
-        <div data-tour="tpv-list">
+          <TabsContent value="terminals" className="space-y-6">
+            {/* Metrics Summary Row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <MetricCard
+                label={t('tpv.metrics.total', { defaultValue: 'Total' })}
+                value={metrics.total}
+                icon={<Terminal className="w-4 h-4" />}
+                accent="blue"
+              />
+              <MetricCard
+                label={t('tpv.metrics.online', { defaultValue: 'En línea' })}
+                value={metrics.online}
+                icon={<Wifi className="w-4 h-4" />}
+                accent="green"
+                trend={metrics.online > 0 ? 'up' : 'neutral'}
+              />
+              <MetricCard
+                label={t('tpv.metrics.pendingActivation', { defaultValue: 'Sin activar' })}
+                value={metrics.pendingActivation}
+                icon={<Package className="w-4 h-4" />}
+                accent={metrics.pendingActivation > 0 ? 'yellow' : 'blue'}
+              />
+              <MetricCard
+                label={t('tpv.metrics.maintenance', { defaultValue: 'Mantenimiento' })}
+                value={metrics.inMaintenance}
+                icon={<Wrench className="w-4 h-4" />}
+                accent={metrics.inMaintenance > 0 ? 'orange' : 'blue'}
+              />
+            </div>
+
+            {/* Data Table — wrapper kept only for the tour anchor */}
+            <div data-tour="tpv-list">
           <DataTable
             data={filteredData}
             rowCount={filteredData.length}
@@ -1032,7 +1077,13 @@ export default function Tpvs() {
               </>
             }
           />
-        </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="orders">
+            <TerminalOrdersTab />
+          </TabsContent>
+        </Tabs>
 
         <TerminalPurchaseWizard
           open={wizardOpen}
