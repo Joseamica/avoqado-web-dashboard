@@ -323,6 +323,10 @@
         "completedBadge": "Completado"
       },
       "steps": {
+        "buyTpv": {
+          "title": "Compra tu primer TPV",
+          "description": "Ordena tu primer terminal Avoqado (PAX A910S o NexGo) — pago con tarjeta o SPEI, llega configurado a tu venue."
+        },
         "catalog": {
           "title": "Crea tu catálogo de artículos",
           "description": "Agrega categorías y productos o servicios para empezar a cobrar a tus clientes."

@@ -589,6 +589,7 @@
       "postalCodePlaceholder": "10001",
       "country": "Country",
       "countryPlaceholder": "United States",
+      "enterManually": "Can't find your address? Enter it manually",
       "shippingSpeed": "Shipping speed",
       "shippingOptions": {
         "standard": "Standard (5-7 business days) - Free",
@@ -601,6 +602,7 @@
         "contactEmailInvalid": "Invalid email format",
         "contactPhoneRequired": "Phone number is required",
         "addressRequired": "Street address is required",
+        "addressSelectFromList": "Pick a complete address from the Google Maps list",
         "cityRequired": "City is required",
         "stateRequired": "State is required",
         "postalCodeRequired": "Postal code is required",

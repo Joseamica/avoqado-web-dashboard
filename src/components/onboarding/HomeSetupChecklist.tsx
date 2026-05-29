@@ -9,6 +9,8 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useOnboardingKey } from '@/hooks/useOnboardingState'
 import { usePlatformWelcomeTour } from '@/hooks/usePlatformWelcomeTour'
 import { ecommerceMerchantAPI } from '@/services/ecommerceMerchant.service'
+import { getTpvs } from '@/services/tpv.service'
+import { tpvOrderService } from '@/services/tpvOrder.service'
 import {
   requestAtomicTour,
   setAtomicTourReturnPath,
@@ -16,7 +18,7 @@ import {
 } from '@/hooks/useAtomicTourListener'
 import { cn } from '@/lib/utils'
 
-type StepId = 'catalog' | 'inventory' | 'team' | 'tpv' | 'reservations' | 'payments'
+type StepId = 'buy-tpv' | 'catalog' | 'inventory' | 'team' | 'tpv' | 'reservations' | 'payments'
 
 interface StepState {
   done: boolean
@@ -54,6 +56,16 @@ interface StepConfig {
 }
 
 const STEPS: StepConfig[] = [
+  {
+    // "Compra tu primer TPV" — solo se renderiza cuando el venue no tiene
+    // ningún Terminal asignado. Lleva al wizard de compra de TPV con un
+    // query param que lo auto-abre.
+    id: 'buy-tpv',
+    titleKey: 'newHome.setup.steps.buyTpv.title',
+    descriptionKey: 'newHome.setup.steps.buyTpv.description',
+    path: 'tpv?action=buy',
+    canSkip: true,
+  },
   {
     id: 'catalog',
     titleKey: 'newHome.setup.steps.catalog.title',
@@ -145,8 +157,37 @@ export function HomeSetupChecklist() {
     [ecommerceMerchants],
   )
 
-  const doneCount = useMemo(() => STEPS.filter(s => state.steps[s.id]?.done).length, [state.steps])
-  const allDone = doneCount === STEPS.length
+  // "Compra tu primer TPV" — solo se renderiza cuando el venue no tiene
+  // terminales asignados. Una vez que crea su primer pedido, el step se
+  // auto-marca como done y desaparece del checklist.
+  const { data: tpvList } = useQuery({
+    queryKey: ['tpvs', venueId, 'home-checklist'],
+    queryFn: () => getTpvs(venueId!, { pageIndex: 0, pageSize: 1 }),
+    enabled: !!venueId,
+  })
+  const { data: tpvOrders = [] } = useQuery({
+    queryKey: ['tpv-orders', venueId, 'home-checklist'],
+    queryFn: () => tpvOrderService.listForVenue(venueId!),
+    enabled: !!venueId,
+  })
+  const terminalCount = (tpvList as { total?: number; items?: unknown[] } | undefined)?.total
+    ?? (tpvList as { items?: unknown[] } | undefined)?.items?.length
+    ?? 0
+  const hasAnyOrder = tpvOrders.length > 0
+  const showBuyTpvStep = terminalCount === 0 && !hasAnyOrder
+
+  // Visible steps: drop the buy-tpv step entirely when the venue already
+  // has a terminal or an active order in flight. The rest are always shown.
+  const visibleSteps = useMemo(
+    () => STEPS.filter(s => s.id !== 'buy-tpv' || showBuyTpvStep),
+    [showBuyTpvStep],
+  )
+
+  const doneCount = useMemo(
+    () => visibleSteps.filter(s => state.steps[s.id]?.done).length,
+    [visibleSteps, state.steps],
+  )
+  const allDone = doneCount === visibleSteps.length
 
   const patch = (next: Partial<ChecklistState>) => {
     setValue({ ...state, ...next })
@@ -169,6 +210,17 @@ export function HomeSetupChecklist() {
     markDone('payments')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, hasActivePaymentChannel, state.steps.payments?.done])
+
+  // Auto-mark buy-tpv once the venue has at least one TerminalOrder or
+  // physical terminal — the step exists to nudge first-timers and disappears
+  // the moment they take action (even before the order is paid).
+  useEffect(() => {
+    if (!isLoaded) return
+    if (showBuyTpvStep) return
+    if (state.steps['buy-tpv']?.done) return
+    markDone('buy-tpv')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, showBuyTpvStep, state.steps['buy-tpv']?.done])
 
   const handleStart = (step: StepConfig) => {
     // Marcamos el step como inProgress para que el badge "En curso"
@@ -272,7 +324,7 @@ export function HomeSetupChecklist() {
       </button>
 
       <div className="mt-6 divide-y divide-background/10 dark:divide-border">
-        {STEPS.map(step => {
+        {visibleSteps.map(step => {
           const done = !!state.steps[step.id]?.done
           // "En curso" persiste en el backend a partir del primer click en
           // "Empezar" — cualquier step pendiente con inProgress muestra el

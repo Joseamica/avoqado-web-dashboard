@@ -92,6 +92,7 @@ export default function Tpvs() {
     }
   }, [searchParams, setSearchParams, toast, tTpv])
 
+
   // Pill-tab state synced to ?tab=...
   const activeTab = searchParams.get('tab') === 'orders' ? 'orders' : 'terminals'
   const setActiveTab = (value: string) => {
@@ -109,6 +110,19 @@ export default function Tpvs() {
     pageSize: 20,
   })
   const [wizardOpen, setWizardOpen] = useState(false)
+
+  // Deeplink: HomeSetupChecklist's "Compra tu primer TPV" step navigates here
+  // with `?action=buy` to auto-open the purchase wizard. Clean the param after
+  // opening so a refresh doesn't re-trigger the wizard mid-flow.
+  useEffect(() => {
+    if (searchParams.get('action') === 'buy') {
+      setWizardOpen(true)
+      const next = new URLSearchParams(searchParams)
+      next.delete('action')
+      setSearchParams(next, { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to URL changes
+  }, [searchParams])
   const [superadminDialogOpen, setSuperadminDialogOpen] = useState(false)
   const [activationModalOpen, setActivationModalOpen] = useState(false)
   const [selectedTerminalForActivation, setSelectedTerminalForActivation] = useState<string | null>(null)

@@ -177,7 +177,11 @@ export function AddressAutocomplete({
           />
         </div>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start" onOpenAutoFocus={e => e.preventDefault()}>
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] p-0 z-[60]"
+        align="start"
+        onOpenAutoFocus={e => e.preventDefault()}
+      >
         <Command shouldFilter={false}>
           <CommandList>
             {status === 'OK' && data.length > 0 ? (

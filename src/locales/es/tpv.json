@@ -610,6 +610,7 @@
       "postalCodePlaceholder": "06600",
       "country": "País",
       "countryPlaceholder": "México",
+      "enterManually": "¿No encuentras tu dirección? Llenarla a mano",
       "shippingSpeed": "Velocidad de envío",
       "shippingOptions": {
         "standard": "Estándar (5-7 días hábiles) - Gratis",
@@ -622,6 +623,7 @@
         "contactEmailInvalid": "Formato de correo inválido",
         "contactPhoneRequired": "El número de teléfono es obligatorio",
         "addressRequired": "La dirección es obligatoria",
+        "addressSelectFromList": "Selecciona una dirección completa de la lista de Google Maps",
         "cityRequired": "La ciudad es obligatoria",
         "stateRequired": "El estado es obligatorio",
         "postalCodeRequired": "El código postal es obligatorio",
