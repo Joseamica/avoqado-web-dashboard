@@ -15,22 +15,22 @@ interface StockApprovalsPage {
   nextCursor: string | null
 }
 
-const LIMIT = 50
-
-export function useStockApprovals(orgId: string | undefined, { search }: { search?: string } = {}) {
+export function useStockApprovals(orgId: string | undefined, search?: string) {
   return useInfiniteQuery({
     queryKey: ['stock-approvals', orgId, search],
     queryFn: async ({ pageParam }) => {
-      const params: Record<string, string | number> = { limit: LIMIT }
-      if (pageParam) params.cursor = pageParam as string
-      if (search) params.search = search
-      const { data } = await api.get(`/api/v1/dashboard/organizations/${orgId}/pending-stock-approvals`, { params })
+      const { data } = await api.get(`/api/v1/dashboard/organizations/${orgId}/pending-stock-approvals`, {
+        params: {
+          cursor: pageParam,
+          limit: 50,
+          search: search || undefined,
+        },
+      })
       return data.data as StockApprovalsPage
     },
-    initialPageParam: null as string | null,
-    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last: StockApprovalsPage) => last.nextCursor ?? undefined,
     enabled: !!orgId,
-    staleTime: 15_000,
   })
 }
 
@@ -49,11 +49,10 @@ export function useStockApprovalsCount(orgId: string | undefined) {
 export function useApproveStock(orgId: string | undefined) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (vars: { serializedItemIds: string[] }) => {
-      const { data } = await api.post(
-        `/api/v1/dashboard/organizations/${orgId}/pending-stock-approvals/approve`,
-        { serializedItemIds: vars.serializedItemIds },
-      )
+    mutationFn: async (serializedItemIds: string[]) => {
+      const { data } = await api.post(`/api/v1/dashboard/organizations/${orgId}/pending-stock-approvals/approve`, {
+        serializedItemIds,
+      })
       return data.data
     },
     onSuccess: () => {
