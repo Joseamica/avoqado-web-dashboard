@@ -28,6 +28,7 @@ import {
   GraduationCap,
   Signal,
   HandCoins,
+  Unplug,
 } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -53,6 +54,32 @@ export interface TpvSettingsFieldsProps {
   mode: 'terminal' | 'org'
   /** Merchants for kiosk dropdown (terminal mode only) */
   merchants?: Merchant[]
+  /**
+   * When provided (terminal edit mode), renders the offline card-payment kill-switch,
+   * gated by the terminal's reported TPV version. The fix ships in v2.5.0 (versionCode 76);
+   * older terminals ignore the flag, so the toggle is disabled there. Omit this prop
+   * (e.g. the create-terminal dialog) to hide the toggle entirely.
+   */
+  offlineCardPaymentGate?: { versionCode: number | null; versionName: string | null }
+}
+
+// TPV 2.5.0 (versionCode 76) is the first build that reads `requireAvoqadoServerForCardPayment`.
+// Older terminals silently ignore it, so enabling the toggle there would be a confusing no-op.
+const MIN_VERSION_CODE_OFFLINE_CARD = 76
+
+/** 'ok' = has the fix, 'old' = too old, 'unknown' = version not reported. */
+function offlineCardVersionStatus(gate: { versionCode: number | null; versionName: string | null }): 'ok' | 'old' | 'unknown' {
+  if (typeof gate.versionCode === 'number') {
+    return gate.versionCode >= MIN_VERSION_CODE_OFFLINE_CARD ? 'ok' : 'old'
+  }
+  // Fallback: parse the versionName (e.g. "2.5.0-sandbox") when versionCode wasn't reported.
+  const match = gate.versionName?.match(/^(\d+)\.(\d+)\.(\d+)/)
+  if (match) {
+    const major = Number(match[1])
+    const minor = Number(match[2])
+    return major > 2 || (major === 2 && minor >= 5) ? 'ok' : 'old'
+  }
+  return 'unknown'
 }
 
 function SettingRow({
@@ -91,11 +118,16 @@ export function TpvSettingsFields({
   isPending = false,
   mode,
   merchants = [],
+  offlineCardPaymentGate,
 }: TpvSettingsFieldsProps) {
   const { t } = useTranslation('tpv')
   const [newTipValue, setNewTipValue] = useState('')
 
   const isDisabled = disabled || isPending
+
+  // Offline card-payment kill-switch gate: only meaningful on terminals running v2.5.0+.
+  const offlineCardStatus = offlineCardPaymentGate ? offlineCardVersionStatus(offlineCardPaymentGate) : null
+  const offlineCardGated = offlineCardStatus === 'old' || offlineCardStatus === 'unknown'
 
   const handleToggle = (field: keyof TpvSettings, value: boolean) => {
     if (isDisabled) return
@@ -213,6 +245,44 @@ export function TpvSettingsFields({
                 onCheckedChange={checked => handleToggle('showCryptoOption', checked)}
                 disabled={isDisabled}
               />
+              {/*
+                Card payment server-decoupling kill-switch. Rendered only when a version gate
+                is supplied (terminal edit mode), and disabled on terminals older than v2.5.0.
+                INVERSION: the stored flag is `requireAvoqadoServerForCardPayment`
+                (default true = require backend before charge = today's behavior).
+                The switch shows the *capability* "charge offline", so:
+                  switch ON  → flag false (offline charging enabled)
+                  switch OFF → flag true  (default/safe). OFF by default.
+              */}
+              {offlineCardPaymentGate && (
+                <div>
+                  <SettingRow
+                    icon={Unplug}
+                    label={t('tpvSettings.allowOfflineCardPayment', 'Cobrar aunque el servidor no responda')}
+                    description={t(
+                      'tpvSettings.allowOfflineCardPaymentDesc',
+                      'Permite cobrar con tarjeta aunque Avoqado no esté disponible. El cobro pasa por el procesador (Blumon) y se registra al volver la conexión. Úsalo solo en terminales con red inestable.',
+                    )}
+                    checked={!settings.requireAvoqadoServerForCardPayment}
+                    onCheckedChange={checked => handleToggle('requireAvoqadoServerForCardPayment', !checked)}
+                    disabled={isDisabled || offlineCardGated}
+                  />
+                  {offlineCardGated && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 ml-8 -mt-1 mb-2">
+                      {offlineCardStatus === 'old'
+                        ? t(
+                            'tpvSettings.allowOfflineCardPaymentVersionGate',
+                            'Requiere TPV v2.5.0 o superior. Esta terminal tiene v{{version}}.',
+                            { version: offlineCardPaymentGate.versionName ?? '—' },
+                          )
+                        : t(
+                            'tpvSettings.allowOfflineCardPaymentUnknownVersion',
+                            'No se pudo determinar la versión de la terminal. Disponible desde la v2.5.0.',
+                          )}
+                    </p>
+                  )}
+                </div>
+              )}
               {settings.showTipScreen && (
                 <>
                   {/* Tip suggestions editor */}

@@ -312,6 +312,9 @@ const DEFAULT_TPV_SETTINGS: TpvSettings = {
   defaultTipPercentage: null,
   tipSuggestions: [10, 15, 20],
   requirePinLogin: true,
+  // Card payment kill-switch: default true (legacy/safe). Per-terminal toggle only;
+  // org-level editor keeps the safe default and never pushes it down.
+  requireAvoqadoServerForCardPayment: true,
   showVerificationScreen: false,
   requireVerificationPhoto: false,
   requireVerificationBarcode: false,

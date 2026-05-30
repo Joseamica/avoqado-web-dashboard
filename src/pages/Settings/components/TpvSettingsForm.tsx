@@ -15,9 +15,19 @@ interface TpvSettingsFormProps {
   compact?: boolean
   /** Called after a setting is successfully saved, so the parent can prompt a TPV restart */
   onSettingChanged?: () => void
+  /** Terminal's reported TPV version code (e.g. 76) — gates the offline card-payment toggle. */
+  terminalVersionCode?: number | null
+  /** Terminal's reported TPV version name (e.g. "2.5.0-sandbox") — shown in the version-gate note. */
+  terminalVersionName?: string | null
 }
 
-export function TpvSettingsForm({ tpvId, compact = false, onSettingChanged }: TpvSettingsFormProps) {
+export function TpvSettingsForm({
+  tpvId,
+  compact = false,
+  onSettingChanged,
+  terminalVersionCode,
+  terminalVersionName,
+}: TpvSettingsFormProps) {
   const { t } = useTranslation('tpv')
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -114,6 +124,10 @@ export function TpvSettingsForm({ tpvId, compact = false, onSettingChanged }: Tp
         isPending={updateMutation.isPending}
         mode="terminal"
         merchants={terminalMerchants}
+        offlineCardPaymentGate={{
+          versionCode: terminalVersionCode ?? null,
+          versionName: terminalVersionName ?? null,
+        }}
       />
       {/* Permission warning */}
       {!canUpdate && (

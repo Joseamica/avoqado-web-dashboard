@@ -10,6 +10,10 @@ export interface TpvSettings {
   defaultTipPercentage: number | null // Pre-selected tip percentage (0-100)
   tipSuggestions: number[] // Available tip percentages (default: [10, 15, 20])
   requirePinLogin: boolean // Require PIN for staff login on terminal
+  // Card payment server-decoupling kill-switch (per-terminal).
+  // true (default) = require Avoqado backend reachable before a card charge (legacy/safe).
+  // false = allow the charge to proceed offline (goes to Blumon, records via offline queue).
+  requireAvoqadoServerForCardPayment: boolean
   // Step 4: Sale Verification (for retail/telecomunicaciones venues)
   showVerificationScreen: boolean // Show verification screen after payment success
   requireVerificationPhoto: boolean // Require at least one photo in verification
@@ -63,6 +67,8 @@ export const DEFAULT_TPV_SETTINGS: TpvSettings = {
   defaultTipPercentage: null,
   tipSuggestions: [10, 15, 20],
   requirePinLogin: true,
+  // Card payment kill-switch: default true (require backend before charge — legacy/safe)
+  requireAvoqadoServerForCardPayment: true,
   showVerificationScreen: false,
   requireVerificationPhoto: false,
   requireVerificationBarcode: false,

@@ -1536,7 +1536,13 @@ export default function TpvId() {
                   <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   <AlertDescription className="text-blue-800 dark:text-blue-200">{t('tpvSettings.infoAlert')}</AlertDescription>
                 </Alert>
-                <TpvSettingsForm tpvId={tpvId!} compact={true} onSettingChanged={() => setHasUnsyncedChanges(true)} />
+                <TpvSettingsForm
+                  tpvId={tpvId!}
+                  compact={true}
+                  onSettingChanged={() => setHasUnsyncedChanges(true)}
+                  terminalVersionCode={tpv?.systemInfo?.versionCode as number | undefined}
+                  terminalVersionName={tpv?.version}
+                />
               </PermissionGate>
             </TabsContent>
           </Tabs>

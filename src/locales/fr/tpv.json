@@ -375,6 +375,10 @@
     "showMerchantSelection": "Afficher la sélection",
     "paymentSection": "Expérience de Paiement",
     "paymentSectionDesc": "Configurez le flux de paiement et les options de reçu",
+    "allowOfflineCardPayment": "Encaisser même si le serveur ne répond pas",
+    "allowOfflineCardPaymentDesc": "Permet d'encaisser par carte même si Avoqado est indisponible. L'encaissement passe par le processeur (Blumon) et s'enregistre au retour de la connexion. À utiliser uniquement sur les terminaux à réseau instable.",
+    "allowOfflineCardPaymentVersionGate": "Nécessite TPV v2.5.0 ou ultérieure. Ce terminal est en v{{version}}.",
+    "allowOfflineCardPaymentUnknownVersion": "Impossible de déterminer la version du terminal. Disponible à partir de la v2.5.0.",
     "securitySection": "Sécurité et Vérification",
     "securitySectionDesc": "Contrôle d'accès et validation des ventes",
     "attendanceSectionDesc": "Configuration de la pointeuse"
