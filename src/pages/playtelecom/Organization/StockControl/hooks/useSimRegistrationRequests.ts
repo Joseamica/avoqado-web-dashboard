@@ -22,7 +22,7 @@ export function useSimRegistrationRequests(orgId: string | undefined) {
   return useQuery({
     queryKey: ['sim-registration-requests', orgId],
     queryFn: async () => {
-      const { data } = await api.get(`/dashboard/organizations/${orgId}/sim-registration-requests`)
+      const { data } = await api.get(`/api/v1/dashboard/organizations/${orgId}/sim-registration-requests`)
       return data.data as SimRegRequest[]
     },
     enabled: !!orgId,
@@ -34,7 +34,7 @@ export function useSimRegistrationRequestsCount(orgId: string | undefined) {
   return useQuery({
     queryKey: ['sim-registration-requests-count', orgId],
     queryFn: async () => {
-      const { data } = await api.get(`/dashboard/organizations/${orgId}/sim-registration-requests/count`)
+      const { data } = await api.get(`/api/v1/dashboard/organizations/${orgId}/sim-registration-requests/count`)
       return (data.data?.count ?? 0) as number
     },
     enabled: !!orgId,
@@ -47,7 +47,7 @@ export function useApproveSimRegistration(orgId: string | undefined) {
   return useMutation({
     mutationFn: async (vars: { requestId: string; categoryId: string; serialNumbers?: string[] }) => {
       const { data } = await api.post(
-        `/dashboard/organizations/${orgId}/sim-registration-requests/${vars.requestId}/approve`,
+        `/api/v1/dashboard/organizations/${orgId}/sim-registration-requests/${vars.requestId}/approve`,
         { categoryId: vars.categoryId, serialNumbers: vars.serialNumbers },
       )
       return data.data
@@ -67,7 +67,7 @@ export function useRejectSimRegistration(orgId: string | undefined) {
   return useMutation({
     mutationFn: async (vars: { requestId: string; reason: string; serialNumbers?: string[] }) => {
       const { data } = await api.post(
-        `/dashboard/organizations/${orgId}/sim-registration-requests/${vars.requestId}/reject`,
+        `/api/v1/dashboard/organizations/${orgId}/sim-registration-requests/${vars.requestId}/reject`,
         { reason: vars.reason, serialNumbers: vars.serialNumbers },
       )
       return data.data
