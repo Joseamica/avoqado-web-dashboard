@@ -32,6 +32,7 @@ import { OrgBulkUploadDialog } from './StockControl/components/OrgBulkUploadDial
 import { useAccess } from '@/hooks/use-access'
 import { useAuth } from '@/context/AuthContext'
 import { useSimRegistrationRequestsCount } from './StockControl/hooks/useSimRegistrationRequests'
+import { useStockApprovalsCount } from './StockControl/hooks/useStockApprovals'
 
 const TABS = [
   { value: 'resumen', label: 'Resumen' },
@@ -109,7 +110,9 @@ export default function OrgStockControlPage() {
   )
 
   const { data, isLoading, isError, error, refetch } = useOrgStockControl(orgId, queryParams)
-  const { data: pendingCount = 0 } = useSimRegistrationRequestsCount(orgId)
+  const { data: simRegCount = 0 } = useSimRegistrationRequestsCount(orgId)
+  const { data: stockApprovalCount = 0 } = useStockApprovalsCount(orgId)
+  const pendingCount = simRegCount + stockApprovalCount
 
   // ─── Loading ─── (matches existing StockControl.tsx skeleton structure)
   if (isLoading) {

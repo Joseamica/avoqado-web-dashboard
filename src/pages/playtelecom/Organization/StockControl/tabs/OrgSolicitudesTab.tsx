@@ -9,6 +9,7 @@ import { useAccess } from '@/hooks/use-access'
 import { IccidBadge } from '../components/IccidBadge'
 import { RejectRegistrationDialog } from '../components/RejectRegistrationDialog'
 import { useSimRegistrationRequests, useApproveSimRegistration, type SimRegRequest } from '../hooks/useSimRegistrationRequests'
+import { StockApprovalQueue } from '../components/StockApprovalQueue'
 
 interface Props {
   orgId: string
@@ -200,29 +201,42 @@ export function OrgSolicitudesTab({ orgId }: Props) {
   const { can } = useAccess()
   const canAct = can('sim-custody:approve-registration')
 
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        <Skeleton className="h-20 rounded-lg" />
-        <Skeleton className="h-20 rounded-lg" />
-        <Skeleton className="h-20 rounded-lg" />
-      </div>
-    )
-  }
-
-  if (!data || data.length === 0) {
-    return (
-      <GlassCard className="p-12 text-center">
-        <p className="text-muted-foreground text-sm">No hay solicitudes pendientes</p>
-      </GlassCard>
-    )
-  }
-
   return (
-    <div className="space-y-3">
-      {data.map(request => (
-        <RequestRow key={request.id} request={request} orgId={orgId} canAct={canAct} />
-      ))}
+    <div className="space-y-8">
+      {/* ── Stock Approval Queue (primary) ── */}
+      <section className="space-y-3">
+        <div>
+          <h3 className="text-base font-semibold">SIMs por aprobar</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">SIMs que requieren aprobación del dueño antes de ingresar al almacén</p>
+        </div>
+        <StockApprovalQueue orgId={orgId} />
+      </section>
+
+      {/* ── New TPV registrations (secondary) ── */}
+      <section className="space-y-3">
+        <div>
+          <h3 className="text-base font-semibold">Altas nuevas desde la TPV</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Solicitudes de alta de ICCIDs enviadas desde terminales</p>
+        </div>
+
+        {isLoading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-20 rounded-lg" />
+            <Skeleton className="h-20 rounded-lg" />
+            <Skeleton className="h-20 rounded-lg" />
+          </div>
+        ) : !data || data.length === 0 ? (
+          <GlassCard className="p-12 text-center">
+            <p className="text-muted-foreground text-sm">No hay solicitudes pendientes</p>
+          </GlassCard>
+        ) : (
+          <div className="space-y-3">
+            {data.map(request => (
+              <RequestRow key={request.id} request={request} orgId={orgId} canAct={canAct} />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   )
 }
