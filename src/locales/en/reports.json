@@ -4,6 +4,7 @@
     "totalSales": "Total Sales",
     "transactions": "transactions",
     "transactionsLabel": "transactions",
+    "transactionsShort": "trans.",
     "actions": {
       "exportPDF": "Export PDF",
       "exportCSV": "Export CSV",

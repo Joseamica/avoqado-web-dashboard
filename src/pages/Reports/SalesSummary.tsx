@@ -25,6 +25,7 @@ import {
   type GroupBy as ApiGroupBy,
   type PaymentMethodFilter,
   type CardTypeFilter,
+  type PaymentMethodDetailedBreakdown,
   MINDFORM_VENUE_ID,
 } from '@/services/reports/salesSummary.service'
 import { getVenueMerchantAccountsByVenueId, getVenueSettlementInfo, type MerchantAccount } from '@/services/paymentProvider.service'
@@ -47,6 +48,7 @@ import {
   Store,
   Clock,
   QrCode,
+  Filter,
   X,
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -608,6 +610,93 @@ const PaymentMethodRow: React.FC<{
 )
 
 // ============================================
+// DetailedBreakdownRow Component (enriched payment-method row with optional
+// expandable card sub-types and platform commission line)
+// ============================================
+const DetailedBreakdownRow: React.FC<{
+  icon: React.ReactNode
+  label: string
+  amount: number
+  count: number
+  percentage: number
+  platformFees: number
+  /** i18n labels resolved by the parent (component is module scope) */
+  countLabel: string
+  feesLabel: string
+  settlementLabel?: string
+  subBuckets?: PaymentMethodDetailedBreakdown['subBuckets']
+  /** Map of sub-bucket type → translated label, e.g. { CREDIT: 'Crédito' } */
+  subLabels?: Record<string, string>
+}> = ({ icon, label, amount, count, percentage, platformFees, countLabel, feesLabel, settlementLabel, subBuckets, subLabels }) => {
+  const [expanded, setExpanded] = useState(false)
+  const hasSubBuckets = !!subBuckets && subBuckets.length > 0
+
+  return (
+    <div>
+      <div
+        className={cn(
+          'grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-4 px-4 py-3 rounded-lg transition-colors hover:bg-muted/30',
+          hasSubBuckets && 'cursor-pointer',
+        )}
+        onClick={hasSubBuckets ? () => setExpanded(v => !v) : undefined}
+      >
+        <div className="flex items-center gap-2">
+          {hasSubBuckets ? (
+            <ChevronDown
+              className={cn('w-4 h-4 text-muted-foreground transition-transform shrink-0', !expanded && '-rotate-90')}
+            />
+          ) : (
+            <span className="w-4 shrink-0" />
+          )}
+          <div className="p-2 rounded-lg bg-muted/50">{icon}</div>
+        </div>
+        <div className="flex flex-col min-w-0">
+          <span className="text-sm font-medium">{label}</span>
+          {settlementLabel && (
+            <span className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+              <Clock className="w-3 h-3" />
+              {settlementLabel}
+            </span>
+          )}
+          {platformFees > 0 && (
+            <span className="text-[11px] text-muted-foreground mt-0.5">
+              {feesLabel}: {Currency(platformFees)}
+            </span>
+          )}
+        </div>
+        <span className="text-sm text-muted-foreground text-right">{count} {countLabel}</span>
+        <span className="text-sm text-muted-foreground text-right min-w-[50px]">{percentage.toFixed(1)}%</span>
+        <span className="text-sm font-mono text-right min-w-[100px]">{Currency(amount)}</span>
+      </div>
+
+      {hasSubBuckets && expanded && (
+        <div className="mt-1 space-y-0.5">
+          {subBuckets!.map(sub => (
+            <div
+              key={sub.type}
+              className="grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-4 py-2 pl-14 pr-4 rounded-lg transition-colors hover:bg-muted/20"
+            >
+              <span className="w-4 shrink-0" />
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm">{subLabels?.[sub.type] ?? sub.type}</span>
+                {sub.platformFees > 0 && (
+                  <span className="text-[11px] text-muted-foreground mt-0.5">
+                    {feesLabel}: {Currency(sub.platformFees)}
+                  </span>
+                )}
+              </div>
+              <span className="text-xs text-muted-foreground text-right">{sub.count} {countLabel}</span>
+              <span className="text-xs text-muted-foreground text-right min-w-[50px]">{sub.percentage.toFixed(1)}%</span>
+              <span className="text-sm font-mono text-right min-w-[100px]">{Currency(sub.amount)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ============================================
 // Loading Skeleton
 // ============================================
 const SalesSummarySkeleton = () => (
@@ -907,11 +996,13 @@ export default function SalesSummary() {
     // Summary section
     rows.push([t('salesSummary.sections.summary')])
     rows.push([t('salesSummary.columns.concept'), t('salesSummary.columns.count'), t('salesSummary.columns.amount')])
-    rows.push([t('salesSummary.rows.grossSales'), data.transactions.completed.toString(), data.summary.totalGross.toFixed(2)])
-    rows.push([t('salesSummary.rows.discounts'), '', (-data.summary.discounts).toFixed(2)])
+    // Order-derived metrics are null under a payment filter — default to 0 so the
+    // export never throws (the filtered export still carries the payment-derived rows).
+    rows.push([t('salesSummary.rows.grossSales'), data.transactions.completed.toString(), (data.summary.totalGross ?? 0).toFixed(2)])
+    rows.push([t('salesSummary.rows.discounts'), '', (-(data.summary.discounts ?? 0)).toFixed(2)])
     rows.push([t('salesSummary.rows.refunds'), data.transactions.refunded.toString(), (-data.summary.refunds).toFixed(2)])
-    rows.push([t('salesSummary.rows.netSales'), '', data.summary.netSales.toFixed(2)])
-    rows.push([t('salesSummary.rows.taxes'), '', data.summary.taxes.toFixed(2)])
+    rows.push([t('salesSummary.rows.netSales'), '', (data.summary.netSales ?? 0).toFixed(2)])
+    rows.push([t('salesSummary.rows.taxes'), '', (data.summary.taxes ?? 0).toFixed(2)])
     rows.push([t('salesSummary.rows.tips'), '', data.summary.tips.toFixed(2)])
     rows.push([t('salesSummary.rows.totalCollected'), '', data.summary.totalCollected.toFixed(2)])
 
@@ -1873,8 +1964,10 @@ export default function SalesSummary() {
           </div>
         </div>
 
-        {/* Dynamic visualization based on viewType */}
-        {viewType === 'gauge' && (
+        {/* Dynamic visualization based on viewType — hidden under a payment
+            filter (the distribution would be a tautological 100% of the
+            filtered method). */}
+        {!isFiltered && viewType === 'gauge' && (
           <SalesBreakdownBar
             segments={[
               {
@@ -1899,7 +1992,7 @@ export default function SalesSummary() {
           />
         )}
 
-        {viewType === 'pie' && (
+        {!isFiltered && viewType === 'pie' && (
           <SalesPieChart
             segments={[
               {
@@ -1924,7 +2017,7 @@ export default function SalesSummary() {
           />
         )}
 
-        {viewType === 'table' && (
+        {!isFiltered && viewType === 'table' && (
           <SalesTable
             segments={[
               {
@@ -1953,6 +2046,14 @@ export default function SalesSummary() {
             }}
           />
         )}
+
+        {/* Under a payment filter the distribution chart is meaningless — show a hint instead. */}
+        {isFiltered && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+            <Filter className="w-4 h-4 shrink-0" />
+            <span>{t('salesSummary.controls.filterBy.filteredMessage')}</span>
+          </div>
+        )}
       </GlassCard>
 
       {/* Summary Section (Collapsible) - Only shown for summary report type */}
@@ -1977,8 +2078,9 @@ export default function SalesSummary() {
             <div className="px-4 pb-4 space-y-1">
               <div className="h-px bg-border/50 mb-3" />
 
-              {/* Ventas brutas - Collapsible parent with children */}
-              {selectedMetrics.includes('grossSales') && (
+              {/* Ventas brutas - Collapsible parent with children.
+                  Order-derived → hidden under a payment filter (can't be split per method). */}
+              {!isFiltered && selectedMetrics.includes('grossSales') && (
                 <CollapsibleSummaryRow
                   label={t('salesSummary.rows.grossSales')}
                   value={data.summary.totalGross}
@@ -2022,8 +2124,8 @@ export default function SalesSummary() {
                 />
               )}
 
-              {/* Descuentos - Collapsible parent (future: can have subcategories) */}
-              {selectedMetrics.includes('discounts') && (
+              {/* Descuentos - order-derived → hidden under filter */}
+              {!isFiltered && selectedMetrics.includes('discounts') && (
                 <SummaryRow
                   label={t('salesSummary.rows.discounts')}
                   value={-data.summary.discounts}
@@ -2032,8 +2134,8 @@ export default function SalesSummary() {
                 />
               )}
 
-              {/* Ventas netas - Calculated total */}
-              {selectedMetrics.includes('netSales') && (
+              {/* Ventas netas - order-derived → hidden under filter */}
+              {!isFiltered && selectedMetrics.includes('netSales') && (
                 <>
                   <div className="h-px bg-border/30 mx-4 my-2" />
                   <SummaryRow
@@ -2046,8 +2148,8 @@ export default function SalesSummary() {
                 </>
               )}
 
-              {/* Ventas diferidas */}
-              {selectedMetrics.includes('deferredSales') && (
+              {/* Ventas diferidas - order-derived → hidden under filter */}
+              {!isFiltered && selectedMetrics.includes('deferredSales') && (
                 <SummaryRow
                   label={t('salesSummary.rows.deferredSales')}
                   value={data.summary.deferredSales}
@@ -2058,8 +2160,8 @@ export default function SalesSummary() {
                 />
               )}
 
-              {/* Impuestos */}
-              {selectedMetrics.includes('taxes') && (
+              {/* Impuestos - order-derived → hidden under filter */}
+              {!isFiltered && selectedMetrics.includes('taxes') && (
                 <SummaryRow
                   label={t('salesSummary.rows.taxes')}
                   value={data.summary.taxes}
@@ -2068,8 +2170,9 @@ export default function SalesSummary() {
                 />
               )}
 
-              {/* Total de las ventas - Mexico model: taxes already included in prices */}
-              {selectedMetrics.includes('totalCollected') && (
+              {/* Total de las ventas - Mexico model: taxes already included in prices.
+                  netSales-based → order-derived, hidden under filter. */}
+              {!isFiltered && selectedMetrics.includes('totalCollected') && (
                 <>
                   <div className="h-px bg-border/30 mx-4 my-2" />
                   <SummaryRow
@@ -2145,6 +2248,14 @@ export default function SalesSummary() {
                   />
                 </>
               )}
+
+              {/* Order-level metrics (gross sales, taxes, discounts…) are hidden
+                  under a payment filter — they can't be attributed per method. */}
+              {isFiltered && (
+                <p className="px-4 pt-3 text-xs italic text-muted-foreground">
+                  {t('salesSummary.controls.filterBy.hiddenMetricsMessage')}
+                </p>
+              )}
             </div>
           </CollapsibleContent>
         </GlassCard>
@@ -2182,29 +2293,89 @@ export default function SalesSummary() {
             <div className="px-4 pb-4 space-y-1">
               <div className="h-px bg-border/50 mb-3" />
 
-              <PaymentMethodRow
-                icon={<CreditCard className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
-                label={t('salesSummary.paymentTypes.card')}
-                amount={data.paymentMethods.card.amount}
-                count={data.paymentMethods.card.count}
-                percentage={data.paymentMethods.card.percentage}
-                settlementLabel={settlementLabels.card}
-              />
-              <PaymentMethodRow
-                icon={<Banknote className="w-4 h-4 text-green-600 dark:text-green-400" />}
-                label={t('salesSummary.paymentTypes.cash')}
-                amount={data.paymentMethods.cash.amount}
-                count={data.paymentMethods.cash.count}
-                percentage={data.paymentMethods.cash.percentage}
-                settlementLabel={settlementLabels.cash}
-              />
-              <PaymentMethodRow
-                icon={<Smartphone className="w-4 h-4 text-orange-600 dark:text-orange-400" />}
-                label={t('salesSummary.paymentTypes.other')}
-                amount={data.paymentMethods.other.amount}
-                count={data.paymentMethods.other.count}
-                percentage={data.paymentMethods.other.percentage}
-              />
+              {isFiltered ? (
+                // Under a payment filter the distribution is a single-method 100% — show a hint.
+                <div className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
+                  <Filter className="w-4 h-4 shrink-0" />
+                  <span>{t('salesSummary.controls.filterBy.filteredMessage')}</span>
+                </div>
+              ) : apiResponse?.byPaymentMethodDetailed && apiResponse.byPaymentMethodDetailed.length > 0 ? (
+                // Enriched breakdown: Card expands to Credit/Debit/AMEX/International with commission.
+                apiResponse.byPaymentMethodDetailed.map(bucket => {
+                  const bucketConfig: Record<
+                    PaymentMethodDetailedBreakdown['bucket'],
+                    { icon: React.ReactNode; label: string; settlementLabel?: string }
+                  > = {
+                    CARD: {
+                      icon: <CreditCard className="w-4 h-4 text-blue-600 dark:text-blue-400" />,
+                      label: t('salesSummary.paymentTypes.card'),
+                      settlementLabel: settlementLabels.card,
+                    },
+                    CASH: {
+                      icon: <Banknote className="w-4 h-4 text-green-600 dark:text-green-400" />,
+                      label: t('salesSummary.paymentTypes.cash'),
+                      settlementLabel: settlementLabels.cash,
+                    },
+                    OTHER: {
+                      icon: <Smartphone className="w-4 h-4 text-orange-600 dark:text-orange-400" />,
+                      label: t('salesSummary.paymentTypes.other'),
+                    },
+                    QR_LEGACY: {
+                      icon: <QrCode className="w-4 h-4 text-purple-600 dark:text-purple-400" />,
+                      label: t('salesSummary.controls.filterBy.paymentMethod.options.qrLegacy'),
+                    },
+                  }
+                  const cfg = bucketConfig[bucket.bucket]
+                  return (
+                    <DetailedBreakdownRow
+                      key={bucket.bucket}
+                      icon={cfg.icon}
+                      label={cfg.label}
+                      amount={bucket.amount}
+                      count={bucket.count}
+                      percentage={bucket.percentage}
+                      platformFees={bucket.platformFees}
+                      countLabel={t('salesSummary.transactionsShort')}
+                      feesLabel={t('salesSummary.rows.platformFees')}
+                      settlementLabel={cfg.settlementLabel}
+                      subBuckets={bucket.subBuckets}
+                      subLabels={{
+                        CREDIT: t('salesSummary.controls.filterBy.cardType.options.credit'),
+                        DEBIT: t('salesSummary.controls.filterBy.cardType.options.debit'),
+                        AMEX: t('salesSummary.controls.filterBy.cardType.options.amex'),
+                        INTERNATIONAL: t('salesSummary.controls.filterBy.cardType.options.international'),
+                      }}
+                    />
+                  )
+                })
+              ) : (
+                // Fallback flat layout (e.g. groupBy != paymentMethod or no detailed data).
+                <>
+                  <PaymentMethodRow
+                    icon={<CreditCard className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                    label={t('salesSummary.paymentTypes.card')}
+                    amount={data.paymentMethods.card.amount}
+                    count={data.paymentMethods.card.count}
+                    percentage={data.paymentMethods.card.percentage}
+                    settlementLabel={settlementLabels.card}
+                  />
+                  <PaymentMethodRow
+                    icon={<Banknote className="w-4 h-4 text-green-600 dark:text-green-400" />}
+                    label={t('salesSummary.paymentTypes.cash')}
+                    amount={data.paymentMethods.cash.amount}
+                    count={data.paymentMethods.cash.count}
+                    percentage={data.paymentMethods.cash.percentage}
+                    settlementLabel={settlementLabels.cash}
+                  />
+                  <PaymentMethodRow
+                    icon={<Smartphone className="w-4 h-4 text-orange-600 dark:text-orange-400" />}
+                    label={t('salesSummary.paymentTypes.other')}
+                    amount={data.paymentMethods.other.amount}
+                    count={data.paymentMethods.other.count}
+                    percentage={data.paymentMethods.other.percentage}
+                  />
+                </>
+              )}
             </div>
           </CollapsibleContent>
         </GlassCard>
