@@ -34,8 +34,10 @@ A second, MindForm-specific bug is that this report does **not** merge MindForm'
 | # | Question | Decision |
 |---|----------|----------|
 | 1 | "International" definition | `Payment.processorData.isInternational === true` — reuse the canonical signal Blumon/Stripe already emit (also what `transactionCost.service.ts` uses). |
-| 2 | Filter scope on order-level metrics (grossSales, discounts, taxes) | **Inclusive**: include the full order when it has ≥1 payment matching the filter. Same semantics as `merchantAccountId`. Documented in tooltip. |
-| 3 | QR Legacy bucket (MindForm) | **Own bucket** in the payment-method breakdown and own filter target. Coherent with the existing `source: 'QR_LEGACY'` + `isLegacyQR: true` markers. |
+| 2 | Filter scope on order-level metrics (grossSales, discounts, taxes, deferredSales) | **Hide them under filter** (Square approach). They live on `Order` and cannot be attributed honestly to a single payment method in our Mexican tax-inclusive model. Under filter we show only payment-derived metrics (Total cobrado, Propinas, Devoluciones, Comisiones, # Transacciones, Ganancia neta). |
+| 3 | "Distribución de pagos" chart under filter | **Hide it** when a payment-method filter is active. Replace with a small message + "Quitar filtro" CTA. |
+| 4 | QR Legacy bucket (MindForm) | **Own bucket** in the payment-method breakdown and own filter target. Coherent with the existing `source: 'QR_LEGACY'` + `isLegacyQR: true` markers. |
+| 5 | Enriched breakdown (always visible, no filter required) | The "Métodos de pago" section gains sub-buckets under Tarjeta: Crédito, Débito, AMEX, Internacional. Each row shows # trans, % of total, amount, and **platform commission** (the most actionable number — lets the owner see AMEX really costs 4.5% etc.). |
 
 ## UX — Filtrar por panel
 
@@ -192,12 +194,15 @@ function buildPaymentWhereFilter(
 }
 ```
 
-This `paymentFilter` is then composed into every existing query:
+**Square-style behavior when filter is active**: order-level metrics (grossSales, items, serviceCosts, discounts, taxes, deferredSales) are **not computed**. The response sets them to `null` and a `filtered: true` flag in the summary. The frontend hides those rows + the distribution chart.
+
+This `paymentFilter` is then composed into:
 
 - **Payment-level queries** (refunds, tips, transactionCount, by-period payment aggregates, byPaymentMethod groupBy): merge `paymentFilter` directly into the `where`.
-- **Order-level queries** (grossSales, deferredSales, by-period order aggregates): wrap as `payments: { some: paymentFilter }` — same shape used today for `merchantAccountId` in `merchantOrderFilter`.
-- **TransactionCost raw SQL** (platformFees): extend the existing query with a `JOIN Payment p` (already joined) and add the same conditions. For JSON path, use `(p."processorData"->>'isInternational')::boolean = true`. To avoid duplicating the where-builder, generate the SQL fragment from the same `paymentFilter` (or hand-write the corresponding SQL — there are only 5 distinct shapes).
+- **TransactionCost raw SQL** (platformFees): the existing query joins `Payment p` already; add the same conditions. For JSON path, use `(p."processorData"->>'isInternational')::boolean = true`.
 - **CommissionCalculation**: already filters via `payment: { merchantAccountId }`; extend to `payment: { ...merchantFilter, ...paymentFilter }`.
+- **Order-level queries**: when filter is active, **skip entirely** — the response shape sets these to `null` so the frontend knows to hide them.
+- **byPaymentMethod aggregation**: when filter is active, **skip entirely** (it would be tautological — a 100% bar of the filtered method).
 
 ### Time-period raw SQL (`calculateTimePeriodMetrics`)
 
@@ -234,6 +239,52 @@ This branch is the **only** place that knows about `MINDFORM_NEW_VENUE_ID` insid
 ### byPaymentMethod for non-MindForm venues
 
 No change to ordering. Buckets remain whatever `Payment.method` values exist in the data, sorted by amount desc. The frontend still groups them into `Tarjeta / Efectivo / Otro` for the chart, and now adds `QR Legacy` if a `QR_LEGACY` entry is present (always false for non-MindForm).
+
+### Enriched payment-method breakdown (new, always visible)
+
+The "Métodos de pago" section (bottom of the report) gets a richer breakdown. Backend changes:
+
+Add a new aggregation `byPaymentMethodDetailed` (only when filter is **not** active and `groupBy=paymentMethod`):
+
+```ts
+interface PaymentMethodDetailedBreakdown {
+  bucket: 'CARD' | 'CASH' | 'OTHER' | 'QR_LEGACY'
+  amount: number
+  count: number
+  percentage: number
+  tips: number
+  refunds: number
+  platformFees: number
+  // Only present when bucket === 'CARD'
+  subBuckets?: Array<{
+    type: 'CREDIT' | 'DEBIT' | 'AMEX' | 'INTERNATIONAL'
+    amount: number
+    count: number
+    percentage: number  // % of card total
+    platformFees: number
+  }>
+}
+```
+
+The aggregation uses the same `determineTransactionCardType` mapping in JS over a `prisma.payment.findMany({ select: { method, cardBrand, processorData, amount, tipAmount } })` for the date range. This avoids 4 separate Prisma queries.
+
+`TransactionCost.venueChargeAmount` is summed per sub-bucket in a single raw SQL grouping by the computed card type. The SQL:
+
+```sql
+SELECT
+  CASE
+    WHEN (p."processorData"->>'isInternational')::boolean = true THEN 'INTERNATIONAL'
+    WHEN p."cardBrand" = 'AMERICAN_EXPRESS' THEN 'AMEX'
+    WHEN p.method = 'CREDIT_CARD' THEN 'CREDIT'
+    WHEN p.method = 'DEBIT_CARD' THEN 'DEBIT'
+    ELSE 'OTHER'
+  END AS card_type,
+  COALESCE(SUM(tc."venueChargeAmount"), 0) AS platform_fees
+FROM "TransactionCost" tc
+JOIN "Payment" p ON p.id = tc."paymentId"
+WHERE p."venueId" = $1 AND p."createdAt" BETWEEN $2 AND $3
+GROUP BY card_type
+```
 
 ## Frontend wiring
 
