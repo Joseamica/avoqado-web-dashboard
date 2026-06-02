@@ -165,8 +165,43 @@
       },
       "filterBy": {
         "label": "Filtrar por",
-        "description": "Muestra u oculta los datos asociados a varias dimensiones diferentes",
-        "none": "Período"
+        "description": "Restringe el reporte a un método o tipo de tarjeta",
+        "longDescription": "Aplica filtros para ver solo los pagos del método o tipo de tarjeta seleccionado. Al filtrar, se ocultan las métricas a nivel orden (ventas brutas, impuestos, descuentos) porque no se pueden atribuir a un método de pago específico.",
+        "active": "Filtrado",
+        "clear": "Quitar filtro",
+        "none": "Todos",
+        "filteredMessage": "Quita el filtro para ver la distribución completa",
+        "hiddenMetricsMessage": "Métricas a nivel orden ocultas bajo filtro",
+        "paymentMethod": {
+          "label": "Método de pago",
+          "options": {
+            "all": "Todos los métodos",
+            "allDesc": "Sin filtro de método de pago",
+            "cash": "Efectivo",
+            "cashDesc": "Solo pagos en efectivo",
+            "card": "Tarjeta",
+            "cardDesc": "Solo pagos con tarjeta de crédito o débito",
+            "qrLegacy": "QR Legacy",
+            "qrLegacyDesc": "Solo pagos del sistema QR previo",
+            "other": "Otro",
+            "otherDesc": "Wallet digital, transferencia, cripto"
+          }
+        },
+        "cardType": {
+          "label": "Tipo de tarjeta",
+          "options": {
+            "all": "Todas las tarjetas",
+            "allDesc": "Sin filtro por tipo de tarjeta",
+            "credit": "Crédito",
+            "creditDesc": "Tarjetas de crédito nacionales (Visa, Mastercard)",
+            "debit": "Débito",
+            "debitDesc": "Tarjetas de débito nacionales (Visa, Mastercard)",
+            "amex": "AMEX",
+            "amexDesc": "American Express (todas)",
+            "international": "Internacional",
+            "internationalDesc": "Tarjetas emitidas en el extranjero"
+          }
+        }
       },
       "metrics": {
         "label": "Métricas",

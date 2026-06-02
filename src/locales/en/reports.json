@@ -165,8 +165,43 @@
       },
       "filterBy": {
         "label": "Filter by",
-        "description": "Show or hide data associated with different dimensions",
-        "none": "Period"
+        "description": "Restrict the report to a payment method or card type",
+        "longDescription": "Filter to show only payments matching the chosen method or card type. Order-level metrics (gross sales, taxes, discounts) are hidden under filter because they cannot be attributed to a single payment method.",
+        "active": "Filtered",
+        "clear": "Clear filter",
+        "none": "All",
+        "filteredMessage": "Clear the filter to see the full distribution",
+        "hiddenMetricsMessage": "Order-level metrics hidden under filter",
+        "paymentMethod": {
+          "label": "Payment method",
+          "options": {
+            "all": "All methods",
+            "allDesc": "No payment method filter",
+            "cash": "Cash",
+            "cashDesc": "Cash payments only",
+            "card": "Card",
+            "cardDesc": "Credit or debit card payments only",
+            "qrLegacy": "QR Legacy",
+            "qrLegacyDesc": "Payments from the previous QR system",
+            "other": "Other",
+            "otherDesc": "Digital wallet, transfer, crypto"
+          }
+        },
+        "cardType": {
+          "label": "Card type",
+          "options": {
+            "all": "All cards",
+            "allDesc": "No card type filter",
+            "credit": "Credit",
+            "creditDesc": "Domestic credit cards (Visa, Mastercard)",
+            "debit": "Debit",
+            "debitDesc": "Domestic debit cards (Visa, Mastercard)",
+            "amex": "AMEX",
+            "amexDesc": "American Express (all)",
+            "international": "International",
+            "internationalDesc": "Foreign-issued cards"
+          }
+        }
       },
       "metrics": {
         "label": "Metrics",

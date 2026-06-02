@@ -23,6 +23,9 @@ import {
   salesSummaryKeys,
   type ReportType,
   type GroupBy as ApiGroupBy,
+  type PaymentMethodFilter,
+  type CardTypeFilter,
+  MINDFORM_VENUE_ID,
 } from '@/services/reports/salesSummary.service'
 import { getVenueMerchantAccountsByVenueId, getVenueSettlementInfo, type MerchantAccount } from '@/services/paymentProvider.service'
 import {
@@ -36,7 +39,6 @@ import {
   Banknote,
   Smartphone,
   Receipt,
-  Filter,
   Settings2,
   PieChart,
   Table2,
@@ -44,6 +46,8 @@ import {
   LayoutGrid,
   Store,
   Clock,
+  QrCode,
+  X,
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { PeriodBreakdownTable } from './components/PeriodBreakdownTable'
@@ -113,6 +117,8 @@ interface SalesSummaryPreferences {
   viewType: string
   reportType: string
   groupBy: string
+  paymentMethodFilter?: PaymentMethodFilter | null
+  cardTypeFilter?: CardTypeFilter | null
 }
 
 // Load preferences from localStorage
@@ -652,7 +658,7 @@ export default function SalesSummary() {
 
   // State for controls drawer
   const [controlsOpen, setControlsOpen] = useState(false)
-  const [activePanel, setActivePanel] = useState<'main' | 'reportType' | 'viewType' | 'groupBy' | 'terminal' | 'metrics' | 'merchant' | null>('main')
+  const [activePanel, setActivePanel] = useState<'main' | 'reportType' | 'viewType' | 'groupBy' | 'terminal' | 'metrics' | 'merchant' | 'filterBy' | null>('main')
 
   // Load saved preferences from localStorage
   const savedPrefs = useMemo(() => loadPreferences(), [])
@@ -672,6 +678,19 @@ export default function SalesSummary() {
   // Merchant filter state
   const [merchantAccountId, setMerchantAccountId] = useState<string | null>(null)
   const [pendingMerchantAccountId, setPendingMerchantAccountId] = useState<string | null>(null)
+
+  // Payment method / card type filter state
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<PaymentMethodFilter | null>(
+    () => savedPrefs?.paymentMethodFilter ?? null,
+  )
+  const [cardTypeFilter, setCardTypeFilter] = useState<CardTypeFilter | null>(
+    () => savedPrefs?.cardTypeFilter ?? null,
+  )
+  const [pendingPaymentMethodFilter, setPendingPaymentMethodFilter] = useState<PaymentMethodFilter | null>(null)
+  const [pendingCardTypeFilter, setPendingCardTypeFilter] = useState<CardTypeFilter | null>(null)
+
+  const isFiltered = paymentMethodFilter !== null
+  const isMindform = venueId === MINDFORM_VENUE_ID
 
   // Fetch venue merchant accounts
   const { data: merchantAccounts = [] } = useQuery({
@@ -739,8 +758,10 @@ export default function SalesSummary() {
       viewType,
       reportType,
       groupBy,
+      paymentMethodFilter,
+      cardTypeFilter,
     })
-  }, [selectedMetrics, chartMetric, viewType, reportType, groupBy])
+  }, [selectedMetrics, chartMetric, viewType, reportType, groupBy, paymentMethodFilter, cardTypeFilter])
 
   // Get translated label for current selection
   const getSelectedLabel = (category: 'reportType' | 'viewType' | 'groupBy' | 'terminal', value: string) => {
@@ -754,9 +775,11 @@ export default function SalesSummary() {
   const hasTerminalChange = pendingTerminal !== terminal
   const hasMetricsChange = JSON.stringify(pendingSelectedMetrics) !== JSON.stringify(selectedMetrics) || pendingChartMetric !== chartMetric
   const hasMerchantChange = pendingMerchantAccountId !== merchantAccountId
+  const hasFilterByChange =
+    pendingPaymentMethodFilter !== paymentMethodFilter || pendingCardTypeFilter !== cardTypeFilter
 
   // Open sheet and navigate to specific panel, initialize pending with current value
-  const openControlPanel = (panel: 'main' | 'reportType' | 'viewType' | 'groupBy' | 'terminal' | 'metrics' | 'merchant') => {
+  const openControlPanel = (panel: 'main' | 'reportType' | 'viewType' | 'groupBy' | 'terminal' | 'metrics' | 'merchant' | 'filterBy') => {
     // Initialize pending values with current values when opening
     setPendingReportType(reportType)
     setPendingViewType(viewType)
@@ -765,6 +788,8 @@ export default function SalesSummary() {
     setPendingSelectedMetrics([...selectedMetrics])
     setPendingChartMetric(chartMetric)
     setPendingMerchantAccountId(merchantAccountId)
+    setPendingPaymentMethodFilter(paymentMethodFilter)
+    setPendingCardTypeFilter(cardTypeFilter)
     setActivePanel(panel)
     setControlsOpen(true)
   }
@@ -805,6 +830,36 @@ export default function SalesSummary() {
     setMerchantAccountId(pendingMerchantAccountId)
     setControlsOpen(false)
     setActivePanel('main')
+  }
+
+  const applyFilterBy = () => {
+    setPaymentMethodFilter(pendingPaymentMethodFilter)
+    // Drop the card sub-filter when the method isn't CARD anymore
+    setCardTypeFilter(pendingPaymentMethodFilter === 'CARD' ? pendingCardTypeFilter : null)
+    setControlsOpen(false)
+    setActivePanel('main')
+  }
+
+  const clearFilterBy = () => {
+    setPaymentMethodFilter(null)
+    setCardTypeFilter(null)
+  }
+
+  // Map a payment-method enum value to its i18n option key (camelCase in JSON).
+  const PAYMENT_METHOD_OPTION_KEY: Record<PaymentMethodFilter, string> = {
+    CASH: 'cash',
+    CARD: 'card',
+    QR_LEGACY: 'qrLegacy',
+    OTHER: 'other',
+  }
+
+  // Short label shown on the pill / row / badge for the active filter.
+  const filterByValueLabel = () => {
+    if (paymentMethodFilter === null) return t('salesSummary.controls.filterBy.none')
+    if (paymentMethodFilter === 'CARD' && cardTypeFilter) {
+      return t(`salesSummary.controls.filterBy.cardType.options.${cardTypeFilter.toLowerCase()}`)
+    }
+    return t(`salesSummary.controls.filterBy.paymentMethod.options.${PAYMENT_METHOD_OPTION_KEY[paymentMethodFilter]}`)
   }
 
   // Toggle a metric selection
@@ -898,7 +953,9 @@ export default function SalesSummary() {
     groupBy: 'paymentMethod' as ApiGroupBy,
     reportType: reportType as ReportType,
     ...(merchantAccountId ? { merchantAccountId } : {}),
-  }), [venueId, dateRange.from, dateRange.to, reportType, merchantAccountId])
+    ...(paymentMethodFilter ? { paymentMethod: paymentMethodFilter } : {}),
+    ...(paymentMethodFilter === 'CARD' && cardTypeFilter ? { cardType: cardTypeFilter } : {}),
+  }), [venueId, dateRange.from, dateRange.to, reportType, merchantAccountId, paymentMethodFilter, cardTypeFilter])
 
   // Fetch sales summary data from API
   const {
@@ -1041,6 +1098,20 @@ export default function SalesSummary() {
           <Badge variant="outline" className="text-xs font-normal">
             Beta
           </Badge>
+          {isFiltered && (
+            <Badge variant="outline" className="text-xs font-normal gap-1 pl-2 pr-1 py-0.5">
+              {t('salesSummary.controls.filterBy.active')}: {filterByValueLabel()}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-4 w-4 ml-0.5 cursor-pointer"
+                onClick={clearFilterBy}
+                aria-label={t('salesSummary.controls.filterBy.clear')}
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            </Badge>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {/* Export Popover */}
@@ -1180,8 +1251,8 @@ export default function SalesSummary() {
                   <ControlRow
                     label={t('salesSummary.controls.filterBy.label')}
                     description={t('salesSummary.controls.filterBy.description')}
-                    value={t('salesSummary.controls.filterBy.none')}
-                    onClick={() => {/* TODO: Implement filter panel */}}
+                    value={filterByValueLabel()}
+                    onClick={() => setActivePanel('filterBy')}
                   />
                 </div>
               </div>
@@ -1582,6 +1653,142 @@ export default function SalesSummary() {
                   </div>
                 </div>
               </div>
+
+              {/* Filter By Sub-Panel (2-level: payment method → card type) */}
+              <div
+                className={cn(
+                  'absolute inset-0 transition-transform duration-300 ease-in-out bg-background flex flex-col',
+                  activePanel === 'filterBy' ? 'translate-x-0' : 'translate-x-full'
+                )}
+              >
+                {/* Header with back and apply buttons */}
+                <div className="flex items-center justify-between p-4 border-b">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 rounded-full cursor-pointer"
+                    onClick={() => setActivePanel('main')}
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </Button>
+                  <Button
+                    className="rounded-full px-6 cursor-pointer"
+                    disabled={!hasFilterByChange}
+                    onClick={applyFilterBy}
+                  >
+                    {t('salesSummary.controls.apply')}
+                  </Button>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  {/* Title and description */}
+                  <div className="space-y-3">
+                    <h2 className="text-2xl font-bold">{t('salesSummary.controls.filterBy.label')}</h2>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {t('salesSummary.controls.filterBy.longDescription')}
+                    </p>
+                  </div>
+
+                  {/* Level 1: Payment Method */}
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-foreground">
+                      {t('salesSummary.controls.filterBy.paymentMethod.label')}
+                    </h3>
+                    <RadioGroup
+                      value={pendingPaymentMethodFilter ? pendingPaymentMethodFilter.toLowerCase() : 'all'}
+                      onValueChange={(v) => {
+                        const next = v === 'all' ? null : (v.toUpperCase() as PaymentMethodFilter)
+                        setPendingPaymentMethodFilter(next)
+                        if (next !== 'CARD') setPendingCardTypeFilter(null)
+                      }}
+                      className="space-y-1"
+                    >
+                      <ControlOption
+                        value="all"
+                        label={t('salesSummary.controls.filterBy.paymentMethod.options.all')}
+                        description={t('salesSummary.controls.filterBy.paymentMethod.options.allDesc')}
+                        isSelected={pendingPaymentMethodFilter === null}
+                      />
+                      <ControlOption
+                        value="cash"
+                        label={t('salesSummary.controls.filterBy.paymentMethod.options.cash')}
+                        description={t('salesSummary.controls.filterBy.paymentMethod.options.cashDesc')}
+                        isSelected={pendingPaymentMethodFilter === 'CASH'}
+                        icon={<Banknote className="w-4 h-4 text-muted-foreground" />}
+                      />
+                      <ControlOption
+                        value="card"
+                        label={t('salesSummary.controls.filterBy.paymentMethod.options.card')}
+                        description={t('salesSummary.controls.filterBy.paymentMethod.options.cardDesc')}
+                        isSelected={pendingPaymentMethodFilter === 'CARD'}
+                        icon={<CreditCard className="w-4 h-4 text-muted-foreground" />}
+                      />
+                      {isMindform && (
+                        <ControlOption
+                          value="qr_legacy"
+                          label={t('salesSummary.controls.filterBy.paymentMethod.options.qrLegacy')}
+                          description={t('salesSummary.controls.filterBy.paymentMethod.options.qrLegacyDesc')}
+                          isSelected={pendingPaymentMethodFilter === 'QR_LEGACY'}
+                          icon={<QrCode className="w-4 h-4 text-muted-foreground" />}
+                        />
+                      )}
+                      <ControlOption
+                        value="other"
+                        label={t('salesSummary.controls.filterBy.paymentMethod.options.other')}
+                        description={t('salesSummary.controls.filterBy.paymentMethod.options.otherDesc')}
+                        isSelected={pendingPaymentMethodFilter === 'OTHER'}
+                        icon={<Smartphone className="w-4 h-4 text-muted-foreground" />}
+                      />
+                    </RadioGroup>
+                  </div>
+
+                  {/* Level 2: Card Type — only when CARD selected */}
+                  {pendingPaymentMethodFilter === 'CARD' && (
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-semibold text-foreground">
+                        {t('salesSummary.controls.filterBy.cardType.label')}
+                      </h3>
+                      <RadioGroup
+                        value={pendingCardTypeFilter ? pendingCardTypeFilter.toLowerCase() : 'all'}
+                        onValueChange={(v) => setPendingCardTypeFilter(v === 'all' ? null : (v.toUpperCase() as CardTypeFilter))}
+                        className="space-y-1"
+                      >
+                        <ControlOption
+                          value="all"
+                          label={t('salesSummary.controls.filterBy.cardType.options.all')}
+                          description={t('salesSummary.controls.filterBy.cardType.options.allDesc')}
+                          isSelected={pendingCardTypeFilter === null}
+                        />
+                        <ControlOption
+                          value="credit"
+                          label={t('salesSummary.controls.filterBy.cardType.options.credit')}
+                          description={t('salesSummary.controls.filterBy.cardType.options.creditDesc')}
+                          isSelected={pendingCardTypeFilter === 'CREDIT'}
+                        />
+                        <ControlOption
+                          value="debit"
+                          label={t('salesSummary.controls.filterBy.cardType.options.debit')}
+                          description={t('salesSummary.controls.filterBy.cardType.options.debitDesc')}
+                          isSelected={pendingCardTypeFilter === 'DEBIT'}
+                        />
+                        <ControlOption
+                          value="amex"
+                          label={t('salesSummary.controls.filterBy.cardType.options.amex')}
+                          description={t('salesSummary.controls.filterBy.cardType.options.amexDesc')}
+                          isSelected={pendingCardTypeFilter === 'AMEX'}
+                        />
+                        <ControlOption
+                          value="international"
+                          label={t('salesSummary.controls.filterBy.cardType.options.international')}
+                          description={t('salesSummary.controls.filterBy.cardType.options.internationalDesc')}
+                          isSelected={pendingCardTypeFilter === 'INTERNATIONAL'}
+                        />
+                      </RadioGroup>
+                    </div>
+                  )}
+                </div>
+              </div>
             </SheetContent>
           </Sheet>
         </div>
@@ -1644,15 +1851,11 @@ export default function SalesSummary() {
           value={getSelectedLabel('groupBy', groupBy)}
           onClick={() => openControlPanel('groupBy')}
         />
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => openControlPanel('main')}
-          className="rounded-full h-8 px-3 text-xs font-medium text-muted-foreground hover:text-foreground cursor-pointer"
-        >
-          <Filter className="w-3 h-3 mr-1" />
-          {t('salesSummary.filters.more')}
-        </Button>
+        <ControlPill
+          label={t('salesSummary.controls.filterBy.label')}
+          value={filterByValueLabel()}
+          onClick={() => openControlPanel('filterBy')}
+        />
       </div>
 
       {/* Big Number - Total Sales with Dynamic Visualization */}

@@ -8,18 +8,33 @@
 import api from '@/api'
 
 // ============================================================
+// Constants
+// ============================================================
+
+// Mirrors avoqado-server/src/services/legacy/qrPayments.legacy.service.ts
+// (MINDFORM_NEW_VENUE_ID). Kept in sync manually; a comment in the backend
+// file points here. Used to gate the QR_LEGACY filter option to MindForm only.
+export const MINDFORM_VENUE_ID = 'cmisvi38o001fhr2828ygmxi2'
+
+// ============================================================
 // Types
 // ============================================================
 
+export type PaymentMethodFilter = 'CASH' | 'CARD' | 'QR_LEGACY' | 'OTHER'
+export type CardTypeFilter = 'CREDIT' | 'DEBIT' | 'AMEX' | 'INTERNATIONAL'
+
 export interface SalesSummaryMetrics {
-  grossSales: number
-  items: number
-  serviceCosts: number
-  discounts: number
+  // Order-derived fields. Null when a payment filter is active — they cannot
+  // be honestly attributed to a single payment method (Square approach).
+  grossSales: number | null
+  items: number | null
+  serviceCosts: number | null
+  discounts: number | null
+  netSales: number | null
+  deferredSales: number | null
+  taxes: number | null
+  // Payment-derived fields. Always numbers, even under filter.
   refunds: number
-  netSales: number
-  deferredSales: number
-  taxes: number
   tips: number
   // Costs breakdown
   platformFees: number // Avoqado platform fees
@@ -36,6 +51,23 @@ export interface PaymentMethodBreakdown {
   amount: number
   count: number
   percentage: number
+}
+
+export interface PaymentMethodDetailedBreakdown {
+  bucket: 'CARD' | 'CASH' | 'OTHER' | 'QR_LEGACY'
+  amount: number
+  count: number
+  percentage: number
+  tips: number
+  refunds: number
+  platformFees: number
+  subBuckets?: Array<{
+    type: 'CREDIT' | 'DEBIT' | 'AMEX' | 'INTERNATIONAL'
+    amount: number
+    count: number
+    percentage: number
+    platformFees: number
+  }>
 }
 
 export interface TimePeriodMetrics {
@@ -55,7 +87,10 @@ export interface SalesSummaryResponse {
   reportType: ReportType
   summary: SalesSummaryMetrics
   byPaymentMethod?: PaymentMethodBreakdown[]
+  byPaymentMethodDetailed?: PaymentMethodDetailedBreakdown[]
   byPeriod?: TimePeriodMetrics[]
+  /** True when a payment filter is active; order-level metrics are then null. */
+  filtered: boolean
 }
 
 export interface SalesSummaryFilters {
@@ -67,6 +102,8 @@ export interface SalesSummaryFilters {
   groupBy?: GroupBy
   reportType?: ReportType
   merchantAccountId?: string
+  paymentMethod?: PaymentMethodFilter
+  cardType?: CardTypeFilter
 }
 
 export interface ApiResponse<T> {
@@ -96,6 +133,8 @@ export async function fetchSalesSummary(
         groupBy: filters.groupBy || 'none',
         reportType: filters.reportType || 'summary',
         ...(filters.merchantAccountId ? { merchantAccountId: filters.merchantAccountId } : {}),
+        ...(filters.paymentMethod ? { paymentMethod: filters.paymentMethod } : {}),
+        ...(filters.paymentMethod === 'CARD' && filters.cardType ? { cardType: filters.cardType } : {}),
       },
       withCredentials: true,
     },
