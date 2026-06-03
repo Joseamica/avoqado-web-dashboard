@@ -224,5 +224,18 @@
     "title": "Completa la configuracion de tu cuenta",
     "description": "Termina de configurar tu cuenta para empezar a recibir pagos",
     "button": "Continuar configuracion"
+  },
+  "plan": {
+    "title": "Tu plan Avoqado",
+    "subtitle": "Activa tu plan para usar todas las funciones de Avoqado.",
+    "monthly": "Mensual",
+    "annual": "Anual (2 meses gratis)",
+    "priceLine": "$999 + IVA / mes",
+    "promoLine": "Paga hoy: 3 meses a $599 + IVA, luego $999.",
+    "startTrial": "Empezar 30 días gratis",
+    "payNowMonthly": "Pagar hoy y ahorrar (3 meses a $599)",
+    "payNowAnnual": "Pagar hoy (anual)",
+    "loading": "Cargando…",
+    "finishLaterWarning": "Tu cuenta no se activará hasta que completes tu plan. ¿Pausar de todos modos?"
   }
 }

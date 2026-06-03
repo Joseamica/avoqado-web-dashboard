@@ -10,56 +10,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { useAuth } from '@/context/AuthContext'
 import { useSocket } from '@/context/SocketContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
-import {
-  addVenueFeatures,
-  getVenueFeatures,
-  removeVenueFeature,
-  type VenueFeatureStatus,
-} from '@/services/features.service'
+import { addVenueFeatures, getVenueFeatures, removeVenueFeature, type VenueFeatureStatus } from '@/services/features.service'
 import { StaffRole } from '@/types'
 
 // Lazy load superadmin service - only imported when needed
 const loadSuperadminService = () => import('@/services/superadmin.service')
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  AlertCircle,
-  Calendar,
-  CheckCircle2,
-  CreditCard,
-  Gift,
-  Plus,
-  Power,
-  Shield,
-  Sparkles,
-  X,
-  Zap,
-} from 'lucide-react'
+import { AlertCircle, Calendar, CheckCircle2, CreditCard, Gift, Plus, Power, Shield, Sparkles, X, Zap } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -79,12 +49,8 @@ export default function Subscriptions() {
   const isSuperadmin = staffInfo?.role === StaffRole.SUPERADMIN
 
   // Only users with billing access (ADMIN and above) can view subscriptions
-  const canViewBilling = staffInfo?.role && [
-    StaffRole.SUPERADMIN,
-    StaffRole.OWNER,
-    StaffRole.ADMIN,
-    StaffRole.MANAGER,
-  ].includes(staffInfo.role as StaffRole)
+  const canViewBilling =
+    staffInfo?.role && [StaffRole.SUPERADMIN, StaffRole.OWNER, StaffRole.ADMIN, StaffRole.MANAGER].includes(staffInfo.role as StaffRole)
 
   const [cancelingFeatureId, setCancelingFeatureId] = useState<string | null>(null)
   const [subscribingFeatureCode, setSubscribingFeatureCode] = useState<string | null>(null)
@@ -127,7 +93,11 @@ export default function Subscriptions() {
   })
 
   // Superadmin: Fetch all platform features (lazy loaded)
-  const { data: allPlatformFeatures, isLoading: isLoadingPlatformFeatures, error: _platformFeaturesError } = useQuery({
+  const {
+    data: allPlatformFeatures,
+    isLoading: isLoadingPlatformFeatures,
+    error: _platformFeaturesError,
+  } = useQuery({
     queryKey: ['superadmin', 'features'],
     queryFn: async () => {
       const service = await loadSuperadminService()
@@ -141,9 +111,7 @@ export default function Subscriptions() {
   const superadminFeatureOptions = useMemo(() => {
     // If we have platform features, filter out active ones
     if (allPlatformFeatures && allPlatformFeatures.length > 0) {
-      const activeCodes = new Set(
-        featuresStatus?.activeFeatures.map(f => f.feature.code) || []
-      )
+      const activeCodes = new Set(featuresStatus?.activeFeatures.map(f => f.feature.code) || [])
 
       // Note: Backend already filters by active=true, so we only need to filter out
       // features that are already active for this venue
@@ -468,10 +436,7 @@ export default function Subscriptions() {
                     </CardDescription>
                   </div>
                 </div>
-                <Badge
-                  variant="outline"
-                  className="border-amber-400/50 text-amber-600 dark:text-amber-400 bg-amber-500/10"
-                >
+                <Badge variant="outline" className="border-amber-400/50 text-amber-600 dark:text-amber-400 bg-amber-500/10">
                   <Sparkles className="h-3 w-3 mr-1" />
                   {t('superadmin.panel.badge', { defaultValue: 'Admin Mode' })}
                 </Badge>
@@ -523,8 +488,7 @@ export default function Subscriptions() {
                   </div>
                   <div className="text-left">
                     <p className="text-sm font-semibold text-foreground">
-                      {featuresStatus?.activeFeatures.length || 0}{' '}
-                      {t('superadmin.stats.activeFeatures', { defaultValue: 'Active' })}
+                      {featuresStatus?.activeFeatures.length || 0} {t('superadmin.stats.activeFeatures', { defaultValue: 'Active' })}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {featuresStatus?.availableFeatures.length || 0}{' '}
@@ -605,11 +569,7 @@ export default function Subscriptions() {
             <div key={feature.id} className="premium-border h-full">
               <Card className="relative overflow-hidden transition-shadow hover:shadow-md border-0 h-full flex flex-col">
                 {/* Status badge */}
-                {getStatusBadge(feature) && (
-                  <div className="absolute top-3 right-3">
-                    {getStatusBadge(feature)}
-                  </div>
-                )}
+                {getStatusBadge(feature) && <div className="absolute top-3 right-3">{getStatusBadge(feature)}</div>}
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">{feature.feature.name}</CardTitle>
                   <CardDescription className="text-xs line-clamp-2">{feature.feature.description}</CardDescription>
@@ -621,22 +581,28 @@ export default function Subscriptions() {
                     <span className="text-xs text-muted-foreground">{t('activeSubscriptions.perMonth')}</span>
                   </div>
                   {/* Billing info compact */}
-                  <div className="text-xs text-muted-foreground">
-                    {getBillingInfoCompact(feature)}
-                  </div>
+                  <div className="text-xs text-muted-foreground">{getBillingInfoCompact(feature)}</div>
                   {/* Spacer to push button to bottom */}
                   <div className="flex-1" />
-                  {/* Cancel button */}
-                  {feature.active && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full mt-auto"
-                      onClick={() => setCancelingFeatureId(feature.featureId)}
-                      disabled={cancelMutation.isPending}
-                    >
-                      {cancelMutation.isPending ? t('activeSubscriptions.managingButton') : t('activeSubscriptions.cancelButton')}
-                    </Button>
+                  {/* Features granted by the venue's base plan have no real VenueFeature row,
+                      so they can't be cancelled (removeVenueFeature would 404). Show an
+                      "included in your plan" badge instead of a Cancel button. */}
+                  {feature.grantedByBasePlan ? (
+                    <Badge variant="secondary" className="w-full mt-auto justify-center py-1.5">
+                      {t('activeSubscriptions.includedInPlan', { defaultValue: 'Incluido en tu plan' })}
+                    </Badge>
+                  ) : (
+                    feature.active && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-auto"
+                        onClick={() => setCancelingFeatureId(feature.featureId)}
+                        disabled={cancelMutation.isPending}
+                      >
+                        {cancelMutation.isPending ? t('activeSubscriptions.managingButton') : t('activeSubscriptions.cancelButton')}
+                      </Button>
+                    )
                   )}
                 </CardContent>
               </Card>
@@ -676,7 +642,7 @@ export default function Subscriptions() {
           ))}
 
           {/* Empty state */}
-          {(!featuresStatus?.activeFeatures.length && !featuresStatus?.availableFeatures.length) && (
+          {!featuresStatus?.activeFeatures.length && !featuresStatus?.availableFeatures.length && (
             <div className="col-span-full">
               <Alert>
                 <CheckCircle2 className="h-4 w-4" />
@@ -865,30 +831,23 @@ export default function Subscriptions() {
             <div className="space-y-4 py-4">
               {/* Feature Selection */}
               <div className="space-y-2">
-                <Label htmlFor="trial-feature">
-                  {t('superadmin.grantTrial.selectFeature', { defaultValue: 'Select Feature' })}
-                </Label>
+                <Label htmlFor="trial-feature">{t('superadmin.grantTrial.selectFeature', { defaultValue: 'Select Feature' })}</Label>
                 <Select value={grantTrialFeatureCode} onValueChange={setGrantTrialFeatureCode}>
                   <SelectTrigger id="trial-feature">
-                    <SelectValue
-                      placeholder={t('superadmin.grantTrial.selectPlaceholder', { defaultValue: 'Choose a feature...' })}
-                    />
+                    <SelectValue placeholder={t('superadmin.grantTrial.selectPlaceholder', { defaultValue: 'Choose a feature...' })} />
                   </SelectTrigger>
                   <SelectContent>
                     {isLoadingPlatformFeatures && (
-                      <div className="py-2 px-3 text-sm text-muted-foreground">
-                        {t('superadmin.loadingFeatures')}
-                      </div>
+                      <div className="py-2 px-3 text-sm text-muted-foreground">{t('superadmin.loadingFeatures')}</div>
                     )}
-                    {!isLoadingPlatformFeatures && superadminFeatureOptions.map(feature => (
-                      <SelectItem key={feature.code} value={feature.code}>
-                        {feature.name} - {formatCurrency(Number(feature.monthlyPrice) * 100, 'MXN')}/mo
-                      </SelectItem>
-                    ))}
+                    {!isLoadingPlatformFeatures &&
+                      superadminFeatureOptions.map(feature => (
+                        <SelectItem key={feature.code} value={feature.code}>
+                          {feature.name} - {formatCurrency(Number(feature.monthlyPrice) * 100, 'MXN')}/mo
+                        </SelectItem>
+                      ))}
                     {!isLoadingPlatformFeatures && superadminFeatureOptions.length === 0 && (
-                      <div className="py-2 px-3 text-sm text-muted-foreground">
-                        {t('superadmin.noFeaturesAvailable')}
-                      </div>
+                      <div className="py-2 px-3 text-sm text-muted-foreground">{t('superadmin.noFeaturesAvailable')}</div>
                     )}
                   </SelectContent>
                 </Select>
@@ -896,9 +855,7 @@ export default function Subscriptions() {
 
               {/* Trial Duration */}
               <div className="space-y-2">
-                <Label htmlFor="trial-days">
-                  {t('superadmin.grantTrial.duration', { defaultValue: 'Trial Duration (days)' })}
-                </Label>
+                <Label htmlFor="trial-days">{t('superadmin.grantTrial.duration', { defaultValue: 'Trial Duration (days)' })}</Label>
                 <div className="flex gap-2">
                   {[7, 14, 30, 60, 90].map(days => (
                     <Button
@@ -953,9 +910,7 @@ export default function Subscriptions() {
                     {t('superadmin.grantTrial.preview', {
                       defaultValue:
                         '✨ {{feature}} will be active for {{days}} days for free. After the trial, the venue will need to subscribe to continue.',
-                      feature:
-                        superadminFeatureOptions.find(f => f.code === grantTrialFeatureCode)?.name ||
-                        grantTrialFeatureCode,
+                      feature: superadminFeatureOptions.find(f => f.code === grantTrialFeatureCode)?.name || grantTrialFeatureCode,
                       days: grantTrialDays,
                     })}
                   </p>
@@ -968,11 +923,7 @@ export default function Subscriptions() {
               </Button>
               {/* Show "Enable Free Instead" as secondary option when no payment method */}
               {!venueHasPaymentMethod && grantTrialFeatureCode && (
-                <Button
-                  variant="outline"
-                  onClick={handleSwitchToEnableFeature}
-                  className="border-amber-400/50 hover:bg-amber-400/10"
-                >
+                <Button variant="outline" onClick={handleSwitchToEnableFeature} className="border-amber-400/50 hover:bg-amber-400/10">
                   <Zap className="h-4 w-4 mr-2" />
                   {t('superadmin.grantTrial.enableFreeInstead', { defaultValue: 'Enable Free Instead' })}
                 </Button>
@@ -1014,8 +965,7 @@ export default function Subscriptions() {
               </div>
               <DialogDescription>
                 {t('superadmin.enableFeature.description', {
-                  defaultValue:
-                    'Enable a feature for {{venue}} without requiring payment. Use this for special arrangements or testing.',
+                  defaultValue: 'Enable a feature for {{venue}} without requiring payment. Use this for special arrangements or testing.',
                   venue: venue?.name || 'this venue',
                 })}
               </DialogDescription>
@@ -1023,9 +973,7 @@ export default function Subscriptions() {
             <div className="space-y-4 py-4">
               {/* Feature Selection */}
               <div className="space-y-2">
-                <Label htmlFor="enable-feature">
-                  {t('superadmin.enableFeature.selectFeature', { defaultValue: 'Select Feature' })}
-                </Label>
+                <Label htmlFor="enable-feature">{t('superadmin.enableFeature.selectFeature', { defaultValue: 'Select Feature' })}</Label>
                 <Select value={enableFeatureCode} onValueChange={setEnableFeatureCode}>
                   <SelectTrigger id="enable-feature">
                     <SelectValue
@@ -1034,22 +982,19 @@ export default function Subscriptions() {
                   </SelectTrigger>
                   <SelectContent>
                     {isLoadingPlatformFeatures && (
-                      <div className="py-2 px-3 text-sm text-muted-foreground">
-                        {t('superadmin.loadingFeatures')}
-                      </div>
+                      <div className="py-2 px-3 text-sm text-muted-foreground">{t('superadmin.loadingFeatures')}</div>
                     )}
-                    {!isLoadingPlatformFeatures && superadminFeatureOptions.map(feature => (
-                      <SelectItem key={feature.code} value={feature.code}>
-                        <div className="flex items-center gap-2">
-                          <Plus className="h-3 w-3" />
-                          {feature.name}
-                        </div>
-                      </SelectItem>
-                    ))}
+                    {!isLoadingPlatformFeatures &&
+                      superadminFeatureOptions.map(feature => (
+                        <SelectItem key={feature.code} value={feature.code}>
+                          <div className="flex items-center gap-2">
+                            <Plus className="h-3 w-3" />
+                            {feature.name}
+                          </div>
+                        </SelectItem>
+                      ))}
                     {!isLoadingPlatformFeatures && superadminFeatureOptions.length === 0 && (
-                      <div className="py-2 px-3 text-sm text-muted-foreground">
-                        {t('superadmin.noFeaturesAvailable')}
-                      </div>
+                      <div className="py-2 px-3 text-sm text-muted-foreground">{t('superadmin.noFeaturesAvailable')}</div>
                     )}
                   </SelectContent>
                 </Select>
@@ -1106,8 +1051,7 @@ export default function Subscriptions() {
                   defaultValue:
                     'Are you sure you want to disable {{feature}} for {{venue}}? This action will immediately revoke access to this feature.',
                   feature:
-                    featuresStatus?.activeFeatures.find(f => f.feature.code === disablingFeatureCode)?.feature.name ||
-                    disablingFeatureCode,
+                    featuresStatus?.activeFeatures.find(f => f.feature.code === disablingFeatureCode)?.feature.name || disablingFeatureCode,
                   venue: venue?.name || 'this venue',
                 })}
               </AlertDialogDescription>

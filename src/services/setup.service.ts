@@ -21,20 +21,16 @@ export const setupService = {
     api.put(`/api/v1/onboarding/organizations/${orgId}/v2/step/${step}`, data),
 
   /** Record terms & privacy acceptance */
-  acceptTerms: (orgId: string, data: TermsAcceptance) =>
-    api.post(`/api/v1/onboarding/organizations/${orgId}/v2/accept-terms`, data),
+  acceptTerms: (orgId: string, data: TermsAcceptance) => api.post(`/api/v1/onboarding/organizations/${orgId}/v2/accept-terms`, data),
 
   /** Finalize setup and create venue */
-  completeSetup: (orgId: string) =>
-    api.post(`/api/v1/onboarding/organizations/${orgId}/v2/complete`),
+  completeSetup: (orgId: string) => api.post(`/api/v1/onboarding/organizations/${orgId}/v2/complete`),
 
   /** Get current onboarding progress (shared with v1) */
-  getProgress: (orgId: string) =>
-    api.get(`/api/v1/onboarding/organizations/${orgId}/progress`),
+  getProgress: (orgId: string) => api.get(`/api/v1/onboarding/organizations/${orgId}/progress`),
 
   /** Start/initialize onboarding progress */
-  startOnboarding: (orgId: string) =>
-    api.post(`/api/v1/onboarding/organizations/${orgId}/start`),
+  startOnboarding: (orgId: string) => api.post(`/api/v1/onboarding/organizations/${orgId}/start`),
 
   /**
    * Generate a real test payment link via the venue's connected MP/Stripe merchant.
@@ -42,4 +38,7 @@ export const setupService = {
    */
   testPaymentLink: (venueId: string, body: { amount: number; providerCode: 'MERCADO_PAGO' | 'STRIPE' }) =>
     api.post(`/api/v1/onboarding/venues/${venueId}/test-payment-link`, body),
+
+  /** Get a customer-scoped Stripe SetupIntent client_secret for the plan step. */
+  planSetupIntent: (venueId: string) => api.post(`/api/v1/onboarding/venues/${venueId}/plan-setup-intent`),
 }

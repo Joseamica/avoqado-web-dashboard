@@ -31,6 +31,10 @@ export interface VenueFeatureStatus {
     endDate: string | null
     stripeSubscriptionId: string
     stripePriceId: string
+    // Backend synthesizes premium features granted by the venue's base plan into
+    // activeFeatures with this flag set and NO real VenueFeature row. The UI must NOT
+    // offer "Cancel" on these — there's nothing to cancel, and removeVenueFeature would 404.
+    grantedByBasePlan?: boolean
   }>
   availableFeatures: Array<{
     id: string

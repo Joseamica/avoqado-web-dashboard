@@ -224,5 +224,18 @@
     "title": "Complete your account setup",
     "description": "Finish setting up your account to start receiving payments",
     "button": "Continue setup"
+  },
+  "plan": {
+    "title": "Your Avoqado plan",
+    "subtitle": "Activate your plan to use all of Avoqado's features.",
+    "monthly": "Monthly",
+    "annual": "Annual (2 months free)",
+    "priceLine": "$999 + tax / month",
+    "promoLine": "Pay today: 3 months at $599 + tax, then $999.",
+    "startTrial": "Start 30-day free trial",
+    "payNowMonthly": "Pay today and save (3 months at $599)",
+    "payNowAnnual": "Pay today (annual)",
+    "loading": "Loading…",
+    "finishLaterWarning": "Your account won't activate until you complete your plan. Pause anyway?"
   }
 }

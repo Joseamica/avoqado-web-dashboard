@@ -27,17 +27,31 @@ import { TermsStep } from './steps/TermsStep'
 import { BankAccountStep } from './steps/BankAccountStep'
 import { PaymentProvidersStep } from './steps/PaymentProvidersStep'
 import { BuyTpvStep } from './steps/BuyTpvStep'
+import { PlanStep } from './steps/PlanStep'
 
-// Always show Step 8 in the wizard. Backend gates the API (test-payment-link
-// endpoint, OAuth callback wizard-routing) with ENABLE_ONBOARDING_PAYMENT_PROVIDERS;
-// the frontend opts into showing the step unconditionally so every new
-// merchant sees the option to connect MP/Stripe during onboarding.
-const PAYMENT_PROVIDERS_ENABLED = true
+// Step 8 (payment providers): SHOWN BY DEFAULT, but reads
+// VITE_ENABLE_ONBOARDING_PAYMENT_PROVIDERS so it can be hidden where the backend feature is
+// disabled — set the flag to 'false' to hide it. Defaults to shown (any value except the
+// literal 'false') to preserve the "every merchant sees the option to connect MP/Stripe"
+// intent without forcing an extra env var into existing setups. The step is skippable, so
+// showing it while the backend flag is off only affects the connect action (404), not wizard
+// completion. Backend gate: ENABLE_ONBOARDING_PAYMENT_PROVIDERS (test-payment-link route,
+// OAuth callback wizard-routing).
+const PAYMENT_PROVIDERS_ENABLED = import.meta.env.VITE_ENABLE_ONBOARDING_PAYMENT_PROVIDERS !== 'false'
 
-// Same strategy for Step 9: always show, backend gates the API behavior
-// (resolveTpvPurchase only surfaces tpvOrderId when ENABLE_ONBOARDING_TPV_PURCHASE=true).
+// Step 9 (buy TPV): same strategy — shown by default, hide with
+// VITE_ENABLE_ONBOARDING_TPV_PURCHASE='false'. Backend gate: ENABLE_ONBOARDING_TPV_PURCHASE
+// (resolveTpvPurchase only surfaces tpvOrderId when the backend flag is on).
 // Spec: ../../../avoqado-server/docs/superpowers/specs/2026-05-29-onboarding-tpv-purchase-design.md
-const TPV_PURCHASE_ENABLED = true
+const TPV_PURCHASE_ENABLED = import.meta.env.VITE_ENABLE_ONBOARDING_TPV_PURCHASE !== 'false'
+
+// Final step: base subscription plan (MANDATORY, no skip). Unlike the steps above,
+// this one is env-gated (NOT hardcoded `true`) because it has no client-side fallback:
+// if the backend flag (ENABLE_VENUE_BASE_SUBSCRIPTION) is off, the plan setup-intent
+// route returns 404 and the user is stranded with no way to complete the wizard.
+// Frontend + backend flags MUST be flipped together.
+// Spec: ../../../avoqado-server/docs/superpowers/specs/2026-06-02-venue-base-subscription-design.md
+const VENUE_BASE_SUBSCRIPTION_ENABLED = import.meta.env.VITE_ENABLE_VENUE_BASE_SUBSCRIPTION === 'true'
 
 const BASE_SETUP_STEPS = [
   { id: 'businessInfo', component: BusinessInfoStep },
@@ -55,6 +69,11 @@ const SETUP_STEPS = (() => {
   }
   if (TPV_PURCHASE_ENABLED) {
     steps.push({ id: 'buyTpv', component: BuyTpvStep })
+  }
+  // Plan MUST be the LAST entry: handleNext on the final step triggers completion,
+  // and the plan is the mandatory activation gate.
+  if (VENUE_BASE_SUBSCRIPTION_ENABLED) {
+    steps.push({ id: 'plan', component: PlanStep })
   }
   return steps
 })()
@@ -134,7 +153,7 @@ export default function SetupWizard() {
     if (progress?.v2SetupData) {
       const restored = flattenV2SetupData(progress.v2SetupData)
       if (Object.keys(restored).length > 0) {
-        setData((prev) => ({ ...prev, ...restored }))
+        setData(prev => ({ ...prev, ...restored }))
         dataRef.current = { ...dataRef.current, ...restored }
       }
     }
@@ -146,7 +165,7 @@ export default function SetupWizard() {
     // separately from v2SetupData), so read from `progress.X`, NOT `progressData.X`.
     const persistedProviders = progress?.paymentProviders ?? null
     if (persistedProviders) {
-      setData((prev) => ({ ...prev, paymentProviders: persistedProviders }))
+      setData(prev => ({ ...prev, paymentProviders: persistedProviders }))
       dataRef.current = { ...dataRef.current, paymentProviders: persistedProviders }
     }
 
@@ -156,7 +175,7 @@ export default function SetupWizard() {
     // backend APIs against.
     const persistedVenueId = progress?.venueId ?? null
     if (persistedVenueId) {
-      setData((prev) => ({ ...prev, venueId: persistedVenueId } as any))
+      setData(prev => ({ ...prev, venueId: persistedVenueId }) as any)
       dataRef.current = { ...dataRef.current, venueId: persistedVenueId } as any
     }
 
@@ -165,7 +184,7 @@ export default function SetupWizard() {
     // flag is on; otherwise the field is undefined and Step 9 renders View A.
     const persistedTpvPurchase = progress?.tpvPurchase ?? null
     if (persistedTpvPurchase) {
-      setData((prev) => ({ ...prev, tpvPurchase: persistedTpvPurchase }))
+      setData(prev => ({ ...prev, tpvPurchase: persistedTpvPurchase }))
       dataRef.current = { ...dataRef.current, tpvPurchase: persistedTpvPurchase }
     }
 
@@ -202,7 +221,7 @@ export default function SetupWizard() {
       if (ppIndex >= 0) {
         maxAllowedStepRef.current = Math.max(maxAllowedStepRef.current, ppIndex)
         setCurrentStep(ppIndex)
-        setData((prev) => {
+        setData(prev => {
           const next = {
             ...prev,
             paymentProviders: {
@@ -231,7 +250,7 @@ export default function SetupWizard() {
       if (buyTpvIndex >= 0) {
         maxAllowedStepRef.current = Math.max(maxAllowedStepRef.current, buyTpvIndex)
         setCurrentStep(buyTpvIndex)
-        setData((prev) => {
+        setData(prev => {
           const next = {
             ...prev,
             tpvPurchase: {
@@ -322,7 +341,7 @@ export default function SetupWizard() {
         // businessName was empty). Refetching now triggers venue creation and
         // surfaces `progress.venueId`, which we derive fresh at render time.
         const newStepId = SETUP_STEPS[newStep]?.id
-        if (newStepId === 'paymentProviders' || newStepId === 'buyTpv') {
+        if (newStepId === 'paymentProviders' || newStepId === 'buyTpv' || newStepId === 'plan') {
           void queryClient.invalidateQueries({ queryKey: ['onboarding-progress', orgId] })
         }
       } else {
@@ -350,13 +369,23 @@ export default function SetupWizard() {
   }, [currentStep])
 
   const handleFinishLater = useCallback(async () => {
+    // The plan step is the mandatory activation gate. If it's in the flow but not yet
+    // completed, the account won't activate — warn before pausing.
+    if (VENUE_BASE_SUBSCRIPTION_ENABLED && !data.plan?.paymentMethodId) {
+      const proceed = window.confirm(
+        t('plan.finishLaterWarning', {
+          defaultValue: 'Tu cuenta no se activará hasta que completes tu plan. ¿Pausar de todos modos?',
+        }),
+      )
+      if (!proceed) return
+    }
     toast({
       title: t('wizard.progressSaved'),
       description: t('wizard.progressSavedDesc'),
     })
     // Logout and go to login — user can resume setup on next login
     await logout('/login')
-  }, [logout, toast, t])
+  }, [data.plan, logout, toast, t])
 
   const handleComplete = async (finalData: SetupData) => {
     if (!orgId) return
@@ -397,10 +426,7 @@ export default function SetupWizard() {
   const provisionalVenueId = (progressData as any)?.progress?.venueId ?? (data as any).venueId ?? undefined
 
   return (
-    <SetupWizardLayout
-      onBack={isFirstStep ? undefined : handleBack}
-      onFinishLater={handleFinishLater}
-    >
+    <SetupWizardLayout onBack={isFirstStep ? undefined : handleBack} onFinishLater={handleFinishLater}>
       {isSaving && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/50">
           <Icons.spinner className="h-8 w-8 animate-spin text-foreground" />
@@ -428,6 +454,12 @@ export default function SetupWizard() {
             ? {
                 venueId: provisionalVenueId,
                 tpvOrderId: data.tpvPurchase?.tpvOrderId,
+              }
+            : {})}
+          {...(stepId === 'plan'
+            ? {
+                venueId: provisionalVenueId,
+                organizationId: orgId,
               }
             : {})}
         />
