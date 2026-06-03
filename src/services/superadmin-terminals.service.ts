@@ -18,6 +18,18 @@ export enum TerminalStatus {
   RETIRED = 'RETIRED',
 }
 
+/**
+ * Live-migration status carried by each terminal in the list response
+ * (Task 6 — resume/cancel support). Non-null while a FACTORY RESET command
+ * is in flight and the device hasn't reappeared under the new venue yet.
+ */
+export interface TerminalMigrationInfo {
+  inProgress: boolean
+  commandId: string
+  fromVenueId: string
+  toVenueId: string
+}
+
 export interface Terminal {
   id: string
   venueId: string
@@ -26,6 +38,8 @@ export interface Terminal {
     name: string
     slug: string
   }
+  /** In-flight venue migration, or null when none is pending. */
+  migration?: TerminalMigrationInfo | null
   serialNumber: string
   name: string
   type: TerminalType
@@ -288,10 +302,35 @@ export async function migratePreflight(terminalId: string, toVenueId: string): P
  *
  * @param terminalId Terminal ID
  * @param toVenueId Target venue ID
+ * @param assignedMerchantIds Optional merchant account ids to assign on the
+ *   destination venue. Omit (or pass empty) to let the backend use the
+ *   destination venue's default merchant.
  * @returns Migration execution result with command tracking info
  */
-export async function migrateExecute(terminalId: string, toVenueId: string): Promise<MigrateExecuteResult> {
-  const response = await api.post(`/api/v1/dashboard/superadmin/terminals/${terminalId}/migrate-execute`, { toVenueId })
+export async function migrateExecute(
+  terminalId: string,
+  toVenueId: string,
+  assignedMerchantIds?: string[],
+): Promise<MigrateExecuteResult> {
+  const response = await api.post(`/api/v1/dashboard/superadmin/terminals/${terminalId}/migrate-execute`, {
+    toVenueId,
+    ...(assignedMerchantIds?.length ? { assignedMerchantIds } : {}),
+  })
+  return response.data.data
+}
+
+/**
+ * Cancel an in-progress terminal migration (Task 6)
+ *
+ * Only succeeds while the device hasn't received the wipe yet (command still
+ * PENDING/QUEUED). Once the TPV has pulled the FACTORY RESET, the backend
+ * returns HTTP 400 with a Spanish message — surface it as a toast.
+ *
+ * @param terminalId Terminal ID
+ * @returns Whether the cancel succeeded and the venue the TPV was restored to
+ */
+export async function migrateCancel(terminalId: string): Promise<{ cancelled: boolean; restoredVenueId: string }> {
+  const response = await api.post(`/api/v1/dashboard/superadmin/terminals/${terminalId}/migrate-cancel`)
   return response.data.data
 }
 
@@ -323,4 +362,5 @@ export const terminalAPI = {
   migratePreflight,
   migrateExecute,
   migrateStatus,
+  migrateCancel,
 }

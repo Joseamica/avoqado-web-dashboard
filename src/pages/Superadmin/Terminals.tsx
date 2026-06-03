@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import DataTable from '@/components/data-table'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Smartphone, Plus, Pencil, Trash2, Key, Copy, Zap, ArrowRightLeft } from 'lucide-react'
+import { Smartphone, Plus, Pencil, Trash2, Key, Copy, Zap, ArrowRightLeft, Loader2 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   AlertDialog,
@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { terminalAPI, Terminal, isTerminalOnline } from '@/services/superadmin-terminals.service'
+import { terminalAPI, Terminal, isTerminalOnline, type TerminalMigrationInfo } from '@/services/superadmin-terminals.service'
 import { getAllVenues } from '@/services/superadmin.service'
 import { useToast } from '@/hooks/use-toast'
 import { TerminalDialog } from './components/TerminalDialog'
@@ -42,6 +42,7 @@ const Terminals: React.FC = () => {
   const [selectedTerminal, setSelectedTerminal] = useState<Terminal | null>(null)
   const [migrateOpen, setMigrateOpen] = useState(false)
   const [migrateTerminal, setMigrateTerminal] = useState<Terminal | null>(null)
+  const [migrateResume, setMigrateResume] = useState<TerminalMigrationInfo | null>(null)
 
   /**
    * Task 15 — brand-change warning dialog state.
@@ -241,6 +242,9 @@ const Terminals: React.FC = () => {
 
   const handleMigrate = useCallback((terminal: Terminal) => {
     setMigrateTerminal(terminal)
+    // If a migration is already in flight, open the wizard in resume mode so
+    // the operator can watch progress / cancel; otherwise start fresh.
+    setMigrateResume(terminal.migration?.inProgress ? terminal.migration : null)
     setMigrateOpen(true)
   }, [])
 
@@ -286,7 +290,15 @@ const Terminals: React.FC = () => {
             <Smartphone className="w-4 h-4" />
           </div>
           <div>
-            <div className="font-medium">{row.original.name}</div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{row.original.name}</span>
+              {row.original.migration?.inProgress && (
+                <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-900/20 gap-1">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Migrando…
+                </Badge>
+              )}
+            </div>
             <div className="text-sm text-muted-foreground font-mono">{row.original.serialNumber}</div>
           </div>
         </div>
@@ -433,7 +445,7 @@ const Terminals: React.FC = () => {
         onSave={handleSave}
       />
 
-      <MigrateTerminalWizard open={migrateOpen} onOpenChange={setMigrateOpen} terminal={migrateTerminal} />
+      <MigrateTerminalWizard open={migrateOpen} onOpenChange={setMigrateOpen} terminal={migrateTerminal} resumeMigration={migrateResume} />
 
       {/* Task 15 — brand-change warning. Fired by handleSave's 409 catch. */}
       <AlertDialog
