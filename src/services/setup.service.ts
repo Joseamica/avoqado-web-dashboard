@@ -23,8 +23,8 @@ export const setupService = {
   /** Record terms & privacy acceptance */
   acceptTerms: (orgId: string, data: TermsAcceptance) => api.post(`/api/v1/onboarding/organizations/${orgId}/v2/accept-terms`, data),
 
-  /** Finalize setup and create venue */
-  completeSetup: (orgId: string) => api.post(`/api/v1/onboarding/organizations/${orgId}/v2/complete`),
+  /** Finalize setup and create venue. `language` is the wizard locale, persisted onto the venue for transactional emails. */
+  completeSetup: (orgId: string, language?: 'es' | 'en') => api.post(`/api/v1/onboarding/organizations/${orgId}/v2/complete`, { language }),
 
   /** Get current onboarding progress (shared with v1) */
   getProgress: (orgId: string) => api.get(`/api/v1/onboarding/organizations/${orgId}/progress`),

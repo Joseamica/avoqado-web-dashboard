@@ -101,7 +101,7 @@ const flattenV2SetupData = (raw: unknown): Partial<SetupData> => {
 }
 
 export default function SetupWizard() {
-  const { t } = useTranslation('setup')
+  const { t, i18n } = useTranslation('setup')
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -391,7 +391,7 @@ export default function SetupWizard() {
     if (!orgId) return
     setIsSaving(true)
     try {
-      await setupService.completeSetup(orgId)
+      await setupService.completeSetup(orgId, i18n.language?.startsWith('en') ? 'en' : 'es')
 
       // Refetch auth status to get the new venue
       await queryClient.refetchQueries({ queryKey: ['status'], type: 'active' })
