@@ -157,6 +157,35 @@
       "dpo": "Data Protection Officer",
       "address": "Address",
       "addressLine": "Mexico City, Mexico"
+    },
+    "ai": {
+      "title": "Traitement des données du chatbot IA",
+      "what": "Catégories de données traitées",
+      "whatContent": "Lorsque vous utilisez le chatbot, nous pouvons traiter : (i) les invites, l'historique des conversations et les pièces jointes que vous envoyez ; (ii) les sorties générées ; (iii) les métadonnées techniques (horodatages, mesures d'utilisation, identifiants et données de l'appareil) ; et (iv) le contexte d'autorisation (tenant/établissement, rôle).",
+      "purpose": "Finalités",
+      "purposeContent": "Pour fournir la fonctionnalité du chatbot ; renforcer l'isolation tenant/établissement ; prévenir la fraude et les abus ; améliorer la fiabilité et la sécurité ; et soutenir le dépannage et l'analyse.",
+      "legalBasis": "Base légale",
+      "legalBasisContent": "Selon votre juridiction : exécution d'un contrat (pour fournir les fonctionnalités que vous demandez), intérêts légitimes (sécurité, qualité et amélioration du service) et/ou consentement lorsqu'il est requis pour des fonctionnalités optionnelles.",
+      "sharing": "Partage avec les sous-traitants",
+      "sharingContent": "Nous pouvons partager les données du chatbot avec des sous-traitants de confiance uniquement pour fournir le service (par ex. les fournisseurs de modèles d'IA). Les sous-traitants sont soumis à des conditions de traitement des données et ne peuvent pas utiliser les données à leurs propres fins.",
+      "training": "Entraînement des modèles",
+      "trainingContent": "Nous n'autorisons pas les sous-traitants à utiliser les données du chatbot pour entraîner leurs modèles de base à usage général. Lorsqu'un fournisseur propose des contrôles de rétention, nous configurons la rétention au minimum nécessaire pour faire fonctionner la fonctionnalité.",
+      "retention": "Conservation",
+      "retentionContent": "Les journaux du chatbot et les métadonnées associées sont conservés pendant la durée minimale nécessaire à la sécurité, au dépannage et à l'audit, puis supprimés ou dé-identifiés, sauf si une conservation plus longue est requise par la loi.",
+      "transfers": "Transferts internationaux de données",
+      "transfersContent": "Lorsque les données sont traitées en dehors de votre pays, nous mettons en œuvre des garanties appropriées (par ex. des clauses contractuelles types) pour protéger vos informations.",
+      "sensitive": "Données sensibles",
+      "sensitiveContent": "N'envoyez pas de catégories particulières de données personnelles (par ex. données de santé, biométriques ou de mineurs) sauf si cela est strictement nécessaire, licite et autorisé par votre accord avec nous.",
+      "rightsNote": "Vos choix",
+      "rightsNoteContent": "Vous pouvez choisir de ne pas utiliser le chatbot ou demander la suppression de ses journaux, sous réserve de limitations légales et opérationnelles. Contactez hola@avoqado.io."
+    },
+    "venueSegregation": {
+      "title": "Ségrégation tenant/établissement",
+      "content": "Nous appliquons une ségrégation logique afin que les données d'un établissement ne soient pas accessibles par d'autres établissements. Cela inclut des politiques au niveau des lignes dans la base de données, une autorisation cloisonnée et des journaux d'audit."
+    },
+    "disclosureAI": {
+      "title": "Transparence de l'IA",
+      "content": "Nous identifions les réponses générées par l'IA et fournissons des garanties ; cependant, les résultats peuvent être incomplets ou inexacts. Examinez les résultats et utilisez une supervision humaine le cas échéant."
     }
   }
 }

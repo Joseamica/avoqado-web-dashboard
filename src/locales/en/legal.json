@@ -192,6 +192,35 @@
       "organization": "Avoqado Technologies - Privacy Officer",
       "address": "Address",
       "addressLine": "Mexico City, Mexico"
+    },
+    "ai": {
+      "title": "AI Chatbot Data Processing",
+      "what": "Categories of data processed",
+      "whatContent": "When you use the chatbot, we may process: (i) prompts, conversation history, and attachments you send; (ii) generated outputs; (iii) technical metadata (timestamps, usage metrics, identifiers, and device data); and (iv) authorization context (tenant/venue, role).",
+      "purpose": "Purposes",
+      "purposeContent": "To provide chatbot functionality; reinforce tenant/venue isolation; prevent fraud and abuse; improve reliability and security; and support troubleshooting and analytics.",
+      "legalBasis": "Legal basis",
+      "legalBasisContent": "Depending on your jurisdiction: performance of a contract (to provide features you request), legitimate interests (security, quality, and service improvement), and/or consent where required for optional features.",
+      "sharing": "Sharing with processors",
+      "sharingContent": "We may share chatbot data with trusted processors solely to provide the service (e.g., AI model providers). Processors are bound by data processing terms and may not use the data for their own purposes.",
+      "training": "Model training",
+      "trainingContent": "We do not allow processors to use chatbot data to train their general-purpose base models. Where a provider offers retention controls, we configure retention to the minimum necessary to operate the feature.",
+      "retention": "Retention",
+      "retentionContent": "Chatbot logs and related metadata are retained for the minimum period necessary for security, troubleshooting, and audit, and are then deleted or de-identified, unless a longer retention is required by law.",
+      "transfers": "International data transfers",
+      "transfersContent": "Where data is processed outside your country, we implement appropriate safeguards (e.g., standard contractual clauses) to protect your information.",
+      "sensitive": "Sensitive data",
+      "sensitiveContent": "Do not submit special categories of personal data (e.g., health, biometric, or children's data) unless strictly necessary, lawful, and enabled by your agreement with us.",
+      "rightsNote": "Your choices",
+      "rightsNoteContent": "You can choose not to use the chatbot or request deletion of its logs, subject to legal and operational limitations. Contact hola@avoqado.io."
+    },
+    "venueSegregation": {
+      "title": "Tenant/venue segregation",
+      "content": "We apply logical segregation so that one venue's data is not accessible by other venues. This includes row-level database policies, scoped authorization, and audit logs."
+    },
+    "disclosureAI": {
+      "title": "AI transparency",
+      "content": "We label AI-generated responses and provide safeguards; however, outputs may be incomplete or inaccurate. Review outputs and use human oversight where appropriate."
     }
   }
 }
