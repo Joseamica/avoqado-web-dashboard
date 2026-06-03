@@ -88,6 +88,40 @@ export interface ActivationCodeResponse {
 }
 
 /**
+ * Terminal Migration Types (Task 6 — venue migration)
+ */
+export interface MigrationBlocker {
+  code: string
+  message: string
+}
+export interface MigrationWarning {
+  code: string
+  message: string
+}
+export interface PreflightResult {
+  canProceed: boolean
+  fromVenueId: string
+  toVenueId: string
+  blockers: MigrationBlocker[]
+  warnings: MigrationWarning[]
+}
+export interface MigrateExecuteResult {
+  commandId: string
+  fromVenueId: string
+  toVenueId: string
+  startedAt: string
+}
+export interface MigrateStatusResult {
+  commandStatus: string
+  commandDelivered: boolean
+  reboundAfterWipe: boolean
+  currentlyOnline: boolean
+  onlineUnderNewVenue: boolean
+  confirmed: boolean
+  elapsedMs: number
+}
+
+/**
  * Get all terminals (cross-venue)
  *
  * @param filters Optional filters: venueId, status, type
@@ -238,6 +272,42 @@ export async function getAppUpdates(environment?: 'SANDBOX' | 'PRODUCTION'): Pro
 }
 
 /**
+ * Run pre-migration checks before moving a terminal to another venue (Task 6)
+ *
+ * @param terminalId Terminal ID
+ * @param toVenueId Target venue ID
+ * @returns Preflight result with blockers and warnings
+ */
+export async function migratePreflight(terminalId: string, toVenueId: string): Promise<PreflightResult> {
+  const response = await api.post(`/api/v1/dashboard/superadmin/terminals/${terminalId}/migrate-preflight`, { toVenueId })
+  return response.data.data
+}
+
+/**
+ * Execute the terminal venue migration (Task 6)
+ *
+ * @param terminalId Terminal ID
+ * @param toVenueId Target venue ID
+ * @returns Migration execution result with command tracking info
+ */
+export async function migrateExecute(terminalId: string, toVenueId: string): Promise<MigrateExecuteResult> {
+  const response = await api.post(`/api/v1/dashboard/superadmin/terminals/${terminalId}/migrate-execute`, { toVenueId })
+  return response.data.data
+}
+
+/**
+ * Poll the status of an in-progress terminal migration (Task 6)
+ *
+ * @param terminalId Terminal ID
+ * @param commandId Command ID returned by migrateExecute
+ * @returns Current migration status
+ */
+export async function migrateStatus(terminalId: string, commandId: string): Promise<MigrateStatusResult> {
+  const response = await api.get(`/api/v1/dashboard/superadmin/terminals/${terminalId}/migrate-status`, { params: { commandId } })
+  return response.data.data
+}
+
+/**
  * Convenience export
  */
 export const terminalAPI = {
@@ -250,4 +320,7 @@ export const terminalAPI = {
   sendRemoteActivation,
   isTerminalOnline,
   getAppUpdates,
+  migratePreflight,
+  migrateExecute,
+  migrateStatus,
 }

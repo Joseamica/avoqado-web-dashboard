@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import DataTable from '@/components/data-table'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Smartphone, Plus, Pencil, Trash2, Key, Copy, Zap } from 'lucide-react'
+import { Smartphone, Plus, Pencil, Trash2, Key, Copy, Zap, ArrowRightLeft } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   AlertDialog,
@@ -24,6 +24,7 @@ import { terminalAPI, Terminal, isTerminalOnline } from '@/services/superadmin-t
 import { getAllVenues } from '@/services/superadmin.service'
 import { useToast } from '@/hooks/use-toast'
 import { TerminalDialog } from './components/TerminalDialog'
+import MigrateTerminalWizard from './components/MigrateTerminalWizard'
 import { DateTime } from 'luxon'
 import { useVenueDateTime } from '@/utils/datetime'
 import { getIntlLocale } from '@/utils/i18n-locale'
@@ -39,6 +40,8 @@ const Terminals: React.FC = () => {
   const [selectedVenueId, setSelectedVenueId] = useState<string>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedTerminal, setSelectedTerminal] = useState<Terminal | null>(null)
+  const [migrateOpen, setMigrateOpen] = useState(false)
+  const [migrateTerminal, setMigrateTerminal] = useState<Terminal | null>(null)
 
   /**
    * Task 15 — brand-change warning dialog state.
@@ -236,6 +239,11 @@ const Terminals: React.FC = () => {
     setDialogOpen(true)
   }, [])
 
+  const handleMigrate = useCallback((terminal: Terminal) => {
+    setMigrateTerminal(terminal)
+    setMigrateOpen(true)
+  }, [])
+
   const handleAdd = useCallback(() => {
     setSelectedTerminal(null)
     setDialogOpen(true)
@@ -355,6 +363,14 @@ const Terminals: React.FC = () => {
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => handleMigrate(terminal)}>
+                    <ArrowRightLeft className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Migrar a otro venue</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => handleGenerateCode(terminal)}>
                     <Key className="w-4 h-4" />
                   </Button>
@@ -393,7 +409,7 @@ const Terminals: React.FC = () => {
         )
       },
     },
-  ], [t, venueTimezone, localeCode, handleEdit, handleDelete, handleGenerateCode, handleRemoteActivate, canRemoteActivate])
+  ], [t, venueTimezone, localeCode, handleEdit, handleMigrate, handleDelete, handleGenerateCode, handleRemoteActivate, canRemoteActivate])
 
   const onlineCount = terminals.filter(t => isTerminalOnline(t.lastHeartbeat)).length
 
@@ -416,6 +432,8 @@ const Terminals: React.FC = () => {
         terminal={selectedTerminal}
         onSave={handleSave}
       />
+
+      <MigrateTerminalWizard open={migrateOpen} onOpenChange={setMigrateOpen} terminal={migrateTerminal} />
 
       {/* Task 15 — brand-change warning. Fired by handleSave's 409 catch. */}
       <AlertDialog
