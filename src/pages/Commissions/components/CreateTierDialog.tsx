@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -6,8 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import { useCreateCommissionTier, useUpdateCommissionTier } from '@/hooks/useCommissions'
-import type { CommissionTier, TierPeriod, TierType } from '@/types/commission'
+import type { CommissionTier, TierPeriod, TierType, ThresholdType } from '@/types/commission'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Target } from 'lucide-react'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -22,6 +24,8 @@ const createTierSchema = z.object({
   tierType: z.enum(['BY_QUANTITY', 'BY_AMOUNT']),
   minThreshold: z.number().min(0, 'Minimum threshold must be >= 0'),
   maxThreshold: z.number().nullable(),
+  minThresholdType: z.enum(['FIXED', 'STAFF_GOAL']),
+  maxThresholdType: z.enum(['FIXED', 'STAFF_GOAL']),
   rate: z.number().min(0, 'Rate must be >= 0').max(100, 'Rate must be <= 100'),
   tierPeriod: z.enum(['DAILY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY']),
   active: z.boolean(),
@@ -55,6 +59,8 @@ export default function CreateTierDialog({ open, onOpenChange, configId, tier, n
       tierType: tier?.tierType || 'BY_AMOUNT',
       minThreshold: tier?.minThreshold || 0,
       maxThreshold: tier?.maxThreshold || null,
+      minThresholdType: (tier?.minThresholdType as ThresholdType) || 'FIXED',
+      maxThresholdType: (tier?.maxThresholdType as ThresholdType) || 'FIXED',
       rate: tier ? tier.rate * 100 : 0,
       tierPeriod: tier?.tierPeriod || 'MONTHLY',
       active: tier?.active ?? true,
@@ -70,6 +76,8 @@ export default function CreateTierDialog({ open, onOpenChange, configId, tier, n
         tierType: tier?.tierType || 'BY_AMOUNT',
         minThreshold: tier?.minThreshold || 0,
         maxThreshold: tier?.maxThreshold || null,
+        minThresholdType: (tier?.minThresholdType as ThresholdType) || 'FIXED',
+        maxThresholdType: (tier?.maxThresholdType as ThresholdType) || 'FIXED',
         rate: tier ? tier.rate * 100 : 0,
         tierPeriod: tier?.tierPeriod || 'MONTHLY',
         active: tier?.active ?? true,
@@ -85,6 +93,8 @@ export default function CreateTierDialog({ open, onOpenChange, configId, tier, n
         tierType: data.tierType,
         minThreshold: data.minThreshold,
         maxThreshold: data.maxThreshold,
+        minThresholdType: data.minThresholdType,
+        maxThresholdType: data.maxThresholdType,
         rate: data.rate / 100, // Convert percentage to decimal
         period: data.tierPeriod,
         active: data.active,
@@ -249,21 +259,40 @@ export default function CreateTierDialog({ open, onOpenChange, configId, tier, n
               <FormField
                 control={form.control}
                 name="maxThreshold"
-                render={({ field }) => (
+                render={({ field: maxField }) => (
                   <FormItem>
-                    <FormLabel>{t('tiers.maxThreshold')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        placeholder={t('tiers.unlimited')}
-                        value={field.value ?? ''}
-                        onChange={e => {
-                          const value = e.target.value
-                          field.onChange(value === '' ? null : parseFloat(value))
+                    <div className="flex items-center justify-between">
+                      <FormLabel>{t('tiers.maxThreshold')}</FormLabel>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = form.getValues('maxThresholdType')
+                          form.setValue('maxThresholdType', current === 'STAFF_GOAL' ? 'FIXED' : 'STAFF_GOAL')
                         }}
-                      />
+                        className="text-[10px] text-primary underline hover:no-underline"
+                      >
+                        {form.watch('maxThresholdType') === 'STAFF_GOAL' ? 'Monto fijo' : 'Meta del empleado'}
+                      </button>
+                    </div>
+                    <FormControl>
+                      {form.watch('maxThresholdType') === 'STAFF_GOAL' ? (
+                        <Badge variant="secondary" className="flex items-center gap-1.5 h-9 text-xs font-normal px-3 rounded-md w-full justify-start">
+                          <Target className="w-3.5 h-3.5 shrink-0" />
+                          Meta del empleado
+                        </Badge>
+                      ) : (
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          placeholder={t('tiers.unlimited')}
+                          value={maxField.value ?? ''}
+                          onChange={e => {
+                            const value = e.target.value
+                            maxField.onChange(value === '' ? null : parseFloat(value))
+                          }}
+                        />
+                      )}
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -62,9 +62,9 @@ export function initialState(): CommissionSetupState {
       enabled: false,
       tierPeriod: 'MONTHLY',
       items: [
-        { level: 1, name: 'Bronce', minThreshold: 0, maxThreshold: 10000, rate: 0.02 },
-        { level: 2, name: 'Plata', minThreshold: 10000, maxThreshold: 25000, rate: 0.03 },
-        { level: 3, name: 'Oro', minThreshold: 25000, maxThreshold: null, rate: 0.04 },
+        { level: 1, name: 'Bronce', minThreshold: 0, maxThreshold: 10000, minThresholdType: 'FIXED', maxThresholdType: 'FIXED', rate: 0.02 },
+        { level: 2, name: 'Plata', minThreshold: 10000, maxThreshold: 25000, minThresholdType: 'FIXED', maxThresholdType: 'FIXED', rate: 0.03 },
+        { level: 3, name: 'Oro', minThreshold: 25000, maxThreshold: null, minThresholdType: 'FIXED', maxThresholdType: 'FIXED', rate: 0.04 },
       ],
     },
     roleRates: {

@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { TrendingUp, Plus, Trash2 } from 'lucide-react'
+import { TrendingUp, Plus, Trash2, Target } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
 import type { CommissionSetupState, TierItem, TierPeriod } from '../types'
+import type { ThresholdType } from '@/types/commission'
 import type { SetupAction } from '../useSetupReducer'
 import { isCardValid, isCardTouched } from '../useSetupReducer'
 import SetupCard from '../SetupCard'
@@ -19,17 +21,10 @@ interface TiersCardProps {
 }
 
 export default function TiersCard({ state, dispatch }: TiersCardProps) {
-  const { t, i18n } = useTranslation('commissions')
+  const { t } = useTranslation('commissions')
   const [open, setOpen] = useState(false)
 
   const isValid = isCardValid(state, 'tiers')
-
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat(i18n.language === 'es' ? 'es-MX' : 'en-US', {
-      style: 'currency',
-      currency: 'MXN',
-      minimumFractionDigits: 0,
-    }).format(amount)
 
   const description = state.tiers.enabled
     ? t('setup.tiers.enabledDesc', { count: state.tiers.items.length })
@@ -41,11 +36,15 @@ export default function TiersCard({ state, dispatch }: TiersCardProps) {
 
   const addTier = () => {
     const last = state.tiers.items[state.tiers.items.length - 1]
+    // Determine min threshold type for the new tier based on previous tier's max type
+    const newMinType: ThresholdType = last?.maxThresholdType ?? 'FIXED'
     const newTier: TierItem = {
       level: state.tiers.items.length + 1,
       name: t('setup.tiers.levelName', { n: state.tiers.items.length + 1 }),
       minThreshold: last?.maxThreshold ?? 0,
       maxThreshold: null,
+      minThresholdType: newMinType,
+      maxThresholdType: 'FIXED',
       rate: (last?.rate ?? 0.02) + 0.01,
     }
     dispatch({ type: 'SET_TIERS', data: { items: [...state.tiers.items, newTier] } })
@@ -62,8 +61,14 @@ export default function TiersCard({ state, dispatch }: TiersCardProps) {
   const updateTier = (index: number, updates: Partial<TierItem>) => {
     const items = [...state.tiers.items]
     items[index] = { ...items[index], ...updates }
-    if (updates.maxThreshold !== undefined && index < items.length - 1) {
-      items[index + 1] = { ...items[index + 1], minThreshold: updates.maxThreshold ?? 0 }
+    // When maxThreshold changes (value or type), propagate to next tier's min
+    if ((updates.maxThreshold !== undefined || updates.maxThresholdType !== undefined) && index < items.length - 1) {
+      const newMaxType = updates.maxThresholdType ?? items[index].maxThresholdType
+      items[index + 1] = {
+        ...items[index + 1],
+        minThreshold: updates.maxThreshold !== undefined ? (updates.maxThreshold ?? 0) : items[index + 1].minThreshold,
+        minThresholdType: newMaxType,
+      }
     }
     dispatch({ type: 'SET_TIERS', data: { items } })
   }
@@ -123,34 +128,60 @@ export default function TiersCard({ state, dispatch }: TiersCardProps) {
                       <div className="flex-1 grid grid-cols-3 gap-2">
                         <div>
                           <label className="text-[10px] text-muted-foreground">{t('wizard.advanced.tiers.fromHeader')}</label>
-                          <div className="relative">
-                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
-                            <Input
-                              type="number"
-                              min={0}
-                              value={tier.minThreshold ?? ''}
-                              onChange={e => {
-                                const raw = e.target.value
-                                updateTier(index, { minThreshold: raw === '' ? 0 : Number(raw) })
-                              }}
-                              className="h-8 text-xs pl-5"
-                              readOnly={index > 0}
-                            />
-                          </div>
+                          {index > 0 && tier.minThresholdType === 'STAFF_GOAL' ? (
+                            <Badge variant="secondary" className="flex items-center gap-1 h-8 text-[10px] font-normal px-2 rounded-md">
+                              <Target className="w-3 h-3 shrink-0" />
+                              Meta
+                            </Badge>
+                          ) : (
+                            <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                              <Input
+                                type="number"
+                                min={0}
+                                value={tier.minThreshold ?? ''}
+                                onChange={e => {
+                                  const raw = e.target.value
+                                  updateTier(index, { minThreshold: raw === '' ? 0 : Number(raw) })
+                                }}
+                                className="h-8 text-xs pl-5"
+                                readOnly={index > 0}
+                              />
+                            </div>
+                          )}
                         </div>
                         <div>
-                          <label className="text-[10px] text-muted-foreground">{t('wizard.advanced.tiers.toHeader')}</label>
-                          <div className="relative">
-                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
-                            <Input
-                              type="number"
-                              min={0}
-                              placeholder="∞"
-                              value={tier.maxThreshold ?? ''}
-                              onChange={e => updateTier(index, { maxThreshold: e.target.value ? Number(e.target.value) : null })}
-                              className="h-8 text-xs pl-5"
-                            />
+                          <div className="flex items-center justify-between mb-0.5">
+                            <label className="text-[10px] text-muted-foreground">{t('wizard.advanced.tiers.toHeader')}</label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newType: ThresholdType = tier.maxThresholdType === 'STAFF_GOAL' ? 'FIXED' : 'STAFF_GOAL'
+                                updateTier(index, { maxThresholdType: newType })
+                              }}
+                              className="text-[9px] text-primary underline hover:no-underline leading-none"
+                            >
+                              {tier.maxThresholdType === 'STAFF_GOAL' ? 'Monto fijo' : 'Meta emp.'}
+                            </button>
                           </div>
+                          {tier.maxThresholdType === 'STAFF_GOAL' ? (
+                            <Badge variant="secondary" className="flex items-center gap-1 h-8 text-[10px] font-normal px-2 rounded-md w-full justify-start">
+                              <Target className="w-3 h-3 shrink-0" />
+                              Meta del empleado
+                            </Badge>
+                          ) : (
+                            <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                              <Input
+                                type="number"
+                                min={0}
+                                placeholder="∞"
+                                value={tier.maxThreshold ?? ''}
+                                onChange={e => updateTier(index, { maxThreshold: e.target.value ? Number(e.target.value) : null })}
+                                className="h-8 text-xs pl-5"
+                              />
+                            </div>
+                          )}
                         </div>
                         <div>
                           <label className="text-[10px] text-muted-foreground">{t('wizard.advanced.tiers.commissionHeader')}</label>

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Settings2 } from 'lucide-react'
+import { Settings2, AlertTriangle } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -51,7 +52,20 @@ export default function CommissionConfigList({
 
 	const deleteConfigMutation = useDeleteCommissionConfig()
 
-	const configs = effectiveConfigs || []
+	const configs = useMemo(() => effectiveConfigs || [], [effectiveConfigs])
+
+	// Compute whether any category appears in 2+ active configs
+	const hasCategoryOverlap = useMemo(() => {
+		const activeConfigs = configs.filter(({ config }) => config.active && config.filterByCategories && config.categoryIds?.length)
+		const seen = new Set<string>()
+		for (const { config } of activeConfigs) {
+			for (const id of config.categoryIds) {
+				if (seen.has(id)) return true
+				seen.add(id)
+			}
+		}
+		return false
+	}, [configs])
 
 	const handleRevertToOrg = async () => {
 		if (!revertConfigId) return
@@ -97,6 +111,14 @@ export default function CommissionConfigList({
 
 	return (
 		<div className="space-y-6">
+			{hasCategoryOverlap && (
+				<Alert className="border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+					<AlertTriangle className="h-4 w-4 !text-amber-600 dark:!text-amber-400" />
+					<AlertDescription>
+						Una o más categorías están en más de un esquema; se pagará una sola vez, con el de mayor prioridad.
+					</AlertDescription>
+				</Alert>
+			)}
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 				{configs.map(({ config, source }: { config: EffectiveCommissionConfig['config']; source: CommissionConfigSource }) => (
 					<CommissionConfigCard

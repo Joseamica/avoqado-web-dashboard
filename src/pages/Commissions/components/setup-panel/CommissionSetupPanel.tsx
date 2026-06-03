@@ -73,6 +73,8 @@ export default function CommissionSetupPanel({ open, onOpenChange }: CommissionS
             tierType: 'BY_AMOUNT' as const,
             minThreshold: tier.minThreshold,
             maxThreshold: tier.maxThreshold,
+            minThresholdType: tier.minThresholdType,
+            maxThresholdType: tier.maxThresholdType,
             rate: tier.rate,
             period: state.tiers.tierPeriod,
           })),

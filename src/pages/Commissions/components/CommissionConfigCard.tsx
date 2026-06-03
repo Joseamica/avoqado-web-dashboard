@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import {
 	Pencil,
 	Trash2,
@@ -12,6 +13,7 @@ import {
 	Hand,
 	Building2,
 	Store,
+	Tag,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -36,6 +38,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { useDeleteCommissionConfig } from '@/hooks/useCommissions'
 import { useToast } from '@/hooks/use-toast'
+import { getMenuCategories } from '@/services/menu.service'
 import type { CommissionConfig, CommissionCalcType, CommissionConfigSource } from '@/types/commission'
 import { cn } from '@/lib/utils'
 
@@ -79,7 +82,7 @@ export default function CommissionConfigCard({ config, source, onRevertToOrg }: 
 	const { t, i18n } = useTranslation('commissions')
 	const { t: tCommon } = useTranslation()
 	const navigate = useNavigate()
-	const { fullBasePath } = useCurrentVenue()
+	const { fullBasePath, venueId } = useCurrentVenue()
 	const { getDisplayName: getRoleDisplayName } = useRoleConfig()
 	const { toast } = useToast()
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -87,6 +90,20 @@ export default function CommissionConfigCard({ config, source, onRevertToOrg }: 
 	// Check if role rates are configured
 	const hasRoleRates = config.roleRates && Object.keys(config.roleRates).length > 0
 	const hasAmountLimits = config.minAmount !== null || config.maxAmount !== null
+
+	// Load categories to resolve names for category-filtered configs
+	const hasCategoryFilter = config.filterByCategories && config.categoryIds && config.categoryIds.length > 0
+	const { data: allCategories = [] } = useQuery({
+		queryKey: ['categories', venueId],
+		queryFn: () => getMenuCategories(venueId!),
+		enabled: !!venueId && hasCategoryFilter,
+		staleTime: 5 * 60 * 1000,
+	})
+	const categoryNames: string[] = hasCategoryFilter
+		? config.categoryIds
+			.map((id: string) => (allCategories as Array<{ id: string; name: string }>).find(c => c.id === id)?.name)
+			.filter((n): n is string => !!n)
+		: []
 
 	const deleteConfigMutation = useDeleteCommissionConfig()
 
@@ -264,6 +281,17 @@ export default function CommissionConfigCard({ config, source, onRevertToOrg }: 
 									</p>
 								)}
 							</div>
+						</div>
+					)}
+
+					{/* Category filter label */}
+					{categoryNames.length > 0 && (
+						<div className="flex items-start gap-1.5 text-xs text-muted-foreground mt-1">
+							<Tag className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+							<span>
+								<span className="font-medium">Aplica a: </span>
+								{categoryNames.join(', ')}
+							</span>
 						</div>
 					)}
 

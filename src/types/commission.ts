@@ -57,6 +57,8 @@ export interface CommissionConfig {
 	}
 }
 
+export type ThresholdType = 'FIXED' | 'STAFF_GOAL'
+
 export interface CommissionTier {
 	id: string
 	configId: string
@@ -65,6 +67,8 @@ export interface CommissionTier {
 	tierType: TierType
 	minThreshold: number
 	maxThreshold: number | null
+	minThresholdType?: ThresholdType
+	maxThresholdType?: ThresholdType
 	rate: number
 	tierPeriod: TierPeriod
 	active: boolean
@@ -319,6 +323,8 @@ export interface CreateCommissionTierInput {
 	tierType?: TierType
 	minThreshold: number
 	maxThreshold?: number | null
+	minThresholdType?: ThresholdType
+	maxThresholdType?: ThresholdType
 	rate: number
 	period?: TierPeriod
 }
@@ -328,6 +334,8 @@ export interface UpdateCommissionTierInput {
 	tierType?: TierType
 	minThreshold?: number
 	maxThreshold?: number | null
+	minThresholdType?: ThresholdType
+	maxThresholdType?: ThresholdType
 	rate?: number
 	period?: TierPeriod
 	active?: boolean

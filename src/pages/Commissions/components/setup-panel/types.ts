@@ -1,4 +1,4 @@
-import type { CommissionCalcType, CommissionRecipient } from '@/types/commission'
+import type { CommissionCalcType, CommissionRecipient, ThresholdType } from '@/types/commission'
 
 export type TierPeriod = 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY'
 export type StaffAssignmentMode = 'all' | 'selected'
@@ -8,6 +8,8 @@ export interface TierItem {
   name: string
   minThreshold: number
   maxThreshold: number | null
+  minThresholdType: ThresholdType
+  maxThresholdType: ThresholdType
   rate: number
 }
 
