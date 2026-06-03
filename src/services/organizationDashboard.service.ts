@@ -355,6 +355,23 @@ export const getStaffAttendance = async (
 // TERMINALS (Org-Level Fleet View)
 // ===========================================
 
+/**
+ * In-flight venue migration carried by each terminal in the org list response.
+ * Non-null while a FACTORY RESET command is in flight and the device hasn't
+ * reappeared under the new venue yet — lets the row show a "Migrando…" badge
+ * and resume the wizard.
+ *
+ * The backend's org `getOrgTerminals` service populates this via the same
+ * `computeTerminalMigration` helper as the superadmin terminals list. The field
+ * stays optional so the badge / resume logic degrades gracefully if absent.
+ */
+export interface OrgTerminalMigrationInfo {
+  inProgress: boolean
+  commandId: string
+  fromVenueId: string
+  toVenueId: string
+}
+
 export interface OrgTerminal {
   id: string
   name: string
@@ -373,6 +390,8 @@ export interface OrgTerminal {
   activationCode: string | null
   activationCodeExpiry: string | null
   venue: { id: string; name: string; slug: string }
+  /** In-flight venue migration, or null/undefined when none is pending. */
+  migration?: OrgTerminalMigrationInfo | null
 }
 
 export interface OrgTerminalsSummary {
@@ -691,5 +710,109 @@ export async function getOrgActivityLog(orgId: string, filters?: OrgActivityLogF
 
 export async function getOrgActivityLogActions(orgId: string): Promise<string[]> {
   const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/activity-log/actions`)
+  return response.data.data
+}
+
+// ===========================================
+// TERMINAL MIGRATION (Org-Scoped, OWNER-gated)
+// ===========================================
+//
+// Mirror of the superadmin terminal-migration flow, but org-scoped. The backend
+// enforces that the OWNER owns the org and that BOTH the terminal and the
+// destination venue belong to that org — the UI mirrors this by only letting the
+// operator pick destination venues WITHIN the org.
+
+export interface OrgMigrationPreflight {
+  canProceed: boolean
+  fromVenueId: string
+  toVenueId: string
+  blockers: Array<{ code: string; message: string }>
+  warnings: Array<{ code: string; message: string }>
+}
+
+export interface OrgMigrateExecuteResult {
+  commandId: string
+  fromVenueId: string
+  toVenueId: string
+  startedAt: string
+}
+
+export interface OrgMigrateStatus {
+  commandStatus: string
+  commandDelivered: boolean
+  reboundAfterWipe: boolean
+  currentlyOnline: boolean
+  onlineUnderNewVenue: boolean
+  confirmed: boolean
+  elapsedMs: number
+}
+
+/**
+ * Run pre-migration checks before moving a terminal to another venue in the org.
+ */
+export async function migratePreflightForOrg(
+  orgId: string,
+  terminalId: string,
+  toVenueId: string,
+): Promise<OrgMigrationPreflight> {
+  const response = await api.post(
+    `/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/migrate-preflight`,
+    { toVenueId },
+  )
+  return response.data.data
+}
+
+/**
+ * Execute the terminal venue migration (re-parent + FACTORY RESET).
+ *
+ * @param assignedMerchantIds Optional merchant account ids to assign on the
+ *   destination venue. Omit (or pass empty) to let the backend use the
+ *   destination venue's default merchant.
+ */
+export async function migrateExecuteForOrg(
+  orgId: string,
+  terminalId: string,
+  toVenueId: string,
+  assignedMerchantIds?: string[],
+): Promise<OrgMigrateExecuteResult> {
+  const response = await api.post(
+    `/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/migrate-execute`,
+    {
+      toVenueId,
+      ...(assignedMerchantIds?.length ? { assignedMerchantIds } : {}),
+    },
+  )
+  return response.data.data
+}
+
+/**
+ * Poll the status of an in-progress terminal migration.
+ */
+export async function migrateStatusForOrg(
+  orgId: string,
+  terminalId: string,
+  commandId: string,
+): Promise<OrgMigrateStatus> {
+  const response = await api.get(
+    `/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/migrate-status`,
+    { params: { commandId } },
+  )
+  return response.data.data
+}
+
+/**
+ * Cancel an in-progress terminal migration.
+ *
+ * Only succeeds while the device hasn't received the wipe yet. Once the TPV has
+ * pulled the FACTORY RESET, the backend returns an error with a message —
+ * surface it as a toast.
+ */
+export async function migrateCancelForOrg(
+  orgId: string,
+  terminalId: string,
+): Promise<{ cancelled: boolean; restoredVenueId: string }> {
+  const response = await api.post(
+    `/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/migrate-cancel`,
+  )
   return response.data.data
 }

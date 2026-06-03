@@ -42,6 +42,7 @@ import { useParams, useSearchParams } from 'react-router-dom'
 import { OrgTerminalDialog } from './components/OrgTerminalDialog'
 import { OrgTerminalMerchantDialog } from './components/OrgTerminalMerchantDialog'
 import { OrgTerminalDrawer } from './components/OrgTerminalDrawer'
+import OrgMigrateTerminalWizard from './components/OrgMigrateTerminalWizard'
 import { OrgTerminalsBulkBar } from './components/OrgTerminalsBulkBar'
 import { OrgTerminalsTable, type SortState } from './components/OrgTerminalsTable'
 import { OrgTerminalsToolbar } from './components/OrgTerminalsToolbar'
@@ -263,6 +264,15 @@ export default function OrganizationTerminals() {
   const [editingTerminal, setEditingTerminal] = useState<OrgTerminal | null>(null)
   const [merchantDialogOpen, setMerchantDialogOpen] = useState(false)
   const [merchantTerminal, setMerchantTerminal] = useState<OrgTerminal | null>(null)
+  // Venue-migration wizard (OWNER only) — opened from the drawer's danger zone
+  // or by clicking an in-flight ("Migrando…") row to resume polling.
+  const [migrateWizardOpen, setMigrateWizardOpen] = useState(false)
+  const [migrateTerminal, setMigrateTerminal] = useState<OrgTerminal | null>(null)
+
+  const openMigrateWizard = (terminal: OrgTerminal) => {
+    setMigrateTerminal(terminal)
+    setMigrateWizardOpen(true)
+  }
 
   // Single-terminal command confirm dialog
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -607,6 +617,7 @@ export default function OrganizationTerminals() {
             }
             onGenerateActivationCode={terminal => activationCodeMutation.mutate(terminal.id)}
             onRemoteActivate={terminal => remoteActivationMutation.mutate(terminal.id)}
+            onMigrate={openMigrateWizard}
             isLockUnlockBusy={commandMutation.isPending}
           />
         )}
@@ -627,6 +638,18 @@ export default function OrganizationTerminals() {
           terminal={merchantTerminal}
           onSave={handleSaveMerchants}
         />
+
+        {/* Venue-migration wizard (OWNER only). Resumes polling when the picked
+            terminal already has an in-flight migration. */}
+        {orgId && (
+          <OrgMigrateTerminalWizard
+            open={migrateWizardOpen}
+            onOpenChange={setMigrateWizardOpen}
+            orgId={orgId}
+            terminal={migrateTerminal}
+            resumeMigration={migrateTerminal?.migration ?? null}
+          />
+        )}
 
         {/* Single-terminal command confirm */}
         <AlertDialog open={confirmDialog.open} onOpenChange={open => setConfirmDialog(prev => ({ ...prev, open }))}>

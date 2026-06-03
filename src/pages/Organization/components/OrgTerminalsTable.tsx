@@ -8,7 +8,7 @@ import { getDateFnsLocale } from '@/utils/i18n-locale'
 import type { OrgTerminal, OrgTerminalSortBy } from '@/services/organizationDashboard.service'
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
 import { formatDistanceToNow } from 'date-fns'
-import { ArrowDown, ArrowUp, ArrowUpDown, Lock } from 'lucide-react'
+import { ArrowDown, ArrowRightLeft, ArrowUp, ArrowUpDown, Lock } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -152,7 +152,17 @@ export function OrgTerminalsTable({
           const terminal = row.original
           return (
             <div className="min-w-0">
-              <p className="font-medium text-sm truncate">{terminal.name}</p>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <p className="font-medium text-sm truncate">{terminal.name}</p>
+                {/* Lights up once a venue migration is in flight. The org list
+                    doesn't populate `migration` yet — see service note. */}
+                {terminal.migration?.inProgress && (
+                  <Badge variant="outline" className="h-4 shrink-0 px-1.5 text-[10px] gap-0.5 text-amber-600 border-amber-500/40">
+                    <ArrowRightLeft className="h-2.5 w-2.5 animate-pulse" />
+                    {t('terminals.migrate.migratingBadge')}
+                  </Badge>
+                )}
+              </div>
               {terminal.serialNumber && (
                 <p className="text-xs text-muted-foreground font-mono truncate">{terminal.serialNumber}</p>
               )}

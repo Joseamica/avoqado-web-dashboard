@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { PermissionGate } from '@/components/PermissionGate'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatusPulse } from '@/components/ui/status-pulse'
@@ -16,7 +17,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useQuery } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
-import { ArrowUpCircle, ChevronDown, ChevronUp, Lock, RefreshCcw, RefreshCw, Unlock, Wrench, X, Zap } from 'lucide-react'
+import { ArrowRightLeft, ArrowUpCircle, ChevronDown, ChevronUp, Lock, RefreshCcw, RefreshCw, Unlock, Wrench, X, Zap } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -33,6 +34,8 @@ interface OrgTerminalDrawerProps {
   onEdit?: (terminal: OrgTerminal) => void
   onGenerateActivationCode?: (terminal: OrgTerminal) => void
   onRemoteActivate?: (terminal: OrgTerminal) => void
+  /** Open the venue-migration wizard for this terminal (OWNER only). */
+  onMigrate?: (terminal: OrgTerminal) => void
   isLockUnlockBusy?: boolean
 }
 
@@ -48,6 +51,7 @@ export function OrgTerminalDrawer({
   onEdit,
   onGenerateActivationCode,
   onRemoteActivate,
+  onMigrate,
   isLockUnlockBusy,
 }: OrgTerminalDrawerProps) {
   const { t, i18n } = useTranslation('organization')
@@ -327,6 +331,19 @@ export function OrgTerminalDrawer({
                 </button>
                 {showDanger && (
                   <div className="mt-2 flex flex-col gap-1.5">
+                    {onMigrate && (
+                      <PermissionGate permission="tpv-factory-reset:execute">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 justify-start cursor-pointer gap-1.5"
+                          onClick={() => onMigrate(terminal)}
+                        >
+                          <ArrowRightLeft className="h-3.5 w-3.5" />
+                          {t('terminals.actions.migrate', { defaultValue: 'Migrar a otra sucursal' })}
+                        </Button>
+                      </PermissionGate>
+                    )}
                     <Button variant="outline" size="sm" className="h-8 justify-start text-destructive hover:text-destructive" onClick={() => onCommand(terminal, 'FACTORY_RESET')}>
                       {t('terminals.actions.factoryReset', { defaultValue: 'Factory Reset' })}
                     </Button>
