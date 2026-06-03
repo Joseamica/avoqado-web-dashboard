@@ -1,6 +1,5 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { PermissionGate } from '@/components/PermissionGate'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatusPulse } from '@/components/ui/status-pulse'
@@ -331,18 +330,22 @@ export function OrgTerminalDrawer({
                 </button>
                 {showDanger && (
                   <div className="mt-2 flex flex-col gap-1.5">
+                    {/* No venue-scoped <PermissionGate> here: the org dashboard has NO active
+                        venue, so useAccess().can() resolves to false (access is null) — it would
+                        hide this for everyone, even SUPERADMIN. Authorization is already enforced
+                        at the org route level (OrganizationLayout: SUPERADMIN or OWNER-in-this-org)
+                        and by the backend (requireOrgOwner). `onMigrate` is only wired in that
+                        gated context. */}
                     {onMigrate && (
-                      <PermissionGate permission="tpv-factory-reset:execute">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 justify-start cursor-pointer gap-1.5"
-                          onClick={() => onMigrate(terminal)}
-                        >
-                          <ArrowRightLeft className="h-3.5 w-3.5" />
-                          {t('terminals.actions.migrate', { defaultValue: 'Migrar a otra sucursal' })}
-                        </Button>
-                      </PermissionGate>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 justify-start cursor-pointer gap-1.5"
+                        onClick={() => onMigrate(terminal)}
+                      >
+                        <ArrowRightLeft className="h-3.5 w-3.5" />
+                        {t('terminals.actions.migrate', { defaultValue: 'Migrar a otra sucursal' })}
+                      </Button>
                     )}
                     <Button variant="outline" size="sm" className="h-8 justify-start text-destructive hover:text-destructive" onClick={() => onCommand(terminal, 'FACTORY_RESET')}>
                       {t('terminals.actions.factoryReset', { defaultValue: 'Factory Reset' })}
