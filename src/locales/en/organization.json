@@ -295,6 +295,37 @@
       "cancelledToastBody": "The terminal returned to its original venue.",
       "cancelError": "Could not cancel"
     },
+    "staffAccess": {
+      "title": "Give the right people access",
+      "subtitle": "Choose who can sign in at {{venue}} and with which PIN. That way they don't lose access when the terminal moves.",
+      "subtitleNoVenue": "Choose who can sign in at this venue and with which PIN.",
+      "standaloneTitle": "Give a person access",
+      "addPersonLabel": "Add a person",
+      "searchPlaceholder": "Search a person by name or email…",
+      "emptyState": "You haven't added anyone yet. Search for a person above to give them access.",
+      "roleLabel": "Role",
+      "pinLabel": "PIN (4 to 6 digits)",
+      "pinPlaceholder": "e.g. 1234",
+      "alreadyHasAccess": "Already has access",
+      "remove": "Remove",
+      "rowSummary": "You're giving {{name}} access as {{role}} with PIN {{pin}}.",
+      "skip": "Skip",
+      "grantAndContinue": "Give access and continue",
+      "grantedToast_one": "Access granted to 1 person.",
+      "grantedToast_other": "Access granted to {{count}} people.",
+      "grantError": "Couldn't grant access",
+      "roles": {
+        "ADMIN": "Administrator",
+        "MANAGER": "Manager",
+        "CASHIER": "Cashier",
+        "WAITER": "Waiter",
+        "KITCHEN": "Kitchen",
+        "HOST": "Host",
+        "VIEWER": "View only",
+        "OWNER": "Owner",
+        "SUPERADMIN": "Super Admin"
+      }
+    },
     "tour": {
       "step1": "See every terminal in your organization here.",
       "step2": "Filter by venue, status, or type.",
@@ -348,7 +379,8 @@
       "assignMerchants": "Assign Merchants",
       "error": "Error",
       "update": "Update",
-      "migrate": "Move to another venue"
+      "migrate": "Move to another venue",
+      "grantAccess": "Give a person access"
     },
     "dialog": {
       "createTitle": "Create Terminal",

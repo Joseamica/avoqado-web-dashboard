@@ -16,6 +16,7 @@ import { SearchCombobox, type SearchComboboxItem } from '@/components/search-com
 import { useToast } from '@/hooks/use-toast'
 import { includesNormalized } from '@/lib/utils'
 import { getOrganizationVenues } from '@/services/organization.service'
+import OrgStaffAccessStep from './OrgStaffAccessStep'
 import {
   getOrgMerchantAccounts,
   migratePreflightForOrg,
@@ -41,7 +42,7 @@ interface Props {
   resumeMigration?: OrgTerminalMigrationInfo | null
 }
 
-type Step = 'pickVenue' | 'preflight' | 'confirm' | 'progress'
+type Step = 'pickVenue' | 'staff' | 'preflight' | 'confirm' | 'progress'
 
 const POLL_TIMEOUT_MS = 10 * 60 * 1000 // 10 min — after this, surface the "device hasn't returned" guidance
 
@@ -204,14 +205,24 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
                 </Button>
                 <Button
                   className="cursor-pointer"
-                  disabled={!toVenueId || preflightMutation.isPending}
-                  onClick={() => preflightMutation.mutate()}
+                  disabled={!toVenueId}
+                  onClick={() => setStep('staff')}
                 >
-                  {preflightMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  {t('terminals.migrate.verifyDestination')}
+                  {t('terminals.migrate.continue')}
                 </Button>
               </DialogFooter>
             </div>
+          )}
+
+          {step === 'staff' && terminal && (
+            <OrgStaffAccessStep
+              orgId={orgId}
+              destVenueId={toVenueId}
+              sourceVenueId={terminal.venue?.id}
+              destVenueName={destinationName}
+              onDone={() => preflightMutation.mutate()}
+              onSkip={() => preflightMutation.mutate()}
+            />
           )}
 
           {step === 'preflight' && preflight && (

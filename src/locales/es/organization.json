@@ -295,6 +295,37 @@
       "cancelledToastBody": "La terminal volvió a su sucursal original.",
       "cancelError": "No se pudo cancelar"
     },
+    "staffAccess": {
+      "title": "Dar acceso a las personas correctas",
+      "subtitle": "Elige quién podrá entrar en {{venue}} y con qué PIN. Así no pierden el acceso cuando la terminal se mueva.",
+      "subtitleNoVenue": "Elige quién podrá entrar en esta sucursal y con qué PIN.",
+      "standaloneTitle": "Dar acceso a una persona",
+      "addPersonLabel": "Agregar a una persona",
+      "searchPlaceholder": "Buscar persona por nombre o correo…",
+      "emptyState": "Aún no agregas a nadie. Busca a una persona arriba para darle acceso.",
+      "roleLabel": "Puesto",
+      "pinLabel": "PIN (4 a 6 dígitos)",
+      "pinPlaceholder": "Ej. 1234",
+      "alreadyHasAccess": "Ya tiene acceso",
+      "remove": "Quitar",
+      "rowSummary": "Le vas a dar acceso a {{name}} como {{role}} con PIN {{pin}}.",
+      "skip": "Omitir",
+      "grantAndContinue": "Dar acceso y continuar",
+      "grantedToast_one": "Se dio acceso a 1 persona.",
+      "grantedToast_other": "Se dio acceso a {{count}} personas.",
+      "grantError": "No se pudo dar el acceso",
+      "roles": {
+        "ADMIN": "Administrador",
+        "MANAGER": "Gerente",
+        "CASHIER": "Cajero",
+        "WAITER": "Mesero",
+        "KITCHEN": "Cocina",
+        "HOST": "Anfitrión",
+        "VIEWER": "Solo ver",
+        "OWNER": "Propietario",
+        "SUPERADMIN": "Super Admin"
+      }
+    },
     "tour": {
       "step1": "Aquí ves todas las terminales de tu organización.",
       "step2": "Filtra por sucursal, estado o tipo.",
@@ -348,7 +379,8 @@
       "assignMerchants": "Asignar Comercios",
       "error": "Error",
       "update": "Actualizar",
-      "migrate": "Migrar a otra sucursal"
+      "migrate": "Migrar a otra sucursal",
+      "grantAccess": "Dar acceso a una persona"
     },
     "dialog": {
       "createTitle": "Crear Terminal",

@@ -16,7 +16,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useQuery } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
-import { ArrowRightLeft, ArrowUpCircle, ChevronDown, ChevronUp, Lock, RefreshCcw, RefreshCw, Unlock, Wrench, X, Zap } from 'lucide-react'
+import { ArrowRightLeft, ArrowUpCircle, ChevronDown, ChevronUp, Lock, RefreshCcw, RefreshCw, Unlock, UserPlus, Wrench, X, Zap } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -35,6 +35,8 @@ interface OrgTerminalDrawerProps {
   onRemoteActivate?: (terminal: OrgTerminal) => void
   /** Open the venue-migration wizard for this terminal (OWNER only). */
   onMigrate?: (terminal: OrgTerminal) => void
+  /** Open the standalone "give a person access" dialog for this terminal's venue (OWNER only). */
+  onGrantAccess?: (terminal: OrgTerminal) => void
   isLockUnlockBusy?: boolean
 }
 
@@ -51,6 +53,7 @@ export function OrgTerminalDrawer({
   onGenerateActivationCode,
   onRemoteActivate,
   onMigrate,
+  onGrantAccess,
   isLockUnlockBusy,
 }: OrgTerminalDrawerProps) {
   const { t, i18n } = useTranslation('organization')
@@ -336,6 +339,17 @@ export function OrgTerminalDrawer({
                         at the org route level (OrganizationLayout: SUPERADMIN or OWNER-in-this-org)
                         and by the backend (requireOrgOwner). `onMigrate` is only wired in that
                         gated context. */}
+                    {onGrantAccess && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 justify-start cursor-pointer gap-1.5"
+                        onClick={() => onGrantAccess(terminal)}
+                      >
+                        <UserPlus className="h-3.5 w-3.5" />
+                        {t('terminals.actions.grantAccess', { defaultValue: 'Dar acceso a una persona' })}
+                      </Button>
+                    )}
                     {onMigrate && (
                       <Button
                         variant="outline"

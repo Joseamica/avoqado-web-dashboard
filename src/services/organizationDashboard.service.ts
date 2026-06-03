@@ -816,3 +816,89 @@ export async function migrateCancelForOrg(
   )
   return response.data.data
 }
+
+// ===========================================
+// VENUE STAFF ACCESS (Org-Scoped, OWNER-gated)
+// ===========================================
+//
+// "Staff carry-over": when a terminal moves from venue A to venue B, the people
+// who logged in (per-venue PIN) at A lose access at B. These endpoints let the
+// OWNER grant the right people access (role + PIN) at the destination venue —
+// both as a step inside the migration wizard (before the terminal moves, so the
+// destination's NO_STAFF_PIN blocker passes) and as a standalone action.
+
+/** Assignable staff role on a venue. Excludes SUPERADMIN/OWNER (not offered as grants). */
+export type OrgAssignableStaffRole =
+  | 'ADMIN'
+  | 'MANAGER'
+  | 'CASHIER'
+  | 'WAITER'
+  | 'KITCHEN'
+  | 'HOST'
+  | 'VIEWER'
+
+/** Any staff role the backend may report (for current-role pre-selection). */
+export type OrgStaffRole = OrgAssignableStaffRole | 'OWNER' | 'SUPERADMIN'
+
+export interface OrgVenueAccessCandidate {
+  staffId: string
+  name: string
+  email: string
+  /** Was at the venue the terminal is moving FROM. */
+  inSourceVenue: boolean
+  /** Role at the source venue — pre-select this when granting. */
+  currentRoleAtSource: OrgStaffRole | null
+  alreadyAtDestination: boolean
+  currentRoleAtDestination: OrgStaffRole | null
+  /** Backend-suggested PIN — pre-fill this. */
+  suggestedPin: string | null
+  rolesHeld: OrgStaffRole[]
+}
+
+export interface OrgVenueAccessGrant {
+  staffId: string
+  role: OrgAssignableStaffRole
+  /** 4-6 digits. Omit to let the backend keep / generate one. */
+  pin?: string
+}
+
+export interface OrgVenueAccessGrantResult {
+  staffId: string
+  name: string
+  role: OrgStaffRole
+  pin: string | null
+  created: boolean
+}
+
+/**
+ * List the people the OWNER can grant access to at the destination venue.
+ * Pass `sourceVenueId` (the terminal's current venue) so the backend can flag
+ * who was using the terminal there and pre-select their role + suggest a PIN.
+ */
+export async function fetchOrgVenueAccessCandidates(
+  orgId: string,
+  venueId: string,
+  sourceVenueId?: string,
+): Promise<OrgVenueAccessCandidate[]> {
+  const response = await api.get(
+    `/api/v1/dashboard/organizations/${orgId}/venues/${venueId}/staff-access/candidates`,
+    { params: sourceVenueId ? { sourceVenueId } : undefined },
+  )
+  return response.data.data
+}
+
+/**
+ * Grant venue access (role + PIN) to one or more people at the destination venue.
+ * Backend returns Spanish error messages (e.g. duplicate PIN) — surface verbatim.
+ */
+export async function grantOrgVenueAccess(
+  orgId: string,
+  venueId: string,
+  grants: OrgVenueAccessGrant[],
+): Promise<OrgVenueAccessGrantResult[]> {
+  const response = await api.post(
+    `/api/v1/dashboard/organizations/${orgId}/venues/${venueId}/staff-access`,
+    { grants },
+  )
+  return response.data.data
+}

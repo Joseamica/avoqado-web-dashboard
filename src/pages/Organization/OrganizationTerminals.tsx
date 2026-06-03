@@ -43,6 +43,7 @@ import { OrgTerminalDialog } from './components/OrgTerminalDialog'
 import { OrgTerminalMerchantDialog } from './components/OrgTerminalMerchantDialog'
 import { OrgTerminalDrawer } from './components/OrgTerminalDrawer'
 import OrgMigrateTerminalWizard from './components/OrgMigrateTerminalWizard'
+import OrgGrantAccessDialog from './components/OrgGrantAccessDialog'
 import { OrgTerminalsBulkBar } from './components/OrgTerminalsBulkBar'
 import { OrgTerminalsTable, type SortState } from './components/OrgTerminalsTable'
 import { OrgTerminalsToolbar } from './components/OrgTerminalsToolbar'
@@ -268,10 +269,18 @@ export default function OrganizationTerminals() {
   // or by clicking an in-flight ("Migrando…") row to resume polling.
   const [migrateWizardOpen, setMigrateWizardOpen] = useState(false)
   const [migrateTerminal, setMigrateTerminal] = useState<OrgTerminal | null>(null)
+  // Standalone "give a person access" dialog (OWNER only) — opened from the drawer.
+  const [grantAccessOpen, setGrantAccessOpen] = useState(false)
+  const [grantAccessTerminal, setGrantAccessTerminal] = useState<OrgTerminal | null>(null)
 
   const openMigrateWizard = (terminal: OrgTerminal) => {
     setMigrateTerminal(terminal)
     setMigrateWizardOpen(true)
+  }
+
+  const openGrantAccessDialog = (terminal: OrgTerminal) => {
+    setGrantAccessTerminal(terminal)
+    setGrantAccessOpen(true)
   }
 
   // Single-terminal command confirm dialog
@@ -618,6 +627,7 @@ export default function OrganizationTerminals() {
             onGenerateActivationCode={terminal => activationCodeMutation.mutate(terminal.id)}
             onRemoteActivate={terminal => remoteActivationMutation.mutate(terminal.id)}
             onMigrate={openMigrateWizard}
+            onGrantAccess={openGrantAccessDialog}
             isLockUnlockBusy={commandMutation.isPending}
           />
         )}
@@ -648,6 +658,17 @@ export default function OrganizationTerminals() {
             orgId={orgId}
             terminal={migrateTerminal}
             resumeMigration={migrateTerminal?.migration ?? null}
+          />
+        )}
+
+        {/* Standalone "give a person access" dialog (OWNER only) — grant role + PIN
+            at the terminal's current venue, independent of a migration. */}
+        {orgId && (
+          <OrgGrantAccessDialog
+            open={grantAccessOpen}
+            onOpenChange={setGrantAccessOpen}
+            orgId={orgId}
+            terminal={grantAccessTerminal}
           />
         )}
 
