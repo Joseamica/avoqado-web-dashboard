@@ -79,6 +79,17 @@ export interface TimePeriodMetrics {
 export type ReportType = 'summary' | 'hours' | 'days' | 'weeks' | 'months' | 'hourlySum' | 'dailySum'
 export type GroupBy = 'none' | 'paymentMethod'
 
+export interface MerchantAccountBreakdown {
+  merchantAccountId: string
+  displayName: string
+  provider: string
+  affiliation: string | null
+  collectedOnCard: number
+  platformFee: number
+  netToReceive: number
+  transactionCount: number
+}
+
 export interface SalesSummaryResponse {
   dateRange: {
     startDate: string
@@ -89,6 +100,8 @@ export interface SalesSummaryResponse {
   byPaymentMethod?: PaymentMethodBreakdown[]
   byPaymentMethodDetailed?: PaymentMethodDetailedBreakdown[]
   byPeriod?: TimePeriodMetrics[]
+  /** Per-merchant-account card breakdown; present only when includeMerchantBreakdown=true. */
+  byMerchantAccount?: MerchantAccountBreakdown[]
   /** True when a payment filter is active; order-level metrics are then null. */
   filtered: boolean
 }
@@ -104,6 +117,7 @@ export interface SalesSummaryFilters {
   merchantAccountId?: string
   paymentMethod?: PaymentMethodFilter
   cardType?: CardTypeFilter
+  includeMerchantBreakdown?: boolean
 }
 
 export interface ApiResponse<T> {
@@ -135,6 +149,7 @@ export async function fetchSalesSummary(
         ...(filters.merchantAccountId ? { merchantAccountId: filters.merchantAccountId } : {}),
         ...(filters.paymentMethod ? { paymentMethod: filters.paymentMethod } : {}),
         ...(filters.paymentMethod === 'CARD' && filters.cardType ? { cardType: filters.cardType } : {}),
+        ...(filters.includeMerchantBreakdown ? { includeMerchantBreakdown: 'true' } : {}),
       },
       withCredentials: true,
     },
