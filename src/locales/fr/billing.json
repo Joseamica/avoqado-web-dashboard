@@ -24,6 +24,44 @@
     "activateButton": "Activer",
     "managingButton": "Gestion en cours..."
   },
+  "currentPlan": {
+    "title": "Votre forfait",
+    "noPlan": "Vous n'avez pas encore de forfait de base. Contactez votre administrateur pour vous abonner.",
+    "perMonth": "/mois",
+    "perYear": "/an",
+    "ivaIncluded": "TVA incluse",
+    "renewsOn": "Renouvellement le {{date}}",
+    "trialEndsOn": "Votre essai se termine le {{date}}",
+    "endsOn": "Votre accès se termine le {{date}}",
+    "paymentMethod": "{{brand}} •••• {{last4}}",
+    "noPaymentMethod": "Aucun moyen de paiement",
+    "status": {
+      "active": "Actif",
+      "trial": "Essai",
+      "canceling": "Annulation",
+      "past_due": "Paiement en retard",
+      "suspended": "Suspendu",
+      "canceled": "Annulé",
+      "none": "Aucun forfait"
+    },
+    "actions": {
+      "cancel": "Annuler le forfait",
+      "reactivate": "Réactiver",
+      "updatePayment": "Mettre à jour le moyen de paiement"
+    },
+    "cancelDialog": {
+      "title": "Annuler votre forfait ?",
+      "description": "Votre forfait reste actif avec un accès complet jusqu'au {{date}}. Vous ne serez plus facturé. Vous pouvez le réactiver avant cette date.",
+      "descriptionNoDate": "Votre forfait reste actif jusqu'à la fin de la période en cours. Vous ne serez plus facturé.",
+      "confirm": "Oui, annuler à la fin de la période",
+      "cancel": "Conserver mon forfait"
+    },
+    "toast": {
+      "cancelSuccess": "Votre forfait sera annulé à la fin de la période",
+      "reactivateSuccess": "Votre forfait a été réactivé",
+      "error": "Impossible de mettre à jour votre forfait"
+    }
+  },
   "billingHistory": {
     "title": "Historique de Facturation",
     "tabs": {
@@ -95,7 +133,7 @@
   },
   "confirmCancel": {
     "title": "Annuler l'Abonnement?",
-    "description": "Êtes-vous sûr de vouloir annuler {{feature}}? Vous perdrez l'accès à cette fonctionnalité à la fin de votre période de facturation actuelle ({{date}}).",
+    "description": "Êtes-vous sûr de vouloir annuler {{feature}}? Vous perdrez immédiatement l'accès à cette fonctionnalité.",
     "confirm": "Oui, Annuler l'Abonnement",
     "cancel": "Garder l'Abonnement"
   },

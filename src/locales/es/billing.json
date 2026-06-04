@@ -24,6 +24,44 @@
     "activateButton": "Activar",
     "managingButton": "Administrando..."
   },
+  "currentPlan": {
+    "title": "Tu plan",
+    "noPlan": "Aún no tienes un plan base. Contacta a tu administrador para suscribirte.",
+    "perMonth": "/mes",
+    "perYear": "/año",
+    "ivaIncluded": "IVA incluido",
+    "renewsOn": "Se renueva el {{date}}",
+    "trialEndsOn": "Tu prueba termina el {{date}}",
+    "endsOn": "Tu acceso termina el {{date}}",
+    "paymentMethod": "{{brand}} •••• {{last4}}",
+    "noPaymentMethod": "Sin método de pago",
+    "status": {
+      "active": "Activo",
+      "trial": "Prueba",
+      "canceling": "Cancelando",
+      "past_due": "Pago pendiente",
+      "suspended": "Suspendido",
+      "canceled": "Cancelado",
+      "none": "Sin plan"
+    },
+    "actions": {
+      "cancel": "Cancelar plan",
+      "reactivate": "Reactivar",
+      "updatePayment": "Actualizar método de pago"
+    },
+    "cancelDialog": {
+      "title": "¿Cancelar tu plan?",
+      "description": "Tu plan seguirá activo y tendrás acceso completo hasta el {{date}}. No se te cobrará de nuevo. Puedes reactivarlo antes de esa fecha.",
+      "descriptionNoDate": "Tu plan seguirá activo hasta el final del periodo actual. No se te cobrará de nuevo.",
+      "confirm": "Sí, cancelar al final del periodo",
+      "cancel": "Mantener mi plan"
+    },
+    "toast": {
+      "cancelSuccess": "Tu plan se cancelará al final del periodo",
+      "reactivateSuccess": "Tu plan fue reactivado",
+      "error": "No se pudo actualizar tu plan"
+    }
+  },
   "billingHistory": {
     "title": "Historial de Facturación",
     "tabs": {
@@ -95,7 +133,7 @@
   },
   "confirmCancel": {
     "title": "¿Cancelar Suscripción?",
-    "description": "¿Estás seguro de que deseas cancelar {{feature}}? Perderás el acceso a esta función al final de tu periodo de facturación actual ({{date}}).",
+    "description": "¿Estás seguro de que deseas cancelar {{feature}}? Perderás el acceso a esta función de inmediato.",
     "confirm": "Sí, Cancelar Suscripción",
     "cancel": "Mantener Suscripción"
   },

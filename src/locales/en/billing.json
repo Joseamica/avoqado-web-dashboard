@@ -24,6 +24,44 @@
     "activateButton": "Activate",
     "managingButton": "Managing..."
   },
+  "currentPlan": {
+    "title": "Your plan",
+    "noPlan": "You don't have a base plan yet. Contact your administrator to subscribe.",
+    "perMonth": "/mo",
+    "perYear": "/yr",
+    "ivaIncluded": "VAT included",
+    "renewsOn": "Renews on {{date}}",
+    "trialEndsOn": "Your trial ends on {{date}}",
+    "endsOn": "Your access ends on {{date}}",
+    "paymentMethod": "{{brand}} •••• {{last4}}",
+    "noPaymentMethod": "No payment method",
+    "status": {
+      "active": "Active",
+      "trial": "Trial",
+      "canceling": "Canceling",
+      "past_due": "Past due",
+      "suspended": "Suspended",
+      "canceled": "Canceled",
+      "none": "No plan"
+    },
+    "actions": {
+      "cancel": "Cancel plan",
+      "reactivate": "Reactivate",
+      "updatePayment": "Update payment method"
+    },
+    "cancelDialog": {
+      "title": "Cancel your plan?",
+      "description": "Your plan stays active with full access until {{date}}. You won't be charged again. You can reactivate before then.",
+      "descriptionNoDate": "Your plan stays active until the end of the current period. You won't be charged again.",
+      "confirm": "Yes, cancel at period end",
+      "cancel": "Keep my plan"
+    },
+    "toast": {
+      "cancelSuccess": "Your plan will cancel at the end of the period",
+      "reactivateSuccess": "Your plan was reactivated",
+      "error": "Couldn't update your plan"
+    }
+  },
   "billingHistory": {
     "title": "Billing History",
     "tabs": {
@@ -95,7 +133,7 @@
   },
   "confirmCancel": {
     "title": "Cancel Subscription?",
-    "description": "Are you sure you want to cancel {{feature}}? You'll lose access to this feature at the end of your current billing period ({{date}}).",
+    "description": "Are you sure you want to cancel {{feature}}? You'll lose access to this feature immediately.",
     "confirm": "Yes, Cancel Subscription",
     "cancel": "Keep Subscription"
   },

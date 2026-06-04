@@ -34,6 +34,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVenueDateTime } from '@/utils/datetime'
 import { PaymentMethodsSection } from '../components/PaymentMethodsSection'
+import { CurrentPlanCard } from './components/CurrentPlanCard'
 
 export default function Subscriptions() {
   const { t, i18n } = useTranslation('billing')
@@ -71,6 +72,14 @@ export default function Subscriptions() {
     queryFn: () => getVenueFeatures(venueId),
     enabled: !!venueId && canViewBilling,
   })
+
+  // PLAN_PRO is the base plan — managed by the "Tu plan" card, NOT the à-la-carte grid.
+  // Filter it (and any future plan-tier code) out of the active-feature rows shown below.
+  const PLAN_TIER_CODES = ['PLAN_PRO']
+  const alaCarteActiveFeatures = useMemo(
+    () => (featuresStatus?.activeFeatures ?? []).filter(f => !PLAN_TIER_CODES.includes(f.feature.code)),
+    [featuresStatus?.activeFeatures],
+  )
 
   // Fetch payment methods (for subscription dialog validation, only for users with billing access)
   const { data: paymentMethods } = useQuery<
@@ -415,6 +424,9 @@ export default function Subscriptions() {
   return (
     <>
       <div className="p-8 space-y-6">
+        {/* Base-plan "Tu plan" card (PLAN_PRO) — real Stripe state, cancel/reactivate, portal */}
+        {venueId && <CurrentPlanCard venueId={venueId} />}
+
         {/* Superadmin Feature Management Panel */}
         {isSuperadmin && (
           <Card className="border-2 border-amber-400/50 bg-gradient-to-r from-amber-500/10 to-pink-500/10 dark:from-amber-500/20 dark:to-pink-500/20">
@@ -565,7 +577,7 @@ export default function Subscriptions() {
         {/* Subscriptions Grid - Active features first, then available */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Active subscriptions */}
-          {featuresStatus?.activeFeatures.map(feature => (
+          {alaCarteActiveFeatures.map(feature => (
             <div key={feature.id} className="premium-border h-full">
               <Card className="relative overflow-hidden transition-shadow hover:shadow-md border-0 h-full flex flex-col">
                 {/* Status badge */}
@@ -775,10 +787,6 @@ export default function Subscriptions() {
               {cancelingFeatureId &&
                 t('confirmCancel.description', {
                   feature: featuresStatus?.activeFeatures.find(f => f.featureId === cancelingFeatureId)?.feature.name,
-                  date: formatDate(
-                    featuresStatus?.activeFeatures.find(f => f.featureId === cancelingFeatureId)?.endDate ||
-                      new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-                  ),
                 })}
             </AlertDialogDescription>
           </AlertDialogHeader>

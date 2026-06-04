@@ -119,3 +119,41 @@ export const downloadInvoice = async (venueId: string, invoiceId: string): Promi
   const downloadUrl = `${api.defaults.baseURL}/api/v1/dashboard/venues/${venueId}/invoices/${invoiceId}/download`
   window.open(downloadUrl, '_blank')
 }
+
+/**
+ * Base-plan (PLAN_PRO) lifecycle state — GET /dashboard/venues/:venueId/plan.
+ * Mirrors the backend PlanState shape exactly (planState.service.ts).
+ */
+export interface PlanState {
+  hasPlan: boolean
+  state: 'none' | 'trial' | 'active' | 'canceling' | 'past_due' | 'suspended' | 'canceled'
+  planTier: 'GRATIS' | 'PRO' | 'PREMIUM' | 'ENTERPRISE' | null
+  planName: string | null
+  interval: 'month' | 'year' | null
+  price: { base: number; gross: number; currency: 'MXN' } | null
+  trialEndsAt: string | null
+  currentPeriodEnd: string | null
+  cancelAtPeriodEnd: boolean
+  suspendedAt: string | null
+  gracePeriodEndsAt: string | null
+  paymentMethod: { brand: string; last4: string; expMonth: number; expYear: number } | null
+  stripeSubscriptionId: string | null
+}
+
+/** Get the venue's base-plan state. */
+export const getVenuePlan = async (venueId: string): Promise<PlanState> => {
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/plan`)
+  return response.data.data
+}
+
+/** Schedule cancellation of the base plan at period end. Returns the updated state. */
+export const cancelVenuePlan = async (venueId: string): Promise<PlanState> => {
+  const response = await api.post(`/api/v1/dashboard/venues/${venueId}/plan/cancel`)
+  return response.data.data
+}
+
+/** Undo a scheduled base-plan cancellation. Returns the updated state. */
+export const reactivateVenuePlan = async (venueId: string): Promise<PlanState> => {
+  const response = await api.post(`/api/v1/dashboard/venues/${venueId}/plan/reactivate`)
+  return response.data.data
+}

@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
@@ -401,14 +402,16 @@ function SelectField<T extends { value: number | null; label: string } | { value
 	value,
 	onChange,
 	ariaLabel,
+	disabled = false,
 }: {
 	options: T[]
 	value: string
 	onChange: (raw: string) => void
 	ariaLabel: string
+	disabled?: boolean
 }) {
 	return (
-		<Select value={value} onValueChange={onChange}>
+		<Select value={value} onValueChange={onChange} disabled={disabled}>
 			<SelectTrigger aria-label={ariaLabel} className="h-10">
 				<SelectValue />
 			</SelectTrigger>
@@ -1094,14 +1097,26 @@ export default function ReservationSettings() {
 									/>
 								</SettingRow>
 								<SettingRow
-									label={t('settings.cancellation.noShowFee')}
+									label={
+										<span className="inline-flex items-center gap-2">
+											{t('settings.cancellation.noShowFee')}
+											<Badge variant="outline" className="text-[10px] h-4 px-1.5">
+												{t('calendarAttributes.comingSoon')}
+											</Badge>
+										</span>
+									}
 									tooltip={t('settings.cancellation.noShowFeeHelp')}
 								>
+									{/* Disabled until the no-show fee is actually captured. Today the
+									    auto-no-show job only records the intended amount on the
+									    reservation; nothing charges the customer. Leaving this editable
+									    would promise the venue a charge that never happens. */}
 									<SelectField
 										options={NO_SHOW_FEE_OPTIONS}
 										value={encodeValue(formValues.noShowFeePercent)}
 										onChange={raw => setNullableNumber('noShowFeePercent', raw)}
 										ariaLabel={t('settings.cancellation.noShowFee')}
+										disabled
 									/>
 								</SettingRow>
 								<SettingToggleRow
