@@ -53,6 +53,8 @@ import {
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { PeriodBreakdownTable } from './components/PeriodBreakdownTable'
+import { MerchantBreakdownPanel } from './MerchantBreakdownPanel'
+import { MoneyLocationStrip } from './MoneyLocationStrip'
 
 // ============================================
 // Payment Method Mapping
@@ -1046,6 +1048,8 @@ export default function SalesSummary() {
     ...(merchantAccountId ? { merchantAccountId } : {}),
     ...(paymentMethodFilter ? { paymentMethod: paymentMethodFilter } : {}),
     ...(paymentMethodFilter === 'CARD' && cardTypeFilter ? { cardType: cardTypeFilter } : {}),
+    // Always request the per-merchant card breakdown for the reconciliation view (additive).
+    includeMerchantBreakdown: true,
   }), [venueId, dateRange.from, dateRange.to, reportType, merchantAccountId, paymentMethodFilter, cardTypeFilter])
 
   // Fetch sales summary data from API
@@ -1059,6 +1063,16 @@ export default function SalesSummary() {
     queryFn: () => fetchSalesSummary(apiFilters),
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
+
+  // Per-merchant reconciliation (Entrega 1): the breakdown + the inputs for the
+  // "¿Dónde está tu dinero?" strip. All derived from the additive API fields.
+  const merchantBreakdown = useMemo(() => apiResponse?.byMerchantAccount ?? [], [apiResponse])
+  const cashInHand = useMemo(
+    () => apiResponse?.byPaymentMethodDetailed?.find(b => b.bucket === 'CASH')?.amount ?? 0,
+    [apiResponse],
+  )
+  const cardNetToReceive = useMemo(() => merchantBreakdown.reduce((s, m) => s + m.netToReceive, 0), [merchantBreakdown])
+  const commissionsPaid = useMemo(() => merchantBreakdown.reduce((s, m) => s + m.platformFee, 0), [merchantBreakdown])
 
   // Transform API response to component data format
   const data = useMemo(() => {
@@ -2260,6 +2274,21 @@ export default function SalesSummary() {
           </CollapsibleContent>
         </GlassCard>
       </Collapsible>
+      )}
+
+      {/* Per-merchant reconciliation (Entrega 1): "¿Dónde está tu dinero?" + the
+          per-merchant card breakdown. Sits directly under the Summary card (whose
+          last row is Net profit). Hidden under a payment filter. */}
+      {merchantBreakdown.length > 0 && !isFiltered && (
+        <div className="space-y-4">
+          <MoneyLocationStrip
+            cashInHand={cashInHand}
+            cardNetToReceive={cardNetToReceive}
+            commissionsPaid={commissionsPaid}
+            formatCurrency={Currency}
+          />
+          <MerchantBreakdownPanel items={merchantBreakdown} formatCurrency={Currency} />
+        </div>
       )}
 
       {/* Period Breakdown Table - Only shown for time-based reports */}
