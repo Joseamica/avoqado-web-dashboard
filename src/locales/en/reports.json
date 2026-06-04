@@ -55,6 +55,23 @@
       "totalCollected": "Total collected",
       "netProfit": "Net profit"
     },
+    "merchantBreakdown": {
+      "title": "Breakdown by merchant",
+      "description": "Card money per account. Cash is shown above (already in hand).",
+      "totalNet": "Total to receive",
+      "cols": {
+        "merchant": "Merchant",
+        "collected": "Collected",
+        "commission": "Commission",
+        "net": "Net to receive"
+      }
+    },
+    "moneyLocation": {
+      "title": "Where is your money?",
+      "cashInHand": "In hand (cash)",
+      "cardNetToReceive": "Card · net to receive",
+      "summaryLine": "You paid {{commissions}} in fees · you keep {{net}}"
+    },
     "tooltips": {
       "grossSales": "Total sales amount before discounts and refunds are applied",
       "items": "All item sales, excluding taxes, discounts, comps, and refunds",

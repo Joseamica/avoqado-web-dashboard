@@ -55,6 +55,23 @@
       "totalCollected": "Total cobrado",
       "netProfit": "Ganancia neta"
     },
+    "merchantBreakdown": {
+      "title": "Desglose por comercio",
+      "description": "Dinero de tarjeta por cada cuenta. El efectivo se muestra arriba (ya en tu mano).",
+      "totalNet": "Total a recibir",
+      "cols": {
+        "merchant": "Comercio",
+        "collected": "Cobrado",
+        "commission": "Comisión",
+        "net": "Neto a recibir"
+      }
+    },
+    "moneyLocation": {
+      "title": "¿Dónde está tu dinero?",
+      "cashInHand": "En tu mano (efectivo)",
+      "cardNetToReceive": "Tarjeta · neto a recibir",
+      "summaryLine": "Pagaste {{commissions}} de comisión · te queda {{net}}"
+    },
     "tooltips": {
       "grossSales": "Importe total de ventas antes de aplicar descuentos y reembolsos",
       "items": "Todas las ventas de artículos, sin incluir impuestos, descuentos, cortesías ni reembolsos",
