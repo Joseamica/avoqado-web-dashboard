@@ -75,20 +75,28 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
   const [open, setOpen] = useState(false)
   const [result, setResult] = useState<ResultState>({ kind: 'idle' })
 
-  // ── GET status on load: is this ticket already invoiced? ────────────────────
+  // ── GET status on load: is this ticket already invoiced? Is self-invoicing
+  //    even available for the merchant that took this payment? ─────────────────
   const {
-    data: existingCfdi,
+    data: statusData,
     isLoading: isStatusLoading,
     isError: isStatusError,
   } = useQuery({
     queryKey: ['public-cfdi-status', accessKey],
     queryFn: async () => {
-      const res = await axios.get<{ cfdi: AutofacturaCfdi | null }>(`${API_BASE}/api/v1/public/receipt/${accessKey}/cfdi`)
-      return res.data?.cfdi ?? null
+      const res = await axios.get<{ cfdi: AutofacturaCfdi | null; autofacturaAvailable?: boolean }>(
+        `${API_BASE}/api/v1/public/receipt/${accessKey}/cfdi`,
+      )
+      return res.data
     },
     enabled: !!accessKey,
     retry: 1,
   })
+
+  const existingCfdi = statusData?.cfdi ?? null
+  // The merchant/admin turned self-invoicing OFF → never offer it (default to
+  // false until we know, so we don't flash a CTA the admin disabled).
+  const autofacturaAvailable = statusData?.autofacturaAvailable ?? false
 
   const form = useForm<AutofacturaReceptorFormValues>({
     resolver: zodResolver(autofacturaReceptorSchema),
@@ -114,16 +122,12 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
     },
     onError: (err: unknown) => {
       const status = axios.isAxiosError(err) ? err.response?.status : undefined
-      const data = (axios.isAxiosError(err) ? err.response?.data : undefined) as
-        | { error?: string; reasons?: string[] }
-        | undefined
+      const data = (axios.isAxiosError(err) ? err.response?.data : undefined) as { error?: string; reasons?: string[] } | undefined
 
       switch (status) {
         case 422: {
           const reasons =
-            Array.isArray(data?.reasons) && data.reasons.length > 0
-              ? data.reasons
-              : [data?.error || t('autofactura.errors.validation')]
+            Array.isArray(data?.reasons) && data.reasons.length > 0 ? data.reasons : [data?.error || t('autofactura.errors.validation')]
           setResult({ kind: 'validation', reasons })
           return
         }
@@ -285,6 +289,13 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
   // If the status GET itself failed, stay silent rather than block the receipt.
   if (isStatusError) return null
 
+  // ── Merchant has self-invoicing DISABLED → render nothing ───────────────────
+  // The admin decided this channel doesn't offer autofactura. The customer must
+  // not even SEE the option: showing a CTA that then 403s reads as broken, not
+  // as an intentional setting. (An already-stamped CFDI is handled above and
+  // still shows its download state even if the flag was later turned off.)
+  if (!autofacturaAvailable) return null
+
   // ── Default: the "Facturar mi cuenta" CTA + the form Dialog ─────────────────
   return (
     <Card className="border-input shadow-sm">
@@ -329,9 +340,7 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
           )}
 
           {result.kind === 'generic' && (
-            <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-              {result.message}
-            </div>
+            <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">{result.message}</div>
           )}
 
           <Form {...form}>
