@@ -887,13 +887,28 @@ export default function ReservationSettings() {
 										</SelectTrigger>
 										<SelectContent>
 											{DEPOSIT_MODE_OPTIONS.map(mode => (
-												<SelectItem key={mode} value={mode}>
+												<SelectItem key={mode} value={mode} disabled={mode !== 'none' && !hasActiveStripeConnect}>
 													{t(`settings.deposits.modes.${mode}`)}
 												</SelectItem>
 											))}
 										</SelectContent>
 									</Select>
 								</SettingRow>
+								{!hasActiveStripeConnect && (
+									<div className="flex items-start gap-3 p-4 text-sm">
+										<AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+										<div className="flex-1 space-y-2">
+											<p className="text-muted-foreground">
+												Para cobrar depósitos o prepagos necesitas <strong>conectar (onboardear) Stripe</strong>. Sin Stripe
+												solo puedes dejarlo en <strong>&quot;Sin depósito&quot;</strong>: las reservaciones se confirman y el
+												cliente paga al llegar al local.
+											</p>
+											<Button asChild size="sm" variant="outline" className="h-8">
+												<Link to={`${fullBasePath}/edit/integrations`}>Conectar Stripe</Link>
+											</Button>
+										</div>
+									</div>
+								)}
 								{formValues.depositMode !== 'none' && (
 									<>
 										<SettingRow
