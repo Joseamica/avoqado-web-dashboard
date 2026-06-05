@@ -61,6 +61,8 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
         name: tier.tierName,
         minThreshold: tier.minThreshold,
         maxThreshold: tier.maxThreshold,
+        minThresholdType: tier.minThresholdType,
+        maxThresholdType: tier.maxThresholdType,
         rate: tier.rate,
       })) || [
         { tierLevel: 1, name: 'Bronce', minThreshold: 0, maxThreshold: 10000, rate: 0.02 },

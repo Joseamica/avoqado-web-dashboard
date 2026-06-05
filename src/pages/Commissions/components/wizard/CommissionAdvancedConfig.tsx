@@ -6,6 +6,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -283,36 +284,50 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange 
 										<div className="grid grid-cols-2 gap-2">
 											<div>
 												<label className="text-xs text-muted-foreground">{t('wizard.advanced.tiers.fromHeader')}</label>
-												<div className="relative mt-1">
-													<span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
-													<Input
-														type="number"
-														min={0}
-														value={tier.minThreshold}
-														onChange={(e) => updateTier(index, { minThreshold: parseFloat(e.target.value) || 0 })}
-														className="h-9 text-sm pl-5"
-														readOnly={index > 0}
-														tabIndex={index > 0 ? -1 : undefined}
-													/>
-												</div>
+												{tier.minThresholdType === 'STAFF_GOAL' ? (
+													<Badge variant="secondary" className="flex items-center gap-1 h-9 text-xs font-normal px-2 rounded-md mt-1">
+														<Target className="w-3 h-3 shrink-0" />
+														Meta del empleado
+													</Badge>
+												) : (
+													<div className="relative mt-1">
+														<span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+														<Input
+															type="number"
+															min={0}
+															value={tier.minThreshold}
+															onChange={(e) => updateTier(index, { minThreshold: parseFloat(e.target.value) || 0 })}
+															className="h-9 text-sm pl-5"
+															readOnly={index > 0}
+															tabIndex={index > 0 ? -1 : undefined}
+														/>
+													</div>
+												)}
 											</div>
 											<div>
 												<label className="text-xs text-muted-foreground">{t('wizard.advanced.tiers.toHeader')}</label>
-												<div className="relative mt-1">
-													<span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
-													<Input
-														type="number"
-														min={0}
-														placeholder="∞"
-														value={tier.maxThreshold ?? ''}
-														onChange={(e) =>
-															updateTier(index, {
-																maxThreshold: e.target.value ? parseFloat(e.target.value) : null,
-															})
-														}
-														className="h-9 text-sm pl-5"
-													/>
-												</div>
+												{tier.maxThresholdType === 'STAFF_GOAL' ? (
+													<Badge variant="secondary" className="flex items-center gap-1 h-9 text-xs font-normal px-2 rounded-md mt-1">
+														<Target className="w-3 h-3 shrink-0" />
+														Meta del empleado
+													</Badge>
+												) : (
+													<div className="relative mt-1">
+														<span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+														<Input
+															type="number"
+															min={0}
+															placeholder="∞"
+															value={tier.maxThreshold ?? ''}
+															onChange={(e) =>
+																updateTier(index, {
+																	maxThreshold: e.target.value ? parseFloat(e.target.value) : null,
+																})
+															}
+															className="h-9 text-sm pl-5"
+														/>
+													</div>
+												)}
 											</div>
 										</div>
 
