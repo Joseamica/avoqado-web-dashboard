@@ -20,6 +20,13 @@
     "AUTOFACTURA_A": "Self-service",
     "GLOBAL_C": "Global"
   },
+  "statusLabel": {
+    "DRAFT": "Draft",
+    "PENDING": "Pending",
+    "STAMPED": "Stamped",
+    "CANCELLED": "Cancelled",
+    "ERROR": "Error"
+  },
   "filters": {
     "status": "Status",
     "flow": "Flow",

@@ -20,6 +20,13 @@
     "AUTOFACTURA_A": "Autofactura",
     "GLOBAL_C": "Global"
   },
+  "statusLabel": {
+    "DRAFT": "Borrador",
+    "PENDING": "Pendiente",
+    "STAMPED": "Timbrada",
+    "CANCELLED": "Cancelada",
+    "ERROR": "Error"
+  },
   "filters": {
     "status": "Estatus",
     "flow": "Flujo",

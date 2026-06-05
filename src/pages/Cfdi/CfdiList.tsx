@@ -177,7 +177,7 @@ export default function CfdiList() {
         id: 'status',
         header: t('columns.status'),
         cell: ({ row }) => (
-          <Badge variant={statusBadgeVariant(row.original.status)}>{row.original.status}</Badge>
+          <Badge variant={statusBadgeVariant(row.original.status)}>{t(`statusLabel.${row.original.status}`, { defaultValue: row.original.status })}</Badge>
         ),
       },
       {
@@ -331,7 +331,7 @@ export default function CfdiList() {
                 >
                   <CheckboxFilterContent
                     title={t('filters.filterBy', { field: t('filters.status') })}
-                    options={STATUS_OPTIONS.map(s => ({ value: s, label: s }))}
+                    options={STATUS_OPTIONS.map(s => ({ value: s, label: t(`statusLabel.${s}`, { defaultValue: s }) }))}
                     selectedValues={statusFilter}
                     // Backend supports a SINGLE status; enforce single-select so the
                     // UI can't express an unsupported (and silently-dropped) 2+ state.
