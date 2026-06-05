@@ -3,8 +3,11 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useAuth } from '@/context/AuthContext'
+import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { IssueCfdiDialog } from '@/pages/Cfdi/components/IssueCfdiDialog'
 import type { Order } from '@/types'
 import { Currency } from '@/utils/currency'
 import { useMutation } from '@tanstack/react-query'
@@ -23,12 +26,20 @@ type View = 'menu' | 'select-for-view' | 'select-for-receipt' | 'send-receipt'
 
 export function OrderActionsSheet({ order, open, onOpenChange, fullBasePath }: Props) {
   const { t } = useTranslation('orders')
+  const { t: tCfdi } = useTranslation('cfdi')
   const { venueId } = useCurrentVenue()
+  const { can } = useAccess()
+  const { checkFeatureAccess } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
   const [view, setView] = useState<View>('menu')
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null)
   const [email, setEmail] = useState(order.customerEmail ?? '')
+  const [issueCfdiOpen, setIssueCfdiOpen] = useState(false)
+
+  // "Facturar" is an action, not a discovery teaser — hide it unless the user
+  // can issue CFDIs AND the venue has the CFDI feature active.
+  const canIssueCfdi = can('cfdi:issue') && checkFeatureAccess('CFDI')
 
   const payments = order.payments ?? []
   const hasOne = payments.length === 1
@@ -73,13 +84,14 @@ export function OrderActionsSheet({ order, open, onOpenChange, fullBasePath }: P
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={v => {
-        onOpenChange(v)
-        if (!v) reset()
-      }}
-    >
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={v => {
+          onOpenChange(v)
+          if (!v) reset()
+        }}
+      >
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>
@@ -107,6 +119,20 @@ export function OrderActionsSheet({ order, open, onOpenChange, fullBasePath }: P
             >
               {t('drawer.actions.sendReceipt')}
             </Button>
+            {canIssueCfdi && (
+              <Button
+                variant="secondary"
+                className="w-full justify-center h-12 rounded-full"
+                data-tour="cfdi-issue-btn"
+                onClick={() => {
+                  onOpenChange(false)
+                  reset()
+                  setIssueCfdiOpen(true)
+                }}
+              >
+                {tCfdi('issueDialog.openButton')}
+              </Button>
+            )}
           </div>
         )}
 
@@ -153,5 +179,8 @@ export function OrderActionsSheet({ order, open, onOpenChange, fullBasePath }: P
         )}
       </DialogContent>
     </Dialog>
+
+      <IssueCfdiDialog open={issueCfdiOpen} onOpenChange={setIssueCfdiOpen} orderId={order.id} venueId={venueId} />
+    </>
   )
 }

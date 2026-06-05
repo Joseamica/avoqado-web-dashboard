@@ -14,6 +14,11 @@
   "module_not_available": "Module not available",
   "module_not_available_desc": "This module is not enabled for your venue. Please contact support to activate it.",
   "back_to_home": "Back to Home",
+  "featureTeaser": {
+    "headline": "{{feature}} — Pro Plan",
+    "body": "This feature is part of the Pro Plan. Unlock it to start using it with your venue.",
+    "cta": "Get the Pro Plan"
+  },
   "error.notFound.title": "Page not found",
   "error.notFound.description": "The page you're looking for doesn't exist or has been moved.",
   "error.notFound.goBack": "Go back",

@@ -137,6 +137,7 @@
     "tpvConfig": "Configuration White Label"
   },
   "requiresKycVerification": "Vérification KYC requise",
+  "premiumPro": "Inclus dans le forfait Pro",
   "acceptPayment": {
     "title": "Accepter un paiement",
     "chargeCard": "Débiter la carte",

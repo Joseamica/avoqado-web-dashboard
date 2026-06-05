@@ -48,6 +48,71 @@
     "confirm": "Cancelar factura",
     "cancel": "No, regresar"
   },
+  "issueDialog": {
+    "openButton": "Facturar",
+    "title": "Facturar cuenta",
+    "subtitle": "Genera un CFDI para esta cuenta",
+    "sectionTitle": "Datos fiscales del receptor",
+    "rfc": "RFC",
+    "rfcPlaceholder": "XAXX010101000",
+    "razonSocial": "Razón social",
+    "razonSocialPlaceholder": "Nombre o razón social del cliente",
+    "razonSocialHint": "Tal como está registrada ante el SAT (sin régimen societario, p. ej. sin 'S.A. de C.V.').",
+    "regimenFiscal": "Régimen fiscal",
+    "regimenFiscalPlaceholder": "Selecciona un régimen",
+    "codigoPostal": "Código postal",
+    "codigoPostalPlaceholder": "06000",
+    "codigoPostalHint": "Domicilio fiscal del receptor (5 dígitos).",
+    "usoCfdi": "Uso del CFDI",
+    "usoCfdiPlaceholder": "Selecciona el uso",
+    "email": "Correo electrónico (opcional)",
+    "emailRequired": "Correo electrónico",
+    "emailPlaceholder": "cliente@correo.com",
+    "emailHint": "Le enviaremos la factura a este correo.",
+    "emailRequiredHint": "Te enviaremos tu factura a este correo.",
+    "submit": "Emitir factura",
+    "toast": {
+      "success": "Factura emitida correctamente.",
+      "successDetail": "Folio {{folio}} · UUID {{uuid}}"
+    },
+    "errors": {
+      "validation": "No se pudo facturar. Corrige lo siguiente:",
+      "pacRejected": "El PAC rechazó el timbrado.",
+      "conflict": "Esta cuenta ya tiene una factura o está en proceso.",
+      "forbidden": "Activa el Plan Pro o la facturación no está disponible.",
+      "notFound": "Orden no encontrada o sin emisor fiscal configurado.",
+      "generic": "No se pudo emitir la factura."
+    }
+  },
+  "autofactura": {
+    "cta": {
+      "title": "¿Necesitas factura?",
+      "subtitle": "Genera tu factura (CFDI) de esta cuenta en un minuto.",
+      "button": "Facturar mi cuenta"
+    },
+    "dialog": {
+      "title": "Factura tu cuenta",
+      "subtitle": "Captura tus datos fiscales y te enviaremos tu factura.",
+      "submit": "Generar factura"
+    },
+    "downloadPdf": "Descargar factura (PDF)",
+    "downloadXml": "Descargar XML",
+    "alreadyInvoiced": "Esta cuenta ya está facturada.",
+    "noPdf": "Tu factura está lista. Te la enviamos por correo.",
+    "success": {
+      "title": "¡Factura generada!",
+      "folio": "Serie-Folio: {{folio}}",
+      "uuid": "UUID: {{uuid}}"
+    },
+    "errors": {
+      "validation": "No se pudo facturar. Corrige lo siguiente:",
+      "pacRejected": "El SAT rechazó el timbrado, intenta más tarde.",
+      "forbidden": "La facturación no está disponible para esta cuenta.",
+      "conflict": "Esta cuenta no se puede facturar en este momento.",
+      "notFound": "Recibo no encontrado.",
+      "generic": "No se pudo generar la factura. Intenta de nuevo."
+    }
+  },
   "config": {
     "title": "Configuración de facturación",
     "description": "Configura tus datos fiscales, certificados (CSD) y qué comercios facturan.",
@@ -119,7 +184,68 @@
     "includeInGlobal": "Incluir en global",
     "emisor": "Emisor",
     "selectEmisor": "Selecciona un emisor",
-    "save": "Guardar"
+    "save": "Guardar",
+    "add": {
+      "title": "Agregar comercio",
+      "description": "Vincula una cuenta o canal que aún no factura con un emisor.",
+      "selectMerchant": "Selecciona un comercio",
+      "selectEmisorFirst": "Registra un emisor antes de agregar un comercio.",
+      "tagInPerson": "Presencial",
+      "tagOnline": "En línea",
+      "button": "Agregar",
+      "allConfigured": "Todos los comercios ya están configurados."
+    }
+  },
+  "globalInvoice": {
+    "title": "Factura global",
+    "description": "Genera manualmente la factura global del periodo (\"Público en General\") para cada emisor.",
+    "empty": "Registra un emisor para poder generar facturas globales.",
+    "periodicityLabel": "Periodicidad",
+    "csdInactiveNote": "El emisor no tiene un CSD activo. Sube y activa su Certificado de Sello Digital para poder generar la factura global.",
+    "trigger": "Generar factura global ahora",
+    "triggering": "Generando…",
+    "confirm": {
+      "title": "Generar factura global",
+      "description": "Se timbrará UNA sola factura global a \"Público en General\" por el periodo cerrado según la periodicidad ({{periodicity}}) de {{emisor}}. Esta acción no se puede deshacer.",
+      "confirm": "Sí, generar",
+      "cancel": "Cancelar"
+    },
+    "toast": {
+      "stampedTitle": "Factura global timbrada · {{folio}}",
+      "stampedDescription": "Periodo {{period}}",
+      "openPdf": "Ver PDF",
+      "nothingTitle": "Sin facturas por generar",
+      "csdInactiveTitle": "CSD inactivo",
+      "inProcessTitle": "Ya hay una factura global en proceso para este periodo.",
+      "validationTitle": "No se pudo generar la factura global",
+      "pacRejectedTitle": "El PAC rechazó el timbrado de la factura global",
+      "notFoundTitle": "Emisor fiscal no encontrado",
+      "genericTitle": "No se pudo generar la factura global"
+    }
+  },
+  "satKeys": {
+    "sectionTitle": "Datos fiscales (CFDI)",
+    "sectionDescription": "Claves del SAT que se usarán al facturar este producto.",
+    "categorySectionDescription": "Claves del SAT que heredarán por defecto los productos de esta categoría.",
+    "productKey": "Clave de producto SAT",
+    "productKeyHint": "Por defecto usa la de la categoría.",
+    "unitKey": "Clave de unidad SAT",
+    "defaultProductKey": "Clave de producto SAT por defecto",
+    "defaultUnitKey": "Clave de unidad SAT por defecto",
+    "inheritHint": "Los productos de esta categoría heredarán estas claves cuando no tengan una propia.",
+    "objetoImp": "Objeto de impuesto",
+    "objetoImpHint": "Indica si el producto causa impuestos ante el SAT.",
+    "objetoImpOptions": {
+      "01": "01 - No objeto de impuesto",
+      "02": "02 - Sí objeto de impuesto",
+      "03": "03 - Sí objeto, no obligado al desglose",
+      "04": "04 - Sí objeto, no causa impuesto"
+    },
+    "searchPlaceholder": "Busca por clave o descripción…",
+    "typeToSearch": "Escribe para buscar en el catálogo del SAT.",
+    "loading": "Buscando…",
+    "empty": "Sin resultados en el catálogo del SAT.",
+    "clear": "Quitar selección"
   },
   "toast": {
     "emisorSaved": "Emisor guardado.",

@@ -8,18 +8,24 @@ import { Skeleton } from '@/components/ui/skeleton'
 import TimePicker from '@/components/time-picker'
 import { ExampleCard } from '@/components/example-card'
 import { Separator } from '@/components/ui/separator'
+import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Receipt } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card as CardShadcn, CardContent as CardContentShadcn } from '@/components/ui/card'
+import { useAuth } from '@/context/AuthContext'
+import { SatKeyPicker } from '@/components/SatKeyPicker'
 
 export default function CategoryId() {
   const { t } = useTranslation('menu')
+  const { t: tCfdi } = useTranslation('cfdi')
+  const { checkFeatureAccess } = useAuth()
+  const hasCfdi = checkFeatureAccess('CFDI')
   const { categoryId } = useParams()
   const { venueId } = useCurrentVenue()
   const queryClient = useQueryClient()
@@ -120,6 +126,9 @@ export default function CategoryId() {
   useEffect(() => {
     if (data) {
       form.setValue('active', data.active ?? true)
+      // SAT default fiscal codes (CFDI) — prefill so the pickers show saved keys.
+      form.setValue('defaultSatProductKey', (data as any).defaultSatProductKey ?? null)
+      form.setValue('defaultSatUnitKey', (data as any).defaultSatUnitKey ?? null)
     }
   }, [data, form])
 
@@ -143,6 +152,13 @@ export default function CategoryId() {
           label: product.label || product.name,
           disabled: product.disabled || false,
         })) || [],
+      // Default SAT codes — only sent for CFDI venues.
+      ...(hasCfdi
+        ? {
+            defaultSatProductKey: formValues.defaultSatProductKey || null,
+            defaultSatUnitKey: formValues.defaultSatUnitKey || null,
+          }
+        : {}),
     }
 
     // Handle time values: send null for empty values, keep valid times
@@ -267,6 +283,44 @@ export default function CategoryId() {
       <div className="mt-4">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Datos fiscales (CFDI) — only for venues with the CFDI feature */}
+            {hasCfdi && (
+              <CardShadcn className="border-border/60" data-tour="category-sat-keys">
+                <CardContentShadcn className="space-y-4 pt-6">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Receipt className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">{tCfdi('satKeys.sectionTitle')}</p>
+                      <p className="text-xs text-muted-foreground">{tCfdi('satKeys.categorySectionDescription')}</p>
+                    </div>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">{tCfdi('satKeys.defaultProductKey')}</Label>
+                      <SatKeyPicker
+                        type="product"
+                        venueId={venueId}
+                        value={(form.watch('defaultSatProductKey') as string | null) ?? null}
+                        onChange={key => form.setValue('defaultSatProductKey', key, { shouldDirty: true })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">{tCfdi('satKeys.defaultUnitKey')}</Label>
+                      <SatKeyPicker
+                        type="unit"
+                        venueId={venueId}
+                        value={(form.watch('defaultSatUnitKey') as string | null) ?? null}
+                        onChange={key => form.setValue('defaultSatUnitKey', key, { shouldDirty: true })}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{tCfdi('satKeys.inheritHint')}</p>
+                </CardContentShadcn>
+              </CardShadcn>
+            )}
+
             <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_1fr] gap-6">
               <CardShadcn className="border-border/60">
                 <CardContentShadcn className="space-y-6 pt-6">

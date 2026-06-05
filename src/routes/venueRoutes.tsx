@@ -14,7 +14,6 @@ import type { RouteObject } from 'react-router-dom'
 import { KYCSetupRequired } from '@/pages/KYCSetupRequired'
 
 import { AdminAccessLevel, AdminProtectedRoute } from './AdminProtectedRoute'
-import { FeatureProtectedRoute } from './FeatureProtectedRoute'
 import { KYCProtectedRoute } from './KYCProtectedRoute'
 import { ManagerProtectedRoute } from './ManagerProtectedRoute'
 import { PermissionProtectedRoute } from './PermissionProtectedRoute'
@@ -434,23 +433,21 @@ export function createVenueRoutes(): RouteObject[] {
       children: [{ index: true, element: <ReferralsSettings /> }],
     },
 
-    // Facturación (CFDI) — gated by the CFDI VenueFeature (checkFeatureAccess),
-    // then by granular permissions: cfdi:view to read the list, cfdi:configure
-    // to manage emisores / CSD / merchant config.
+    // Facturación (CFDI) — VISIBLE TEASER, no FeatureProtectedRoute wrapper.
+    // The pages always render so the feature stays discoverable; when the venue
+    // lacks the CFDI VenueFeature the page shows an upsell teaser (FeatureTeaser)
+    // instead of redirecting away. Still gated by granular permissions:
+    // cfdi:view to read the list, cfdi:configure to manage emisores / CSD /
+    // merchant config.
     {
       path: 'cfdi',
-      element: <FeatureProtectedRoute requiredFeature="CFDI" />,
-      children: [
-        {
-          element: <PermissionProtectedRoute permission="cfdi:view" />,
-          children: [{ index: true, element: <CfdiList /> }],
-        },
-        {
-          path: 'configuracion',
-          element: <PermissionProtectedRoute permission="cfdi:configure" />,
-          children: [{ index: true, element: <CfdiConfiguracion /> }],
-        },
-      ],
+      element: <PermissionProtectedRoute permission="cfdi:view" />,
+      children: [{ index: true, element: <CfdiList /> }],
+    },
+    {
+      path: 'cfdi/configuracion',
+      element: <PermissionProtectedRoute permission="cfdi:configure" />,
+      children: [{ index: true, element: <CfdiConfiguracion /> }],
     },
 
     // Promotions - Discounts (requires discounts:read permission)

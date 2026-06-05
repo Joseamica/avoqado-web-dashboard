@@ -17,6 +17,10 @@ import TimePicker from '@/components/time-picker'
 import { Link, useLocation } from 'react-router-dom'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Label } from '@/components/ui/label'
+import { Receipt } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
+import { SatKeyPicker } from '@/components/SatKeyPicker'
 
 interface CategoryWizardDialogProps {
   open: boolean
@@ -34,11 +38,17 @@ interface CategoryFormData {
   availableUntil: string
   availableDays: Array<{ label: string; value: string }>
   active: boolean
+  // Default SAT fiscal codes inherited by products in this category (CFDI only).
+  defaultSatProductKey: string | null
+  defaultSatUnitKey: string | null
 }
 
 export function CategoryWizardDialog({ open, onOpenChange, onSuccess }: CategoryWizardDialogProps) {
   const { t } = useTranslation('menu')
   const { t: tCommon } = useTranslation('common')
+  const { t: tCfdi } = useTranslation('cfdi')
+  const { checkFeatureAccess } = useAuth()
+  const hasCfdi = checkFeatureAccess('CFDI')
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -55,6 +65,8 @@ export function CategoryWizardDialog({ open, onOpenChange, onSuccess }: Category
       availableUntil: '',
       availableDays: [],
       active: true,
+      defaultSatProductKey: null,
+      defaultSatUnitKey: null,
     },
   })
 
@@ -83,6 +95,13 @@ export function CategoryWizardDialog({ open, onOpenChange, onSuccess }: Category
         availableDays: data.availableDays.map(d => d.value),
         avoqadoMenus: data.avoqadoMenus.map(m => ({ value: m.value, label: m.label })),
         avoqadoProducts: data.avoqadoProducts.map(p => ({ value: p.value, label: p.label })),
+        // Default SAT codes — only sent for CFDI venues.
+        ...(hasCfdi
+          ? {
+              defaultSatProductKey: data.defaultSatProductKey || null,
+              defaultSatUnitKey: data.defaultSatUnitKey || null,
+            }
+          : {}),
       }
 
       // Time validation logic
@@ -201,35 +220,76 @@ export function CategoryWizardDialog({ open, onOpenChange, onSuccess }: Category
           >
             {/* Step 1: Basic Info */}
             {currentStep === 1 && (
-              <div className="grid gap-6 lg:grid-cols-[1.35fr_1fr]" data-tour="category-wizard-step1">
-                <Card className="border-border/60" data-tour="category-wizard-name">
-                  <CardContent className="space-y-4 pt-6">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      rules={{ required: t('forms.validation.nameRequired') }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('forms.name')}</FormLabel>
-                          <FormControl>
-                            <Input placeholder={t('forms.labels.enterName')} {...field} autoFocus />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </CardContent>
-                </Card>
+              <div className="space-y-6" data-tour="category-wizard-step1">
+                <div className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
+                  <Card className="border-border/60" data-tour="category-wizard-name">
+                    <CardContent className="space-y-4 pt-6">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        rules={{ required: t('forms.validation.nameRequired') }}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t('forms.name')}</FormLabel>
+                            <FormControl>
+                              <Input placeholder={t('forms.labels.enterName')} {...field} autoFocus />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </CardContent>
+                  </Card>
 
-                <ExampleCard title={t('modifiers.createGroup.examples.previewTitle')}>
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">{t('modifiers.createGroup.examples.previewTitle')}</p>
-                      <p className="text-sm font-semibold">{form.watch('name') || t('categories.newCategory')}</p>
+                  <ExampleCard title={t('modifiers.createGroup.examples.previewTitle')}>
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">{t('modifiers.createGroup.examples.previewTitle')}</p>
+                        <p className="text-sm font-semibold">{form.watch('name') || t('categories.newCategory')}</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{t('wizard.step1.nameDescription')}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground">{t('wizard.step1.nameDescription')}</p>
-                  </div>
-                </ExampleCard>
+                  </ExampleCard>
+                </div>
+
+                {/* Datos fiscales (CFDI) — only for venues with the CFDI feature */}
+                {hasCfdi && (
+                  <Card className="border-border/60" data-tour="category-sat-keys">
+                    <CardContent className="space-y-4 pt-6">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <Receipt className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold">{tCfdi('satKeys.sectionTitle')}</p>
+                          <p className="text-xs text-muted-foreground">{tCfdi('satKeys.categorySectionDescription')}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <Label className="text-sm font-medium">{tCfdi('satKeys.defaultProductKey')}</Label>
+                          <SatKeyPicker
+                            type="product"
+                            venueId={venueId}
+                            value={form.watch('defaultSatProductKey') ?? null}
+                            onChange={key => form.setValue('defaultSatProductKey', key, { shouldDirty: true })}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-sm font-medium">{tCfdi('satKeys.defaultUnitKey')}</Label>
+                          <SatKeyPicker
+                            type="unit"
+                            venueId={venueId}
+                            value={form.watch('defaultSatUnitKey') ?? null}
+                            onChange={key => form.setValue('defaultSatUnitKey', key, { shouldDirty: true })}
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{tCfdi('satKeys.inheritHint')}</p>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             )}
 

@@ -150,6 +150,7 @@
     "communications": "Comunicaciones"
   },
   "requiresKycVerification": "Requiere verificación KYC",
+  "premiumPro": "Incluido en el Plan Pro",
   "acceptPayment": {
     "title": "Aceptar pago",
     "chargeCard": "Cargo a tarjeta",

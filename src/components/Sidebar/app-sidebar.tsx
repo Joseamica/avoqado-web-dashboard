@@ -547,15 +547,29 @@ export function AppSidebar({
     }) as any[]
 
     // ── Facturación (CFDI) ──
-    // Gated behind the CFDI VenueFeature (billing feature), exactly like
-    // INVENTORY_TRACKING / LOYALTY_PROGRAM above. Sub-items are further
-    // permission-filtered (cfdi:view / cfdi:configure).
-    const facturacionSubItems = checkFeatureAccess('CFDI')
-      ? ([
-          { title: t('sidebar:facturacionMenu.invoices'), url: 'cfdi', permission: 'cfdi:view', keywords: ['facturas', 'cfdi', 'comprobantes', 'sat'] },
-          { title: t('sidebar:facturacionMenu.settings'), url: 'cfdi/configuracion', permission: 'cfdi:configure', keywords: ['emisor', 'rfc', 'csd', 'certificado', 'comercios'] },
-        ].filter(item => !item.permission || can(item.permission)) as any[])
-      : []
+    // VISIBLE TEASER (not hidden-when-locked): the group is ALWAYS present so
+    // the feature stays discoverable. Sub-items are still permission-filtered
+    // (cfdi:view / cfdi:configure). When the venue lacks the CFDI VenueFeature
+    // (billing feature), items are marked `premiumLocked` → a green Star badge
+    // renders in the sidebar and the page itself shows the upsell teaser.
+    // The items still navigate NORMALLY to their url (NOT to kyc-required).
+    const hasCfdiFeature = checkFeatureAccess('CFDI')
+    const facturacionSubItems = ([
+      {
+        title: t('sidebar:facturacionMenu.invoices'),
+        url: 'cfdi',
+        permission: 'cfdi:view',
+        premiumLocked: !hasCfdiFeature,
+        keywords: ['facturas', 'cfdi', 'comprobantes', 'sat'],
+      },
+      {
+        title: t('sidebar:facturacionMenu.settings'),
+        url: 'cfdi/configuracion',
+        permission: 'cfdi:configure',
+        premiumLocked: !hasCfdiFeature,
+        keywords: ['emisor', 'rfc', 'csd', 'certificado', 'comercios'],
+      },
+    ].filter(item => !item.permission || can(item.permission)) as any[])
 
     // ===================================================================
     // Build Main Sidebar Items (triggers + direct links)
@@ -637,10 +651,12 @@ export function AppSidebar({
       })
     }
 
-    // Facturación (CFDI)
+    // Facturación (CFDI) — always shown (visible teaser). Premium star badge
+    // on the group when the venue lacks the CFDI feature.
     if (facturacionSubItems.length > 0) {
       mainItems.push({
         title: t('sidebar:facturacionMenu.title', { defaultValue: 'Facturación' }), url: '#facturacion', icon: Receipt, subSidebar: 'facturacion',
+        premiumLocked: !hasCfdiFeature,
         keywords: ['facturas', 'cfdi', 'facturacion', 'sat', 'comprobantes', 'fiscal'],
       })
     }

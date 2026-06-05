@@ -49,6 +49,12 @@ interface ModernReceiptDesignProps {
   onCopy?: (url: string) => void
   onPrint?: () => void
   onEmail?: (email: string) => void
+  /**
+   * Optional slot rendered below the receipt actions (public view only).
+   * Used by the public page to mount the autofactura (CFDI self-invoice) panel
+   * without coupling this presentational component to that feature.
+   */
+  autofacturaSlot?: React.ReactNode
   className?: string
 }
 
@@ -151,6 +157,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
   onCopy,
   onPrint,
   onEmail: _onEmail,
+  autofacturaSlot,
   className = '',
 }) => {
   const [copied, setCopied] = useState(false)
@@ -601,6 +608,9 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
               )}
             </CardContent>
           </Card>
+
+          {/* Autofactura (CFDI self-invoice) — public view only, injected by the page */}
+          {autofacturaSlot}
 
           {/* Footer */}
           <Card className={`border-0 shadow-lg ${isRefund ? 'bg-linear-to-r from-red-50 dark:from-red-950/20 to-transparent' : 'bg-linear-to-r from-primary/5 to-transparent'}`}>

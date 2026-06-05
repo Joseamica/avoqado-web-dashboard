@@ -133,6 +133,76 @@ export interface CfdiListResponse {
   pageSize: number
 }
 
+// ─── Issue a CFDI for an order (Flow B — "Facturar una cuenta") ──────────────
+
+/**
+ * Receptor (recipient) fiscal data captured at issue time.
+ *
+ * Shared shape between staff-issued (Flow B) and the public autofactura page
+ * (Flow A) so the same form/modal can drive both.
+ */
+export interface CfdiReceptor {
+  /** Receptor RFC (12-13 chars, uppercase). */
+  rfc: string
+  /** Razón social / legal name exactly as registered with the SAT. */
+  razonSocial: string
+  /** SAT régimen fiscal — 3-digit code (e.g. "601"). */
+  regimenFiscal: string
+  /** Domicilio fiscal — 5-digit postal code. */
+  codigoPostal: string
+  /** SAT uso de CFDI (e.g. "G03"). */
+  usoCfdi: string
+  /** Optional email to send the stamped CFDI to. */
+  email?: string
+}
+
+/** Shape returned by a successful (201) stamp. */
+export interface IssuedCfdi {
+  id: string
+  uuid: string
+  serie: string
+  folio: string
+  status: string
+  xmlUrl: string | null
+  pdfUrl: string | null
+}
+
+/** 201 success body. */
+export interface IssueCfdiResponse {
+  cfdi: IssuedCfdi
+}
+
+// ─── Global CFDI (Flow C — "Factura global / Público en General") ────────────
+
+/** Period a stamped global CFDI covers (echoed back by the backend). */
+export interface GlobalPeriod {
+  periodicidad: GlobalPeriodicity
+  /** SAT "Meses" code (e.g. "01"-"12", or bimonthly "13"-"18"). */
+  meses: string
+  anio: number
+}
+
+/** 201 body — the period's global CFDI was stamped. */
+export interface GlobalCfdiStamped {
+  cfdi: {
+    id: string
+    uuid: string
+    serie: string
+    folio: string
+    globalPeriod: GlobalPeriod
+    pdfUrl: string | null
+  }
+}
+
+/** 200 body — nothing to invoice for the period (success-ish, NOT an error). */
+export interface GlobalCfdiNothingToInvoice {
+  status: 'NOTHING_TO_INVOICE'
+  message: string
+}
+
+/** Union of the two NON-error responses from the trigger endpoint. */
+export type GlobalCfdiResult = GlobalCfdiStamped | GlobalCfdiNothingToInvoice
+
 export type CancelMotivo = '01' | '02' | '03' | '04'
 
 export interface CancelCfdiRequest {
@@ -153,6 +223,19 @@ export interface SatCatalogEntry {
   code: string
   description: string
 }
+
+// ─── SAT catalog search (product/category fiscal keys) ──────────────────────
+
+/** A single SAT catalog match: a code + its human description. */
+export interface SatCatalogResult {
+  /** SAT code — `ClaveProdServ` (8 digits) for products, `ClaveUnidad` for units. */
+  key: string
+  /** Human-readable SAT description for the code. */
+  description: string
+}
+
+/** Which SAT catalog to search against. */
+export type SatCatalogType = 'product' | 'unit'
 
 export const cfdiService = {
   // ── Fiscal config ──────────────────────────────────────────────────────
@@ -193,6 +276,25 @@ export const cfdiService = {
     return response.data?.data ?? response.data
   },
 
+  /**
+   * Flow C — manually stamp the period's global CFDI ("Público en General") for
+   * an emisor. No body. Gated by `cfdi:configure` + the `CFDI` feature.
+   *
+   * Returns the raw response body, which is one of two NON-error shapes:
+   *   - 201 `{ cfdi: { id, uuid, serie, folio, globalPeriod, pdfUrl } }` — stamped.
+   *   - 200 `{ status: 'NOTHING_TO_INVOICE', message }` — nothing to invoice.
+   *
+   * On any 4xx/5xx (409 CSD inactivo / already running, 422 validation, 502 PAC
+   * rejected, 404 not found) axios throws and the caller must read
+   * `err.response.status` / `err.response.data` to branch.
+   */
+  async triggerGlobalCfdi(venueId: string, emisorId: string): Promise<GlobalCfdiResult> {
+    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/fiscal/emisores/${emisorId}/global`)
+    // Both 201 and 200 carry the meaningful body directly (no { data } wrapper
+    // for this endpoint), but stay tolerant if the backend ever wraps it.
+    return (response.data?.data ?? response.data) as GlobalCfdiResult
+  },
+
   // ── CFDI list + actions ────────────────────────────────────────────────
   async getCfdis(venueId: string, filters: CfdiListFilters = {}): Promise<CfdiListResponse> {
     const response = await api.get(`/api/v1/dashboard/venues/${venueId}/cfdi`, {
@@ -227,6 +329,27 @@ export const cfdiService = {
     return response.data?.data ?? response.data
   },
 
+  /**
+   * Emit (stamp) a CFDI for a closed/paid order — Flow B "Facturar una cuenta".
+   *
+   * On success the PAC stamped the invoice and the backend returns 201 with the
+   * `{ cfdi }` payload. On any non-2xx (422 validation, 502 PAC rejected, 409
+   * business rule, 403 feature/merchant gating, 404 not found) axios throws and
+   * the caller must read `err.response.status` / `err.response.data` to branch.
+   */
+  async issueCfdiForOrder(venueId: string, orderId: string, receptor: CfdiReceptor): Promise<IssueCfdiResponse> {
+    const body = {
+      rfc: receptor.rfc,
+      razonSocial: receptor.razonSocial,
+      regimenFiscal: receptor.regimenFiscal,
+      codigoPostal: receptor.codigoPostal,
+      usoCfdi: receptor.usoCfdi,
+      ...(receptor.email?.trim() && { email: receptor.email.trim() }),
+    }
+    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/orders/${orderId}/cfdi`, body)
+    return response.data?.data ?? response.data
+  },
+
   // ── Deferred to slice 2 (stubbed so callers compile) ─────────────────────
 
   /** Trigger generation of the periodic "factura global" for an emisor.
@@ -241,6 +364,22 @@ export const cfdiService = {
   async satCatalog(venueId: string, catalog: string): Promise<SatCatalogEntry[]> {
     const response = await api.get(`/api/v1/dashboard/venues/${venueId}/fiscal/sat-catalog/${catalog}`)
     return response.data?.data ?? response.data ?? []
+  },
+
+  /**
+   * Search the SAT catalog for product (`ClaveProdServ`) or unit (`ClaveUnidad`)
+   * keys. Backed by `GET /fiscal/sat-catalog?type=product|unit&q=<texto>`
+   * (gated `cfdi:view` + the `CFDI` feature).
+   *
+   * Returns `{ key, description }[]`. Used by the SAT key pickers on the product
+   * and category forms.
+   */
+  async searchSatCatalog(venueId: string, type: SatCatalogType, q: string): Promise<SatCatalogResult[]> {
+    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/fiscal/sat-catalog`, {
+      params: { type, ...(q.trim() ? { q: q.trim() } : {}) },
+    })
+    const data = response.data?.data ?? response.data
+    return (data?.results ?? []) as SatCatalogResult[]
   },
 }
 

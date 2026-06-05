@@ -48,6 +48,71 @@
     "confirm": "Cancel invoice",
     "cancel": "No, go back"
   },
+  "issueDialog": {
+    "openButton": "Invoice",
+    "title": "Invoice this bill",
+    "subtitle": "Issue a CFDI for this bill",
+    "sectionTitle": "Recipient fiscal data",
+    "rfc": "RFC",
+    "rfcPlaceholder": "XAXX010101000",
+    "razonSocial": "Legal name",
+    "razonSocialPlaceholder": "Customer name or legal entity name",
+    "razonSocialHint": "Exactly as registered with the SAT (without the corporate suffix, e.g. no 'S.A. de C.V.').",
+    "regimenFiscal": "Tax regime",
+    "regimenFiscalPlaceholder": "Select a regime",
+    "codigoPostal": "Postal code",
+    "codigoPostalPlaceholder": "06000",
+    "codigoPostalHint": "Recipient's fiscal address (5 digits).",
+    "usoCfdi": "CFDI use",
+    "usoCfdiPlaceholder": "Select a use",
+    "email": "Email (optional)",
+    "emailRequired": "Email",
+    "emailPlaceholder": "customer@email.com",
+    "emailHint": "We'll send the invoice to this email.",
+    "emailRequiredHint": "We'll send your invoice to this email.",
+    "submit": "Issue invoice",
+    "toast": {
+      "success": "Invoice issued successfully.",
+      "successDetail": "Folio {{folio}} · UUID {{uuid}}"
+    },
+    "errors": {
+      "validation": "Could not invoice. Fix the following:",
+      "pacRejected": "The PAC rejected the stamp.",
+      "conflict": "This bill already has an invoice or one is in progress.",
+      "forbidden": "Activate the Pro Plan or invoicing is unavailable.",
+      "notFound": "Order not found or no fiscal issuer configured.",
+      "generic": "Could not issue the invoice."
+    }
+  },
+  "autofactura": {
+    "cta": {
+      "title": "Need an invoice?",
+      "subtitle": "Generate your invoice (CFDI) for this bill in under a minute.",
+      "button": "Invoice my bill"
+    },
+    "dialog": {
+      "title": "Invoice your bill",
+      "subtitle": "Enter your fiscal details and we'll send you your invoice.",
+      "submit": "Generate invoice"
+    },
+    "downloadPdf": "Download invoice (PDF)",
+    "downloadXml": "Download XML",
+    "alreadyInvoiced": "This bill is already invoiced.",
+    "noPdf": "Your invoice is ready. We sent it to your email.",
+    "success": {
+      "title": "Invoice generated!",
+      "folio": "Series-Folio: {{folio}}",
+      "uuid": "UUID: {{uuid}}"
+    },
+    "errors": {
+      "validation": "Could not invoice. Fix the following:",
+      "pacRejected": "The SAT rejected the stamp, please try again later.",
+      "forbidden": "Invoicing is not available for this account.",
+      "conflict": "This bill cannot be invoiced right now.",
+      "notFound": "Receipt not found.",
+      "generic": "Could not generate the invoice. Please try again."
+    }
+  },
   "config": {
     "title": "Invoicing settings",
     "description": "Set up your fiscal data, certificates (CSD) and which merchants issue invoices.",
@@ -119,7 +184,68 @@
     "includeInGlobal": "Include in global",
     "emisor": "Issuer",
     "selectEmisor": "Select an issuer",
-    "save": "Save"
+    "save": "Save",
+    "add": {
+      "title": "Add merchant",
+      "description": "Link an account or channel that isn't invoicing yet to an issuer.",
+      "selectMerchant": "Select a merchant",
+      "selectEmisorFirst": "Register an issuer before adding a merchant.",
+      "tagInPerson": "In-person",
+      "tagOnline": "Online",
+      "button": "Add",
+      "allConfigured": "All merchants are already configured."
+    }
+  },
+  "globalInvoice": {
+    "title": "Global invoice",
+    "description": "Manually generate the period's global invoice (\"Público en General\") for each issuer.",
+    "empty": "Register an issuer to be able to generate global invoices.",
+    "periodicityLabel": "Periodicity",
+    "csdInactiveNote": "This issuer has no active CSD. Upload and activate its Digital Seal Certificate to generate the global invoice.",
+    "trigger": "Generate global invoice now",
+    "triggering": "Generating…",
+    "confirm": {
+      "title": "Generate global invoice",
+      "description": "ONE single global invoice will be stamped to \"Público en General\" for the closed period based on the {{periodicity}} periodicity of {{emisor}}. This action cannot be undone.",
+      "confirm": "Yes, generate",
+      "cancel": "Cancel"
+    },
+    "toast": {
+      "stampedTitle": "Global invoice stamped · {{folio}}",
+      "stampedDescription": "Period {{period}}",
+      "openPdf": "View PDF",
+      "nothingTitle": "Nothing to invoice",
+      "csdInactiveTitle": "CSD inactive",
+      "inProcessTitle": "A global invoice is already in progress for this period.",
+      "validationTitle": "Could not generate the global invoice",
+      "pacRejectedTitle": "The PAC rejected the global invoice stamp",
+      "notFoundTitle": "Fiscal issuer not found",
+      "genericTitle": "Could not generate the global invoice"
+    }
+  },
+  "satKeys": {
+    "sectionTitle": "Tax data (CFDI)",
+    "sectionDescription": "SAT codes used when invoicing this product.",
+    "categorySectionDescription": "SAT codes that products in this category will inherit by default.",
+    "productKey": "SAT product code",
+    "productKeyHint": "Defaults to the category's code.",
+    "unitKey": "SAT unit code",
+    "defaultProductKey": "Default SAT product code",
+    "defaultUnitKey": "Default SAT unit code",
+    "inheritHint": "Products in this category inherit these codes when they don't have their own.",
+    "objetoImp": "Tax object",
+    "objetoImpHint": "Indicates whether the product is subject to taxes per the SAT.",
+    "objetoImpOptions": {
+      "01": "01 - Not subject to tax",
+      "02": "02 - Subject to tax",
+      "03": "03 - Subject, breakdown not required",
+      "04": "04 - Subject, no tax charged"
+    },
+    "searchPlaceholder": "Search by code or description…",
+    "typeToSearch": "Type to search the SAT catalog.",
+    "loading": "Searching…",
+    "empty": "No matches in the SAT catalog.",
+    "clear": "Clear selection"
   },
   "toast": {
     "emisorSaved": "Issuer saved.",

@@ -12,7 +12,7 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { ArrowLeft, ChevronRight, Eye, EyeOff, Lock, type LucideIcon } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Eye, EyeOff, Lock, Star, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -25,6 +25,13 @@ export type NavSubItem = {
   permission?: string | null
   comingSoon?: boolean
   keywords?: string[]
+  /**
+   * Premium teaser flag — the item belongs to a paid feature the venue
+   * hasn't subscribed to. Unlike `locked` (KYC), it still navigates NORMALLY
+   * to its `url`; the destination page renders the upsell teaser. Renders a
+   * small green Star badge so the feature stays discoverable.
+   */
+  premiumLocked?: boolean
 }
 
 export type NavItem = {
@@ -34,6 +41,12 @@ export type NavItem = {
   isActive?: boolean
   superadminOnly?: boolean
   locked?: boolean
+  /**
+   * Premium teaser flag — see NavSubItem.premiumLocked. Distinct from
+   * `locked` (KYC, routes to kyc-required). A premium-locked item still
+   * navigates to its real `url`.
+   */
+  premiumLocked?: boolean
   permission?: string
   isAvoqadoCore?: boolean
   items?: NavSubItem[]
@@ -176,6 +189,17 @@ export function NavMain({
   // Tiny Avoqado badge for core platform items in white-label venues
   const AvoqadoBadge = () => <img src={avoqadoIsotipo} alt="Avoqado" className="w-2.5 shrink-0 object-contain opacity-50" />
 
+  // Green star badge for premium-locked items (paid feature not yet subscribed).
+  // The item still navigates normally to its url — the page shows the upsell teaser.
+  const PremiumBadge = ({ className }: { className?: string }) => (
+    <span title={t('premiumPro')} className={cn('ml-auto inline-flex shrink-0 items-center', className)}>
+      <Star
+        className="h-3.5 w-3.5 fill-green-600 text-green-600 dark:fill-green-400 dark:text-green-400"
+        aria-label={t('premiumPro')}
+      />
+    </span>
+  )
+
   // Eye toggle button for superadmin visibility control
   const VisibilityToggle = ({ url, className }: { url: string; className?: string }) => {
     if (!isSuperadmin || !onToggleVisibility) return null
@@ -289,7 +313,8 @@ export function NavMain({
             {item.icon && <item.icon />}
             <span>{item.title}</span>
             {item.locked && <Lock className="ml-auto h-3 w-3 text-muted-foreground opacity-70" aria-label={t('requiresKycVerification')} />}
-            {!item.locked && <VisibilityToggle url={item.url} className="ml-auto" />}
+            {!item.locked && item.premiumLocked && <PremiumBadge />}
+            {!item.locked && !item.premiumLocked && <VisibilityToggle url={item.url} className="ml-auto" />}
             <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -560,7 +585,8 @@ export function NavMain({
             {item.icon && <item.icon className={isSuperadminItem ? superadminIconClass : undefined} />}
             <span className={isSuperadminItem ? superadminGradientTextClass : undefined}>{item.title}</span>
             {item.locked && <Lock className="ml-auto h-3 w-3 text-muted-foreground opacity-70" aria-label={t('requiresKycVerification')} />}
-            {!item.locked && <VisibilityToggle url={item.url} className="ml-auto" />}
+            {!item.locked && item.premiumLocked && <PremiumBadge />}
+            {!item.locked && !item.premiumLocked && <VisibilityToggle url={item.url} className="ml-auto" />}
           </NavLink>
         </SidebarMenuButton>
       </SidebarMenuItem>

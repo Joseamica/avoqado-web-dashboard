@@ -11,6 +11,7 @@ import { useParams, useSearchParams } from 'react-router-dom'
 import { useToast } from '@/hooks/use-toast'
 import { ReceiptUrls } from '@/constants/receipt'
 import { ModernReceiptDesign } from '@/components/receipts/ModernReceiptDesign'
+import { AutofacturaPanel } from '@/pages/Payment/AutofacturaPanel'
 import { useTranslation } from 'react-i18next'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 
@@ -174,6 +175,11 @@ export default function ReceiptViewer() {
       onCopy={handleCopy}
       onPrint={handlePrint}
       onEmail={handleEmail}
+      autofacturaSlot={
+        // Public view only — never on the authenticated dashboard receipt view,
+        // and not for refund receipts (you can't self-invoice a refund).
+        isPublicView && accessKey && !isRefund ? <AutofacturaPanel accessKey={accessKey} /> : undefined
+      }
     />
   )
 }
