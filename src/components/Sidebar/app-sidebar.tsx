@@ -546,6 +546,17 @@ export function AppSidebar({
       return true
     }) as any[]
 
+    // ── Facturación (CFDI) ──
+    // Gated behind the CFDI VenueFeature (billing feature), exactly like
+    // INVENTORY_TRACKING / LOYALTY_PROGRAM above. Sub-items are further
+    // permission-filtered (cfdi:view / cfdi:configure).
+    const facturacionSubItems = checkFeatureAccess('CFDI')
+      ? ([
+          { title: t('sidebar:facturacionMenu.invoices'), url: 'cfdi', permission: 'cfdi:view', keywords: ['facturas', 'cfdi', 'comprobantes', 'sat'] },
+          { title: t('sidebar:facturacionMenu.settings'), url: 'cfdi/configuracion', permission: 'cfdi:configure', keywords: ['emisor', 'rfc', 'csd', 'certificado', 'comercios'] },
+        ].filter(item => !item.permission || can(item.permission)) as any[])
+      : []
+
     // ===================================================================
     // Build Main Sidebar Items (triggers + direct links)
     // ===================================================================
@@ -626,6 +637,14 @@ export function AppSidebar({
       })
     }
 
+    // Facturación (CFDI)
+    if (facturacionSubItems.length > 0) {
+      mainItems.push({
+        title: t('sidebar:facturacionMenu.title', { defaultValue: 'Facturación' }), url: '#facturacion', icon: Receipt, subSidebar: 'facturacion',
+        keywords: ['facturas', 'cfdi', 'facturacion', 'sat', 'comprobantes', 'fiscal'],
+      })
+    }
+
     // Configuracion
     if (settingsSubItems.length > 0) {
       mainItems.push({
@@ -650,6 +669,7 @@ export function AppSidebar({
     if (teamSubItems.length > 0) allSubSidebarSections.team = teamSubItems
     if (customersSubItems.length > 0) allSubSidebarSections.customers = customersSubItems
     if (reportsSubItems.length > 0) allSubSidebarSections.reports = reportsSubItems
+    if (facturacionSubItems.length > 0) allSubSidebarSections.facturacion = facturacionSubItems
     if (settingsSubItems.length > 0) allSubSidebarSections.settings = settingsSubItems
 
     // Combine: WL module items first, then Avoqado core items

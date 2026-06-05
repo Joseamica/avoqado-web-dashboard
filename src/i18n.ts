@@ -150,6 +150,8 @@ import virtualTerminalEn from '@/locales/en/virtualTerminal.json'
 import virtualTerminalEs from '@/locales/es/virtualTerminal.json'
 import referralsEn from '@/locales/en/referrals.json'
 import referralsEs from '@/locales/es/referrals.json'
+import cfdiEn from '@/locales/en/cfdi.json'
+import cfdiEs from '@/locales/es/cfdi.json'
 // Lightweight language detector (avoids external dependency)
 const simpleDetector = {
   type: 'languageDetector' as const,
@@ -677,6 +679,14 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'referrals', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', cfdiEn],
+    ['es', cfdiEs],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'cfdi', bundle as Record<string, unknown>, true, true)
 })
 
 export default i18n

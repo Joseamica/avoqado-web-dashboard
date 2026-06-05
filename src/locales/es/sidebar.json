@@ -28,6 +28,11 @@
   "settingsMenu": {
     "title": "Configuración"
   },
+  "facturacionMenu": {
+    "title": "Facturación",
+    "invoices": "Facturas",
+    "settings": "Configuración"
+  },
   "creditPacks": "Paquetes de Créditos",
   "salesMenu": {
     "title": "Ventas",

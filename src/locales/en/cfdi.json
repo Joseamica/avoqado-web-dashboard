@@ -1,0 +1,136 @@
+{
+  "list": {
+    "title": "Invoices",
+    "description": "Fiscal receipts (CFDI) issued by this venue.",
+    "empty": "No invoices issued yet.",
+    "emptyHint": "Invoices will appear here once they are issued to your customers.",
+    "loadError": "Could not load invoices."
+  },
+  "columns": {
+    "folio": "Series-Folio",
+    "receptor": "Recipient",
+    "total": "Total",
+    "flow": "Flow",
+    "status": "Status",
+    "date": "Date",
+    "actions": "Actions"
+  },
+  "flow": {
+    "STAFF_B": "Staff",
+    "AUTOFACTURA_A": "Self-service",
+    "GLOBAL_C": "Global"
+  },
+  "filters": {
+    "status": "Status",
+    "flow": "Flow",
+    "dateRange": "Date range",
+    "receptorRfc": "Recipient RFC",
+    "receptorRfcPlaceholder": "Search by RFC...",
+    "reset": "Clear filters",
+    "filterBy": "Filter by: {{field}}"
+  },
+  "actions": {
+    "downloadXml": "Download XML",
+    "downloadPdf": "Download PDF",
+    "cancel": "Cancel"
+  },
+  "cancelDialog": {
+    "title": "Cancel invoice",
+    "description": "Select the cancellation reason for the SAT. This action cannot be undone.",
+    "motivoLabel": "Cancellation reason",
+    "motivo01": "01 - Invoice issued with errors, with relation",
+    "motivo02": "02 - Invoice issued with errors, without relation",
+    "motivo03": "03 - The operation did not take place",
+    "motivo04": "04 - Nominative operation related in a global invoice",
+    "substituteUuidLabel": "UUID of the substituting invoice",
+    "substituteUuidPlaceholder": "UUID of the CFDI that substitutes this one",
+    "substituteUuidHint": "Required by the SAT when the reason is 01.",
+    "confirm": "Cancel invoice",
+    "cancel": "No, go back"
+  },
+  "config": {
+    "title": "Invoicing settings",
+    "description": "Set up your fiscal data, certificates (CSD) and which merchants issue invoices.",
+    "loadError": "Could not load fiscal configuration."
+  },
+  "emisores": {
+    "title": "Issuers",
+    "description": "The RFCs you issue invoices with.",
+    "empty": "You haven't registered an issuer yet.",
+    "new": "New issuer",
+    "edit": "Edit",
+    "connectPac": "Connect to PAC",
+    "uploadCsd": "Upload CSD",
+    "connectedToPac": "Connected to PAC",
+    "serie": "Series",
+    "periodicity": "Periodicity",
+    "csd": {
+      "NONE": "No CSD",
+      "ACTIVE": "CSD active",
+      "EXPIRED": "CSD expired",
+      "REVOKED": "CSD revoked",
+      "expiresAt": "Expires {{date}}"
+    }
+  },
+  "emisorForm": {
+    "title": "Issuer details",
+    "rfc": "RFC",
+    "rfcPlaceholder": "ABC123456T1A",
+    "legalName": "Legal name",
+    "legalNamePlaceholder": "Name or legal entity name",
+    "regimenFiscal": "Tax regime",
+    "regimenFiscalPlaceholder": "601",
+    "regimenFiscalHint": "3-digit SAT code.",
+    "lugarExpedicion": "Place of issue (ZIP)",
+    "lugarExpedicionPlaceholder": "06000",
+    "lugarExpedicionHint": "5-digit postal code.",
+    "serie": "Series",
+    "seriePlaceholder": "A",
+    "defaultUsoCfdi": "Default CFDI use",
+    "defaultUsoCfdiPlaceholder": "G03",
+    "globalPeriodicity": "Global invoice periodicity",
+    "save": "Save issuer",
+    "cancel": "Cancel"
+  },
+  "periodicity": {
+    "DIARIO": "Daily",
+    "SEMANAL": "Weekly",
+    "QUINCENAL": "Biweekly",
+    "MENSUAL": "Monthly",
+    "BIMESTRAL": "Bimonthly"
+  },
+  "csdDialog": {
+    "title": "Upload certificate (CSD)",
+    "description": "Upload your Digital Seal Certificate (.cer and .key) and the key password.",
+    "cerLabel": "Certificate file (.cer)",
+    "keyLabel": "Key file (.key)",
+    "passwordLabel": "Key password",
+    "passwordPlaceholder": "CSD password",
+    "submit": "Upload CSD",
+    "cancel": "Cancel",
+    "missingFiles": "Select the .cer and .key files."
+  },
+  "merchants": {
+    "title": "Merchants",
+    "description": "Define which accounts and channels generate invoices and how.",
+    "empty": "No merchants configured for invoicing yet.",
+    "facturacionEnabled": "Invoicing enabled",
+    "autofacturaEnabled": "Self-service invoicing",
+    "includeInGlobal": "Include in global",
+    "emisor": "Issuer",
+    "selectEmisor": "Select an issuer",
+    "save": "Save"
+  },
+  "toast": {
+    "emisorSaved": "Issuer saved.",
+    "emisorSaveError": "Could not save the issuer.",
+    "provisioned": "Issuer connected to the PAC.",
+    "provisionError": "Could not connect to the PAC.",
+    "csdUploaded": "CSD uploaded successfully.",
+    "csdError": "Could not upload the CSD.",
+    "merchantSaved": "Merchant configuration saved.",
+    "merchantSaveError": "Could not save the merchant configuration.",
+    "cancelRequested": "Cancellation requested.",
+    "cancelError": "Could not cancel the invoice."
+  }
+}

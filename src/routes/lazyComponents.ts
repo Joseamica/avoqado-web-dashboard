@@ -198,6 +198,10 @@ export const LoyaltySettings = lazyWithRetry(() => import('@/pages/Loyalty/Loyal
 // Referrals
 export const ReferralsSettings = lazyWithRetry(() => import('@/pages/Referrals/ReferralsSettings'))
 
+// Facturación (CFDI)
+export const CfdiList = lazyWithRetry(() => import('@/pages/Cfdi/CfdiList'))
+export const CfdiConfiguracion = lazyWithRetry(() => import('@/pages/Cfdi/CfdiConfiguracion'))
+
 // Promotions
 export const Discounts = lazyWithRetry(() => import('@/pages/Promotions/Discounts'))
 export const DiscountForm = lazyWithRetry(() => import('@/pages/Promotions/DiscountForm'))

@@ -1,0 +1,136 @@
+{
+  "list": {
+    "title": "Facturas",
+    "description": "Comprobantes fiscales (CFDI) emitidos por esta sucursal.",
+    "empty": "Aún no hay facturas emitidas.",
+    "emptyHint": "Las facturas aparecerán aquí cuando se emitan a tus clientes.",
+    "loadError": "No se pudieron cargar las facturas."
+  },
+  "columns": {
+    "folio": "Serie-Folio",
+    "receptor": "Receptor",
+    "total": "Total",
+    "flow": "Flujo",
+    "status": "Estatus",
+    "date": "Fecha",
+    "actions": "Acciones"
+  },
+  "flow": {
+    "STAFF_B": "Personal",
+    "AUTOFACTURA_A": "Autofactura",
+    "GLOBAL_C": "Global"
+  },
+  "filters": {
+    "status": "Estatus",
+    "flow": "Flujo",
+    "dateRange": "Rango de fechas",
+    "receptorRfc": "RFC receptor",
+    "receptorRfcPlaceholder": "Buscar por RFC...",
+    "reset": "Borrar filtros",
+    "filterBy": "Filtrar por: {{field}}"
+  },
+  "actions": {
+    "downloadXml": "Descargar XML",
+    "downloadPdf": "Descargar PDF",
+    "cancel": "Cancelar"
+  },
+  "cancelDialog": {
+    "title": "Cancelar factura",
+    "description": "Selecciona el motivo de cancelación ante el SAT. Esta acción no se puede deshacer.",
+    "motivoLabel": "Motivo de cancelación",
+    "motivo01": "01 - Comprobante emitido con errores con relación",
+    "motivo02": "02 - Comprobante emitido con errores sin relación",
+    "motivo03": "03 - No se llevó a cabo la operación",
+    "motivo04": "04 - Operación nominativa relacionada en una factura global",
+    "substituteUuidLabel": "UUID del comprobante que sustituye",
+    "substituteUuidPlaceholder": "UUID del CFDI que sustituye a éste",
+    "substituteUuidHint": "Requerido por el SAT cuando el motivo es 01.",
+    "confirm": "Cancelar factura",
+    "cancel": "No, regresar"
+  },
+  "config": {
+    "title": "Configuración de facturación",
+    "description": "Configura tus datos fiscales, certificados (CSD) y qué comercios facturan.",
+    "loadError": "No se pudo cargar la configuración fiscal."
+  },
+  "emisores": {
+    "title": "Emisores",
+    "description": "Los RFC con los que emites facturas.",
+    "empty": "Aún no has registrado un emisor.",
+    "new": "Nuevo emisor",
+    "edit": "Editar",
+    "connectPac": "Conectar al PAC",
+    "uploadCsd": "Subir CSD",
+    "connectedToPac": "Conectado al PAC",
+    "serie": "Serie",
+    "periodicity": "Periodicidad",
+    "csd": {
+      "NONE": "Sin CSD",
+      "ACTIVE": "CSD activo",
+      "EXPIRED": "CSD vencido",
+      "REVOKED": "CSD revocado",
+      "expiresAt": "Vence {{date}}"
+    }
+  },
+  "emisorForm": {
+    "title": "Datos del emisor",
+    "rfc": "RFC",
+    "rfcPlaceholder": "ABC123456T1A",
+    "legalName": "Razón social",
+    "legalNamePlaceholder": "Nombre o razón social",
+    "regimenFiscal": "Régimen fiscal",
+    "regimenFiscalPlaceholder": "601",
+    "regimenFiscalHint": "Clave de 3 dígitos del SAT.",
+    "lugarExpedicion": "Lugar de expedición (CP)",
+    "lugarExpedicionPlaceholder": "06000",
+    "lugarExpedicionHint": "Código postal de 5 dígitos.",
+    "serie": "Serie",
+    "seriePlaceholder": "A",
+    "defaultUsoCfdi": "Uso de CFDI por defecto",
+    "defaultUsoCfdiPlaceholder": "G03",
+    "globalPeriodicity": "Periodicidad de factura global",
+    "save": "Guardar emisor",
+    "cancel": "Cancelar"
+  },
+  "periodicity": {
+    "DIARIO": "Diario",
+    "SEMANAL": "Semanal",
+    "QUINCENAL": "Quincenal",
+    "MENSUAL": "Mensual",
+    "BIMESTRAL": "Bimestral"
+  },
+  "csdDialog": {
+    "title": "Subir certificado (CSD)",
+    "description": "Sube tu Certificado de Sello Digital (.cer y .key) y la contraseña de la llave.",
+    "cerLabel": "Archivo de certificado (.cer)",
+    "keyLabel": "Archivo de llave (.key)",
+    "passwordLabel": "Contraseña de la llave",
+    "passwordPlaceholder": "Contraseña del CSD",
+    "submit": "Subir CSD",
+    "cancel": "Cancelar",
+    "missingFiles": "Selecciona los archivos .cer y .key."
+  },
+  "merchants": {
+    "title": "Comercios",
+    "description": "Define qué cuentas y canales generan facturas y cómo.",
+    "empty": "Aún no hay comercios configurados para facturación.",
+    "facturacionEnabled": "Facturación activa",
+    "autofacturaEnabled": "Autofactura",
+    "includeInGlobal": "Incluir en global",
+    "emisor": "Emisor",
+    "selectEmisor": "Selecciona un emisor",
+    "save": "Guardar"
+  },
+  "toast": {
+    "emisorSaved": "Emisor guardado.",
+    "emisorSaveError": "No se pudo guardar el emisor.",
+    "provisioned": "Emisor conectado al PAC.",
+    "provisionError": "No se pudo conectar al PAC.",
+    "csdUploaded": "CSD subido correctamente.",
+    "csdError": "No se pudo subir el CSD.",
+    "merchantSaved": "Configuración de comercio guardada.",
+    "merchantSaveError": "No se pudo guardar la configuración del comercio.",
+    "cancelRequested": "Cancelación solicitada.",
+    "cancelError": "No se pudo cancelar la factura."
+  }
+}
