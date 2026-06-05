@@ -61,6 +61,9 @@ export interface SalesByItemResponse {
 }
 
 export interface SalesByItemFilters {
+  // Active venue id — sent as the x-venue-id header so the backend scopes the
+  // report to the user's current venue (this endpoint has no :venueId in its URL).
+  venueId?: string
   startDate: string
   endDate: string
   reportType?: ReportType
@@ -108,6 +111,9 @@ export async function fetchSalesByItem(
         channel: filters.channel,
         paymentMethod: filters.paymentMethod,
       },
+      // See salesSummary.service.ts: this endpoint resolves venue from the header
+      // (or the stale JWT venue if absent). Send the active venue explicitly.
+      ...(filters.venueId ? { headers: { 'x-venue-id': filters.venueId } } : {}),
       withCredentials: true,
     },
   )

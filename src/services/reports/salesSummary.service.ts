@@ -151,6 +151,10 @@ export async function fetchSalesSummary(
         ...(filters.paymentMethod === 'CARD' && filters.cardType ? { cardType: filters.cardType } : {}),
         ...(filters.includeMerchantBreakdown ? { includeMerchantBreakdown: 'true' } : {}),
       },
+      // Tell the backend which venue is active. This endpoint has no :venueId in
+      // its URL, so without this header it would fall back to the (possibly stale)
+      // JWT venue and report the wrong venue's sales after a deep-link/refresh.
+      ...(filters.venueId ? { headers: { 'x-venue-id': filters.venueId } } : {}),
       withCredentials: true,
     },
   )

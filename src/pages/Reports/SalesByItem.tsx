@@ -234,7 +234,7 @@ const SalesByItemSkeleton = () => (
 // ============================================
 export default function SalesByItem() {
   const { t, i18n } = useTranslation('reports')
-  const { venueId: _venueId } = useCurrentVenue()
+  const { venueId } = useCurrentVenue()
   const { activeVenue } = useAuth()
   const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
 
@@ -355,6 +355,7 @@ export default function SalesByItem() {
 
   // Build API filters
   const apiFilters = useMemo(() => ({
+    venueId,
     startDate: dateRange.from.toISOString(),
     endDate: dateRange.to.toISOString(),
     reportType,
@@ -364,7 +365,7 @@ export default function SalesByItem() {
       startHour: customStartHour,
       endHour: customEndHour,
     }),
-  }), [dateRange.from, dateRange.to, reportType, groupBy, hoursFilter, customStartHour, customEndHour])
+  }), [venueId, dateRange.from, dateRange.to, reportType, groupBy, hoursFilter, customStartHour, customEndHour])
 
   // Fetch data
   const {
