@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 
 import { KYCStatusBanner } from '@/components/KYCStatusBanner'
+import { McpAnnouncementBanner } from '@/components/home/McpAnnouncementBanner'
 import { HomeSetupChecklist } from '@/components/onboarding/HomeSetupChecklist'
 import { HomeDatePicker } from '@/components/home/HomeDatePicker'
 import { Card, CardContent } from '@/components/ui/card'
@@ -401,6 +402,8 @@ export default function Home() {
     <TooltipProvider delayDuration={150}>
       <div className="min-h-screen bg-background px-3 pb-4 pt-2 md:px-6 md:pb-6 md:pt-2">
         <KYCStatusBanner />
+
+        <McpAnnouncementBanner />
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-5">
           <TabsList

@@ -5,7 +5,9 @@ import { cn } from '@/lib/utils'
 
 export interface CardTypeBreakdownItem {
   cardType: string
-  netAmount: number
+  baseSales: number // Venta (monto sin propina)
+  tips: number // Propina
+  netAmount: number // venta + propina - comisión
   fees: number
   transactionCount: number
   settlementDays: number | null
@@ -42,6 +44,15 @@ export function CardTypeBreakdownStrip({
   className,
 }: Props) {
   const total = useMemo(() => items.reduce((s, c) => s + c.netAmount, 0), [items])
+  const totals = useMemo(
+    () => ({
+      base: items.reduce((s, c) => s + c.baseSales, 0),
+      tips: items.reduce((s, c) => s + c.tips, 0),
+      fees: items.reduce((s, c) => s + c.fees, 0),
+      txns: items.reduce((s, c) => s + c.transactionCount, 0),
+    }),
+    [items],
+  )
   const sorted = useMemo(() => [...items].sort((a, b) => b.netAmount - a.netAmount), [items])
 
   if (items.length === 0) return null
@@ -90,10 +101,7 @@ export function CardTypeBreakdownStrip({
                 </TooltipTrigger>
                 <TooltipContent side="top" className="space-y-1 px-3 py-2">
                   <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider">
-                    <span
-                      aria-hidden
-                      className={cn('h-2 w-2 rounded-full', PROPORTION_COLORS[card.cardType] ?? 'bg-foreground/30')}
-                    />
+                    <span aria-hidden className={cn('h-2 w-2 rounded-full', PROPORTION_COLORS[card.cardType] ?? 'bg-foreground/30')} />
                     {label}
                     <span className="text-background/70">· {pct.toFixed(1)}%</span>
                   </div>
@@ -117,10 +125,12 @@ export function CardTypeBreakdownStrip({
         <thead>
           <tr className="border-b border-border/40 text-[10px] uppercase tracking-wider text-muted-foreground">
             <th className="py-2 pr-2 text-left font-medium">Método</th>
-            <th className="py-2 px-2 text-right font-medium">Monto neto</th>
+            <th className="hidden py-2 px-2 text-right font-medium lg:table-cell">Venta</th>
+            <th className="hidden py-2 px-2 text-right font-medium lg:table-cell">Propina</th>
+            <th className="hidden py-2 px-2 text-right font-medium md:table-cell">Comisiones</th>
+            <th className="py-2 px-2 text-right font-medium">Neto</th>
             <th className="hidden py-2 px-2 text-right font-medium sm:table-cell">%</th>
             <th className="hidden py-2 px-2 text-right font-medium md:table-cell">Txns</th>
-            <th className="hidden py-2 px-2 text-right font-medium md:table-cell">Comisiones</th>
             <th className="py-2 pl-2 text-right font-medium">Liquidación</th>
           </tr>
         </thead>
@@ -139,16 +149,18 @@ export function CardTypeBreakdownStrip({
                     <span className="font-medium">{cardTypeLabel(card.cardType)}</span>
                   </div>
                 </td>
-                <td className="py-2 px-2 text-right font-medium tabular-nums">{formatCurrency(card.netAmount)}</td>
-                <td className="hidden py-2 px-2 text-right tabular-nums text-muted-foreground sm:table-cell">
-                  {pct.toFixed(1)}%
+                <td className="hidden py-2 px-2 text-right tabular-nums text-muted-foreground lg:table-cell">
+                  {formatCurrency(card.baseSales)}
                 </td>
-                <td className="hidden py-2 px-2 text-right tabular-nums text-muted-foreground md:table-cell">
-                  {card.transactionCount}
+                <td className="hidden py-2 px-2 text-right tabular-nums text-muted-foreground lg:table-cell">
+                  {card.tips > 0 ? `+${formatCurrency(card.tips)}` : '—'}
                 </td>
                 <td className="hidden py-2 px-2 text-right tabular-nums text-muted-foreground md:table-cell">
                   {isCash ? '—' : `-${formatCurrency(card.fees)}`}
                 </td>
+                <td className="py-2 px-2 text-right font-medium tabular-nums">{formatCurrency(card.netAmount)}</td>
+                <td className="hidden py-2 px-2 text-right tabular-nums text-muted-foreground sm:table-cell">{pct.toFixed(1)}%</td>
+                <td className="hidden py-2 px-2 text-right tabular-nums text-muted-foreground md:table-cell">{card.transactionCount}</td>
                 <td className="py-2 pl-2 text-right text-xs text-muted-foreground">
                   {isCash
                     ? 'Inmediato'
@@ -159,6 +171,19 @@ export function CardTypeBreakdownStrip({
               </tr>
             )
           })}
+          {/* TOTAL — deja explícito que Venta + Propina − Comisiones = Neto */}
+          <tr className="border-t border-border/40 font-semibold">
+            <td className="py-2 pr-2 text-left">Total</td>
+            <td className="hidden py-2 px-2 text-right tabular-nums lg:table-cell">{formatCurrency(totals.base)}</td>
+            <td className="hidden py-2 px-2 text-right tabular-nums lg:table-cell">
+              {totals.tips > 0 ? `+${formatCurrency(totals.tips)}` : '—'}
+            </td>
+            <td className="hidden py-2 px-2 text-right tabular-nums md:table-cell">-{formatCurrency(totals.fees)}</td>
+            <td className="py-2 px-2 text-right tabular-nums">{formatCurrency(total)}</td>
+            <td className="hidden py-2 px-2 text-right tabular-nums sm:table-cell">100%</td>
+            <td className="hidden py-2 px-2 text-right tabular-nums md:table-cell">{totals.txns}</td>
+            <td className="py-2 pl-2" />
+          </tr>
         </tbody>
       </table>
     </GlassCard>

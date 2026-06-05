@@ -28,9 +28,11 @@ export interface AvailableBalanceSummary {
 
 export interface CardTypeBreakdown {
   cardType: TransactionCardType
-  totalSales: number
+  baseSales: number // Venta (monto sin propina)
+  tips: number // Propina
+  totalSales: number // monto + propina
   fees: number
-  netAmount: number
+  netAmount: number // totalSales - fees
   settlementDays: number | null
   pendingAmount: number
   settledAmount: number
@@ -177,4 +179,3 @@ export async function getSettlementCalendar(
   })
   return res.data
 }
-

@@ -1,4 +1,11 @@
 {
+  "mcpAnnouncement": {
+    "title": "New: connect Avoqado to your AI",
+    "body": "Use Claude, ChatGPT or another AI to ask your business in plain language — \"how are my sales?\", \"cancel the 8pm booking\".",
+    "cta": "See how",
+    "dismiss": "Dismiss",
+    "dialogTitle": "Connect your AI to Avoqado"
+  },
   "title": "Dashboard",
   "filters": {
     "today": "Today",

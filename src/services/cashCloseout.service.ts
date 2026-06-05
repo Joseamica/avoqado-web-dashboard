@@ -15,6 +15,7 @@ export interface CashExpected {
   transactionCount: number
   daysSinceLastCloseout: number
   hasCloseouts: boolean
+  needsCloseout: boolean // true solo si hay efectivo sin cortar (gatea el recordatorio)
 }
 
 export interface CashCloseout {
@@ -95,10 +96,7 @@ export async function getCloseoutHistory(
 /**
  * Get a single closeout by ID
  */
-export async function getCloseoutById(
-  venueId: string,
-  closeoutId: string,
-): Promise<{ success: boolean; data: CashCloseout }> {
+export async function getCloseoutById(venueId: string, closeoutId: string): Promise<{ success: boolean; data: CashCloseout }> {
   const res = await api.get(`/api/v1/dashboard/venues/${venueId}/cash-closeouts/${closeoutId}`, {
     withCredentials: true,
   })

@@ -1,4 +1,11 @@
 {
+  "mcpAnnouncement": {
+    "title": "Novedad: conecta Avoqado a tu IA",
+    "body": "Usa Claude, ChatGPT u otra IA para preguntarle a tu negocio en lenguaje natural — «¿cómo van mis ventas?», «cancela la reserva de las 8».",
+    "cta": "Ver cómo",
+    "dismiss": "Cerrar",
+    "dialogTitle": "Conecta tu IA a Avoqado"
+  },
   "title": "Dashboard",
   "filters": {
     "today": "Hoy",

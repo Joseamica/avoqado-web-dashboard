@@ -350,6 +350,20 @@
         "manage": "Administrar Conexión",
         "connect": "Conectar Perfil de Google Business"
       },
+      "mcp": {
+        "title": "Conecta tu IA a Avoqado",
+        "description": "Usa Claude, ChatGPT u otra IA para preguntarle a tu negocio — o pedirle cambios — en lenguaje natural.",
+        "badge": "Beta",
+        "intro": "Pregúntale a tu IA «¿cómo van mis ventas hoy?», «¿qué reservas tengo?» o pídele «cancela la reserva de las 8» — siempre dentro de lo que tu rol permite y solo en tus locales.",
+        "connectorTitle": "Opción 1 · desde tu IA (sin terminal, recomendado)",
+        "connectorStep": "En Claude (app o web): Configuración → Conectores → Agregar conector personalizado → pega esta URL:",
+        "connectorLogin": "Luego inicia sesión con tu correo y contraseña de Avoqado. Requiere plan Pro o superior.",
+        "cliTitle": "Opción 2 · terminal (Claude Code)",
+        "cliStep": "Si usas la terminal, corre este comando:",
+        "note": "Seguro por diseño: solo ves y modificas lo que tu rol permite, dentro de tus locales. Nada cruza a otros negocios.",
+        "copy": "Copiar",
+        "copied": "Copiado"
+      },
       "save": "Guardar Cambios",
       "saving": "Guardando...",
       "cancel": "Cancelar",

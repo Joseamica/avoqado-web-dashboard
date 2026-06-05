@@ -303,7 +303,6 @@ export default function AvailableBalance() {
     }
   }
 
-
   if (loading) {
     return (
       <div className="space-y-6 p-6">
@@ -423,8 +422,10 @@ export default function AvailableBalance() {
       {/* Credit Offer Banner - Shows when venue has a pending financing offer */}
       {venueId && <CreditOfferBanner venueId={venueId} />}
 
-      {/* Cash Closeout Reminder Alert - Shows when > 7 days since last closeout */}
-      {expectedCashData && expectedCashData.daysSinceLastCloseout > 7 && (
+      {/* Cash Closeout Reminder Alert - Shows when > 7 days since last closeout
+          AND there is actually cash to cut. A card-only venue (no efectivo) was
+          getting this reminder forever even with nothing to close out. */}
+      {expectedCashData && expectedCashData.needsCloseout && expectedCashData.daysSinceLastCloseout > 7 && (
         <div className="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
           <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
           <div className="flex-1">
@@ -495,6 +496,8 @@ export default function AvailableBalance() {
         <CardTypeBreakdownStrip
           items={filteredCardBreakdown.map(c => ({
             cardType: c.cardType,
+            baseSales: c.baseSales,
+            tips: c.tips,
             netAmount: c.netAmount,
             fees: c.fees,
             transactionCount: c.transactionCount,
