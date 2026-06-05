@@ -222,12 +222,22 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
             {folio && <p className="text-xs text-muted-foreground">{t('autofactura.success.folio', { folio })}</p>}
           </div>
           {existingCfdi.pdfUrl ? (
-            <Button asChild size="lg" className="h-12 w-full sm:w-auto">
-              <a href={existingCfdi.pdfUrl} target="_blank" rel="noopener noreferrer" data-tour="autofactura-download-pdf">
-                <Download className="mr-2 h-4 w-4" />
-                {t('autofactura.downloadPdf')}
-              </a>
-            </Button>
+            <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
+              <Button asChild size="lg" className="h-12 w-full sm:w-auto">
+                <a href={existingCfdi.pdfUrl} target="_blank" rel="noopener noreferrer" data-tour="autofactura-download-pdf">
+                  <Download className="mr-2 h-4 w-4" />
+                  {t('autofactura.downloadPdf')}
+                </a>
+              </Button>
+              {existingCfdi.xmlUrl && (
+                <Button asChild variant="outline" size="lg" className="h-12 w-full sm:w-auto">
+                  <a href={existingCfdi.xmlUrl} target="_blank" rel="noopener noreferrer">
+                    <Download className="mr-2 h-4 w-4" />
+                    {t('autofactura.downloadXml')}
+                  </a>
+                </Button>
+              )}
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground">{t('autofactura.noPdf')}</p>
           )}
