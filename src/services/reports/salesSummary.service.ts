@@ -88,6 +88,27 @@ export interface MerchantAccountBreakdown {
   platformFee: number
   netToReceive: number
   transactionCount: number
+  /** Soonest estimated settlement; present only when includeSettlementProjection=true. */
+  estimatedSettlement?: {
+    nextDate: string | null // YYYY-MM-DD in venue timezone
+    settlementDays: number | null
+  }
+}
+
+// Entrega 2 — settlement projection ("¿cuándo cae el dinero?").
+export interface SettlementCalendarMerchant {
+  merchantAccountId: string
+  displayName: string
+  platformFee: number
+  netToReceive: number
+  transactionCount: number
+}
+
+export interface SettlementCalendarDay {
+  date: string // YYYY-MM-DD settlement date in venue timezone
+  status: 'settled' | 'pending' | 'projected' // vs today: past / today / future
+  totalNet: number
+  byMerchant: SettlementCalendarMerchant[]
 }
 
 export interface SalesSummaryResponse {
@@ -102,6 +123,8 @@ export interface SalesSummaryResponse {
   byPeriod?: TimePeriodMetrics[]
   /** Per-merchant-account card breakdown; present only when includeMerchantBreakdown=true. */
   byMerchantAccount?: MerchantAccountBreakdown[]
+  /** Settlement projection calendar; present only when includeSettlementProjection=true. */
+  settlementCalendar?: SettlementCalendarDay[]
   /** True when a payment filter is active; order-level metrics are then null. */
   filtered: boolean
 }
@@ -118,6 +141,7 @@ export interface SalesSummaryFilters {
   paymentMethod?: PaymentMethodFilter
   cardType?: CardTypeFilter
   includeMerchantBreakdown?: boolean
+  includeSettlementProjection?: boolean
 }
 
 export interface ApiResponse<T> {
@@ -150,6 +174,7 @@ export async function fetchSalesSummary(
         ...(filters.paymentMethod ? { paymentMethod: filters.paymentMethod } : {}),
         ...(filters.paymentMethod === 'CARD' && filters.cardType ? { cardType: filters.cardType } : {}),
         ...(filters.includeMerchantBreakdown ? { includeMerchantBreakdown: 'true' } : {}),
+        ...(filters.includeSettlementProjection ? { includeSettlementProjection: 'true' } : {}),
       },
       // Tell the backend which venue is active. This endpoint has no :venueId in
       // its URL, so without this header it would fall back to the (possibly stale)

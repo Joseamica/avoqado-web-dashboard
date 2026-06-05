@@ -55,6 +55,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { PeriodBreakdownTable } from './components/PeriodBreakdownTable'
 import { MerchantBreakdownPanel } from './MerchantBreakdownPanel'
 import { MoneyLocationStrip } from './MoneyLocationStrip'
+import { SettlementMiniCalendar } from './SettlementMiniCalendar'
 
 // ============================================
 // Payment Method Mapping
@@ -1048,8 +1049,10 @@ export default function SalesSummary() {
     ...(merchantAccountId ? { merchantAccountId } : {}),
     ...(paymentMethodFilter ? { paymentMethod: paymentMethodFilter } : {}),
     ...(paymentMethodFilter === 'CARD' && cardTypeFilter ? { cardType: cardTypeFilter } : {}),
-    // Always request the per-merchant card breakdown for the reconciliation view (additive).
+    // Always request the per-merchant card breakdown + settlement projection for
+    // the reconciliation view (both additive / opt-in on the backend).
     includeMerchantBreakdown: true,
+    includeSettlementProjection: true,
   }), [venueId, dateRange.from, dateRange.to, reportType, merchantAccountId, paymentMethodFilter, cardTypeFilter])
 
   // Fetch sales summary data from API
@@ -1073,6 +1076,12 @@ export default function SalesSummary() {
   )
   const cardNetToReceive = useMemo(() => merchantBreakdown.reduce((s, m) => s + m.netToReceive, 0), [merchantBreakdown])
   const commissionsPaid = useMemo(() => merchantBreakdown.reduce((s, m) => s + m.platformFee, 0), [merchantBreakdown])
+
+  // Settlement projection (Entrega 2): the per-day "¿cuándo cae?" calendar. The
+  // settled-vs-incoming split lives inside the calendar (it can only project
+  // payments with a settlement rule), so it is deliberately kept out of the
+  // money-location strip to avoid under-reporting unprojectable card money.
+  const settlementCalendar = useMemo(() => apiResponse?.settlementCalendar ?? [], [apiResponse])
 
   // Transform API response to component data format
   const data = useMemo(() => {
@@ -2288,6 +2297,7 @@ export default function SalesSummary() {
             formatCurrency={Currency}
           />
           <MerchantBreakdownPanel items={merchantBreakdown} formatCurrency={Currency} />
+          <SettlementMiniCalendar days={settlementCalendar} formatCurrency={Currency} />
         </div>
       )}
 

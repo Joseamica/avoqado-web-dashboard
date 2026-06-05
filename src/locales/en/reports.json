@@ -63,8 +63,10 @@
         "merchant": "Merchant",
         "collected": "Collected",
         "commission": "Commission",
-        "net": "Net to receive"
-      }
+        "net": "Net to receive",
+        "share": "Share"
+      },
+      "lands": "Lands ~{{date}}"
     },
     "moneyLocation": {
       "title": "Where is your money?",
@@ -93,7 +95,19 @@
       "label": "Settlement",
       "businessDay": "{{count}} business day",
       "businessDays": "{{count}} business days",
-      "immediate": "Immediate"
+      "immediate": "Immediate",
+      "calendar": {
+        "title": "Settlement calendar",
+        "subtitle": "When this range's card money lands · estimated",
+        "incoming": "Incoming",
+        "status": {
+          "settled": "estimated · should have landed",
+          "pending": "lands today",
+          "projected": "projected"
+        },
+        "merchantLine": "fee {{fee}} · you receive {{net}}",
+        "note": "Estimated from each merchant's settlement rules (business days + holidays). Real confirmation will arrive once we connect your bank. Cash isn't shown here — it's already in hand."
+      }
     },
     "paymentTypes": {
       "card": "Card",

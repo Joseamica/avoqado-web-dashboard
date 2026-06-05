@@ -63,8 +63,10 @@
         "merchant": "Comercio",
         "collected": "Cobrado",
         "commission": "Comisión",
-        "net": "Neto a recibir"
-      }
+        "net": "Neto a recibir",
+        "share": "Parte"
+      },
+      "lands": "Cae ~{{date}}"
     },
     "moneyLocation": {
       "title": "¿Dónde está tu dinero?",
@@ -93,7 +95,19 @@
       "label": "Liquidación",
       "businessDay": "{{count}} día hábil",
       "businessDays": "{{count}} días hábiles",
-      "immediate": "Inmediato"
+      "immediate": "Inmediato",
+      "calendar": {
+        "title": "Calendario de liquidación",
+        "subtitle": "Cuándo cae el dinero de tarjeta de este rango · estimado",
+        "incoming": "Por caer",
+        "status": {
+          "settled": "estimado · debió caer",
+          "pending": "cae hoy",
+          "projected": "proyectado"
+        },
+        "merchantLine": "comisión {{fee}} · recibes {{net}}",
+        "note": "Estimado según las reglas de liquidación de cada comercio (días hábiles + festivos). La confirmación real llegará cuando conectemos tu banco. El efectivo no aparece aquí: ya está en tu mano."
+      }
     },
     "paymentTypes": {
       "card": "Tarjeta",

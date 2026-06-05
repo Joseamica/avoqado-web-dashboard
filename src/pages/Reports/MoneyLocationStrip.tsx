@@ -12,9 +12,14 @@ interface Props {
 }
 
 /**
- * "¿Dónde está tu dinero?" — the at-a-glance answer for a non-technical owner.
- * Entrega 1 (simple): cash in hand + card net to receive + commissions paid.
- * Entrega 2 will split the card bucket into "ya en banco" vs "por caer".
+ * "¿Dónde está tu dinero?" — the at-a-glance answer for a non-technical owner:
+ * cash in hand + card net to receive + commissions paid.
+ *
+ * The settled-vs-incoming timing of the card money lives in the Settlement
+ * calendar below (Entrega 2). It is kept OUT of this strip on purpose: the
+ * calendar can only project payments that have a settlement rule, so splitting
+ * the strip here would silently drop unprojectable card money and under-report
+ * what the venue is owed. The strip always shows the FULL card net.
  */
 export function MoneyLocationStrip({ cashInHand, cardNetToReceive, commissionsPaid, formatCurrency, className }: Props) {
   const { t } = useTranslation('reports')

@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { GlassCard } from '@/components/ui/glass-card'
 import type { MerchantAccountBreakdown } from '@/services/reports/salesSummary.service'
@@ -10,13 +11,19 @@ interface Props {
   className?: string
 }
 
+/** Format a bare YYYY-MM-DD (already venue-local) without a timezone shift. */
+function formatLands(dateStr: string, locale: string): string {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(y, (m ?? 1) - 1, d ?? 1).toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
 /**
  * Per-merchant-account card breakdown (Cobrado · Comisión · Neto a recibir).
  * Mirrors the visual language of AvailableBalance/CardTypeBreakdownStrip but
  * sliced by merchant account instead of card type. Read-only / info panel.
  */
 export function MerchantBreakdownPanel({ items, formatCurrency, className }: Props) {
-  const { t } = useTranslation('reports')
+  const { t, i18n } = useTranslation('reports')
   const total = useMemo(() => items.reduce((s, m) => s + m.netToReceive, 0), [items])
 
   if (items.length === 0) return null
@@ -45,10 +52,13 @@ export function MerchantBreakdownPanel({ items, formatCurrency, className }: Pro
               {t('salesSummary.merchantBreakdown.cols.commission')}
             </th>
             <th className="py-2 pl-2 text-right font-medium">{t('salesSummary.merchantBreakdown.cols.net')}</th>
+            <th className="py-2 pl-2 text-right font-medium">{t('salesSummary.merchantBreakdown.cols.share')}</th>
           </tr>
         </thead>
         <tbody>
-          {items.map(m => (
+          {items.map(m => {
+            const share = total > 0 ? (m.netToReceive / total) * 100 : 0
+            return (
             <tr key={m.merchantAccountId} className="border-b border-border/20 last:border-0">
               <td className="py-2 pr-2">
                 <div className="flex flex-col">
@@ -58,6 +68,12 @@ export function MerchantBreakdownPanel({ items, formatCurrency, className }: Pro
                       .filter(Boolean)
                       .join(' · ')}
                   </span>
+                  {m.estimatedSettlement?.nextDate && (
+                    <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                      <Clock className="h-3 w-3" aria-hidden />
+                      {t('salesSummary.merchantBreakdown.lands', { date: formatLands(m.estimatedSettlement.nextDate, i18n.language) })}
+                    </span>
+                  )}
                 </div>
               </td>
               <td className="py-2 px-2 text-right tabular-nums">{formatCurrency(m.collectedOnCard)}</td>
@@ -65,8 +81,10 @@ export function MerchantBreakdownPanel({ items, formatCurrency, className }: Pro
                 -{formatCurrency(m.platformFee)}
               </td>
               <td className="py-2 pl-2 text-right font-medium tabular-nums">{formatCurrency(m.netToReceive)}</td>
+              <td className="py-2 pl-2 text-right tabular-nums text-muted-foreground">{share.toFixed(0)}%</td>
             </tr>
-          ))}
+            )
+          })}
         </tbody>
       </table>
     </GlassCard>
