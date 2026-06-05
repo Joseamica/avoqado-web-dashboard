@@ -31,8 +31,8 @@ export function McpConnectGuide() {
   // Render helper (a function, NOT a nested component — avoids remount + the
   // react/no-unstable-nested-components lint).
   const copyRow = (value: string, which: 'url' | 'cli') => (
-    <div className="flex items-center justify-between gap-2 rounded-lg border border-input bg-muted/50 p-3">
-      <code className="min-w-0 flex-1 truncate font-mono text-xs text-foreground">{value}</code>
+    <div className="flex items-start justify-between gap-2 rounded-lg border border-input bg-muted/50 p-3">
+      <code className="min-w-0 flex-1 break-all font-mono text-xs leading-relaxed text-foreground">{value}</code>
       <Button
         size="sm"
         variant="ghost"

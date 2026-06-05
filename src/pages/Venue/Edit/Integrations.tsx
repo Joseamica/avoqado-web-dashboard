@@ -167,6 +167,11 @@ export default function VenueIntegrations() {
         <p className="text-muted-foreground mt-2">{t('edit.integrations.subtitle')}</p>
       </div>
 
+      {/* Avoqado MCP — featured first */}
+      <McpIntegrationCard />
+
+      <Separator />
+
       {/* TEMP HIDDEN: Integración con POS — la integración con sistemas externos (Square / Toast /
           Clover / Aloha / Micros / NCR / Custom / SoftRestaurant) no está lista todavía. Se oculta
           temporalmente; restaurar este bloque cuando esté implementada. */}
@@ -283,11 +288,6 @@ export default function VenueIntegrations() {
           </Button>
         </CardContent>
       </Card>
-
-      <Separator />
-
-      {/* Avoqado MCP — connect your AI to this venue */}
-      <McpIntegrationCard />
 
       {canManageCrypto && (
         <>

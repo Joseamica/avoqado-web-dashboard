@@ -4,6 +4,7 @@ import { ArrowRight, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { McpConnectGuide } from '@/components/mcp/McpConnectGuide'
+import { CornerSparkles } from '@/components/effects/CornerSparkles'
 
 const STORAGE_KEY = 'avoqado-mcp-announcement-dismissed'
 
@@ -37,29 +38,33 @@ export function McpAnnouncementBanner() {
 
   return (
     <>
-      <div className="relative mb-4 flex flex-col gap-3 rounded-xl border border-input bg-muted/40 p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="shrink-0 rounded-full bg-background p-2">
-            <Sparkles className="h-5 w-5 text-foreground" />
+      <div className="novelty-border mb-4">
+        <CornerSparkles>
+          <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 rounded-full bg-background p-2">
+                <Sparkles className="h-5 w-5 text-foreground" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">{t('mcpAnnouncement.title')}</p>
+                <p className="text-sm text-muted-foreground">{t('mcpAnnouncement.body')}</p>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
+              <Button size="sm" onClick={() => setOpen(true)} data-tour="mcp-announcement-cta">
+                {t('mcpAnnouncement.cta')}
+                <ArrowRight className="ml-1.5 h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={dismiss} className="h-8 w-8 cursor-pointer" aria-label={t('mcpAnnouncement.dismiss')}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground">{t('mcpAnnouncement.title')}</p>
-            <p className="text-sm text-muted-foreground">{t('mcpAnnouncement.body')}</p>
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
-          <Button size="sm" onClick={() => setOpen(true)} data-tour="mcp-announcement-cta">
-            {t('mcpAnnouncement.cta')}
-            <ArrowRight className="ml-1.5 h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={dismiss} className="h-8 w-8 cursor-pointer" aria-label={t('mcpAnnouncement.dismiss')}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+        </CornerSparkles>
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
+        <DialogContent className="max-h-[85vh] w-[calc(100%-2rem)] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-foreground" />
