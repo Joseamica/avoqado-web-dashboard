@@ -52,6 +52,14 @@ export const USO_CFDI_OPTIONS: ReadonlyArray<{ code: string; description: string
   { code: 'P01', description: 'Por definir' },
 ]
 
+/**
+ * The SAT codes as non-empty string tuples, derived from the catalogs above so
+ * the two stay in lockstep. Used to constrain the receptor schema to valid codes
+ * (a future text-input caller can't submit garbage; the Select UX is unchanged).
+ */
+const REGIMEN_FISCAL_CODES = REGIMEN_FISCAL_OPTIONS.map(o => o.code) as [string, ...string[]]
+const USO_CFDI_CODES = USO_CFDI_OPTIONS.map(o => o.code) as [string, ...string[]]
+
 // RFC: 3-4 letters + 6 digits + 3 homoclave chars (12 for morales, 13 for físicas).
 const RFC_REGEX = /^([A-ZÑ&]{3,4})\d{6}[A-Z0-9]{3}$/
 
@@ -68,12 +76,12 @@ export const receptorSchema = z.object({
     .transform(v => v.toUpperCase())
     .refine(v => RFC_REGEX.test(v), 'RFC con formato inválido.'),
   razonSocial: z.string().trim().min(1, 'La razón social es obligatoria.'),
-  regimenFiscal: z.string().trim().min(1, 'Selecciona un régimen fiscal.'),
+  regimenFiscal: z.enum(REGIMEN_FISCAL_CODES, { errorMap: () => ({ message: 'Selecciona un régimen fiscal.' }) }),
   codigoPostal: z
     .string()
     .trim()
     .regex(/^\d{5}$/, 'El código postal debe tener 5 dígitos.'),
-  usoCfdi: z.string().trim().min(1, 'Selecciona el uso del CFDI.'),
+  usoCfdi: z.enum(USO_CFDI_CODES, { errorMap: () => ({ message: 'Selecciona el uso del CFDI.' }) }),
   email: z.union([z.string().trim().email('Correo electrónico inválido.'), z.literal('')]).optional(),
 })
 
@@ -82,9 +90,11 @@ export type ReceptorFormValues = z.infer<typeof receptorSchema>
 export const EMPTY_RECEPTOR: ReceptorFormValues = {
   rfc: '',
   razonSocial: '',
-  regimenFiscal: '',
+  // Empty = unselected Select; not a valid enum member, so zod rejects it on
+  // submit with the custom message above. Cast keeps the empty-placeholder UX.
+  regimenFiscal: '' as ReceptorFormValues['regimenFiscal'],
   codigoPostal: '',
-  usoCfdi: '',
+  usoCfdi: '' as ReceptorFormValues['usoCfdi'],
   email: '',
 }
 
@@ -105,8 +115,9 @@ export type AutofacturaReceptorFormValues = z.infer<typeof autofacturaReceptorSc
 export const EMPTY_AUTOFACTURA_RECEPTOR: AutofacturaReceptorFormValues = {
   rfc: '',
   razonSocial: '',
-  regimenFiscal: '',
+  // Empty = unselected Select (see EMPTY_RECEPTOR).
+  regimenFiscal: '' as AutofacturaReceptorFormValues['regimenFiscal'],
   codigoPostal: '',
-  usoCfdi: '',
+  usoCfdi: '' as AutofacturaReceptorFormValues['usoCfdi'],
   email: '',
 }

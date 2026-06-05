@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { DateTime } from 'luxon'
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
 import { Download, FileText, MoreHorizontal, Search, X, XCircle } from 'lucide-react'
 
@@ -19,6 +20,7 @@ import {
 import { useAccess } from '@/hooks/use-access'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useAuth } from '@/context/AuthContext'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useVenueDateTime } from '@/utils/datetime'
 import { Currency } from '@/utils/currency'
 import { useCfdis } from '@/hooks/use-cfdi'
@@ -61,11 +63,6 @@ const SAMPLE_CFDIS: Cfdi[] = [
   },
 ]
 
-function toIsoDay(date: Date | undefined): string | undefined {
-  if (!date) return undefined
-  return date.toISOString().slice(0, 10)
-}
-
 function statusBadgeVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch (status) {
     case 'STAMPED':
@@ -85,6 +82,14 @@ export default function CfdiList() {
   const { can } = useAccess()
   const { checkFeatureAccess } = useAuth()
   const { formatDate } = useVenueDateTime()
+  const { venue } = useCurrentVenue()
+  const tz = venue?.timezone ?? 'America/Mexico_City'
+
+  // Format a venue-local JS Date (start/end of day from the DateRangePicker) as
+  // the VENUE-timezone calendar day. Using `toISOString()` would format in UTC,
+  // which for a Mexico evening rolls `to` forward to the next calendar day.
+  const toIsoDay = (date: Date | undefined): string | undefined =>
+    date ? DateTime.fromJSDate(date).setZone(tz).toISODate() ?? undefined : undefined
 
   // CFDI is a paid feature shown as a VISIBLE teaser. When the venue hasn't
   // subscribed we keep the page discoverable but render sample rows behind a
@@ -113,8 +118,15 @@ export default function CfdiList() {
       ...(toIsoDay(dateRange.from) && { from: toIsoDay(dateRange.from) }),
       ...(toIsoDay(dateRange.to) && { to: toIsoDay(dateRange.to) }),
     }),
-    [pagination, statusFilter, flowFilter, debouncedReceptorRfc, dateRange],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pagination, statusFilter, flowFilter, debouncedReceptorRfc, dateRange, tz],
   )
+
+  // Filters narrow the result set; if we're on a later page when they change, the
+  // narrowed set may not have that page → reset to the first page.
+  useEffect(() => {
+    setPagination(p => (p.pageIndex === 0 ? p : { ...p, pageIndex: 0 }))
+  }, [statusFilter, flowFilter, debouncedReceptorRfc, dateRange])
 
   const { data, isLoading, isError } = useCfdis(filters, { enabled: hasCfdi })
   // When locked, feed the table sample rows so the teaser looks real behind the blur.
@@ -321,7 +333,9 @@ export default function CfdiList() {
                     title={t('filters.filterBy', { field: t('filters.status') })}
                     options={STATUS_OPTIONS.map(s => ({ value: s, label: s }))}
                     selectedValues={statusFilter}
-                    onApply={setStatusFilter}
+                    // Backend supports a SINGLE status; enforce single-select so the
+                    // UI can't express an unsupported (and silently-dropped) 2+ state.
+                    onApply={vals => setStatusFilter(vals.slice(-1))}
                   />
                 </FilterPill>
 
@@ -335,7 +349,8 @@ export default function CfdiList() {
                     title={t('filters.filterBy', { field: t('filters.flow') })}
                     options={FLOW_OPTIONS.map(f => ({ value: f, label: t(`flow.${f}`, { defaultValue: f }) }))}
                     selectedValues={flowFilter}
-                    onApply={setFlowFilter}
+                    // Backend supports a SINGLE flow; enforce single-select (see status above).
+                    onApply={vals => setFlowFilter(vals.slice(-1))}
                   />
                 </FilterPill>
               </FilterPillBar>

@@ -45,11 +45,18 @@ interface AutofacturaCfdi {
   xmlUrl?: string
 }
 
-/** A status read where the ticket is already invoiced (STAMPED). */
+/**
+ * A status read where the ticket is already invoiced (STAMPED).
+ *
+ * The endpoint returns the MOST-RECENT CFDI of ANY status: a CANCELLED invoice
+ * still carries `uuid` + `pdfUrl`, so we must gate STRICTLY on `status` — never
+ * on the presence of `uuid`/`pdfUrl`. Otherwise a cancelled ticket would show
+ * the (cancelled) download state and the customer could never re-invoice, even
+ * though cancel-then-reissue is a normal SAT flow and the backend POST only
+ * blocks while a STAMPED CFDI exists.
+ */
 function isStamped(cfdi: AutofacturaCfdi | null | undefined): cfdi is AutofacturaCfdi {
-  if (!cfdi) return false
-  // Treat a present cfdi with a downloadable PDF (or an explicit STAMPED status) as invoiced.
-  return cfdi.status === 'STAMPED' || !!cfdi.pdfUrl || !!cfdi.uuid
+  return !!cfdi && cfdi.status === 'STAMPED'
 }
 
 type ResultState =

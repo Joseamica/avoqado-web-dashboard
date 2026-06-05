@@ -298,7 +298,7 @@ function AddMerchantConfig({
   // stripped server-side). Gated `settlements:read`; on 403 → empty list.
   const { data: merchantAccounts = [] } = useQuery({
     queryKey: ['fiscal-add-merchant-accounts', venueId],
-    queryFn: () => paymentProviderAPI.getVenueMerchantAccountsByVenueId(venueId),
+    queryFn: async () => (await paymentProviderAPI.getVenueMerchantAccountsByVenueId(venueId)) ?? [],
     enabled: !!venueId,
     staleTime: 60 * 1000,
     retry: false,
@@ -307,18 +307,20 @@ function AddMerchantConfig({
   // E-commerce channels for this venue. Gated to OWNER+; on 403 → empty list.
   const { data: ecommerceMerchants = [] } = useQuery({
     queryKey: ['fiscal-add-ecommerce-merchants', venueId],
-    queryFn: () => ecommerceMerchantAPI.listByVenue(venueId),
+    queryFn: async () => (await ecommerceMerchantAPI.listByVenue(venueId)) ?? [],
     enabled: !!venueId,
     staleTime: 60 * 1000,
     retry: false,
   })
 
   // Merchants WITHOUT a config = (all venue merchants) minus (already configured).
+  // Guard `?? []` because a 2xx with a `null` body slips past the `= []` query
+  // default (which only applies when `data === undefined`) and would crash `.filter`.
   const unconfigured = useMemo<UnconfiguredMerchant[]>(() => {
     const configuredAccountIds = new Set(merchantConfigs.map(c => c.merchantAccountId).filter(Boolean) as string[])
     const configuredEcommerceIds = new Set(merchantConfigs.map(c => c.ecommerceMerchantId).filter(Boolean) as string[])
 
-    const accountOptions: UnconfiguredMerchant[] = merchantAccounts
+    const accountOptions: UnconfiguredMerchant[] = (merchantAccounts ?? [])
       .filter(a => !configuredAccountIds.has(a.id))
       .map(a => ({
         kind: 'merchantAccount',
@@ -326,7 +328,7 @@ function AddMerchantConfig({
         label: a.displayName || a.alias || a.externalMerchantId,
       }))
 
-    const ecommerceOptions: UnconfiguredMerchant[] = ecommerceMerchants
+    const ecommerceOptions: UnconfiguredMerchant[] = (ecommerceMerchants ?? [])
       .filter(m => !configuredEcommerceIds.has(m.id))
       .map(m => ({ kind: 'ecommerceMerchant', id: m.id, label: m.channelName }))
 
@@ -429,6 +431,9 @@ export default function CfdiConfiguracion() {
 
   const [emisorModal, setEmisorModal] = useState<{ open: boolean; emisor: Emisor | null }>({ open: false, emisor: null })
   const [csdModal, setCsdModal] = useState<{ open: boolean; emisor: Emisor | null }>({ open: false, emisor: null })
+  // The emisor currently being provisioned, so only its button spins/disables
+  // (mirrors GlobalInvoiceSection's per-row `pendingId`).
+  const [provisioningId, setProvisioningId] = useState<string | null>(null)
 
   // When locked, feed sample cards so the teaser looks real behind the blur.
   const emisores = useMemo(() => (hasCfdi ? data?.emisores ?? [] : SAMPLE_EMISORES), [data, hasCfdi])
@@ -549,10 +554,13 @@ export default function CfdiConfiguracion() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => provisionMutation.mutate(emisor.id)}
-                        disabled={provisionMutation.isPending}
+                        onClick={() => {
+                          setProvisioningId(emisor.id)
+                          provisionMutation.mutate(emisor.id, { onSettled: () => setProvisioningId(null) })
+                        }}
+                        disabled={provisioningId === emisor.id}
                       >
-                        {provisionMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {provisioningId === emisor.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {t('emisores.connectPac')}
                       </Button>
                     )}
