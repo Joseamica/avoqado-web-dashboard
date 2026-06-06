@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronRight, TrendingUp, Users, Target, HelpCircle, Plus, Trash2, UserX, Search } from 'lucide-react'
+import { ChevronRight, TrendingUp, Users, Target, HelpCircle, Plus, Trash2, UserX, Search, Info } from 'lucide-react'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
@@ -24,12 +24,19 @@ interface AdvancedConfigProps {
 	updateData: (updates: Partial<WizardData>) => void
 	isOpen: boolean
 	onOpenChange: (open: boolean) => void
+	/**
+	 * 'create' (default): full editor — tiers & overrides are persisted with the new config.
+	 * 'edit': tiers & per-employee overrides are NOT saved from this panel (they have their own
+	 * editors on the config detail page), so they render as a read-only note instead of broken inputs.
+	 */
+	mode?: 'create' | 'edit'
 }
 
 const tierPeriodOptions: TierPeriod[] = ['WEEKLY', 'BIWEEKLY', 'MONTHLY']
 const tierEmojis = ['🥉', '🥈', '🥇', '💎', '👑']
 
-export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange }: AdvancedConfigProps) {
+export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange, mode = 'create' }: AdvancedConfigProps) {
+	const isEditMode = mode === 'edit'
 	const { t, i18n } = useTranslation('commissions')
 	const { toast } = useToast()
 	const { venueId } = useCurrentVenue()
@@ -178,7 +185,21 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange 
 			</CollapsibleTrigger>
 
 			<CollapsibleContent className="mt-4 space-y-4">
-				{/* Tiers Section */}
+				{/* Tiers Section — edit mode: managed on detail page, not saved here */}
+				{isEditMode ? (
+					<div className="p-4 rounded-xl border border-border/50 bg-muted/30 flex items-start gap-3">
+						<div className="p-2 rounded-lg bg-muted shrink-0">
+							<TrendingUp className="w-4 h-4 text-muted-foreground" />
+						</div>
+						<div>
+							<span className="font-medium text-sm">{t('wizard.advanced.tiers.title')}</span>
+							<p className="text-xs text-muted-foreground mt-0.5 flex items-start gap-1.5">
+								<Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+								<span>{t('config.tiersManagedSeparately')}</span>
+							</p>
+						</div>
+					</div>
+				) : (
 				<div className="p-4 rounded-xl border border-border/50 space-y-4">
 					<div className="flex items-center justify-between">
 						<div className="flex items-center">
@@ -370,6 +391,7 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange 
 						</div>
 					)}
 				</div>
+				)}
 
 				{/* Role Rates Section */}
 				<div className="p-4 rounded-xl border border-border/50 space-y-4">
@@ -605,7 +627,21 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange 
 					)}
 				</div>
 
-				{/* Overrides Section */}
+				{/* Overrides Section — edit mode: managed on detail page, not saved here */}
+				{isEditMode ? (
+					<div className="p-4 rounded-xl border border-border/50 bg-muted/30 flex items-start gap-3">
+						<div className="p-2 rounded-lg bg-muted shrink-0">
+							<UserX className="w-4 h-4 text-muted-foreground" />
+						</div>
+						<div>
+							<span className="font-medium text-sm">{t('wizard.advanced.overrides.title')}</span>
+							<p className="text-xs text-muted-foreground mt-0.5 flex items-start gap-1.5">
+								<Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+								<span>{t('config.overridesManagedSeparately')}</span>
+							</p>
+						</div>
+					</div>
+				) : (
 				<div className="p-4 rounded-xl border border-border/50 space-y-4">
 					<div className="flex items-center justify-between">
 						<div className="flex items-center">
@@ -812,6 +848,7 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange 
 						</div>
 					)}
 				</div>
+				)}
 			</CollapsibleContent>
 		</Collapsible>
 	)

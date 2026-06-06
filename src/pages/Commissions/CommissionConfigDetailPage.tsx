@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import {
 	ArrowLeft,
 	Pencil,
@@ -46,6 +47,7 @@ import {
 	useDeleteCommissionConfig,
 } from '@/hooks/useCommissions'
 import { useToast } from '@/hooks/use-toast'
+import { getMenuCategories } from '@/services/menu.service'
 import type { CommissionCalcType, CommissionRecipient } from '@/types/commission'
 import { cn } from '@/lib/utils'
 import CommissionTierList from './components/CommissionTierList'
@@ -88,7 +90,7 @@ export default function CommissionConfigDetailPage() {
 	const { configId } = useParams<{ configId: string }>()
 	const navigate = useNavigate()
 	const [searchParams, setSearchParams] = useSearchParams()
-	const { fullBasePath, venue } = useCurrentVenue()
+	const { fullBasePath, venue, venueId } = useCurrentVenue()
 	const { t, i18n } = useTranslation('commissions')
 	const { t: tCommon } = useTranslation()
 	const { toast } = useToast()
@@ -114,6 +116,17 @@ export default function CommissionConfigDetailPage() {
 	const { data: overrides, isLoading: isLoadingOverrides } = useCommissionOverrides(configId!)
 
 	const deleteConfigMutation = useDeleteCommissionConfig()
+
+	// Resolve category IDs -> names for category-filtered configs
+	const hasCategoryFilter = !!(config?.filterByCategories && config?.categoryIds && config.categoryIds.length > 0)
+	const { data: allCategories = [] } = useQuery({
+		queryKey: ['categories', venueId],
+		queryFn: () => getMenuCategories(venueId!),
+		enabled: !!venueId && hasCategoryFilter,
+		staleTime: 5 * 60 * 1000,
+	})
+	const categoryNameById = (id: string) =>
+		(allCategories as Array<{ id: string; name: string }>).find(c => c.id === id)?.name ?? id
 
 	// Format percentage
 	const formatPercent = (value: number) => `${(value * 100).toFixed(2)}%`
@@ -367,7 +380,7 @@ export default function CommissionConfigDetailPage() {
 							<div className="flex flex-wrap gap-1.5">
 								{config.categoryIds!.map((id) => (
 									<Badge key={id} variant="secondary" className="text-xs">
-										{id}
+										{categoryNameById(id)}
 									</Badge>
 								))}
 							</div>

@@ -519,7 +519,7 @@ export default function EditConfigDialog({ open, onOpenChange, config }: EditCon
         )}
 
         {/* Advanced Config */}
-        <CommissionAdvancedConfig data={data} updateData={updateData} isOpen={advancedOpen} onOpenChange={setAdvancedOpen} />
+        <CommissionAdvancedConfig data={data} updateData={updateData} isOpen={advancedOpen} onOpenChange={setAdvancedOpen} mode="edit" />
 
         {/* Validity Dates */}
         <div className="p-4 rounded-xl border border-border/50 space-y-4">

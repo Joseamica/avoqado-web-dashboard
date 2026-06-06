@@ -129,9 +129,9 @@ export default function TiersCard({ state, dispatch }: TiersCardProps) {
                         <div>
                           <label className="text-[10px] text-muted-foreground">{t('wizard.advanced.tiers.fromHeader')}</label>
                           {index > 0 && tier.minThresholdType === 'STAFF_GOAL' ? (
-                            <Badge variant="secondary" className="flex items-center gap-1 h-8 text-[10px] font-normal px-2 rounded-md">
+                            <Badge variant="secondary" className="flex items-center gap-1 h-8 text-xs font-normal px-2 rounded-md">
                               <Target className="w-3 h-3 shrink-0" />
-                              Meta
+                              {t('wizard.advanced.tiers.boundaryGoalShort')}
                             </Badge>
                           ) : (
                             <div className="relative">
@@ -159,15 +159,23 @@ export default function TiersCard({ state, dispatch }: TiersCardProps) {
                                 const newType: ThresholdType = tier.maxThresholdType === 'STAFF_GOAL' ? 'FIXED' : 'STAFF_GOAL'
                                 updateTier(index, { maxThresholdType: newType })
                               }}
-                              className="text-[9px] text-primary underline hover:no-underline leading-none"
+                              aria-label={
+                                tier.maxThresholdType === 'STAFF_GOAL'
+                                  ? t('wizard.advanced.tiers.useFixedBoundary')
+                                  : t('wizard.advanced.tiers.useGoalBoundary')
+                              }
+                              className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-xs text-primary leading-none transition-colors hover:bg-primary/10"
                             >
-                              {tier.maxThresholdType === 'STAFF_GOAL' ? 'Monto fijo' : 'Meta emp.'}
+                              <Target className="h-3 w-3 shrink-0" />
+                              {tier.maxThresholdType === 'STAFF_GOAL'
+                                ? t('wizard.advanced.tiers.boundaryFixed')
+                                : t('wizard.advanced.tiers.boundaryGoalShort')}
                             </button>
                           </div>
                           {tier.maxThresholdType === 'STAFF_GOAL' ? (
-                            <Badge variant="secondary" className="flex items-center gap-1 h-8 text-[10px] font-normal px-2 rounded-md w-full justify-start">
+                            <Badge variant="secondary" className="flex items-center gap-1 h-8 text-xs font-normal px-2 rounded-md w-full justify-start">
                               <Target className="w-3 h-3 shrink-0" />
-                              Meta del empleado
+                              {t('wizard.advanced.tiers.boundaryGoal')}
                             </Badge>
                           ) : (
                             <div className="relative">

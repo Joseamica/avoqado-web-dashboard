@@ -237,19 +237,46 @@ export default function CreateTierDialog({ open, onOpenChange, configId, tier, n
                 name="minThreshold"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('tiers.minThreshold')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        {...field}
-                        value={field.value ?? ''}
-                        onChange={e => {
-                          const raw = e.target.value
-                          field.onChange(raw === '' ? (undefined as unknown as number) : parseFloat(raw))
+                    <div className="flex items-center justify-between">
+                      <FormLabel>{t('tiers.minThreshold')}</FormLabel>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = form.getValues('minThresholdType')
+                          form.setValue('minThresholdType', current === 'STAFF_GOAL' ? 'FIXED' : 'STAFF_GOAL')
                         }}
-                      />
+                        aria-label={
+                          form.watch('minThresholdType') === 'STAFF_GOAL'
+                            ? t('wizard.advanced.tiers.useFixedBoundary')
+                            : t('wizard.advanced.tiers.useGoalBoundary')
+                        }
+                        className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-xs text-primary leading-none transition-colors hover:bg-primary/10"
+                      >
+                        <Target className="h-3 w-3 shrink-0" />
+                        {form.watch('minThresholdType') === 'STAFF_GOAL'
+                          ? t('wizard.advanced.tiers.boundaryFixed')
+                          : t('wizard.advanced.tiers.boundaryGoalShort')}
+                      </button>
+                    </div>
+                    <FormControl>
+                      {form.watch('minThresholdType') === 'STAFF_GOAL' ? (
+                        <Badge variant="secondary" className="flex items-center gap-1.5 h-9 text-xs font-normal px-3 rounded-md w-full justify-start">
+                          <Target className="w-3.5 h-3.5 shrink-0" />
+                          {t('wizard.advanced.tiers.boundaryGoal')}
+                        </Badge>
+                      ) : (
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          {...field}
+                          value={field.value ?? ''}
+                          onChange={e => {
+                            const raw = e.target.value
+                            field.onChange(raw === '' ? (undefined as unknown as number) : parseFloat(raw))
+                          }}
+                        />
+                      )}
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -269,16 +296,24 @@ export default function CreateTierDialog({ open, onOpenChange, configId, tier, n
                           const current = form.getValues('maxThresholdType')
                           form.setValue('maxThresholdType', current === 'STAFF_GOAL' ? 'FIXED' : 'STAFF_GOAL')
                         }}
-                        className="text-[10px] text-primary underline hover:no-underline"
+                        aria-label={
+                          form.watch('maxThresholdType') === 'STAFF_GOAL'
+                            ? t('wizard.advanced.tiers.useFixedBoundary')
+                            : t('wizard.advanced.tiers.useGoalBoundary')
+                        }
+                        className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-xs text-primary leading-none transition-colors hover:bg-primary/10"
                       >
-                        {form.watch('maxThresholdType') === 'STAFF_GOAL' ? 'Monto fijo' : 'Meta del empleado'}
+                        <Target className="h-3 w-3 shrink-0" />
+                        {form.watch('maxThresholdType') === 'STAFF_GOAL'
+                          ? t('wizard.advanced.tiers.boundaryFixed')
+                          : t('wizard.advanced.tiers.boundaryGoalShort')}
                       </button>
                     </div>
                     <FormControl>
                       {form.watch('maxThresholdType') === 'STAFF_GOAL' ? (
                         <Badge variant="secondary" className="flex items-center gap-1.5 h-9 text-xs font-normal px-3 rounded-md w-full justify-start">
                           <Target className="w-3.5 h-3.5 shrink-0" />
-                          Meta del empleado
+                          {t('wizard.advanced.tiers.boundaryGoal')}
                         </Badge>
                       ) : (
                         <Input
