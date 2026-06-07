@@ -358,6 +358,7 @@
         "tabClaude": "Claude",
         "tabCodex": "Codex",
         "claudeIntro": "From the Claude app or web (Pro plan or higher):",
+        "walkthrough": "Step-by-step walkthrough:",
         "claudeStep1": "Open Settings → Connectors → \"Add custom connector\".",
         "claudeStep2": "Give it a name (e.g. \"Avoqado\") and paste this URL:",
         "claudeStep3": "Sign in with your Avoqado email and password. Done!",

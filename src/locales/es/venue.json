@@ -358,6 +358,7 @@
         "tabClaude": "Claude",
         "tabCodex": "Codex",
         "claudeIntro": "Desde la app o web de Claude (plan Pro o superior):",
+        "walkthrough": "Guía interactiva paso a paso:",
         "claudeStep1": "Abre Configuración → Conectores → «Agregar conector personalizado».",
         "claudeStep2": "Ponle un nombre (ej. «Avoqado») y pega esta URL:",
         "claudeStep3": "Inicia sesión con tu correo y contraseña de Avoqado. ¡Listo!",

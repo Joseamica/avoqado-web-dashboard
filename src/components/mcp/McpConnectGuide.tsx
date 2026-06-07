@@ -84,6 +84,20 @@ export function McpConnectGuide() {
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">{t(`${K}.claudeIntro`)}</p>
 
+          {/* Video walkthrough — visual demo of the Claude connector flow. */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">{t(`${K}.walkthrough`)}</p>
+            <iframe
+              src="https://embed.videoscripter.ai/video/019e9b2d-275c-70f5-8c4c-06081c040901"
+              title="Cómo conectar Avoqado MCP con Claude"
+              className="aspect-video w-full rounded-xl border border-input"
+              loading="lazy"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allow="fullscreen"
+              allowFullScreen
+            />
+          </div>
+
           <Step n={1}>
             <p className="text-sm text-foreground">{t(`${K}.claudeStep1`)}</p>
           </Step>
