@@ -79,10 +79,13 @@ const STATUS_OPTIONS: { value: SaleVerificationStatus; label: string }[] = [
   { value: 'FAILED', label: 'Revisar' },
 ]
 
+// "eSIM" is a SIM type, not a sale type — eSIM sales are now classified as
+// línea nueva / portabilidad (backend deriveSaleType, 2026-06-08), so the ESIM
+// filter would never match any row. The SaleType/SALE_TYPE_LABELS ESIM member
+// is kept for backwards compatibility but is no longer offered as a filter.
 const SALE_TYPE_OPTIONS: { value: SaleType; label: string }[] = [
   { value: 'LINEA_NUEVA', label: SALE_TYPE_LABELS.LINEA_NUEVA },
   { value: 'PORTABILIDAD', label: SALE_TYPE_LABELS.PORTABILIDAD },
-  { value: 'ESIM', label: SALE_TYPE_LABELS.ESIM },
 ]
 
 const PAYMENT_FORM_OPTIONS: { value: PaymentForm; label: string }[] = [
