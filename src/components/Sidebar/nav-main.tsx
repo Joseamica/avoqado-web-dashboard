@@ -503,7 +503,8 @@ export function NavMain({
                 {item.isAvoqadoCore && !isCollapsed && <AvoqadoBadge />}
                 {item.icon && <item.icon className={isSuperadminItem ? superadminIconClass : undefined} />}
                 <span className={isSuperadminItem ? superadminGradientTextClass : undefined}>{item.title}</span>
-                <VisibilityToggle url={item.url} className="ml-auto" />
+                {item.premiumLocked && <TierBadge feature={item.gatedFeature} />}
+                {!item.premiumLocked && <VisibilityToggle url={item.url} className="ml-auto" />}
                 <ChevronRight className="transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
               </SidebarMenuButton>
             </CollapsibleTrigger>
@@ -548,6 +549,7 @@ export function NavMain({
                           }}
                         >
                           <span className={isSuperadminSubItem ? superadminGradientTextClass : undefined}>{subItem.title}</span>
+                          {subItem.premiumLocked && <TierBadge feature={subItem.gatedFeature} />}
                           <SubItemVisibilityToggle url={subItem.url} />
                         </NavLink>
                       </SidebarMenuSubButton>

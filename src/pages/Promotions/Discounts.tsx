@@ -36,6 +36,7 @@ import {
 	SelectValue,
 } from '@/components/ui/select'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
+import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import discountService from '@/services/discount.service'
@@ -337,6 +338,7 @@ export default function Discounts() {
 	)
 
 	return (
+		<FeatureGate feature="PROMOTIONS">
 		<div className="p-4 bg-background text-foreground">
 			<div className="flex items-center justify-between mb-6">
 				<div>
@@ -486,5 +488,6 @@ export default function Discounts() {
 				onSuccess={(discountId) => navigate(discountId)}
 			/>
 		</div>
+		</FeatureGate>
 	)
 }

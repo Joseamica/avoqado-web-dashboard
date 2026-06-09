@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
+import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import couponService from '@/services/coupon.service'
@@ -268,6 +269,7 @@ export default function Coupons() {
   )
 
   return (
+    <FeatureGate feature="PROMOTIONS">
     <div className="p-4 bg-background text-foreground">
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -423,5 +425,6 @@ export default function Coupons() {
         </AlertDialog>
       )}
     </div>
+    </FeatureGate>
   )
 }

@@ -495,16 +495,22 @@ export function AppSidebar({
         items.push({ title: t('sidebar:routes.reviews'), url: 'reviews', permission: 'reviews:read', keywords: ['comentarios', 'opiniones', 'calificaciones', 'feedback', 'ratings'] })
       }
 
-      // Promotions dropdown
+      // Promotions dropdown — VISIBLE TEASER (Pro feature). Discounts + coupons stay
+      // visible with a ⭐ Pro tier badge when the venue's plan lacks PROMOTIONS; the
+      // pages themselves render the <FeatureGate> paywall. Never use checkFeatureAccess
+      // here — it can't tier-gate (short-circuits true for normal venues).
+      const hasPromotionsFeature = hasFeatureAccess('PROMOTIONS')
       const promoItems = [
-        { title: t('sidebar:promotionsMenu.discounts'), url: 'promotions/discounts', permission: 'discounts:read', keywords: ['ofertas', 'promociones'] },
-        { title: t('sidebar:promotionsMenu.coupons'), url: 'promotions/coupons', permission: 'coupons:read', keywords: ['codigos', 'vouchers'] },
+        { title: t('sidebar:promotionsMenu.discounts'), url: 'promotions/discounts', permission: 'discounts:read', premiumLocked: !hasPromotionsFeature, gatedFeature: 'PROMOTIONS', keywords: ['ofertas', 'promociones'] },
+        { title: t('sidebar:promotionsMenu.coupons'), url: 'promotions/coupons', permission: 'coupons:read', premiumLocked: !hasPromotionsFeature, gatedFeature: 'PROMOTIONS', keywords: ['codigos', 'vouchers'] },
       ].filter(sub => !sub.permission || can(sub.permission))
 
       if (promoItems.length > 0 && canWL('AVOQADO_PROMOTIONS')) {
         items.push({
           title: t('sidebar:promotionsMenu.title'),
           url: '#promotions',
+          premiumLocked: !hasPromotionsFeature,
+          gatedFeature: 'PROMOTIONS',
           items: promoItems,
         })
       }
