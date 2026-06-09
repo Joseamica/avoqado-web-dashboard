@@ -231,6 +231,9 @@ export const WLSalesDetail = lazyWithRetry(() => import('@/pages/organizations/S
 export const PayLaterAging = lazyWithRetry(() => import('@/pages/Reports/PayLaterAging'))
 export const SalesSummary = lazyWithRetry(() => import('@/pages/Reports/SalesSummary'))
 export const SalesByItem = lazyWithRetry(() => import('@/pages/Reports/SalesByItem'))
+export const SalesByCategory = lazyWithRetry(() => import('@/pages/Reports/SalesByCategory'))
+export const PaymentMethods = lazyWithRetry(() => import('@/pages/Reports/PaymentMethods'))
+export const Refunds = lazyWithRetry(() => import('@/pages/Reports/Refunds'))
 export const HomeDashboardCharts = lazyWithRetry(() => import('@/pages/Reports/HomeDashboardCharts'))
 
 // Demo Pages (temporary)

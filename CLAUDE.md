@@ -13,6 +13,22 @@
 
 When rules conflict: `.claude/rules/` wins > this file > `docs/guides/` > `docs/`
 
+## 🔴 CRITICAL — Ask which payment tier BEFORE building or changing anything
+
+Avoqado is a tier-gated SaaS (**FREE · PRO · PREMIUM · ENTERPRISE**). Whenever you add a new
+feature, modify existing behavior, or expose a new capability, **STOP and ask the founder which
+paid tier it falls under** — then wire the gating to match. A change shipped without a tier
+decision is unfinished: it either leaks paid value into a lower tier or hides a free capability
+behind a paywall. **This is the one client that already enforces tiers** — wire the FeatureGate here.
+
+- **Display/CTA map (this repo):** `src/config/plan-catalog.ts` (`TierId`, `PLAN_TIERS`,
+  `getTierForFeature()` → FeatureGate upsell). Route guards: `FeatureProtectedRoute` / `ModuleProtectedRoute`.
+- **Backend (authoritative):** `avoqado-server/src/services/access/basePlan.service.ts` +
+  `avoqado-server/src/middlewares/checkFeatureAccess.middleware.ts`. Obligatory gating questions:
+  `avoqado-server/.claude/rules/feature-gating.md`. PREMIUM-only codes today: `CFDI`, `INVENTORY_TRACKING`.
+- **Enforcement status:** ✅ only **avoqado-web-dashboard** enforces tiers today; **avoqado-ios** and
+  **avoqado-android** have NO tier gating yet. Treat tier codes like permissions: a name mismatch fails silently.
+
 **Maintaining this file:** Short rules (1-3 lines) go directly here. Detailed content (code examples, tables, >10 lines) goes in `docs/` or
 `.claude/rules/`. Keep this file under ~200 lines — it loads every session.
 

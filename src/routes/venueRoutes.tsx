@@ -95,6 +95,9 @@ import {
   CfdiConfiguracion,
   RolePermissions,
   SalesByItem,
+  SalesByCategory,
+  PaymentMethods,
+  Refunds,
   SalesSummary,
   ShiftId,
   Shifts,
@@ -254,6 +257,21 @@ export function createVenueRoutes(): RouteObject[] {
       path: 'reports/sales-by-item',
       element: <KYCProtectedRoute />,
       children: [{ index: true, element: <SalesByItem /> }],
+    },
+    {
+      path: 'reports/sales-by-category',
+      element: <KYCProtectedRoute />,
+      children: [{ index: true, element: <SalesByCategory /> }],
+    },
+    {
+      path: 'reports/payment-methods',
+      element: <KYCProtectedRoute />,
+      children: [{ index: true, element: <PaymentMethods /> }],
+    },
+    {
+      path: 'reports/refunds',
+      element: <KYCProtectedRoute />,
+      children: [{ index: true, element: <Refunds /> }],
     },
     {
       path: 'reports/home-charts',
