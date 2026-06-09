@@ -1,4 +1,73 @@
 {
+  "payLaterAging": {
+    "title": "Accounts Receivable",
+    "subtitle": "\"Pay Later\" orders grouped by aging",
+    "liveBadge": "Updated every minute",
+    "totalLabel": "Total receivable",
+    "order": "{{count}} order",
+    "orders": "{{count}} orders",
+    "atRisk": "{{amount}} at risk",
+    "atRiskCaption": "{{pct}}% overdue 60+ days",
+    "day": "{{count}} day",
+    "days": "{{count}} days",
+    "buckets": {
+      "current": "0–30 days",
+      "soon": "31–60 days",
+      "overdue": "61–90 days",
+      "critical": "90+ days"
+    },
+    "captions": {
+      "current": "Current",
+      "soon": "Due soon",
+      "overdue": "Overdue",
+      "critical": "Critical"
+    },
+    "columns": {
+      "order": "Order",
+      "customer": "Customer",
+      "table": "Table",
+      "aging": "Aging",
+      "date": "Date",
+      "total": "Total",
+      "paid": "Paid",
+      "balance": "Pending Balance",
+      "actions": "Actions"
+    },
+    "noName": "No name",
+    "rowActions": {
+      "viewOrder": "View Order",
+      "viewCustomer": "View Customer",
+      "settle": "Settle Order"
+    },
+    "detailTitle": "Order Details",
+    "detailSubtitle": "Pending payment, sorted from most to least overdue",
+    "searchPlaceholder": "Search by order, customer or table...",
+    "empty": {
+      "title": "No accounts receivable",
+      "subtitle": "All \"Pay Later\" orders are settled. Well done!"
+    },
+    "error": {
+      "title": "Error",
+      "load": "Failed to load the aging report: {{message}}"
+    },
+    "settle": {
+      "successTitle": "Order Settled",
+      "successDesc": "Order {{order}} has been marked as paid",
+      "errorTitle": "Error",
+      "errorDesc": "Failed to settle the order",
+      "dialogTitle": "Settle Order",
+      "dialogDesc": "Mark order {{order}} as paid",
+      "customer": "Customer",
+      "balance": "Pending balance",
+      "daysOverdue": "Days overdue",
+      "notesLabel": "Notes (optional)",
+      "notesPlaceholder": "E.g. Cash payment, Bank transfer...",
+      "notesHelp": "Add details about how the payment was received",
+      "cancel": "Cancel",
+      "confirm": "Settle Order",
+      "submitting": "Settling..."
+    }
+  },
   "salesSummary": {
     "title": "Sales Summary",
     "totalSales": "Total Sales",

@@ -1,4 +1,73 @@
 {
+  "payLaterAging": {
+    "title": "Cuentas por Cobrar",
+    "subtitle": "Órdenes \"Pagar Después\" agrupadas por antigüedad de vencimiento",
+    "liveBadge": "Actualizado cada minuto",
+    "totalLabel": "Total por cobrar",
+    "order": "{{count}} orden",
+    "orders": "{{count}} órdenes",
+    "atRisk": "{{amount}} en riesgo",
+    "atRiskCaption": "{{pct}}% vencido +60 días",
+    "day": "{{count}} día",
+    "days": "{{count}} días",
+    "buckets": {
+      "current": "0–30 días",
+      "soon": "31–60 días",
+      "overdue": "61–90 días",
+      "critical": "+90 días"
+    },
+    "captions": {
+      "current": "Al corriente",
+      "soon": "Por vencer",
+      "overdue": "Vencidas",
+      "critical": "Críticas"
+    },
+    "columns": {
+      "order": "Orden",
+      "customer": "Cliente",
+      "table": "Mesa",
+      "aging": "Antigüedad",
+      "date": "Fecha",
+      "total": "Total",
+      "paid": "Pagado",
+      "balance": "Saldo Pendiente",
+      "actions": "Acciones"
+    },
+    "noName": "Sin nombre",
+    "rowActions": {
+      "viewOrder": "Ver Orden",
+      "viewCustomer": "Ver Cliente",
+      "settle": "Liquidar Orden"
+    },
+    "detailTitle": "Detalle de Órdenes",
+    "detailSubtitle": "Pendientes de pago, ordenadas de más a menos vencidas",
+    "searchPlaceholder": "Buscar por orden, cliente o mesa...",
+    "empty": {
+      "title": "No tienes cuentas por cobrar",
+      "subtitle": "Todas las órdenes \"Pagar Después\" están liquidadas. ¡Bien hecho!"
+    },
+    "error": {
+      "title": "Error",
+      "load": "Error al cargar el reporte de antigüedad: {{message}}"
+    },
+    "settle": {
+      "successTitle": "Orden Liquidada",
+      "successDesc": "La orden {{order}} ha sido marcada como pagada",
+      "errorTitle": "Error",
+      "errorDesc": "Error al liquidar la orden",
+      "dialogTitle": "Liquidar Orden",
+      "dialogDesc": "Marcar la orden {{order}} como pagada",
+      "customer": "Cliente",
+      "balance": "Saldo pendiente",
+      "daysOverdue": "Días vencido",
+      "notesLabel": "Notas (opcional)",
+      "notesPlaceholder": "Ej: Pago en efectivo, Transferencia bancaria...",
+      "notesHelp": "Agrega detalles sobre cómo se recibió el pago",
+      "cancel": "Cancelar",
+      "confirm": "Liquidar Orden",
+      "submitting": "Liquidando..."
+    }
+  },
   "salesSummary": {
     "title": "Resumen de Ventas",
     "totalSales": "Total de Ventas",
