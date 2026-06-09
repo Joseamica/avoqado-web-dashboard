@@ -70,6 +70,7 @@ function makePlanState(planTier: PlanState['planTier']): PlanState {
     gracePeriodEndsAt: null,
     paymentMethod: null,
     stripeSubscriptionId: null,
+    retentionOfferEligible: false,
   }
 }
 

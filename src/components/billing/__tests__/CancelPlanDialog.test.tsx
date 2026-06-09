@@ -60,12 +60,15 @@ vi.mock('@/utils/datetime', () => ({
 }))
 
 // ── Default props ─────────────────────────────────────────────────────────────
+// Eligible by default so the existing offer-step assertions keep exercising the
+// full reason → offer → confirm flow. Ineligibility is covered explicitly below.
 const defaultProps = {
   open: true,
   onOpenChange: vi.fn(),
   venueId: 'venue-abc',
   planName: 'Avoqado Pro',
   currentPeriodEnd: '2026-07-08',
+  retentionOfferEligible: true,
 }
 
 describe('CancelPlanDialog', () => {
@@ -104,8 +107,8 @@ describe('CancelPlanDialog', () => {
     expect(continueBtn).toBeDisabled()
   })
 
-  it('selecting a reason enables Continue; clicking it advances to step "offer"', async () => {
-    render(<CancelPlanDialog {...defaultProps} />)
+  it('with retentionOfferEligible=true, selecting a reason enables Continue; clicking it advances to step "offer"', async () => {
+    render(<CancelPlanDialog {...defaultProps} retentionOfferEligible={true} />)
 
     // Select "tooExpensive"
     const expensiveLabel = screen.getByText('plan.cancel.reason.options.tooExpensive')
@@ -119,6 +122,23 @@ describe('CancelPlanDialog', () => {
     await waitFor(() => {
       expect(screen.getByText('plan.cancel.offer.title')).toBeInTheDocument()
     })
+  })
+
+  it('with retentionOfferEligible=false, reason → Continuar skips the offer step and goes straight to confirm', async () => {
+    render(<CancelPlanDialog {...defaultProps} retentionOfferEligible={false} />)
+
+    fireEvent.click(screen.getByText('plan.cancel.reason.options.tooExpensive'))
+    fireEvent.click(screen.getByText('plan.cancel.reason.continueCta'))
+
+    // Lands directly on confirm
+    await waitFor(() => {
+      expect(screen.getByText('plan.cancel.confirm.title')).toBeInTheDocument()
+    })
+
+    // The offer step (and its countdown timer) must NOT be shown
+    expect(screen.queryByText('plan.cancel.offer.title')).not.toBeInTheDocument()
+    expect(screen.queryByText('plan.cancel.offer.discountBody')).not.toBeInTheDocument()
+    expect(screen.queryByText(/plan\.cancel\.offer\.timerLabel/)).not.toBeInTheDocument()
   })
 
   it('offer step shows the discount copy and a live countdown (MM:SS format)', async () => {

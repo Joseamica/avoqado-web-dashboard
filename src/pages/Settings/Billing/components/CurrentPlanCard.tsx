@@ -144,6 +144,7 @@ export function CurrentPlanCard({ venueId }: { venueId: string }) {
         venueId={venueId}
         planName={plan.planName}
         currentPeriodEnd={plan.currentPeriodEnd}
+        retentionOfferEligible={plan.retentionOfferEligible ?? false}
       />
     </>
   )

@@ -138,6 +138,13 @@ export interface PlanState {
   gracePeriodEndsAt: string | null
   paymentMethod: { brand: string; last4: string; expMonth: number; expYear: number } | null
   stripeSubscriptionId: string | null
+  /**
+   * Whether the venue is eligible to be shown the retention discount/pause OFFER
+   * during cancellation. True only when the subscription has ≥30-day tenure and
+   * no active discount (anti-abuse: a brand-new subscriber can't buy → cancel →
+   * farm the discount). When false, the cancel dialog skips the offer step.
+   */
+  retentionOfferEligible: boolean
 }
 
 /** Get the venue's base-plan state. */

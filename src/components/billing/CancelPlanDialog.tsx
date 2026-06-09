@@ -308,9 +308,23 @@ export interface CancelPlanDialogProps {
   venueId: string
   planName: string | null
   currentPeriodEnd: string | null
+  /**
+   * Whether the venue is eligible to be shown the retention OFFER step
+   * (discount / pause). Anti-abuse: false for brand-new subs (<30d tenure) or
+   * subs that already have an active discount. When false, the reason step's
+   * "Continuar" goes straight to confirm — the offer step is skipped entirely.
+   */
+  retentionOfferEligible?: boolean
 }
 
-export function CancelPlanDialog({ open, onOpenChange, venueId, planName, currentPeriodEnd }: CancelPlanDialogProps) {
+export function CancelPlanDialog({
+  open,
+  onOpenChange,
+  venueId,
+  planName,
+  currentPeriodEnd,
+  retentionOfferEligible = false,
+}: CancelPlanDialogProps) {
   const [step, setStep] = useState<Step>('reason')
   const [reason, setReason] = useState<CancelReason | null>(null)
   const [otherText, setOtherText] = useState('')
@@ -326,20 +340,27 @@ export function CancelPlanDialog({ open, onOpenChange, venueId, planName, curren
 
   const handleKeep = () => onOpenChange(false)
 
+  // From the reason step, advance to the offer step ONLY when eligible;
+  // otherwise skip straight to confirm.
+  const handleContinue = () => setStep(retentionOfferEligible ? 'offer' : 'confirm')
+
+  // Defensive: if we somehow land on 'offer' while ineligible, treat it as confirm.
+  const effectiveStep: Step = step === 'offer' && !retentionOfferEligible ? 'confirm' : step
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        {step === 'reason' && (
+        {effectiveStep === 'reason' && (
           <ReasonStep
             reason={reason}
             setReason={setReason}
             otherText={otherText}
             setOtherText={setOtherText}
             onKeep={handleKeep}
-            onContinue={() => setStep('offer')}
+            onContinue={handleContinue}
           />
         )}
-        {step === 'offer' && (
+        {effectiveStep === 'offer' && (
           <OfferStep
             reason={reason}
             venueId={venueId}
@@ -347,7 +368,7 @@ export function CancelPlanDialog({ open, onOpenChange, venueId, planName, curren
             onDecline={() => setStep('confirm')}
           />
         )}
-        {step === 'confirm' && (
+        {effectiveStep === 'confirm' && (
           <ConfirmStep
             venueId={venueId}
             planName={planName}

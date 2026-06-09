@@ -306,7 +306,12 @@ export function AppSidebar({
     ].filter(item => !item.permission || can(item.permission)) as any[]
 
     // ── Inventario ──
-    const inventorySubItems = checkFeatureAccess('INVENTORY_TRACKING') ? [
+    // VISIBLE TEASER (like Facturación): the group is ALWAYS built so it stays
+    // discoverable. Sub-items are still permission-filtered (inventory:read).
+    // The FEATURE/tier gate no longer HIDES the group — instead the parent nav
+    // item is marked `premiumLocked` (👑/⭐ badge) when the venue's plan lacks
+    // INVENTORY_TRACKING, and the inventory page shows the <FeatureGate> paywall.
+    const inventorySubItems = [
       { title: 'Resumen de existencias', url: 'inventory/stock-overview', permission: 'inventory:read', keywords: ['stock', 'materia prima', 'almacen'] },
       { title: 'Historial', url: 'inventory/history', permission: 'inventory:read', keywords: ['movimientos', 'registro'] },
       { title: 'Pedidos', url: 'inventory/purchase-orders', permission: 'inventory:read', keywords: ['ordenes de compra', 'abastecimiento'] },
@@ -318,7 +323,7 @@ export function AppSidebar({
       { title: 'Conteos de inventario', url: 'inventory/stock-counts', permission: 'inventory:read', keywords: ['recuentos', 'conteo fisico', 'auditoria'] },
       { title: 'Transferencias', url: 'inventory/transfers', permission: 'inventory:read', keywords: ['traslados', 'movimientos entre ubicaciones'] },
       { title: 'Reabastecimientos pendientes', url: 'inventory/restocks', permission: 'inventory:read', comingSoon: true },
-    ].filter(item => !item.permission || can(item.permission)) as any[] : []
+    ].filter(item => !item.permission || can(item.permission)) as any[]
 
     // ── Ventas ──
     const salesSubItems = [
