@@ -183,3 +183,66 @@ export const createPlanCheckoutSession = async (
   const res = await api.post(`/api/v1/dashboard/venues/${venueId}/plan/checkout`, { tier, interval })
   return res.data.url as string
 }
+
+// ─── Free-plan seat cap ──────────────────────────────────────────────────────
+
+/**
+ * Seat-cap status for a venue. Drives the proactive "Invite teammate" paywall.
+ * - `cap = null` → unlimited seats (paid or exempt venue).
+ * - `allowed = false` → Free venue at the seat cap (and NOT exempt) → invites must
+ *   be blocked and the user upsold to Pro.
+ */
+export interface SeatStatus {
+  cap: number | null
+  current: number
+  allowed: boolean
+  exempt: boolean
+}
+
+/**
+ * A cap-counting StaffVenue row in the Pro→Free downgrade "choose who stays" roster.
+ * `isOwner = true` is the venue owner — must always be kept (pre-selected + locked).
+ */
+export interface DowngradeStaffRow {
+  staffVenueId: string
+  staffId: string
+  name: string
+  email: string
+  role: string
+  isOwner: boolean
+  lastActiveAt: string | null
+}
+
+/**
+ * Preview of what a downgrade to Free implies. `required = true` means the venue has
+ * more active users than Free allows → the owner MUST pick who stays before downgrading.
+ */
+export interface DowngradePreview {
+  required: boolean
+  cap: number
+  currentActive: number
+  keepMax: number
+  staff: DowngradeStaffRow[]
+}
+
+/** Get the venue's seat-cap status (drives the invite paywall). */
+export const getVenueSeatStatus = async (venueId: string): Promise<SeatStatus> => {
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/plan/seat-status`)
+  return response.data.data
+}
+
+/** Get the Pro→Free downgrade preview (who stays / who gets deactivated). */
+export const getDowngradePreview = async (venueId: string): Promise<DowngradePreview> => {
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/plan/downgrade-preview`)
+  return response.data.data
+}
+
+/**
+ * Schedule a downgrade to the Free plan at period end. `keepStaffVenueIds` is the set
+ * of active cap-counting StaffVenue ids to keep — must include the OWNER and be ≤ keepMax.
+ * Pass an empty array when already under cap. Returns the updated PlanState.
+ */
+export const downgradeVenueToFree = async (venueId: string, keepStaffVenueIds: string[]): Promise<PlanState> => {
+  const response = await api.post(`/api/v1/dashboard/venues/${venueId}/plan/downgrade`, { keepStaffVenueIds })
+  return response.data.data
+}

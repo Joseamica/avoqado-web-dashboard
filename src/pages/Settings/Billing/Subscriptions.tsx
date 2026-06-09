@@ -22,10 +22,19 @@ import { useAuth } from '@/context/AuthContext'
 import { useSocket } from '@/context/SocketContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
-import { createPlanCheckoutSession, getVenueFeatures, getVenuePlan, type VenueFeatureStatus } from '@/services/features.service'
+import {
+  createPlanCheckoutSession,
+  downgradeVenueToFree,
+  getDowngradePreview,
+  getVenueFeatures,
+  getVenuePlan,
+  type DowngradePreview,
+  type VenueFeatureStatus,
+} from '@/services/features.service'
 import { StaffRole } from '@/types'
 import { PlanPicker } from '@/components/billing/PlanPicker'
 import { PlanUpgradeDialog } from '@/components/billing/PlanUpgradeDialog'
+import { DowngradeReconcileDialog } from '@/components/billing/DowngradeReconcileDialog'
 import { SuperadminFeatureControl } from './components/SuperadminFeatureControl'
 import type { TierId } from '@/config/plan-catalog'
 
@@ -96,6 +105,45 @@ export default function Subscriptions() {
 
   const startCheckout = (tier: 'PRO' | 'PREMIUM', interval: 'monthly' | 'annual') => {
     planCheckoutMutation.mutate({ tier, interval })
+  }
+
+  // ─── Pro→Free downgrade "choose who stays" ────────────────────────────────
+  // When the owner picks Free while on a paid plan we first fetch the preview.
+  //  • required=false → schedule the downgrade immediately (period-end), same
+  //    confirmation tone as the cancel flow.
+  //  • required=true  → open the DowngradeReconcileDialog so the owner picks who stays.
+  const [reconcilePreview, setReconcilePreview] = useState<DowngradePreview | null>(null)
+
+  const downgradePreviewMutation = useMutation({
+    mutationFn: () => getDowngradePreview(venueId),
+    onSuccess: preview => {
+      if (preview.required) {
+        setReconcilePreview(preview)
+      } else {
+        // Already under cap — schedule the downgrade with an empty keep-list.
+        directDowngradeMutation.mutate()
+      }
+    },
+    onError: () => {
+      toast({ title: t('plan.downgrade.errorToast'), variant: 'destructive' })
+    },
+  })
+
+  const directDowngradeMutation = useMutation({
+    mutationFn: () => downgradeVenueToFree(venueId, []),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['venuePlan', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['seatStatus', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['venueFeatures', venueId] })
+      toast({ title: t('plan.downgrade.scheduledToast') })
+    },
+    onError: () => {
+      toast({ title: t('plan.downgrade.errorToast'), variant: 'destructive' })
+    },
+  })
+
+  const handleDowngradeToFree = () => {
+    downgradePreviewMutation.mutate()
   }
 
   // Handle Stripe return params (?checkout=success|cancel) — runs once on mount
@@ -346,6 +394,9 @@ export default function Subscriptions() {
           onSelectTier={(tier, interval) => {
             if (tier === 'PRO' || tier === 'PREMIUM') {
               startCheckout(tier, interval)
+            } else if (tier === 'FREE' && currentTier !== 'FREE') {
+              // Downgrade from a paid plan to Free → reconcile seat cap first.
+              handleDowngradeToFree()
             } else {
               setUpgradeTier(tier)
             }
@@ -478,6 +529,17 @@ export default function Subscriptions() {
 
       {/* Plan upgrade dialog (assisted activation — Fase A interim) */}
       <PlanUpgradeDialog tier={upgradeTier} onClose={() => setUpgradeTier(null)} />
+
+      {/* Pro→Free downgrade "choose who stays" — only when the preview requires it */}
+      {reconcilePreview && venueId && (
+        <DowngradeReconcileDialog
+          open={!!reconcilePreview}
+          onClose={() => setReconcilePreview(null)}
+          venueId={venueId}
+          preview={reconcilePreview}
+          currentPeriodEnd={planState?.currentPeriodEnd}
+        />
+      )}
 
       {/* Superadmin: Grant Trial Dialog */}
       {isSuperadmin && (

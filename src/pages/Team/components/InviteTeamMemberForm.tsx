@@ -58,6 +58,12 @@ interface InviteTeamMemberFormProps {
   onSuccess: () => void
   onLoadingChange?: (isLoading: boolean) => void
   onValidChange?: (isValid: boolean) => void
+  /**
+   * Called when the backend rejects the invite with HTTP 403 + code
+   * `SEAT_CAP_REACHED` (a Free venue at the seat cap). The parent shows the
+   * Pro upsell instead of a generic error toast.
+   */
+  onSeatCapReached?: () => void
 }
 
 type TestCredentials = {
@@ -140,7 +146,7 @@ const createInviteSchema = (t: (key: string) => string, inviteType: InviteType, 
   })
 
 const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMemberFormProps>(
-  ({ venueId, onSuccess, onLoadingChange, onValidChange }, ref) => {
+  ({ venueId, onSuccess, onLoadingChange, onValidChange, onSeatCapReached }, ref) => {
     const { t } = useTranslation('team')
     const { t: tCommon } = useTranslation()
     const { toast } = useToast()
@@ -367,6 +373,13 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
         const pendingMeta = pendingInviteMetaRef.current
         const errorMessage = error.response?.data?.message || ''
         const invitationId = error.response?.data?.existingInvitationId
+
+        // Free-plan seat cap: surface the Pro upsell instead of a generic error.
+        if (error.response?.status === 403 && error.response?.data?.code === 'SEAT_CAP_REACHED') {
+          pendingInviteMetaRef.current = null
+          onSeatCapReached?.()
+          return
+        }
 
         if (errorMessage.includes('pending invitation') || errorMessage.includes('invitación pendiente')) {
           pendingInvitationIdRef.current = invitationId || null

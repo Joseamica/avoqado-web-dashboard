@@ -5,8 +5,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
@@ -22,9 +20,10 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Progress } from '@/components/ui/progress'
-import { PaymentMethodSelector } from '@/components/PaymentMethodSelector'
+import { PlanPicker } from '@/components/billing/PlanPicker'
+import { getTierDef, type TierId } from '@/config/plan-catalog'
 import api from '@/api'
-import { getVenueFeatures } from '@/services/features.service'
+import { createPlanCheckoutSession } from '@/services/features.service'
 import { storage } from '@/firebase'
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage'
 import { Venue } from '@/types'
@@ -44,16 +43,8 @@ type EntityType = 'PERSONA_FISICA' | 'PERSONA_MORAL'
 // Document types for upload
 type DocumentType = 'ID' | 'CSF' | 'DOMICILIO' | 'CARATULA' | 'ACTA' | 'PODER'
 
-// Pricing in MXN (matches backend seed data and FeaturesStep)
-const FEATURE_PRICING: Record<string, number> = {
-  CHATBOT: 199,
-  INVENTORY_TRACKING: 89,
-  LOYALTY_PROGRAM: 599,
-  ONLINE_ORDERING: 99,
-  // TEMPORARILY DISABLED - Re-enable when ready for launch
-  // ADVANCED_ANALYTICS: 499,
-  // RESERVATIONS: 399,
-}
+// Plan billing interval selected in the plan-selection step
+type PlanInterval = 'monthly' | 'annual'
 
 export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venueName, venue: _venue }: ConversionWizardProps) {
   const { t } = useTranslation()
@@ -103,18 +94,15 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
   const [poderLegalUrl, setPoderLegalUrl] = useState<string | null>(null)
   const [uploadingPoderLegal, setUploadingPoderLegal] = useState(false)
 
-  // Features and payment
-  const [availableFeatures, setAvailableFeatures] = useState<any[]>([])
-  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([])
-  const [activeFeatureCodes, setActiveFeatureCodes] = useState<string[]>([])
-  const [loadingFeatures, setLoadingFeatures] = useState(false)
-  const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null)
+  // Plan selection (replaces à-la-carte features) — a demo→real venue starts on FREE.
+  const [selectedTier, setSelectedTier] = useState<TierId>('FREE')
+  const [selectedInterval, setSelectedInterval] = useState<PlanInterval>('monthly')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Dynamic total steps based on entity type
-  // PERSONA_FISICA: 1-EntityType, 2-Docs1(INE+CSF), 3-Docs2(Domicilio+Caratula), 4-Features, 5-Payment, 6-Summary = 6 steps
-  // PERSONA_MORAL: 1-EntityType, 2-Docs1(INE+CSF), 3-Docs2(Domicilio+Caratula), 4-Docs3(Acta+Poder), 5-Features, 6-Payment, 7-Summary = 7 steps
-  const totalSteps = entityType === 'PERSONA_MORAL' ? 7 : 6
+  // PERSONA_FISICA: 1-EntityType, 2-Docs1(INE+CSF), 3-Docs2(Domicilio+Caratula), 4-Plan, 5-Summary = 5 steps
+  // PERSONA_MORAL: 1-EntityType, 2-Docs1(INE+CSF), 3-Docs2(Domicilio+Caratula), 4-Docs3(Acta+Poder), 5-Plan, 6-Summary = 6 steps
+  const totalSteps = entityType === 'PERSONA_MORAL' ? 6 : 5
   const progress = (currentStep / totalSteps) * 100
 
   // Initialize states when dialog opens - reset basic states (not step)
@@ -137,9 +125,9 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
       setUploadingActaDoc(false)
       setUploadingPoderLegal(false)
 
-      // Reset features and payment
-      setSelectedFeatures([])
-      setPaymentMethodId(null)
+      // Reset plan selection — a converting demo venue always starts on FREE
+      setSelectedTier('FREE')
+      setSelectedInterval('monthly')
       setIsSubmitting(false)
     }
   }, [open]) // Only depend on open
@@ -176,51 +164,6 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
       setCurrentStep(1)
     }
   }, [open, fullVenue]) // Only run when fullVenue becomes available
-
-  // Fetch available features AND active venue features when wizard opens
-  useEffect(() => {
-    const fetchFeatures = async () => {
-      if (!open || !venueId) return
-
-      setLoadingFeatures(true)
-      try {
-        // Fetch available features and venue's active features in parallel
-        const [availableRes, venueFeatures] = await Promise.all([
-          api.get('/api/v1/dashboard/features'),
-          getVenueFeatures(venueId).catch(() => null), // Don't fail if this errors
-        ])
-
-        if (availableRes.data.success) {
-          setAvailableFeatures(availableRes.data.data)
-
-          // Extract codes of features that are already active on the venue
-          if (venueFeatures?.activeFeatures) {
-            const activeCodes = venueFeatures.activeFeatures
-              .filter((f: { active: boolean }) => f.active)
-              .map((f: { feature: { code: string } }) => f.feature.code)
-            setActiveFeatureCodes(activeCodes)
-
-            // Pre-select active features (so they appear checked)
-            const activeIds = availableRes.data.data
-              .filter((f: { code: string }) => activeCodes.includes(f.code))
-              .map((f: { id: string }) => f.id)
-            setSelectedFeatures(activeIds)
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching features:', error)
-        toast({
-          title: t('conversionWizard.error.title'),
-          description: t('conversionWizard.error.fetchFeatures'),
-          variant: 'destructive',
-        })
-      } finally {
-        setLoadingFeatures(false)
-      }
-    }
-
-    fetchFeatures()
-  }, [open, venueId, t, toast])
 
   // Helper function to upload file to Firebase Storage
   const uploadFile = async (file: File, documentType: DocumentType): Promise<string | null> => {
@@ -286,11 +229,10 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
   }
 
   // Calculate step numbers based on entity type (without Business Info step)
-  // PERSONA_FISICA: 1-EntityType, 2-Docs1, 3-Docs2, 4-Features, 5-Payment, 6-Summary
-  // PERSONA_MORAL: 1-EntityType, 2-Docs1, 3-Docs2, 4-Docs3, 5-Features, 6-Payment, 7-Summary
-  const getStepForFeatures = () => (entityType === 'PERSONA_MORAL' ? 5 : 4)
-  const getStepForPayment = () => (entityType === 'PERSONA_MORAL' ? 6 : 5)
-  const getStepForSummary = () => (entityType === 'PERSONA_MORAL' ? 7 : 6)
+  // PERSONA_FISICA: 1-EntityType, 2-Docs1, 3-Docs2, 4-Plan, 5-Summary
+  // PERSONA_MORAL: 1-EntityType, 2-Docs1, 3-Docs2, 4-Docs3, 5-Plan, 6-Summary
+  const getStepForPlan = () => (entityType === 'PERSONA_MORAL' ? 5 : 4)
+  const getStepForSummary = () => (entityType === 'PERSONA_MORAL' ? 6 : 5)
 
   // Check if all required documents are uploaded
   const areBaseDocumentsComplete = useMemo(() => {
@@ -304,13 +246,9 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
 
   const areAllDocumentsComplete = areBaseDocumentsComplete && areMoralDocumentsComplete
 
-  // Calculate total monthly cost once (used in Features and Summary steps)
-  const totalMonthlyCost = useMemo(() => {
-    return selectedFeatures.reduce((sum, featureId) => {
-      const feature = availableFeatures.find(f => f.id === featureId)
-      return sum + (FEATURE_PRICING[feature?.code || ''] || 0)
-    }, 0)
-  }, [selectedFeatures, availableFeatures])
+  // Resolve the selected plan tier definition (icon, price, name key) once.
+  const selectedPlan = useMemo(() => getTierDef(selectedTier), [selectedTier])
+  const isPaidTier = selectedTier === 'PRO' || selectedTier === 'PREMIUM'
 
   const handleNext = async () => {
     let isValid = false
@@ -355,15 +293,9 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
           variant: 'destructive',
         })
       }
-    } else if (currentStep === getStepForFeatures()) {
-      // Features selection
+    } else if (currentStep === getStepForPlan()) {
+      // Plan selection — a tier is always selected (defaults to FREE).
       isValid = true
-
-      // If no features selected, skip payment step and go directly to summary
-      if (selectedFeatures.length === 0) {
-        setCurrentStep(getStepForSummary())
-        return
-      }
     } else {
       isValid = true
     }
@@ -375,12 +307,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
 
   const handleBack = () => {
     if (currentStep > 1) {
-      // If on summary and no features selected, skip payment step
-      if (currentStep === getStepForSummary() && selectedFeatures.length === 0) {
-        setCurrentStep(getStepForFeatures())
-      } else {
-        setCurrentStep(currentStep - 1)
-      }
+      setCurrentStep(currentStep - 1)
     }
   }
 
@@ -431,15 +358,9 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
     setIsSubmitting(true)
 
     try {
-      // Convert feature IDs to feature codes, excluding already-active features
-      const featureCodes = selectedFeatures
-        .map(featureId => {
-          const feature = availableFeatures.find(f => f.id === featureId)
-          return feature?.code
-        })
-        .filter((code): code is string => !!code && !activeFeatureCodes.includes(code))
-
-      // Build request payload - business info will be extracted from CSF document during KYC
+      // Build request payload - business info will be extracted from CSF document during KYC.
+      // NOTE: we no longer send à-la-carte `selectedFeatures`. The venue converts to the
+      // Free tier by default; paid tiers are sold via the Stripe checkout redirect below.
       const payload: Record<string, unknown> = {
         entityType,
         // Required documents for all
@@ -457,32 +378,54 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
         }
       }
 
-      // Only include payment and features if they have values
-      if (paymentMethodId) {
-        payload.paymentMethodId = paymentMethodId
-      }
-      if (featureCodes.length > 0) {
-        payload.selectedFeatures = featureCodes
-      }
-
-      // Call API to convert venue from demo to real
+      // Step 1 — always convert the demo into a real (Free-tier) venue.
       const response = await api.post(`/api/v1/dashboard/venues/${venueId}/convert-from-demo`, payload)
 
-      if (response.data.success) {
-        toast({
-          title: t('conversionWizard.success.title'),
-          description: t('conversionWizard.success.description'),
-        })
-
-        onOpenChange(false)
-
-        // Reload page to update venue status
-        setTimeout(() => {
-          window.location.reload()
-        }, 1500)
-      } else {
+      if (!response.data.success) {
         throw new Error('Conversion failed')
       }
+
+      // Step 2a — paid tier: open Stripe hosted checkout. The venue is already a real
+      // Free venue; the Stripe webhook upgrades it to the paid plan after payment.
+      if (isPaidTier) {
+        try {
+          const checkoutUrl = await createPlanCheckoutSession(
+            venueId,
+            selectedTier as 'PRO' | 'PREMIUM',
+            selectedInterval,
+          )
+          onOpenChange(false)
+          window.location.href = checkoutUrl
+          return
+        } catch (checkoutError) {
+          console.error('Error creating plan checkout session:', checkoutError)
+          // Conversion succeeded but checkout failed — the venue is on Free. Tell the
+          // user they can upgrade later from Settings → Billing.
+          toast({
+            title: t('conversionWizard.error.title'),
+            description: tOnboarding('plan.checkoutFailedFreeFallback'),
+            variant: 'destructive',
+          })
+          onOpenChange(false)
+          setTimeout(() => {
+            window.location.reload()
+          }, 2500)
+          return
+        }
+      }
+
+      // Step 2b — Free tier: activate the free account and drop the user into the dashboard.
+      toast({
+        title: t('conversionWizard.success.title'),
+        description: t('conversionWizard.success.description'),
+      })
+
+      onOpenChange(false)
+
+      // Reload page to update venue status
+      setTimeout(() => {
+        window.location.reload()
+      }, 1500)
     } catch (error: any) {
       console.error('Error converting venue:', error)
       toast({
@@ -497,21 +440,15 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
 
   // Helper to get dynamic button text
   const getNextButtonText = () => {
-    if (currentStep === getStepForFeatures()) {
-      return selectedFeatures.length > 0 ? tOnboarding('shared.continueToPayment') : tOnboarding('shared.continueWithoutPremium')
+    if (currentStep === getStepForPlan()) {
+      return tOnboarding('plan.continueWithPlan', { plan: tOnboarding(`plan.tierNames.${selectedTier}`) })
     }
     return t('conversionWizard.next')
   }
 
-  const getNextButtonVariant = () => {
-    if (currentStep === getStepForFeatures() && selectedFeatures.length === 0) {
-      return 'outline' as const
-    }
-    return 'default' as const
-  }
-
   const getFinalButtonText = () => {
-    return selectedFeatures.length > 0 ? tOnboarding('shared.startFreeTrial') : tOnboarding('shared.activateFreeAccount')
+    // Paid tier → next stop is Stripe checkout; Free → just activate the account.
+    return isPaidTier ? tOnboarding('plan.continueToCheckout') : tOnboarding('shared.activateFreeAccount')
   }
 
   // Render document upload box
@@ -796,100 +733,48 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
       )
     }
 
-    // Features step
-    if (currentStep === getStepForFeatures()) {
+    // Plan selection step (replaces the old à-la-carte features step)
+    if (currentStep === getStepForPlan()) {
       return (
         <div className="space-y-4">
           <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
             <Sparkles className="h-5 w-5 text-primary" />
             <div>
-              <h4 className="font-semibold text-sm">{t('conversionWizard.features.title')}</h4>
-              <p className="text-xs text-muted-foreground">{t('conversionWizard.features.description')}</p>
+              <h4 className="font-semibold text-sm">{tOnboarding('plan.title')}</h4>
+              <p className="text-xs text-muted-foreground">{tOnboarding('plan.description')}</p>
             </div>
           </div>
 
-          {loadingFeatures ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">{t('conversionWizard.features.loading')}</p>
-            </div>
-          ) : availableFeatures.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">{t('conversionWizard.features.noFeatures')}</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {availableFeatures.map(feature => {
-                const price = FEATURE_PRICING[feature.code] || 0
-                const isAlreadyActive = activeFeatureCodes.includes(feature.code)
-                return (
-                  <div
-                    key={feature.id}
-                    className={`flex items-start gap-3 p-4 border rounded-lg transition-colors ${
-                      isAlreadyActive
-                        ? 'border-green-500 bg-green-50 dark:bg-green-950/20'
-                        : selectedFeatures.includes(feature.id)
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border bg-background hover:border-primary/50 hover:bg-muted/50'
-                    }`}
-                  >
-                    <Checkbox
-                      id={`feature-${feature.id}`}
-                      checked={selectedFeatures.includes(feature.id)}
-                      disabled={isAlreadyActive}
-                      onCheckedChange={checked => {
-                        if (isAlreadyActive) return // Don't allow toggling active features
-                        if (checked) {
-                          setSelectedFeatures([...selectedFeatures, feature.id])
-                        } else {
-                          setSelectedFeatures(selectedFeatures.filter(id => id !== feature.id))
-                        }
-                      }}
-                      className="mt-0.5"
-                    />
-                    <label htmlFor={`feature-${feature.id}`} className={`flex-1 space-y-1 ${isAlreadyActive ? '' : 'cursor-pointer'}`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-foreground">{feature.name}</span>
-                          {isAlreadyActive ? (
-                            <Badge variant="outline" className="text-xs border-green-500 text-green-600 dark:text-green-400">
-                              {t('conversionWizard.features.alreadyActive')}
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="text-xs">
-                              {tOnboarding('shared.twoDaysFree')}
-                            </Badge>
-                          )}
-                        </div>
-                        <span className="text-sm font-semibold text-foreground">${price.toLocaleString()} MXN/mes</span>
-                      </div>
-                      {feature.description && <p className="text-sm text-muted-foreground">{feature.description}</p>}
-                    </label>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+          {/* Reuse the billing PlanPicker — same cards + monthly/annual toggle.
+              `currentTier` is bound to the in-wizard selection so the chosen tier
+              reads as "selected". Enterprise routes to "contact" (no self-serve). */}
+          <div data-tour="conversion-plan-picker">
+            <PlanPicker
+              currentTier={selectedTier}
+              onSelectTier={(tier, interval) => {
+                if (tier === 'ENTERPRISE') {
+                  // Enterprise is contact-sales only — no self-serve conversion path.
+                  window.open('https://avoqado.io/contact', '_blank', 'noopener,noreferrer')
+                  return
+                }
+                setSelectedTier(tier)
+                setSelectedInterval(interval)
+              }}
+            />
+          </div>
 
-          {selectedFeatures.length > 0 && (
+          {isPaidTier ? (
             <Card className="border-primary/30 bg-primary/5">
               <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{tOnboarding('shared.totalMonthlyAfterTrial')}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {tOnboarding('shared.featuresSelected', { count: selectedFeatures.length })}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-foreground">${totalMonthlyCost.toLocaleString()} MXN</p>
-                    <p className="text-xs text-muted-foreground">{tOnboarding('shared.perMonth')}</p>
-                  </div>
+                <div className="flex items-start gap-2">
+                  <Sparkles className="h-4 w-4 text-primary mt-0.5" />
+                  <p className="text-sm text-foreground">
+                    {tOnboarding('plan.paidNotice', { plan: tOnboarding(`plan.tierNames.${selectedTier}`) })}
+                  </p>
                 </div>
               </CardContent>
             </Card>
-          )}
-
-          {selectedFeatures.length === 0 && (
+          ) : (
             <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/50">
               <CardContent className="pt-6">
                 <div className="space-y-3">
@@ -933,33 +818,6 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
           )}
         </div>
       )
-    }
-
-    // Payment step
-    if (currentStep === getStepForPayment()) {
-      if (selectedFeatures.length > 0) {
-        return (
-          <div className="space-y-4">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-foreground">{tOnboarding('shared.paymentMethod')}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {paymentMethodId ? tOnboarding('shared.confirmPaymentMethod') : tOnboarding('shared.selectPaymentMethod')}
-              </p>
-            </div>
-            <PaymentMethodSelector
-              venueId={venueId}
-              onPaymentMethodSelected={pmId => {
-                setPaymentMethodId(pmId)
-                setCurrentStep(currentStep + 1)
-              }}
-              buttonText={tOnboarding('shared.continueToSummary')}
-            />
-          </div>
-        )
-      } else {
-        // Skip to summary if no features selected
-        return renderStepContent()
-      }
     }
 
     // Summary step
@@ -1010,31 +868,18 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
               {/* Plan summary */}
               <div className="pt-3 border-t">
                 <h5 className="font-semibold text-sm mb-3">{tOnboarding('shared.selectedPlan')}</h5>
-                {selectedFeatures.length > 0 ? (
+                {isPaidTier ? (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-primary" />
-                      <span className="font-medium text-primary">{tOnboarding('shared.trialPremium')}</span>
+                      <selectedPlan.icon className="h-4 w-4 text-primary" />
+                      <span className="font-medium text-primary">{tOnboarding(`plan.tierNames.${selectedTier}`)}</span>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {tOnboarding('shared.afterTrialCost', { cost: totalMonthlyCost.toLocaleString() })}
+                      {selectedInterval === 'annual'
+                        ? tOnboarding('plan.summaryAnnual', { price: (selectedPlan.priceAnnual ?? 0).toLocaleString('es-MX') })
+                        : tOnboarding('plan.summaryMonthly', { price: (selectedPlan.priceMonthly ?? 0).toLocaleString('es-MX') })}
                     </p>
-                    <div className="mt-3 pt-3 border-t">
-                      <p className="text-xs font-medium text-foreground mb-2">{tOnboarding('shared.featuresIncluded')}</p>
-                      <ul className="space-y-1">
-                        {selectedFeatures.map(featureId => {
-                          const feature = availableFeatures.find(f => f.id === featureId)
-                          if (!feature) return null
-                          const price = feature.code ? (FEATURE_PRICING[feature.code] ?? 0) : 0
-                          return (
-                            <li key={featureId} className="flex items-center justify-between text-xs">
-                              <span className="text-muted-foreground">{feature.name}</span>
-                              <span className="font-medium">${price.toLocaleString()} MXN</span>
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    </div>
+                    <p className="text-xs text-muted-foreground">{tOnboarding('plan.summaryCheckoutNote')}</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -1103,10 +948,10 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
           </div>
 
           {/* Confirmation message */}
-          {selectedFeatures.length > 0 ? (
+          {isPaidTier ? (
             <div className="p-4 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg">
               <p className="text-sm text-blue-800 dark:text-blue-200">
-                <strong>{tOnboarding('shared.important')}</strong> {tOnboarding('shared.noChargeNotice')}
+                <strong>{tOnboarding('shared.important')}</strong> {tOnboarding('plan.checkoutRedirectNotice')}
               </p>
             </div>
           ) : (
@@ -1160,11 +1005,8 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
             {t('conversionWizard.back')}
           </Button>
 
-          {/* Hide forward navigation on Payment step when features selected - PaymentMethodSelector has its own button */}
-          {currentStep === getStepForPayment() && selectedFeatures.length > 0 ? (
-            <div></div>
-          ) : currentStep < totalSteps ? (
-            <Button onClick={handleNext} variant={getNextButtonVariant()}>
+          {currentStep < totalSteps ? (
+            <Button onClick={handleNext} data-tour="conversion-next-btn">
               {getNextButtonText()}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
@@ -1172,10 +1014,10 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting || !areAllDocumentsComplete}
-              className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600"
+              data-tour="conversion-submit-btn"
             >
               {isSubmitting ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
               ) : (
                 <Sparkles className="mr-2 h-4 w-4" />
               )}

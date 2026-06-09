@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, Clock, MoreHorizontal, Pencil, Trash2, UserPlus, Search, X } from 'lucide-react'
+import { ArrowUpDown, Clock, MoreHorizontal, Pencil, Trash2, UserPlus, Search, X, Lock, Sparkles } from 'lucide-react'
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
@@ -16,6 +17,7 @@ import { useAccess } from '@/hooks/use-access'
 import { useTeamInvitationTour } from '@/hooks/useTeamInvitationTour'
 import { useToast } from '@/hooks/use-toast'
 import teamService, { type Invitation, type PaginatedTeamResponse } from '@/services/team.service'
+import { getVenueSeatStatus } from '@/services/features.service'
 import { TeamMember, StaffRole } from '@/types'
 import { filterSuperadminFromTeam, getRoleBadgeColor, canViewSuperadminInfo } from '@/utils/role-permissions'
 import { Currency } from '@/utils/currency'
@@ -32,7 +34,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,14 +60,32 @@ import { FullScreenModal } from '@/components/ui/full-screen-modal'
 // `src/hooks/useTeamInvitationTour.ts` y actualiza los selectores
 // `data-tour="team-*"` y los textos de los steps en paralelo.
 export default function Teams() {
-  const { venueId } = useCurrentVenue()
+  const { venueId, fullBasePath } = useCurrentVenue()
   const { toast } = useToast()
   const { staffInfo } = useAuth()
   const { can } = useAccess()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const { t, i18n } = useTranslation('team')
   const { t: tCommon } = useTranslation()
   const { formatDate } = useVenueDateTime()
+
+  // ─── Free-plan seat cap ────────────────────────────────────────────────────
+  // Proactive paywall on "Invitar": Free venues at the 2-seat cap can't add users.
+  // `allowed === false` ⇒ blocked. `cap === null` ⇒ unlimited (paid/exempt).
+  const { data: seatStatus } = useQuery({
+    queryKey: ['seatStatus', venueId],
+    queryFn: () => getVenueSeatStatus(venueId),
+    enabled: !!venueId,
+  })
+  const seatCapReached = seatStatus?.allowed === false
+  const [showSeatCapUpsell, setShowSeatCapUpsell] = useState(false)
+
+  // Navigate to the plan/billing portal to upgrade to Pro.
+  const goToUpgrade = useCallback(() => {
+    setShowSeatCapUpsell(false)
+    navigate(`${fullBasePath}/settings/billing/subscriptions`)
+  }, [navigate, fullBasePath])
 
   // Tour driver.js — auto-arranca cuando `requestAtomicTour('team-invitation')`
   // se dispara desde HomeSetupChecklist. Ver `useTeamInvitationTour.ts`.
@@ -257,6 +277,7 @@ export default function Teams() {
         }),
       })
       queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['seatStatus', venueId] })
       setRemovingMember(null)
     },
     onError: (error: any) => {
@@ -343,6 +364,9 @@ export default function Teams() {
           data: old.data.map(member => (member.id === updatedMember.id ? { ...member, ...updatedMember } : member)),
         }
       })
+
+      // Activating/deactivating changes the active seat count → refresh the gate.
+      queryClient.invalidateQueries({ queryKey: ['seatStatus', venueId] })
 
       toast({
         title: updatedMember.active ? t('toasts.memberActivatedTitle') : t('toasts.memberDeactivatedTitle'),
@@ -726,8 +750,12 @@ export default function Teams() {
         </div>
 
         <PermissionGate permission="teams:invite">
-          <Button id="invite-member-button" data-tour="team-invite-btn" onClick={() => setShowInviteDialog(true)}>
-            <UserPlus className="h-4 w-4 mr-2" />
+          <Button
+            id="invite-member-button"
+            data-tour="team-invite-btn"
+            onClick={() => (seatCapReached ? setShowSeatCapUpsell(true) : setShowInviteDialog(true))}
+          >
+            {seatCapReached ? <Lock className="h-4 w-4 mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
             {t('header.inviteButton')}
           </Button>
           <FullScreenModal
@@ -760,9 +788,22 @@ export default function Teams() {
                   setShowInviteDialog(false)
                   queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
                   queryClient.invalidateQueries({ queryKey: ['team-invitations', venueId] })
+                  queryClient.invalidateQueries({ queryKey: ['seatStatus', venueId] })
                 }}
                 onLoadingChange={setIsInviteSubmitting}
                 onValidChange={setIsInviteFormValid}
+                onSeatCapReached={() => {
+                  // Reactive fallback: the backend rejected at the cap (raced past
+                  // the proactive gate). Close the form, refresh the gate, upsell.
+                  setShowInviteDialog(false)
+                  queryClient.invalidateQueries({ queryKey: ['seatStatus', venueId] })
+                  toast({
+                    title: t('seatCap.title'),
+                    description: t('seatCap.desc'),
+                    variant: 'destructive',
+                  })
+                  setShowSeatCapUpsell(true)
+                }}
               />
             </div>
           </FullScreenModal>
@@ -988,6 +1029,34 @@ export default function Teams() {
           </AlertDialogContent>
         </AlertDialog>
       )}
+
+      {/* Free-plan seat cap upsell — shown when an OWNER hits the 2-seat limit */}
+      <Dialog open={showSeatCapUpsell} onOpenChange={setShowSeatCapUpsell}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="mb-2 flex items-center gap-3">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-amber-400/15 text-amber-400">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <DialogTitle>{t('seatCap.title')}</DialogTitle>
+            </div>
+            <DialogDescription>{t('seatCap.desc')}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button
+              variant="ghost"
+              className="text-muted-foreground cursor-pointer"
+              onClick={() => setShowSeatCapUpsell(false)}
+            >
+              {tCommon('cancel')}
+            </Button>
+            <Button data-tour="team-seatcap-upgrade" onClick={goToUpgrade} className="cursor-pointer">
+              <Sparkles className="h-4 w-4 mr-2" />
+              {t('seatCap.cta')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
