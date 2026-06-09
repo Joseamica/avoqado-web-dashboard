@@ -56,6 +56,7 @@ import { useAuth } from '@/context/AuthContext'
 import { SessionVenue, User, Venue } from '@/types'
 import { useTranslation } from 'react-i18next'
 import { useAccess } from '@/hooks/use-access'
+import { useVenueTier } from '@/hooks/use-tier-feature-access'
 import { canAccessOperationalFeatures } from '@/lib/kyc-utils'
 import { useWhiteLabelConfig, getFeatureRoute } from '@/hooks/useWhiteLabelConfig'
 import { useTerminology } from '@/hooks/use-terminology'
@@ -190,6 +191,11 @@ export function AppSidebar({
   const { allVenues, activeVenue, staffInfo, checkFeatureAccess } = useAuth()
   const { t } = useTranslation(['translation', 'sidebar'])
   const { can, canFeature } = useAccess()
+  // Tier-aware feature access for BADGE (premiumLocked) decisions on normal (non-white-label)
+  // venues. `checkFeatureAccess` / `canFeature` short-circuit to true for normal venues, so they
+  // can't drive tier badges — `hasFeatureAccess` checks the venue's plan tier vs the feature's
+  // required tier. Use this ONLY for premiumLocked flags, never for hiding/showing nav items.
+  const { hasFeatureAccess } = useVenueTier()
 
   // Use venue-specific role from staffInfo (properly derived from active venue)
   const effectiveRole = staffInfo?.role || user.role
@@ -553,7 +559,7 @@ export function AppSidebar({
     // (billing feature), items are marked `premiumLocked` → a green Star badge
     // renders in the sidebar and the page itself shows the upsell teaser.
     // The items still navigate NORMALLY to their url (NOT to kyc-required).
-    const hasCfdiFeature = checkFeatureAccess('CFDI')
+    const hasCfdiFeature = hasFeatureAccess('CFDI')
     const facturacionSubItems = ([
       {
         title: t('sidebar:facturacionMenu.invoices'),
@@ -596,7 +602,7 @@ export function AppSidebar({
 
     // Inventario
     if (inventorySubItems.length > 0 && canWL('AVOQADO_INVENTORY')) {
-      const hasInventoryFeature = checkFeatureAccess('INVENTORY_TRACKING')
+      const hasInventoryFeature = hasFeatureAccess('INVENTORY_TRACKING')
       mainItems.push({
         title: t('sidebar:routes.inventory'), url: '#inventory', icon: Package, subSidebar: 'inventory',
         locked: !hasKYCAccess,
@@ -706,6 +712,7 @@ export function AppSidebar({
     can,
     hasKYCAccess,
     checkFeatureAccess,
+    hasFeatureAccess,
     activeVenue,
     location.pathname,
     isWhiteLabelEnabled,

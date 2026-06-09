@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -61,4 +61,38 @@ export function useTierFeatureAccess(feature: string, requiredTierOverride?: Tie
   }, [isSuperadmin, isWhiteLabelEnabled, canFeature, feature, isPlanLoading, planState, requiredTier])
 
   return { hasAccess, requiredTier, isLoading: isPlanLoading }
+}
+
+/**
+ * Same tier-aware access as {@link useTierFeatureAccess} but for checking MANY features from one
+ * component (e.g. the sidebar, which decides `premiumLocked` per nav item). Fetches the venue plan
+ * ONCE and returns a `hasFeatureAccess(code)` checker. Use this for tier-gated BADGE decisions —
+ * NOT for hiding nav items (a normal venue should still SEE a gated item, badged, for discoverability).
+ */
+export function useVenueTier(): { venueTier: TierId; hasFeatureAccess: (feature: string) => boolean; isLoading: boolean } {
+  const { canFeature, role, isWhiteLabelEnabled } = useAccess()
+  const { venueId } = useCurrentVenue()
+
+  const isSuperadmin = role === 'SUPERADMIN'
+  const { data: planState, isLoading } = useQuery({
+    queryKey: ['venuePlan', venueId],
+    queryFn: () => getVenuePlan(venueId!),
+    enabled: !!venueId && !isSuperadmin && !isWhiteLabelEnabled,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const venueTier = mapPlanTier(planState?.planTier)
+
+  const hasFeatureAccess = useCallback(
+    (feature: string): boolean => {
+      if (isSuperadmin) return true
+      if (isWhiteLabelEnabled) return canFeature(feature)
+      if (isLoading && planState === undefined) return true // optimistic during load
+      const required = getTierForFeature(feature) ?? 'PRO'
+      return TIER_ORDER.indexOf(venueTier) >= TIER_ORDER.indexOf(required)
+    },
+    [isSuperadmin, isWhiteLabelEnabled, canFeature, isLoading, planState, venueTier],
+  )
+
+  return { venueTier, hasFeatureAccess, isLoading }
 }
