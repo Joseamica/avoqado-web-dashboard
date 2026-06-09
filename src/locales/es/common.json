@@ -235,7 +235,13 @@
     "closed": "Cerrado",
     "otherVenues": "Otras sucursales",
     "searchPlaceholder": "Buscar sucursales...",
-    "noResults": "No se encontraron sucursales."
+    "noResults": "No se encontraron sucursales.",
+    "tier": {
+      "free": "Free",
+      "pro": "Pro",
+      "premium": "Premium",
+      "enterprise": "Enterprise"
+    }
   },
   "layout": {
     "noVenuesAssigned": "No tienes sucursales asignadas",

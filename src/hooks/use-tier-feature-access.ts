@@ -2,16 +2,8 @@ import { useCallback, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { getTierForFeature, TIER_ORDER, type TierId } from '@/config/plan-catalog'
+import { getTierForFeature, mapPlanTier, TIER_ORDER, type TierId } from '@/config/plan-catalog'
 import { getVenuePlan, getVenueFeatures } from '@/services/features.service'
-
-/** Maps backend PlanState.planTier values to the catalog TierId values. */
-function mapPlanTier(planTier: string | null | undefined): TierId {
-  if (!planTier) return 'FREE'
-  if (planTier === 'GRATIS') return 'FREE'
-  if (TIER_ORDER.includes(planTier as TierId)) return planTier as TierId
-  return 'FREE'
-}
 
 export interface TierFeatureAccess {
   /** True when the venue may use the feature (explicit grant, tier covers it, or superadmin / white-label). */
@@ -58,8 +50,11 @@ export function useVenueTier(): { venueTier: TierId; hasFeatureAccess: (feature:
     staleTime: 5 * 60 * 1000,
   })
 
+  // Only REAL own grants (à-la-carte / grandfathered) count here — NOT base-plan-granted synthetic
+  // features. Those are handled by the tier check below; counting them would bypass tiering (and the
+  // backend's basePlanGranted list isn't tier-aware yet, so it wrongly includes Premium-only codes).
   const grantedCodes = useMemo(
-    () => new Set((featureStatus?.activeFeatures ?? []).map(f => f.feature.code)),
+    () => new Set((featureStatus?.activeFeatures ?? []).filter(f => !f.grantedByBasePlan).map(f => f.feature.code)),
     [featureStatus],
   )
 
@@ -80,6 +75,24 @@ export function useVenueTier(): { venueTier: TierId; hasFeatureAccess: (feature:
   )
 
   return { venueTier, hasFeatureAccess, isLoading }
+}
+
+/**
+ * Display-only plan tier for ANY venue (not just the current one) — for badges in the venue switcher.
+ * Unlike {@link useVenueTier} (which is gating-oriented and reports FREE for superadmin/white-label
+ * because they bypass gates), this always reflects the venue's actual subscription tier.
+ * Shares the `['venuePlan', venueId]` query cache, so the active venue's badge reuses the gate's fetch.
+ *
+ * @param enabled gate the network call (e.g. only fetch list rows while the switcher popover is open).
+ */
+export function useVenuePlanTier(venueId: string | undefined, enabled = true): { tier: TierId | null; isLoading: boolean } {
+  const { data, isLoading } = useQuery({
+    queryKey: ['venuePlan', venueId],
+    queryFn: () => getVenuePlan(venueId!),
+    enabled: enabled && !!venueId,
+    staleTime: 5 * 60 * 1000,
+  })
+  return { tier: data ? mapPlanTier(data.planTier) : null, isLoading }
 }
 
 /** Single-feature convenience wrapper around {@link useVenueTier}. */

@@ -235,7 +235,13 @@
     "closed": "Closed",
     "otherVenues": "Other venues",
     "searchPlaceholder": "Search venues...",
-    "noResults": "No venues found."
+    "noResults": "No venues found.",
+    "tier": {
+      "free": "Free",
+      "pro": "Pro",
+      "premium": "Premium",
+      "enterprise": "Enterprise"
+    }
   },
   "layout": {
     "noVenuesAssigned": "No venues assigned",

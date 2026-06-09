@@ -22,6 +22,8 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { AddVenueDialog } from './add-venue-dialog'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
+import { VenueTierBadge, VenueTierBadgeById } from '@/components/venue-tier-badge'
+import { useVenuePlanTier } from '@/hooks/use-tier-feature-access'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 
@@ -124,6 +126,9 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
 
   const currentVenue = (venueFromSlug || activeVenue || venueFromStorage || defaultVenue) as Venue | SessionVenue
 
+  // Subscription tier of the active venue — shown as a badge on the collapsed trigger card.
+  const { tier: currentVenueTier } = useVenuePlanTier(currentVenue?.id)
+
   useEffect(() => {
     if (!isAuthenticated) return
     if (currentVenue?.slug) {
@@ -203,7 +208,8 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                       <span className="font-semibold truncate">{currentVenue?.name || t('venuesSwitcher.selectVenue')}</span>
                       <span className="text-xs truncate text-muted-foreground">{currentVenue?.city || ''}</span>
                     </div>
-                    <ChevronsUpDown className="ml-auto size-4 shrink-0 text-muted-foreground" />
+                    <VenueTierBadge tier={currentVenueTier} className="ml-auto shrink-0" />
+                    <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
                   </>
                 )}
               </SidebarMenuButton>
@@ -295,6 +301,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                                     </div>
                                   )}
                                 </div>
+                                <VenueTierBadgeById venueId={venue.id} enabled={popoverOpen} className="shrink-0" />
                                 {isActive && <Check className="size-4 text-primary shrink-0" />}
                               </CommandItem>
                             )

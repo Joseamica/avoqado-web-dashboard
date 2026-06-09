@@ -78,6 +78,14 @@ export const PLAN_TIERS: PlanTierDef[] = [
   },
 ]
 
+/** Maps backend `PlanState.planTier` values (incl. legacy 'GRATIS' / null) to a catalog {@link TierId}. */
+export function mapPlanTier(planTier: string | null | undefined): TierId {
+  if (!planTier) return 'FREE'
+  if (planTier === 'GRATIS') return 'FREE'
+  if (TIER_ORDER.includes(planTier as TierId)) return planTier as TierId
+  return 'FREE'
+}
+
 const tierRank = (id: TierId) => TIER_ORDER.indexOf(id)
 
 /** Lowest tier whose `includes` contains the feature code, or null. */

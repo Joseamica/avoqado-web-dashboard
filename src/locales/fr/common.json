@@ -170,7 +170,13 @@
     "closed": "Fermé",
     "otherVenues": "Autres établissements",
     "searchPlaceholder": "Rechercher...",
-    "noResults": "Aucun établissement trouvé."
+    "noResults": "Aucun établissement trouvé.",
+    "tier": {
+      "free": "Free",
+      "pro": "Pro",
+      "premium": "Premium",
+      "enterprise": "Enterprise"
+    }
   },
   "layout": {
     "noVenuesAssigned": "Aucune venue assignée",
