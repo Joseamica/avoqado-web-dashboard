@@ -539,13 +539,6 @@
       "step2Required": "Por favor sube tu comprobante de domicilio y carátula bancaria",
       "actaRequired": "El acta constitutiva es requerida para Persona Moral"
     },
-    "features": {
-      "title": "Seleccionar Funcionalidades",
-      "description": "Elige las funcionalidades premium que deseas activar",
-      "loading": "Cargando funcionalidades...",
-      "noFeatures": "No hay funcionalidades disponibles en este momento",
-      "alreadyActive": "Activa"
-    },
     "summary": {
       "kycNotice": {
         "title": "Verificación en proceso:",
@@ -564,7 +557,6 @@
     "error": {
       "title": "Error",
       "description": "Hubo un error. Por favor intenta de nuevo.",
-      "fetchFeatures": "No se pudieron cargar las funcionalidades.",
       "uploadFailed": "Error al subir el archivo. Por favor intenta de nuevo."
     }
   },

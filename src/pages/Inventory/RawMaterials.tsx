@@ -30,6 +30,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useDebounce } from '@/hooks/useDebounce'
+import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
@@ -883,6 +884,7 @@ export default function RawMaterials() {
   )
 
   return (
+    <FeatureGate feature="INVENTORY_TRACKING">
     <div className="p-4 bg-background text-foreground">
       {/* Discovery banner for first-time admins — dismissable */}
       <TourDiscoveryBanner
@@ -1197,5 +1199,6 @@ export default function RawMaterials() {
         }}
       />
     </div>
+    </FeatureGate>
   )
 }

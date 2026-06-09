@@ -188,7 +188,7 @@ export function AppSidebar({
   onSidebarReady?: (meta: SidebarMeta) => void
   onSearchClick?: () => void
 }) {
-  const { allVenues, activeVenue, staffInfo, checkFeatureAccess } = useAuth()
+  const { allVenues, activeVenue, staffInfo } = useAuth()
   const { t } = useTranslation(['translation', 'sidebar'])
   const { can, canFeature } = useAccess()
   // Tier-aware feature access for BADGE (premiumLocked) decisions on normal (non-white-label)
@@ -466,13 +466,30 @@ export function AppSidebar({
         { title: t('sidebar:customersMenu.groups'), url: 'customers/groups', permission: 'customer-groups:read', keywords: ['segmentos'] },
       ]
 
-      if (checkFeatureAccess('LOYALTY_PROGRAM') && canWL('AVOQADO_LOYALTY')) {
-        items.push({ title: t('sidebar:customersMenu.loyalty'), url: 'loyalty', permission: 'loyalty:read', keywords: ['lealtad', 'puntos', 'fidelidad'] })
+      // Loyalty — VISIBLE TEASER (Pro feature). Normal venues always see it with a ⭐ badge
+      // (the loyalty page itself shows the <FeatureGate> paywall); white-label venues keep the
+      // per-partner AVOQADO_LOYALTY toggle. Never use checkFeatureAccess here — it can't tier-gate.
+      if (isWhiteLabelVenue ? canWL('AVOQADO_LOYALTY') : can('loyalty:read')) {
+        items.push({
+          title: t('sidebar:customersMenu.loyalty'),
+          url: 'loyalty',
+          permission: 'loyalty:read',
+          premiumLocked: !hasFeatureAccess('LOYALTY_PROGRAM'),
+          gatedFeature: 'LOYALTY_PROGRAM',
+          keywords: ['lealtad', 'puntos', 'fidelidad'],
+        })
       }
 
       // Referral program — same gating posture as loyalty (per-venue toggle + per-org WL feature).
       // Backend permission 'referral:read' filters the menu out for staff that can't see it.
-      items.push({ title: t('sidebar:customersMenu.referrals'), url: 'referrals', permission: 'referral:read', keywords: ['referidos', 'codigo', 'recomienda', 'referral'] })
+      items.push({
+        title: t('sidebar:customersMenu.referrals'),
+        url: 'referrals',
+        permission: 'referral:read',
+        premiumLocked: !hasFeatureAccess('REFERRAL_PROGRAM'),
+        gatedFeature: 'REFERRAL_PROGRAM',
+        keywords: ['referidos', 'codigo', 'recomienda', 'referral'],
+      })
 
       if (canWL('AVOQADO_REVIEWS')) {
         items.push({ title: t('sidebar:routes.reviews'), url: 'reviews', permission: 'reviews:read', keywords: ['comentarios', 'opiniones', 'calificaciones', 'feedback', 'ratings'] })
@@ -506,8 +523,9 @@ export function AppSidebar({
       { title: t('sidebar:reportsMenu.salesSummary'), url: 'reports/sales-summary', icon: BarChart3, permission: 'reports:read', keywords: ['reporte', 'ventas diarias', 'ganancias', 'ingresos'] },
       { title: t('sidebar:reportsMenu.salesByItem'), url: 'reports/sales-by-item', icon: Receipt, permission: 'reports:read', keywords: ['reporte de productos', 'items vendidos'] },
       { title: t('sidebar:reportsMenu.homeCharts', { defaultValue: 'Gráficas (Home)' }), url: 'reports/home-charts', icon: TrendingUp, permission: 'reports:read', keywords: ['dashboard', 'graficas', 'home legacy'] },
-      { title: t('sidebar:reportsMenu.salesByCategory'), url: 'reports/sales-by-category', icon: Receipt, permission: 'reports:read', comingSoon: true },
-      { title: t('sidebar:reportsMenu.paymentMethods'), url: 'reports/payment-methods', icon: CreditCard, permission: 'reports:read', comingSoon: true },
+      { title: t('sidebar:reportsMenu.salesByCategory'), url: 'reports/sales-by-category', icon: Tag, permission: 'reports:read', keywords: ['categorias', 'familias de productos', 'ventas por categoria'] },
+      { title: t('sidebar:reportsMenu.paymentMethods'), url: 'reports/payment-methods', icon: CreditCard, permission: 'reports:read', keywords: ['metodos de pago', 'efectivo', 'tarjeta', 'propinas', 'comisiones'] },
+      { title: t('sidebar:reportsMenu.refunds'), url: 'reports/refunds', icon: RefreshCw, permission: 'reports:read', keywords: ['reembolsos', 'devoluciones', 'refunds', 'dinero devuelto'] },
       { title: t('sidebar:reportsMenu.taxes'), url: 'reports/taxes', icon: FileSpreadsheet, permission: 'reports:read', comingSoon: true },
       { title: t('sidebar:reportsMenu.voids'), url: 'reports/voids', icon: Receipt, permission: 'reports:read', comingSoon: true },
       { title: t('sidebar:reportsMenu.modifiers'), url: 'reports/modifiers', icon: Receipt, permission: 'reports:read', comingSoon: true },
@@ -626,10 +644,13 @@ export function AppSidebar({
       })
     }
 
-    // Reservaciones
+    // Reservaciones — visible teaser. Pro tier badge (⭐) when the venue's plan lacks RESERVATIONS;
+    // the reservation pages show the <FeatureGate> paywall.
     if (reservationsSubItems.length > 0 && canWL('AVOQADO_RESERVATIONS')) {
       mainItems.push({
         title: t('sidebar:routes.reservations'), url: '#reservations', icon: CalendarDays, subSidebar: 'reservations',
+        premiumLocked: !hasFeatureAccess('RESERVATIONS'),
+        gatedFeature: 'RESERVATIONS',
         keywords: ['reservas', 'mesas', 'booking'],
       })
     }
@@ -659,7 +680,9 @@ export function AppSidebar({
       })
     }
 
-    // Reportes
+    // Reportes — NO tier badge: Free can access the section (basic today-only Sales Summary).
+    // The Pro parts are gated INSIDE: SalesSummary filters/history + the fully-Pro sub-pages
+    // (Ventas por Artículo) each show their own <FeatureGate feature="ADVANCED_REPORTS"> paywall.
     if (reportsSubItems.length > 0) {
       mainItems.push({
         title: t('sidebar:reportsMenu.title', { defaultValue: 'Reportes' }), url: '#reports', icon: BarChart3, subSidebar: 'reports',
@@ -716,7 +739,6 @@ export function AppSidebar({
     effectiveRole,
     can,
     hasKYCAccess,
-    checkFeatureAccess,
     hasFeatureAccess,
     activeVenue,
     location.pathname,

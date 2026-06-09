@@ -26,6 +26,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useAccess } from '@/hooks/use-access'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
+import { FeatureGate } from '@/components/billing/FeatureGate'
 import referralsService from '@/services/referrals.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { cn } from '@/lib/utils'
@@ -282,6 +283,7 @@ export default function ReferralsSettings() {
       : '—'
 
     return (
+      <FeatureGate feature="REFERRAL_PROGRAM">
       <div className="p-6">
         <div className="mb-6">
           <PageTitleWithInfo title={t('title')} className="text-2xl font-bold" />
@@ -452,6 +454,7 @@ export default function ReferralsSettings() {
           </AlertDialogContent>
         </AlertDialog>
       </div>
+      </FeatureGate>
     )
   }
 
@@ -459,6 +462,7 @@ export default function ReferralsSettings() {
   const canConfigure = can('referral:configure')
 
   return (
+    <FeatureGate feature="REFERRAL_PROGRAM">
     <div className="p-6">
       <div className="mb-6">
         <PageTitleWithInfo title={t('title')} className="text-2xl font-bold" />
@@ -616,5 +620,6 @@ export default function ReferralsSettings() {
         </div>
       </form>
     </div>
+    </FeatureGate>
   )
 }

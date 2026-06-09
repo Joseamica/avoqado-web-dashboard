@@ -98,6 +98,11 @@
       "desc": "Envía una invitación a un nuevo miembro para unirse a tu venue"
     }
   },
+  "seatCap": {
+    "title": "Llegaste al límite de tu plan Gratis",
+    "desc": "El plan Gratis permite 2 usuarios. Mejora a Pro para agregar usuarios ilimitados.",
+    "cta": "Mejora a Pro"
+  },
   "tabs": {
     "members": "Miembros",
     "invitations": "Invitaciones Pendientes"

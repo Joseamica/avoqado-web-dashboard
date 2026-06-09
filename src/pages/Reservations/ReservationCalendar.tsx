@@ -19,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 // Select and Tabs removed — view toggle now uses dropdown
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
+import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useToast } from '@/hooks/use-toast'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -1073,6 +1074,7 @@ export default function ReservationCalendar() {
   const closeClassModal = () => setClassModal({ open: false, date: '', startTime: '' })
 
   return (
+    <FeatureGate feature="RESERVATIONS">
     <div className="p-4 bg-background text-foreground">
       {/* Controls */}
       <div className="flex items-center justify-between gap-4 mb-4">
@@ -1426,5 +1428,6 @@ export default function ReservationCalendar() {
       {/* Calendar attributes dialog */}
       <CalendarAttributesDialog open={attributesOpen} onOpenChange={setAttributesOpen} onSave={setCalendarAttrs} />
     </div>
+    </FeatureGate>
   )
 }

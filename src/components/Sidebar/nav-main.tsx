@@ -206,16 +206,19 @@ export function NavMain({
   // The item still navigates normally to its url — the page shows the FeatureGate.
   const TierBadge = ({ feature, className }: { feature?: string; className?: string }) => {
     const tier = feature ? getTierForFeature(feature) : 'PREMIUM'
+    // Tooltip/screen-reader text must match the icon's tier: ⭐ Pro says "Pro plan",
+    // 👑 Premium says "Premium plan" (was hardcoded to premiumPro for both).
+    const label = tier === 'PRO' ? t('premiumPro') : t('premiumPremium')
     if (tier === 'PRO') {
       return (
-        <span title={t('premiumPro')} className={cn('ml-auto inline-flex shrink-0 items-center', className)}>
-          <Star className="h-3.5 w-3.5 text-emerald-400" aria-label={t('premiumPro')} />
+        <span title={label} className={cn('ml-auto inline-flex shrink-0 items-center', className)}>
+          <Star className="h-3.5 w-3.5 text-emerald-400" aria-label={label} />
         </span>
       )
     }
     return (
-      <span title={t('premiumPro')} className={cn('ml-auto inline-flex shrink-0 items-center', className)}>
-        <Crown className="h-3.5 w-3.5 text-amber-400" aria-label={t('premiumPro')} />
+      <span title={label} className={cn('ml-auto inline-flex shrink-0 items-center', className)}>
+        <Crown className="h-3.5 w-3.5 text-amber-400" aria-label={label} />
       </span>
     )
   }

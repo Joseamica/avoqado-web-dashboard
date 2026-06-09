@@ -436,13 +436,6 @@
       "legalName": "Raison sociale",
       "confirmationMessage": "En cliquant, vous confirmez que les informations sont correctes."
     },
-    "features": {
-      "title": "Sélectionner les fonctionnalités",
-      "description": "Choisissez les fonctionnalités premium à activer",
-      "loading": "Chargement des fonctionnalités...",
-      "noFeatures": "Aucune fonctionnalité disponible",
-      "alreadyActive": "Active"
-    },
     "success": {
       "title": "Conversion réussie !",
       "description": "Votre établissement a été converti avec succès."
@@ -459,8 +452,7 @@
     },
     "error": {
       "title": "Erreur",
-      "description": "Une erreur s'est produite. Veuillez réessayer.",
-      "fetchFeatures": "Impossible de charger les fonctionnalités."
+      "description": "Une erreur s'est produite. Veuillez réessayer."
     }
   },
   "auth": {

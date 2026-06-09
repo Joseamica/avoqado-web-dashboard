@@ -33,6 +33,7 @@ import {
   ArrowUpDown,
 } from 'lucide-react'
 import { SalesByItemChart } from './components/SalesByItemChart'
+import { FeatureGate } from '@/components/billing/FeatureGate'
 
 // ============================================
 // Types
@@ -488,6 +489,7 @@ export default function SalesByItem() {
   }
 
   return (
+    <FeatureGate feature="ADVANCED_REPORTS">
     <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -997,5 +999,6 @@ export default function SalesByItem() {
         </GlassCard>
       )}
     </div>
+    </FeatureGate>
   )
 }

@@ -25,6 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -236,6 +237,7 @@ export default function Waitlist() {
   )
 
   return (
+    <FeatureGate feature="RESERVATIONS">
     <div className="p-4 bg-background text-foreground">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
@@ -361,5 +363,6 @@ export default function Waitlist() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </FeatureGate>
   )
 }

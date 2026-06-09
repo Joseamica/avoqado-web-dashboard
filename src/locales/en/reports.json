@@ -74,6 +74,19 @@
     "transactions": "transactions",
     "transactionsLabel": "transactions",
     "transactionsShort": "trans.",
+    "basic": {
+      "today": "Today",
+      "todayBadge": "Today only",
+      "historyLocked": "History is available on Pro.",
+      "historyCta": "Upgrade plan",
+      "upsell": {
+        "title": "Unlock full reporting with Pro",
+        "history": "View sales from any day or date range",
+        "periods": "Compare hourly, daily, weekly and monthly periods",
+        "breakdowns": "Detailed breakdowns by terminal, merchant and payment type",
+        "export": "Export your reports to CSV"
+      }
+    },
     "actions": {
       "exportPDF": "Export PDF",
       "exportCSV": "Export CSV",
@@ -436,6 +449,112 @@
     },
     "units": {
       "each": "ea"
+    },
+    "totals": {
+      "label": "Total"
+    }
+  },
+  "salesByCategory": {
+    "title": "Sales by Category",
+    "subtitle": "Category sales breakdown for the period",
+    "noData": "No sales data for this period",
+    "chart": {
+      "title": "Sales by Period"
+    },
+    "columns": {
+      "category": "Category",
+      "itemsSold": "Items Sold",
+      "unitsSold": "Units Sold",
+      "grossSales": "Gross Sales",
+      "discounts": "Discounts",
+      "share": "% of Sales"
+    },
+    "summary": {
+      "categories": "Categories"
+    },
+    "controls": {
+      "title": "Controls",
+      "apply": "Apply",
+      "hoursFilter": {
+        "label": "Daily report hours",
+        "description": "Filter data by hours of the day",
+        "longDescription": "Choose whether to include all hours of the day or specify a custom time range.",
+        "start": "Start time",
+        "end": "End time",
+        "options": {
+          "all": "All day",
+          "allDesc": "Include all hours (0:00-23:59)",
+          "custom": "Custom",
+          "customDesc": "Specify a custom time range"
+        }
+      }
+    },
+    "totals": {
+      "label": "Total"
+    }
+  },
+  "paymentMethods": {
+    "title": "Payment Methods",
+    "noData": "No payments for this period",
+    "columns": {
+      "method": "Method",
+      "transactions": "Transactions",
+      "collected": "Collected",
+      "tips": "Tips",
+      "refunds": "Refunds",
+      "fees": "Fees",
+      "share": "% of Sales"
+    },
+    "methods": {
+      "CARD": "Card",
+      "CASH": "Cash",
+      "OTHER": "Other",
+      "QR_LEGACY": "QR"
+    },
+    "subTypes": {
+      "CREDIT": "Credit",
+      "DEBIT": "Debit",
+      "AMEX": "American Express",
+      "INTERNATIONAL": "International"
+    },
+    "totals": {
+      "label": "Total"
+    }
+  },
+  "refunds": {
+    "title": "Refunds",
+    "noData": "No refunds for this period",
+    "summary": {
+      "totalRefunded": "Total Refunded",
+      "count": "Refunds"
+    },
+    "columns": {
+      "date": "Date",
+      "order": "Order",
+      "method": "Method",
+      "reason": "Reason",
+      "note": "Note",
+      "sale": "Sale",
+      "tip": "Tip",
+      "total": "Total",
+      "processedBy": "Processed by"
+    },
+    "reasons": {
+      "RETURNED_GOODS": "Returned goods",
+      "ACCIDENTAL_CHARGE": "Accidental charge",
+      "CANCELLED_ORDER": "Cancelled order",
+      "FRAUDULENT_CHARGE": "Fraudulent charge",
+      "OTHER": "Other",
+      "UNKNOWN": "Not specified"
+    },
+    "methods": {
+      "CASH": "Cash",
+      "CREDIT_CARD": "Credit card",
+      "DEBIT_CARD": "Debit card",
+      "DIGITAL_WALLET": "Digital wallet",
+      "BANK_TRANSFER": "Bank transfer",
+      "CRYPTOCURRENCY": "Crypto",
+      "OTHER": "Other"
     },
     "totals": {
       "label": "Total"

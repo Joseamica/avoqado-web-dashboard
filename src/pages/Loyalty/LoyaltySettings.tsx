@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { GlassCard } from '@/components/ui/glass-card'
+import { FeatureGate } from '@/components/billing/FeatureGate'
 import { PermissionGate } from '@/components/PermissionGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
@@ -221,6 +222,7 @@ export default function LoyaltySettings() {
 	}
 
 	return (
+		<FeatureGate feature="LOYALTY_PROGRAM">
 		<div className="p-6">
 			{/* ── Header ── */}
 			<div className="mb-6">
@@ -484,5 +486,6 @@ export default function LoyaltySettings() {
 				</div>
 			</form>
 		</div>
+		</FeatureGate>
 	)
 }

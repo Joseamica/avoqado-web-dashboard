@@ -539,13 +539,6 @@
       "step2Required": "Please upload your proof of address and bank statement",
       "actaRequired": "Articles of incorporation is required for Legal Entities"
     },
-    "features": {
-      "title": "Select Features",
-      "description": "Choose the premium features you want to activate",
-      "loading": "Loading features...",
-      "noFeatures": "No features available at this time",
-      "alreadyActive": "Active"
-    },
     "summary": {
       "kycNotice": {
         "title": "Verification in progress:",
@@ -564,7 +557,6 @@
     "error": {
       "title": "Error",
       "description": "There was an error. Please try again.",
-      "fetchFeatures": "Could not load features.",
       "uploadFailed": "Failed to upload file. Please try again."
     }
   },

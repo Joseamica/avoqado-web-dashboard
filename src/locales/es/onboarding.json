@@ -410,6 +410,23 @@
       "accountHolderRequired": "El nombre del titular es requerido"
     }
   },
+  "plan": {
+    "title": "Elige tu plan",
+    "description": "Empieza gratis o desbloquea más con un plan. Puedes cambiar de plan cuando quieras.",
+    "tierNames": {
+      "FREE": "Free",
+      "PRO": "Pro",
+      "PREMIUM": "Premium"
+    },
+    "continueWithPlan": "Continuar con {{plan}}",
+    "continueToCheckout": "Continuar al pago",
+    "paidNotice": "Activaremos tu cuenta y luego te llevaremos al pago seguro para tu plan {{plan}}.",
+    "summaryMonthly": "Plan mensual · ${{price}} MXN/mes + IVA",
+    "summaryAnnual": "Plan anual · ${{price}} MXN/año + IVA",
+    "summaryCheckoutNote": "Al confirmar te llevaremos al pago seguro para activar tu plan.",
+    "checkoutRedirectNotice": "Primero activamos tu cuenta y enseguida te llevamos al pago seguro para tu plan.",
+    "checkoutFailedFreeFallback": "Tu cuenta quedó activa en el plan Free, pero no pudimos abrir el pago. Puedes mejorar tu plan después desde Configuración → Plan y Facturación."
+  },
   "shared": {
     "loadingProgress": "Cargando tu progreso...",
     "rfcPlaceholder": "XAXX010101000",

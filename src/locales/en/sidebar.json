@@ -77,6 +77,7 @@
     "salesByItem": "Sales by Item",
     "salesByCategory": "Sales by Category",
     "paymentMethods": "Payment Methods",
+    "refunds": "Refunds",
     "taxes": "Taxes",
     "voids": "Voids",
     "modifiers": "Modifiers"
@@ -153,6 +154,7 @@
   },
   "requiresKycVerification": "Requires KYC verification",
   "premiumPro": "Included in the Pro Plan",
+  "premiumPremium": "Included in the Premium Plan",
   "acceptPayment": {
     "title": "Accept payment",
     "chargeCard": "Charge card",

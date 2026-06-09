@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
@@ -16,8 +17,9 @@ import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Currency } from '@/utils/currency'
-import { getLast7Days } from '@/utils/datetime'
+import { getLast7Days, getToday } from '@/utils/datetime'
 import { useAuth } from '@/context/AuthContext'
+import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import {
   fetchSalesSummary,
   salesSummaryKeys,
@@ -50,6 +52,7 @@ import {
   QrCode,
   Filter,
   X,
+  Lock,
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { PeriodBreakdownTable } from './components/PeriodBreakdownTable'
@@ -725,16 +728,39 @@ const SalesSummarySkeleton = () => (
 // ============================================
 export default function SalesSummary() {
   const { t, i18n } = useTranslation('reports')
-  const { venueId } = useCurrentVenue()
+  const { venueId, fullBasePath } = useCurrentVenue()
   const { activeVenue } = useAuth()
   const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
 
-  // Date range state - default to last 7 days
-  const defaultDateRange = useMemo(() => getLast7Days(venueTimezone), [venueTimezone])
+  // Tier gate: Free venues get a BASIC report (today's summary only). Pro+ unlocks
+  // history (other date ranges / past periods) and the advanced breakdowns. The
+  // sales-summary API is NOT feature-gated server-side (only `reports:read`), so a
+  // Free venue's request still returns data — this is a pure FRONTEND gate.
+  const { hasAccess } = useTierFeatureAccess('ADVANCED_REPORTS')
+
+  // Date range state - Pro defaults to last 7 days; Free is locked to today.
+  const todayRange = useMemo(() => getToday(venueTimezone), [venueTimezone])
+  const defaultDateRange = useMemo(
+    () => (hasAccess ? getLast7Days(venueTimezone) : todayRange),
+    [hasAccess, venueTimezone, todayRange],
+  )
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
     from: defaultDateRange.from,
     to: defaultDateRange.to,
   })
+
+  // When tier access resolves (e.g. plan query lands after first render), keep a Free
+  // venue pinned to "today" — never leave it showing a stale multi-day range.
+  useEffect(() => {
+    if (!hasAccess) {
+      setDateRange(prev => {
+        if (prev.from.getTime() === todayRange.from.getTime() && prev.to.getTime() === todayRange.to.getTime()) {
+          return prev
+        }
+        return { from: todayRange.from, to: todayRange.to }
+      })
+    }
+  }, [hasAccess, todayRange])
 
 
   // State for collapsible sections
@@ -758,6 +784,9 @@ export default function SalesSummary() {
 
   // Applied control values (what's actually shown in the report)
   const [reportType, setReportType] = useState<ReportType>(() => (savedPrefs?.reportType as ReportType) || 'summary')
+  // Free venues never reach the report-type control (it's Pro-only), so a saved
+  // increment preference must not leak the period-breakdown view. Force "summary".
+  const effectiveReportType: ReportType = hasAccess ? reportType : 'summary'
   const [viewType, setViewType] = useState(() => savedPrefs?.viewType || 'gauge')
   const [groupBy, setGroupBy] = useState(() => savedPrefs?.groupBy || 'none')
   const [terminal, setTerminal] = useState('all')
@@ -1041,20 +1070,26 @@ export default function SalesSummary() {
 
   // Build API filters
   // Always request paymentMethod grouping for the top chart visualization
-  const apiFilters = useMemo(() => ({
-    venueId,
-    startDate: dateRange.from.toISOString(),
-    endDate: dateRange.to.toISOString(),
-    groupBy: 'paymentMethod' as ApiGroupBy,
-    reportType: reportType as ReportType,
-    ...(merchantAccountId ? { merchantAccountId } : {}),
-    ...(paymentMethodFilter ? { paymentMethod: paymentMethodFilter } : {}),
-    ...(paymentMethodFilter === 'CARD' && cardTypeFilter ? { cardType: cardTypeFilter } : {}),
-    // Always request the per-merchant card breakdown + settlement projection for
-    // the reconciliation view (both additive / opt-in on the backend).
-    includeMerchantBreakdown: true,
-    includeSettlementProjection: true,
-  }), [venueId, dateRange.from, dateRange.to, reportType, merchantAccountId, paymentMethodFilter, cardTypeFilter])
+  // Free venues are hard-pinned to today's summary: ignore any saved range / report
+  // type / filters so the query can only ever return today's basic numbers.
+  const apiFilters = useMemo(() => {
+    const fromIso = hasAccess ? dateRange.from.toISOString() : todayRange.from.toISOString()
+    const toIso = hasAccess ? dateRange.to.toISOString() : todayRange.to.toISOString()
+    return {
+      venueId,
+      startDate: fromIso,
+      endDate: toIso,
+      groupBy: 'paymentMethod' as ApiGroupBy,
+      reportType: effectiveReportType,
+      ...(hasAccess && merchantAccountId ? { merchantAccountId } : {}),
+      ...(hasAccess && paymentMethodFilter ? { paymentMethod: paymentMethodFilter } : {}),
+      ...(hasAccess && paymentMethodFilter === 'CARD' && cardTypeFilter ? { cardType: cardTypeFilter } : {}),
+      // Always request the per-merchant card breakdown + settlement projection for
+      // the reconciliation view (both additive / opt-in on the backend).
+      includeMerchantBreakdown: true,
+      includeSettlementProjection: true,
+    }
+  }, [venueId, hasAccess, dateRange.from, dateRange.to, todayRange.from, todayRange.to, effectiveReportType, merchantAccountId, paymentMethodFilter, cardTypeFilter])
 
   // Fetch sales summary data from API
   const {
@@ -1159,11 +1194,11 @@ export default function SalesSummary() {
 
   // Extract period data for time-based reports
   const periodData = useMemo(() => {
-    if (!apiResponse?.byPeriod || reportType === 'summary') {
+    if (!apiResponse?.byPeriod || effectiveReportType === 'summary') {
       return null
     }
     return apiResponse.byPeriod
-  }, [apiResponse?.byPeriod, reportType])
+  }, [apiResponse?.byPeriod, effectiveReportType])
 
   // Handle date range change
   const handleDateRangeUpdate = (values: { range: { from: Date; to: Date | undefined } }) => {
@@ -1199,11 +1234,10 @@ export default function SalesSummary() {
   }
 
   return (
-    <FeatureGate feature="ADVANCED_REPORTS">
     <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <PageTitleWithInfo
             title={t('salesSummary.title')}
             className="text-2xl font-bold"
@@ -1214,6 +1248,12 @@ export default function SalesSummary() {
           <Badge variant="outline" className="text-xs font-normal">
             Beta
           </Badge>
+          {/* Free venues: make it obvious this is "today only" + where the rest lives. */}
+          {!hasAccess && (
+            <Badge variant="secondary" className="text-xs font-normal gap-1">
+              {t('salesSummary.basic.todayBadge')}
+            </Badge>
+          )}
           {isFiltered && (
             <Badge variant="outline" className="text-xs font-normal gap-1 pl-2 pr-1 py-0.5">
               {t('salesSummary.controls.filterBy.active')}: {filterByValueLabel()}
@@ -1229,6 +1269,9 @@ export default function SalesSummary() {
             </Badge>
           )}
         </div>
+        {/* Export + advanced controls (report type, group by, filters, metrics) are
+            Pro-only — Free has nothing to configure on a single-day basic view. */}
+        {hasAccess && (
         <div className="flex items-center gap-2">
           {/* Export Popover */}
           <Popover open={exportOpen} onOpenChange={setExportOpen}>
@@ -1908,21 +1951,50 @@ export default function SalesSummary() {
             </SheetContent>
           </Sheet>
         </div>
+        )}
       </div>
 
-      {/* Date Range Picker */}
-      <div className="flex items-center">
-        <DateRangePicker
-          initialDateFrom={dateRange.from}
-          initialDateTo={dateRange.to}
-          onUpdate={handleDateRangeUpdate}
-          align="start"
-          locale={i18n.language}
-          showCompare={false}
-        />
-      </div>
+      {/* Date Range Picker — Pro can pick any range; Free is locked to "Hoy" with an
+          inline upsell to history. */}
+      {hasAccess ? (
+        <div className="flex items-center">
+          <DateRangePicker
+            initialDateFrom={dateRange.from}
+            initialDateTo={dateRange.to}
+            onUpdate={handleDateRangeUpdate}
+            align="start"
+            locale={i18n.language}
+            showCompare={false}
+          />
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Disabled "Hoy" pill — looks like the picker but can't be opened. */}
+          <Button
+            type="button"
+            variant="outline"
+            disabled
+            aria-disabled
+            className="h-9 gap-2 rounded-lg opacity-100 disabled:opacity-100 cursor-not-allowed"
+          >
+            <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="font-medium">{t('salesSummary.basic.today')}</span>
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            {t('salesSummary.basic.historyLocked')}{' '}
+            <Link
+              to={`${fullBasePath}/settings/billing/subscriptions`}
+              className="font-medium text-foreground underline underline-offset-2 hover:text-foreground/80"
+            >
+              {t('salesSummary.basic.historyCta')}
+            </Link>
+          </span>
+        </div>
+      )}
 
-      {/* Control Pills (click to open control panel) - Square order */}
+      {/* Control Pills (click to open control panel) - Square order. Pro-only:
+          report type, group by, filters, metrics are all advanced. */}
+      {hasAccess && (
       <div className="flex flex-wrap gap-2">
         <Button
           variant="outline"
@@ -1973,8 +2045,9 @@ export default function SalesSummary() {
           onClick={() => openControlPanel('filterBy')}
         />
       </div>
+      )}
 
-      {/* Big Number - Total Sales with Dynamic Visualization */}
+      {/* Big Number - Total Sales with Dynamic Visualization (FREE: today's headline) */}
       <GlassCard className="p-6 space-y-5">
         <div className="flex items-start gap-4">
           <div className="p-3 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5">
@@ -2081,8 +2154,9 @@ export default function SalesSummary() {
         )}
       </GlassCard>
 
-      {/* Summary Section (Collapsible) - Only shown for summary report type */}
-      {reportType === 'summary' && (
+      {/* Summary Section (Collapsible) - Only shown for summary report type.
+          FREE: this is the basic "today's totals" breakdown and stays visible. */}
+      {effectiveReportType === 'summary' && (
         <Collapsible open={summaryOpen} onOpenChange={setSummaryOpen}>
           <GlassCard>
             <CollapsibleTrigger asChild>
@@ -2288,9 +2362,9 @@ export default function SalesSummary() {
       )}
 
       {/* Per-merchant reconciliation (Entrega 1): "¿Dónde está tu dinero?" + the
-          per-merchant card breakdown. Sits directly under the Summary card (whose
-          last row is Net profit). Hidden under a payment filter. */}
-      {merchantBreakdown.length > 0 && !isFiltered && (
+          per-merchant card breakdown. Advanced analysis → Pro-only. Hidden under a
+          payment filter. */}
+      {hasAccess && merchantBreakdown.length > 0 && !isFiltered && (
         <div className="space-y-4">
           <MoneyLocationStrip
             cashInHand={cashInHand}
@@ -2303,12 +2377,13 @@ export default function SalesSummary() {
         </div>
       )}
 
-      {/* Period Breakdown Table - Only shown for time-based reports */}
-      {reportType !== 'summary' && periodData && periodData.length > 0 && (
+      {/* Period Breakdown Table - Only shown for time-based reports (Pro-only:
+          effectiveReportType is forced to 'summary' for Free). */}
+      {hasAccess && effectiveReportType !== 'summary' && periodData && periodData.length > 0 && (
         <PeriodBreakdownTable
           periods={periodData}
           selectedMetrics={selectedMetrics}
-          reportType={reportType}
+          reportType={effectiveReportType}
           venueTimezone={venueTimezone}
         />
       )}
@@ -2421,7 +2496,23 @@ export default function SalesSummary() {
           </CollapsibleContent>
         </GlassCard>
       </Collapsible>
+
+      {/* FREE upsell: history + advanced reporting are Pro. Inline FeatureGate
+          renders a blurred teaser of what Pro unlocks (it's already a paywall card
+          for non-Pro venues, and a no-op pass-through for Pro). */}
+      {!hasAccess && (
+        <FeatureGate feature="ADVANCED_REPORTS">
+          <div className="rounded-2xl border border-input bg-card p-6 space-y-4">
+            <h3 className="text-lg font-semibold">{t('salesSummary.basic.upsell.title')}</h3>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>• {t('salesSummary.basic.upsell.history')}</li>
+              <li>• {t('salesSummary.basic.upsell.periods')}</li>
+              <li>• {t('salesSummary.basic.upsell.breakdowns')}</li>
+              <li>• {t('salesSummary.basic.upsell.export')}</li>
+            </ul>
+          </div>
+        </FeatureGate>
+      )}
     </div>
-    </FeatureGate>
   )
 }

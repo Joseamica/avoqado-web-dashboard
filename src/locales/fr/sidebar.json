@@ -70,6 +70,7 @@
     "salesByItem": "Ventes par article",
     "salesByCategory": "Ventes par catégorie",
     "paymentMethods": "Moyens de paiement",
+    "refunds": "Remboursements",
     "taxes": "Taxes",
     "voids": "Annulations",
     "modifiers": "Modificateurs"
@@ -138,6 +139,7 @@
   },
   "requiresKycVerification": "Vérification KYC requise",
   "premiumPro": "Inclus dans le forfait Pro",
+  "premiumPremium": "Inclus dans le forfait Premium",
   "acceptPayment": {
     "title": "Accepter un paiement",
     "chargeCard": "Débiter la carte",

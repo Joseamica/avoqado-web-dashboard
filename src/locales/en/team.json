@@ -98,6 +98,11 @@
       "desc": "Send an invitation to a new team member to join your venue"
     }
   },
+  "seatCap": {
+    "title": "You've reached your Free plan limit",
+    "desc": "The Free plan allows 2 users. Upgrade to Pro to add unlimited users.",
+    "cta": "Upgrade to Pro"
+  },
   "tabs": {
     "members": "Members",
     "invitations": "Pending Invitations"

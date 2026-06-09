@@ -58,6 +58,21 @@
         "errorToast": "No se pudo cancelar el plan. Intenta de nuevo."
       }
     },
+    "downgrade": {
+      "title": "Elige quién se queda",
+      "explainTitle": "El plan Gratis permite {{cap}} usuarios",
+      "explainBody": "El plan Gratis permite {{cap}} usuarios y tienes {{currentActive}} activos. Elige quién se queda; los demás se desactivarán cuando termine tu periodo pagado (no se borran — se reactivan si vuelves a Pro).",
+      "counter": "{{selected}}/{{keepMax}} seleccionados",
+      "scheduledOn": "Tu plan baja a Gratis el {{date}}",
+      "rosterLabel": "Tu equipo",
+      "youOwner": "Tú / Dueño",
+      "reassurance": "Los usuarios que no elijas no se borran: quedan desactivados y se reactivan automáticamente si vuelves a Pro.",
+      "confirmCta": "Confirmar y cambiar a Gratis",
+      "confirming": "Guardando...",
+      "successToast": "Tu plan bajará a Gratis al terminar el periodo. Los usuarios elegidos se mantienen.",
+      "scheduledToast": "Tu plan bajará a Gratis al terminar el periodo pagado.",
+      "errorToast": "No se pudo cambiar el plan. Intenta de nuevo."
+    },
     "currentBadge": "Tu plan actual",
     "billing": { "monthly": "Mensual", "annual": "Anual", "save": "2 meses gratis" },
     "perMonth": "/mes",

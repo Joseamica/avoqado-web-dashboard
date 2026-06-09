@@ -644,6 +644,11 @@
       "quantityTrackingDesc": "Para artículos de retail (joyería, ropa, etc.) - rastrea solo cantidad",
       "recipeBased": "Basado en Recetas",
       "recipeBasedDesc": "Para restaurantes - rastrea ingredientes y calcula costos",
+      "premiumBadge": "Premium",
+      "recipePremiumLocked": "Los productos basados en recetas son parte del plan Premium",
+      "recipePremiumTitle": "Las recetas son parte de Premium",
+      "recipePremiumBody": "Este producto usa una receta, pero el inventario avanzado no está incluido en tu plan actual. Mejora a Premium para editar recetas y el control de ingredientes.",
+      "recipePremiumUpgrade": "Mejorar a Premium",
       "success": "¡Inventario configurado exitosamente!",
       "error": "Error al configurar el inventario"
     },

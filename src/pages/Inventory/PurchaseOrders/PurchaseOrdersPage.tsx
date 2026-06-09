@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useAuth } from '@/context/AuthContext'
 import {
   purchaseOrderService,
@@ -635,6 +636,7 @@ export default function PurchaseOrdersPage() {
   }, [columns, hiddenColumns])
 
   return (
+    <FeatureGate feature="INVENTORY_TRACKING">
     <div className="p-6 space-y-3">
       {/* Discovery banner for first-time admins — dismissable */}
       <TourDiscoveryBanner
@@ -940,5 +942,6 @@ export default function PurchaseOrdersPage() {
         mode="create"
       />
     </div>
+    </FeatureGate>
   )
 }

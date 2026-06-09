@@ -85,6 +85,11 @@
       "desc": "Envoyez une invitation à un nouveau membre pour rejoindre votre venue"
     }
   },
+  "seatCap": {
+    "title": "Vous avez atteint la limite de votre forfait Gratuit",
+    "desc": "Le forfait Gratuit permet 2 utilisateurs. Passez à Pro pour ajouter des utilisateurs illimités.",
+    "cta": "Passer à Pro"
+  },
   "tabs": {
     "members": "Membres",
     "invitations": "Invitations en Attente"

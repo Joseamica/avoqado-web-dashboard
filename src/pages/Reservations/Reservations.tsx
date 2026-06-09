@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
+import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useReservationsTour } from '@/hooks/useReservationsTour'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -240,6 +241,7 @@ export default function Reservations() {
   )
 
   return (
+    <FeatureGate feature="RESERVATIONS">
     <div className="p-4 bg-background text-foreground">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
@@ -423,5 +425,6 @@ export default function Reservations() {
       {/* Create Class Session Dialog */}
       <CreateClassSessionDialog open={showClassModal} onOpenChange={setShowClassModal} />
     </div>
+    </FeatureGate>
   )
 }

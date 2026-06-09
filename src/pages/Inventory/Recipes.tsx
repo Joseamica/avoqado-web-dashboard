@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useDebounce } from '@/hooks/useDebounce'
+import { FeatureGate } from '@/components/billing/FeatureGate'
 import { type Recipe, productInventoryApi, pricingApi, type PricingPolicy } from '@/services/inventory.service'
 import { Currency } from '@/utils/currency'
 import { RecipeDialog } from './components/RecipeDialog'
@@ -825,6 +826,7 @@ export default function Recipes() {
     }).length || 0
 
   return (
+    <FeatureGate feature="INVENTORY_TRACKING">
     <div className="p-4 bg-background text-foreground">
       {/* Header */}
       <div className="flex flex-col gap-3 mb-3">
@@ -1165,5 +1167,6 @@ export default function Recipes() {
 
       <RecipeDialog open={pricingRecipeDialogOpen} onOpenChange={setPricingRecipeDialogOpen} mode="edit" product={selectedPricingProduct} />
     </div>
+    </FeatureGate>
   )
 }

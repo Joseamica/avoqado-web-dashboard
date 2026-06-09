@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useAuth } from '@/context/AuthContext'
 import { useAccess } from '@/hooks/use-access'
+import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { IssueCfdiDialog } from '@/pages/Cfdi/components/IssueCfdiDialog'
@@ -29,7 +29,7 @@ export function OrderActionsSheet({ order, open, onOpenChange, fullBasePath }: P
   const { t: tCfdi } = useTranslation('cfdi')
   const { venueId } = useCurrentVenue()
   const { can } = useAccess()
-  const { checkFeatureAccess } = useAuth()
+  const { hasAccess: hasCfdi } = useTierFeatureAccess('CFDI')
   const { toast } = useToast()
   const navigate = useNavigate()
   const [view, setView] = useState<View>('menu')
@@ -39,7 +39,7 @@ export function OrderActionsSheet({ order, open, onOpenChange, fullBasePath }: P
 
   // "Facturar" is an action, not a discovery teaser — hide it unless the user
   // can issue CFDIs AND the venue has the CFDI feature active.
-  const canIssueCfdi = can('cfdi:issue') && checkFeatureAccess('CFDI')
+  const canIssueCfdi = can('cfdi:issue') && hasCfdi
 
   const payments = order.payments ?? []
   const hasOne = payments.length === 1

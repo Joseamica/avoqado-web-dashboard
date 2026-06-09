@@ -19,7 +19,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Label } from '@/components/ui/label'
 import { Receipt } from 'lucide-react'
-import { useAuth } from '@/context/AuthContext'
+import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { SatKeyPicker } from '@/components/SatKeyPicker'
 
 interface CategoryWizardDialogProps {
@@ -47,8 +47,7 @@ export function CategoryWizardDialog({ open, onOpenChange, onSuccess }: Category
   const { t } = useTranslation('menu')
   const { t: tCommon } = useTranslation('common')
   const { t: tCfdi } = useTranslation('cfdi')
-  const { checkFeatureAccess } = useAuth()
-  const hasCfdi = checkFeatureAccess('CFDI')
+  const { hasAccess: hasCfdi } = useTierFeatureAccess('CFDI')
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()

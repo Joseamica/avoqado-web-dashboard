@@ -74,6 +74,19 @@
     "transactions": "transacciones",
     "transactionsLabel": "transacciones",
     "transactionsShort": "trans.",
+    "basic": {
+      "today": "Hoy",
+      "todayBadge": "Solo hoy",
+      "historyLocked": "El histórico está disponible en Pro.",
+      "historyCta": "Mejorar plan",
+      "upsell": {
+        "title": "Desbloquea los reportes completos con Pro",
+        "history": "Consulta las ventas de cualquier día o rango de fechas",
+        "periods": "Compara periodos por hora, día, semana y mes",
+        "breakdowns": "Desgloses detallados por terminal, comercio y tipo de pago",
+        "export": "Exporta tus reportes a CSV"
+      }
+    },
     "actions": {
       "exportPDF": "Exportar PDF",
       "exportCSV": "Exportar CSV",
@@ -436,6 +449,112 @@
     },
     "units": {
       "each": "c/u"
+    },
+    "totals": {
+      "label": "Total"
+    }
+  },
+  "salesByCategory": {
+    "title": "Ventas por categoría",
+    "subtitle": "Desglose de ventas por categoría del período",
+    "noData": "Sin datos de ventas para este período",
+    "chart": {
+      "title": "Ventas por período"
+    },
+    "columns": {
+      "category": "Categoría",
+      "itemsSold": "Artículos vendidos",
+      "unitsSold": "Unidades vendidas",
+      "grossSales": "Ventas brutas",
+      "discounts": "Descuentos",
+      "share": "% de ventas"
+    },
+    "summary": {
+      "categories": "Categorías"
+    },
+    "controls": {
+      "title": "Controles",
+      "apply": "Aplicar",
+      "hoursFilter": {
+        "label": "Horas de los informes diarios",
+        "description": "Filtra los datos por horas del día",
+        "longDescription": "Elige si incluir todas las horas del día o especificar un rango de tiempo personalizado.",
+        "start": "Hora inicio",
+        "end": "Hora fin",
+        "options": {
+          "all": "Todo el día",
+          "allDesc": "Incluir todas las horas (0:00-23:59)",
+          "custom": "Personalizado",
+          "customDesc": "Especificar un rango de tiempo personalizado"
+        }
+      }
+    },
+    "totals": {
+      "label": "Total"
+    }
+  },
+  "paymentMethods": {
+    "title": "Métodos de pago",
+    "noData": "Sin pagos para este período",
+    "columns": {
+      "method": "Método",
+      "transactions": "Transacciones",
+      "collected": "Cobrado",
+      "tips": "Propinas",
+      "refunds": "Reembolsos",
+      "fees": "Comisiones",
+      "share": "% de ventas"
+    },
+    "methods": {
+      "CARD": "Tarjeta",
+      "CASH": "Efectivo",
+      "OTHER": "Otro",
+      "QR_LEGACY": "QR"
+    },
+    "subTypes": {
+      "CREDIT": "Crédito",
+      "DEBIT": "Débito",
+      "AMEX": "American Express",
+      "INTERNATIONAL": "Internacional"
+    },
+    "totals": {
+      "label": "Total"
+    }
+  },
+  "refunds": {
+    "title": "Reembolsos",
+    "noData": "Sin reembolsos para este período",
+    "summary": {
+      "totalRefunded": "Total reembolsado",
+      "count": "Reembolsos"
+    },
+    "columns": {
+      "date": "Fecha",
+      "order": "Orden",
+      "method": "Método",
+      "reason": "Motivo",
+      "note": "Nota",
+      "sale": "Venta",
+      "tip": "Propina",
+      "total": "Total",
+      "processedBy": "Procesado por"
+    },
+    "reasons": {
+      "RETURNED_GOODS": "Mercancía devuelta",
+      "ACCIDENTAL_CHARGE": "Cargo accidental",
+      "CANCELLED_ORDER": "Orden cancelada",
+      "FRAUDULENT_CHARGE": "Cargo fraudulento",
+      "OTHER": "Otro",
+      "UNKNOWN": "Sin especificar"
+    },
+    "methods": {
+      "CASH": "Efectivo",
+      "CREDIT_CARD": "Tarjeta de crédito",
+      "DEBIT_CARD": "Tarjeta de débito",
+      "DIGITAL_WALLET": "Monedero digital",
+      "BANK_TRANSFER": "Transferencia",
+      "CRYPTOCURRENCY": "Cripto",
+      "OTHER": "Otro"
     },
     "totals": {
       "label": "Total"

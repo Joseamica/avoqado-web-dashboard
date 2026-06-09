@@ -20,6 +20,7 @@ import { CheckboxFilterContent } from '@/components/filters/CheckboxFilterConten
 import { ColumnCustomizer } from '@/components/filters/ColumnCustomizer'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useAuth } from '@/context/AuthContext'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '@/hooks/use-toast'
@@ -257,6 +258,7 @@ export default function SuppliersPage() {
   }, [activeFilter, t])
 
   return (
+    <FeatureGate feature="INVENTORY_TRACKING">
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
@@ -357,5 +359,6 @@ export default function SuppliersPage() {
         supplier={selectedSupplier}
       />
     </div>
+    </FeatureGate>
   )
 }

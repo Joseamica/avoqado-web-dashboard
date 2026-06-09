@@ -58,6 +58,21 @@
         "errorToast": "Could not cancel the plan. Please try again."
       }
     },
+    "downgrade": {
+      "title": "Choose who stays",
+      "explainTitle": "The Free plan allows {{cap}} users",
+      "explainBody": "The Free plan allows {{cap}} users and you have {{currentActive}} active. Choose who stays; the rest are deactivated when your paid period ends (they aren't deleted — they reactivate if you return to Pro).",
+      "counter": "{{selected}}/{{keepMax}} selected",
+      "scheduledOn": "Your plan switches to Free on {{date}}",
+      "rosterLabel": "Your team",
+      "youOwner": "You / Owner",
+      "reassurance": "Users you don't pick aren't deleted: they're deactivated and reactivate automatically if you return to Pro.",
+      "confirmCta": "Confirm and switch to Free",
+      "confirming": "Saving...",
+      "successToast": "Your plan will switch to Free at the end of the period. The users you chose stay.",
+      "scheduledToast": "Your plan will switch to Free at the end of the paid period.",
+      "errorToast": "Could not switch your plan. Please try again."
+    },
     "currentBadge": "Your current plan",
     "billing": { "monthly": "Monthly", "annual": "Yearly", "save": "2 months free" },
     "perMonth": "/mo",

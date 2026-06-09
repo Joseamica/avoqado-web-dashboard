@@ -20,10 +20,10 @@ import { ToastAction } from '@/components/ui/toast'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { useVenueDateTime } from '@/utils/datetime'
-import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useFiscalConfig, useProvisionEmisor, useTriggerGlobalCfdi, useUpsertMerchantConfig } from '@/hooks/use-cfdi'
-import { FeatureTeaser } from '@/components/FeatureTeaser'
+import { FeatureGate } from '@/components/billing/FeatureGate'
 import { paymentProviderAPI } from '@/services/paymentProvider.service'
 import { ecommerceMerchantAPI } from '@/services/ecommerceMerchant.service'
 import type { CsdStatus, Emisor, GlobalCfdiResult, GlobalPeriod, MerchantConfig } from '@/services/cfdi.service'
@@ -417,13 +417,14 @@ function AddMerchantConfig({
 export default function CfdiConfiguracion() {
   const { t } = useTranslation('cfdi')
   const { formatDate } = useVenueDateTime()
-  const { checkFeatureAccess } = useAuth()
   const { venueId } = useCurrentVenue()
 
-  // CFDI is a paid feature shown as a VISIBLE teaser. When the venue hasn't
-  // subscribed we keep the page discoverable but render sample emisor cards
-  // behind a blurred upsell overlay and NEVER call the (feature-gated) backend.
-  const hasCfdi = checkFeatureAccess('CFDI')
+  // CFDI is a paid feature shown as a VISIBLE teaser via <FeatureGate> below.
+  // When the venue lacks access we keep the page discoverable but render sample
+  // emisor cards behind the blurred upsell overlay and NEVER call the
+  // (feature-gated) backend. Use the SAME tier+grant logic FeatureGate uses so
+  // the API guard and the visual gate stay in lockstep.
+  const { hasAccess: hasCfdi } = useTierFeatureAccess('CFDI')
 
   const { data, isLoading, isError } = useFiscalConfig({ enabled: hasCfdi })
   const provisionMutation = useProvisionEmisor()
@@ -483,19 +484,19 @@ export default function CfdiConfiguracion() {
   }
 
   return (
-    <div className="p-4 bg-background text-foreground">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight">{t('config.title')}</h1>
-        <p className="text-muted-foreground mt-1">{t('config.description')}</p>
-      </div>
-
-      {hasCfdi && isError && (
-        <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-          {t('config.loadError')}
+    <FeatureGate feature="CFDI">
+      <div className="p-4 bg-background text-foreground">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold tracking-tight">{t('config.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('config.description')}</p>
         </div>
-      )}
 
-      <FeatureTeaser active={hasCfdi} featureName={t('config.title')}>
+        {hasCfdi && isError && (
+          <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+            {t('config.loadError')}
+          </div>
+        )}
+
       <div className="space-y-10">
         {/* ── Emisores ─────────────────────────────────────── */}
         <section className="space-y-4">
@@ -663,22 +664,22 @@ export default function CfdiConfiguracion() {
         {/* ── Factura global (Flow C) ──────────────────────── */}
         <GlobalInvoiceSection emisores={emisores} />
       </div>
-      </FeatureTeaser>
 
-      {hasCfdi && (
-        <>
-          <EmisorFormModal
-            open={emisorModal.open}
-            emisor={emisorModal.emisor}
-            onClose={() => setEmisorModal({ open: false, emisor: null })}
-          />
-          <UploadCsdModal
-            open={csdModal.open}
-            emisor={csdModal.emisor}
-            onClose={() => setCsdModal({ open: false, emisor: null })}
-          />
-        </>
-      )}
-    </div>
+        {hasCfdi && (
+          <>
+            <EmisorFormModal
+              open={emisorModal.open}
+              emisor={emisorModal.emisor}
+              onClose={() => setEmisorModal({ open: false, emisor: null })}
+            />
+            <UploadCsdModal
+              open={csdModal.open}
+              emisor={csdModal.emisor}
+              onClose={() => setCsdModal({ open: false, emisor: null })}
+            />
+          </>
+        )}
+      </div>
+    </FeatureGate>
   )
 }

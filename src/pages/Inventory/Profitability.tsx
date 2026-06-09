@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Settings2, Search, RefreshCcw, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { FeatureGate } from '@/components/billing/FeatureGate'
 import { pricingApi, type ProfitabilityApiRow } from '@/services/inventory.service'
 
 import { KpiStrip } from './components/profitability/KpiStrip'
@@ -106,6 +107,7 @@ export default function Profitability() {
   }
 
   return (
+    <FeatureGate feature="INVENTORY_TRACKING">
     <div className="p-4 bg-background text-foreground">
       {/* Header */}
       <header className="flex flex-col gap-1 mb-5 sm:flex-row sm:items-end sm:justify-between">
@@ -264,5 +266,6 @@ export default function Profitability() {
       {/* Bulk AI benchmark from header */}
       <BulkBenchmarkDialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen} rows={allRows} />
     </div>
+    </FeatureGate>
   )
 }

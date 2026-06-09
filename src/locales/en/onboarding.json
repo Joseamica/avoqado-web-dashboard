@@ -410,6 +410,23 @@
       "accountHolderRequired": "Account holder name is required"
     }
   },
+  "plan": {
+    "title": "Choose your plan",
+    "description": "Start free or unlock more with a plan. You can change plans anytime.",
+    "tierNames": {
+      "FREE": "Free",
+      "PRO": "Pro",
+      "PREMIUM": "Premium"
+    },
+    "continueWithPlan": "Continue with {{plan}}",
+    "continueToCheckout": "Continue to payment",
+    "paidNotice": "We'll activate your account and then take you to secure checkout for your {{plan}} plan.",
+    "summaryMonthly": "Monthly plan · ${{price}} MXN/mo + VAT",
+    "summaryAnnual": "Annual plan · ${{price}} MXN/yr + VAT",
+    "summaryCheckoutNote": "When you confirm, we'll take you to secure checkout to activate your plan.",
+    "checkoutRedirectNotice": "We first activate your account, then take you to secure checkout for your plan.",
+    "checkoutFailedFreeFallback": "Your account is active on the Free plan, but we couldn't open checkout. You can upgrade later from Settings → Billing."
+  },
   "shared": {
     "loadingProgress": "Loading your progress...",
     "rfcPlaceholder": "XAXX010101000",

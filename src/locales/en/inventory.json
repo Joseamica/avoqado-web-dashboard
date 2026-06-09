@@ -644,6 +644,11 @@
       "quantityTrackingDesc": "For retail items (jewelry, clothing, etc.) - tracks quantity only",
       "recipeBased": "Recipe-Based",
       "recipeBasedDesc": "For restaurants - tracks ingredients and calculates costs",
+      "premiumBadge": "Premium",
+      "recipePremiumLocked": "Recipe-based products are part of the Premium plan",
+      "recipePremiumTitle": "Recipes are part of Premium",
+      "recipePremiumBody": "This product uses a recipe, but advanced inventory isn't included in your current plan. Upgrade to Premium to edit recipes and ingredient tracking.",
+      "recipePremiumUpgrade": "Upgrade to Premium",
       "success": "Inventory configured successfully!",
       "error": "Failed to configure inventory"
     },

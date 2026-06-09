@@ -76,6 +76,7 @@
     "salesByItem": "Ventas por Artículo",
     "salesByCategory": "Ventas por Categoría",
     "paymentMethods": "Métodos de Pago",
+    "refunds": "Reembolsos",
     "taxes": "Impuestos",
     "voids": "Anulaciones",
     "modifiers": "Modificadores"
@@ -151,6 +152,7 @@
   },
   "requiresKycVerification": "Requiere verificación KYC",
   "premiumPro": "Incluido en el Plan Pro",
+  "premiumPremium": "Incluido en el Plan Premium",
   "acceptPayment": {
     "title": "Aceptar pago",
     "chargeCard": "Cargo a tarjeta",

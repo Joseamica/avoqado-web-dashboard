@@ -18,14 +18,13 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card as CardShadcn, CardContent as CardContentShadcn } from '@/components/ui/card'
-import { useAuth } from '@/context/AuthContext'
+import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { SatKeyPicker } from '@/components/SatKeyPicker'
 
 export default function CategoryId() {
   const { t } = useTranslation('menu')
   const { t: tCfdi } = useTranslation('cfdi')
-  const { checkFeatureAccess } = useAuth()
-  const hasCfdi = checkFeatureAccess('CFDI')
+  const { hasAccess: hasCfdi } = useTierFeatureAccess('CFDI')
   const { categoryId } = useParams()
   const { venueId } = useCurrentVenue()
   const queryClient = useQueryClient()

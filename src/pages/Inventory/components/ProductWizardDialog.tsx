@@ -19,10 +19,12 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useImageUploader } from '@/hooks/use-image-uploader'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
-import { useAuth } from '@/context/AuthContext'
+import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { productWizardApi, rawMaterialsApi, recipesApi, productInventoryApi, type InventoryMethod, type ProductType } from '@/services/inventory.service'
 import { getMenuCategories, getModifierGroups } from '@/services/menu.service'
-import { Loader2, Check, Package, Beef, Plus, Trash2, Info, UtensilsCrossed, Calendar, Ticket, Download, Heart, Users, ImagePlus, Grid3X3, Pencil, ChefHat, ChevronDown, Sparkles, Receipt } from 'lucide-react'
+import { Loader2, Check, Package, Beef, Plus, Trash2, Info, UtensilsCrossed, Calendar, Ticket, Download, Heart, Users, ImagePlus, Grid3X3, Pencil, ChefHat, ChevronDown, Sparkles, Receipt, Crown } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Currency } from '@/utils/currency'
 import Cropper from 'react-easy-crop'
@@ -195,9 +197,12 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const { t, i18n } = useTranslation('inventory')
   const { t: tCommon } = useTranslation('common')
   const { t: tCfdi } = useTranslation('cfdi')
-  const { checkFeatureAccess } = useAuth()
-  const hasCfdi = checkFeatureAccess('CFDI')
-  const { venueId, venueSlug } = useCurrentVenue()
+  const { hasAccess: hasCfdi } = useTierFeatureAccess('CFDI')
+  // Recipe-based products belong to the advanced-inventory feature (INVENTORY_TRACKING = Premium 👑),
+  // exactly like the Recipes page. Free venues without an explicit grant cannot build recipe products.
+  const { hasAccess: hasInventoryTracking } = useTierFeatureAccess('INVENTORY_TRACKING')
+  const { venueId, venueSlug, fullBasePath } = useCurrentVenue()
+  const navigate = useNavigate()
   const isSpanish = i18n.language.startsWith('es')
   const { toast } = useToast()
   const { getShortLabel } = useUnitTranslation()
@@ -1475,6 +1480,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                           <RadioGroup
                             value={step2Form.watch('inventoryMethod') || ''}
                             onValueChange={value => {
+                              // RECIPE is a Premium (INVENTORY_TRACKING) capability — block selection
+                              // for Free venues without access (the option is also disabled below).
+                              if (value === 'RECIPE' && !hasInventoryTracking) return
                               step2Form.setValue('inventoryMethod', value as InventoryMethod)
                               setSelectedInventoryMethod(value as InventoryMethod)
                             }}
@@ -1501,17 +1509,39 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                             <Label
                               htmlFor="recipe-based-left"
                               data-tour="product-wizard-method-recipe"
+                              aria-disabled={!hasInventoryTracking}
+                              title={!hasInventoryTracking ? t('wizard.step2.recipePremiumLocked') : undefined}
                               className={cn(
-                                'flex items-center gap-3 p-4 rounded-lg border transition-colors cursor-pointer',
-                                step2Form.watch('inventoryMethod') === 'RECIPE'
+                                'flex items-center gap-3 p-4 rounded-lg border transition-colors',
+                                !hasInventoryTracking
+                                  ? 'cursor-not-allowed opacity-60 border-input'
+                                  : 'cursor-pointer',
+                                hasInventoryTracking && step2Form.watch('inventoryMethod') === 'RECIPE'
                                   ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/30'
-                                  : 'border-border hover:bg-accent/50'
+                                  : hasInventoryTracking
+                                    ? 'border-border hover:bg-accent/50'
+                                    : ''
                               )}
                             >
-                              <RadioGroupItem value="RECIPE" id="recipe-based-left" />
+                              <RadioGroupItem
+                                value="RECIPE"
+                                id="recipe-based-left"
+                                disabled={!hasInventoryTracking}
+                              />
                               <Beef className="h-5 w-5 text-orange-600 dark:text-orange-400 shrink-0" />
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium">{t('wizard.step2.recipeBased')}</p>
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-sm font-medium">{t('wizard.step2.recipeBased')}</p>
+                                  {!hasInventoryTracking && (
+                                    <Badge
+                                      variant="outline"
+                                      className="h-4 shrink-0 gap-0.5 border-amber-400/40 px-1.5 text-[10px] text-amber-500"
+                                    >
+                                      <Crown className="h-2.5 w-2.5" />
+                                      {t('wizard.step2.premiumBadge')}
+                                    </Badge>
+                                  )}
+                                </div>
                                 <p className="text-xs text-muted-foreground">{t('wizard.step2.recipeBasedDesc')}</p>
                               </div>
                             </Label>
@@ -1616,7 +1646,34 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                             </div>
                           )}
 
-                          {step2Form.watch('inventoryMethod') === 'RECIPE' && (
+                          {/* Grandfathered-edit fallback: the product is already RECIPE-based but this
+                              venue lost INVENTORY_TRACKING (e.g. downgraded to Free). Don't hard-crash
+                              and don't expose the editable recipe form — show a subtle Premium upsell hint. */}
+                          {step2Form.watch('inventoryMethod') === 'RECIPE' && !hasInventoryTracking && (
+                            <div className="space-y-3 pt-4 border-t border-border/50">
+                              <div className="flex items-start gap-3 rounded-lg border border-amber-400/40 bg-amber-400/10 p-4">
+                                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-400/15">
+                                  <Crown className="h-4 w-4 text-amber-500" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-foreground">{t('wizard.step2.recipePremiumTitle')}</p>
+                                  <p className="mt-1 text-xs text-muted-foreground">{t('wizard.step2.recipePremiumBody')}</p>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="mt-3 h-8 cursor-pointer gap-1.5 border-amber-400/40 text-amber-600 hover:bg-amber-400/10 dark:text-amber-400"
+                                    onClick={() => navigate(`${fullBasePath}/settings/billing/subscriptions`)}
+                                  >
+                                    <Crown className="h-3.5 w-3.5" />
+                                    {t('wizard.step2.recipePremiumUpgrade')}
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {step2Form.watch('inventoryMethod') === 'RECIPE' && hasInventoryTracking && (
                             <div className="space-y-4 pt-4 border-t border-border/50" data-tour="product-wizard-recipe-section">
                               {/* Portion Yield */}
                               <div className="space-y-2" data-tour="product-wizard-portion-yield">
