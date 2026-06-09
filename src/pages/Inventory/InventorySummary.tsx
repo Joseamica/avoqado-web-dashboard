@@ -30,6 +30,7 @@ import { useNavigate } from 'react-router-dom'
 import { useToast } from '@/hooks/use-toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import { InventoryLabelModal } from './components/InventoryLabelModal'
+import { FeatureGate } from '@/components/billing/FeatureGate'
 import { includesNormalized } from '@/lib/utils'
 import { inventoryKeys, invalidateStockOverviewQueries } from '@/lib/queryKeys/inventory'
 import {
@@ -650,6 +651,7 @@ export default function InventorySummary() {
   )
 
   return (
+    <FeatureGate feature="INVENTORY_TRACKING">
     <Tabs value={activeTab} onValueChange={setActiveTab}>
       <div className="px-4 sm:px-6">
         {/* Title + Actions */}
@@ -760,6 +762,7 @@ export default function InventorySummary() {
         rawMaterial={adjustIngredient}
       />
     </Tabs>
+    </FeatureGate>
   )
 }
 

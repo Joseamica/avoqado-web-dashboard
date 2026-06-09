@@ -1,12 +1,116 @@
 {
   "loading": "Loading...",
-  "pageTitle": "Billing & Subscriptions",
-  "pageSubtitle": "Manage your active subscriptions, view billing history, and explore available features",
+  "pageTitle": "Plan & Billing",
+  "pageSubtitle": "Your plan, invoices, and payment methods — all in one place.",
   "tabs": {
-    "subscriptions": "Subscriptions",
-    "history": "History",
-    "paymentMethods": "Payment Methods",
+    "plan": "Plan",
+    "subscriptions": "Plan",
+    "history": "Invoices",
+    "paymentMethods": "Payment methods",
     "tokens": "AI Tokens"
+  },
+  "plan": {
+    "cancel": {
+      "reason": {
+        "title": "Before you go, why are you canceling?",
+        "subtitle": "Your answer helps us improve our service.",
+        "options": {
+          "tooExpensive": "It's too expensive",
+          "notUsing": "I'm not using it",
+          "missingFeature": "I'm missing a feature",
+          "switching": "I'm switching to another tool",
+          "temporary": "Temporary closure or pause",
+          "other": "Other"
+        },
+        "otherPlaceholder": "Tell us more...",
+        "keepCta": "Keep my plan",
+        "continueCta": "Continue"
+      },
+      "offer": {
+        "title": "Stay and save",
+        "discountBody": "Stay and get 30% off for 3 months.",
+        "discountBadge": "30% off · 3 months",
+        "timerLabel": "This offer expires in {{timer}}",
+        "acceptCta": "Accept and stay",
+        "declineCta": "No thanks, cancel",
+        "applying": "Applying...",
+        "pauseCta": "Pause my plan for 2 months",
+        "discountSuccess": "Done! 30% off applied.",
+        "pauseSuccess": "Done! Your plan is paused.",
+        "error": "Could not apply the offer. Please try again."
+      },
+      "confirm": {
+        "title": "Are you sure you want to cancel?",
+        "body": "Your {{planName}} plan stays active until {{date}}. After that, you'll lose:",
+        "bodyNoDate": "Your {{planName}} plan stays active until the end of the period. After that, you'll lose:",
+        "loseLabel": "You'll lose access to:",
+        "loseItems": [
+          "Full reports & history",
+          "AI Assistant + MCP",
+          "Loyalty & referrals",
+          "Reservations · Online ordering",
+          "Unlimited users"
+        ],
+        "keepCta": "No, keep my plan",
+        "cancelCta": "Yes, cancel my plan",
+        "canceling": "Canceling...",
+        "successToast": "Your plan will cancel at the end of the period. We'll send you an email.",
+        "errorToast": "Could not cancel the plan. Please try again."
+      }
+    },
+    "currentBadge": "Your current plan",
+    "billing": { "monthly": "Monthly", "annual": "Yearly", "save": "2 months free yearly" },
+    "perMonth": "/mo",
+    "perYear": "/yr",
+    "plusIva": "+ VAT",
+    "forever": "Forever",
+    "billedMonthly": "Billed monthly",
+    "annualEquiv": "{{price}}/yr · 2 months free",
+    "comingSoon": "Coming soon",
+    "popular": "Most popular",
+    "compareCta": "Compare all plans",
+    "assistedBody": "We activate your plan with you so everything is perfect. Message us and we'll set it up today.",
+    "assistedCta": "Talk to an advisor",
+    "checkoutSuccess": "Welcome to Pro! Your plan is active.",
+    "checkoutCanceled": "Payment canceled. Your plan didn't change.",
+    "checkoutError": "We couldn't open checkout. Please try again.",
+    "cta": { "current": "Your current plan", "upgrade": "Upgrade to {{tier}}", "contact": "Contact sales" },
+    "tiers": {
+      "free": { "name": "Free", "pitch": "Everything to run your business, free." },
+      "pro": { "name": "Pro", "pitch": "Grow and understand your business: history, AI, more sales." },
+      "premium": { "name": "Premium", "pitch": "Go pro: invoicing, serious inventory, multi-location." },
+      "enterprise": { "name": "Enterprise", "pitch": "For chains: own brand, integrations, volume pricing." }
+    },
+    "features": {
+      "pos": "Card payments (POS)",
+      "menuOrders": "Menu, orders & tables",
+      "inventoryBasic": "Basic inventory",
+      "dailyReports": "Today's reports",
+      "chatbotBeta": "Chatbot",
+      "seats2": "Up to 2 users",
+      "allFree": "Everything in Free",
+      "reportsHistory": "Full reports & history",
+      "aiMcp": "AI Assistant + MCP",
+      "loyaltyReferrals": "Loyalty & referrals",
+      "reservationsOrdering": "Reservations · Online ordering",
+      "seatsUnlimited": "Unlimited users",
+      "allPro": "Everything in Pro",
+      "cfdi": "CFDI invoicing",
+      "inventoryFifo": "FIFO inventory + recipes + costing",
+      "predictiveAnalytics": "Predictive analytics",
+      "multiVenue": "Consolidated multi-location",
+      "prioritySupport": "Priority support",
+      "allPremium": "Everything in Premium",
+      "whiteLabel": "White-label",
+      "apiIntegrations": "API & integrations",
+      "slaSupport": "SLA & dedicated support"
+    }
+  },
+  "featureGate": {
+    "tierTag": "Included in {{tier}}",
+    "body": "This feature is part of the {{tier}} plan. Upgrade to start using it.",
+    "upgrade": "Upgrade to {{tier}}",
+    "seeAll": "See all plans"
   },
   "activeSubscriptions": {
     "title": "Active Subscriptions",

@@ -26,7 +26,7 @@ export default function BillingLayout() {
       <NavTabs
         className="bg-background h-14"
         items={[
-          { to: `${basePath}/subscriptions`, label: t('tabs.subscriptions') },
+          { to: `${basePath}/subscriptions`, label: t('tabs.plan') },
           { to: `${basePath}/history`, label: t('tabs.history') },
           { to: `${basePath}/payment-methods`, label: t('tabs.paymentMethods') },
           { to: `${basePath}/tokens`, label: t('tabs.tokens') },

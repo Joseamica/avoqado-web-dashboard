@@ -1,0 +1,192 @@
+// src/components/billing/__tests__/FeatureGate.test.tsx
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { FeatureGate } from '../FeatureGate'
+import type { PlanState } from '@/services/features.service'
+
+// ---------------------------------------------------------------------------
+// i18n stub: renders keys as "key:interpolated-value" so assertions are stable
+// ---------------------------------------------------------------------------
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ t: (k: string, o?: Record<string, unknown>) => (o?.tier ? `${k}:${o.tier}` : k) }),
+}))
+
+// ---------------------------------------------------------------------------
+// useAccess mock — default values overridden per-test
+// ---------------------------------------------------------------------------
+const mockCanFeature = vi.fn()
+const mockUseAccess = vi.fn()
+vi.mock('@/hooks/use-access', () => ({ useAccess: () => mockUseAccess() }))
+
+// ---------------------------------------------------------------------------
+// useCurrentVenue mock
+// ---------------------------------------------------------------------------
+vi.mock('@/hooks/use-current-venue', () => ({
+  useCurrentVenue: () => ({ venueId: 'venue-123', fullBasePath: '/venues/test-venue' }),
+}))
+
+// ---------------------------------------------------------------------------
+// react-router-dom stub
+// ---------------------------------------------------------------------------
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => vi.fn(),
+}))
+
+// ---------------------------------------------------------------------------
+// features.service mock — getVenuePlan resolved via useQuery
+// ---------------------------------------------------------------------------
+vi.mock('@/services/features.service', () => ({
+  getVenuePlan: vi.fn(),
+}))
+
+// ---------------------------------------------------------------------------
+// Mock @tanstack/react-query's useQuery so we control planState without HTTP
+// ---------------------------------------------------------------------------
+const mockUseQuery = vi.fn()
+vi.mock('@tanstack/react-query', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@tanstack/react-query')>()
+  return {
+    ...actual,
+    useQuery: (opts: Parameters<typeof actual.useQuery>[0]) => mockUseQuery(opts),
+  }
+})
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+function makePlanState(planTier: PlanState['planTier']): PlanState {
+  return {
+    hasPlan: planTier !== null,
+    state: planTier ? 'active' : 'none',
+    planTier,
+    planName: planTier,
+    interval: 'month',
+    price: null,
+    trialEndsAt: null,
+    currentPeriodEnd: null,
+    cancelAtPeriodEnd: false,
+    suspendedAt: null,
+    gracePeriodEndsAt: null,
+    paymentMethod: null,
+    stripeSubscriptionId: null,
+  }
+}
+
+function renderGate(children = <div>secret content</div>) {
+  // Wrap in a real QueryClientProvider (even though useQuery is mocked, the
+  // QueryClientProvider is still expected in context by other hooks)
+  const queryClient = new QueryClient()
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <FeatureGate feature="CFDI">{children}</FeatureGate>
+    </QueryClientProvider>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+describe('FeatureGate', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+
+    // Default useAccess: non-superadmin, non-white-label OWNER
+    mockCanFeature.mockReturnValue(false)
+    mockUseAccess.mockReturnValue({
+      canFeature: mockCanFeature,
+      role: 'OWNER',
+      isWhiteLabelEnabled: false,
+    })
+  })
+
+  it('normal venue on FREE tier + CFDI feature (PREMIUM required) → shows paywall', () => {
+    mockUseQuery.mockReturnValue({ data: makePlanState('GRATIS'), isLoading: false })
+
+    renderGate()
+
+    expect(screen.getByText('featureGate.upgrade:Premium')).toBeInTheDocument()
+    // Children still present but blurred (aria-hidden teaser)
+    expect(screen.getByText('secret content')).toBeInTheDocument()
+  })
+
+  it('normal venue on PREMIUM tier + CFDI feature → renders children without paywall', () => {
+    mockUseQuery.mockReturnValue({ data: makePlanState('PREMIUM'), isLoading: false })
+
+    renderGate()
+
+    expect(screen.getByText('secret content')).toBeInTheDocument()
+    expect(screen.queryByText('featureGate.upgrade:Premium')).not.toBeInTheDocument()
+  })
+
+  it('normal venue on ENTERPRISE tier + CFDI feature → renders children without paywall', () => {
+    mockUseQuery.mockReturnValue({ data: makePlanState('ENTERPRISE'), isLoading: false })
+
+    renderGate()
+
+    expect(screen.getByText('secret content')).toBeInTheDocument()
+    expect(screen.queryByText('featureGate.upgrade:Premium')).not.toBeInTheDocument()
+  })
+
+  it('superadmin → renders children regardless of plan tier', () => {
+    // useQuery should be disabled (enabled: false), but we stub it to return nothing
+    mockUseQuery.mockReturnValue({ data: undefined, isLoading: false })
+    mockUseAccess.mockReturnValue({
+      canFeature: mockCanFeature,
+      role: 'SUPERADMIN',
+      isWhiteLabelEnabled: false,
+    })
+
+    renderGate()
+
+    expect(screen.getByText('secret content')).toBeInTheDocument()
+    expect(screen.queryByText('featureGate.upgrade:Premium')).not.toBeInTheDocument()
+  })
+
+  it('white-label venue with canFeature true → renders children', () => {
+    mockCanFeature.mockReturnValue(true)
+    mockUseAccess.mockReturnValue({
+      canFeature: mockCanFeature,
+      role: 'OWNER',
+      isWhiteLabelEnabled: true,
+    })
+    // useQuery disabled for white-label; stub anyway
+    mockUseQuery.mockReturnValue({ data: undefined, isLoading: false })
+
+    renderGate()
+
+    expect(screen.getByText('secret content')).toBeInTheDocument()
+    expect(screen.queryByText('featureGate.upgrade:Premium')).not.toBeInTheDocument()
+  })
+
+  it('white-label venue with canFeature false → shows paywall', () => {
+    mockCanFeature.mockReturnValue(false)
+    mockUseAccess.mockReturnValue({
+      canFeature: mockCanFeature,
+      role: 'OWNER',
+      isWhiteLabelEnabled: true,
+    })
+    mockUseQuery.mockReturnValue({ data: undefined, isLoading: false })
+
+    renderGate()
+
+    expect(screen.getByText('featureGate.upgrade:Premium')).toBeInTheDocument()
+  })
+
+  it('plan still loading with no cached data → renders children optimistically (no paywall flash)', () => {
+    mockUseQuery.mockReturnValue({ data: undefined, isLoading: true })
+
+    renderGate()
+
+    expect(screen.getByText('secret content')).toBeInTheDocument()
+    expect(screen.queryByText('featureGate.upgrade:Premium')).not.toBeInTheDocument()
+  })
+
+  it('plan loading but has stale cached FREE data → shows paywall (stale data is trusted)', () => {
+    mockUseQuery.mockReturnValue({ data: makePlanState('GRATIS'), isLoading: true })
+
+    renderGate()
+
+    expect(screen.getByText('featureGate.upgrade:Premium')).toBeInTheDocument()
+  })
+})

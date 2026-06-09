@@ -560,6 +560,7 @@ export function AppSidebar({
         url: 'cfdi',
         permission: 'cfdi:view',
         premiumLocked: !hasCfdiFeature,
+        gatedFeature: 'CFDI',
         keywords: ['facturas', 'cfdi', 'comprobantes', 'sat'],
       },
       {
@@ -567,6 +568,7 @@ export function AppSidebar({
         url: 'cfdi/configuracion',
         permission: 'cfdi:configure',
         premiumLocked: !hasCfdiFeature,
+        gatedFeature: 'CFDI',
         keywords: ['emisor', 'rfc', 'csd', 'certificado', 'comercios'],
       },
     ].filter(item => !item.permission || can(item.permission)) as any[])
@@ -594,9 +596,12 @@ export function AppSidebar({
 
     // Inventario
     if (inventorySubItems.length > 0 && canWL('AVOQADO_INVENTORY')) {
+      const hasInventoryFeature = checkFeatureAccess('INVENTORY_TRACKING')
       mainItems.push({
         title: t('sidebar:routes.inventory'), url: '#inventory', icon: Package, subSidebar: 'inventory',
         locked: !hasKYCAccess,
+        premiumLocked: !hasInventoryFeature,
+        gatedFeature: 'INVENTORY_TRACKING',
         keywords: ['almacen', 'bodega', 'stock'],
       })
     }
@@ -651,12 +656,13 @@ export function AppSidebar({
       })
     }
 
-    // Facturación (CFDI) — always shown (visible teaser). Premium star badge
+    // Facturación (CFDI) — always shown (visible teaser). Tier badge
     // on the group when the venue lacks the CFDI feature.
     if (facturacionSubItems.length > 0) {
       mainItems.push({
         title: t('sidebar:facturacionMenu.title', { defaultValue: 'Facturación' }), url: '#facturacion', icon: Receipt, subSidebar: 'facturacion',
         premiumLocked: !hasCfdiFeature,
+        gatedFeature: 'CFDI',
         keywords: ['facturas', 'cfdi', 'facturacion', 'sat', 'comprobantes', 'fiscal'],
       })
     }

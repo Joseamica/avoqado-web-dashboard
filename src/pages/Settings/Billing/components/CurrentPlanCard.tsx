@@ -2,22 +2,13 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Calendar, CreditCard, AlertCircle, RefreshCw } from 'lucide-react'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { useVenueDateTime } from '@/utils/datetime'
-import { getVenuePlan, cancelVenuePlan, reactivateVenuePlan, getBillingPortalUrl, type PlanState } from '@/services/features.service'
+import { getVenuePlan, reactivateVenuePlan, getBillingPortalUrl, type PlanState } from '@/services/features.service'
+import { CancelPlanDialog } from '@/components/billing/CancelPlanDialog'
 
 const BADGE_VARIANT: Record<PlanState['state'], 'default' | 'secondary' | 'destructive' | 'outline'> = {
   active: 'default',
@@ -42,25 +33,11 @@ export function CurrentPlanCard({ venueId }: { venueId: string }) {
     enabled: !!venueId,
   })
 
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ['venuePlan', venueId] })
-    queryClient.invalidateQueries({ queryKey: ['venueFeatures', venueId] })
-  }
-
-  const cancelMutation = useMutation({
-    mutationFn: () => cancelVenuePlan(venueId),
-    onSuccess: () => {
-      invalidate()
-      toast({ title: t('currentPlan.toast.cancelSuccess'), variant: 'default' })
-      setShowCancelDialog(false)
-    },
-    onError: () => toast({ title: t('currentPlan.toast.error'), variant: 'destructive' }),
-  })
-
   const reactivateMutation = useMutation({
     mutationFn: () => reactivateVenuePlan(venueId),
     onSuccess: () => {
-      invalidate()
+      queryClient.invalidateQueries({ queryKey: ['venuePlan', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['venueFeatures', venueId] })
       toast({ title: t('currentPlan.toast.reactivateSuccess'), variant: 'default' })
     },
     onError: () => toast({ title: t('currentPlan.toast.error'), variant: 'destructive' }),
@@ -146,7 +123,8 @@ export function CurrentPlanCard({ venueId }: { venueId: string }) {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowCancelDialog(true)}
-                disabled={cancelMutation.isPending || plan.state === 'canceled'}
+                disabled={plan.state === 'canceled'}
+                className="cursor-pointer"
               >
                 {t('currentPlan.actions.cancel')}
               </Button>
@@ -159,28 +137,14 @@ export function CurrentPlanCard({ venueId }: { venueId: string }) {
         </CardContent>
       </Card>
 
-      {/* Cancel confirmation — copy reflects real currentPeriodEnd (end of period, NOT immediate) */}
-      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('currentPlan.cancelDialog.title')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {plan.currentPeriodEnd
-                ? t('currentPlan.cancelDialog.description', { date: formatDate(plan.currentPeriodEnd) })
-                : t('currentPlan.cancelDialog.descriptionNoDate')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('currentPlan.cancelDialog.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => cancelMutation.mutate()}
-            >
-              {t('currentPlan.cancelDialog.confirm')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Multi-step cancellation retention dialog */}
+      <CancelPlanDialog
+        open={showCancelDialog}
+        onOpenChange={setShowCancelDialog}
+        venueId={venueId}
+        planName={plan.planName}
+        currentPeriodEnd={plan.currentPeriodEnd}
+      />
     </>
   )
 }

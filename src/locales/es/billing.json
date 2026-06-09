@@ -1,12 +1,120 @@
 {
   "loading": "Cargando...",
-  "pageTitle": "Facturación y Suscripciones",
-  "pageSubtitle": "Administra tus suscripciones activas, consulta el historial de facturación y explora funciones disponibles",
+  "pageTitle": "Plan y Facturación",
+  "pageSubtitle": "Tu plan, tus facturas y tus métodos de pago — todo en un lugar.",
   "tabs": {
-    "subscriptions": "Suscripciones",
-    "history": "Historial",
-    "paymentMethods": "Métodos de Pago",
+    "plan": "Plan",
+    "subscriptions": "Plan",
+    "history": "Facturas",
+    "paymentMethods": "Métodos de pago",
     "tokens": "Tokens IA"
+  },
+  "plan": {
+    "cancel": {
+      "reason": {
+        "title": "Antes de irte, ¿por qué cancelas?",
+        "subtitle": "Tu respuesta nos ayuda a mejorar el servicio.",
+        "options": {
+          "tooExpensive": "Es muy caro",
+          "notUsing": "No lo estoy usando",
+          "missingFeature": "Me falta una función",
+          "switching": "Me cambio a otra herramienta",
+          "temporary": "Cierre o pausa temporal",
+          "other": "Otro"
+        },
+        "otherPlaceholder": "Cuéntanos más...",
+        "keepCta": "Quedarme con mi plan",
+        "continueCta": "Continuar"
+      },
+      "offer": {
+        "title": "Quédate y ahorra",
+        "discountBody": "Quédate y te damos 30% de descuento por 3 meses.",
+        "discountBadge": "30% off · 3 meses",
+        "timerLabel": "Esta oferta vence en {{timer}}",
+        "acceptCta": "Aceptar y quedarme",
+        "declineCta": "No gracias, cancelar",
+        "applying": "Aplicando...",
+        "pauseCta": "Pausar mi plan 2 meses",
+        "discountSuccess": "¡Listo! 30% off aplicado.",
+        "pauseSuccess": "¡Listo! Tu plan está en pausa.",
+        "error": "No se pudo aplicar la oferta. Intenta de nuevo."
+      },
+      "confirm": {
+        "title": "¿Seguro que quieres cancelar?",
+        "body": "Tu plan {{planName}} sigue activo hasta {{date}}. Después perderás:",
+        "bodyNoDate": "Tu plan {{planName}} sigue activo hasta el final del periodo. Después perderás:",
+        "loseLabel": "Perderás el acceso a:",
+        "loseItems": [
+          "Reportes e histórico completo",
+          "Asistente IA + MCP",
+          "Lealtad y referidos",
+          "Reservas · Pedidos en línea",
+          "Usuarios ilimitados"
+        ],
+        "keepCta": "No, quedarme",
+        "cancelCta": "Sí, cancelar mi plan",
+        "canceling": "Cancelando...",
+        "successToast": "Tu plan se cancelará al final del periodo. Te enviamos un correo.",
+        "errorToast": "No se pudo cancelar el plan. Intenta de nuevo."
+      }
+    },
+    "currentBadge": "Tu plan actual",
+    "billing": { "monthly": "Mensual", "annual": "Anual", "save": "2 meses gratis al año" },
+    "perMonth": "/mes",
+    "perYear": "/año",
+    "plusIva": "+ IVA",
+    "forever": "Para siempre",
+    "billedMonthly": "Se cobra mensual",
+    "annualEquiv": "{{price}}/año · 2 meses gratis",
+    "comingSoon": "Muy pronto",
+    "popular": "Más popular",
+    "compareCta": "Compara todos los planes",
+    "assistedBody": "Activamos tu plan contigo para que todo quede perfecto. Escríbenos y lo dejamos listo hoy.",
+    "assistedCta": "Hablar con un asesor",
+    "checkoutSuccess": "¡Bienvenido a Pro! Tu plan está activo.",
+    "checkoutCanceled": "Pago cancelado. Tu plan no cambió.",
+    "checkoutError": "No pudimos abrir el pago. Intenta de nuevo.",
+    "cta": {
+      "current": "Tu plan actual",
+      "upgrade": "Mejorar a {{tier}}",
+      "contact": "Contactar ventas"
+    },
+    "tiers": {
+      "free": { "name": "Free", "pitch": "Todo para operar tu negocio, gratis." },
+      "pro": { "name": "Pro", "pitch": "Crece y entiende tu negocio: histórico, IA y más ventas." },
+      "premium": { "name": "Premium", "pitch": "Profesionaliza: facturación, inventario serio y multisucursal." },
+      "enterprise": { "name": "Enterprise", "pitch": "Para cadenas: marca propia, integraciones y precio por volumen." }
+    },
+    "features": {
+      "pos": "Cobra con tarjeta (TPV)",
+      "menuOrders": "Menú, órdenes y mesas",
+      "inventoryBasic": "Inventario básico",
+      "dailyReports": "Reportes del día",
+      "chatbotBeta": "Chatbot",
+      "seats2": "Hasta 2 usuarios",
+      "allFree": "Todo lo de Free",
+      "reportsHistory": "Reportes e histórico completo",
+      "aiMcp": "Asistente IA + MCP",
+      "loyaltyReferrals": "Lealtad y referidos",
+      "reservationsOrdering": "Reservas · Pedidos en línea",
+      "seatsUnlimited": "Usuarios ilimitados",
+      "allPro": "Todo lo de Pro",
+      "cfdi": "Facturación CFDI",
+      "inventoryFifo": "Inventario FIFO + recetas + costeo",
+      "predictiveAnalytics": "Analítica predictiva",
+      "multiVenue": "Multisucursal consolidada",
+      "prioritySupport": "Soporte prioritario",
+      "allPremium": "Todo lo de Premium",
+      "whiteLabel": "Marca propia (white-label)",
+      "apiIntegrations": "API e integraciones",
+      "slaSupport": "SLA y soporte dedicado"
+    }
+  },
+  "featureGate": {
+    "tierTag": "Incluido en {{tier}}",
+    "body": "Esta función es parte del plan {{tier}}. Mejora para empezar a usarla en tu local.",
+    "upgrade": "Mejora a {{tier}}",
+    "seeAll": "Ver todos los planes"
   },
   "activeSubscriptions": {
     "title": "Suscripciones Activas",

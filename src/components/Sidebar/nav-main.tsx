@@ -12,11 +12,12 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { ArrowLeft, ChevronRight, Eye, EyeOff, Lock, Star, type LucideIcon } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Crown, Eye, EyeOff, Lock, Star, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import avoqadoIsotipo from '@/assets/Isotipo.png'
+import { getTierForFeature } from '@/config/plan-catalog'
 
 export type NavSubItem = {
   title: string
@@ -29,9 +30,15 @@ export type NavSubItem = {
    * Premium teaser flag — the item belongs to a paid feature the venue
    * hasn't subscribed to. Unlike `locked` (KYC), it still navigates NORMALLY
    * to its `url`; the destination page renders the upsell teaser. Renders a
-   * small green Star badge so the feature stays discoverable.
+   * small tier badge so the feature stays discoverable.
    */
   premiumLocked?: boolean
+  /**
+   * The feature code that gates this item (e.g. 'CFDI', 'INVENTORY_TRACKING').
+   * Used by TierBadge to pick ⭐ (Pro) vs 👑 (Premium). Only needed when
+   * premiumLocked is true.
+   */
+  gatedFeature?: string
 }
 
 export type NavItem = {
@@ -47,6 +54,11 @@ export type NavItem = {
    * navigates to its real `url`.
    */
   premiumLocked?: boolean
+  /**
+   * The feature code that gates this item. Used by TierBadge to pick ⭐ (Pro)
+   * vs 👑 (Premium). Only needed when premiumLocked is true.
+   */
+  gatedFeature?: string
   permission?: string
   isAvoqadoCore?: boolean
   items?: NavSubItem[]
@@ -189,16 +201,24 @@ export function NavMain({
   // Tiny Avoqado badge for core platform items in white-label venues
   const AvoqadoBadge = () => <img src={avoqadoIsotipo} alt="Avoqado" className="w-2.5 shrink-0 object-contain opacity-50" />
 
-  // Green star badge for premium-locked items (paid feature not yet subscribed).
-  // The item still navigates normally to its url — the page shows the upsell teaser.
-  const PremiumBadge = ({ className }: { className?: string }) => (
-    <span title={t('premiumPro')} className={cn('ml-auto inline-flex shrink-0 items-center', className)}>
-      <Star
-        className="h-3.5 w-3.5 fill-green-600 text-green-600 dark:fill-green-400 dark:text-green-400"
-        aria-label={t('premiumPro')}
-      />
-    </span>
-  )
+  // Tier-aware badge for premium-locked items (paid feature not yet subscribed).
+  // PRO → ⭐ emerald Star; PREMIUM → 👑 amber Crown; fallback → Star.
+  // The item still navigates normally to its url — the page shows the FeatureGate.
+  const TierBadge = ({ feature, className }: { feature?: string; className?: string }) => {
+    const tier = feature ? getTierForFeature(feature) : 'PREMIUM'
+    if (tier === 'PRO') {
+      return (
+        <span title={t('premiumPro')} className={cn('ml-auto inline-flex shrink-0 items-center', className)}>
+          <Star className="h-3.5 w-3.5 text-emerald-400" aria-label={t('premiumPro')} />
+        </span>
+      )
+    }
+    return (
+      <span title={t('premiumPro')} className={cn('ml-auto inline-flex shrink-0 items-center', className)}>
+        <Crown className="h-3.5 w-3.5 text-amber-400" aria-label={t('premiumPro')} />
+      </span>
+    )
+  }
 
   // Eye toggle button for superadmin visibility control
   const VisibilityToggle = ({ url, className }: { url: string; className?: string }) => {
@@ -313,7 +333,7 @@ export function NavMain({
             {item.icon && <item.icon />}
             <span>{item.title}</span>
             {item.locked && <Lock className="ml-auto h-3 w-3 text-muted-foreground opacity-70" aria-label={t('requiresKycVerification')} />}
-            {!item.locked && item.premiumLocked && <PremiumBadge />}
+            {!item.locked && item.premiumLocked && <TierBadge feature={item.gatedFeature} />}
             {!item.locked && !item.premiumLocked && <VisibilityToggle url={item.url} className="ml-auto" />}
             <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
           </SidebarMenuButton>
@@ -585,7 +605,7 @@ export function NavMain({
             {item.icon && <item.icon className={isSuperadminItem ? superadminIconClass : undefined} />}
             <span className={isSuperadminItem ? superadminGradientTextClass : undefined}>{item.title}</span>
             {item.locked && <Lock className="ml-auto h-3 w-3 text-muted-foreground opacity-70" aria-label={t('requiresKycVerification')} />}
-            {!item.locked && item.premiumLocked && <PremiumBadge />}
+            {!item.locked && item.premiumLocked && <TierBadge feature={item.gatedFeature} />}
             {!item.locked && !item.premiumLocked && <VisibilityToggle url={item.url} className="ml-auto" />}
           </NavLink>
         </SidebarMenuButton>

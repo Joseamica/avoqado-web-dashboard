@@ -157,3 +157,22 @@ export const reactivateVenuePlan = async (venueId: string): Promise<PlanState> =
   const response = await api.post(`/api/v1/dashboard/venues/${venueId}/plan/reactivate`)
   return response.data.data
 }
+
+/** Apply a retention offer (discount or pause) to prevent cancellation. */
+export const applyRetentionOffer = async (venueId: string, offer: 'discount' | 'pause'): Promise<void> => {
+  await api.post(`/api/v1/dashboard/venues/${venueId}/plan/retention-offer`, { offer })
+}
+
+/**
+ * Create a Stripe hosted checkout session for upgrading to a base plan.
+ * Returns the Stripe checkout URL to redirect the browser to.
+ * The endpoint returns flat { success: true, url: <stripe-checkout-url> }.
+ */
+export const createPlanCheckoutSession = async (
+  venueId: string,
+  tier: 'PRO' | 'PREMIUM',
+  interval: 'monthly' | 'annual',
+): Promise<string> => {
+  const res = await api.post(`/api/v1/dashboard/venues/${venueId}/plan/checkout`, { tier, interval })
+  return res.data.url as string
+}

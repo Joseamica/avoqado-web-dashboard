@@ -56,6 +56,7 @@ import { PeriodBreakdownTable } from './components/PeriodBreakdownTable'
 import { MerchantBreakdownPanel } from './MerchantBreakdownPanel'
 import { MoneyLocationStrip } from './MoneyLocationStrip'
 import { SettlementMiniCalendar } from './SettlementMiniCalendar'
+import { FeatureGate } from '@/components/billing/FeatureGate'
 
 // ============================================
 // Payment Method Mapping
@@ -1198,6 +1199,7 @@ export default function SalesSummary() {
   }
 
   return (
+    <FeatureGate feature="ADVANCED_REPORTS">
     <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -2420,5 +2422,6 @@ export default function SalesSummary() {
         </GlassCard>
       </Collapsible>
     </div>
+    </FeatureGate>
   )
 }

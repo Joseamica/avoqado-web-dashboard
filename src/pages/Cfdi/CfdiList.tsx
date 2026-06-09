@@ -19,12 +19,12 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useAccess } from '@/hooks/use-access'
 import { useDebounce } from '@/hooks/useDebounce'
-import { useAuth } from '@/context/AuthContext'
+import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useVenueDateTime } from '@/utils/datetime'
 import { Currency } from '@/utils/currency'
 import { useCfdis } from '@/hooks/use-cfdi'
-import { FeatureTeaser } from '@/components/FeatureTeaser'
+import { FeatureGate } from '@/components/billing/FeatureGate'
 import type { Cfdi, CfdiFlow } from '@/services/cfdi.service'
 import { CancelCfdiDialog } from './components/CancelCfdiDialog'
 
@@ -80,7 +80,6 @@ function statusBadgeVariant(status: string): 'default' | 'secondary' | 'destruct
 export default function CfdiList() {
   const { t } = useTranslation('cfdi')
   const { can } = useAccess()
-  const { checkFeatureAccess } = useAuth()
   const { formatDate } = useVenueDateTime()
   const { venue } = useCurrentVenue()
   const tz = venue?.timezone ?? 'America/Mexico_City'
@@ -94,7 +93,7 @@ export default function CfdiList() {
   // CFDI is a paid feature shown as a VISIBLE teaser. When the venue hasn't
   // subscribed we keep the page discoverable but render sample rows behind a
   // blurred upsell overlay and NEVER call the (feature-gated) backend.
-  const hasCfdi = checkFeatureAccess('CFDI')
+  const { hasAccess: hasCfdi } = useTierFeatureAccess('CFDI')
 
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 20 })
   const [statusFilter, setStatusFilter] = useState<string[]>([])
@@ -240,19 +239,19 @@ export default function CfdiList() {
   )
 
   return (
-    <div className="p-4 bg-background text-foreground">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">{t('list.title')}</h1>
-        <p className="text-muted-foreground mt-1">{t('list.description')}</p>
-      </div>
-
-      {hasCfdi && isError && (
-        <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-          {t('list.loadError')}
+    <FeatureGate feature="CFDI">
+      <div className="p-4 bg-background text-foreground">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold tracking-tight">{t('list.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('list.description')}</p>
         </div>
-      )}
 
-      <FeatureTeaser active={hasCfdi} featureName={t('list.title')}>
+        {hasCfdi && isError && (
+          <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+            {t('list.loadError')}
+          </div>
+        )}
+
         <DataTable
           data={cfdis}
           rowCount={total}
@@ -357,9 +356,9 @@ export default function CfdiList() {
             </div>
           }
         />
-      </FeatureTeaser>
 
-      {hasCfdi && <CancelCfdiDialog cfdi={cancelTarget} onOpenChange={open => !open && setCancelTarget(null)} />}
-    </div>
+        {hasCfdi && <CancelCfdiDialog cfdi={cancelTarget} onOpenChange={open => !open && setCancelTarget(null)} />}
+      </div>
+    </FeatureGate>
   )
 }
