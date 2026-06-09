@@ -59,7 +59,7 @@
       }
     },
     "currentBadge": "Tu plan actual",
-    "billing": { "monthly": "Mensual", "annual": "Anual", "save": "2 meses gratis al año" },
+    "billing": { "monthly": "Mensual", "annual": "Anual", "save": "2 meses gratis" },
     "perMonth": "/mes",
     "perYear": "/año",
     "plusIva": "+ IVA",
@@ -77,6 +77,7 @@
     "cta": {
       "current": "Tu plan actual",
       "upgrade": "Mejorar a {{tier}}",
+      "downgrade": "Cambiar a {{tier}}",
       "contact": "Contactar ventas"
     },
     "tiers": {

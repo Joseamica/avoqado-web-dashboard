@@ -59,7 +59,7 @@
       }
     },
     "currentBadge": "Your current plan",
-    "billing": { "monthly": "Monthly", "annual": "Yearly", "save": "2 months free yearly" },
+    "billing": { "monthly": "Monthly", "annual": "Yearly", "save": "2 months free" },
     "perMonth": "/mo",
     "perYear": "/yr",
     "plusIva": "+ VAT",
@@ -74,7 +74,7 @@
     "checkoutSuccess": "Welcome to Pro! Your plan is active.",
     "checkoutCanceled": "Payment canceled. Your plan didn't change.",
     "checkoutError": "We couldn't open checkout. Please try again.",
-    "cta": { "current": "Your current plan", "upgrade": "Upgrade to {{tier}}", "contact": "Contact sales" },
+    "cta": { "current": "Your current plan", "upgrade": "Upgrade to {{tier}}", "downgrade": "Switch to {{tier}}", "contact": "Contact sales" },
     "tiers": {
       "free": { "name": "Free", "pitch": "Everything to run your business, free." },
       "pro": { "name": "Pro", "pitch": "Grow and understand your business: history, AI, more sales." },

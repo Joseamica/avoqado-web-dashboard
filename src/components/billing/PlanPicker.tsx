@@ -5,7 +5,7 @@ import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { PLAN_TIERS, type TierId, type PlanTierDef } from '@/config/plan-catalog'
+import { PLAN_TIERS, TIER_ORDER, type TierId, type PlanTierDef } from '@/config/plan-catalog'
 
 const ACCENT: Record<PlanTierDef['accent'], string> = {
   free: 'text-muted-foreground',
@@ -35,7 +35,8 @@ export function PlanPicker({ currentTier, onSelectTier }: PlanPickerProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Billing toggle */}
+      {/* Billing toggle — the savings hint lives ON the annual segment so it's unambiguously
+          tied to choosing annual (not a floating pill that reads as always-on). */}
       <div className="flex items-center gap-3">
         <div className="inline-flex rounded-full border border-input bg-muted/60 p-1">
           {(['monthly', 'annual'] as const).map(i => (
@@ -44,17 +45,24 @@ export function PlanPicker({ currentTier, onSelectTier }: PlanPickerProps) {
               type="button"
               onClick={() => setInterval(i)}
               className={cn(
-                'rounded-full px-4 py-1.5 text-sm font-semibold transition cursor-pointer',
+                'inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition cursor-pointer',
                 interval === i ? 'bg-foreground text-background' : 'text-muted-foreground',
               )}
             >
               {t(`plan.billing.${i}`)}
+              {i === 'annual' && (
+                <span
+                  className={cn(
+                    'rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none',
+                    interval === 'annual' ? 'bg-emerald-400 text-emerald-950' : 'bg-emerald-400/15 text-emerald-500',
+                  )}
+                >
+                  {t('plan.billing.save')}
+                </span>
+              )}
             </button>
           ))}
         </div>
-        <span className="rounded-full bg-emerald-400/12 px-2.5 py-1 text-xs font-semibold text-emerald-400">
-          {t('plan.billing.save')}
-        </span>
       </div>
 
       {/* Cards */}
@@ -65,6 +73,7 @@ export function PlanPicker({ currentTier, onSelectTier }: PlanPickerProps) {
             tier={tier}
             interval={interval}
             isCurrent={tier.id === currentTier}
+            isDowngrade={TIER_ORDER.indexOf(tier.id) < TIER_ORDER.indexOf(currentTier)}
             onSelect={() => onSelectTier(tier.id, interval)}
           />
         ))}
@@ -77,11 +86,13 @@ function PlanCard({
   tier,
   interval,
   isCurrent,
+  isDowngrade,
   onSelect,
 }: {
   tier: PlanTierDef
   interval: 'monthly' | 'annual'
   isCurrent: boolean
+  isDowngrade: boolean
   onSelect: () => void
 }) {
   const { t } = useTranslation('billing')
@@ -166,10 +177,10 @@ function PlanCard({
         ) : (
           <Button
             className="w-full cursor-pointer"
-            variant={tier.popular ? 'default' : 'outline'}
+            variant={tier.popular && !isDowngrade ? 'default' : 'outline'}
             onClick={onSelect}
           >
-            {t('plan.cta.upgrade', { tier: tierName })}
+            {t(`plan.cta.${isDowngrade ? 'downgrade' : 'upgrade'}`, { tier: tierName })}
           </Button>
         )}
       </div>

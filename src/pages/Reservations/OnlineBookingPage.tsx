@@ -149,13 +149,17 @@ export default function OnlineBookingPage() {
 	//   - /<slug>                unified landing (two-CTA picker + everything filterable)
 	//   - /<slug>/appointments   appointments-only flow
 	//   - /<slug>/classes        classes-only flow (date-first listing)
-	const BOOK_HOST = 'https://book.avoqado.io'
+	// Env-aware so demo/staging/local apuntan a su propia instancia del booking-widget.
+	const BOOK_HOST = import.meta.env.VITE_BOOKING_URL || 'https://book.avoqado.io'
+	// El bundle (widget.js) y el iframe (/embed) viven en cdn.avoqado.io en prod —
+	// host distinto a BOOK_HOST, por eso su propia var. En local ambos = dev server (5176).
+	const BOOKING_CDN = import.meta.env.VITE_BOOKING_CDN_URL || 'https://cdn.avoqado.io'
 	const publicBookingUrl = `${BOOK_HOST}/${slug}`
 	const appointmentsUrl = `${BOOK_HOST}/${slug}/appointments`
 	const classesUrl = `${BOOK_HOST}/${slug}/classes`
 
-	const cdnUrl = 'https://cdn.avoqado.io/widget.js'
-	const embedUrl = `https://cdn.avoqado.io/embed?venue=${slug}&locale=${locale}&theme=${theme}&mode=inline`
+	const cdnUrl = `${BOOKING_CDN}/widget.js`
+	const embedUrl = `${BOOKING_CDN}/embed?venue=${slug}&locale=${locale}&theme=${theme}&mode=inline`
 	const previewUrl = venueSlug ? publicBookingUrl : null
 	const venueName = venue?.name ?? 'tu negocio'
 

@@ -15,8 +15,12 @@ import { ecommerceMerchantAPI, type EcommerceMerchant } from '@/services/ecommer
 import { EcommerceMerchantWizard } from '@/pages/Venue/components/EcommerceMerchantWizard'
 import { Code2, Copy, Check, AlertCircle, ArrowRight, CreditCard, Share2, ExternalLink } from 'lucide-react'
 
-const WIDGET_SRC = 'https://cdn.avoqado.io/checkout-widget.js'
-const PAY_BASE = 'https://pay.avoqado.io'
+// Environment-aware so demo/staging/local emit their own checkout URLs.
+// PAY_BASE reuses VITE_CHECKOUT_URL (same var PaymentLinks relies on).
+// WIDGET_SRC needs its own var: the widget lives on a different host (cdn.* not pay.*),
+// so it must NOT be derived from VITE_CHECKOUT_URL. Falls back to the prod CDN when unset.
+const WIDGET_SRC = import.meta.env.VITE_CHECKOUT_WIDGET_URL || 'https://cdn.avoqado.io/checkout-widget.js'
+const PAY_BASE = import.meta.env.VITE_CHECKOUT_URL || 'https://pay.avoqado.io'
 
 /** A merchant is "usable" for online charging when it can actually take money:
  *  Stripe with charges enabled, or a connected Mercado Pago. */

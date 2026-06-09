@@ -19,7 +19,6 @@ import { Button } from './components/ui/button'
 import { Shield, ArrowLeft } from 'lucide-react'
 import NotificationBell from './components/notifications/NotificationBell'
 import LanguageSwitcher from './components/language-switcher'
-import { InventorySetupChecklist } from './components/onboarding/InventorySetupChecklist'
 import { ImpersonationHeaderButton } from './components/impersonation/ImpersonationHeaderButton'
 import { ImpersonationBanner } from './components/impersonation/ImpersonationBanner'
 import { ImpersonationShortcut } from './components/impersonation/ImpersonationShortcut'
@@ -345,11 +344,6 @@ function DashboardContent() {
                 full alert card. Replaces the old fixed floating version that
                 used to cover pagination in the bottom-right. */}
             {venue && <PaymentSetupAlert venueId={venue.id} variant="header" />}
-            {/* Inventory setup checklist — compact header variant so it's
-                reachable from every page (not just /inventory/*) and doesn't
-                overlap DataTable pagination. Auto-hides when all required
-                steps are done or user dismisses. */}
-            {venue && <InventorySetupChecklist variant="header" />}
             <NotificationBell />
             <ThemeToggle />
           </div>
