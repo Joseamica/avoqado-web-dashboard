@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup · Plan y Facturación — Avoqado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* Tokens reales del dashboard (.dark de src/index.css) */
+    --background: oklch(0.145 0 0);
+    --card: oklch(0.205 0 0);
+    --elevated: oklch(0.245 0 0);
+    --popover: oklch(0.269 0 0);
+    --foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --border: oklch(0.302 0 0);
+    --border-soft: oklch(1 0 0 / 0.07);
+    /* Acentos por tier (sin AI-purple, sin gradientes) */
+    --free: oklch(0.78 0.02 250);
+    --pro: oklch(0.78 0.15 165);      /* emerald — el verde de su estrella */
+    --premium: oklch(0.83 0.13 85);   /* ámbar/oro — corona */
+    --enterprise: oklch(0.85 0.02 250);/* platino */
+    --danger: oklch(0.7 0.18 25);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--background);color:var(--foreground);
+    font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;line-height:1.5;
+    padding:clamp(20px,4vw,56px);
+  }
+  .wrap{max-width:1120px;margin:0 auto}
+
+  /* ---- header ---- */
+  .crumbs{font-size:13px;color:var(--muted-foreground);display:flex;gap:8px;align-items:center;margin-bottom:18px}
+  .crumbs b{color:var(--foreground);font-weight:600}
+  h1{font-size:clamp(26px,3.5vw,34px);font-weight:800;letter-spacing:-0.02em}
+  .sub{color:var(--muted-foreground);margin-top:6px;font-size:15px;max-width:60ch}
+
+  .tabs{display:flex;gap:4px;background:oklch(0.205 0 0 / .7);border:1px solid var(--border);
+        border-radius:999px;padding:4px;margin:26px 0;width:max-content;max-width:100%;overflow:auto}
+  .tab{border:0;background:transparent;color:var(--muted-foreground);font:inherit;font-weight:600;font-size:14px;
+       padding:8px 18px;border-radius:999px;cursor:pointer;white-space:nowrap;transition:.18s}
+  .tab[aria-selected="true"]{background:var(--foreground);color:var(--background)}
+
+  /* ---- current plan strip ---- */
+  .strip{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+         border:1px solid var(--border);border-radius:16px;padding:16px 20px;background:var(--card);margin-bottom:10px}
+  .strip .left{display:flex;align-items:center;gap:14px}
+  .dot{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:oklch(0.78 0.02 250 / .14);color:var(--free)}
+  .strip h3{font-size:15px;font-weight:700}
+  .strip p{font-size:13px;color:var(--muted-foreground)}
+  .seats{font-size:12px;color:var(--muted-foreground);border:1px solid var(--border);border-radius:999px;padding:4px 10px}
+
+  /* ---- billing toggle ---- */
+  .billing{display:flex;align-items:center;gap:12px;margin:26px 0 22px}
+  .seg{display:flex;background:oklch(0.205 0 0 / .7);border:1px solid var(--border);border-radius:999px;padding:4px}
+  .seg button{border:0;background:transparent;color:var(--muted-foreground);font:inherit;font-weight:600;font-size:14px;
+              padding:8px 18px;border-radius:999px;cursor:pointer;transition:.18s}
+  .seg button.on{background:var(--foreground);color:var(--background)}
+  .save{font-size:12.5px;font-weight:600;color:var(--pro);background:oklch(0.78 0.15 165 / .12);
+        padding:5px 11px;border-radius:999px}
+
+  /* ---- plan grid ---- */
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  @media(max-width:980px){.grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:560px){.grid{grid-template-columns:1fr}}
+
+  .card{position:relative;border:1px solid var(--border);border-radius:20px;background:var(--card);
+        padding:22px;display:flex;flex-direction:column;gap:16px;transition:transform .2s, border-color .2s}
+  .card:hover{transform:translateY(-3px)}
+  .card.pro{border-color:oklch(0.78 0.15 165 / .55);box-shadow:0 0 0 1px oklch(0.78 0.15 165 / .25)}
+  .badge{position:absolute;top:-11px;left:22px;font-size:11.5px;font-weight:700;letter-spacing:.02em;
+         background:var(--pro);color:oklch(0.16 0.03 165);padding:4px 11px;border-radius:999px}
+  .ico{width:40px;height:40px;border-radius:12px;display:grid;place-items:center}
+  .ico svg{width:21px;height:21px}
+  .free .ico{background:oklch(0.78 0.02 250 / .14);color:var(--free)}
+  .pro .ico{background:oklch(0.78 0.15 165 / .15);color:var(--pro)}
+  .premium .ico{background:oklch(0.83 0.13 85 / .15);color:var(--premium)}
+  .enterprise .ico{background:oklch(0.85 0.02 250 / .12);color:var(--enterprise)}
+  .name{font-size:17px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .pitch{font-size:13px;color:var(--muted-foreground);min-height:34px}
+  .price{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+  .price .amt{font-size:30px;font-weight:800;letter-spacing:-0.02em}
+  .price .per{font-size:13px;color:var(--muted-foreground)}
+  .price .iva{font-size:11px;color:var(--muted-foreground)}
+  .equiv{font-size:12px;color:var(--muted-foreground);min-height:16px}
+  ul{list-style:none;display:flex;flex-direction:column;gap:9px;margin-top:2px}
+  li{font-size:13px;display:flex;gap:9px;align-items:flex-start;color:oklch(0.9 0 0)}
+  li svg{width:15px;height:15px;flex:0 0 15px;margin-top:2px;color:var(--pro)}
+  li.muted{color:var(--muted-foreground)} li.muted svg{color:var(--muted-foreground)}
+  .beta{font-size:9.5px;font-weight:700;color:var(--premium);border:1px solid oklch(0.83 0.13 85 / .4);
+        border-radius:5px;padding:0 4px;line-height:14px;margin-left:2px}
+  .cta{margin-top:auto;border:1px solid var(--border);background:var(--elevated);color:var(--foreground);
+       font:inherit;font-weight:700;font-size:14px;padding:11px;border-radius:11px;cursor:pointer;transition:.18s}
+  .cta:hover{background:var(--popover)}
+  .cta.primary{background:var(--foreground);color:var(--background);border-color:var(--foreground)}
+  .cta.current{background:transparent;color:var(--muted-foreground);cursor:default}
+  .cta.current:hover{background:transparent}
+
+  /* ---- compare link ---- */
+  .compare{text-align:center;margin:30px 0 8px;font-size:13.5px;color:var(--muted-foreground)}
+  .compare a{color:var(--foreground);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+
+  /* ---- section 2: FeatureGate ---- */
+  .section-label{display:flex;align-items:center;gap:12px;margin:64px 0 18px}
+  .section-label span{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-foreground)}
+  .section-label .rule{flex:1;height:1px;background:var(--border)}
+
+  .gate-demo{position:relative;border:1px solid var(--border);border-radius:20px;overflow:hidden;background:var(--background)}
+  .gate-head{padding:22px 24px 8px}
+  .gate-head h2{font-size:22px;font-weight:800;letter-spacing:-0.02em}
+  .gate-head p{font-size:13.5px;color:var(--muted-foreground);margin-top:4px}
+  .ghost-toolbar{display:flex;gap:10px;padding:14px 24px 18px}
+  .ghost-pill{height:30px;border:1px solid var(--border);border-radius:999px;padding:0 14px;display:flex;align-items:center;
+              gap:7px;color:var(--muted-foreground);font-size:12.5px}
+  .blurwrap{position:relative;filter:blur(5px);opacity:.5;pointer-events:none;user-select:none;padding:0 24px 30px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead th{text-align:left;color:var(--muted-foreground);font-weight:600;padding:12px 10px;border-bottom:1px solid var(--border)}
+  tbody td{padding:14px 10px;border-bottom:1px solid var(--border-soft)}
+  .chip{height:10px;border-radius:4px;background:oklch(1 0 0 / .18);display:inline-block}
+
+  .gate-card{position:absolute;top:50%;left:50%;transform:translate(-50%,-44%);width:min(420px,86%);
+             background:var(--popover);border:1px solid var(--border);border-radius:20px;
+             padding:30px 28px;text-align:center;box-shadow:0 24px 60px oklch(0 0 0 / .55)}
+  .gate-card .crown{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;margin:0 auto 16px;
+                    background:oklch(0.83 0.13 85 / .16);color:var(--premium)}
+  .gate-card .crown svg{width:26px;height:26px}
+  .gate-card h3{font-size:18px;font-weight:800}
+  .gate-card .tier-tag{font-size:11px;font-weight:700;color:var(--premium);letter-spacing:.04em;text-transform:uppercase;margin-top:3px}
+  .gate-card p{font-size:13.5px;color:var(--muted-foreground);margin:12px auto 20px;max-width:30ch}
+  .gate-card .up{background:var(--foreground);color:var(--background);border:0;font:inherit;font-weight:700;font-size:14px;
+                 padding:11px 22px;border-radius:11px;cursor:pointer;display:inline-flex;gap:8px;align-items:center}
+  .gate-card .seeall{display:block;margin-top:14px;font-size:12.5px;color:var(--muted-foreground);text-decoration:underline;
+                     text-underline-offset:3px;cursor:pointer}
+
+  .note{margin-top:40px;font-size:12px;color:var(--muted-foreground);border-top:1px solid var(--border);padding-top:18px}
+  .note b{color:oklch(0.9 0 0)}
+
+  /* entrada */
+  .card,.strip,.gate-demo{animation:rise .5s cubic-bezier(.22,1,.36,1) both}
+  .grid .card:nth-child(1){animation-delay:.04s}.grid .card:nth-child(2){animation-delay:.09s}
+  .grid .card:nth-child(3){animation-delay:.14s}.grid .card:nth-child(4){animation-delay:.19s}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== HEADER ===== -->
+  <div class="crumbs">Qrk <span>›</span> Ajustes <span>›</span> <b>Plan y Facturación</b></div>
+  <h1>Plan y Facturación</h1>
+  <p class="sub">Tu plan, tus facturas y tus métodos de pago — todo en un lugar.</p>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true">Plan</button>
+    <button class="tab" role="tab" aria-selected="false">Facturas</button>
+    <button class="tab" role="tab" aria-selected="false">Métodos de pago</button>
+    <button class="tab" role="tab" aria-selected="false">Tokens IA</button>
+  </div>
+
+  <!-- ===== CURRENT PLAN ===== -->
+  <div class="strip">
+    <div class="left">
+      <div class="dot">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6 7 18.2l1.9-5.8L4 8.8h6.1z"/></svg>
+      </div>
+      <div>
+        <h3>Estás en el plan Free</h3>
+        <p>Operando gratis · ganas con cada cobro. Mejora cuando quieras crecer.</p>
+      </div>
+    </div>
+    <span class="seats">2 de 2 usuarios</span>
+  </div>
+
+  <!-- ===== BILLING TOGGLE ===== -->
+  <div class="billing">
+    <div class="seg" id="seg">
+      <button class="on" data-i="monthly">Mensual</button>
+      <button data-i="annual">Anual</button>
+    </div>
+    <span class="save">2 meses gratis al año</span>
+  </div>
+
+  <!-- ===== PLANS ===== -->
+  <div class="grid">
+
+    <!-- FREE -->
+    <div class="card free">
+      <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v3M5 8l2 2M19 8l-2 2M12 21a6 6 0 0 0 6-6c0-3-2-5-6-9-4 4-6 6-6 9a6 6 0 0 0 6 6Z"/></svg></div>
+      <div class="name">Free</div>
+      <div class="pitch">Todo para operar tu negocio, gratis.</div>
+      <div class="price"><span class="amt">$0</span><span class="per">/mes</span></div>
+      <div class="equiv">Para siempre</div>
+      <ul>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 6"/></svg>Cobra con tarjeta (TPV)</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 6"/></svg>Menú, órdenes y mesas</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 6"/></svg>Inventario básico</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 6"/></svg>Reportes del día</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 6"/></svg>Chatbot <span class="beta">BETA</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 6"/></svg>Hasta 2 usuarios</li>
+      </ul>
+      <button class="cta current">Tu plan actual</button>
+    </div>
+
+    <!-- PRO -->
+    <div class="card pro">
+      <div class="badge">MÁS POPULAR</div>
+      <div class="ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 2.9 6.3L22 9.3l-5 4.7 1.3 6.9L12 17.6 5.7 20.9 7 14 2 9.3l7.1-1z"/></svg></div>
+      <div class="name">Pro</div>
+      <div class="pitch">Crece y entiende tu negocio: histórico, IA y más ventas.</div>
+      <div class="price"><span class="amt" data-monthly="$999" data-annual="$832">$999</span><span class="per">/mes</span><span class="iva">+ IVA</span></div>
+      <div class="equiv" data-equiv-pro>Se cobra mensual</div>
+      <ul>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 6"/></svg>Todo lo de Free</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 6"/></svg>Reportes e histórico completo</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 6"/></svg>Asistente IA + MCP</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 6"/></svg>Lealtad y referidos</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 6"/></svg>Reservas · Pedidos en línea</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 6"/></svg>Usuarios ilimitados</li>
+      </ul>
+      <button class="cta primary">Mejorar a Pro</button>
+    </div>
+
+    <!-- PREMIUM -->
+    <div class="card premium">
+      <div class="ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 7l4 4 5-6 5 6 4-4-2 12H5z"/></svg></div>
+      <div class="name">Premium</div>
+      <div class="pitch">Profesionaliza: facturación, inventario serio y multisucursal.</div>
+      <div class="price"><span class="amt" data-monthly="$1,699" data-annual="$1,416">$1,699</span><span class="per">/mes</span><span class="iva">+ IVA</span></div>
+      <div class="equiv" data-equiv-prem>Se cobra mensual</div>
+      <ul>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 6"/></svg>Todo lo de Pro</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 6"/></svg>Facturación CFDI</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 6"/></svg>Inventario FIFO + recetas + costeo</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 6"/></svg>Analítica predictiva</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 6"/></svg>Multisucursal consolidada</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 6"/></svg>Soporte prioritario</li>
+      </ul>
+      <button class="cta">Mejorar a Premium</button>
+    </div>
+
+    <!-- ENTERPRISE -->
+    <div class="card enterprise">
+      <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M19 21V11a2 2 0 0 0-2-2h-2M9 7h2M9 11h2M9 15h2"/></svg></div>
+      <div class="name">Enterprise</div>
+      <div class="pitch">Para cadenas: marca propia, integraciones y precio por volumen.</div>
+      <div class="price"><span class="amt" style="font-size:24px">A la medida</span></div>
+      <div class="equiv">Precio negociado</div>
+      <ul>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 6"/></svg>Todo lo de Premium</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 6"/></svg>Marca propia (white-label)</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 6"/></svg>API e integraciones</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 6"/></svg>SLA y soporte dedicado</li>
+      </ul>
+      <button class="cta">Contactar ventas</button>
+    </div>
+  </div>
+
+  <div class="compare">¿No sabes cuál elegir? <a>Compara todos los planes →</a></div>
+
+  <!-- ===== SECTION 2: FEATURE GATE ===== -->
+  <div class="section-label"><span>Así se ve una función que tu plan no incluye</span><div class="rule"></div></div>
+
+  <div class="gate-demo">
+    <div class="gate-head">
+      <h2>Facturas</h2>
+      <p>Comprobantes fiscales (CFDI) emitidos por esta sucursal.</p>
+    </div>
+    <div class="ghost-toolbar">
+      <div class="ghost-pill">＋ Estatus</div>
+      <div class="ghost-pill">＋ Flujo</div>
+    </div>
+    <div class="blurwrap">
+      <table>
+        <thead><tr><th>Serie-Folio</th><th>Receptor</th><th>Total</th><th>Flujo</th><th>Estatus</th><th>Fecha</th></tr></thead>
+        <tbody>
+          <tr><td><span class="chip" style="width:54px"></span></td><td><span class="chip" style="width:150px"></span></td><td><span class="chip" style="width:60px"></span></td><td><span class="chip" style="width:70px"></span></td><td><span class="chip" style="width:64px"></span></td><td><span class="chip" style="width:80px"></span></td></tr>
+          <tr><td><span class="chip" style="width:54px"></span></td><td><span class="chip" style="width:190px"></span></td><td><span class="chip" style="width:60px"></span></td><td><span class="chip" style="width:70px"></span></td><td><span class="chip" style="width:64px"></span></td><td><span class="chip" style="width:80px"></span></td></tr>
+          <tr><td><span class="chip" style="width:54px"></span></td><td><span class="chip" style="width:120px"></span></td><td><span class="chip" style="width:60px"></span></td><td><span class="chip" style="width:70px"></span></td><td><span class="chip" style="width:64px"></span></td><td><span class="chip" style="width:80px"></span></td></tr>
+          <tr><td><span class="chip" style="width:54px"></span></td><td><span class="chip" style="width:170px"></span></td><td><span class="chip" style="width:60px"></span></td><td><span class="chip" style="width:70px"></span></td><td><span class="chip" style="width:64px"></span></td><td><span class="chip" style="width:80px"></span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="gate-card">
+      <div class="crown"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 7l4 4 5-6 5 6 4-4-2 12H5z"/></svg></div>
+      <h3>Facturas</h3>
+      <div class="tier-tag">Incluido en Premium 👑</div>
+      <p>La facturación CFDI es parte del plan Premium. Mejora para empezar a facturar desde tu local.</p>
+      <button class="up"><svg viewBox="0 0 24 24" fill="currentColor" style="width:15px;height:15px"><path d="M3 7l4 4 5-6 5 6 4-4-2 12H5z"/></svg> Mejora a Premium</button>
+      <span class="seeall">Ver todos los planes</span>
+    </div>
+  </div>
+
+  <p class="note">
+    <b>Mockup</b> · pestaña <b>Plan</b> del portal + componente <b>&lt;FeatureGate&gt;</b> (gancho con contenido borroso).
+    Toggle Mensual/Anual reusa el del <b>/setup</b>. El CTA del gate nombra el tier correcto automáticamente
+    (CFDI → Premium, no Pro). Colores y tokens tomados de <b>src/index.css</b> (dark). Sin gradientes.
+  </p>
+</div>
+
+<script>
+  // Toggle Mensual/Anual
+  const seg = document.getElementById('seg');
+  seg.addEventListener('click', e=>{
+    const btn = e.target.closest('button'); if(!btn) return;
+    [...seg.children].forEach(b=>b.classList.toggle('on', b===btn));
+    const annual = btn.dataset.i==='annual';
+    document.querySelectorAll('.amt[data-monthly]').forEach(el=>{
+      el.textContent = annual ? el.dataset.annual : el.dataset.monthly;
+    });
+    document.querySelector('[data-equiv-pro]').textContent  = annual ? '$9,990/año · 2 meses gratis'  : 'Se cobra mensual';
+    document.querySelector('[data-equiv-prem]').textContent = annual ? '$16,990/año · 2 meses gratis' : 'Se cobra mensual';
+  });
+</script>
+</body>
+</html>
