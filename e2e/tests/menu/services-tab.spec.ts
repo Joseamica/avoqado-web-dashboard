@@ -441,8 +441,8 @@ test.describe('Services Tab in MenuMaker', () => {
     const categoryInput = page.getByPlaceholder(/Select the category|Selecciona la categoría/i)
     await categoryInput.click()
 
-    // Wait for dropdown items (SearchCombobox renders plain <button> elements)
-    const categoryOption = page.locator('.absolute.z-50 button').first()
+    // Wait for dropdown items (SearchCombobox = Radix Popover + cmdk → role="option")
+    const categoryOption = page.getByRole('listbox').getByRole('option').first()
     await categoryOption.waitFor({ state: 'visible', timeout: 5_000 })
     await categoryOption.click()
     await page.waitForTimeout(300)
@@ -502,8 +502,8 @@ test.describe('Services Tab in MenuMaker', () => {
     const categoryInput = page.getByPlaceholder(/Select the category|Selecciona la categoría/i)
     await categoryInput.click()
 
-    // Wait for dropdown items (SearchCombobox renders plain <button> elements)
-    const categoryOption = page.locator('.absolute.z-50 button').first()
+    // Wait for dropdown items (SearchCombobox = Radix Popover + cmdk → role="option")
+    const categoryOption = page.getByRole('listbox').getByRole('option').first()
     await categoryOption.waitFor({ state: 'visible', timeout: 5_000 })
     await categoryOption.click()
     await page.waitForTimeout(300)

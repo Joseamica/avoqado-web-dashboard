@@ -291,6 +291,157 @@ export const ALL_MOCK_CATEGORIES: MockItemCategory[] = [
   ...MOCK_VENUE_CATEGORIES,
 ]
 
+// ─── Plan-tier / Billing Fixtures ────────────────────────────────
+// Mirror the backend shapes consumed by src/services/features.service.ts
+// (PlanState, SeatStatus, DowngradePreview, VenueFeatureStatus).
+
+/** Mirrors `PlanState` (GET /dashboard/venues/:venueId/plan). */
+export interface MockPlanState {
+  hasPlan: boolean
+  state: 'none' | 'trial' | 'active' | 'canceling' | 'past_due' | 'suspended' | 'canceled'
+  planTier: 'GRATIS' | 'PRO' | 'PREMIUM' | 'ENTERPRISE' | null
+  planName: string | null
+  interval: 'month' | 'year' | null
+  price: { base: number; gross: number; currency: 'MXN' } | null
+  trialEndsAt: string | null
+  currentPeriodEnd: string | null
+  cancelAtPeriodEnd: boolean
+  suspendedAt: string | null
+  gracePeriodEndsAt: string | null
+  paymentMethod: { brand: string; last4: string; expMonth: number; expYear: number } | null
+  stripeSubscriptionId: string | null
+  retentionOfferEligible: boolean
+  grandfathered: boolean
+}
+
+/**
+ * Default plan state is PERMISSIVE (`grandfathered: true`): legacy venues are
+ * exempt from ALL tier monetization, which replicates the pre-tier behavior
+ * every older e2e test was written against (no paywalls, no badges, no seat cap).
+ * Tier-gating tests override with e.g. `{ planTier: 'GRATIS', grandfathered: false }`.
+ */
+export function createMockPlanState(overrides: Partial<MockPlanState> = {}): MockPlanState {
+  return {
+    hasPlan: false,
+    state: 'none',
+    planTier: null,
+    planName: null,
+    interval: null,
+    price: null,
+    trialEndsAt: null,
+    currentPeriodEnd: null,
+    cancelAtPeriodEnd: false,
+    suspendedAt: null,
+    gracePeriodEndsAt: null,
+    paymentMethod: null,
+    stripeSubscriptionId: null,
+    retentionOfferEligible: false,
+    grandfathered: true,
+    ...overrides,
+  }
+}
+
+/** Mirrors backend seat-cap status (GET /dashboard/venues/:venueId/plan/seat-status). */
+export interface MockSeatStatus {
+  cap: number | null
+  active: number
+  pending: number
+  current: number
+  allowed: boolean
+  exempt: boolean
+}
+
+/** Default: unlimited seats (paid/exempt venue) → invites never blocked. */
+export function createMockSeatStatus(overrides: Partial<MockSeatStatus> = {}): MockSeatStatus {
+  return {
+    cap: null,
+    active: 1,
+    pending: 0,
+    current: 1,
+    allowed: true,
+    exempt: false,
+    ...overrides,
+  }
+}
+
+/** Mirrors `DowngradeStaffRow` in the Pro→Free downgrade roster. */
+export interface MockDowngradeStaffRow {
+  staffVenueId: string
+  staffId: string
+  name: string
+  email: string
+  role: string
+  isOwner: boolean
+  lastActiveAt: string | null
+}
+
+/** Mirrors `DowngradePreview` (GET /dashboard/venues/:venueId/plan/downgrade-preview). */
+export interface MockDowngradePreview {
+  required: boolean
+  cap: number
+  currentActive: number
+  keepMax: number
+  staff: MockDowngradeStaffRow[]
+}
+
+/** Default: downgrade does NOT require choosing who stays (already under cap). */
+export function createMockDowngradePreview(overrides: Partial<MockDowngradePreview> = {}): MockDowngradePreview {
+  return {
+    required: false,
+    cap: 2,
+    currentActive: 1,
+    keepMax: 2,
+    staff: [],
+    ...overrides,
+  }
+}
+
+/** Mirrors `VenueFeatureStatus` (GET /dashboard/venues/:venueId/features) — lightweight copy. */
+export interface MockVenueFeatureStatus {
+  venueId: string
+  venueName: string
+  hasStripeCustomer: boolean
+  hasPaymentMethod: boolean
+  paymentMethod: { brand: string; last4: string; expMonth: number; expYear: number } | null
+  activeFeatures: Array<{
+    id: string
+    venueId: string
+    featureId: string
+    feature: { id: string; code: string; name: string; description: string }
+    active: boolean
+    monthlyPrice: number
+    startDate: string
+    endDate: string | null
+    stripeSubscriptionId: string
+    stripePriceId: string
+    grantedByBasePlan?: boolean
+  }>
+  availableFeatures: Array<{
+    id: string
+    code: string
+    name: string
+    description: string
+    monthlyPrice: number
+    stripeProductId: string
+    stripePriceId: string
+    hadPreviously: boolean
+  }>
+}
+
+/** Default: no à-la-carte grants, nothing available — tier/grandfathering decides access. */
+export function createMockVenueFeatureStatus(overrides: Partial<MockVenueFeatureStatus> = {}): MockVenueFeatureStatus {
+  return {
+    venueId: 'venue-alpha',
+    venueName: 'Restaurante Alpha',
+    hasStripeCustomer: false,
+    hasPaymentMethod: false,
+    paymentMethod: null,
+    activeFeatures: [],
+    availableFeatures: [],
+    ...overrides,
+  }
+}
+
 // ─── Role Config Default Response ───────────────────────────────
 
 export const DEFAULT_ROLE_CONFIGS = {

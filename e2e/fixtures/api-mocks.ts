@@ -2,9 +2,17 @@ import { Page } from '@playwright/test'
 import {
   StaffRole,
   MockSessionVenue,
+  MockPlanState,
+  MockSeatStatus,
+  MockDowngradePreview,
+  MockVenueFeatureStatus,
   createMockVenue,
   createMockUser,
   createAuthStatusResponse,
+  createMockPlanState,
+  createMockSeatStatus,
+  createMockDowngradePreview,
+  createMockVenueFeatureStatus,
   DEFAULT_ROLE_CONFIGS,
   VENUE_ALPHA,
   VENUE_BETA,
@@ -19,6 +27,20 @@ export interface SetupApiMocksOptions {
   venues?: MockSessionVenue[]
   /** Shortcut: number of venues to auto-generate instead of providing `venues`. */
   venueCount?: number
+  /**
+   * Override the base-plan state served by GET /venues/:id/plan.
+   * DEFAULT IS PERMISSIVE (`grandfathered: true`) so legacy tests keep the
+   * pre-tier behavior (no paywalls, no sidebar badges, no seat cap).
+   * Tier tests pass e.g. `{ planTier: 'GRATIS', grandfathered: false }` (Free)
+   * or `{ hasPlan: true, state: 'active', planTier: 'PRO', grandfathered: false }` (Pro).
+   */
+  planState?: Partial<MockPlanState>
+  /** Override GET /venues/:id/plan/seat-status. Default: unlimited seats, invites allowed. */
+  seatStatus?: Partial<MockSeatStatus>
+  /** Override GET /venues/:id/plan/downgrade-preview. Default: `required: false`. */
+  downgradePreview?: Partial<MockDowngradePreview>
+  /** Override GET /venues/:id/features. Default: no à-la-carte feature grants. */
+  venueFeatures?: Partial<MockVenueFeatureStatus>
 }
 
 // ─── Setup ──────────────────────────────────────────────────────
@@ -65,6 +87,50 @@ export async function setupApiMocks(page: Page, options: SetupApiMocksOptions = 
   )
 
   // ── 2. Specific routes AFTER (higher priority in LIFO) ───────
+
+  // Plan-tier / billing endpoints. The frontend unwraps `response.data.data`
+  // (features.service.ts), so every body is wrapped in { success, data }.
+  // These globs match whole URLs, so `**/plan` does NOT swallow `/plan/seat-status`.
+  const planState = createMockPlanState(options.planState)
+  await page.route('**/api/v1/dashboard/venues/*/plan', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: planState }),
+    }),
+  )
+
+  const seatStatus = createMockSeatStatus(options.seatStatus)
+  await page.route('**/api/v1/dashboard/venues/*/plan/seat-status', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: seatStatus }),
+    }),
+  )
+
+  const downgradePreview = createMockDowngradePreview(options.downgradePreview)
+  await page.route('**/api/v1/dashboard/venues/*/plan/downgrade-preview', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: downgradePreview }),
+    }),
+  )
+
+  // Venue feature grants (à-la-carte) — consumed by useVenueTier() alongside /plan.
+  const venueFeatures = createMockVenueFeatureStatus({
+    venueId: venuesWithRole[0]?.id,
+    venueName: venuesWithRole[0]?.name,
+    ...options.venueFeatures,
+  })
+  await page.route('**/api/v1/dashboard/venues/*/features', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: venueFeatures }),
+    }),
+  )
 
   // White-label config
   await page.route('**/api/v1/dashboard/venues/*/white-label*', (route) =>

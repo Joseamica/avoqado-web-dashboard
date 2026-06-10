@@ -11,8 +11,15 @@
  *   2. Uploading a comprobante on the detail page flips the UI from
  *      AWAITING_PROOF → PROOF_UPLOADED once the mocked endpoint resolves
  *      and the query re-fetches.
- *   3. The magic-link approve page (`/admin/tpv-orders/:id/approve?token=…`)
- *      renders a success state when the public endpoint returns 200.
+ *
+ * NOTE: the magic-link approve/reject pages (`/admin/tpv-orders/:id/approve`)
+ * do NOT live in this repo. They were moved to the avoqado-superadmin app
+ * (src/features/tpv-orders/ApproveTpvOrderPage.tsx, routed in its router.tsx)
+ * one day after this spec was written — sales staff open them from the email
+ * magic link against SUPERADMIN_URL (see avoqado-server
+ * src/services/dashboard/terminalOrder/urls.ts). The original test 3 here
+ * permanently 404'd against the dashboard and was removed; coverage belongs
+ * in avoqado-superadmin.
  */
 
 import { test, expect, Page } from '@playwright/test'
@@ -239,28 +246,7 @@ test.describe('Buy TPV — SPEI flow', () => {
     ).toBeVisible({ timeout: 10_000 })
   })
 
-  test('magic-link approve page shows success on valid token', async ({ page }) => {
-    await setupApiMocks(page, { userRole: StaffRole.OWNER })
-
-    // Public approve endpoint accepts ?token=… and returns the order summary.
-    await page.route(
-      `**/api/v1/public/tpv-orders/${ORDER_ID}/approve*`,
-      async (route) => {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            success: true,
-            data: { orderId: ORDER_ID, orderNumber: 'AVO-0002' },
-          }),
-        })
-      },
-    )
-
-    await page.goto(`/admin/tpv-orders/${ORDER_ID}/approve?token=test_valid_token`)
-
-    await expect(
-      page.getByText(/pedido aprobado|order approved/i).first(),
-    ).toBeVisible({ timeout: 10_000 })
-  })
+  // The former "magic-link approve page" test lived here. That page belongs
+  // to the avoqado-superadmin app (see file header note) — testing it against
+  // the dashboard can only ever render the 404 page.
 })

@@ -291,7 +291,7 @@ test.describe('PlayTelecom Sales Review (back-office)', () => {
     await page.getByTestId('btn-reject-sv-pending-1').click({ force: true })
 
     // Tick the portability reason
-    await page.getByLabel('Revisar portabilidad').check()
+    await page.getByLabel('Falta imagen de portabilidad').check()
     await page.getByRole('button', { name: 'Marcar para revisar' }).click({ force: true })
 
     await expect.poll(() => capturedBody, { timeout: 10000 }).toMatchObject({
@@ -320,7 +320,7 @@ test.describe('PlayTelecom Sales Review (back-office)', () => {
     await gotoSalesPage(page)
 
     // FAILED row shows reason chip
-    await expect(page.getByText('Revisar portabilidad')).toBeVisible()
+    await expect(page.getByText('Falta imagen de portabilidad')).toBeVisible()
     // FAILED row shows reviewer name
     await expect(page.getByText('Ada Lovelace').first()).toBeVisible()
   })

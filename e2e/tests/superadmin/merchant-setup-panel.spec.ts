@@ -45,10 +45,14 @@ function jsonRoute(body: unknown, status = 200) {
  * Register all panel mocks AFTER setupApiMocks (Playwright LIFO — later
  * registered wins). Returns a payload-capture handle for the activate POST.
  */
-async function setupPanelMocks(page: Page): Promise<{ getCapturedPayload: () => unknown }> {
+async function setupPanelMocks(page: Page): Promise<{
+  getCapturedPayload: () => unknown
+  getCapturedLoginCreate: () => unknown
+}> {
   await setupApiMocks(page, { userRole: StaffRole.SUPERADMIN })
 
   let capturedPayload: unknown = null
+  let capturedLoginCreate: unknown = null
 
   // Merchant-accounts page list — empty.
   await page.route(
@@ -69,6 +73,30 @@ async function setupPanelMocks(page: Page): Promise<{ getCapturedPayload: () => 
   await page.route(
     url => url.pathname.includes('/angelpay-accounts'),
     jsonRoute({ data: [] }),
+  )
+  // Immediate account creation when the operator clicks "Usar esta cuenta"
+  // (POST /superadmin/venues/:venueId/angelpay-account). The card flips
+  // state.login to mode='existing' with the returned id, so the activate
+  // payload later carries { mode: 'existing', angelpayUserAccountId }.
+  await page.route(
+    url => url.pathname.endsWith('/angelpay-account'),
+    route => {
+      capturedLoginCreate = route.request().postDataJSON()
+      route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            id: 'login-new-msp-1',
+            venueId: MOCK_VENUE.id,
+            email: 'nuevo@avoqado.io',
+            environment: 'PRODUCTION',
+            status: 'ACTIVE',
+          },
+        }),
+      })
+    },
   )
   // Venue terminals — none (no NEXGO → MerchantCard hides auto-discover).
   await page.route(
@@ -108,7 +136,10 @@ async function setupPanelMocks(page: Page): Promise<{ getCapturedPayload: () => 
     },
   )
 
-  return { getCapturedPayload: () => capturedPayload }
+  return {
+    getCapturedPayload: () => capturedPayload,
+    getCapturedLoginCreate: () => capturedLoginCreate,
+  }
 }
 
 /** The shadcn `<Label>` is a Radix Label without htmlFor → Playwright's
@@ -183,7 +214,7 @@ test.describe('MerchantSetupPanel — smoke', () => {
 
 test.describe('MerchantSetupPanel — happy path', () => {
   test('fills required cards in order and activates the merchant', async ({ page }) => {
-    const { getCapturedPayload } = await setupPanelMocks(page)
+    const { getCapturedPayload, getCapturedLoginCreate } = await setupPanelMocks(page)
     await openPanel(page)
 
     // 1) VENUE — pick MOCK_VENUE.
@@ -207,6 +238,12 @@ test.describe('MerchantSetupPanel — happy path', () => {
     await expect(
       page.locator('[data-tour="setup-panel-card-login"]').getByText('Listo'),
     ).toBeVisible()
+
+    // Since 2026-05-25 "Usar esta cuenta" creates the account in the backend
+    // IMMEDIATELY (so MerchantCard can use TPV auto-discovery). The credentials
+    // travel on that POST — assert them here instead of on the activate payload.
+    await expect.poll(() => getCapturedLoginCreate(), { timeout: 5_000 }).not.toBeNull()
+    expect(getCapturedLoginCreate()).toMatchObject({ email: 'nuevo@avoqado.io', pin: '123456' })
 
     // 3) MERCHANT — manual create. The dialog opens directly into the form
     // because there are no existing merchants linked to this brand-new login.
@@ -286,9 +323,10 @@ test.describe('MerchantSetupPanel — happy path', () => {
     await expect.poll(() => getCapturedPayload(), { timeout: 10_000 }).not.toBeNull()
     const payload = getCapturedPayload() as Record<string, any>
     expect(payload.venueId).toBe(MOCK_VENUE.id)
-    expect(payload.login.mode).toBe('new')
-    expect(payload.login.email).toBe('nuevo@avoqado.io')
-    expect(payload.login.pin).toBe('123456')
+    // The login was already created by the immediate POST above, so the
+    // activate payload references it as an EXISTING account by id.
+    expect(payload.login.mode).toBe('existing')
+    expect(payload.login.angelpayUserAccountId).toBe('login-new-msp-1')
     expect(payload.merchant.mode).toBe('create')
     expect(payload.merchant.externalMerchantId).toBe('9814275')
     expect(payload.merchant.affiliation).toBe('AF-001')
