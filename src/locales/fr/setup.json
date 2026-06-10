@@ -154,5 +154,22 @@
     "title": "Completez la configuration de votre compte",
     "description": "Terminez la configuration de votre compte pour commencer a recevoir des paiements",
     "button": "Continuer la configuration"
+  },
+  "plan": {
+    "title": "Votre plan Avoqado",
+    "subtitle": "Choisissez le plan qui convient le mieux a votre entreprise. Vous pouvez en changer a tout moment.",
+    "monthly": "Mensuel",
+    "annual": "Annuel (2 mois gratuits)",
+    "priceLine": "999 $ + TVA / mois",
+    "promoLine": "Payez aujourd'hui : 3 mois a 599 $ + TVA, puis 999 $.",
+    "selectedPlan": "Plan selectionne : {{plan}}",
+    "startTrial": "Commencer 30 jours gratuits",
+    "payNowMonthly": "Payer aujourd'hui et economiser (3 mois a 599 $)",
+    "payNowAnnual": "Payer aujourd'hui (annuel)",
+    "payNow": "Payer aujourd'hui",
+    "freeNote": "Commencez gratuitement, sans carte. Vous pouvez ameliorer votre plan a tout moment depuis Facturation.",
+    "freeContinue": "Continuer avec le plan Gratuit",
+    "loading": "Chargement…",
+    "finishLaterWarning": "Votre compte ne sera pas active tant que vous n'aurez pas complete votre plan. Mettre en pause quand meme ?"
   }
 }

@@ -25,11 +25,28 @@ const fmt = (n: number) => `$${n.toLocaleString('es-MX')}`
 interface PlanPickerProps {
   currentTier: TierId
   onSelectTier: (tier: TierId, interval: 'monthly' | 'annual') => void
+  /**
+   * Controlled billing interval. When provided (with `onIntervalChange`), the parent owns
+   * the toggle state — used by wizards that must persist the interval even when the user
+   * flips the toggle without re-clicking a tier CTA. Omit for the default uncontrolled mode.
+   */
+  interval?: 'monthly' | 'annual'
+  onIntervalChange?: (interval: 'monthly' | 'annual') => void
+  /**
+   * Optional promo note rendered under a tier's price line (e.g. the onboarding intro
+   * offer "3 meses a $599" on PRO). Display-only — the caller owns the promo's billing logic.
+   */
+  promoNotes?: Partial<Record<TierId, string>>
 }
 
-export function PlanPicker({ currentTier, onSelectTier }: PlanPickerProps) {
+export function PlanPicker({ currentTier, onSelectTier, interval: controlledInterval, onIntervalChange, promoNotes }: PlanPickerProps) {
   const { t } = useTranslation('billing')
-  const [interval, setInterval] = useState<'monthly' | 'annual'>('monthly')
+  const [internalInterval, setInternalInterval] = useState<'monthly' | 'annual'>('monthly')
+  const interval = controlledInterval ?? internalInterval
+  const setInterval = (i: 'monthly' | 'annual') => {
+    setInternalInterval(i)
+    onIntervalChange?.(i)
+  }
 
   const tiers = useMemo(() => PLAN_TIERS, [])
 
@@ -74,6 +91,7 @@ export function PlanPicker({ currentTier, onSelectTier }: PlanPickerProps) {
             interval={interval}
             isCurrent={tier.id === currentTier}
             isDowngrade={TIER_ORDER.indexOf(tier.id) < TIER_ORDER.indexOf(currentTier)}
+            promoNote={promoNotes?.[tier.id]}
             onSelect={() => onSelectTier(tier.id, interval)}
           />
         ))}
@@ -87,12 +105,14 @@ function PlanCard({
   interval,
   isCurrent,
   isDowngrade,
+  promoNote,
   onSelect,
 }: {
   tier: PlanTierDef
   interval: 'monthly' | 'annual'
   isCurrent: boolean
   isDowngrade: boolean
+  promoNote?: string
   onSelect: () => void
 }) {
   const { t } = useTranslation('billing')
@@ -142,6 +162,9 @@ function PlanCard({
               ? t('plan.annualEquiv', { price: fmt(tier.priceAnnual) })
               : t('plan.billedMonthly')}
       </div>
+      {promoNote && (
+        <div className="rounded-lg bg-emerald-400/10 px-2.5 py-1.5 text-xs font-medium text-emerald-500">{promoNote}</div>
+      )}
 
       <ul className="mt-1 flex flex-col gap-2.5">
         {tier.featureKeys.map(fk => (

@@ -227,14 +227,18 @@
   },
   "plan": {
     "title": "Your Avoqado plan",
-    "subtitle": "Activate your plan to use all of Avoqado's features.",
+    "subtitle": "Pick the plan that fits your business. You can change it anytime.",
     "monthly": "Monthly",
     "annual": "Annual (2 months free)",
     "priceLine": "$999 + tax / month",
     "promoLine": "Pay today: 3 months at $599 + tax, then $999.",
+    "selectedPlan": "Selected plan: {{plan}}",
     "startTrial": "Start 30-day free trial",
     "payNowMonthly": "Pay today and save (3 months at $599)",
     "payNowAnnual": "Pay today (annual)",
+    "payNow": "Pay today",
+    "freeNote": "Start free, no card required. You can upgrade anytime from Billing.",
+    "freeContinue": "Continue with the Free plan",
     "loading": "Loading…",
     "finishLaterWarning": "Your account won't activate until you complete your plan. Pause anyway?"
   }

@@ -39,4 +39,22 @@ describe('PlanPicker', () => {
     // Pro annual equiv ($9,990) should appear
     expect(screen.getByText(/9,990/)).toBeInTheDocument()
   })
+
+  // Wizard integrations (SetupWizard PlanStep): controlled interval + per-tier promo note
+  it('supports controlled interval — notifies parent and respects the prop', () => {
+    const onIntervalChange = vi.fn()
+    const { rerender } = render(
+      <PlanPicker currentTier="FREE" onSelectTier={() => {}} interval="monthly" onIntervalChange={onIntervalChange} />,
+    )
+    fireEvent.click(screen.getByText('plan.billing.annual'))
+    expect(onIntervalChange).toHaveBeenCalledWith('annual')
+    // parent controls the value: still monthly until the prop changes
+    rerender(<PlanPicker currentTier="FREE" onSelectTier={() => {}} interval="annual" onIntervalChange={onIntervalChange} />)
+    expect(screen.getByText(/9,990/)).toBeInTheDocument()
+  })
+
+  it('renders a promo note on the matching tier card', () => {
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} promoNotes={{ PRO: '3 meses a $599' }} />)
+    expect(screen.getByText('3 meses a $599')).toBeInTheDocument()
+  })
 })

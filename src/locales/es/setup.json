@@ -227,14 +227,18 @@
   },
   "plan": {
     "title": "Tu plan Avoqado",
-    "subtitle": "Activa tu plan para usar todas las funciones de Avoqado.",
+    "subtitle": "Elige el plan que mejor se adapte a tu negocio. Puedes cambiarlo cuando quieras.",
     "monthly": "Mensual",
     "annual": "Anual (2 meses gratis)",
     "priceLine": "$999 + IVA / mes",
     "promoLine": "Paga hoy: 3 meses a $599 + IVA, luego $999.",
+    "selectedPlan": "Plan seleccionado: {{plan}}",
     "startTrial": "Empezar 30 días gratis",
     "payNowMonthly": "Pagar hoy y ahorrar (3 meses a $599)",
     "payNowAnnual": "Pagar hoy (anual)",
+    "payNow": "Pagar hoy",
+    "freeNote": "Empieza gratis sin tarjeta. Puedes mejorar tu plan cuando quieras desde Facturación.",
+    "freeContinue": "Continuar con el plan Gratis",
     "loading": "Cargando…",
     "finishLaterWarning": "Tu cuenta no se activará hasta que completes tu plan. ¿Pausar de todos modos?"
   }

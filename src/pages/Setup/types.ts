@@ -52,6 +52,12 @@ export interface SetupData {
   }
   // Step: Plan (base subscription)
   plan?: {
+    /**
+     * Selected tier. FREE completes without a card; PRO/PREMIUM require a
+     * paymentMethodId. ENTERPRISE is contact-sales only and never persisted.
+     * Absent on payloads saved before the 4-tier step — backend defaults to PRO.
+     */
+    tier?: 'FREE' | 'PRO' | 'PREMIUM'
     paymentMethodId?: string
     interval?: 'monthly' | 'annual'
     payNow?: boolean
