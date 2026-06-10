@@ -17,11 +17,14 @@ export interface TierFeatureAccess {
 /**
  * Tier + grant aware feature access for the CURRENT venue. Fetches the plan tier AND the venue's
  * active features once, and returns a `hasFeatureAccess(code)` checker. Mirrors the backend
- * `venueHasFeatureAccess`:
- *   access = superadmin
- *          OR white-label feature toggle (canFeature)
- *          OR the venue has an EXPLICIT active grant for the feature (à-la-carte / grandfathered)
- *          OR the venue's plan tier rank >= the feature's required tier rank.
+ * `venueHasFeatureAccess`. Path order (first match wins):
+ *   1. superadmin → always true
+ *   2. white-label → delegate to the feature toggle (canFeature)
+ *   3. optimistic loading (first fetch in flight, no cached data) → true (no paywall flash)
+ *   4. grandfathered venue (planState.grandfathered) → true for EVERY feature — legacy venues
+ *      are exempt from ALL tier monetization (no paywalls, no badges, no seat cap)
+ *   5. EXPLICIT active grant for the feature (à-la-carte) → true
+ *   6. venue's plan tier rank >= the feature's required tier rank.
  *
  * Why this exists: `useAccess().canFeature` / `useAuth().checkFeatureAccess` short-circuit to `true`
  * for every non-white-label venue, so they can't gate normal venues by tier — and a pure tier check
@@ -67,7 +70,9 @@ export function useVenueTier(): { venueTier: TierId; hasFeatureAccess: (feature:
       if (isWhiteLabelEnabled) return canFeature(feature)
       // Optimistic while the first load is in flight (avoid a paywall flash on entitled venues).
       if (isLoading && planState === undefined && featureStatus === undefined) return true
-      if (grantedCodes.has(feature)) return true // explicit / grandfathered grant wins
+      // Grandfathered legacy venue → exempt from ALL tier monetization: every feature unlocked.
+      if (planState?.grandfathered) return true
+      if (grantedCodes.has(feature)) return true // explicit / à-la-carte grant wins
       const required = getTierForFeature(feature) ?? 'PRO'
       return TIER_ORDER.indexOf(venueTier) >= TIER_ORDER.indexOf(required)
     },

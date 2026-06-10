@@ -4,6 +4,7 @@ import type {
   SuperadminVenue as SASuperadminVenue,
   SuperadminDashboardData as SASuperadminDashboardData,
 } from '@/types/superadmin'
+import type { PlanState } from '@/services/features.service'
 
 // ===== TYPES =====
 
@@ -260,6 +261,33 @@ export async function disableFeatureForVenue(venueId: string, featureCode: strin
  */
 export async function grantTrialForVenue(venueId: string, featureCode: string, trialDays: number): Promise<{ endDate: string }> {
   const response = await api.post(`/api/v1/dashboard/superadmin/venues/${venueId}/features/${featureCode}/grant-trial`, { trialDays })
+  return response.data.data
+}
+
+/**
+ * Mark / unmark a venue as grandfathered (legacy venue exempt from ALL tier
+ * monetization — no paywalls, no seat cap). Returns the updated PlanState.
+ */
+export async function setVenueGrandfathered(venueId: string, grandfathered: boolean): Promise<PlanState> {
+  const response = await api.post(`/api/v1/dashboard/superadmin/venues/${venueId}/plan/grandfathered`, { grandfathered })
+  return response.data.data
+}
+
+/**
+ * Assign a permanent COMP base plan to a venue (no expiry, no Stripe billing).
+ * Passing 'FREE' removes the comp/base plan. Returns the updated PlanState.
+ */
+export async function assignCompPlan(venueId: string, tier: 'FREE' | 'PRO' | 'PREMIUM'): Promise<PlanState> {
+  const response = await api.post(`/api/v1/dashboard/superadmin/venues/${venueId}/plan/comp`, { tier })
+  return response.data.data
+}
+
+/**
+ * Grant or extend a base-plan trial for a venue (1..365 days).
+ * Returns the updated PlanState.
+ */
+export async function extendPlanTrial(venueId: string, tier: 'PRO' | 'PREMIUM', days: number): Promise<PlanState> {
+  const response = await api.post(`/api/v1/dashboard/superadmin/venues/${venueId}/plan/trial`, { tier, days })
   return response.data.data
 }
 

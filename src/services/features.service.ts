@@ -145,6 +145,11 @@ export interface PlanState {
    * farm the discount). When false, the cancel dialog skips the offer step.
    */
   retentionOfferEligible: boolean
+  /**
+   * Legacy venue exempt from ALL tier monetization (no paywalls, no seat cap).
+   * A grandfathered venue operates exactly as it did before plan tiers existed.
+   */
+  grandfathered: boolean
 }
 
 /** Get the venue's base-plan state. */

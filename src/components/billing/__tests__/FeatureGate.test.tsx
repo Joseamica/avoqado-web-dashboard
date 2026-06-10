@@ -55,7 +55,7 @@ vi.mock('@tanstack/react-query', async (importOriginal) => {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-function makePlanState(planTier: PlanState['planTier']): PlanState {
+function makePlanState(planTier: PlanState['planTier'], overrides: Partial<PlanState> = {}): PlanState {
   return {
     hasPlan: planTier !== null,
     state: planTier ? 'active' : 'none',
@@ -71,6 +71,8 @@ function makePlanState(planTier: PlanState['planTier']): PlanState {
     paymentMethod: null,
     stripeSubscriptionId: null,
     retentionOfferEligible: false,
+    grandfathered: false,
+    ...overrides,
   }
 }
 
@@ -122,6 +124,16 @@ describe('FeatureGate', () => {
 
   it('normal venue on ENTERPRISE tier + CFDI feature → renders children without paywall', () => {
     mockUseQuery.mockReturnValue({ data: makePlanState('ENTERPRISE'), isLoading: false })
+
+    renderGate()
+
+    expect(screen.getByText('secret content')).toBeInTheDocument()
+    expect(screen.queryByText('featureGate.upgrade:Premium')).not.toBeInTheDocument()
+  })
+
+  it('grandfathered FREE-tier venue + CFDI feature (PREMIUM required) → renders children without paywall', () => {
+    // Legacy venue: planState.grandfathered=true exempts it from ALL tier paywalls.
+    mockUseQuery.mockReturnValue({ data: makePlanState('GRATIS', { grandfathered: true }), isLoading: false })
 
     renderGate()
 

@@ -36,6 +36,7 @@ import { PlanPicker } from '@/components/billing/PlanPicker'
 import { PlanUpgradeDialog } from '@/components/billing/PlanUpgradeDialog'
 import { DowngradeReconcileDialog } from '@/components/billing/DowngradeReconcileDialog'
 import { SuperadminFeatureControl } from './components/SuperadminFeatureControl'
+import { SuperadminPlanControl } from './components/SuperadminPlanControl'
 import type { TierId } from '@/config/plan-catalog'
 
 // Lazy load superadmin service - only imported when needed
@@ -407,6 +408,11 @@ export default function Subscriptions() {
         {isSuperadmin && (
           <SuperadminFeatureControl>
             <div className="pt-2">
+              {/* Base-plan admin: tier/grandfathered state, comp plans, plan trials */}
+              <SuperadminPlanControl venueId={venueId} venueName={venue?.name} planState={planState} />
+
+              <Separator className="my-6 bg-amber-400/20" />
+
               {/* Quick Actions */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 {/* Grant Trial */}
