@@ -2372,7 +2372,7 @@ export default function SalesSummary() {
             commissionsPaid={commissionsPaid}
             formatCurrency={Currency}
           />
-          <MerchantBreakdownPanel items={merchantBreakdown} formatCurrency={Currency} />
+          <MerchantBreakdownPanel items={merchantBreakdown} formatCurrency={Currency} venueTimezone={venueTimezone} />
           <SettlementMiniCalendar days={settlementCalendar} formatCurrency={Currency} />
         </div>
       )}

@@ -139,7 +139,7 @@
     },
     "merchantBreakdown": {
       "title": "Desglose por comercio",
-      "description": "Dinero de tarjeta por cada cuenta. El efectivo se muestra arriba (ya en tu mano).",
+      "description": "Dinero de tarjeta por cada cuenta, con propinas incluidas. El efectivo se muestra arriba (ya en tu mano).",
       "totalNet": "Total a recibir",
       "cols": {
         "merchant": "Comercio",
@@ -148,7 +148,8 @@
         "net": "Neto a recibir",
         "share": "Parte"
       },
-      "lands": "Cae ~{{date}}"
+      "lands": "Cae ~{{date}}",
+      "landed": "Debió caer ~{{date}}"
     },
     "moneyLocation": {
       "title": "¿Dónde está tu dinero?",

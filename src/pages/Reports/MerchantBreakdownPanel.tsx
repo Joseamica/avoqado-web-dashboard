@@ -8,6 +8,8 @@ import type { MerchantAccountBreakdown } from '@/services/reports/salesSummary.s
 interface Props {
   items: MerchantAccountBreakdown[]
   formatCurrency: (n: number) => string
+  /** IANA venue timezone — decides whether a settlement date reads as past or upcoming. */
+  venueTimezone: string
   className?: string
 }
 
@@ -17,14 +19,20 @@ function formatLands(dateStr: string, locale: string): string {
   return new Date(y, (m ?? 1) - 1, d ?? 1).toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
+/** Today as YYYY-MM-DD in the venue timezone (en-CA locale formats ISO-style). */
+function todayInVenue(timeZone: string): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date())
+}
+
 /**
  * Per-merchant-account card breakdown (Cobrado · Comisión · Neto a recibir).
  * Mirrors the visual language of AvailableBalance/CardTypeBreakdownStrip but
  * sliced by merchant account instead of card type. Read-only / info panel.
  */
-export function MerchantBreakdownPanel({ items, formatCurrency, className }: Props) {
+export function MerchantBreakdownPanel({ items, formatCurrency, venueTimezone, className }: Props) {
   const { t, i18n } = useTranslation('reports')
   const total = useMemo(() => items.reduce((s, m) => s + m.netToReceive, 0), [items])
+  const todayKey = useMemo(() => todayInVenue(venueTimezone), [venueTimezone])
 
   if (items.length === 0) return null
 
@@ -71,7 +79,14 @@ export function MerchantBreakdownPanel({ items, formatCurrency, className }: Pro
                   {m.estimatedSettlement?.nextDate && (
                     <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                       <Clock className="h-3 w-3" aria-hidden />
-                      {t('salesSummary.merchantBreakdown.lands', { date: formatLands(m.estimatedSettlement.nextDate, i18n.language) })}
+                      {/* Past dates read "should have landed" — future-tense "Lands ~" for an
+                          already-past date was misleading (caught in self-review 2026-06-10). */}
+                      {t(
+                        m.estimatedSettlement.nextDate < todayKey
+                          ? 'salesSummary.merchantBreakdown.landed'
+                          : 'salesSummary.merchantBreakdown.lands',
+                        { date: formatLands(m.estimatedSettlement.nextDate, i18n.language) },
+                      )}
                     </span>
                   )}
                 </div>

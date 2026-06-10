@@ -139,7 +139,7 @@
     },
     "merchantBreakdown": {
       "title": "Breakdown by merchant",
-      "description": "Card money per account. Cash is shown above (already in hand).",
+      "description": "Card money per account, tips included. Cash is shown above (already in hand).",
       "totalNet": "Total to receive",
       "cols": {
         "merchant": "Merchant",
@@ -148,7 +148,8 @@
         "net": "Net to receive",
         "share": "Share"
       },
-      "lands": "Lands ~{{date}}"
+      "lands": "Lands ~{{date}}",
+      "landed": "Should have landed ~{{date}}"
     },
     "moneyLocation": {
       "title": "Where is your money?",

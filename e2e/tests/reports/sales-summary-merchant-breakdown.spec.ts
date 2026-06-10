@@ -1,10 +1,15 @@
 /**
- * E2E for the Sales Summary per-merchant reconciliation (Entrega 1):
- *  - the "¿Dónde está tu dinero?" / "Where is your money?" strip
- *  - the per-merchant card breakdown panel (Cobrado · Comisión · Neto a recibir)
+ * E2E for the Sales Summary per-merchant reconciliation:
+ *  - Entrega 1: the "Where is your money?" strip + the per-merchant card
+ *    breakdown panel (Collected · Commission · Net to receive · Share %)
+ *  - Entrega 2: the settlement mini-calendar ("when does the card money land")
+ *    + the per-merchant "Lands ~" / "Should have landed ~" line
+ *  - PRO gating: the whole block is ADVANCED_REPORTS (PRO tier); FREE venues
+ *    see the FeatureGate paywall instead.
  *
- * Both are additive: they render from the new optional `byMerchantAccount` field
- * on the sales-summary response. The request must carry includeMerchantBreakdown=true.
+ * All additive: they render from the optional `byMerchantAccount` and
+ * `settlementCalendar` fields. The request must carry includeMerchantBreakdown
+ * and includeSettlementProjection.
  *
  * Default E2E locale is English (i18n fallbackLng: 'en'), so assertions use the
  * English `reports` namespace strings. Merchant display names come from the
@@ -15,11 +20,19 @@
  */
 
 import { test, expect, Page } from '@playwright/test'
-import { setupApiMocks } from '../../fixtures/api-mocks'
+import { setupApiMocks, type SetupApiMocksOptions } from '../../fixtures/api-mocks'
 import { StaffRole, createMockVenue } from '../../fixtures/mock-data'
 
 test.setTimeout(45_000)
 test.use({ viewport: { width: 1280, height: 900 } })
+
+/** YYYY-MM-DD relative to the real clock — keeps past/future copy assertions stable. */
+function isoDaysFromNow(days: number): string {
+  const d = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+  return d.toISOString().slice(0, 10)
+}
+const PAST_DATE = isoDaysFromNow(-5)
+const FUTURE_DATE = isoDaysFromNow(5)
 
 const SUMMARY_WITH_MERCHANTS = {
   dateRange: { startDate: '2026-05-01T00:00:00Z', endDate: '2026-05-31T23:59:59Z' },
@@ -55,10 +68,12 @@ const SUMMARY_WITH_MERCHANTS = {
       displayName: 'Amaena - Externo',
       provider: 'Blumon PAX',
       affiliation: null,
-      collectedOnCard: 13827,
+      collectedOnCard: 13827, // tip-inclusive since 2026-06-10 (amount + tipAmount)
       platformFee: 497.7,
       netToReceive: 13329.3,
       transactionCount: 17,
+      // Future date → the row reads "Lands ~…" (upcoming).
+      estimatedSettlement: { nextDate: FUTURE_DATE, settlementDays: 1 },
     },
     {
       merchantAccountId: 'a',
@@ -69,6 +84,25 @@ const SUMMARY_WITH_MERCHANTS = {
       platformFee: 65.6,
       netToReceive: 1757.4,
       transactionCount: 5,
+      // Past date → the row must read "Should have landed ~…", NOT future-tense.
+      estimatedSettlement: { nextDate: PAST_DATE, settlementDays: 1 },
+    },
+  ],
+  // Entrega 2 — settlement mini-calendar payload (statuses drive the day labels).
+  settlementCalendar: [
+    {
+      date: PAST_DATE,
+      status: 'settled',
+      totalNet: 1757.4,
+      byMerchant: [{ merchantAccountId: 'a', displayName: 'Amaena - A', platformFee: 65.6, netToReceive: 1757.4, transactionCount: 5 }],
+    },
+    {
+      date: FUTURE_DATE,
+      status: 'projected',
+      totalNet: 13329.3,
+      byMerchant: [
+        { merchantAccountId: 'ext', displayName: 'Amaena - Externo', platformFee: 497.7, netToReceive: 13329.3, transactionCount: 17 },
+      ],
     },
   ],
   filtered: false,
@@ -78,9 +112,9 @@ interface MockState {
   lastUrl: string | null
 }
 
-async function setupMocks(page: Page): Promise<MockState> {
+async function setupMocks(page: Page, extraOptions: Partial<SetupApiMocksOptions> = {}): Promise<MockState> {
   const venue = createMockVenue({ id: 'venue-alpha', name: 'Restaurante Alpha', slug: 'venue-alpha' })
-  await setupApiMocks(page, { userRole: StaffRole.OWNER, venues: [venue] })
+  await setupApiMocks(page, { userRole: StaffRole.OWNER, venues: [venue], ...extraOptions })
 
   const state: MockState = { lastUrl: null }
 
@@ -118,8 +152,9 @@ test.describe('Sales Summary — per-merchant reconciliation', () => {
     const state = await setupMocks(page)
     await gotoReport(page)
 
-    // The request opted into the additive breakdown.
+    // The request opted into BOTH additive blocks (breakdown + settlement projection).
     expect(state.lastUrl).toContain('includeMerchantBreakdown=true')
+    expect(state.lastUrl).toContain('includeSettlementProjection=true')
 
     // "Where is your money?" strip + the per-merchant breakdown panel.
     await expect(page.getByText('Where is your money?')).toBeVisible({ timeout: 10_000 })
@@ -128,5 +163,59 @@ test.describe('Sales Summary — per-merchant reconciliation', () => {
     // Both merchant rows render with their names.
     await expect(page.getByText('Amaena - Externo')).toBeVisible()
     await expect(page.getByText('Amaena - A')).toBeVisible()
+  })
+
+  test('share column shows each merchant\'s % of the net', async ({ page }) => {
+    await setupMocks(page)
+    await gotoReport(page)
+
+    await expect(page.getByText('Breakdown by merchant')).toBeVisible({ timeout: 10_000 })
+    // Header + per-row share: 13329.3 / 15086.7 ≈ 88%, 1757.4 / 15086.7 ≈ 12%.
+    await expect(page.getByRole('columnheader', { name: 'Share' })).toBeVisible()
+    await expect(page.getByRole('cell', { name: '88%' })).toBeVisible()
+    await expect(page.getByRole('cell', { name: '12%' })).toBeVisible()
+  })
+
+  test('settlement dates: future reads "Lands ~", past reads "Should have landed ~"', async ({ page }) => {
+    await setupMocks(page)
+    await gotoReport(page)
+
+    await expect(page.getByText('Breakdown by merchant')).toBeVisible({ timeout: 10_000 })
+    // Externo settles in the future → upcoming copy. A settled in the past →
+    // past copy (the future-tense regression caught in self-review 2026-06-10).
+    await expect(page.getByText(/Lands ~/)).toBeVisible()
+    await expect(page.getByText(/Should have landed ~/)).toBeVisible()
+  })
+
+  test('settlement mini-calendar renders collapsed, expands to day rows with statuses', async ({ page }) => {
+    await setupMocks(page)
+    await gotoReport(page)
+
+    // Collapsed header with the incoming (non-settled) total: $13,329.30 projected.
+    const calendarToggle = page.getByRole('button', { name: /Settlement calendar/i })
+    await expect(calendarToggle).toBeVisible({ timeout: 10_000 })
+    await expect(calendarToggle).toContainText('Incoming')
+
+    await calendarToggle.click()
+
+    // Expanded: per-day status labels + per-merchant line + honesty note.
+    await expect(page.getByText('estimated · should have landed')).toBeVisible()
+    await expect(page.getByText('projected', { exact: true })).toBeVisible()
+    await expect(page.getByText(/fee .* you receive/).first()).toBeVisible()
+    await expect(page.getByText(/Estimated from each merchant's settlement rules/)).toBeVisible()
+  })
+
+  test('FREE venue: reconciliation block hidden, PRO paywall shown instead', async ({ page }) => {
+    // Non-grandfathered FREE plan → useTierFeatureAccess('ADVANCED_REPORTS') = no access.
+    await setupMocks(page, { planState: { grandfathered: false, hasPlan: false, state: 'none', planTier: null } })
+    await gotoReport(page)
+
+    // The reconciliation block must NOT render…
+    await expect(page.getByText('Where is your money?')).not.toBeVisible()
+    await expect(page.getByText('Breakdown by merchant')).not.toBeVisible()
+    await expect(page.getByRole('button', { name: /Settlement calendar/i })).not.toBeVisible()
+
+    // …and the FeatureGate paywall upsell does (CTA navigates to billing).
+    await expect(page.getByRole('button', { name: /Upgrade to Pro/i })).toBeVisible({ timeout: 10_000 })
   })
 })
