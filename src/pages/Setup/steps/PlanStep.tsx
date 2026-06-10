@@ -19,7 +19,7 @@ import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
 import { Button } from '@/components/ui/button'
 import { PlanPicker } from '@/components/billing/PlanPicker'
-import { getTierDef, type TierId } from '@/config/plan-catalog'
+import { getTierDef, salesWhatsAppLink, type TierId } from '@/config/plan-catalog'
 import { setupService } from '@/services/setup.service'
 import { useToast } from '@/hooks/use-toast'
 import type { StepProps } from '../types'
@@ -64,7 +64,7 @@ export function PlanStep({ onNext, venueId, data }: PlanStepProps) {
   const handleSelectTier = (tier: TierId) => {
     if (tier === 'ENTERPRISE') {
       // Enterprise is contact-sales only — no self-serve onboarding path (matches ConversionWizard).
-      window.open('https://avoqado.io/contact', '_blank', 'noopener,noreferrer')
+      window.open(salesWhatsAppLink('Hola, me interesa el plan Enterprise de Avoqado para mi negocio.'), '_blank', 'noopener,noreferrer')
       return
     }
     setSelectedTier(tier)

@@ -96,3 +96,13 @@ export function getTierForFeature(code: string): TierId | null {
 }
 
 export const getTierDef = (id: TierId) => PLAN_TIERS.find(t => t.id === id)!
+
+/**
+ * Sales WhatsApp for assisted/Enterprise plans — the business number published on
+ * avoqado.io (wa.me/525640070001). Single source so every "contact sales" CTA agrees.
+ */
+export const SALES_WHATSAPP_NUMBER = '525640070001'
+
+/** wa.me deep link with a pre-filled message (sales conversations are in Spanish). */
+export const salesWhatsAppLink = (message: string) =>
+  `https://wa.me/${SALES_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`

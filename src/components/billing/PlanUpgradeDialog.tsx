@@ -9,9 +9,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { getTierDef, type TierId } from '@/config/plan-catalog'
-
-const SALES_WHATSAPP = 'https://wa.me/5215555555555' // TODO(ops): real sales number
+import { getTierDef, salesWhatsAppLink, type TierId } from '@/config/plan-catalog'
 
 export function PlanUpgradeDialog({ tier, onClose }: { tier: TierId | null; onClose: () => void }) {
   const { t } = useTranslation('billing')
@@ -38,7 +36,7 @@ export function PlanUpgradeDialog({ tier, onClose }: { tier: TierId | null; onCl
           </Button>
           <Button asChild className="cursor-pointer">
             <a
-              href={`${SALES_WHATSAPP}?text=${encodeURIComponent(`Quiero activar el plan ${tierName}`)}`}
+              href={salesWhatsAppLink(`Hola, quiero activar el plan ${tierName} de Avoqado para mi negocio.`)}
               target="_blank"
               rel="noreferrer"
             >
