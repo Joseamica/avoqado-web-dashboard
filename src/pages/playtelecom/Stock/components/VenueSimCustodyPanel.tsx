@@ -77,11 +77,22 @@ export function VenueSimCustodyPanel({ orgId, venueId, dateRange }: Props) {
   }, [fromMs, toMs])
   const { data, isLoading, error } = useOrgStockControl(orgId, stockParams)
 
-  // Narrow to SIMs owned by this supervisor.
+  // Narrow to SIMs this supervisor is responsible for. Two paths in:
+  //   1. SIMs the supervisor assigned themselves (assignedSupervisorId === me).
+  //   2. Custodia por tienda (Asana 1215516257822074, opción A): SIMs que un
+  //      promotor dio de alta él mismo en ESTA sucursal (caja Walmart) no
+  //      tienen assignedSupervisorId — eran invisibles e irrecolectables para
+  //      el encargado. Cualquier supervisor viendo la sucursal donde se
+  //      registraron las ve, mientras estén en la cadena del promotor
+  //      (assignedPromoterId presente; incluye vendidas para los conteos).
   const mySims = useMemo<OrgStockOverviewItem[]>(() => {
     if (!data?.items || !currentStaffId) return []
-    return data.items.filter(item => item.assignedSupervisorId === currentStaffId)
-  }, [data?.items, currentStaffId])
+    return data.items.filter(
+      item =>
+        item.assignedSupervisorId === currentStaffId ||
+        (item.registeredFromVenueId === venueId && item.assignedPromoterId != null),
+    )
+  }, [data?.items, currentStaffId, venueId])
 
   // ============================================================
   // Summary counters
