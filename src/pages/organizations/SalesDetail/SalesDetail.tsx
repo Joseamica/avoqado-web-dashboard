@@ -116,6 +116,12 @@ function saleTypeLabel(row: OrgSaleRow): string {
   return SALE_TYPE_LABELS[row.saleType]
 }
 
+/** Export "Mes" column: Spanish month + year ("Abril 2026") in venue timezone. */
+function monthLabel(createdAt: string, venueTz: string): string {
+  const raw = DateTime.fromISO(createdAt, { zone: 'utc' }).setZone(venueTz).setLocale('es-MX').toFormat('LLLL yyyy')
+  return raw.charAt(0).toUpperCase() + raw.slice(1)
+}
+
 /**
  * "Forma de pago" column. A $0 sale is a giveaway, so the payment form is
  * "Gratis" — otherwise map the payment method (Efectivo / Tarjeta / …).
@@ -373,6 +379,8 @@ export default function SalesDetail() {
         'Sucursal Receptora': receivedFromLabel(r),
         Fecha: DateTime.fromISO(r.createdAt, { zone: 'utc' }).setZone(venueTz).toFormat('yyyy-LL-dd'),
         Hora: DateTime.fromISO(r.createdAt, { zone: 'utc' }).setZone(venueTz).toFormat('HH:mm:ss'),
+        // Mes en español ("Abril 2026") — pedido PlayTelecom para pivotear por mes en Excel.
+        Mes: monthLabel(r.createdAt, venueTz),
         Promotor: r.staff ? `${r.staff.firstName} ${r.staff.lastName}`.trim() : '',
         'Email Promotor': r.staff?.email ?? '',
         Ciudad: r.venue.city ?? '',
