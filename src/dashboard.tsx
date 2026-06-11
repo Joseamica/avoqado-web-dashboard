@@ -29,6 +29,7 @@ import { useAutoLaunchPlatformWelcomeTour } from './hooks/useAutoLaunchPlatformW
 import { consumeAtomicTourReturnPath, usePeekAtomicTourCompletion } from './hooks/useAtomicTourListener'
 import { useHomeChecklistAutoMark } from './hooks/useHomeChecklistAutoMark'
 import { useTourProgressSync } from './hooks/useTourProgressSync'
+import { useDemoTour } from './hooks/useDemoTour'
 import { useTranslation } from 'react-i18next'
 import { BreadcrumbProvider, useBreadcrumb } from './context/BreadcrumbContext'
 import { ChatReferencesProvider } from './context/ChatReferencesContext'
@@ -85,6 +86,13 @@ function DashboardContent() {
   // dentro de `home-checklist`). Hidrata el Map al boot, escribe writes
   // del cache vía `setValue` con debounce de 500ms.
   useTourProgressSync()
+
+  // Live-demo journey (`?demoTour=venta-tpv`): crea el cobro simulado del
+  // visitante vía /live-demo/sim/fast-payment y lo guía con un tour hasta
+  // Ventas → Transacciones donde su pago acaba de aparecer. Inerte fuera
+  // de venues demo (LIVE_DEMO/TRIAL). Montado aquí (no en una página) para
+  // que el tour sobreviva la navegación entre rutas del venue.
+  useDemoTour()
 
   // Cuando un atomic tour completa, si el HomeSetupChecklist había
   // registrado un return path antes de lanzarlo, regresamos al usuario a

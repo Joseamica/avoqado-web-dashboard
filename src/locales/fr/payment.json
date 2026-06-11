@@ -2,6 +2,28 @@
   "title": "Paiements",
   "searchPlaceholder": "Rechercher par serveur, total ou méthode...",
   "errorPrefix": "Échec du chargement des paiements",
+  "demoTour": {
+    "next": "Suivant →",
+    "prev": "← Précédent",
+    "done": "Terminé !",
+    "progress": "Étape {{current}} sur {{total}}",
+    "sales": {
+      "title": "💸 Ventes",
+      "description": "Tout ce que vous encaissez vit ici : paiements de terminal, commandes, liens de paiement et plus. Allons retrouver votre encaissement."
+    },
+    "transactions": {
+      "title": "Transactions",
+      "description": "La liste de chaque encaissement de votre commerce, à la seconde près. Allons voir le vôtre."
+    },
+    "yourPayment": {
+      "title": "Voici VOTRE encaissement de {{amount}} ! 🎉",
+      "description": "Il est arrivé instantanément du terminal à votre tableau de bord — avec pourboire, méthode de paiement et qui a encaissé."
+    },
+    "complete": {
+      "title": "Voici chaque vente de votre commerce, en direct",
+      "description": "Chaque encaissement de votre équipe apparaît ici à l'instant, sans clôtures ni attente. Explorez le reste du tableau de bord librement : il est à vous."
+    }
+  },
   "selector": {
     "loading": "Chargement des méthodes de paiement...",
     "selectMethod": "Sélectionnez une méthode de paiement",

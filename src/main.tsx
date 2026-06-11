@@ -7,6 +7,11 @@ import ErrorBoundary from './components/ErrorBoundary'
 import './i18n'
 import './index.css'
 import './theme.css'
+import { captureDemoTourParams } from './lib/demo-tour-capture'
+
+// Avoqado Tour handoff (?demoTour=...): stash + strip BEFORE the router mounts —
+// the auth/venue redirects would drop the query string before any hook sees it.
+captureDemoTourParams()
 
 // Handle Vite preload errors (CSS/JS chunks missing after deploy)
 // Vite emits this event when a dynamic import's preloaded dependency fails to load

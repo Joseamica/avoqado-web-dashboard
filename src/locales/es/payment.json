@@ -2,6 +2,28 @@
   "title": "Pagos",
   "searchPlaceholder": "Buscar por mesero, total o método...",
   "errorPrefix": "Error al cargar pagos",
+  "demoTour": {
+    "next": "Siguiente →",
+    "prev": "← Anterior",
+    "done": "¡Listo!",
+    "progress": "Paso {{current}} de {{total}}",
+    "sales": {
+      "title": "💸 Ventas",
+      "description": "Aquí vive todo lo que cobras: pagos de terminal, pedidos, ligas de pago y más. Vamos a buscar tu cobro."
+    },
+    "transactions": {
+      "title": "Transacciones",
+      "description": "La lista de cada cobro de tu negocio, al segundo. Entremos a ver el tuyo."
+    },
+    "yourPayment": {
+      "title": "¡Este es TU cobro de {{amount}}! 🎉",
+      "description": "Llegó al instante desde la terminal hasta tu dashboard — con propina, método de pago y quién cobró."
+    },
+    "complete": {
+      "title": "Así se ve cada venta de tu negocio, en vivo",
+      "description": "Cada cobro de tu equipo aparece aquí al momento, sin cierres ni esperas. Explora el resto del dashboard con libertad: es tuyo."
+    }
+  },
   "selector": {
     "loading": "Cargando métodos de pago...",
     "selectMethod": "Selecciona un método de pago",

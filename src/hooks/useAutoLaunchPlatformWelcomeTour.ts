@@ -42,6 +42,14 @@ export function useAutoLaunchPlatformWelcomeTour(): { start: () => void; cancel:
     if (completed) return
     if (!user?.id) return
 
+    // The guided DEMO journey (avoqado.io/demo → ?demoTour=...) takes priority over the
+    // welcome tour: a visitor arriving from the marketing tour must land straight in the
+    // venta-tpv driver tour, not the generic onboarding. The param check covers the first
+    // render; the sessionStorage flag covers the rest of the tab session (useDemoTour
+    // strips the params after firing).
+    if (new URLSearchParams(location.search).has('demoTour')) return
+    if (sessionStorage.getItem('avoqado-demo-tour-venta-tpv')) return
+
     // Don't auto-launch in the middle of a deep link (e.g. /payments/:id) —
     // only on Home or the venue root. The resume effect will pick up if a
     // tour is already active.

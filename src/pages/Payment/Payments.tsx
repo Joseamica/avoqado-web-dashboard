@@ -1280,6 +1280,8 @@ export default function Payments() {
         </div>
       )}
 
+      {/* Data Table — wrapper kept only for the tour anchor (live-demo venta-tpv tour, useDemoTour) */}
+      <div data-tour="payments-table">
       <DataTable
         data={filteredPayments}
         rowCount={totalPayments}
@@ -1624,6 +1626,7 @@ export default function Payments() {
         onRowSelectionChange={setSelectedPayments}
         clearSelectionTrigger={clearSelectionTrigger}
       />
+      </div>
 
       <SelectionSummaryBar
         selectedRows={selectedPayments}

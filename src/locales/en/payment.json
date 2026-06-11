@@ -2,6 +2,28 @@
   "title": "Payments",
   "searchPlaceholder": "Search by waiter, total or method...",
   "errorPrefix": "Failed to load payments",
+  "demoTour": {
+    "next": "Next →",
+    "prev": "← Back",
+    "done": "Done!",
+    "progress": "Step {{current}} of {{total}}",
+    "sales": {
+      "title": "💸 Sales",
+      "description": "Everything you charge lives here: terminal payments, orders, payment links and more. Let's find your charge."
+    },
+    "transactions": {
+      "title": "Transactions",
+      "description": "Every charge in your business, up to the second. Let's go see yours."
+    },
+    "yourPayment": {
+      "title": "This is YOUR {{amount}} charge! 🎉",
+      "description": "It arrived instantly from the terminal to your dashboard — with tip, payment method and who charged it."
+    },
+    "complete": {
+      "title": "This is how every sale in your business looks, live",
+      "description": "Every charge from your team shows up here the moment it happens — no closeouts, no waiting. Explore the rest of the dashboard freely: it's yours."
+    }
+  },
   "selector": {
     "loading": "Loading payment methods...",
     "selectMethod": "Select a payment method",
