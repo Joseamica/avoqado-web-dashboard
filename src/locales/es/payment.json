@@ -23,6 +23,26 @@
       "title": "Aquí caen tus cobros, al instante",
       "description": "Cada venta de la terminal aparece aquí al momento — con propina, método de pago y quién cobró. Los cobros que ves son datos de ejemplo de este negocio demo."
     },
+    "reservations": {
+      "title": "📅 Reservaciones",
+      "description": "Cada reserva hecha desde tu página, Google o redes cae aquí solita — sin llamadas ni mensajes. Vamos a ver la tuya."
+    },
+    "reservationsCalendar": {
+      "title": "Calendario",
+      "description": "La agenda de tu negocio, al día. Entremos a ver tu reserva."
+    },
+    "yourReservation": {
+      "title": "¡Esta es TU reserva de las {{time}}! 🎉",
+      "description": "Sofía reservó desde la página del negocio y la cita apareció aquí al momento — confirmada y con recordatorios automáticos por WhatsApp."
+    },
+    "reservaFallback": {
+      "title": "Aquí cae cada reserva, al instante",
+      "description": "Cuando un cliente reserva en línea, su cita aparece aquí al momento — confirmada y con recordatorios automáticos. Las reservas que ves son datos de ejemplo de este negocio demo."
+    },
+    "reservaComplete": {
+      "title": "Tu agenda se llena sola",
+      "description": "Reservas en línea 24/7, recordatorios por WhatsApp y tu calendario siempre al día. Explora el resto del dashboard con libertad: es tuyo."
+    },
     "complete": {
       "title": "Así se ve cada venta de tu negocio, en vivo",
       "description": "Cada cobro de tu equipo aparece aquí al momento, sin cierres ni esperas. Explora el resto del dashboard con libertad: es tuyo."

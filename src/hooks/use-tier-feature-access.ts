@@ -4,6 +4,7 @@ import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { getTierForFeature, mapPlanTier, TIER_ORDER, type TierId } from '@/config/plan-catalog'
 import { getVenuePlan, getVenueFeatures } from '@/services/features.service'
+import { isDemoVenueStatus } from '@/types/superadmin'
 
 export interface TierFeatureAccess {
   /** True when the venue may use the feature (explicit grant, tier covers it, or superadmin / white-label). */
@@ -32,10 +33,14 @@ export interface TierFeatureAccess {
  */
 export function useVenueTier(): { venueTier: TierId; hasFeatureAccess: (feature: string) => boolean; isLoading: boolean } {
   const { canFeature, role, isWhiteLabelEnabled } = useAccess()
-  const { venueId } = useCurrentVenue()
+  const { venueId, venue } = useCurrentVenue()
 
   const isSuperadmin = role === 'SUPERADMIN'
-  const gateEnabled = !!venueId && !isSuperadmin && !isWhiteLabelEnabled
+  // Demo venues (LIVE_DEMO / TRIAL) get EVERYTHING open — mirrors the backend
+  // `venueIsExemptFromPlanGating` bypass (same signal the KYC bypass uses).
+  // A paywall inside the live demo kills the "pruébalo todo" promise.
+  const isDemoVenue = isDemoVenueStatus(venue?.status)
+  const gateEnabled = !!venueId && !isSuperadmin && !isWhiteLabelEnabled && !isDemoVenue
 
   const { data: planState, isLoading: planLoading } = useQuery({
     queryKey: ['venuePlan', venueId],
@@ -67,6 +72,7 @@ export function useVenueTier(): { venueTier: TierId; hasFeatureAccess: (feature:
   const hasFeatureAccess = useCallback(
     (feature: string): boolean => {
       if (isSuperadmin) return true
+      if (isDemoVenue) return true // demo venue: todo abierto (espejo del backend)
       if (isWhiteLabelEnabled) return canFeature(feature)
       // Optimistic while the first load is in flight (avoid a paywall flash on entitled venues).
       if (isLoading && planState === undefined && featureStatus === undefined) return true
@@ -76,7 +82,7 @@ export function useVenueTier(): { venueTier: TierId; hasFeatureAccess: (feature:
       const required = getTierForFeature(feature) ?? 'PRO'
       return TIER_ORDER.indexOf(venueTier) >= TIER_ORDER.indexOf(required)
     },
-    [isSuperadmin, isWhiteLabelEnabled, canFeature, isLoading, planState, featureStatus, grantedCodes, venueTier],
+    [isSuperadmin, isDemoVenue, isWhiteLabelEnabled, canFeature, isLoading, planState, featureStatus, grantedCodes, venueTier],
   )
 
   return { venueTier, hasFeatureAccess, isLoading }

@@ -23,6 +23,26 @@
       "title": "Vos encaissements arrivent ici, instantanément",
       "description": "Chaque vente du terminal apparaît ici immédiatement — avec pourboire, moyen de paiement et qui a encaissé. Les paiements affichés sont des données d'exemple de ce commerce démo."
     },
+    "reservations": {
+      "title": "📅 Réservations",
+      "description": "Chaque réservation faite depuis votre page, Google ou vos réseaux arrive ici toute seule — sans appels ni messages. Allons voir la vôtre."
+    },
+    "reservationsCalendar": {
+      "title": "Calendrier",
+      "description": "L'agenda de votre commerce, à la minute. Allons voir votre réservation."
+    },
+    "yourReservation": {
+      "title": "Voici VOTRE réservation de {{time}} ! 🎉",
+      "description": "Sofía a réservé depuis la page du commerce et le rendez-vous est apparu ici instantanément — confirmé, avec des rappels automatiques WhatsApp."
+    },
+    "reservaFallback": {
+      "title": "Chaque réservation arrive ici, instantanément",
+      "description": "Quand un client réserve en ligne, son rendez-vous apparaît ici immédiatement — confirmé, avec des rappels automatiques. Les réservations affichées sont des données d'exemple de ce commerce démo."
+    },
+    "reservaComplete": {
+      "title": "Votre agenda se remplit tout seul",
+      "description": "Réservations en ligne 24h/24, rappels WhatsApp et un calendrier toujours à jour. Explorez le reste du tableau de bord librement : il est à vous."
+    },
     "complete": {
       "title": "Voici chaque vente de votre commerce, en direct",
       "description": "Chaque encaissement de votre équipe apparaît ici à l'instant, sans clôtures ni attente. Explorez le reste du tableau de bord librement : il est à vous."

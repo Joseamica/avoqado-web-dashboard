@@ -20,10 +20,11 @@ const mockUseAccess = vi.fn()
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => mockUseAccess() }))
 
 // ---------------------------------------------------------------------------
-// useCurrentVenue mock
+// useCurrentVenue mock — overridable per-test (e.g. demo venue status)
 // ---------------------------------------------------------------------------
+const mockUseCurrentVenue = vi.fn()
 vi.mock('@/hooks/use-current-venue', () => ({
-  useCurrentVenue: () => ({ venueId: 'venue-123', fullBasePath: '/venues/test-venue' }),
+  useCurrentVenue: () => mockUseCurrentVenue(),
 }))
 
 // ---------------------------------------------------------------------------
@@ -101,6 +102,12 @@ describe('FeatureGate', () => {
       role: 'OWNER',
       isWhiteLabelEnabled: false,
     })
+    // Default venue: normal ACTIVE venue
+    mockUseCurrentVenue.mockReturnValue({
+      venueId: 'venue-123',
+      fullBasePath: '/venues/test-venue',
+      venue: { id: 'venue-123', status: 'ACTIVE' },
+    })
   })
 
   it('normal venue on FREE tier + CFDI feature (PREMIUM required) → shows paywall', () => {
@@ -124,6 +131,22 @@ describe('FeatureGate', () => {
 
   it('normal venue on ENTERPRISE tier + CFDI feature → renders children without paywall', () => {
     mockUseQuery.mockReturnValue({ data: makePlanState('ENTERPRISE'), isLoading: false })
+
+    renderGate()
+
+    expect(screen.getByText('secret content')).toBeInTheDocument()
+    expect(screen.queryByText('featureGate.upgrade:Premium')).not.toBeInTheDocument()
+  })
+
+  it('LIVE_DEMO venue on FREE tier + CFDI feature (PREMIUM required) → renders children without paywall', () => {
+    // Demo venues get EVERYTHING open (mirrors backend venueIsExemptFromPlanGating).
+    // Regression: the live-demo Reservations calendar showed "Upgrade to Pro".
+    mockUseCurrentVenue.mockReturnValue({
+      venueId: 'venue-demo',
+      fullBasePath: '/venues/demo-venue',
+      venue: { id: 'venue-demo', status: 'LIVE_DEMO' },
+    })
+    mockUseQuery.mockReturnValue({ data: makePlanState('GRATIS'), isLoading: false })
 
     renderGate()
 

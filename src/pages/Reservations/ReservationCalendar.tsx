@@ -1075,7 +1075,7 @@ export default function ReservationCalendar() {
 
   return (
     <FeatureGate feature="RESERVATIONS">
-    <div className="p-4 bg-background text-foreground">
+    <div className="p-4 bg-background text-foreground" data-tour="reservations-calendar">
       {/* Controls */}
       <div className="flex items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-2">

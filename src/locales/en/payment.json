@@ -23,6 +23,26 @@
       "title": "Your charges land here, instantly",
       "description": "Every terminal sale shows up here the moment it happens — with tip, payment method and who charged it. The charges you see are sample data from this demo business."
     },
+    "reservations": {
+      "title": "📅 Reservations",
+      "description": "Every booking made from your page, Google or social lands here on its own — no calls, no messages. Let’s find yours."
+    },
+    "reservationsCalendar": {
+      "title": "Calendar",
+      "description": "Your business agenda, up to the minute. Let’s see your booking."
+    },
+    "yourReservation": {
+      "title": "This is YOUR {{time}} booking! 🎉",
+      "description": "Sofía booked from the business page and the appointment showed up here instantly — confirmed, with automatic WhatsApp reminders."
+    },
+    "reservaFallback": {
+      "title": "Every booking lands here, instantly",
+      "description": "When a customer books online, the appointment shows up here right away — confirmed, with automatic reminders. The bookings you see are sample data from this demo business."
+    },
+    "reservaComplete": {
+      "title": "Your calendar fills itself",
+      "description": "Online bookings 24/7, WhatsApp reminders and an always-current calendar. Explore the rest of the dashboard freely: it’s yours."
+    },
     "complete": {
       "title": "This is how every sale in your business looks, live",
       "description": "Every charge from your team shows up here the moment it happens — no closeouts, no waiting. Explore the rest of the dashboard freely: it's yours."

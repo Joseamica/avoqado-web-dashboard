@@ -1,4 +1,4 @@
-import { driver, type Driver } from 'driver.js'
+import { driver, type Driver, type DriveStep } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -8,52 +8,51 @@ import api from '@/api'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { isDemoVenueStatus } from '@/types/superadmin'
 import { Currency } from '@/utils/currency'
+import { useVenueDateTime } from '@/utils/datetime'
 
 /**
- * Live-demo journey tour: "venta-tpv".
+ * Live-demo journey tours (Avoqado Tour → dashboard handoff).
  *
- * A visitor finishes the simulated TPV charge on avoqado.io/demo and clicks
- * "míralo en TU dashboard" → lands on the demo dashboard (live-demo
- * auto-login) with a URL like:
+ * A visitor finishes a guided demo on avoqado.io/demo and clicks the CTA →
+ * lands on the demo dashboard (live-demo auto-login) with a URL like:
  *
  *   /?demoTour=venta-tpv&amountCents=29500&tipCents=5310
+ *   /?demoTour=reserva
  *
- * `DashboardRouteResolver` preserves the query string when redirecting `/` →
- * `/venues/:slug/home`, so this hook (mounted in the dashboard shell) sees
- * the params once the venue context resolves. It then:
+ * The params are captured at app boot (src/lib/demo-tour-capture.ts, called
+ * from main.tsx — the auth/venue redirects drop the query string before this
+ * hook mounts) and stashed in sessionStorage. Once the demo venue context
+ * resolves, this hook:
  *
- *   1. POSTs `/api/v1/live-demo/sim/fast-payment` so the visitor's exact
- *      charge appears in the venue via the normal data flow (the endpoint
- *      emits the same socket event as a real TPV payment).
- *   2. Drives a driver.js tour: Ventas sidebar group → Transacciones →
- *      the payments table where THEIR payment just landed.
+ *   venta-tpv → POSTs /api/v1/live-demo/sim/fast-payment, then drives:
+ *     Ventas (sidebar) → Transacciones → the payments table.
+ *   reserva   → POSTs /api/v1/live-demo/sim/reservation, then drives:
+ *     Reservaciones (sidebar) → Calendario → the calendar where the visitor's
+ *     reservation just landed.
  *
- * Guards (the hook is inert unless ALL are true):
- *   - `demoTour=venta-tpv` is present in the URL query.
- *   - The active venue is a demo venue (`status` LIVE_DEMO / TRIAL — same
- *     signal `kyc-utils` uses via `isDemoVenueStatus`).
- *   - It hasn't fired before in this browser session (ref + sessionStorage;
- *     the query params are also stripped via `history.replaceState` so a
- *     refresh doesn't re-fire).
+ * Both sims fail open (the demo venue has seeded data) — but the "this is
+ * YOURS" copy is only used when the sim actually succeeded.
  *
- * Selectores requeridos en el DOM:
- *   - `data-tour="sidebar-sales"` — item "Ventas" del sidebar (auto-generado
- *     por `nav-main.tsx` via `tourKey('#sales')`).
- *   - `data-tour="sidebar-payments"` — item "Transacciones" del sub-sidebar
- *     de Ventas (auto-generado via `tourKey('payments')`).
- *   - `data-tour="payments-table"` — contenedor de la tabla en
- *     `src/pages/Payment/Payments.tsx`.
+ * Selectores requeridos en el DOM (auto-generados por nav-main `tourKey`):
+ *   - `data-tour="sidebar-sales"` / `data-tour="sidebar-payments"`
+ *   - `data-tour="payments-table"` (Payments.tsx)
+ *   - `data-tour="sidebar-reservations"` / `data-tour="sidebar-reservations-calendar"`
+ *   - `data-tour="reservations-calendar"` (ReservationCalendar.tsx)
  */
 
 import {
   TOUR_PARAM,
   VENTA_TPV_TOUR,
-  SESSION_FIRED_KEY,
+  RESERVA_TOUR,
+  VALID_TOURS,
+  firedKey,
   SESSION_PENDING_KEY,
   DEFAULT_AMOUNT_CENTS,
   DEFAULT_TIP_CENTS,
   MIN_AMOUNT_CENTS,
   parseCents,
+  type DemoTourJourney,
+  type PendingDemoTour,
 } from '@/lib/demo-tour-capture'
 
 function waitForElement(selector: string, timeout = 4000): Promise<Element | null> {
@@ -91,17 +90,17 @@ export function useDemoTour() {
   const location = useLocation()
   const navigate = useNavigate()
   const { venue, fullBasePath } = useCurrentVenue()
+  const { formatTime } = useVenueDateTime()
 
   const driverRef = useRef<Driver | null>(null)
   const didFireRef = useRef(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const startTour = useCallback(
-    (totalLabel: string, simOk: boolean) => {
+  const buildDriver = useCallback(
+    (steps: DriveStep[]): Driver => {
       document.body.classList.add('tour-active')
       driverRef.current?.destroy()
-
-      const d: Driver = driver({
+      const d = driver({
         popoverClass: 'avoqado-tour-popover',
         showProgress: true,
         allowClose: true,
@@ -117,117 +116,203 @@ export function useDemoTour() {
         onDestroyed: () => {
           document.body.classList.remove('tour-active')
         },
-        steps: [
-          {
-            element: '[data-tour="sidebar-sales"]',
-            popover: {
-              title: t('demoTour.sales.title', { defaultValue: '💸 Ventas' }),
-              description: t('demoTour.sales.description', {
-                defaultValue:
-                  'Aquí vive todo lo que cobras: pagos de terminal, pedidos, ligas de pago y más. Vamos a buscar tu cobro.',
-              }),
-              side: 'right',
-              align: 'start',
-              onNextClick: async () => {
-                // Open the Ventas sub-sidebar if the Transacciones item
-                // isn't rendered yet (idempotent — skip if already open).
-                if (!exists('[data-tour="sidebar-payments"]')) {
-                  document.querySelector<HTMLButtonElement>('[data-tour="sidebar-sales"] button')?.click()
-                  await waitForElement('[data-tour="sidebar-payments"]')
-                  // Let the sliding-panel transition (200ms) settle so the
-                  // highlight is positioned on the final layout.
-                  await delay(280)
-                }
-                d.moveNext()
-              },
-            },
-          },
-          {
-            element: '[data-tour="sidebar-payments"]',
-            popover: {
-              title: t('demoTour.transactions.title', { defaultValue: 'Transacciones' }),
-              description: t('demoTour.transactions.description', {
-                defaultValue: 'La lista de cada cobro de tu negocio, al segundo. Entremos a ver el tuyo.',
-              }),
-              side: 'right',
-              align: 'start',
-              onNextClick: async () => {
-                if (!exists('[data-tour="payments-table"]')) {
-                  const link = document.querySelector<HTMLAnchorElement>('[data-tour="sidebar-payments"] a')
-                  if (link) {
-                    link.click()
-                  } else {
-                    // Sidebar not visible (e.g. collapsed/mobile) — navigate directly.
-                    navigate(`${fullBasePath}/payments`)
-                  }
-                  await waitForElement('[data-tour="payments-table"]', 8000)
-                  await delay(250)
-                }
-                d.moveNext()
-              },
-            },
-          },
-          {
-            element: '[data-tour="payments-table"]',
-            popover: {
-              // Only claim "YOUR charge" when the sim payment was actually
-              // created — otherwise the table shows seeded data and the copy
-              // must say so (founder QA: a seeded $34.80 row under a "your
-              // $348.10 charge" popover reads as a broken product).
-              title: simOk
-                ? t('demoTour.yourPayment.title', {
-                    amount: totalLabel,
-                    defaultValue: '¡Este es TU cobro de {{amount}}! 🎉',
-                  })
-                : t('demoTour.feedFallback.title', { defaultValue: 'Aquí caen tus cobros, al instante' }),
-              description: simOk
-                ? t('demoTour.yourPayment.description', {
-                    defaultValue:
-                      'Llegó al instante desde la terminal hasta tu dashboard — con propina, método de pago y quién cobró.',
-                  })
-                : t('demoTour.feedFallback.description', {
-                    defaultValue:
-                      'Cada venta de la terminal aparece aquí al momento — con propina, método de pago y quién cobró. Los cobros que ves son datos de ejemplo de este negocio demo.',
-                  }),
-              side: 'top',
-              align: 'start',
-            },
-          },
-          {
-            popover: {
-              title: t('demoTour.complete.title', { defaultValue: 'Así se ve cada venta de tu negocio, en vivo' }),
-              description: t('demoTour.complete.description', {
-                defaultValue:
-                  'Cada cobro de tu equipo aparece aquí al momento, sin cierres ni esperas. Explora el resto del dashboard con libertad: es tuyo.',
-              }),
-            },
-          },
-        ],
+        steps,
       })
-
       driverRef.current = d
-      d.drive()
+      return d
     },
-    [t, navigate, fullBasePath],
+    [t],
   )
 
-  // CAPTURE at first param sight (any route, venue not needed yet): the auth +
-  // venue-resolution redirects can drop the query string before useCurrentVenue
-  // resolves, so the journey is stashed in sessionStorage immediately and the
-  // params stripped right away.
+  /* ------------------------- venta-tpv journey ------------------------- */
+  const startVentaTour = useCallback(
+    (totalLabel: string, simOk: boolean) => {
+      const d = buildDriver([
+        {
+          element: '[data-tour="sidebar-sales"]',
+          popover: {
+            title: t('demoTour.sales.title', { defaultValue: '💸 Ventas' }),
+            description: t('demoTour.sales.description', {
+              defaultValue:
+                'Aquí vive todo lo que cobras: pagos de terminal, pedidos, ligas de pago y más. Vamos a buscar tu cobro.',
+            }),
+            side: 'right',
+            align: 'start',
+            onNextClick: async () => {
+              // Open the Ventas sub-sidebar if Transacciones isn't rendered yet.
+              if (!exists('[data-tour="sidebar-payments"]')) {
+                document.querySelector<HTMLButtonElement>('[data-tour="sidebar-sales"] button')?.click()
+                await waitForElement('[data-tour="sidebar-payments"]')
+                await delay(280) // let the sliding-panel transition settle
+              }
+              d.moveNext()
+            },
+          },
+        },
+        {
+          element: '[data-tour="sidebar-payments"]',
+          popover: {
+            title: t('demoTour.transactions.title', { defaultValue: 'Transacciones' }),
+            description: t('demoTour.transactions.description', {
+              defaultValue: 'La lista de cada cobro de tu negocio, al segundo. Entremos a ver el tuyo.',
+            }),
+            side: 'right',
+            align: 'start',
+            onNextClick: async () => {
+              if (!exists('[data-tour="payments-table"]')) {
+                const link = document.querySelector<HTMLAnchorElement>('[data-tour="sidebar-payments"] a')
+                if (link) {
+                  link.click()
+                } else {
+                  navigate(`${fullBasePath}/payments`)
+                }
+                await waitForElement('[data-tour="payments-table"]', 8000)
+                await delay(250)
+              }
+              d.moveNext()
+            },
+          },
+        },
+        {
+          element: '[data-tour="payments-table"]',
+          popover: {
+            // Only claim "YOUR charge" when the sim payment was actually created —
+            // otherwise the table shows seeded data and the copy must say so.
+            title: simOk
+              ? t('demoTour.yourPayment.title', {
+                  amount: totalLabel,
+                  defaultValue: '¡Este es TU cobro de {{amount}}! 🎉',
+                })
+              : t('demoTour.feedFallback.title', { defaultValue: 'Aquí caen tus cobros, al instante' }),
+            description: simOk
+              ? t('demoTour.yourPayment.description', {
+                  defaultValue:
+                    'Llegó al instante desde la terminal hasta tu dashboard — con propina, método de pago y quién cobró.',
+                })
+              : t('demoTour.feedFallback.description', {
+                  defaultValue:
+                    'Cada venta de la terminal aparece aquí al momento — con propina, método de pago y quién cobró. Los cobros que ves son datos de ejemplo de este negocio demo.',
+                }),
+            side: 'top',
+            align: 'start',
+          },
+        },
+        {
+          popover: {
+            title: t('demoTour.complete.title', { defaultValue: 'Así se ve cada venta de tu negocio, en vivo' }),
+            description: t('demoTour.complete.description', {
+              defaultValue:
+                'Cada cobro de tu equipo aparece aquí al momento, sin cierres ni esperas. Explora el resto del dashboard con libertad: es tuyo.',
+            }),
+          },
+        },
+      ])
+      d.drive()
+    },
+    [buildDriver, t, navigate, fullBasePath],
+  )
+
+  /* -------------------------- reserva journey -------------------------- */
+  const startReservaTour = useCallback(
+    (timeLabel: string | null) => {
+      const simOk = timeLabel !== null
+      const d = buildDriver([
+        {
+          element: '[data-tour="sidebar-reservations"]',
+          popover: {
+            title: t('demoTour.reservations.title', { defaultValue: '📅 Reservaciones' }),
+            description: t('demoTour.reservations.description', {
+              defaultValue:
+                'Cada reserva hecha desde tu página, Google o redes cae aquí solita — sin llamadas ni mensajes. Vamos a ver la tuya.',
+            }),
+            side: 'right',
+            align: 'start',
+            onNextClick: async () => {
+              if (!exists('[data-tour="sidebar-reservations-calendar"]')) {
+                document.querySelector<HTMLButtonElement>('[data-tour="sidebar-reservations"] button')?.click()
+                await waitForElement('[data-tour="sidebar-reservations-calendar"]')
+                await delay(280)
+              }
+              d.moveNext()
+            },
+          },
+        },
+        {
+          element: '[data-tour="sidebar-reservations-calendar"]',
+          popover: {
+            title: t('demoTour.reservationsCalendar.title', { defaultValue: 'Calendario' }),
+            description: t('demoTour.reservationsCalendar.description', {
+              defaultValue: 'La agenda de tu negocio, al día. Entremos a ver tu reserva.',
+            }),
+            side: 'right',
+            align: 'start',
+            onNextClick: async () => {
+              if (!exists('[data-tour="reservations-calendar"]')) {
+                const link = document.querySelector<HTMLAnchorElement>('[data-tour="sidebar-reservations-calendar"] a')
+                if (link) {
+                  link.click()
+                } else {
+                  navigate(`${fullBasePath}/reservations/calendar`)
+                }
+                await waitForElement('[data-tour="reservations-calendar"]', 8000)
+                await delay(350)
+              }
+              d.moveNext()
+            },
+          },
+        },
+        {
+          element: '[data-tour="reservations-calendar"]',
+          popover: {
+            title: simOk
+              ? t('demoTour.yourReservation.title', {
+                  time: timeLabel,
+                  defaultValue: '¡Esta es TU reserva de las {{time}}! 🎉',
+                })
+              : t('demoTour.reservaFallback.title', { defaultValue: 'Aquí cae cada reserva, al instante' }),
+            description: simOk
+              ? t('demoTour.yourReservation.description', {
+                  defaultValue:
+                    'Sofía reservó desde la página del negocio y la cita apareció aquí al momento — confirmada y con recordatorios automáticos por WhatsApp.',
+                })
+              : t('demoTour.reservaFallback.description', {
+                  defaultValue:
+                    'Cuando un cliente reserva en línea, su cita aparece aquí al momento — confirmada y con recordatorios automáticos. Las reservas que ves son datos de ejemplo de este negocio demo.',
+                }),
+            side: 'top',
+            align: 'start',
+          },
+        },
+        {
+          popover: {
+            title: t('demoTour.reservaComplete.title', { defaultValue: 'Tu agenda se llena sola' }),
+            description: t('demoTour.reservaComplete.description', {
+              defaultValue:
+                'Reservas en línea 24/7, recordatorios por WhatsApp y tu calendario siempre al día. Explora el resto del dashboard con libertad: es tuyo.',
+            }),
+          },
+        },
+      ])
+      d.drive()
+    },
+    [buildDriver, t, navigate, fullBasePath],
+  )
+
+  // CAPTURE at first param sight (backup path — main.tsx already captured
+  // before the router mounted; this covers in-app navigations with the param).
   useEffect(() => {
     const params = new URLSearchParams(location.search)
-    if (params.get(TOUR_PARAM) !== VENTA_TPV_TOUR) return
+    const journey = params.get(TOUR_PARAM)
+    if (!journey || !(VALID_TOURS as readonly string[]).includes(journey)) return
 
     try {
-      if (sessionStorage.getItem(SESSION_FIRED_KEY) !== '1') {
-        sessionStorage.setItem(
-          SESSION_PENDING_KEY,
-          JSON.stringify({
-            amountCents: parseCents(params.get('amountCents'), DEFAULT_AMOUNT_CENTS, MIN_AMOUNT_CENTS),
-            tipCents: parseCents(params.get('tipCents'), DEFAULT_TIP_CENTS, 0),
-          }),
-        )
+      if (sessionStorage.getItem(firedKey(journey)) !== '1') {
+        const pending: PendingDemoTour = { journey: journey as DemoTourJourney }
+        if (journey === VENTA_TPV_TOUR) {
+          pending.amountCents = parseCents(params.get('amountCents'), DEFAULT_AMOUNT_CENTS, MIN_AMOUNT_CENTS)
+          pending.tipCents = parseCents(params.get('tipCents'), DEFAULT_TIP_CENTS, 0)
+        }
+        sessionStorage.setItem(SESSION_PENDING_KEY, JSON.stringify(pending))
       }
     } catch {
       /* noop */
@@ -260,9 +345,17 @@ export function useDemoTour() {
     // Only ever act on demo venues — inert everywhere else (no fetch, no tour).
     if (!venue || !isDemoVenueStatus(venue.status)) return
 
+    let pending: PendingDemoTour
+    try {
+      pending = JSON.parse(pendingRaw) as PendingDemoTour
+    } catch {
+      pending = { journey: VENTA_TPV_TOUR }
+    }
+    const journey = (VALID_TOURS as readonly string[]).includes(pending.journey) ? pending.journey : VENTA_TPV_TOUR
+
     let alreadyFired = false
     try {
-      alreadyFired = sessionStorage.getItem(SESSION_FIRED_KEY) === '1'
+      alreadyFired = sessionStorage.getItem(firedKey(journey)) === '1'
     } catch {
       /* noop */
     }
@@ -277,29 +370,40 @@ export function useDemoTour() {
 
     didFireRef.current = true
     try {
-      sessionStorage.setItem(SESSION_FIRED_KEY, '1')
+      sessionStorage.setItem(firedKey(journey), '1')
       sessionStorage.removeItem(SESSION_PENDING_KEY)
     } catch {
       /* noop */
     }
 
-    let amountCents = DEFAULT_AMOUNT_CENTS
-    let tipCents = DEFAULT_TIP_CENTS
-    try {
-      const pending = JSON.parse(pendingRaw) as { amountCents?: number; tipCents?: number }
-      amountCents = parseCents(String(pending.amountCents ?? ''), DEFAULT_AMOUNT_CENTS, MIN_AMOUNT_CENTS)
-      tipCents = parseCents(String(pending.tipCents ?? ''), DEFAULT_TIP_CENTS, 0)
-    } catch {
-      /* noop */
+    if (journey === RESERVA_TOUR) {
+      // Create the visitor's reservation via the live-demo sim endpoint, then
+      // tour to the calendar. Fail-open: the tour runs over seeded data with
+      // honest copy when the sim fails (expired session, old API, etc.).
+      api
+        .post('/api/v1/live-demo/sim/reservation')
+        .then(res => {
+          const startsAt: string | undefined = res.data?.data?.startsAt
+          return startsAt ? formatTime(startsAt) : null
+        })
+        .catch(error => {
+          console.error('Demo tour: reservation simulation failed', error)
+          return null
+        })
+        .then(timeLabel => {
+          timerRef.current = setTimeout(() => {
+            timerRef.current = null
+            startReservaTour(timeLabel)
+          }, 900)
+        })
+      return
     }
 
-    // Amounts arrive in cents; Currency() expects pesos.
-    const totalLabel = Currency((amountCents + tipCents) / 100)
+    // venta-tpv (default)
+    const amountCents = parseCents(String(pending.amountCents ?? ''), DEFAULT_AMOUNT_CENTS, MIN_AMOUNT_CENTS)
+    const tipCents = parseCents(String(pending.tipCents ?? ''), DEFAULT_TIP_CENTS, 0)
+    const totalLabel = Currency((amountCents + tipCents) / 100) // cents → pesos
 
-    // Create the visitor's payment via the live-demo sim endpoint. It emits
-    // the same socket event as a real TPV charge, so the Payments page picks
-    // it up through the normal data flow. Even if the sim fails (e.g. expired
-    // demo session) we still run the tour — the demo venue has seeded data.
     api
       .post('/api/v1/live-demo/sim/fast-payment', { amountCents, tipCents })
       .then(() => true)
@@ -311,10 +415,10 @@ export function useDemoTour() {
         // Small delay so the dashboard finishes painting before the overlay.
         timerRef.current = setTimeout(() => {
           timerRef.current = null
-          startTour(totalLabel, simOk)
+          startVentaTour(totalLabel, simOk)
         }, 900)
       })
-  }, [location.search, venue, startTour])
+  }, [location.search, venue, startVentaTour, startReservaTour, formatTime])
 
   // Unmount-only cleanup: pending timer + driver overlay + body flag.
   useEffect(() => {
