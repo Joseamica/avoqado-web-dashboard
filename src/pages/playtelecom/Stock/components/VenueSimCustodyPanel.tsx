@@ -31,6 +31,7 @@ import { AssignToPromoterDialog } from '../../Organization/StockControl/componen
 import { includesNormalized } from '@/lib/utils'
 import { collectFromPromoter, type SimCustodyState } from '@/services/simCustody.service'
 import type { OrgStockOverviewItem } from '@/services/stockDashboard.service'
+import { StaffRole } from '@/types'
 
 interface Props {
   orgId: string
@@ -77,22 +78,37 @@ export function VenueSimCustodyPanel({ orgId, venueId, dateRange }: Props) {
   }, [fromMs, toMs])
   const { data, isLoading, error } = useOrgStockControl(orgId, stockParams)
 
+  // Venues where the logged-in user is an encargado (MANAGER/ADMIN/OWNER).
+  // Custodia por tienda must cover ALL their stores at once: a supervisor like
+  // René manages 19 sucursales — forcing them to switch the active venue to
+  // find a SIM produced "Sin resultados" false-negatives (Asana follow-up
+  // 2026-06-12). The currently-viewed venue is always included so SUPERADMIN
+  // (whose user.venues may not list it) keeps the previous behavior.
+  const encargadoVenueIds = useMemo(() => {
+    const ids = new Set<string>()
+    for (const v of user?.venues ?? []) {
+      if (v.role === StaffRole.MANAGER || v.role === StaffRole.ADMIN || v.role === StaffRole.OWNER) ids.add(v.id)
+    }
+    if (venueId) ids.add(venueId)
+    return ids
+  }, [user?.venues, venueId])
+
   // Narrow to SIMs this supervisor is responsible for. Two paths in:
   //   1. SIMs the supervisor assigned themselves (assignedSupervisorId === me).
   //   2. Custodia por tienda (Asana 1215516257822074, opción A): SIMs que un
-  //      promotor dio de alta él mismo en ESTA sucursal (caja Walmart) no
-  //      tienen assignedSupervisorId — eran invisibles e irrecolectables para
-  //      el encargado. Cualquier supervisor viendo la sucursal donde se
-  //      registraron las ve, mientras estén en la cadena del promotor
-  //      (assignedPromoterId presente; incluye vendidas para los conteos).
+  //      promotor dio de alta él mismo en una sucursal donde el usuario es
+  //      encargado (caja Walmart) no tienen assignedSupervisorId — eran
+  //      invisibles e irrecolectables. Se muestran mientras estén en la cadena
+  //      del promotor (assignedPromoterId presente; incluye vendidas para los
+  //      conteos). El backend valida la autoridad real al recolectar.
   const mySims = useMemo<OrgStockOverviewItem[]>(() => {
     if (!data?.items || !currentStaffId) return []
     return data.items.filter(
       item =>
         item.assignedSupervisorId === currentStaffId ||
-        (item.registeredFromVenueId === venueId && item.assignedPromoterId != null),
+        (item.registeredFromVenueId != null && encargadoVenueIds.has(item.registeredFromVenueId) && item.assignedPromoterId != null),
     )
-  }, [data?.items, currentStaffId, venueId])
+  }, [data?.items, currentStaffId, encargadoVenueIds])
 
   // ============================================================
   // Summary counters
