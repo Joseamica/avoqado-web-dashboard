@@ -2,6 +2,39 @@
   "title": "Saldo Disponible",
   "description": "Visualiza tu calendario de liquidación y fondos disponibles por método de pago",
 
+  "hero": {
+    "title": "Tu próximo depósito",
+    "today": "hoy",
+    "tomorrow": "mañana",
+    "estimated": "Estimado",
+    "inTransit": "En camino: {{amount}}",
+    "inTransitCount": "en {{count}} depósito",
+    "inTransitCount_other": "en {{count}} depósitos",
+    "noUpcoming": "Sin depósitos programados",
+    "noUpcomingHint": "Cuando cobres con tarjeta, aquí verás cuándo te llega tu dinero."
+  },
+
+  "calendar": {
+    "upcoming": "Próximas liquidaciones",
+    "scheduledRange": "Liquidaciones programadas · {{range}}",
+    "thisWeek": "Esta semana",
+    "nextWeek": "Próxima semana",
+    "weekTotal": "Total semana",
+    "next14Days": "Próximos 14 días",
+    "transactions": "Transacciones",
+    "deposited": "Depositado",
+    "estimated": "Estimado",
+    "weekendNote": "Los bancos no depositan en fin de semana",
+    "noSettlements": "Sin liquidaciones",
+    "netToDeposit": "Monto neto a depositar",
+    "today": "Hoy",
+    "tx": "{{count}} tx",
+    "tx_other": "{{count}} txs",
+    "transactionCount": "{{count}} transacción",
+    "transactionCount_other": "{{count}} transacciones",
+    "noUpcoming": "Sin liquidaciones programadas en los próximos 14 días"
+  },
+
   "error": {
     "prefix": "Error",
     "noVenue": "No hay sucursal seleccionada",

@@ -19,6 +19,10 @@
       "title": "¡Este es TU cobro de {{amount}}! 🎉",
       "description": "Llegó al instante desde la terminal hasta tu dashboard — con propina, método de pago y quién cobró."
     },
+    "feedFallback": {
+      "title": "Aquí caen tus cobros, al instante",
+      "description": "Cada venta de la terminal aparece aquí al momento — con propina, método de pago y quién cobró. Los cobros que ves son datos de ejemplo de este negocio demo."
+    },
     "complete": {
       "title": "Así se ve cada venta de tu negocio, en vivo",
       "description": "Cada cobro de tu equipo aparece aquí al momento, sin cierres ni esperas. Explora el resto del dashboard con libertad: es tuyo."

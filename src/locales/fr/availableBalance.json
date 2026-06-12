@@ -2,6 +2,39 @@
   "title": "Solde Disponible",
   "description": "Consultez votre calendrier de règlement et les fonds disponibles par mode de paiement",
 
+  "hero": {
+    "title": "Votre prochain dépôt",
+    "today": "aujourd'hui",
+    "tomorrow": "demain",
+    "estimated": "Estimé",
+    "inTransit": "En route : {{amount}}",
+    "inTransitCount": "en {{count}} dépôt",
+    "inTransitCount_other": "en {{count}} dépôts",
+    "noUpcoming": "Aucun dépôt programmé",
+    "noUpcomingHint": "Encaissez par carte et vous verrez ici quand votre argent arrive."
+  },
+
+  "calendar": {
+    "upcoming": "Prochains dépôts",
+    "scheduledRange": "Dépôts programmés · {{range}}",
+    "thisWeek": "Cette semaine",
+    "nextWeek": "Semaine prochaine",
+    "weekTotal": "Total semaine",
+    "next14Days": "14 prochains jours",
+    "transactions": "Transactions",
+    "deposited": "Déposé",
+    "estimated": "Estimé",
+    "weekendNote": "Les banques ne déposent pas le week-end",
+    "noSettlements": "Aucun dépôt",
+    "netToDeposit": "Montant net à déposer",
+    "today": "Aujourd'hui",
+    "tx": "{{count}} tx",
+    "tx_other": "{{count}} txs",
+    "transactionCount": "{{count}} transaction",
+    "transactionCount_other": "{{count}} transactions",
+    "noUpcoming": "Aucun dépôt programmé dans les 14 prochains jours"
+  },
+
   "error": {
     "prefix": "Erreur",
     "noVenue": "Aucun établissement sélectionné",

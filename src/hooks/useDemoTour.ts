@@ -97,7 +97,7 @@ export function useDemoTour() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const startTour = useCallback(
-    (totalLabel: string) => {
+    (totalLabel: string, simOk: boolean) => {
       document.body.classList.add('tour-active')
       driverRef.current?.destroy()
 
@@ -170,14 +170,25 @@ export function useDemoTour() {
           {
             element: '[data-tour="payments-table"]',
             popover: {
-              title: t('demoTour.yourPayment.title', {
-                amount: totalLabel,
-                defaultValue: '¡Este es TU cobro de {{amount}}! 🎉',
-              }),
-              description: t('demoTour.yourPayment.description', {
-                defaultValue:
-                  'Llegó al instante desde la terminal hasta tu dashboard — con propina, método de pago y quién cobró.',
-              }),
+              // Only claim "YOUR charge" when the sim payment was actually
+              // created — otherwise the table shows seeded data and the copy
+              // must say so (founder QA: a seeded $34.80 row under a "your
+              // $348.10 charge" popover reads as a broken product).
+              title: simOk
+                ? t('demoTour.yourPayment.title', {
+                    amount: totalLabel,
+                    defaultValue: '¡Este es TU cobro de {{amount}}! 🎉',
+                  })
+                : t('demoTour.feedFallback.title', { defaultValue: 'Aquí caen tus cobros, al instante' }),
+              description: simOk
+                ? t('demoTour.yourPayment.description', {
+                    defaultValue:
+                      'Llegó al instante desde la terminal hasta tu dashboard — con propina, método de pago y quién cobró.',
+                  })
+                : t('demoTour.feedFallback.description', {
+                    defaultValue:
+                      'Cada venta de la terminal aparece aquí al momento — con propina, método de pago y quién cobró. Los cobros que ves son datos de ejemplo de este negocio demo.',
+                  }),
               side: 'top',
               align: 'start',
             },
@@ -291,14 +302,16 @@ export function useDemoTour() {
     // demo session) we still run the tour — the demo venue has seeded data.
     api
       .post('/api/v1/live-demo/sim/fast-payment', { amountCents, tipCents })
+      .then(() => true)
       .catch(error => {
         console.error('Demo tour: fast-payment simulation failed', error)
+        return false
       })
-      .finally(() => {
+      .then(simOk => {
         // Small delay so the dashboard finishes painting before the overlay.
         timerRef.current = setTimeout(() => {
           timerRef.current = null
-          startTour(totalLabel)
+          startTour(totalLabel, simOk)
         }, 900)
       })
   }, [location.search, venue, startTour])

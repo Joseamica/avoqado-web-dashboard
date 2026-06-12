@@ -19,6 +19,10 @@
       "title": "Voici VOTRE encaissement de {{amount}} ! 🎉",
       "description": "Il est arrivé instantanément du terminal à votre tableau de bord — avec pourboire, méthode de paiement et qui a encaissé."
     },
+    "feedFallback": {
+      "title": "Vos encaissements arrivent ici, instantanément",
+      "description": "Chaque vente du terminal apparaît ici immédiatement — avec pourboire, moyen de paiement et qui a encaissé. Les paiements affichés sont des données d'exemple de ce commerce démo."
+    },
     "complete": {
       "title": "Voici chaque vente de votre commerce, en direct",
       "description": "Chaque encaissement de votre équipe apparaît ici à l'instant, sans clôtures ni attente. Explorez le reste du tableau de bord librement : il est à vous."

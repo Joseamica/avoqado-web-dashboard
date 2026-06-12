@@ -40,6 +40,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { CardTypeBreakdownStrip } from './CardTypeBreakdownStrip'
+import { NextDepositHero } from './NextDepositHero'
 import { SettlementCalendarWeek } from './SettlementCalendarWeek'
 import { SettlementTimelineTable } from './SettlementTimelineTable'
 
@@ -142,6 +143,12 @@ export default function AvailableBalance() {
           : summary.estimatedNextSettlement,
     }
   }, [summary, filteredCardBreakdown, activeTab])
+
+  // Upcoming deposit days still in transit — feeds the "en N depósitos" copy in the hero
+  const pendingDepositCount = useMemo(
+    () => filteredCalendar.filter(e => e.totalNetAmount > 0 && e.status !== 'SETTLED').length,
+    [filteredCalendar],
+  )
 
   // Count transactions for tab badges
   const tabCounts = useMemo(() => {
@@ -480,6 +487,18 @@ export default function AvailableBalance() {
 
       {/* Cash Closeout History - only on cash tab */}
       {activeTab === 'cash' && <CashCloseoutHistory venueId={venueId!} />}
+
+      {/* ===== NEXT DEPOSIT HERO — answers "¿cuándo me llega mi dinero?" first ===== */}
+      {activeTab !== 'cash' && (
+        <NextDepositHero
+          nextDate={filteredSummary.estimatedNextSettlement?.date ?? null}
+          nextAmount={filteredSummary.estimatedNextSettlement?.amount ?? 0}
+          pendingAmount={filteredSummary.pendingSettlement}
+          pendingCount={pendingDepositCount}
+          timezone={venueTimezone}
+          formatCurrency={Currency}
+        />
+      )}
 
       {/* ===== SETTLEMENT CALENDAR — moved to top, primary view ===== */}
       {activeTab !== 'cash' && (

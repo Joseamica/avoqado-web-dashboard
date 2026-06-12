@@ -2,6 +2,39 @@
   "title": "Available Balance",
   "description": "View your settlement schedule and available funds by payment method",
 
+  "hero": {
+    "title": "Your next deposit",
+    "today": "today",
+    "tomorrow": "tomorrow",
+    "estimated": "Estimated",
+    "inTransit": "On the way: {{amount}}",
+    "inTransitCount": "in {{count}} deposit",
+    "inTransitCount_other": "in {{count}} deposits",
+    "noUpcoming": "No deposits scheduled",
+    "noUpcomingHint": "Take card payments and you'll see here when your money arrives."
+  },
+
+  "calendar": {
+    "upcoming": "Upcoming deposits",
+    "scheduledRange": "Scheduled deposits · {{range}}",
+    "thisWeek": "This week",
+    "nextWeek": "Next week",
+    "weekTotal": "Week total",
+    "next14Days": "Next 14 days",
+    "transactions": "Transactions",
+    "deposited": "Deposited",
+    "estimated": "Estimated",
+    "weekendNote": "Banks don't deposit on weekends",
+    "noSettlements": "No deposits",
+    "netToDeposit": "Net amount to deposit",
+    "today": "Today",
+    "tx": "{{count}} tx",
+    "tx_other": "{{count}} txs",
+    "transactionCount": "{{count}} transaction",
+    "transactionCount_other": "{{count}} transactions",
+    "noUpcoming": "No deposits scheduled in the next 14 days"
+  },
+
   "error": {
     "prefix": "Error",
     "noVenue": "No venue selected",

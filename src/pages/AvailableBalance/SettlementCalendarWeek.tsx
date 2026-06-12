@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
 import { DateTime } from 'luxon'
+import { useTranslation } from 'react-i18next'
+import { Check, Clock } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Button } from '@/components/ui/button'
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
 export interface SettlementCalendarBreakdown {
@@ -15,6 +17,8 @@ export interface SettlementCalendarEntry {
   settlementDate: string | Date
   totalNetAmount: number
   transactionCount: number
+  /** SETTLED = el dinero ya se depositó · PENDING = estimado, en tránsito */
+  status?: 'SETTLED' | 'PENDING'
   byCardType: SettlementCalendarBreakdown[]
 }
 
@@ -43,6 +47,8 @@ interface DayCell {
   month: string
   isToday: boolean
   isWeekend: boolean
+  /** Teach why weekends are empty — only on the first empty day of each weekend, not both */
+  showWeekendNote: boolean
   entry: SettlementCalendarEntry | null
 }
 
@@ -54,6 +60,7 @@ export function SettlementCalendarWeek({
   windowDays = 14,
   className,
 }: Props) {
+  const { t, i18n } = useTranslation('availableBalance')
   const [activeWeek, setActiveWeek] = useState<0 | 1>(0)
 
   const days: DayCell[] = useMemo(() => {
@@ -72,6 +79,13 @@ export function SettlementCalendarWeek({
       }
       existing.totalNetAmount += entry.totalNetAmount
       existing.transactionCount += entry.transactionCount
+      // A day is only "deposited" when every entry that lands on it is settled.
+      existing.status =
+        existing.status === 'PENDING' || entry.status === 'PENDING'
+          ? 'PENDING'
+          : existing.status === 'SETTLED' && entry.status === 'SETTLED'
+            ? 'SETTLED'
+            : undefined
       const merged = new Map(existing.byCardType.map(c => [c.cardType, { ...c }]))
       for (const c of entry.byCardType) {
         const prev = merged.get(c.cardType)
@@ -85,7 +99,7 @@ export function SettlementCalendarWeek({
       existing.byCardType = Array.from(merged.values())
     }
 
-    return Array.from({ length: windowDays }, (_, i) => {
+    const cells = Array.from({ length: windowDays }, (_, i): DayCell => {
       const dt = startOfToday.plus({ days: i })
       const iso = dt.toISODate() ?? ''
       const weekdayIdx = dt.weekday - 1 // luxon: 1=Mon..7=Sun
@@ -98,9 +112,22 @@ export function SettlementCalendarWeek({
         month: MONTHS_ES[monthIdx],
         isToday: i === 0,
         isWeekend: dt.weekday === 6 || dt.weekday === 7,
+        showWeekendNote: false,
         entry: entryByDate.get(iso) ?? null,
       }
     })
+
+    let prevShowedNote = false
+    for (const cell of cells) {
+      if (cell.isWeekend && !cell.entry) {
+        cell.showWeekendNote = !prevShowedNote
+        prevShowedNote = true
+      } else {
+        prevShowedNote = false
+      }
+    }
+
+    return cells
   }, [entries, timezone, windowDays])
 
   // Slice into weeks of 7 days each
@@ -130,35 +157,48 @@ export function SettlementCalendarWeek({
     [currentWeek],
   )
 
-  const rangeLabel = currentWeek.length
-    ? `${currentWeek[0].dt.setLocale('es').toFormat("d 'de' MMM")} — ${currentWeek[currentWeek.length - 1].dt.setLocale('es').toFormat("d 'de' MMM")}`
-    : ''
+  // Mobile agenda: the whole window as a flat list of days that actually carry money
+  const daysWithData = useMemo(() => days.filter(d => d.entry && d.entry.totalNetAmount > 0), [days])
+
+  const fmtShort = (dt: DateTime) => dt.setLocale(i18n.language).toLocaleString({ day: 'numeric', month: 'short' })
+  const rangeLabel = currentWeek.length ? `${fmtShort(currentWeek[0].dt)} — ${fmtShort(currentWeek[currentWeek.length - 1].dt)}` : ''
+  const windowRangeLabel = days.length ? `${fmtShort(days[0].dt)} — ${fmtShort(days[days.length - 1].dt)}` : ''
 
   return (
     <GlassCard className={cn('overflow-hidden', className)}>
       <header className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-6 sm:py-5">
         <div>
-          <h3 className="text-base font-semibold tracking-tight">
-            {weeks.length > 1 ? (activeWeek === 0 ? 'Esta semana' : 'Próxima semana') : 'Próximas liquidaciones'}
+          <h3 className="hidden text-base font-semibold tracking-tight sm:block">
+            {weeks.length > 1 ? (activeWeek === 0 ? t('calendar.thisWeek') : t('calendar.nextWeek')) : t('calendar.upcoming')}
           </h3>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Liquidaciones programadas · {rangeLabel}
-          </p>
+          <h3 className="text-base font-semibold tracking-tight sm:hidden">{t('calendar.upcoming')}</h3>
+          <p className="mt-1 hidden text-xs text-muted-foreground sm:block">{t('calendar.scheduledRange', { range: rangeLabel })}</p>
+          <p className="mt-1 text-xs text-muted-foreground sm:hidden">{t('calendar.scheduledRange', { range: windowRangeLabel })}</p>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="hidden items-center gap-6 sm:flex">
           <div className="text-right">
-            <p className="text-xs text-muted-foreground">Total semana</p>
+            <p className="text-xs text-muted-foreground">{t('calendar.weekTotal')}</p>
             <p className="text-base font-semibold tabular-nums">{formatCurrency(weekTotal)}</p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-muted-foreground">Transacciones</p>
+            <p className="text-xs text-muted-foreground">{t('calendar.transactions')}</p>
             <p className="text-base font-semibold tabular-nums">{weekTxns}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-6 sm:hidden">
+          <div className="text-left">
+            <p className="text-xs text-muted-foreground">{t('calendar.next14Days')}</p>
+            <p className="text-base font-semibold tabular-nums">{formatCurrency(totalAcrossWindow)}</p>
+          </div>
+          <div className="text-left">
+            <p className="text-xs text-muted-foreground">{t('calendar.transactions')}</p>
+            <p className="text-base font-semibold tabular-nums">{txnsAcrossWindow}</p>
           </div>
         </div>
       </header>
 
       {weeks.length > 1 && (
-        <div className="flex items-center gap-1 border-y border-border/50 bg-muted/30 px-4 py-2 sm:px-6">
+        <div className="hidden items-center gap-1 border-y border-border/50 bg-muted/30 px-4 py-2 sm:flex sm:px-6">
           {weeks.map((_, idx) => (
             <Button
               key={idx}
@@ -167,7 +207,7 @@ export function SettlementCalendarWeek({
               className="h-7 text-xs"
               onClick={() => setActiveWeek(idx as 0 | 1)}
             >
-              {idx === 0 ? 'Esta semana' : 'Próxima semana'}
+              {idx === 0 ? t('calendar.thisWeek') : t('calendar.nextWeek')}
             </Button>
           ))}
           <span className="ml-auto text-xs text-muted-foreground tabular-nums">
@@ -176,12 +216,89 @@ export function SettlementCalendarWeek({
         </div>
       )}
 
-      <div className="grid grid-cols-7 divide-x divide-border/40 border-t border-border/50">
+      {/* Desktop: week grid */}
+      <div className="hidden grid-cols-7 divide-x divide-border/40 border-t border-border/50 sm:grid">
         {currentWeek.map(day => (
           <DayColumn key={day.iso} day={day} formatCurrency={formatCurrency} cardTypeLabel={cardTypeLabel} />
         ))}
       </div>
+
+      {/* Mobile: agenda list over the full window — a 7-column grid is unreadable on a phone */}
+      <div className="border-t border-border/50 sm:hidden">
+        {daysWithData.length === 0 ? (
+          <p className="px-4 py-6 text-sm text-muted-foreground">{t('calendar.noUpcoming')}</p>
+        ) : (
+          <ul className="divide-y divide-border/40">
+            {daysWithData.map(day => (
+              <AgendaRow key={day.iso} day={day} formatCurrency={formatCurrency} cardTypeLabel={cardTypeLabel} />
+            ))}
+          </ul>
+        )}
+      </div>
     </GlassCard>
+  )
+}
+
+function StatusBadge({ status, className }: { status?: 'SETTLED' | 'PENDING'; className?: string }) {
+  const { t } = useTranslation('availableBalance')
+  if (!status) return null
+  const settled = status === 'SETTLED'
+  const Icon = settled ? Check : Clock
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 text-[10px] font-medium',
+        settled ? 'text-muted-foreground' : 'text-amber-600 dark:text-amber-400',
+        className,
+      )}
+    >
+      <Icon className="h-3 w-3" aria-hidden />
+      {settled ? t('calendar.deposited') : t('calendar.estimated')}
+    </span>
+  )
+}
+
+function DayBreakdownContent({
+  day,
+  formatCurrency,
+  cardTypeLabel,
+}: {
+  day: DayCell
+  formatCurrency: (n: number) => string
+  cardTypeLabel: (k: string) => string
+}) {
+  const { t, i18n } = useTranslation('availableBalance')
+  const entry = day.entry!
+  const sortedBreakdown = [...entry.byCardType].sort((a, b) => b.netAmount - a.netAmount)
+  const fullDate = day.dt.setLocale(i18n.language).toLocaleString({ weekday: 'long', day: 'numeric', month: 'long' })
+
+  return (
+    <>
+      <div className="border-b border-border/50 px-4 py-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">{fullDate}</p>
+          <StatusBadge status={entry.status} />
+        </div>
+        <div className="mt-2 flex items-baseline justify-between gap-2">
+          <p className="text-base font-semibold tabular-nums">{formatCurrency(entry.totalNetAmount)}</p>
+          <p className="text-[11px] text-muted-foreground tabular-nums">
+            {t('calendar.transactionCount', { count: entry.transactionCount })}
+          </p>
+        </div>
+        <p className="mt-1 text-[11px] text-muted-foreground">{t('calendar.netToDeposit')}</p>
+      </div>
+      <ul className="max-h-64 overflow-y-auto px-4 py-3">
+        {sortedBreakdown.map(c => (
+          <li key={c.cardType} className="flex items-baseline justify-between gap-3 py-1.5 text-xs">
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-medium">{cardTypeLabel(c.cardType)}</p>
+              <p className="text-[11px] text-muted-foreground tabular-nums">{t('calendar.tx', { count: c.transactionCount })}</p>
+            </div>
+            <span className="tabular-nums">{formatCurrency(c.netAmount)}</span>
+          </li>
+        ))}
+      </ul>
+    </>
   )
 }
 
@@ -194,16 +311,11 @@ function DayColumn({
   formatCurrency: (n: number) => string
   cardTypeLabel: (k: string) => string
 }) {
+  const { t } = useTranslation('availableBalance')
   const hasData = !!day.entry && day.entry.totalNetAmount > 0
 
-  const column = (
-    <div
-      className={cn(
-        'relative flex min-h-[180px] flex-col px-3 py-4',
-        day.isToday && 'bg-primary/5',
-        hasData && 'cursor-default',
-      )}
-    >
+  const inner = (
+    <>
       {day.isToday && (
         <span aria-hidden className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-primary" />
       )}
@@ -223,16 +335,17 @@ function DayColumn({
           </p>
           <p className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{day.month}</p>
         </div>
-        {day.isToday && <span className="text-[10px] font-medium uppercase tracking-wider text-primary">Hoy</span>}
+        {day.isToday && (
+          <span className="text-[10px] font-medium uppercase tracking-wider text-primary">{t('calendar.today')}</span>
+        )}
       </div>
 
       <div className="mt-auto pt-4">
         {hasData ? (
           <>
             <p className="text-sm font-semibold tabular-nums">{formatCurrency(day.entry!.totalNetAmount)}</p>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">
-              {day.entry!.transactionCount} {day.entry!.transactionCount === 1 ? 'tx' : 'txs'}
-            </p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">{t('calendar.tx', { count: day.entry!.transactionCount })}</p>
+            <StatusBadge status={day.entry!.status} className="mt-1.5" />
             <ul className="mt-3 space-y-1 border-t border-border/30 pt-2">
               {[...day.entry!.byCardType]
                 .sort((a, b) => b.netAmount - a.netAmount)
@@ -245,46 +358,88 @@ function DayColumn({
                 ))}
             </ul>
           </>
+        ) : day.showWeekendNote ? (
+          <p className="text-[11px] leading-snug text-muted-foreground/70">{t('calendar.weekendNote')}</p>
+        ) : day.isWeekend ? (
+          <p aria-hidden className="text-[11px] text-muted-foreground/50">
+            —
+          </p>
         ) : (
-          <p className="text-[11px] text-muted-foreground/70">Sin liquidaciones</p>
+          <p className="text-[11px] text-muted-foreground/70">{t('calendar.noSettlements')}</p>
         )}
       </div>
-    </div>
+    </>
   )
 
-  if (!hasData) return column
+  if (!hasData) {
+    return <div className={cn('relative flex min-h-[180px] flex-col px-3 py-4', day.isToday && 'bg-primary/5')}>{inner}</div>
+  }
 
-  const sortedBreakdown = [...day.entry!.byCardType].sort((a, b) => b.netAmount - a.netAmount)
-  const fullDate = day.dt.setLocale('es').toFormat("EEEE d 'de' MMMM")
+  // Click/tap-driven Popover (not HoverCard): works on touch, keyboard and mouse alike.
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            'relative flex min-h-[180px] w-full cursor-pointer flex-col px-3 py-4 text-left transition-colors hover:bg-muted/30',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+            day.isToday && 'bg-primary/5',
+          )}
+        >
+          {inner}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="center" sideOffset={6} className="w-72 p-0">
+        <DayBreakdownContent day={day} formatCurrency={formatCurrency} cardTypeLabel={cardTypeLabel} />
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+function AgendaRow({
+  day,
+  formatCurrency,
+  cardTypeLabel,
+}: {
+  day: DayCell
+  formatCurrency: (n: number) => string
+  cardTypeLabel: (k: string) => string
+}) {
+  const { t, i18n } = useTranslation('availableBalance')
+  const entry = day.entry!
+  const dayLabel = day.dt.setLocale(i18n.language).toLocaleString({ weekday: 'short', day: 'numeric', month: 'short' })
 
   return (
-    <HoverCard openDelay={120} closeDelay={80}>
-      <HoverCardTrigger asChild>{column}</HoverCardTrigger>
-      <HoverCardContent align="center" sideOffset={6} className="w-72 p-0">
-        <div className="border-b border-border/50 px-4 py-3">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">{fullDate}</p>
-          <div className="mt-2 flex items-baseline justify-between gap-2">
-            <p className="text-base font-semibold tabular-nums">{formatCurrency(day.entry!.totalNetAmount)}</p>
-            <p className="text-[11px] text-muted-foreground tabular-nums">
-              {day.entry!.transactionCount} {day.entry!.transactionCount === 1 ? 'transacción' : 'transacciones'}
-            </p>
-          </div>
-          <p className="mt-1 text-[11px] text-muted-foreground">Monto neto a depositar</p>
-        </div>
-        <ul className="max-h-64 overflow-y-auto px-4 py-3">
-          {sortedBreakdown.map(c => (
-            <li key={c.cardType} className="flex items-baseline justify-between gap-3 py-1.5 text-xs">
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{cardTypeLabel(c.cardType)}</p>
-                <p className="text-[11px] text-muted-foreground tabular-nums">
-                  {c.transactionCount} {c.transactionCount === 1 ? 'tx' : 'txs'}
-                </p>
-              </div>
-              <span className="tabular-nums">{formatCurrency(c.netAmount)}</span>
-            </li>
-          ))}
-        </ul>
-      </HoverCardContent>
-    </HoverCard>
+    <li>
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              'flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/30',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+            )}
+          >
+            <div>
+              <p className="text-sm font-medium">
+                {dayLabel}
+                {day.isToday && (
+                  <span className="ml-1.5 text-[10px] font-medium uppercase tracking-wider text-primary">{t('calendar.today')}</span>
+                )}
+              </p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">{t('calendar.tx', { count: entry.transactionCount })}</p>
+            </div>
+            <div className="flex flex-col items-end">
+              <p className="text-sm font-semibold tabular-nums">{formatCurrency(entry.totalNetAmount)}</p>
+              <StatusBadge status={entry.status} className="mt-0.5" />
+            </div>
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-72 p-0">
+          <DayBreakdownContent day={day} formatCurrency={formatCurrency} cardTypeLabel={cardTypeLabel} />
+        </PopoverContent>
+      </Popover>
+    </li>
   )
 }

@@ -19,6 +19,10 @@
       "title": "This is YOUR {{amount}} charge! 🎉",
       "description": "It arrived instantly from the terminal to your dashboard — with tip, payment method and who charged it."
     },
+    "feedFallback": {
+      "title": "Your charges land here, instantly",
+      "description": "Every terminal sale shows up here the moment it happens — with tip, payment method and who charged it. The charges you see are sample data from this demo business."
+    },
     "complete": {
       "title": "This is how every sale in your business looks, live",
       "description": "Every charge from your team shows up here the moment it happens — no closeouts, no waiting. Explore the rest of the dashboard freely: it's yours."
