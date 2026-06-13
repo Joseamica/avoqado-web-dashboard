@@ -2,8 +2,8 @@ import { useCallback, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { getTierForFeature, mapPlanTier, TIER_ORDER, type TierId } from '@/config/plan-catalog'
-import { getVenuePlan, getVenueFeatures, getVenuePlanTierInfo } from '@/services/features.service'
+import { getTierForFeature, TIER_ORDER, type TierId } from '@/config/plan-catalog'
+import { getVenueFeatures, getVenuePlanTierInfo } from '@/services/features.service'
 import { isDemoVenueStatus } from '@/types/superadmin'
 
 export interface TierFeatureAccess {
@@ -109,18 +109,21 @@ export function useVenueTier(): { venueTier: TierId; hasFeatureAccess: (feature:
  * Display-only plan tier for ANY venue (not just the current one) — for badges in the venue switcher.
  * Unlike {@link useVenueTier} (which is gating-oriented and reports FREE for superadmin/white-label
  * because they bypass gates), this always reflects the venue's actual subscription tier.
- * Shares the `['venuePlan', venueId]` query cache, so the active venue's badge reuses the gate's fetch.
+ * Sources from the all-roles GET /plan-tier endpoint (features:read), NOT GET /plan
+ * (billing:subscriptions:read — ADMIN/OWNER only) — otherwise the switcher tier badges 403 and
+ * vanish for sub-ADMIN staff (MANAGER/CASHIER/…). Shares the `['venuePlanTier', venueId]` query
+ * cache, so the active venue's badge reuses the gate's fetch.
  *
  * @param enabled gate the network call (e.g. only fetch list rows while the switcher popover is open).
  */
 export function useVenuePlanTier(venueId: string | undefined, enabled = true): { tier: TierId | null; isLoading: boolean } {
   const { data, isLoading } = useQuery({
-    queryKey: ['venuePlan', venueId],
-    queryFn: () => getVenuePlan(venueId!),
+    queryKey: ['venuePlanTier', venueId],
+    queryFn: () => getVenuePlanTierInfo(venueId!),
     enabled: enabled && !!venueId,
     staleTime: 5 * 60 * 1000,
   })
-  return { tier: data ? mapPlanTier(data.planTier) : null, isLoading }
+  return { tier: data ? data.tier : null, isLoading }
 }
 
 /** Single-feature convenience wrapper around {@link useVenueTier}. */
