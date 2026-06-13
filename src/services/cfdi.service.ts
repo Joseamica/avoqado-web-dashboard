@@ -217,13 +217,6 @@ export interface CancelCfdiResponse {
   cfdiId: string
 }
 
-// ─── SAT catalog stub (wired in a later slice) ──────────────────────────────
-
-export interface SatCatalogEntry {
-  code: string
-  description: string
-}
-
 // ─── SAT catalog search (product/category fiscal keys) ──────────────────────
 
 /** A single SAT catalog match: a code + its human description. */
@@ -355,15 +348,8 @@ export const cfdiService = {
   /** Trigger generation of the periodic "factura global" for an emisor.
    *  Wired into the admin trigger page in a later slice. */
   async triggerGlobal(venueId: string, emisorId: string): Promise<{ cfdiId?: string; queued?: boolean }> {
-    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/fiscal/emisores/${emisorId}/trigger-global`)
+    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/fiscal/emisores/${emisorId}/global`)
     return response.data?.data ?? response.data
-  },
-
-  /** Fetch a SAT catalog (régimen fiscal, uso CFDI, etc.). Wired into the
-   *  SAT-keys product config in a later slice. */
-  async satCatalog(venueId: string, catalog: string): Promise<SatCatalogEntry[]> {
-    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/fiscal/sat-catalog/${catalog}`)
-    return response.data?.data ?? response.data ?? []
   },
 
   /**
