@@ -74,15 +74,24 @@ export function useVenueTier(): { venueTier: TierId; hasFeatureAccess: (feature:
       if (isSuperadmin) return true
       if (isDemoVenue) return true // demo venue: todo abierto (espejo del backend)
       if (isWhiteLabelEnabled) return canFeature(feature)
-      // Optimistic while the first load is in flight (avoid a paywall flash on entitled venues).
-      if (isLoading && planState === undefined && featureStatus === undefined) return true
+      // Fail-open when the plan state can't be POSITIVELY determined. planState carries the
+      // `grandfathered` flag + the tier, and is undefined both while the first load is in flight
+      // AND when the caller's role can't read it: GET /venues/:id/plan requires
+      // `billing:subscriptions:read`, which only ADMIN/OWNER hold — so for MANAGER/CASHIER/WAITER/…
+      // the request 403s, planState stays undefined, and the grandfathered/tier signal is lost.
+      // A UX-only gate must NEVER hard-block on unknowable entitlement (the backend is the source
+      // of truth and enforces the genuinely-gated routes). Without this, every sub-ADMIN staff
+      // member at a grandfathered OR paid venue is wrongly paywalled (e.g. a Mindform MANAGER
+      // blocked from editing inventory). Paywall ONLY on a positive denial below (planState loaded,
+      // not grandfathered, tier insufficient, no explicit grant).
+      if (planState === undefined) return true
       // Grandfathered legacy venue → exempt from ALL tier monetization: every feature unlocked.
-      if (planState?.grandfathered) return true
+      if (planState.grandfathered) return true
       if (grantedCodes.has(feature)) return true // explicit / à-la-carte grant wins
       const required = getTierForFeature(feature) ?? 'PRO'
       return TIER_ORDER.indexOf(venueTier) >= TIER_ORDER.indexOf(required)
     },
-    [isSuperadmin, isDemoVenue, isWhiteLabelEnabled, canFeature, isLoading, planState, featureStatus, grantedCodes, venueTier],
+    [isSuperadmin, isDemoVenue, isWhiteLabelEnabled, canFeature, planState, grantedCodes, venueTier],
   )
 
   return { venueTier, hasFeatureAccess, isLoading }

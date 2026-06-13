@@ -164,6 +164,22 @@ describe('FeatureGate', () => {
     expect(screen.queryByText('featureGate.upgrade:Premium')).not.toBeInTheDocument()
   })
 
+  it('plan unreadable (sub-ADMIN role → GET /plan 403: no data, not loading) → renders children, NO wrongful paywall', () => {
+    // Regression (prod incident 2026-06-13): a MANAGER at Mindform (a grandfathered venue) was
+    // blocked from editing inventory with "tienes que ser premium". Root cause: the gating hook
+    // reads `grandfathered`/tier from GET /venues/:id/plan, which requires billing:subscriptions:read
+    // — a permission only ADMIN/OWNER hold. For MANAGER/CASHIER/WAITER/… the request 403s, so
+    // planState is undefined (NOT loading) and the grandfathered bypass was skipped, falling through
+    // to FREE → Premium paywall. A UX-only gate must fail OPEN when entitlement is unknowable.
+    mockUseAccess.mockReturnValue({ canFeature: mockCanFeature, role: 'MANAGER', isWhiteLabelEnabled: false })
+    mockUseQuery.mockReturnValue({ data: undefined, isLoading: false })
+
+    renderGate()
+
+    expect(screen.getByText('secret content')).toBeInTheDocument()
+    expect(screen.queryByText('featureGate.upgrade:Premium')).not.toBeInTheDocument()
+  })
+
   it('superadmin → renders children regardless of plan tier', () => {
     // useQuery should be disabled (enabled: false), but we stub it to return nothing
     mockUseQuery.mockReturnValue({ data: undefined, isLoading: false })
