@@ -158,6 +158,26 @@ export const getVenuePlan = async (venueId: string): Promise<PlanState> => {
   return response.data.data
 }
 
+/**
+ * Minimal plan-tier gating signal — GET /dashboard/venues/:venueId/plan-tier.
+ * Unlike {@link getVenuePlan} (ADMIN/OWNER only — `billing:subscriptions:read`, returns price +
+ * Stripe ids), this endpoint is guarded by `features:read` (held by EVERY venue role) and returns
+ * only the non-sensitive signal the tier-gate needs. This is what lets the FeatureGate decide
+ * correctly for MANAGER/CASHIER/WAITER/… instead of wrongly paywalling them.
+ */
+export interface VenuePlanTierInfo {
+  tier: 'FREE' | 'PRO' | 'PREMIUM' | 'ENTERPRISE'
+  grandfathered: boolean
+  /** grandfathered OR demo (LIVE_DEMO / TRIAL) → exempt from ALL tier gating. */
+  exempt: boolean
+}
+
+/** Get the venue's plan-tier gating signal (readable by every role). */
+export const getVenuePlanTierInfo = async (venueId: string): Promise<VenuePlanTierInfo> => {
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/plan-tier`)
+  return response.data.data
+}
+
 /** Schedule cancellation of the base plan at period end. Returns the updated state. */
 export const cancelVenuePlan = async (venueId: string): Promise<PlanState> => {
   const response = await api.post(`/api/v1/dashboard/venues/${venueId}/plan/cancel`)

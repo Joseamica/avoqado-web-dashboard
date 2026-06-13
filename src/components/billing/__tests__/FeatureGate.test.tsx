@@ -39,6 +39,8 @@ vi.mock('react-router-dom', () => ({
 // ---------------------------------------------------------------------------
 vi.mock('@/services/features.service', () => ({
   getVenuePlan: vi.fn(),
+  getVenuePlanTierInfo: vi.fn(),
+  getVenueFeatures: vi.fn(),
 }))
 
 // ---------------------------------------------------------------------------
@@ -56,7 +58,13 @@ vi.mock('@tanstack/react-query', async (importOriginal) => {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-function makePlanState(planTier: PlanState['planTier'], overrides: Partial<PlanState> = {}): PlanState {
+// useVenueTier now makes TWO useQuery calls — ['venuePlanTier'] (reads .tier/.exempt) and
+// ['venueFeatures'] (reads .activeFeatures). Our mockUseQuery returns the SAME object for both,
+// so this helper produces one object that satisfies both: the PlanState fields PLUS the plan-tier
+// gating signal (tier/grandfathered/exempt) and an empty activeFeatures list (no à-la-carte grants).
+function makePlanState(planTier: PlanState['planTier'], overrides: Partial<PlanState> = {}): Record<string, unknown> {
+  const grandfathered = overrides.grandfathered ?? false
+  const tier = planTier === 'GRATIS' || planTier === null ? 'FREE' : planTier
   return {
     hasPlan: planTier !== null,
     state: planTier ? 'active' : 'none',
@@ -72,7 +80,12 @@ function makePlanState(planTier: PlanState['planTier'], overrides: Partial<PlanS
     paymentMethod: null,
     stripeSubscriptionId: null,
     retentionOfferEligible: false,
-    grandfathered: false,
+    grandfathered,
+    // Plan-tier gating signal (read by useVenueTier from the all-roles ['venuePlanTier'] query):
+    tier,
+    exempt: grandfathered, // grandfathered → exempt; demo venues are handled via venue.status
+    // Features query (['venueFeatures']) — no à-la-carte grants by default:
+    activeFeatures: [],
     ...overrides,
   }
 }
@@ -164,13 +177,14 @@ describe('FeatureGate', () => {
     expect(screen.queryByText('featureGate.upgrade:Premium')).not.toBeInTheDocument()
   })
 
-  it('plan unreadable (sub-ADMIN role → GET /plan 403: no data, not loading) → renders children, NO wrongful paywall', () => {
-    // Regression (prod incident 2026-06-13): a MANAGER at Mindform (a grandfathered venue) was
-    // blocked from editing inventory with "tienes que ser premium". Root cause: the gating hook
-    // reads `grandfathered`/tier from GET /venues/:id/plan, which requires billing:subscriptions:read
-    // — a permission only ADMIN/OWNER hold. For MANAGER/CASHIER/WAITER/… the request 403s, so
-    // planState is undefined (NOT loading) and the grandfathered bypass was skipped, falling through
-    // to FREE → Premium paywall. A UX-only gate must fail OPEN when entitlement is unknowable.
+  it('plan-tier signal settled with no data (endpoint error) → renders children, NO wrongful paywall (fail-open)', () => {
+    // Regression (prod incident 2026-06-13): a MANAGER at Mindform (grandfathered) was blocked from
+    // editing inventory with "tienes que ser premium". Root cause: the gate read grandfathered/tier
+    // from GET /plan (billing:subscriptions:read — ADMIN/OWNER only), which 403s for sub-ADMIN roles,
+    // so the signal was lost and it fell through to FREE → Premium paywall. The accurate fix moves
+    // the signal to an all-roles endpoint (so a MANAGER reads it normally — see the grandfathered &
+    // FREE-tier tests, which now hold for every role). This test guards the remaining safety net:
+    // if the plan-tier request EVER settles with no data (network error), the UX gate must fail OPEN.
     mockUseAccess.mockReturnValue({ canFeature: mockCanFeature, role: 'MANAGER', isWhiteLabelEnabled: false })
     mockUseQuery.mockReturnValue({ data: undefined, isLoading: false })
 

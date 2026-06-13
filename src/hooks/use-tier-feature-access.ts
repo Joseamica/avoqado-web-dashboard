@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { getTierForFeature, mapPlanTier, TIER_ORDER, type TierId } from '@/config/plan-catalog'
-import { getVenuePlan, getVenueFeatures } from '@/services/features.service'
+import { getVenuePlan, getVenueFeatures, getVenuePlanTierInfo } from '@/services/features.service'
 import { isDemoVenueStatus } from '@/types/superadmin'
 
 export interface TierFeatureAccess {
@@ -21,11 +21,15 @@ export interface TierFeatureAccess {
  * `venueHasFeatureAccess`. Path order (first match wins):
  *   1. superadmin → always true
  *   2. white-label → delegate to the feature toggle (canFeature)
- *   3. optimistic loading (first fetch in flight, no cached data) → true (no paywall flash)
- *   4. grandfathered venue (planState.grandfathered) → true for EVERY feature — legacy venues
- *      are exempt from ALL tier monetization (no paywalls, no badges, no seat cap)
+ *   3. fail-open: plan-tier signal not yet/ever determinable (loading OR request failed) → true
+ *      (a UX-only gate must never hard-block on unknowable entitlement; backend is source of truth)
+ *   4. exempt venue (grandfathered legacy OR demo) → true for EVERY feature — exempt from ALL tier
+ *      monetization (no paywalls, no badges, no seat cap)
  *   5. EXPLICIT active grant for the feature (à-la-carte) → true
  *   6. venue's plan tier rank >= the feature's required tier rank.
+ *
+ * The tier + exempt signal comes from the all-roles `features:read` endpoint (GET /venues/:id/plan-tier),
+ * NOT GET /plan (ADMIN/OWNER-only via billing:subscriptions:read) — so sub-ADMIN staff gate correctly.
  *
  * Why this exists: `useAccess().canFeature` / `useAuth().checkFeatureAccess` short-circuit to `true`
  * for every non-white-label venue, so they can't gate normal venues by tier — and a pure tier check
@@ -42,15 +46,21 @@ export function useVenueTier(): { venueTier: TierId; hasFeatureAccess: (feature:
   const isDemoVenue = isDemoVenueStatus(venue?.status)
   const gateEnabled = !!venueId && !isSuperadmin && !isWhiteLabelEnabled && !isDemoVenue
 
-  const { data: planState, isLoading: planLoading } = useQuery({
-    queryKey: ['venuePlan', venueId],
-    queryFn: () => getVenuePlan(venueId!),
+  // Plan-tier gating signal (tier + grandfathered/exempt), readable by EVERY venue role via
+  // `features:read`. This is the gate's source of truth: GET /plan is ADMIN/OWNER-only
+  // (`billing:subscriptions:read`, returns price + Stripe ids), so sub-ADMIN staff
+  // (MANAGER/CASHIER/WAITER/…) couldn't read grandfathered/tier and were wrongly paywalled.
+  const { data: planTierInfo, isLoading: planLoading } = useQuery({
+    queryKey: ['venuePlanTier', venueId],
+    queryFn: () => getVenuePlanTierInfo(venueId!),
     enabled: gateEnabled,
     staleTime: 5 * 60 * 1000,
   })
 
-  // Explicit grants: a venue's OWN active feature (à-la-carte or grandfathered) always unlocks it,
-  // regardless of base plan tier — matches the backend's "explicit grant wins" rule.
+  // Explicit à-la-carte grants: a venue's OWN active feature always unlocks it, regardless of base
+  // plan tier — matches the backend's "explicit grant wins" rule. NOTE: this endpoint is still
+  // ADMIN/OWNER-only, so for sub-ADMIN roles it 403s and grantedCodes is empty — they rely on the
+  // tier/exempt signal above (à-la-carte-only grants are rare and being folded into tiers).
   const { data: featureStatus, isLoading: featLoading } = useQuery({
     queryKey: ['venueFeatures', venueId],
     queryFn: () => getVenueFeatures(venueId!),
@@ -66,7 +76,7 @@ export function useVenueTier(): { venueTier: TierId; hasFeatureAccess: (feature:
     [featureStatus],
   )
 
-  const venueTier = mapPlanTier(planState?.planTier)
+  const venueTier: TierId = planTierInfo?.tier ?? 'FREE'
   const isLoading = planLoading || featLoading
 
   const hasFeatureAccess = useCallback(
@@ -74,24 +84,22 @@ export function useVenueTier(): { venueTier: TierId; hasFeatureAccess: (feature:
       if (isSuperadmin) return true
       if (isDemoVenue) return true // demo venue: todo abierto (espejo del backend)
       if (isWhiteLabelEnabled) return canFeature(feature)
-      // Fail-open when the plan state can't be POSITIVELY determined. planState carries the
-      // `grandfathered` flag + the tier, and is undefined both while the first load is in flight
-      // AND when the caller's role can't read it: GET /venues/:id/plan requires
-      // `billing:subscriptions:read`, which only ADMIN/OWNER hold — so for MANAGER/CASHIER/WAITER/…
-      // the request 403s, planState stays undefined, and the grandfathered/tier signal is lost.
-      // A UX-only gate must NEVER hard-block on unknowable entitlement (the backend is the source
-      // of truth and enforces the genuinely-gated routes). Without this, every sub-ADMIN staff
-      // member at a grandfathered OR paid venue is wrongly paywalled (e.g. a Mindform MANAGER
-      // blocked from editing inventory). Paywall ONLY on a positive denial below (planState loaded,
-      // not grandfathered, tier insufficient, no explicit grant).
-      if (planState === undefined) return true
-      // Grandfathered legacy venue → exempt from ALL tier monetization: every feature unlocked.
-      if (planState.grandfathered) return true
+      // Fail-open when the plan-tier signal can't be POSITIVELY determined — it is undefined while
+      // the first load is in flight AND if the request ever failed. A UX-only gate must NEVER
+      // hard-block on unknowable entitlement (the backend is the source of truth and enforces the
+      // genuinely-gated routes). planTierInfo comes from the all-roles `features:read` endpoint, so
+      // sub-ADMIN staff (MANAGER/CASHIER/…) now read it too — fixing the prior bug where they were
+      // wrongly paywalled (e.g. a Mindform MANAGER blocked from editing inventory) because the
+      // grandfathered/tier signal lived behind a billing-only endpoint. Paywall ONLY on a positive
+      // denial below (signal loaded, not exempt, tier insufficient, no explicit grant).
+      if (planTierInfo === undefined) return true
+      // Grandfathered legacy venue OR demo (exempt covers both) → exempt from ALL tier monetization.
+      if (planTierInfo.exempt) return true
       if (grantedCodes.has(feature)) return true // explicit / à-la-carte grant wins
       const required = getTierForFeature(feature) ?? 'PRO'
       return TIER_ORDER.indexOf(venueTier) >= TIER_ORDER.indexOf(required)
     },
-    [isSuperadmin, isDemoVenue, isWhiteLabelEnabled, canFeature, planState, grantedCodes, venueTier],
+    [isSuperadmin, isDemoVenue, isWhiteLabelEnabled, canFeature, planTierInfo, grantedCodes, venueTier],
   )
 
   return { venueTier, hasFeatureAccess, isLoading }
