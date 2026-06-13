@@ -176,18 +176,19 @@ test.describe('SalesExecutive (org Ventas)', () => {
   test('3 — city table pins "Total País" on top with column totals and months oldest → newest', async ({ page }) => {
     const cityCard = page.locator('div', { has: page.getByRole('heading', { name: 'Ventas Totales por Ciudad' }) }).last()
 
-    // Months left-to-right: Mar (older) must come before Abr (newer)
-    const headers = await cityCard.locator('thead th').allInnerTexts()
-    const mar = headers.findIndex(h => h.trim() === 'Mar')
-    const abr = headers.findIndex(h => h.trim() === 'Abr')
+    // Months left-to-right: Mar (older) must come before Abr (newer).
+    // Header row uses CSS `uppercase`, which affects innerText.
+    const headers = (await cityCard.locator('thead th').allInnerTexts()).map(h => h.trim().toUpperCase())
+    const mar = headers.indexOf('MAR')
+    const abr = headers.indexOf('ABR')
     expect(mar).toBeGreaterThan(-1)
     expect(abr).toBeGreaterThan(mar)
 
-    // First body row is the country total with per-month sums (2+0=2, 1+2=3, total 5)
+    // First body row is the country total with per-month sums (2+0=2, 1+2=3, total 5).
+    // CSS `uppercase` affects innerText, so compare case-insensitively.
     const totalRow = cityCard.locator('tbody tr').first()
-    await expect(totalRow).toContainText('Total País')
     const totalCells = await totalRow.locator('td').allInnerTexts()
-    expect(totalCells.map(c => c.trim())).toEqual(['Total País', '2', '3', '5'])
+    expect(totalCells.map(c => c.trim().toUpperCase())).toEqual(['TOTAL PAÍS', '2', '3', '5'])
 
     // Data rows sorted desc by total: SLP (3) before QRO (2)
     const rowNames = await cityCard.locator('tbody tr td:first-child').allInnerTexts()
@@ -211,9 +212,8 @@ test.describe('SalesExecutive (org Ventas)', () => {
     await expect(promoterCard).toContainText('Ricardo Martinez')
 
     const totalRow = promoterCard.locator('tbody tr').first()
-    await expect(totalRow).toContainText('Total País')
-    // Column totals: Mar 2, Abr 2, grand total 4
+    // Column totals: Mar 2, Abr 2, grand total 4 (CSS `uppercase` affects innerText)
     const totalCells = await totalRow.locator('td').allInnerTexts()
-    expect(totalCells.map(c => c.trim())).toEqual(['Total País', '2', '2', '4'])
+    expect(totalCells.map(c => c.trim().toUpperCase())).toEqual(['TOTAL PAÍS', '2', '2', '4'])
   })
 })
