@@ -44,6 +44,7 @@ import {
   TOUR_PARAM,
   VENTA_TPV_TOUR,
   RESERVA_TOUR,
+  LIGA_TOUR,
   VALID_TOURS,
   firedKey,
   SESSION_PENDING_KEY,
@@ -298,6 +299,98 @@ export function useDemoTour() {
     [buildDriver, t, navigate, fullBasePath],
   )
 
+  /* --------------------------- liga journey ---------------------------- */
+  const startLigaTour = useCallback(
+    (amountLabel: string | null) => {
+      const simOk = amountLabel !== null
+      const d = buildDriver([
+        {
+          element: '[data-tour="sidebar-sales"]',
+          popover: {
+            title: t('demoTour.sales.title', { defaultValue: '💸 Ventas' }),
+            description: t('demoTour.paymentLinks.description', {
+              defaultValue: 'Cobra a distancia sin terminal: comparte una liga por WhatsApp, QR o link directo. Entremos a ver la tuya.',
+            }),
+            side: 'right',
+            align: 'start',
+            onNextClick: async () => {
+              // The "Ligas de Pago" sidebar group renders without a data-tour
+              // (collapsible groups skip tourKey) — navigate straight to the page.
+              if (!exists('[data-tour="payment-links-table"]')) {
+                navigate(`${fullBasePath}/payment-links`)
+                await waitForElement('[data-tour="payment-links-table"]', 8000)
+                await delay(350)
+              }
+              d.moveNext()
+            },
+          },
+        },
+        {
+          element: '[data-tour="payment-links-table"]',
+          popover: {
+            title: simOk
+              ? t('demoTour.yourLink.title', {
+                  amount: amountLabel,
+                  defaultValue: '¡Esta es TU liga de {{amount}}! 🎉',
+                })
+              : t('demoTour.linkFallback.title', { defaultValue: 'Tus ligas de pago viven aquí' }),
+            description: simOk
+              ? t('demoTour.yourLink.description', {
+                  defaultValue: '"Sesión de fotos" — creada y cobrada 1 vez. Cada liga muestra sus pagos, estado y total cobrado.',
+                })
+              : t('demoTour.linkFallback.description', {
+                  defaultValue: 'Crea ligas de monto fijo, abierto o por artículo y compártelas por WhatsApp, QR o link directo.',
+                }),
+            side: 'top',
+            align: 'start',
+            onNextClick: async () => {
+              if (!exists('[data-tour="payments-table"]')) {
+                navigate(`${fullBasePath}/payments`)
+                await waitForElement('[data-tour="payments-table"]', 8000)
+                await delay(300)
+              }
+              d.moveNext()
+            },
+          },
+        },
+        {
+          element: '[data-tour="payments-table"]',
+          popover: {
+            title: simOk
+              ? t('demoTour.linkPayment.title', {
+                  amount: amountLabel,
+                  defaultValue: 'Y aquí está el pago de tu liga 💸',
+                })
+              : t('demoTour.feedFallback.title', { defaultValue: 'Aquí caen tus cobros, al instante' }),
+            description: simOk
+              ? t('demoTour.linkPayment.description', {
+                  amount: amountLabel,
+                  defaultValue:
+                    'El cobro de {{amount}} llegó a Transacciones como cualquier venta — con método de pago y canal web.',
+                })
+              : t('demoTour.feedFallback.description', {
+                  defaultValue:
+                    'Cada venta de la terminal aparece aquí al momento — con propina, método de pago y quién cobró. Los cobros que ves son datos de ejemplo de este negocio demo.',
+                }),
+            side: 'top',
+            align: 'start',
+          },
+        },
+        {
+          popover: {
+            title: t('demoTour.ligaComplete.title', { defaultValue: 'Cobra a distancia, sin terminal' }),
+            description: t('demoTour.ligaComplete.description', {
+              defaultValue:
+                'Liga creada, compartida y cobrada — y todo reflejado al instante en tu dashboard. Explora el resto con libertad: es tuyo.',
+            }),
+          },
+        },
+      ])
+      d.drive()
+    },
+    [buildDriver, t, navigate, fullBasePath],
+  )
+
   // CAPTURE at first param sight (backup path — main.tsx already captured
   // before the router mounted; this covers in-app navigations with the param).
   useEffect(() => {
@@ -376,6 +469,29 @@ export function useDemoTour() {
       /* noop */
     }
 
+    if (journey === LIGA_TOUR) {
+      // Create the visitor's payment link + its web payment, then tour:
+      // Ligas de Pago (TU liga) → Transacciones (TU pago). Fail-open with
+      // honest copy when the sim fails.
+      api
+        .post('/api/v1/live-demo/sim/payment-link')
+        .then(res => {
+          const amountCents: number | undefined = res.data?.data?.amountCents
+          return typeof amountCents === 'number' ? Currency(amountCents / 100) : Currency(350)
+        })
+        .catch(error => {
+          console.error('Demo tour: payment-link simulation failed', error)
+          return null
+        })
+        .then(amountLabel => {
+          timerRef.current = setTimeout(() => {
+            timerRef.current = null
+            startLigaTour(amountLabel)
+          }, 900)
+        })
+      return
+    }
+
     if (journey === RESERVA_TOUR) {
       // Create the visitor's reservation via the live-demo sim endpoint, then
       // tour to the calendar. Fail-open: the tour runs over seeded data with
@@ -418,7 +534,7 @@ export function useDemoTour() {
           startVentaTour(totalLabel, simOk)
         }, 900)
       })
-  }, [location.search, venue, startVentaTour, startReservaTour, formatTime])
+  }, [location.search, venue, startVentaTour, startReservaTour, startLigaTour, formatTime])
 
   // Unmount-only cleanup: pending timer + driver overlay + body flag.
   useEffect(() => {

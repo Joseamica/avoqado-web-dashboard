@@ -43,6 +43,29 @@
       "title": "Your calendar fills itself",
       "description": "Online bookings 24/7, WhatsApp reminders and an always-current calendar. Explore the rest of the dashboard freely: it’s yours."
     },
+    "ligaSales": {
+      "description": "Everything you charge lives here — including your payment links. Let’s find yours."
+    },
+    "paymentLinks": {
+      "title": "Payment Links",
+      "description": "Charge remotely without a terminal: share a link via WhatsApp, QR or direct URL. Let’s see yours."
+    },
+    "yourLink": {
+      "title": "This is YOUR {{amount}} payment link! 🎉",
+      "description": "\"Sesión de fotos\" — created and paid once. Each link shows its payments, status and total collected."
+    },
+    "linkFallback": {
+      "title": "Your payment links live here",
+      "description": "Create fixed, open or per-item links and share them via WhatsApp, QR or direct URL."
+    },
+    "linkPayment": {
+      "title": "And here is your link’s payment 💸",
+      "description": "The {{amount}} charge landed in Transactions like any sale — with payment method and web channel."
+    },
+    "ligaComplete": {
+      "title": "Charge remotely, no terminal needed",
+      "description": "Link created, shared and paid — all reflected instantly in your dashboard. Explore the rest freely: it’s yours."
+    },
     "complete": {
       "title": "This is how every sale in your business looks, live",
       "description": "Every charge from your team shows up here the moment it happens — no closeouts, no waiting. Explore the rest of the dashboard freely: it's yours."

@@ -560,14 +560,16 @@ export default function PaymentLinks() {
       </div>
 
       {/* Table */}
-      <DataTable
-        columns={columns}
-        data={links}
-        rowCount={links.length}
-        isLoading={isLoading}
-        onRowClick={(row: PaymentLink) => openEdit(row.id)}
-        tableId="payment-links:list"
-      />
+      <div data-tour="payment-links-table">
+        <DataTable
+          columns={columns}
+          data={links}
+          rowCount={links.length}
+          isLoading={isLoading}
+          onRowClick={(row: PaymentLink) => openEdit(row.id)}
+          tableId="payment-links:list"
+        />
+      </div>
 
       {/* Archive confirm dialog */}
       <AlertDialog open={!!archivingLink} onOpenChange={open => !open && setArchivingLink(null)}>

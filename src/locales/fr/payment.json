@@ -43,6 +43,29 @@
       "title": "Votre agenda se remplit tout seul",
       "description": "Réservations en ligne 24h/24, rappels WhatsApp et un calendrier toujours à jour. Explorez le reste du tableau de bord librement : il est à vous."
     },
+    "ligaSales": {
+      "description": "Tout ce que vous encaissez vit ici — y compris vos liens de paiement. Allons voir le vôtre."
+    },
+    "paymentLinks": {
+      "title": "Liens de paiement",
+      "description": "Encaissez à distance sans terminal : partagez un lien via WhatsApp, QR ou URL directe. Allons voir le vôtre."
+    },
+    "yourLink": {
+      "title": "Voici VOTRE lien de {{amount}} ! 🎉",
+      "description": "« Sesión de fotos » — créé et payé une fois. Chaque lien montre ses paiements, son statut et le total encaissé."
+    },
+    "linkFallback": {
+      "title": "Vos liens de paiement vivent ici",
+      "description": "Créez des liens à montant fixe, libre ou par article et partagez-les via WhatsApp, QR ou URL directe."
+    },
+    "linkPayment": {
+      "title": "Et voici le paiement de votre lien 💸",
+      "description": "Le paiement de {{amount}} est arrivé dans Transactions comme toute vente — avec moyen de paiement et canal web."
+    },
+    "ligaComplete": {
+      "title": "Encaissez à distance, sans terminal",
+      "description": "Lien créé, partagé et payé — tout reflété instantanément dans votre tableau de bord. Explorez le reste librement : il est à vous."
+    },
     "complete": {
       "title": "Voici chaque vente de votre commerce, en direct",
       "description": "Chaque encaissement de votre équipe apparaît ici à l'instant, sans clôtures ni attente. Explorez le reste du tableau de bord librement : il est à vous."

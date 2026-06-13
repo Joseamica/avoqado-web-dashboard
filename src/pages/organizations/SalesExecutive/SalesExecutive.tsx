@@ -5,13 +5,19 @@
  * Only counts SaleVerification with status=COMPLETED ("ventas mostradas
  * solo deben ser las confirmadas" per requirement).
  *
- * Charts (all sorted desc):
+ * Charts:
  *   - "Ventas Totales por Mes" (bar)
  *   - "Ventas por Tipo de SIM" (stacked bar by category)
  *   - "Ventas Totales Semanales" (bar)
- *   - "Ventas Totales por Ciudad" (heatmap table)
- *   - "Ventas Totales por Supervisor" (heatmap table)
- *   - "Ventas Totales por Tienda" (heatmap table)
+ *   - "Ventas Totales por Ciudad" (heatmap table, monthly)
+ *   - "Ventas Totales por Supervisor" (heatmap table, monthly)
+ *   - "Ventas Totales por Tienda" (heatmap table, monthly)
+ *   - "Ventas Totales por Promotor" (heatmap table, monthly)
+ *
+ * Heatmap table layout (Asana 1215613218390496, per client spec):
+ *   - "Total País" row pinned at the TOP with per-month totals
+ *   - rows sorted by total desc
+ *   - month columns oldest → newest, left to right
  */
 
 import { useMemo } from 'react'
@@ -33,6 +39,7 @@ import {
   getSalesByCity,
   getSalesBySupervisor,
   getSalesByStore,
+  getSalesByPromoter,
 } from '@/services/saleVerification.org.service'
 
 const MXN = (n: number) => n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 })
@@ -59,6 +66,21 @@ function formatMonth(key: string): string {
   // key is "2026-05"
   const [, mm] = key.split('-')
   return MONTH_NAME_ES[mm] ?? key
+}
+
+/**
+ * Month bucket sorter for heatmap tables: oldest → newest left-to-right (per
+ * client spec). Appends a 2-digit year ("Mar 26") only when the data spans
+ * more than one year, to disambiguate.
+ */
+function monthBucketsAsc(keys: string[]): { key: string; label: string }[] {
+  const sorted = keys.slice().sort((a, b) => a.localeCompare(b))
+  const years = new Set(sorted.map(k => k.split('-')[0]))
+  return sorted.map(k => {
+    const [yyyy] = k.split('-')
+    const name = formatMonth(k)
+    return { key: k, label: years.size > 1 ? `${name} ${yyyy.slice(2)}` : name }
+  })
 }
 
 export default function SalesExecutive() {
@@ -109,6 +131,12 @@ export default function SalesExecutive() {
     enabled: !!orgId,
     staleTime: 60_000,
   })
+  const byPromoter = useQuery({
+    queryKey: ['org', orgId, 'sales-by-promoter'],
+    queryFn: () => getSalesByPromoter(orgId!),
+    enabled: !!orgId,
+    staleTime: 60_000,
+  })
 
   // Prepare chart data
   const monthData = useMemo(
@@ -140,6 +168,17 @@ export default function SalesExecutive() {
     [byWeek.data],
   )
 
+  // Explicit period covered by the dashboard ("no se entiende qué periodo son").
+  // All queries are unbounded (full history), so the span = oldest → newest month with data.
+  const periodLabel = useMemo(() => {
+    const months = byMonth.data ?? [] // sorted desc: first = newest
+    if (months.length === 0) return null
+    const fmt = (k: string) => `${formatMonth(k)} ${k.split('-')[0]}`
+    const newest = months[0].month
+    const oldest = months[months.length - 1].month
+    return oldest === newest ? fmt(oldest) : `${fmt(oldest)} a ${fmt(newest)}`
+  }, [byMonth.data])
+
   if (orgLoading) {
     return (
       <div className="p-6 space-y-4">
@@ -169,6 +208,7 @@ export default function SalesExecutive() {
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Ventas</h1>
           <p className="text-xs sm:text-sm text-muted-foreground truncate">
             {organization?.name ?? 'Organización'} · Solo ventas confirmadas
+            {periodLabel ? ` · Histórico completo: ${periodLabel}` : ''}
           </p>
         </div>
         <Button asChild size={isMobile ? 'sm' : 'default'} className="shrink-0">
@@ -181,12 +221,14 @@ export default function SalesExecutive() {
         </Button>
       </div>
 
-      {/* KPI cards */}
+      {/* KPI cards — confirmed-only totals; pending/failed are counters, never part of totals */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiCard label="Total confirmadas" value={summary.data?.completedCount ?? 0} loading={summary.isLoading} />
         <KpiCard
           label="Monto confirmado"
-          value={summary.data?.totalRevenue ? MXN(summary.data.totalRevenue) : '$0'}
+          // confirmedRevenue excludes "en revisión" / "sin verificación"; fall back to
+          // legacy totalRevenue only while an older backend is still deployed.
+          value={MXN(summary.data?.confirmedRevenue ?? summary.data?.totalRevenue ?? 0)}
           loading={summary.isLoading}
           asString
         />
@@ -287,7 +329,7 @@ export default function SalesExecutive() {
           <HeatmapTable
             rows={(byCity.data ?? []).map(r => ({ name: r.city, byBucket: r.byMonth, total: r.total }))}
             rowLabel="Ciudad"
-            sortBuckets={keys => keys.sort((a, b) => b.localeCompare(a)).map(k => ({ key: k, label: formatMonth(k) }))}
+            sortBuckets={monthBucketsAsc}
           />
         )}
       </GlassCard>
@@ -301,9 +343,9 @@ export default function SalesExecutive() {
           <EmptyChart />
         ) : (
           <HeatmapTable
-            rows={(bySupervisor.data ?? []).map(r => ({ name: r.supervisorName, byBucket: r.byWeek, total: r.total }))}
+            rows={(bySupervisor.data ?? []).map(r => ({ name: r.supervisorName, byBucket: r.byMonth ?? r.byWeek, total: r.total }))}
             rowLabel="Supervisor"
-            sortBuckets={keys => keys.sort((a, b) => a.localeCompare(b)).map(k => ({ key: k, label: k }))}
+            sortBuckets={monthBucketsAsc}
           />
         )}
       </GlassCard>
@@ -317,9 +359,25 @@ export default function SalesExecutive() {
           <EmptyChart />
         ) : (
           <HeatmapTable
-            rows={(byStore.data ?? []).map(r => ({ name: r.venueName, byBucket: r.byWeek, total: r.total }))}
+            rows={(byStore.data ?? []).map(r => ({ name: r.venueName, byBucket: r.byMonth ?? r.byWeek, total: r.total }))}
             rowLabel="Tienda"
-            sortBuckets={keys => keys.sort((a, b) => a.localeCompare(b)).map(k => ({ key: k, label: k }))}
+            sortBuckets={monthBucketsAsc}
+          />
+        )}
+      </GlassCard>
+
+      {/* Row 6: promoter heatmap table */}
+      <GlassCard className="p-4 overflow-hidden">
+        <h2 className="text-sm font-semibold mb-3">Ventas Totales por Promotor</h2>
+        {byPromoter.isLoading ? (
+          <Skeleton className="h-48 w-full" />
+        ) : (byPromoter.data ?? []).length === 0 ? (
+          <EmptyChart />
+        ) : (
+          <HeatmapTable
+            rows={(byPromoter.data ?? []).map(r => ({ name: r.promoterName, byBucket: r.byMonth, total: r.total }))}
+            rowLabel="Promotor"
+            sortBuckets={monthBucketsAsc}
           />
         )}
       </GlassCard>
@@ -383,12 +441,28 @@ function HeatmapTable({
 }) {
   const isMobile = useIsMobile()
 
+  // Rows sorted by total desc (client spec: "ordenado de mayor a menor").
+  // Backend already sorts, but enforce here so the contract doesn't depend on it.
+  const sortedRows = useMemo(() => rows.slice().sort((a, b) => b.total - a.total), [rows])
+
   // Build the column list from all buckets across rows
   const allBuckets = useMemo(() => {
     const set = new Set<string>()
     rows.forEach(r => Object.keys(r.byBucket).forEach(k => set.add(k)))
     return sortBuckets(Array.from(set))
   }, [rows, sortBuckets])
+
+  // "Total País" row: per-column totals pinned at the top (client spec:
+  // "un total de la columna siempre encima").
+  const columnTotals = useMemo(() => {
+    const totals: Record<string, number> = {}
+    let grand = 0
+    for (const r of rows) {
+      for (const [k, v] of Object.entries(r.byBucket)) totals[k] = (totals[k] ?? 0) + v
+      grand += r.total
+    }
+    return { totals, grand }
+  }, [rows])
 
   // Cap intensity at p95 to avoid one outlier flattening everyone else.
   const maxValue = useMemo(() => {
@@ -425,7 +499,17 @@ function HeatmapTable({
           </tr>
         </thead>
         <tbody>
-          {rows.map(row => (
+          {/* Country-level total pinned on top */}
+          <tr className="border-y-2 border-border bg-muted/40 font-bold">
+            <td className={cn(firstColPad, 'whitespace-nowrap sticky left-0 z-10 bg-muted/40 uppercase', cellText)}>Total País</td>
+            {allBuckets.map(b => (
+              <td key={b.key} className={cn(cellPad, 'text-center font-mono', cellText)}>
+                {columnTotals.totals[b.key] ?? 0}
+              </td>
+            ))}
+            <td className={cn(cellPad, 'text-right font-mono')}>{columnTotals.grand}</td>
+          </tr>
+          {sortedRows.map(row => (
             <tr key={row.name} className="border-t border-border/30">
               <td
                 className={cn(

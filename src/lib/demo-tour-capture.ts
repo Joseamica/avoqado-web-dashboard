@@ -18,7 +18,8 @@
 export const TOUR_PARAM = 'demoTour'
 export const VENTA_TPV_TOUR = 'venta-tpv'
 export const RESERVA_TOUR = 'reserva'
-export const VALID_TOURS = [VENTA_TPV_TOUR, RESERVA_TOUR] as const
+export const LIGA_TOUR = 'liga'
+export const VALID_TOURS = [VENTA_TPV_TOUR, RESERVA_TOUR, LIGA_TOUR] as const
 export type DemoTourJourney = (typeof VALID_TOURS)[number]
 
 /** One fired-flag per journey so each demo can run once per tab session. */

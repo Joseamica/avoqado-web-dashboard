@@ -119,6 +119,11 @@ export interface OrgSaleListResponse {
 
 export interface OrgSalesSummary {
   totalRevenue: number
+  /**
+   * Revenue from CONFIRMED sales only (SaleVerification.status=COMPLETED).
+   * Optional for backwards compat with backends that don't return it yet.
+   */
+  confirmedRevenue?: number
   totalCount: number
   completedCount: number
   pendingCount: number
@@ -154,6 +159,8 @@ export interface SalesBySupervisorRow {
   supervisorId: string | null
   supervisorName: string
   byWeek: Record<string, number>
+  /** Month buckets ("2026-03"). Optional for backwards compat with older backends. */
+  byMonth?: Record<string, number>
   total: number
 }
 
@@ -161,6 +168,15 @@ export interface SalesByStoreRow {
   venueId: string
   venueName: string
   byWeek: Record<string, number>
+  /** Month buckets ("2026-03"). Optional for backwards compat with older backends. */
+  byMonth?: Record<string, number>
+  total: number
+}
+
+export interface SalesByPromoterRow {
+  staffId: string | null
+  promoterName: string
+  byMonth: Record<string, number>
   total: number
 }
 
@@ -244,6 +260,12 @@ export async function getSalesBySupervisor(orgId: string, params: RangeParams = 
 
 export async function getSalesByStore(orgId: string, params: RangeParams = {}): Promise<SalesByStoreRow[]> {
   const url = `/api/v1/dashboard/organizations/${orgId}/sale-verifications/by-store${buildQuery(params)}`
+  const response = await api.get(url)
+  return response.data.data
+}
+
+export async function getSalesByPromoter(orgId: string, params: RangeParams = {}): Promise<SalesByPromoterRow[]> {
+  const url = `/api/v1/dashboard/organizations/${orgId}/sale-verifications/by-promoter${buildQuery(params)}`
   const response = await api.get(url)
   return response.data.data
 }

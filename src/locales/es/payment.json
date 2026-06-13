@@ -43,6 +43,29 @@
       "title": "Tu agenda se llena sola",
       "description": "Reservas en línea 24/7, recordatorios por WhatsApp y tu calendario siempre al día. Explora el resto del dashboard con libertad: es tuyo."
     },
+    "ligaSales": {
+      "description": "Aquí vive todo lo que cobras — incluidas tus ligas de pago. Vamos a ver la tuya."
+    },
+    "paymentLinks": {
+      "title": "Ligas de Pago",
+      "description": "Cobra a distancia sin terminal: comparte una liga por WhatsApp, QR o link directo. Entremos a ver la tuya."
+    },
+    "yourLink": {
+      "title": "¡Esta es TU liga de {{amount}}! 🎉",
+      "description": "\"Sesión de fotos\" — creada y cobrada 1 vez. Cada liga muestra sus pagos, estado y total cobrado."
+    },
+    "linkFallback": {
+      "title": "Tus ligas de pago viven aquí",
+      "description": "Crea ligas de monto fijo, abierto o por artículo y compártelas por WhatsApp, QR o link directo."
+    },
+    "linkPayment": {
+      "title": "Y aquí está el pago de tu liga 💸",
+      "description": "El cobro de {{amount}} llegó a Transacciones como cualquier venta — con método de pago y canal web."
+    },
+    "ligaComplete": {
+      "title": "Cobra a distancia, sin terminal",
+      "description": "Liga creada, compartida y cobrada — y todo reflejado al instante en tu dashboard. Explora el resto con libertad: es tuyo."
+    },
     "complete": {
       "title": "Así se ve cada venta de tu negocio, en vivo",
       "description": "Cada cobro de tu equipo aparece aquí al momento, sin cierres ni esperas. Explora el resto del dashboard con libertad: es tuyo."

@@ -5,6 +5,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { usePlatformWelcomeTour } from '@/hooks/usePlatformWelcomeTour'
 import { useOnboardingKey } from '@/hooks/useOnboardingState'
 import { getPlatformTourState } from '@/lib/platform-tour-state'
+import { isDemoVenueStatus } from '@/types/superadmin'
 import { StaffRole } from '@/types'
 
 /**
@@ -24,7 +25,7 @@ import { StaffRole } from '@/types'
  */
 export function useAutoLaunchPlatformWelcomeTour(): { start: () => void; cancel: () => void } {
   const { user, staffInfo } = useAuth()
-  const { fullBasePath } = useCurrentVenue()
+  const { fullBasePath, venue } = useCurrentVenue()
   const { start, cancel } = usePlatformWelcomeTour()
   const location = useLocation()
 
@@ -50,6 +51,12 @@ export function useAutoLaunchPlatformWelcomeTour(): { start: () => void; cancel:
     if (sessionStorage.getItem('avoqado-demo-tour-pending')) return
     if (sessionStorage.getItem('avoqado-demo-tour-venta-tpv')) return
     if (sessionStorage.getItem('avoqado-demo-tour-reserva')) return
+    if (sessionStorage.getItem('avoqado-demo-tour-liga')) return
+
+    // Demo venues (LIVE_DEMO/TRIAL live demo): never auto-launch the generic
+    // welcome tour — the visitor came for the demo journeys and the overlay
+    // would interrupt them mid-exploration. Manual replay still works.
+    if (isDemoVenueStatus(venue?.status)) return
 
     // Don't auto-launch in the middle of a deep link (e.g. /payments/:id) —
     // only on Home or the venue root. The resume effect will pick up if a
@@ -75,7 +82,7 @@ export function useAutoLaunchPlatformWelcomeTour(): { start: () => void; cancel:
       timerRef.current = null
       start()
     }, 1200)
-  }, [isLoaded, completed, user?.id, staffInfo?.role, location.pathname, fullBasePath, start, setCompleted])
+  }, [isLoaded, completed, user?.id, staffInfo?.role, venue?.status, location.pathname, fullBasePath, start, setCompleted])
 
   useEffect(() => {
     return () => {
