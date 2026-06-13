@@ -22,7 +22,7 @@
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis, Cell, Legend } from 'recharts'
+import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis, Legend } from 'recharts'
 import { Link } from 'react-router-dom'
 import { Receipt, ChevronRight } from 'lucide-react'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
@@ -154,7 +154,9 @@ export default function SalesExecutive() {
     months.forEach(m => Object.keys(m.byCategory).forEach(c => categories.add(c)))
     const categoryList = Array.from(categories)
     return {
-      data: months.map(m => ({ month: formatMonth(m.month), ...m.byCategory })),
+      // `total` rides along (not a category, so it's not stacked) so the chart
+      // can label each column's grand total on top of the stack.
+      data: months.map(m => ({ month: formatMonth(m.month), ...m.byCategory, total: m.total })),
       categories: categoryList,
     }
   }, [bySimType.data])
@@ -254,7 +256,9 @@ export default function SalesExecutive() {
                   contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }}
                   formatter={(value: number) => [value, 'Ventas']}
                 />
-                <Bar dataKey="count" fill={PALETTE[0]} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="count" fill={PALETTE[0]} radius={[4, 4, 0, 0]}>
+                  <LabelList dataKey="count" position="top" className="fill-foreground" style={{ fontSize: isMobile ? 9 : 11, fontWeight: 600 }} />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -283,7 +287,12 @@ export default function SalesExecutive() {
                     stackId="sim"
                     fill={PALETTE[i % PALETTE.length]}
                     radius={i === simTypeData.categories.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
-                  />
+                  >
+                    {/* Stack total labelled once, on top of the last (top-most) segment */}
+                    {i === simTypeData.categories.length - 1 && (
+                      <LabelList dataKey="total" position="top" className="fill-foreground" style={{ fontSize: isMobile ? 9 : 11, fontWeight: 600 }} />
+                    )}
+                  </Bar>
                 ))}
               </BarChart>
             </ResponsiveContainer>
@@ -308,10 +317,9 @@ export default function SalesExecutive() {
                 contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }}
                 formatter={(value: number) => [value, 'Ventas']}
               />
-              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                {weekData.map((_, i) => (
-                  <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
-                ))}
+              {/* Single blue (client spec) — was multi-color per bar */}
+              <Bar dataKey="count" fill={PALETTE[0]} radius={[4, 4, 0, 0]}>
+                <LabelList dataKey="count" position="top" className="fill-foreground" style={{ fontSize: isMobile ? 9 : 11, fontWeight: 600 }} />
               </Bar>
             </BarChart>
           </ResponsiveContainer>
