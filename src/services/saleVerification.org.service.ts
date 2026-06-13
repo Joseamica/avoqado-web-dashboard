@@ -180,6 +180,25 @@ export interface SalesByPromoterRow {
   total: number
 }
 
+export interface PromoterDailyRow {
+  staffId: string | null
+  promoterName: string
+  /** Confirmed (COMPLETED) sales per day key ("YYYY-MM-DD"). */
+  byDay: Record<string, number>
+  /** Confirmed total for the current month (sum of byDay). Excludes toReview. */
+  total: number
+  /** FAILED sales the promoter must fix on the TPV ("Pendientes de revisar"). NOT in total. */
+  toReview: number
+}
+
+export interface PromoterDailyResult {
+  /** Current month "YYYY-MM". */
+  month: string
+  /** Ordered day keys of the current month, day 1 → today (venue tz). */
+  days: string[]
+  rows: PromoterDailyRow[]
+}
+
 // ============================================================
 // Query Parameters
 // ============================================================
@@ -266,6 +285,17 @@ export async function getSalesByStore(orgId: string, params: RangeParams = {}): 
 
 export async function getSalesByPromoter(orgId: string, params: RangeParams = {}): Promise<SalesByPromoterRow[]> {
   const url = `/api/v1/dashboard/organizations/${orgId}/sale-verifications/by-promoter${buildQuery(params)}`
+  const response = await api.get(url)
+  return response.data.data
+}
+
+/**
+ * "Ventas Totales por Promotor por día" — current month only. Per promoter:
+ * confirmed sales per day, monthly total, and a `toReview` count of FAILED
+ * sales the promoter must fix on the TPV. Always current month (no range).
+ */
+export async function getSalesByPromoterDaily(orgId: string): Promise<PromoterDailyResult> {
+  const url = `/api/v1/dashboard/organizations/${orgId}/sale-verifications/by-promoter-daily`
   const response = await api.get(url)
   return response.data.data
 }

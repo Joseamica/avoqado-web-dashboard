@@ -40,6 +40,8 @@ import {
   getSalesBySupervisor,
   getSalesByStore,
   getSalesByPromoter,
+  getSalesByPromoterDaily,
+  type PromoterDailyResult,
 } from '@/services/saleVerification.org.service'
 
 const MXN = (n: number) => n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 })
@@ -134,6 +136,12 @@ export default function SalesExecutive() {
   const byPromoter = useQuery({
     queryKey: ['org', orgId, 'sales-by-promoter'],
     queryFn: () => getSalesByPromoter(orgId!),
+    enabled: !!orgId,
+    staleTime: 60_000,
+  })
+  const byPromoterDaily = useQuery({
+    queryKey: ['org', orgId, 'sales-by-promoter-daily'],
+    queryFn: () => getSalesByPromoterDaily(orgId!),
     enabled: !!orgId,
     staleTime: 60_000,
   })
@@ -248,7 +256,7 @@ export default function SalesExecutive() {
             <EmptyChart />
           ) : (
             <ResponsiveContainer width="100%" height={chartHeight}>
-              <BarChart data={monthData} margin={isMobile ? { top: 5, right: 5, left: -20, bottom: 0 } : undefined}>
+              <BarChart data={monthData} margin={{ top: 24, right: 8, left: isMobile ? -20 : 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                 <XAxis dataKey="month" tick={{ fontSize: isMobile ? 10 : 12 }} />
                 <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} width={isMobile ? 30 : 40} />
@@ -272,7 +280,7 @@ export default function SalesExecutive() {
             <EmptyChart />
           ) : (
             <ResponsiveContainer width="100%" height={chartHeight}>
-              <BarChart data={simTypeData.data} margin={isMobile ? { top: 5, right: 5, left: -20, bottom: 0 } : undefined}>
+              <BarChart data={simTypeData.data} margin={{ top: 24, right: 8, left: isMobile ? -20 : 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                 <XAxis dataKey="month" tick={{ fontSize: isMobile ? 10 : 12 }} />
                 <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} width={isMobile ? 30 : 40} />
@@ -309,7 +317,7 @@ export default function SalesExecutive() {
           <EmptyChart />
         ) : (
           <ResponsiveContainer width="100%" height={weekChartHeight}>
-            <BarChart data={weekData} margin={isMobile ? { top: 5, right: 5, left: -20, bottom: 0 } : undefined}>
+            <BarChart data={weekData} margin={{ top: 24, right: 8, left: isMobile ? -20 : 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
               <XAxis dataKey="week" tick={{ fontSize: isMobile ? 9 : 12 }} interval={isMobile ? 'preserveStartEnd' : 0} />
               <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} width={isMobile ? 30 : 40} />
@@ -387,6 +395,19 @@ export default function SalesExecutive() {
             rowLabel="Promotor"
             sortBuckets={monthBucketsAsc}
           />
+        )}
+      </GlassCard>
+
+      {/* Row 7: promoter daily table (current month) + to-review column */}
+      <GlassCard className="p-4 overflow-hidden">
+        <h2 className="text-sm font-semibold">Ventas Totales por Promotor por día</h2>
+        <p className="text-xs text-muted-foreground mb-3">Mes en curso · solo ventas confirmadas</p>
+        {byPromoterDaily.isLoading ? (
+          <Skeleton className="h-48 w-full" />
+        ) : !byPromoterDaily.data || byPromoterDaily.data.rows.length === 0 ? (
+          <EmptyChart />
+        ) : (
+          <PromoterDailyTable data={byPromoterDaily.data} />
         )}
       </GlassCard>
     </div>
@@ -540,6 +561,115 @@ function HeatmapTable({
                 )
               })}
               <td className={cn(cellPad, 'text-right font-bold font-mono')}>{row.total}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+/** "YYYY-MM-DD" → "01-jun" (lowercase short month, matching the client's example). */
+function formatDay(key: string): string {
+  const [, mm, dd] = key.split('-')
+  return `${dd}-${(MONTH_NAME_ES[mm] ?? mm).toLowerCase()}`
+}
+
+/**
+ * "Ventas Totales por Promotor por día" (current month). Like HeatmapTable but
+ * columns are the days of the month and there's an extra rightmost column for
+ * sales the promoter must still fix on the TPV (FAILED) — which are NOT part of
+ * the monthly total. "Total País" pinned on top; rows sorted by total desc.
+ */
+function PromoterDailyTable({ data }: { data: PromoterDailyResult }) {
+  const isMobile = useIsMobile()
+
+  const sortedRows = useMemo(() => data.rows.slice().sort((a, b) => b.total - a.total), [data.rows])
+
+  // Column (per-day) totals, grand total, and the to-review total — for "Total País".
+  const totals = useMemo(() => {
+    const byDay: Record<string, number> = {}
+    let grand = 0
+    let toReview = 0
+    for (const r of data.rows) {
+      for (const k of data.days) byDay[k] = (byDay[k] ?? 0) + (r.byDay[k] ?? 0)
+      grand += r.total
+      toReview += r.toReview
+    }
+    return { byDay, grand, toReview }
+  }, [data])
+
+  // p95-capped intensity so one big day doesn't flatten the rest.
+  const maxValue = useMemo(() => {
+    const values = data.rows.flatMap(r => data.days.map(k => r.byDay[k] ?? 0))
+    if (values.length === 0) return 1
+    const sorted = values.slice().sort((a, b) => a - b)
+    return Math.max(sorted[Math.floor(sorted.length * 0.95)], 1)
+  }, [data])
+
+  const cellPad = isMobile ? 'px-1.5 py-1.5' : 'px-2.5 py-2'
+  const firstColPad = isMobile ? 'px-2 py-1.5' : 'px-3 py-2'
+  const cellText = isMobile ? 'text-[10px]' : 'text-xs'
+
+  return (
+    <div className="overflow-x-auto">
+      <table className={cn('w-full', isMobile ? 'text-xs' : 'text-sm')}>
+        <thead>
+          <tr className={cn(cellText, 'uppercase text-muted-foreground')}>
+            <th className={cn(firstColPad, 'text-left sticky left-0 z-10 bg-card whitespace-nowrap')}>Promotor</th>
+            {data.days.map(k => (
+              <th key={k} className={cn(cellPad, 'text-center whitespace-nowrap')}>
+                {formatDay(k)}
+              </th>
+            ))}
+            <th className={cn(cellPad, 'text-right')}>Total</th>
+            <th className={cn(cellPad, 'text-center whitespace-normal max-w-[110px] text-amber-600 dark:text-amber-500 normal-case leading-tight')}>
+              Pendientes de revisar por el promotor en TPV
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {/* Total País pinned on top */}
+          <tr className="border-y-2 border-border bg-muted/40 font-bold">
+            <td className={cn(firstColPad, 'whitespace-nowrap sticky left-0 z-10 bg-muted/40 uppercase', cellText)}>Total País</td>
+            {data.days.map(k => (
+              <td key={k} className={cn(cellPad, 'text-center font-mono', cellText)}>
+                {totals.byDay[k] ?? 0}
+              </td>
+            ))}
+            <td className={cn(cellPad, 'text-right font-mono')}>{totals.grand}</td>
+            <td className={cn(cellPad, 'text-center font-mono', totals.toReview > 0 && 'text-amber-600 dark:text-amber-500')}>
+              {totals.toReview}
+            </td>
+          </tr>
+          {sortedRows.map(row => (
+            <tr key={`${row.staffId ?? 'none'}-${row.promoterName}`} className="border-t border-border/30">
+              <td
+                className={cn(firstColPad, 'font-medium whitespace-nowrap sticky left-0 z-10 bg-card', isMobile && 'max-w-[120px] truncate')}
+                title={row.promoterName}
+              >
+                {row.promoterName}
+              </td>
+              {data.days.map(k => {
+                const v = row.byDay[k] ?? 0
+                const intensity = v === 0 ? 0 : Math.min(v / maxValue, 1)
+                const bg = intensity === 0 ? 'transparent' : `hsla(217, 91%, 60%, ${Math.max(intensity * 0.6, 0.1)})`
+                return (
+                  <td key={k} className={cn(cellPad, 'text-center font-mono', cellText)} style={{ backgroundColor: bg }}>
+                    {v || ''}
+                  </td>
+                )
+              })}
+              <td className={cn(cellPad, 'text-right font-bold font-mono')}>{row.total}</td>
+              <td
+                className={cn(
+                  cellPad,
+                  'text-center font-mono font-semibold',
+                  row.toReview > 0 ? 'text-amber-600 dark:text-amber-500 bg-amber-500/10' : 'text-muted-foreground',
+                )}
+              >
+                {row.toReview || ''}
+              </td>
             </tr>
           ))}
         </tbody>

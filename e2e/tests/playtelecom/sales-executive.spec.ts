@@ -151,6 +151,24 @@ async function setupSalesExecutiveMocks(page: Page) {
       }),
     ),
   )
+  // Registered AFTER by-promoter* so LIFO matching checks this specific route first.
+  await page.route(`${base}/by-promoter-daily*`, route =>
+    route.fulfill(
+      json({
+        success: true,
+        data: {
+          month: '2026-06',
+          days: ['2026-06-01', '2026-06-02', '2026-06-03'],
+          rows: [
+            { staffId: 'p1', promoterName: 'Nancy Casillas', byDay: { '2026-06-01': 7, '2026-06-02': 79, '2026-06-03': 104 }, total: 190, toReview: 4 },
+            { staffId: 'p2', promoterName: 'Patricia Navarro', byDay: { '2026-06-01': 4, '2026-06-02': 85 }, total: 89, toReview: 3 },
+            // only to-review (no confirmed) → must still appear so the promoter acts
+            { staffId: 'p3', promoterName: 'Lucia Briones', byDay: {}, total: 0, toReview: 6 },
+          ],
+        },
+      }),
+    ),
+  )
 
   // 4. Auth status (highest priority — registered last)
   await page.route('**/api/v1/dashboard/auth/status', route => route.fulfill(json(createAuthStatusResponse(user))))
@@ -207,7 +225,8 @@ test.describe('SalesExecutive (org Ventas)', () => {
   })
 
   test('5 — promoter table renders with country total on top', async ({ page }) => {
-    const promoterCard = page.locator('div', { has: page.getByRole('heading', { name: 'Ventas Totales por Promotor' }) }).last()
+    // exact:true so it doesn't also match "Ventas Totales por Promotor por día"
+    const promoterCard = page.locator('div', { has: page.getByRole('heading', { name: 'Ventas Totales por Promotor', exact: true }) }).last()
     await expect(promoterCard).toContainText('Susana Valdez')
     await expect(promoterCard).toContainText('Ricardo Martinez')
 
@@ -215,5 +234,30 @@ test.describe('SalesExecutive (org Ventas)', () => {
     // Column totals: Mar 2, Abr 2, grand total 4 (CSS `uppercase` affects innerText)
     const totalCells = await totalRow.locator('td').allInnerTexts()
     expect(totalCells.map(c => c.trim().toUpperCase())).toEqual(['TOTAL PAÍS', '2', '2', '4'])
+  })
+
+  test('6 — daily promoter table: day columns, to-review column, total excludes to-review', async ({ page }) => {
+    const card = page.locator('div', { has: page.getByRole('heading', { name: 'Ventas Totales por Promotor por día' }) }).last()
+
+    // Day columns formatted "01-jun" and the to-review column header present
+    await expect(card.locator('thead')).toContainText('01-jun')
+    await expect(card.locator('thead')).toContainText('03-jun')
+    await expect(card.locator('thead')).toContainText('Pendientes de revisar por el promotor en TPV')
+
+    // Total País on top: days 11 / 164 / 104, grand 279, to-review 13 (4+3+6)
+    const totalRow = card.locator('tbody tr').first()
+    const totalCells = (await totalRow.locator('td').allInnerTexts()).map(c => c.trim().toUpperCase())
+    expect(totalCells).toEqual(['TOTAL PAÍS', '11', '164', '104', '279', '13'])
+
+    // Rows sorted desc by confirmed total; a promoter with only to-review still shows
+    const names = await card.locator('tbody tr td:first-child').allInnerTexts()
+    expect(names.indexOf('Nancy Casillas')).toBeLessThan(names.indexOf('Patricia Navarro'))
+    await expect(card).toContainText('Lucia Briones')
+
+    // Lucia: 0 confirmed but 6 to-review (the action signal)
+    const lucia = card.locator('tbody tr', { hasText: 'Lucia Briones' })
+    const luciaCells = (await lucia.locator('td').allInnerTexts()).map(c => c.trim())
+    expect(luciaCells[luciaCells.length - 1]).toBe('6') // to-review
+    expect(luciaCells[luciaCells.length - 2]).toBe('0') // confirmed total
   })
 })
