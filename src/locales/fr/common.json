@@ -139,7 +139,13 @@
     "title": "🎉 Vous êtes en Mode Démo",
     "description": "Ceci est un établissement de démonstration. Cliquez ci-dessous pour le convertir en établissement réel et commencer à accepter les paiements.",
     "convertButton": "Convertir en Réel",
-    "dismissButton": "Fermer la bannière"
+    "dismissButton": "Fermer la bannière",
+    "liveDemo": {
+      "title": "🚀 Ceci n'est que la démo",
+      "description": "Créez votre compte gratuit et commencez à encaisser pour de vrai en quelques minutes. Sans carte.",
+      "signupButton": "Créer mon compte gratuit",
+      "salesButton": "Parler aux ventes"
+    }
   },
   "header": {
     "superadmin": "Superadministrateur"

@@ -202,7 +202,13 @@
     "title": "🎉 Estás en Modo Demo",
     "description": "Esta es una sucursal de demostración. Haz clic abajo para convertirla en una sucursal real y comenzar a aceptar pagos.",
     "convertButton": "Convertir a Real",
-    "dismissButton": "Descartar banner"
+    "dismissButton": "Descartar banner",
+    "liveDemo": {
+      "title": "🚀 Esto es solo el demo",
+      "description": "Crea tu cuenta gratis y empieza a cobrar de verdad en minutos. Sin tarjeta.",
+      "signupButton": "Crear mi cuenta gratis",
+      "salesButton": "Hablar con ventas"
+    }
   },
   "header": {
     "superadmin": "Superadmin"

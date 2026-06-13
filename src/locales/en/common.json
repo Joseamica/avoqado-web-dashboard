@@ -202,7 +202,13 @@
     "title": "🎉 You're in Demo Mode",
     "description": "This is a demo venue. Click below to convert to a real venue and start accepting payments.",
     "convertButton": "Convert to Real",
-    "dismissButton": "Dismiss banner"
+    "dismissButton": "Dismiss banner",
+    "liveDemo": {
+      "title": "🚀 This is just the demo",
+      "description": "Create your free account and start accepting real payments in minutes. No card required.",
+      "signupButton": "Create my free account",
+      "salesButton": "Talk to sales"
+    }
   },
   "header": {
     "superadmin": "Superadmin"

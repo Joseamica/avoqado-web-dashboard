@@ -14,6 +14,7 @@ import { TrialStatusBanner } from './components/TrialStatusBanner'
 import { PaymentSetupAlert } from './components/PaymentSetupAlert'
 import { VenueSuspendedScreen } from './components/VenueSuspendedScreen'
 import { StaffRole } from './types'
+import { isDemoVenueStatus } from './types/superadmin'
 import { useCurrentVenue } from './hooks/use-current-venue'
 import { Button } from './components/ui/button'
 import { Shield, ArrowLeft } from 'lucide-react'
@@ -362,8 +363,10 @@ function DashboardContent() {
             amber→pink gradient that is visually distinct from every other banner. */}
         <ImpersonationBanner />
 
-        {/* Onboarding Demo Banner - only show if venue is in TRIAL status */}
-        {venue?.status === 'TRIAL' && <DemoBanner />}
+        {/* Demo conversion banner — shows for BOTH the onboarding TRIAL venue
+            (convert-this-venue flow) and the public LIVE_DEMO venue
+            (create-real-account flow). DemoBanner branches by status. */}
+        {isDemoVenueStatus(venue?.status) && <DemoBanner />}
 
         {/* Trial Status Banner - show for non-demo venues with active feature trials */}
         {venue?.status !== 'TRIAL' && venue?.status !== 'LIVE_DEMO' && <TrialStatusBanner />}
