@@ -977,12 +977,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isOnLoginPage = location.pathname === '/login'
   const shouldSkipLoadingScreen = isLoggingOutRef.current || hasSessionHintOnMount.current || isOnLoginPage
 
-  if ((isStatusLoading || isLiveDemoInitializing) && !shouldSkipLoadingScreen) {
+  // Live-demo initialization ALWAYS shows the friendly "Preparando tu demo…" screen
+  // (it only runs on demo.dashboard), so a returning visitor with a stale session
+  // hint never flashes the login page while a fresh demo is being created. Normal
+  // status-loading still respects the session-hint skip to avoid a "verifying" flash.
+  if (isLiveDemoInitializing || (isStatusLoading && !shouldSkipLoadingScreen)) {
     const retryMessage =
       isLiveDemoInitializing && retryCountRef.current > 0
-        ? `Initializing live demo... (attempt ${retryCountRef.current + 1}/3)`
+        ? t('auth:liveDemo.initializingRetry', { attempt: retryCountRef.current + 1 })
         : isLiveDemoInitializing
-          ? 'Initializing live demo...'
+          ? t('auth:liveDemo.initializing')
           : t('common:verifying_session')
     console.log('[AUTH] 📊 SHOWING LoadingScreen with message:', retryMessage)
     return <LoadingScreen message={retryMessage} />
