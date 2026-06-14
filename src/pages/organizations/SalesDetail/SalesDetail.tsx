@@ -32,6 +32,7 @@ import {
   ZoomIn,
   ZoomOut,
   Smartphone,
+  Pencil,
 } from 'lucide-react'
 import { DateTime } from 'luxon'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
@@ -54,6 +55,7 @@ import { GlassCard } from '@/components/ui/glass-card'
 import { cn } from '@/lib/utils'
 import { exportToExcel, exportToCSV, generateFilename } from '@/utils/export'
 import { ReviewSaleDialog, type ReviewMode } from '@/pages/playtelecom/Sales/components/ReviewSaleDialog'
+import { EditSaleDialog } from './components/EditSaleDialog'
 import {
   listOrgSaleVerifications,
   getOrgSalesSummary,
@@ -198,6 +200,8 @@ export default function SalesDetail() {
   // and SERIALIZED_INVENTORY-active on the venue's org, so this client gate is
   // purely for UX (hide a button that would 403 anyway).
   const canReopen = user?.role === 'OWNER' || user?.role === 'SUPERADMIN'
+  const canEdit = user?.role === 'OWNER' || user?.role === 'SUPERADMIN'
+  const [editRow, setEditRow] = useState<OrgSaleRow | null>(null)
 
   // Photo preview state
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
@@ -594,6 +598,7 @@ export default function SalesDetail() {
                 onPhotoClick={url => setPhotoPreview(url)}
                 onReview={mode => openReview(row, mode)}
                 onReopen={canReopen ? () => openReopen(row) : undefined}
+                onEdit={canEdit ? () => setEditRow(row) : undefined}
                 onTerminalClick={row.terminal ? () => goToTerminal(row.terminal!.id) : undefined}
               />
             ))
@@ -731,6 +736,19 @@ export default function SalesDetail() {
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex items-center justify-end gap-1">
+                        {canEdit && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-blue-700 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-900/20"
+                            onClick={() => setEditRow(row)}
+                            data-tour="edit-sale-btn"
+                            title="Editar venta"
+                          >
+                            <Pencil className="h-3.5 w-3.5 mr-1" />
+                            Editar
+                          </Button>
+                        )}
                         {row.status === 'PENDING' ? (
                           <>
                             <Button
@@ -807,6 +825,9 @@ export default function SalesDetail() {
         orgId={orgId}
         onClose={() => setReviewOpen(false)}
       />
+
+      {/* Edit dialog (OWNER/SUPERADMIN) */}
+      <EditSaleDialog open={!!editRow} row={editRow} orgId={orgId} onClose={() => setEditRow(null)} />
 
       {/* Photo zoom dialog — click image toggles fit <-> native 1:1; "Abrir original" falls back to native browser zoom. */}
       <Dialog
@@ -988,6 +1009,7 @@ function SaleCard({
   onPhotoClick,
   onReview,
   onReopen,
+  onEdit,
   onTerminalClick,
 }: {
   row: OrgSaleRow
@@ -997,6 +1019,8 @@ function SaleCard({
   onReview: (mode: ReviewMode) => void
   /** Provided only when the current user has `sale-verifications:reopen`. */
   onReopen?: () => void
+  /** Provided only when the current user can edit (OWNER/SUPERADMIN). */
+  onEdit?: () => void
   /** Provided only when the sale resolved to a known TPV terminal. */
   onTerminalClick?: () => void
 }) {
@@ -1081,7 +1105,19 @@ function SaleCard({
       )}
 
       {/* Actions */}
-      <div className="pt-2 border-t border-border/30">
+      <div className="pt-2 border-t border-border/30 space-y-2">
+        {onEdit && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full text-blue-700 border-blue-200 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-900/20"
+            onClick={onEdit}
+            data-tour="edit-sale-btn"
+          >
+            <Pencil className="h-4 w-4 mr-1" />
+            Editar venta
+          </Button>
+        )}
         {row.status === 'PENDING' ? (
           <div className="grid grid-cols-2 gap-2">
             <Button
