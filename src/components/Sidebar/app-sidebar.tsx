@@ -316,6 +316,12 @@ export function AppSidebar({
       { title: 'Historial', url: 'inventory/history', permission: 'inventory:read', keywords: ['movimientos', 'registro'] },
       { title: 'Pedidos', url: 'inventory/purchase-orders', permission: 'inventory:read', keywords: ['ordenes de compra', 'abastecimiento'] },
       { title: 'Proveedores', url: 'inventory/suppliers', permission: 'inventory:read', keywords: ['suppliers', 'compras', 'abastecimiento'] },
+      {
+        title: t('inventory:autoReorder.title', { defaultValue: 'Re-orden automático' }),
+        url: 'inventory/auto-reorder',
+        permission: 'inventory:read',
+        keywords: ['auto reorder', 'reabastecimiento automatico', 'punto de reorden', 'orden automatica'],
+      },
       { title: 'Ingredientes', url: 'inventory/ingredients', permission: 'inventory:read', keywords: ['materia prima', 'insumos', 'materiales'] },
       { title: t('sidebar:routes.recipes', { defaultValue: 'Recetas' }), url: 'inventory/recipes', permission: 'inventory:read', keywords: ['preparaciones', 'formulas', 'costos'] },
       { title: 'Rentabilidad', url: 'inventory/profitability', permission: 'inventory:read', keywords: ['margen', 'precio', 'utilidad', 'rentabilidad', 'pricing', 'policy', 'política'] },

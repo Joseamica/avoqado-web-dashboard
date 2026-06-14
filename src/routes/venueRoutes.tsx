@@ -108,6 +108,7 @@ import {
   StockCountDetailPage,
   InventoryTransfersPage,
   InventoryTransferDetailPage,
+  AutoReorderSettings,
   TeamId,
   Teams,
   TerminalOrderDetail,
@@ -585,6 +586,8 @@ export function createVenueRoutes(): RouteObject[] {
                 { path: 'pricing', element: <Navigate to="../recipes" replace /> },
                 { path: 'modifiers', element: <ModifierInventory /> },
                 { path: 'modifier-analytics', element: <ModifierAnalytics /> },
+                // Auto-reorder settings — page self-gates with <FeatureGate feature="AUTO_REORDER"> (PREMIUM)
+                { path: 'auto-reorder', element: <AutoReorderSettings /> },
               ],
             },
           ],

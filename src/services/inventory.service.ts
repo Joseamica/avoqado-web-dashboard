@@ -928,3 +928,45 @@ export const productTypesApi = {
   getAll: () =>
     api.get<{ data: { types: ProductTypeConfig[] } }>(`/api/v1/dashboard/product-types`),
 }
+
+// ===========================================
+// AUTO-REORDER API (PREMIUM AUTO_REORDER)
+// ===========================================
+
+export type ReorderUrgency = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+
+export interface AutoReorderConfig {
+  enabled: boolean
+  dailyCapMxn: number | null
+  minUrgency: ReorderUrgency
+}
+
+export interface AutoReorderPreviewItem {
+  name: string
+  currentStock: number
+  reorderPoint: number
+  urgency: ReorderUrgency
+  suggestedQuantity: number
+  estimatedCost: number | null
+  supplier: string | null
+}
+
+export interface AutoReorderSettingsResponse {
+  config: AutoReorderConfig
+  preview: { totalSuggestions: number; criticalCount: number; items: AutoReorderPreviewItem[] }
+}
+
+export async function getAutoReorderSettings(venueId: string): Promise<AutoReorderSettingsResponse> {
+  const { data } = await api.get(`/api/v1/dashboard/venues/${venueId}/inventory/auto-reorder`)
+  return data
+}
+
+export async function updateAutoReorderSettings(venueId: string, config: AutoReorderConfig): Promise<{ config: AutoReorderConfig }> {
+  const { data } = await api.put(`/api/v1/dashboard/venues/${venueId}/inventory/auto-reorder`, config)
+  return data
+}
+
+export async function runAutoReorderNow(venueId: string): Promise<{ result: { ordersCreated: number; emailsSent: number } }> {
+  const { data } = await api.post(`/api/v1/dashboard/venues/${venueId}/inventory/auto-reorder/run-now`, {})
+  return data
+}

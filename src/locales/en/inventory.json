@@ -1292,5 +1292,23 @@
       "title": "🎉 You know the system!",
       "description": "To get started, follow this order:<br/><br/>✅ <b>Categories</b> → create 3-5<br/>✅ <b>Ingredients</b> (only if you use recipes)<br/>✅ <b>Products</b> → 5-10 to start<br/>✅ <b>Purchase order</b> → receive initial stock<br/>✅ <b>Test sale</b> → verify stock drops correctly<br/><br/>Every section has the <b>\"?\"</b> button with a deep-dive tour. If you get lost, come back here and replay this walkthrough.<br/><br/>Good luck!"
     }
+  },
+  "autoReorder": {
+    "title": "Automatic re-ordering",
+    "subtitle": "When an ingredient drops to its reorder point, the system creates the purchase order and emails the supplier automatically, every night.",
+    "enable": "Enable automatic re-ordering",
+    "enableHelp": "Sends REAL emails to your suppliers with no human review. Turn on only if you trust your prices and loaded suppliers.",
+    "dailyCap": "Daily spend cap (MXN)",
+    "dailyCapHelp": "Max that can be auto-ordered per day. Empty = no cap.",
+    "minUrgency": "Minimum urgency",
+    "minUrgencyHelp": "Only items at or above this urgency are re-ordered.",
+    "previewTitle": "This would be re-ordered today",
+    "previewEmpty": "Nothing below the reorder point right now.",
+    "save": "Save",
+    "saved": "Settings saved",
+    "runNow": "Run now",
+    "runNowDone": "{{orders}} order(s) created, {{emails}} email(s) sent",
+    "urgency": { "LOW": "Low", "MEDIUM": "Medium", "HIGH": "High", "CRITICAL": "Critical" },
+    "autoBadge": "Automatic"
   }
 }

@@ -147,6 +147,7 @@ export const StockCountsPage = lazyWithRetry(() => import('@/pages/Inventory/Sto
 export const StockCountDetailPage = lazyWithRetry(() => import('@/pages/Inventory/StockCounts/StockCountDetailPage'))
 export const InventoryTransfersPage = lazyWithRetry(() => import('@/pages/Inventory/Transfers/TransfersPage'))
 export const InventoryTransferDetailPage = lazyWithRetry(() => import('@/pages/Inventory/Transfers/TransferDetailPage'))
+export const AutoReorderSettings = lazyWithRetry(() => import('@/pages/Inventory/AutoReorderSettings'))
 
 // Settings
 export const RolePermissions = lazyWithRetry(() => import('@/pages/Settings/RolePermissions'))

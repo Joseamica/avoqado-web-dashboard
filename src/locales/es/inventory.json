@@ -1292,5 +1292,23 @@
       "title": "🎉 ¡Ya conoces el sistema!",
       "description": "Para arrancar, sigue este orden:<br/><br/>✅ <b>Categorías</b> → crea 3-5<br/>✅ <b>Ingredientes</b> (solo si usas recetas)<br/>✅ <b>Productos</b> → 5-10 para empezar<br/>✅ <b>Orden de compra</b> → recibe mercancía inicial<br/>✅ <b>Venta de prueba</b> → verifica que el stock baje correcto<br/><br/>En cada sección verás el botón <b>\"?\"</b> con el tour detallado. Si te pierdes, regresa aquí y vuelve a abrir este recorrido.<br/><br/>¡Éxito!"
     }
+  },
+  "autoReorder": {
+    "title": "Re-orden automático",
+    "subtitle": "Cuando un ingrediente baja a su punto de reorden, el sistema crea la orden de compra y le manda el correo al proveedor automáticamente, cada noche.",
+    "enable": "Activar re-orden automático",
+    "enableHelp": "Manda correos REALES a tus proveedores sin que nadie los revise. Actívalo solo si confías en tus precios y proveedores cargados.",
+    "dailyCap": "Tope de gasto diario (MXN)",
+    "dailyCapHelp": "Máximo que se puede ordenar automáticamente por día. Vacío = sin tope.",
+    "minUrgency": "Urgencia mínima",
+    "minUrgencyHelp": "Solo se re-ordenan ítems con esta urgencia o mayor.",
+    "previewTitle": "Esto se re-ordenaría hoy",
+    "previewEmpty": "Nada por debajo del punto de reorden ahora mismo.",
+    "save": "Guardar",
+    "saved": "Configuración guardada",
+    "runNow": "Ejecutar ahora",
+    "runNowDone": "{{orders}} orden(es) creada(s), {{emails}} correo(s) enviado(s)",
+    "urgency": { "LOW": "Baja", "MEDIUM": "Media", "HIGH": "Alta", "CRITICAL": "Crítica" },
+    "autoBadge": "Automático"
   }
 }

@@ -63,7 +63,7 @@ export const PLAN_TIERS: PlanTierDef[] = [
     priceAnnual: 16990,
     checkout: 'self_serve', // Premium purchasable — Stripe product seeded (plan_premium_*)
     featureKeys: ['allPro', 'cfdi', 'inventoryFifo', 'predictiveAnalytics', 'multiVenue', 'prioritySupport'],
-    includes: ['CFDI', 'INVENTORY_TRACKING', 'ADVANCED_ANALYTICS', 'COMMISSIONS', 'ATTENDANCE_TRACKING', 'SERIALIZED_INVENTORY'],
+    includes: ['CFDI', 'INVENTORY_TRACKING', 'ADVANCED_ANALYTICS', 'COMMISSIONS', 'ATTENDANCE_TRACKING', 'SERIALIZED_INVENTORY', 'AUTO_REORDER'],
   },
   {
     id: 'ENTERPRISE',
