@@ -335,3 +335,30 @@ export async function reopenOrgSaleVerification(
   const response = await api.post(url, params)
   return response.data.data
 }
+
+export interface EditOrgSaleParams {
+  /** Payment.amount (MXN). */
+  amount?: number
+  /** Maps to Payment.method on the backend. */
+  paymentForm?: 'CASH' | 'CARD' | 'OTHER'
+  /** Tipo de venta: true = Portabilidad, false = Línea nueva. */
+  isPortabilidad?: boolean
+  status?: SaleVerificationStatus
+  /** Mandatory, min 5 chars — recorded in the audit log. */
+  reason: string
+}
+
+/**
+ * Edit/correct a sale at org scope (OWNER-only, `sale-verifications:edit`).
+ * Returns the updated verification; callers should invalidate the list +
+ * summary queries.
+ */
+export async function editOrgSaleVerification(
+  orgId: string,
+  saleVerificationId: string,
+  params: EditOrgSaleParams,
+): Promise<unknown> {
+  const url = `/api/v1/dashboard/organizations/${orgId}/sale-verifications/${saleVerificationId}`
+  const response = await api.patch(url, params)
+  return response.data.data
+}
