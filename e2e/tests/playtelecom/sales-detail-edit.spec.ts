@@ -106,5 +106,9 @@ test.describe('SalesDetail — admin edit', () => {
     await expect.poll(() => patchBody).not.toBeNull()
     expect(patchBody.amount).toBe(100)
     expect(patchBody.reason).toContain('ESIM')
+    // Lock the payload contract — a regression that drops a field must fail here.
+    expect(patchBody).toHaveProperty('status')
+    expect(patchBody).toHaveProperty('paymentForm')
+    expect(patchBody).toHaveProperty('isPortabilidad')
   })
 })
