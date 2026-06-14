@@ -1309,6 +1309,10 @@
     "runNow": "Run now",
     "runNowDone": "{{orders}} order(s) created, {{emails}} email(s) sent",
     "urgency": { "LOW": "Low", "MEDIUM": "Medium", "HIGH": "High", "CRITICAL": "Critical" },
-    "autoBadge": "Automatic"
+    "autoBadge": "Automatic",
+    "noAddressTitle": "Your branch address is missing",
+    "noAddressHelp": "Auto-reorder emails the purchase order to your supplier with your delivery address. Add it to enable.",
+    "addAddress": "Add address",
+    "saveError": "Couldn't save the settings"
   }
 }

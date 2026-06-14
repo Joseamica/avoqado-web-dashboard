@@ -953,6 +953,8 @@ export interface AutoReorderPreviewItem {
 
 export interface AutoReorderSettingsResponse {
   config: AutoReorderConfig
+  /** False when the venue has no delivery address — auto-reorder cannot be enabled until it's set. */
+  hasDeliveryAddress: boolean
   preview: { totalSuggestions: number; criticalCount: number; items: AutoReorderPreviewItem[] }
 }
 

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/hooks/use-toast'
+import { useNavigate } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { Switch } from '@/components/ui/switch'
@@ -21,7 +22,8 @@ const URGENCIES: ReorderUrgency[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
 export default function AutoReorderSettings() {
   const { t } = useTranslation('inventory')
   const { toast } = useToast()
-  const { venueId } = useCurrentVenue()
+  const navigate = useNavigate()
+  const { venueId, fullBasePath } = useCurrentVenue()
   const qc = useQueryClient()
 
   const { data, isLoading } = useQuery({
@@ -43,11 +45,17 @@ export default function AutoReorderSettings() {
     [enabled, cap, minUrgency, data],
   )
 
+  // False only when the backend explicitly reports no delivery address (default true while loading).
+  const hasDeliveryAddress = data?.hasDeliveryAddress !== false
+
   const saveMut = useMutation({
     mutationFn: () => updateAutoReorderSettings(venueId!, config),
     onSuccess: () => {
       toast({ title: t('autoReorder.saved') })
       qc.invalidateQueries({ queryKey: ['autoReorderSettings', venueId] })
+    },
+    onError: (err: any) => {
+      toast({ title: err?.response?.data?.message ?? t('autoReorder.saveError'), variant: 'destructive' })
     },
   })
 
@@ -64,13 +72,30 @@ export default function AutoReorderSettings() {
           <p className="mt-1 text-sm text-muted-foreground">{t('autoReorder.subtitle')}</p>
         </div>
 
+        {data && !hasDeliveryAddress && (
+          <div className="flex items-start justify-between gap-4 rounded-2xl border border-amber-400/40 bg-amber-400/10 p-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">{t('autoReorder.noAddressTitle')}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{t('autoReorder.noAddressHelp')}</p>
+            </div>
+            <Button variant="outline" className="shrink-0 cursor-pointer" onClick={() => navigate(`${fullBasePath}/settings`)}>
+              {t('autoReorder.addAddress')}
+            </Button>
+          </div>
+        )}
+
         <div className="space-y-4 rounded-2xl border border-input bg-card p-6">
           <label className="flex items-start justify-between gap-4">
             <span>
               <span className="block text-sm font-medium text-foreground">{t('autoReorder.enable')}</span>
               <span className="mt-1 block text-xs text-muted-foreground">{t('autoReorder.enableHelp')}</span>
             </span>
-            <Switch data-tour="auto-reorder-toggle" checked={config.enabled} onCheckedChange={setEnabled} />
+            <Switch
+              data-tour="auto-reorder-toggle"
+              checked={config.enabled}
+              onCheckedChange={setEnabled}
+              disabled={!hasDeliveryAddress}
+            />
           </label>
 
           <div>

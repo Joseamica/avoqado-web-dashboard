@@ -1309,6 +1309,10 @@
     "runNow": "Ejecutar ahora",
     "runNowDone": "{{orders}} orden(es) creada(s), {{emails}} correo(s) enviado(s)",
     "urgency": { "LOW": "Baja", "MEDIUM": "Media", "HIGH": "Alta", "CRITICAL": "Crítica" },
-    "autoBadge": "Automático"
+    "autoBadge": "Automático",
+    "noAddressTitle": "Falta la dirección de tu sucursal",
+    "noAddressHelp": "El re-orden automático le manda la orden de compra a tu proveedor con tu dirección de entrega. Agrégala para poder activarlo.",
+    "addAddress": "Agregar dirección",
+    "saveError": "No se pudo guardar la configuración"
   }
 }
