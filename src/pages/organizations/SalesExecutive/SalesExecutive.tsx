@@ -64,6 +64,21 @@ const MONTH_NAME_ES: Record<string, string> = {
   '12': 'Dic',
 }
 
+const MONTH_FULL_ES: Record<string, string> = {
+  '01': 'Enero',
+  '02': 'Febrero',
+  '03': 'Marzo',
+  '04': 'Abril',
+  '05': 'Mayo',
+  '06': 'Junio',
+  '07': 'Julio',
+  '08': 'Agosto',
+  '09': 'Septiembre',
+  '10': 'Octubre',
+  '11': 'Noviembre',
+  '12': 'Diciembre',
+}
+
 function formatMonth(key: string): string {
   // key is "2026-05"
   const [, mm] = key.split('-')
@@ -577,26 +592,33 @@ function formatDay(key: string): string {
 
 /**
  * "Ventas Totales por Promotor por día" (current month). Like HeatmapTable but
- * columns are the days of the month and there's an extra rightmost column for
- * sales the promoter must still fix on the TPV (FAILED) — which are NOT part of
- * the monthly total. "Total País" pinned on top; rows sorted by total desc.
+ * columns are the days of the month, plus a grouped rightmost header "Pendientes
+ * de revisar por el promotor en TPV" split into two columns — the current month
+ * and "Meses anteriores" — for FAILED sales the promoter must fix on the TPV.
+ * Neither to-review column is part of the monthly total. "Total País" pinned on
+ * top; rows sorted by confirmed total desc.
  */
 function PromoterDailyTable({ data }: { data: PromoterDailyResult }) {
   const isMobile = useIsMobile()
 
   const sortedRows = useMemo(() => data.rows.slice().sort((a, b) => b.total - a.total), [data.rows])
 
-  // Column (per-day) totals, grand total, and the to-review total — for "Total País".
+  // Current month label for the to-review sub-column (e.g. "Junio").
+  const currentMonthLabel = MONTH_FULL_ES[data.month.split('-')[1]] ?? data.month
+
+  // Per-day totals, grand total, and the two to-review totals — for "Total País".
   const totals = useMemo(() => {
     const byDay: Record<string, number> = {}
     let grand = 0
     let toReview = 0
+    let toReviewPrevious = 0
     for (const r of data.rows) {
       for (const k of data.days) byDay[k] = (byDay[k] ?? 0) + (r.byDay[k] ?? 0)
       grand += r.total
       toReview += r.toReview
+      toReviewPrevious += r.toReviewPrevious
     }
-    return { byDay, grand, toReview }
+    return { byDay, grand, toReview, toReviewPrevious }
   }, [data])
 
   // p95-capped intensity so one big day doesn't flatten the rest.
@@ -610,22 +632,33 @@ function PromoterDailyTable({ data }: { data: PromoterDailyResult }) {
   const cellPad = isMobile ? 'px-1.5 py-1.5' : 'px-2.5 py-2'
   const firstColPad = isMobile ? 'px-2 py-1.5' : 'px-3 py-2'
   const cellText = isMobile ? 'text-[10px]' : 'text-xs'
+  const amber = 'text-amber-600 dark:text-amber-500'
 
   return (
     <div className="overflow-x-auto">
       <table className={cn('w-full', isMobile ? 'text-xs' : 'text-sm')}>
         <thead>
+          {/* Row 1: group header — the two right columns sit under one label */}
           <tr className={cn(cellText, 'uppercase text-muted-foreground')}>
-            <th className={cn(firstColPad, 'text-left sticky left-0 z-10 bg-card whitespace-nowrap')}>Promotor</th>
+            <th rowSpan={2} className={cn(firstColPad, 'text-left align-bottom sticky left-0 z-10 bg-card whitespace-nowrap')}>
+              Promotor
+            </th>
             {data.days.map(k => (
-              <th key={k} className={cn(cellPad, 'text-center whitespace-nowrap')}>
+              <th key={k} rowSpan={2} className={cn(cellPad, 'text-center align-bottom whitespace-nowrap')}>
                 {formatDay(k)}
               </th>
             ))}
-            <th className={cn(cellPad, 'text-right')}>Total</th>
-            <th className={cn(cellPad, 'text-center whitespace-normal max-w-[110px] text-amber-600 dark:text-amber-500 normal-case leading-tight')}>
+            <th rowSpan={2} className={cn(cellPad, 'text-right align-bottom')}>
+              Total
+            </th>
+            <th colSpan={2} className={cn(cellPad, 'text-center whitespace-normal normal-case leading-tight border-b border-border/40', amber)}>
               Pendientes de revisar por el promotor en TPV
             </th>
+          </tr>
+          {/* Row 2: the two to-review sub-columns */}
+          <tr className={cn(cellText, 'uppercase text-muted-foreground')}>
+            <th className={cn(cellPad, 'text-center whitespace-nowrap', amber)}>{currentMonthLabel}</th>
+            <th className={cn(cellPad, 'text-center whitespace-nowrap', amber)}>Meses anteriores</th>
           </tr>
         </thead>
         <tbody>
@@ -638,9 +671,8 @@ function PromoterDailyTable({ data }: { data: PromoterDailyResult }) {
               </td>
             ))}
             <td className={cn(cellPad, 'text-right font-mono')}>{totals.grand}</td>
-            <td className={cn(cellPad, 'text-center font-mono', totals.toReview > 0 && 'text-amber-600 dark:text-amber-500')}>
-              {totals.toReview}
-            </td>
+            <td className={cn(cellPad, 'text-center font-mono', totals.toReview > 0 && amber)}>{totals.toReview}</td>
+            <td className={cn(cellPad, 'text-center font-mono', totals.toReviewPrevious > 0 && amber)}>{totals.toReviewPrevious}</td>
           </tr>
           {sortedRows.map(row => (
             <tr key={`${row.staffId ?? 'none'}-${row.promoterName}`} className="border-t border-border/30">
@@ -665,10 +697,19 @@ function PromoterDailyTable({ data }: { data: PromoterDailyResult }) {
                 className={cn(
                   cellPad,
                   'text-center font-mono font-semibold',
-                  row.toReview > 0 ? 'text-amber-600 dark:text-amber-500 bg-amber-500/10' : 'text-muted-foreground',
+                  row.toReview > 0 ? cn(amber, 'bg-amber-500/10') : 'text-muted-foreground',
                 )}
               >
                 {row.toReview || ''}
+              </td>
+              <td
+                className={cn(
+                  cellPad,
+                  'text-center font-mono font-semibold',
+                  row.toReviewPrevious > 0 ? cn(amber, 'bg-amber-500/10') : 'text-muted-foreground',
+                )}
+              >
+                {row.toReviewPrevious || ''}
               </td>
             </tr>
           ))}

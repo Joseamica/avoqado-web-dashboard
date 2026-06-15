@@ -187,8 +187,10 @@ export interface PromoterDailyRow {
   byDay: Record<string, number>
   /** Confirmed total for the current month (sum of byDay). Excludes toReview. */
   total: number
-  /** FAILED sales the promoter must fix on the TPV ("Pendientes de revisar"). NOT in total. */
+  /** FAILED sales the promoter must fix on the TPV, created THIS month ("Pendientes de revisar" → current month). NOT in total. */
   toReview: number
+  /** Still-FAILED sales from PREVIOUS months ("Meses anteriores"). NOT in total. */
+  toReviewPrevious: number
 }
 
 export interface PromoterDailyResult {
