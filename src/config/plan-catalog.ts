@@ -51,7 +51,7 @@ export const PLAN_TIERS: PlanTierDef[] = [
     priceMonthly: 999,
     priceAnnual: 9990,
     checkout: 'self_serve',
-    featureKeys: ['allFree', 'reportsHistory', 'aiMcp', 'loyaltyReferrals', 'reservationsOrdering', 'seatsUnlimited'],
+    featureKeys: ['allFree', 'reportsHistory', 'auditLog', 'aiMcp', 'loyaltyReferrals', 'reservationsOrdering', 'seatsUnlimited'],
     includes: [
       'ADVANCED_REPORTS',
       'AI_ASSISTANT_BUBBLE',
@@ -61,6 +61,7 @@ export const PLAN_TIERS: PlanTierDef[] = [
       'RESERVATIONS',
       'ONLINE_ORDERING',
       'BANK_RECONCILIATION',
+      'VENUE_AUDIT_LOG',
     ],
   },
   {

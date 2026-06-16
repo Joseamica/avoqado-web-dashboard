@@ -816,6 +816,29 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
     defaultAccess: ACCESS_ADMIN_ONLY,
   },
 
+  VENUE_AUDIT_LOG: {
+    code: 'VENUE_AUDIT_LOG',
+    name: 'Bitácora de Actividad',
+    description: 'Registro de todas las acciones realizadas en el venue: quién hizo qué y cuándo',
+    category: 'analytics',
+    source: 'avoqado_core',
+
+    component: {
+      path: '@/pages/Venue/VenueActivityLog',
+    },
+
+    routes: [{ path: 'activity-log', element: 'VenueActivityLog' }],
+
+    configSchema: { type: 'object', properties: {} },
+
+    defaultNavItem: {
+      label: 'Bitácora',
+      icon: 'ScrollText',
+    },
+
+    defaultAccess: ACCESS_OWNER_ONLY,
+  },
+
   // ============================================
   // MODULE SPECIFIC: PLAYTELECOM
   // Features specific to telecom/retail businesses

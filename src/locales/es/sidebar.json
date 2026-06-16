@@ -173,6 +173,9 @@
     "chargeCard": "Cargo a tarjeta",
     "sendLink": "Enviar liga de pago"
   },
+  "auditLog": {
+    "title": "Bitácora"
+  },
   "organizationMenu": {
     "title": "Organización",
     "config": "Configuración TPV",

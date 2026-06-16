@@ -456,6 +456,7 @@
   "activityLog": {
     "title": "Activity Log",
     "subtitle": "Track all actions performed across your organization",
+    "subtitleVenue": "Track all actions performed in this venue",
     "searchPlaceholder": "Search by action, entity, or ID...",
     "noResults": "No activity matches your filters",
     "empty": "No activity recorded yet",
@@ -470,7 +471,10 @@
     },
     "filters": {
       "allVenues": "All Venues",
-      "allActions": "All Actions"
+      "allActions": "All Actions",
+      "allStaff": "All Staff",
+      "dateFrom": "From",
+      "dateTo": "To"
     },
     "pagination": {
       "showing": "Showing {{from}}-{{to}} of {{total}}"

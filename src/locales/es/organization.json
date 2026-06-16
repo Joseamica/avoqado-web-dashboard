@@ -456,6 +456,7 @@
   "activityLog": {
     "title": "Registro de Actividad",
     "subtitle": "Seguimiento de todas las acciones realizadas en tu organización",
+    "subtitleVenue": "Seguimiento de todas las acciones realizadas en esta sucursal",
     "searchPlaceholder": "Buscar por acción, entidad o ID...",
     "noResults": "No se encontró actividad con esos filtros",
     "empty": "No se ha registrado actividad aún",
@@ -470,7 +471,10 @@
     },
     "filters": {
       "allVenues": "Todas las Sucursales",
-      "allActions": "Todas las Acciones"
+      "allActions": "Todas las Acciones",
+      "allStaff": "Todo el Personal",
+      "dateFrom": "Desde",
+      "dateTo": "Hasta"
     },
     "pagination": {
       "showing": "Mostrando {{from}}-{{to}} de {{total}}"

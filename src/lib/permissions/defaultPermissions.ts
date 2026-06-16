@@ -491,4 +491,11 @@ export const PERMISSION_CATEGORIES = {
     label: 'Org-Level Inventory',
     permissions: ['inventory:org-manage'],
   },
+  // ===========================
+  // ACTIVITY LOG (PRO feature — OWNER default)
+  // ===========================
+  ACTIVITY: {
+    label: 'Activity Log',
+    permissions: ['activity:read'],
+  },
 } as const
