@@ -9,7 +9,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Skeleton } from '@/components/ui/skeleton'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -31,6 +30,7 @@ import {
   MINDFORM_VENUE_ID,
 } from '@/services/reports/salesSummary.service'
 import { getVenueMerchantAccountsByVenueId, getVenueSettlementInfo, type MerchantAccount } from '@/services/paymentProvider.service'
+import { SalesSummaryExportDialog } from '@/pages/Reports/components/SalesSummaryExportDialog'
 import {
   ChevronDown,
   ChevronRight,
@@ -772,8 +772,7 @@ export default function SalesSummary() {
   const [_discountsOpen, _setDiscountsOpen] = useState(true)
 
   // State for export sheet
-  const [exportOpen, setExportOpen] = useState(false)
-  const [exportType, setExportType] = useState<'all' | 'view'>('view')
+  const [exportDialogOpen, setExportDialogOpen] = useState(false)
 
   // State for controls drawer
   const [controlsOpen, setControlsOpen] = useState(false)
@@ -1012,62 +1011,6 @@ export default function SalesSummary() {
     setPendingChartMetric(metric)
   }
 
-  // Export CSV function
-  const handleExportCSV = () => {
-    // Format date for filename
-    const formatDateForFilename = (date: Date) => {
-      return date.toISOString().split('T')[0]
-    }
-
-    // Build CSV content
-    const rows: string[][] = []
-
-    // Header row
-    rows.push([t('salesSummary.title'), `${formatDateForFilename(dateRange.from)} - ${formatDateForFilename(dateRange.to)}`])
-    rows.push([]) // Empty row
-
-    // Summary section
-    rows.push([t('salesSummary.sections.summary')])
-    rows.push([t('salesSummary.columns.concept'), t('salesSummary.columns.count'), t('salesSummary.columns.amount')])
-    // Order-derived metrics are null under a payment filter — default to 0 so the
-    // export never throws (the filtered export still carries the payment-derived rows).
-    rows.push([t('salesSummary.rows.grossSales'), data.transactions.completed.toString(), (data.summary.totalGross ?? 0).toFixed(2)])
-    rows.push([t('salesSummary.rows.discounts'), '', (-(data.summary.discounts ?? 0)).toFixed(2)])
-    rows.push([t('salesSummary.rows.refunds'), data.transactions.refunded.toString(), (-data.summary.refunds).toFixed(2)])
-    rows.push([t('salesSummary.rows.netSales'), '', (data.summary.netSales ?? 0).toFixed(2)])
-    rows.push([t('salesSummary.rows.taxes'), '', (data.summary.taxes ?? 0).toFixed(2)])
-    rows.push([t('salesSummary.rows.tips'), '', data.summary.tips.toFixed(2)])
-    rows.push([t('salesSummary.rows.totalCollected'), '', data.summary.totalCollected.toFixed(2)])
-
-    // Add payment methods if exporting all data
-    if (exportType === 'all') {
-      rows.push([]) // Empty row
-      rows.push([t('salesSummary.sections.paymentMethods')])
-      rows.push([t('salesSummary.tableColumns.method'), t('salesSummary.columns.count'), t('salesSummary.columns.amount'), t('salesSummary.tableColumns.percentage')])
-      rows.push([t('salesSummary.paymentTypes.card'), data.paymentMethods.card.count.toString(), data.paymentMethods.card.amount.toFixed(2), `${data.paymentMethods.card.percentage.toFixed(1)}%`])
-      rows.push([t('salesSummary.paymentTypes.cash'), data.paymentMethods.cash.count.toString(), data.paymentMethods.cash.amount.toFixed(2), `${data.paymentMethods.cash.percentage.toFixed(1)}%`])
-      rows.push([t('salesSummary.paymentTypes.other'), data.paymentMethods.other.count.toString(), data.paymentMethods.other.amount.toFixed(2), `${data.paymentMethods.other.percentage.toFixed(1)}%`])
-    }
-
-    // Convert to CSV string
-    const csvContent = rows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n')
-
-    // Create and download file
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-    link.setAttribute('href', url)
-    link.setAttribute('download', `sales-summary-${formatDateForFilename(dateRange.from)}-${formatDateForFilename(dateRange.to)}.csv`)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-
-    // Close export sheet
-    setExportOpen(false)
-  }
-
   // Build API filters
   // Always request paymentMethod grouping for the top chart visualization
   // Free venues are hard-pinned to today's summary: ignore any saved range / report
@@ -1273,63 +1216,17 @@ export default function SalesSummary() {
             Pro-only — Free has nothing to configure on a single-day basic view. */}
         {hasAccess && (
         <div className="flex items-center gap-2">
-          {/* Export Popover */}
-          <Popover open={exportOpen} onOpenChange={setExportOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9 cursor-pointer">
-                <Download className="w-4 h-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-72 p-4">
-              <div className="space-y-3">
-                <div>
-                  <h4 className="font-semibold text-sm">{t('salesSummary.export.title')}</h4>
-                  <p className="text-xs text-muted-foreground">{t('salesSummary.export.subtitle')}</p>
-                </div>
-                <RadioGroup
-                  value={exportType}
-                  onValueChange={(value: 'all' | 'view') => setExportType(value)}
-                  className="space-y-2"
-                >
-                  <Label
-                    htmlFor="export-all"
-                    className={cn(
-                      'flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-colors',
-                      'hover:bg-muted/50',
-                      exportType === 'all' && 'bg-muted/30'
-                    )}
-                  >
-                    <RadioGroupItem value="all" id="export-all" className="mt-0.5" />
-                    <div className="space-y-0.5">
-                      <p className="text-sm font-medium leading-tight">{t('salesSummary.export.exportAll')}</p>
-                      <p className="text-xs text-muted-foreground">{t('salesSummary.export.exportAllDesc')}</p>
-                    </div>
-                  </Label>
-                  <Label
-                    htmlFor="export-view"
-                    className={cn(
-                      'flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-colors',
-                      'hover:bg-muted/50',
-                      exportType === 'view' && 'bg-muted/30'
-                    )}
-                  >
-                    <RadioGroupItem value="view" id="export-view" className="mt-0.5" />
-                    <div className="space-y-0.5">
-                      <p className="text-sm font-medium leading-tight">{t('salesSummary.export.exportView')}</p>
-                      <p className="text-xs text-muted-foreground">{t('salesSummary.export.exportViewDesc')}</p>
-                    </div>
-                  </Label>
-                </RadioGroup>
-                <Button
-                  size="sm"
-                  className="w-full rounded-full cursor-pointer"
-                  onClick={handleExportCSV}
-                >
-                  {t('salesSummary.export.button')}
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
+          {/* Export trigger — opens the rich export dialog */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 cursor-pointer"
+            data-tour="sales-summary-export"
+            onClick={() => setExportDialogOpen(true)}
+            aria-label={t('salesSummary.export.title')}
+          >
+            <Download className="w-4 h-4" />
+          </Button>
 
           {/* Controls Sheet */}
           <Sheet open={controlsOpen} onOpenChange={(open) => {
@@ -1953,6 +1850,23 @@ export default function SalesSummary() {
         </div>
         )}
       </div>
+
+      {/* Rich export dialog — backend-driven export so numbers match the on-screen report.
+          Seeded from the page's current filter state; the user can adjust inside. */}
+      {hasAccess && (
+        <SalesSummaryExportDialog
+          open={exportDialogOpen}
+          onClose={() => setExportDialogOpen(false)}
+          venueId={venueId}
+          initialDateFrom={dateRange.from}
+          initialDateTo={dateRange.to}
+          initialPaymentMethod={paymentMethodFilter}
+          initialCardType={cardTypeFilter}
+          initialMerchantAccountId={merchantAccountId}
+          merchantAccounts={merchantAccounts}
+          estimatedCount={apiResponse?.summary?.transactionCount ?? undefined}
+        />
+      )}
 
       {/* Date Range Picker — Pro can pick any range; Free is locked to "Hoy" with an
           inline upsell to history. */}

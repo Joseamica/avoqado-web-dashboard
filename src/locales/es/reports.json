@@ -116,12 +116,83 @@
     },
     "export": {
       "title": "Exportar",
-      "subtitle": "Ajustes",
-      "exportAll": "Exportar todos los datos",
-      "exportAllDesc": "Incluye resumen y métodos de pago",
-      "exportView": "Exportar vista",
-      "exportViewDesc": "Solo incluye la vista actual",
-      "button": "Exportar"
+      "button": "Exportar",
+      "mode": {
+        "label": "¿Qué quieres exportar?",
+        "summary": "Resumen",
+        "summaryDesc": "Totales y desgloses agregados",
+        "detailed": "Transacciones detalladas",
+        "detailedDesc": "Una fila por transacción"
+      },
+      "sections": {
+        "label": "Secciones a incluir",
+        "totals": "Totales",
+        "paymentMethods": "Desglose por método de pago",
+        "cardTypes": "Detalle por tipo de tarjeta",
+        "cardTypesDisabledHint": "Quita el filtro de método de pago para incluir el detalle por tipo de tarjeta.",
+        "merchantAccounts": "Desglose por comercio",
+        "byPeriod": "Por periodo"
+      },
+      "filters": {
+        "label": "Filtros",
+        "paymentMethod": "Método de pago",
+        "paymentMethodOptions": {
+          "all": "Todos",
+          "cash": "Efectivo",
+          "card": "Tarjeta",
+          "other": "Otro"
+        },
+        "cardType": "Tipo de tarjeta",
+        "cardTypeOptions": {
+          "all": "Todas",
+          "credit": "Crédito",
+          "debit": "Débito",
+          "amex": "Amex",
+          "international": "Internacional"
+        },
+        "merchant": "Comercio",
+        "merchantOptions": {
+          "all": "Todos"
+        },
+        "staff": "Mesero",
+        "shift": "Turno",
+        "shiftOptions": {
+          "all": "Todos"
+        }
+      },
+      "columns": {
+        "label": "Columnas a incluir",
+        "createdAt": "Fecha",
+        "paymentId": "ID",
+        "waiterName": "Mesero",
+        "merchantAccount": "Cuenta comercial",
+        "method": "Método",
+        "cardBrand": "Marca",
+        "last4": "Últimos 4",
+        "international": "Internacional",
+        "amount": "Subtotal",
+        "tipAmount": "Propina",
+        "totalAmount": "Total",
+        "status": "Estatus",
+        "source": "Origen"
+      },
+      "format": {
+        "label": "Formato",
+        "csv": "CSV",
+        "csvHint": "Ligero. Compatible con Excel y Google Sheets.",
+        "xlsx": "Excel",
+        "xlsxHint": "Con formato, ideal para contabilidad.",
+        "pdf": "PDF",
+        "pdfHint": "Imprimible. Límite de 1,000 filas."
+      },
+      "estimatedCount": "≈ {{count}} transacciones",
+      "tooLarge": "Demasiados resultados",
+      "tooLargeHint": "Reduce el rango con filtros o usa CSV/Excel.",
+      "premium": {
+        "title": "La exportación detallada requiere Premium",
+        "body": "Exporta una fila por transacción con todas las columnas en CSV, Excel o PDF.",
+        "cta": "Mejorar a Premium"
+      }
     },
     "filters": {
       "metrics": "Métricas",

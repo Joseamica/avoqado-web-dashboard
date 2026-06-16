@@ -208,6 +208,22 @@ test.describe('Sales Summary — per-merchant reconciliation', () => {
   test('FREE venue: reconciliation block hidden, PRO paywall shown instead', async ({ page }) => {
     // Non-grandfathered FREE plan → useTierFeatureAccess('ADVANCED_REPORTS') = no access.
     await setupMocks(page, { planState: { grandfathered: false, hasPlan: false, state: 'none', planTier: null } })
+
+    // The reconciliation block is gated by useTierFeatureAccess('ADVANCED_REPORTS'), which reads
+    // GET /plan-tier (getVenuePlanTierInfo), NOT GET /plan. api-mocks.ts does NOT mock /plan-tier,
+    // so without this route it falls through to the catch-all → undefined → the hook FAILS OPEN
+    // (block renders) and this "is hidden" assertion would wrongly fail. Register our OWN /plan-tier
+    // (AFTER setupMocks, LIFO) returning the FREE tier so the gate DENIES deterministically:
+    // ADVANCED_REPORTS requires PRO, and TIER_ORDER.indexOf('FREE') < indexOf('PRO') → no access.
+    // Scoped to THIS test only — the other tests in this file rely on the fail-open (gate OPEN).
+    await page.route('**/api/v1/dashboard/venues/*/plan-tier', route =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { tier: 'FREE', grandfathered: false, exempt: false } }),
+      }),
+    )
+
     await gotoReport(page)
 
     // The reconciliation block must NOT render…

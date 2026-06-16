@@ -42,7 +42,6 @@
   RefreshCw,
   Monitor,
   Calculator,
-  BookOpen,
   Inbox,
   Landmark,
   Percent,

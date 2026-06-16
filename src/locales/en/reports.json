@@ -116,12 +116,83 @@
     },
     "export": {
       "title": "Export",
-      "subtitle": "Settings",
-      "exportAll": "Export all data",
-      "exportAllDesc": "Include summary and payment methods",
-      "exportView": "Export view",
-      "exportViewDesc": "Only include the current view",
-      "button": "Export"
+      "button": "Export",
+      "mode": {
+        "label": "What do you want to export?",
+        "summary": "Summary",
+        "summaryDesc": "Aggregated totals and breakdowns",
+        "detailed": "Detailed transactions",
+        "detailedDesc": "One row per transaction"
+      },
+      "sections": {
+        "label": "Sections to include",
+        "totals": "Totals",
+        "paymentMethods": "Payment-method breakdown",
+        "cardTypes": "Card-type detail",
+        "cardTypesDisabledHint": "Remove the payment-method filter to include card-type detail.",
+        "merchantAccounts": "Merchant-account breakdown",
+        "byPeriod": "By period"
+      },
+      "filters": {
+        "label": "Filters",
+        "paymentMethod": "Payment method",
+        "paymentMethodOptions": {
+          "all": "All",
+          "cash": "Cash",
+          "card": "Card",
+          "other": "Other"
+        },
+        "cardType": "Card type",
+        "cardTypeOptions": {
+          "all": "All",
+          "credit": "Credit",
+          "debit": "Debit",
+          "amex": "Amex",
+          "international": "International"
+        },
+        "merchant": "Merchant",
+        "merchantOptions": {
+          "all": "All"
+        },
+        "staff": "Server",
+        "shift": "Shift",
+        "shiftOptions": {
+          "all": "All"
+        }
+      },
+      "columns": {
+        "label": "Columns to include",
+        "createdAt": "Date",
+        "paymentId": "ID",
+        "waiterName": "Server",
+        "merchantAccount": "Merchant account",
+        "method": "Method",
+        "cardBrand": "Brand",
+        "last4": "Last 4",
+        "international": "International",
+        "amount": "Subtotal",
+        "tipAmount": "Tip",
+        "totalAmount": "Total",
+        "status": "Status",
+        "source": "Source"
+      },
+      "format": {
+        "label": "Format",
+        "csv": "CSV",
+        "csvHint": "Lightweight. Works with Excel and Google Sheets.",
+        "xlsx": "Excel",
+        "xlsxHint": "Formatted, ideal for accounting.",
+        "pdf": "PDF",
+        "pdfHint": "Printable. Limited to 1,000 rows."
+      },
+      "estimatedCount": "≈ {{count}} transactions",
+      "tooLarge": "Too many results",
+      "tooLargeHint": "Narrow the range with filters or use CSV/Excel.",
+      "premium": {
+        "title": "Detailed export requires Premium",
+        "body": "Export one row per transaction with every column in CSV, Excel or PDF.",
+        "cta": "Upgrade to Premium"
+      }
     },
     "filters": {
       "metrics": "Metrics",
