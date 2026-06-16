@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader2, Plus, Trash2, UserCheck, Users } from 'lucide-react'
+import { Loader2, Plus, ShieldCheck, Trash2, UserCheck, Users } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -88,7 +88,10 @@ export default function OrgStaffAccessStep({
 
   // Seed once: pre-add the people who were on the terminal's source venue.
   if (!seeded && !isLoading && candidates.length > 0) {
-    const fromSource = candidates.filter(c => c.inSourceVenue).map(toRow)
+    // Pre-seed only source-venue people who DON'T already have access at the
+    // destination — those who already have it are fine as-is and must not be
+    // silently re-written (role/PIN) by a grant. They stay addable via the picker.
+    const fromSource = candidates.filter(c => c.inSourceVenue && !c.alreadyAtDestination).map(toRow)
     if (fromSource.length > 0) setRows(fromSource)
     setSeeded(true)
   }
@@ -170,6 +173,10 @@ export default function OrgStaffAccessStep({
             ? t('terminals.staffAccess.subtitle', { venue: destVenueName })
             : t('terminals.staffAccess.subtitleNoVenue')}
         </p>
+        <p className="text-xs text-muted-foreground flex items-start gap-1 pt-0.5">
+          <ShieldCheck className="h-3.5 w-3.5 mt-0.5 shrink-0 text-green-600" />
+          {t('terminals.staffAccess.reassurance')}
+        </p>
       </div>
 
       {/* Picker */}
@@ -211,7 +218,8 @@ export default function OrgStaffAccessStep({
                     size="icon"
                     className="h-7 w-7 cursor-pointer text-muted-foreground hover:text-destructive"
                     onClick={() => removePerson(row.staffId)}
-                    aria-label={t('terminals.staffAccess.remove')}
+                    aria-label={t('terminals.staffAccess.removeHint')}
+                    title={t('terminals.staffAccess.removeHint')}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>

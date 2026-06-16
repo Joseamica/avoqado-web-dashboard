@@ -308,6 +308,8 @@
       "pinPlaceholder": "e.g. 1234",
       "alreadyHasAccess": "Already has access",
       "remove": "Remove",
+      "removeHint": "Remove from list (doesn't delete their current access)",
+      "reassurance": "This only grants access at this venue — it doesn't remove anyone's access.",
       "rowSummary": "You're giving {{name}} access as {{role}} with PIN {{pin}}.",
       "skip": "Skip",
       "grantAndContinue": "Give access and continue",

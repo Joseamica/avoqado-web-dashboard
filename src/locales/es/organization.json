@@ -308,6 +308,8 @@
       "pinPlaceholder": "Ej. 1234",
       "alreadyHasAccess": "Ya tiene acceso",
       "remove": "Quitar",
+      "removeHint": "Quitar de la lista (no borra su acceso actual)",
+      "reassurance": "Esto solo da acceso en esta sucursal — no le quita accesos a nadie.",
       "rowSummary": "Le vas a dar acceso a {{name}} como {{role}} con PIN {{pin}}.",
       "skip": "Omitir",
       "grantAndContinue": "Dar acceso y continuar",
