@@ -51,7 +51,7 @@ vi.mock('@tanstack/react-query', () => ({
     data: mockReservation,
     isLoading: false,
   }),
-  useMutation: ({ mutationFn }: any) => ({
+  useMutation: ({ mutationFn: _mutationFn }: any) => ({
     mutate: vi.fn(),
     mutateAsync: vi.fn(),
     isPending: false,

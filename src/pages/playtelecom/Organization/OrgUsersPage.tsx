@@ -374,7 +374,7 @@ export default function OrgUsersPage() {
     return canModifyRole(currentUserRole, targetRole)
   }, [currentUserRole, selectedMember])
 
-  const assignableRoles = useMemo(() => {
+  const _assignableRoles = useMemo(() => {
     if (!currentUserRole) return []
     return getModifiableRoles(currentUserRole).filter(r => r !== StaffRole.SUPERADMIN && r !== StaffRole.OWNER)
   }, [currentUserRole])

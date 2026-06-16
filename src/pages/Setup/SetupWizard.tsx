@@ -387,7 +387,7 @@ export default function SetupWizard() {
     await logout('/login')
   }, [data.plan, logout, toast, t])
 
-  const handleComplete = async (finalData: SetupData) => {
+  const handleComplete = async (_finalData: SetupData) => {
     if (!orgId) return
     setIsSaving(true)
     try {

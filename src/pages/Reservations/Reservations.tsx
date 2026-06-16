@@ -46,7 +46,7 @@ const TAB_TO_STATUS: Record<TabValue, string | undefined> = {
 export default function Reservations() {
   const { t } = useTranslation('reservations')
   const { t: _tCommon } = useTranslation()
-  const { venueId, fullBasePath } = useCurrentVenue()
+  const { venueId } = useCurrentVenue()
   const { formatDate, formatTime, formatDateISO } = useVenueDateTime()
   const location = useLocation()
   const navigate = useNavigate()

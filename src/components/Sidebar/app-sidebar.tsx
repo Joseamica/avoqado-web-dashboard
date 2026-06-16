@@ -49,7 +49,6 @@
   Upload,
 } from 'lucide-react'
 import * as React from 'react'
-import { useLocation } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { NavMain } from '@/components/Sidebar/nav-main'
@@ -249,8 +248,6 @@ export function AppSidebar({
 
   // ========== White-Label Dashboard Mode ==========
   const { isWhiteLabelEnabled, navigation: wlNavigation, isFeatureEnabled } = useWhiteLabelConfig()
-
-  const location = useLocation()
 
   const navMain = React.useMemo(() => {
     const isWhiteLabelVenue = isWhiteLabelEnabled
@@ -784,7 +781,6 @@ export function AppSidebar({
     hasKYCAccess,
     hasFeatureAccess,
     activeVenue,
-    location.pathname,
     isWhiteLabelEnabled,
     wlNavigation,
     isFeatureEnabled,

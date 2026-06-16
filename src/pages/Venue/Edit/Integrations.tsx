@@ -309,7 +309,6 @@ export default function VenueIntegrations() {
 // ─────────────────────────────────────────────────────────────────────────
 
 function EcommercePaymentsSection({ venueId }: { venueId: string }) {
-  const { t } = useTranslation('ecommerce')
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { user } = useAuth()

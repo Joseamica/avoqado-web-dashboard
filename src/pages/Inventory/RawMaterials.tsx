@@ -286,8 +286,6 @@ export default function RawMaterials() {
         return
       }
 
-      const targetMaterial = rawMaterials[materialIndex]
-
       // Calculate which page the material is on
       const pageSize = pagination.pageSize
       const targetPage = Math.floor(materialIndex / pageSize)

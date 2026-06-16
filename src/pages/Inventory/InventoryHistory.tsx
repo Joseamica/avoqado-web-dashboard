@@ -478,7 +478,7 @@ export default function InventoryHistory() {
         },
       },
     ],
-    [t, venue?.name],
+    [t],
   )
 
   // Column options for customizer

@@ -161,7 +161,6 @@ export default function OnlineBookingPage() {
 	const cdnUrl = `${BOOKING_CDN}/widget.js`
 	const embedUrl = `${BOOKING_CDN}/embed?venue=${slug}&locale=${locale}&theme=${theme}&mode=inline`
 	const previewUrl = venueSlug ? publicBookingUrl : null
-	const venueName = venue?.name ?? 'tu negocio'
 
 	// Fetch products to compute per-channel counts (services vs classes).
 	// Cheap because it's the same endpoint used elsewhere in the dashboard.
@@ -207,7 +206,6 @@ export default function OnlineBookingPage() {
   </a>
 </div>`
 
-	const directLinkSnippet = `<a href="${publicBookingUrl}" target="_blank" rel="noopener">Reservar en ${venueName}</a>`
 
 	const wordpressShortcode = `[avoqado_booking venue="${slug}" locale="${locale}" theme="${theme}" mode="${mode}"]`
 

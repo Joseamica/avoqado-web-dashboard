@@ -38,8 +38,8 @@ const channelIconMap = {
 }
 
 // Category IDs + special tabs
-const ALL_TABS = ['all', ...notificationCategories.map(c => c.id), 'settings'] as const
-type TabId = (typeof ALL_TABS)[number]
+const _ALL_TABS = ['all', ...notificationCategories.map(c => c.id), 'settings'] as const
+type TabId = (typeof _ALL_TABS)[number]
 
 export function NotificationPreferencesV2({ className }: NotificationPreferencesV2Props) {
   const { toast } = useToast()

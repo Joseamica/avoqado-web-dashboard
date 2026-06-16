@@ -77,7 +77,7 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
   // The primary path is TPV auto-discovery. Auto-expanding on no-pending was
   // confusing because operators thought the form was required. After admin
   // clicks the chevron, their choice sticks.
-  const [manualExpanded, setManualExpanded] = useState(false)
+  const [_manualExpanded, setManualExpanded] = useState(false)
   const [manualToggled, setManualToggled] = useState(false)
   // Slot picker for the manual-entry AngelPay path. After createMutation creates
   // the MerchantAccount row, we chain a call to approveDiscoveredAngelPayMerchant
@@ -85,7 +85,7 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
   // VenuePaymentConfig slot. Without this step the merchant exists in the DB
   // but isn't routable from the TPV (the /tpv/terminals/:serial/config endpoint
   // only returns merchants attached to a slot).
-  const [manualSlot, setManualSlot] = useState<AngelPayVenuePaymentSlot>('PRIMARY')
+  const [manualSlot, _setManualSlot] = useState<AngelPayVenuePaymentSlot>('PRIMARY')
 
   // State for the AngelPay "Reservar slot" placeholder flow (replaces manual
   // entry which was impossible to use — admins don't have the real Merchant ID
@@ -239,7 +239,7 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
   // has never been provisioned.
   const {
     data: angelpayAccount,
-    isLoading: isLoadingAngelpayAccount,
+    isLoading: _isLoadingAngelpayAccount,
   } = useQuery({
     queryKey: ['superadmin-angelpay-user-account', effectiveVenueId, 'manual-account-dialog'],
     queryFn: () => angelpayUserAccountAPI.get(effectiveVenueId as string),

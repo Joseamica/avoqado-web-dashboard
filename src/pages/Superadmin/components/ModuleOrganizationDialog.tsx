@@ -629,8 +629,8 @@ interface OrgRowProps {
 const OrgRow: React.FC<OrgRowProps> = React.memo(
   ({
     org,
-    moduleCode,
-    moduleDefaultConfig,
+    moduleCode: _moduleCode,
+    moduleDefaultConfig: _moduleDefaultConfig,
     isExpanded,
     onToggleExpand,
     onOrgToggle,

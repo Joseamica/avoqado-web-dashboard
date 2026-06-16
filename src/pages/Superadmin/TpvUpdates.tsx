@@ -62,7 +62,7 @@ const GlassCard: React.FC<{
 
 type AccentColor = 'green' | 'blue' | 'purple' | 'orange' | 'red' | 'yellow'
 
-const ACCENT_COLORS: Record<AccentColor, string> = {
+const _ACCENT_COLORS: Record<AccentColor, string> = {
   green: 'from-green-500/20 to-green-500/5 text-green-600 dark:text-green-400',
   blue: 'from-blue-500/20 to-blue-500/5 text-blue-600 dark:text-blue-400',
   purple: 'from-purple-500/20 to-purple-500/5 text-purple-600 dark:text-purple-400',

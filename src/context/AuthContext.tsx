@@ -810,7 +810,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const currentPath = location.pathname
 
         // Detect if we're currently in white-label mode
-        const isCurrentlyInWLMode = currentPath.startsWith('/wl/venues/') || currentPath.startsWith('/wl/organizations/')
+        const _isCurrentlyInWLMode = currentPath.startsWith('/wl/venues/') || currentPath.startsWith('/wl/organizations/')
 
         // Check if new venue has white-label enabled
         const newVenueHasWL = newVenue.modules?.some(m => m.module.code === 'WHITE_LABEL_DASHBOARD' && m.enabled) ?? false

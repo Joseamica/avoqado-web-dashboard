@@ -27,7 +27,7 @@ export default function SetupCard({
   isRequired = false,
   touched = false,
   disabled = false,
-  disabledHint,
+  disabledHint: _disabledHint,
   dataTour,
   onClick,
 }: SetupCardProps) {

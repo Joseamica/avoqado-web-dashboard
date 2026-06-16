@@ -65,7 +65,7 @@ function PaxFrame({ children }: { children: ReactNode }) {
 }
 
 /** Home screen content (main TPV screen) */
-function HomeScreen({ modules, t }: { modules: ModuleToggleState; t: (key: string, opts?: any) => string }) {
+function HomeScreen({ modules: _modules, t }: { modules: ModuleToggleState; t: (key: string, opts?: any) => string }) {
   return (
     <>
       {/* App header */}

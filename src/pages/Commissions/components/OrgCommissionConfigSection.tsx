@@ -35,17 +35,8 @@ import { useToast } from '@/hooks/use-toast'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
-import type { CommissionConfig, CommissionCalcType } from '@/types/commission'
+import type { CommissionConfig } from '@/types/commission'
 import { CreateCommissionWizard } from './wizard'
-
-// Calc type labels
-const calcTypeLabels: Record<CommissionCalcType, string> = {
-	PERCENTAGE: '%',
-	FIXED: '$',
-	TIERED: 'T',
-	MILESTONE: 'M',
-	MANUAL: 'H',
-}
 
 export default function OrgCommissionConfigSection() {
 	const { t, i18n } = useTranslation('commissions')

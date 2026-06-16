@@ -315,7 +315,7 @@ function PermissionGroupSection({
 export function PermissionDetailPanel({
   categoryKey,
   selectedPermissions,
-  defaultPermissions,
+  defaultPermissions: _defaultPermissions,
   onChange,
   disabled = false,
   isOwnRole = false,

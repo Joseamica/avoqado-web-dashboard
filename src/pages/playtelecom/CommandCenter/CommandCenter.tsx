@@ -212,7 +212,7 @@ export default function CommandCenter() {
       alert: t('commandCenter.activity.types.alert', { defaultValue: 'Alert' }),
       other: t('commandCenter.activity.types.other', { defaultValue: 'Other' }),
     }),
-    [t, i18n.language],
+    [t],
   )
 
   const activityEvents = useMemo<ActivityFeedEvent[]>(() => activityFeed?.events || [], [activityFeed])
@@ -246,7 +246,7 @@ export default function CommandCenter() {
       if (!unique.has(value)) unique.set(value, label)
     })
     return Array.from(unique.entries()).map(([value, label]) => ({ value, label }))
-  }, [activityEvents, t, i18n.language])
+  }, [activityEvents, t])
 
   const activityTypeOptions = useMemo(() => {
     const uniqueTypes = new Set(activityEvents.map(event => event.type))

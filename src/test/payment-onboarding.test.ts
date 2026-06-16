@@ -35,17 +35,17 @@ async function apiRequest(method: string, path: string, body?: any) {
 
 describe('Payment Onboarding Flow', () => {
   // Test data IDs to track for cleanup
-  let createdMerchantAccountId: string | null = null
-  let createdTerminalId: string | null = null
-  let createdCostStructureId: string | null = null
+  let _createdMerchantAccountId: string | null = null
+  let _createdTerminalId: string | null = null
+  let _createdCostStructureId: string | null = null
   const testVenueId = 'test-venue-123'
 
   beforeEach(() => {
     // Reset mock store before each test
     mockStore.reset()
-    createdMerchantAccountId = null
-    createdTerminalId = null
-    createdCostStructureId = null
+    _createdMerchantAccountId = null
+    _createdTerminalId = null
+    _createdCostStructureId = null
   })
 
   afterEach(() => {
@@ -82,7 +82,7 @@ describe('Payment Onboarding Flow', () => {
         },
       })
 
-      createdMerchantAccountId = response.data.id
+      _createdMerchantAccountId = response.data.id
     })
 
     it('should create a merchant account via Blumon auto-fetch', async () => {
@@ -99,7 +99,7 @@ describe('Payment Onboarding Flow', () => {
         hasCredentials: true,
       })
 
-      createdMerchantAccountId = response.data.id
+      _createdMerchantAccountId = response.data.id
     })
 
     it('should get a merchant account by ID', async () => {
@@ -210,7 +210,7 @@ describe('Payment Onboarding Flow', () => {
         assignedMerchantIds: [],
       })
 
-      createdTerminalId = response.data.id
+      _createdTerminalId = response.data.id
     })
 
     it('should get a terminal by ID', async () => {
@@ -398,7 +398,7 @@ describe('Payment Onboarding Flow', () => {
         effectiveTo: null,
       })
 
-      createdCostStructureId = response.data.id
+      _createdCostStructureId = response.data.id
     })
 
     it('should get cost structures by merchant account', async () => {

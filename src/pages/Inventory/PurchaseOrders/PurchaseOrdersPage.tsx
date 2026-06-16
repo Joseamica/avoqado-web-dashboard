@@ -623,7 +623,7 @@ export default function PurchaseOrdersPage() {
         },
       },
     ],
-    [t, isSuperAdmin, venue, navigate, handleDeleteClick, handleRowClick, handleDuplicate, handleSaveAsPDF, handleSaveAsCSV, fullBasePath]
+    [t, isSuperAdmin, navigate, handleDeleteClick, handleRowClick, handleDuplicate, handleSaveAsPDF, handleSaveAsCSV, fullBasePath]
   )
 
   // Filter visible columns

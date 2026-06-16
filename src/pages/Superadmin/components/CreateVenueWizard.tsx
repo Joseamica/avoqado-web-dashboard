@@ -312,7 +312,7 @@ const STEPS = [
   { id: 'review', label: 'Resumen', icon: CheckCircle2 },
 ] as const
 
-type StepId = (typeof STEPS)[number]['id']
+type _StepId = (typeof STEPS)[number]['id']
 
 // ══════════════════════════════════════════════════════════════════════
 // Props

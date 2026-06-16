@@ -178,7 +178,7 @@ const BulkOnboardingPage: React.FC = () => {
   )?.organizations || [])
 
   const handleFullJsonImport = useCallback(
-    (partial: Partial<BulkOnboardingState>, warnings: string[]) => {
+    (partial: Partial<BulkOnboardingState>, _warnings: string[]) => {
       const fullState: BulkOnboardingState = {
         currentStep: 2, // Jump to Venues step
         organizationId: partial.organizationId || '',

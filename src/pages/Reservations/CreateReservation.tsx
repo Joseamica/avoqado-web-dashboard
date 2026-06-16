@@ -93,7 +93,7 @@ interface CreateReservationFormProps {
   submitRef?: MutableRefObject<(() => void) | null>
 }
 
-export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess, onCancel, submitRef }: CreateReservationFormProps) {
+export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess, onCancel: _onCancel, submitRef }: CreateReservationFormProps) {
   const { t } = useTranslation('reservations')
   const { t: tCommon } = useTranslation()
   const { venue, venueId, fullBasePath } = useCurrentVenue()

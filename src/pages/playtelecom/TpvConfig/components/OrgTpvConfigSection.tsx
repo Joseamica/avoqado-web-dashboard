@@ -69,7 +69,7 @@ type ModuleKey = typeof MODULE_TOGGLES[number]['key']
 
 export default function OrgTpvConfigSection() {
   const { t } = useTranslation(['playtelecom', 'common'])
-  const { can, role } = useAccess()
+  const { role } = useAccess()
   const { isOwner } = useCurrentOrganization()
   const isOwnerPlus = role === 'OWNER' || role === 'SUPERADMIN' || isOwner
   const { toast } = useToast()

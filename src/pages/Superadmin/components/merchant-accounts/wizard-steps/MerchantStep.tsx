@@ -342,7 +342,7 @@ export const MerchantStep: React.FC<MerchantStepProps> = ({
   state,
   dispatch,
   allMerchants,
-  existingSummary,
+  existingSummary: _existingSummary,
   context,
   onMerchantsRefresh,
 }) => {

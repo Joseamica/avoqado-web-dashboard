@@ -208,7 +208,7 @@ function GroupRows({
   group,
   dayColumns,
   t,
-  summaryByDay,
+  summaryByDay: _summaryByDay,
 }: {
   group: VenueGroup
   dayColumns: Array<{ date: string; label: string }>

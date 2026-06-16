@@ -837,7 +837,6 @@ export default function SalesSummary() {
     const debit = settlementConfigs.find(s => s.cardType === 'DEBIT')
     const credit = settlementConfigs.find(s => s.cardType === 'CREDIT')
     const amex = settlementConfigs.find(s => s.cardType === 'AMEX')
-    const intl = settlementConfigs.find(s => s.cardType === 'INTERNATIONAL')
 
     const debitDays = debit?.settlementDays ?? 1
     const creditDays = credit?.settlementDays ?? 1
