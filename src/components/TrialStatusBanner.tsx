@@ -32,11 +32,13 @@ export function TrialStatusBanner() {
   // Only fetch features for users with billing access (ADMIN and above)
   // CASHIER, WAITER, KITCHEN, HOST, VIEWER don't need to see trial status
   // IMPORTANT: Use actualVenueRole from allVenues, not staffInfo.role which may be stale
+  // ADMIN+ only: the trial banner reads venue FEATURES from a billing:subscriptions:read endpoint,
+  // which MANAGER does NOT hold (MANAGER has features:read but not billing:*). Including MANAGER here
+  // only produced a silent 403 that hid the banner anyway — so scope it to roles that can read it.
   const canViewBilling = actualVenueRole && [
     StaffRole.SUPERADMIN,
     StaffRole.OWNER,
     StaffRole.ADMIN,
-    StaffRole.MANAGER,
   ].includes(actualVenueRole as StaffRole)
 
   // Fetch venue features on mount
