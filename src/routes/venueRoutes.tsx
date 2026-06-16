@@ -105,6 +105,8 @@ import {
   BankAndCash,
   ChartOfAccounts,
   AccountMapping,
+  Journal,
+  TrialBalance,
   ShiftId,
   Shifts,
   SuppliersPage,
@@ -318,6 +320,20 @@ export function createVenueRoutes(): RouteObject[] {
       path: 'contabilidad/configuracion',
       element: <PermissionProtectedRoute permission="accounting:read" />,
       children: [{ index: true, element: <AccountMapping /> }],
+    },
+    {
+      // Contabilidad → Libro diario · Pólizas (motor de doble partida, Capa B). Permiso
+      // accounting:read + FeatureGate CFDI (PREMIUM) en la página.
+      path: 'contabilidad/libro-diario',
+      element: <PermissionProtectedRoute permission="accounting:read" />,
+      children: [{ index: true, element: <Journal /> }],
+    },
+    {
+      // Contabilidad → Balanza de comprobación (read-model sobre pólizas, Capa B). Permiso
+      // accounting:read + FeatureGate CFDI (PREMIUM) en la página.
+      path: 'contabilidad/balanza',
+      element: <PermissionProtectedRoute permission="accounting:read" />,
+      children: [{ index: true, element: <TrialBalance /> }],
     },
     {
       path: 'reports/home-charts',

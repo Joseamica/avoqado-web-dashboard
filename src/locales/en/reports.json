@@ -200,6 +200,63 @@
       "updateError": "Could not update the mapping"
     }
   },
+  "journal": {
+    "title": "Journal · Entries",
+    "subtitle": "Your double-entry postings (each one balances: debits = credits)",
+    "newEntry": "New entry",
+    "emptyTitle": "You don't have any entries yet",
+    "emptyBody": "Record your first manual entry. Each entry must balance: total debits equal total credits.",
+    "error": "Could not load the journal.",
+    "account": "Account",
+    "debit": "Debit",
+    "credit": "Credit",
+    "source": {
+      "MANUAL": "Manual",
+      "PAYMENT": "Payment",
+      "REFUND": "Refund",
+      "CFDI": "CFDI",
+      "COGS": "Cost",
+      "ADJUSTMENT": "Adjustment",
+      "OPENING": "Opening"
+    },
+    "disclosureBalance": "Every entry balances by design: total debits always equal total credits (double-entry).",
+    "disclosureAuto": "Soon the system will generate these entries on its own, from your payments and CFDIs, using your accounting setup.",
+    "modal": {
+      "title": "New manual entry",
+      "date": "Date",
+      "concept": "Description",
+      "conceptPh": "e.g. Daily collection, inventory adjustment…",
+      "lines": "Lines (debits and credits)",
+      "addLine": "Add line",
+      "pickAccount": "Pick an account",
+      "removeLine": "Remove line",
+      "balanced": "Entry balances ✓",
+      "unbalanced": "Off by {{diff}}",
+      "save": "Save entry",
+      "hint": "Each line carries a debit OR a credit. The entry saves only when total debits equal total credits."
+    },
+    "toast": {
+      "created": "Entry #{{folio}} recorded",
+      "createError": "Could not record the entry"
+    }
+  },
+  "trialBalance": {
+    "title": "Trial balance",
+    "subtitle": "Balances and movements per account — the proof your books balance",
+    "period": "Period",
+    "balancedOk": "The trial balance is balanced: debits = credits and debit balance = credit balance ✓",
+    "unbalanced": "The trial balance does NOT balance — check the period's entries",
+    "emptyTitle": "No movements this period",
+    "emptyBody": "There are no entries recorded for the selected period. Record entries in the journal.",
+    "goToJournal": "Go to the journal",
+    "error": "Could not load the trial balance.",
+    "account": "Account",
+    "saldoIni": "Opening balance",
+    "saldoFin": "Closing balance",
+    "totals": "Totals",
+    "disclosureSource": "Computed on the fly from the journal entries; nothing is captured separately.",
+    "disclosureSign": "Balances in blue are credit; normal ones are debit. The closing column shows debit / credit."
+  },
   "payLaterAging": {
     "title": "Accounts Receivable",
     "subtitle": "\"Pay Later\" orders grouped by aging",

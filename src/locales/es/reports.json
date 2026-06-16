@@ -200,6 +200,63 @@
       "updateError": "No se pudo actualizar el mapeo"
     }
   },
+  "journal": {
+    "title": "Libro diario · Pólizas",
+    "subtitle": "Tus asientos de doble partida (cada uno cuadra: cargos = abonos)",
+    "newEntry": "Nueva póliza",
+    "emptyTitle": "Aún no tienes pólizas",
+    "emptyBody": "Registra tu primer asiento manual. Cada póliza debe cuadrar: la suma de cargos igual a la suma de abonos.",
+    "error": "No se pudo cargar el libro diario.",
+    "account": "Cuenta",
+    "debit": "Cargo",
+    "credit": "Abono",
+    "source": {
+      "MANUAL": "Manual",
+      "PAYMENT": "Cobro",
+      "REFUND": "Devolución",
+      "CFDI": "CFDI",
+      "COGS": "Costo",
+      "ADJUSTMENT": "Ajuste",
+      "OPENING": "Apertura"
+    },
+    "disclosureBalance": "Toda póliza cuadra por diseño: la suma de cargos siempre es igual a la suma de abonos (doble partida).",
+    "disclosureAuto": "Pronto el sistema generará estas pólizas solo, desde tus pagos y CFDIs, usando tu configuración contable.",
+    "modal": {
+      "title": "Nueva póliza manual",
+      "date": "Fecha",
+      "concept": "Concepto",
+      "conceptPh": "p. ej. Cobro del día, ajuste de inventario…",
+      "lines": "Líneas (cargos y abonos)",
+      "addLine": "Agregar línea",
+      "pickAccount": "Elige una cuenta",
+      "removeLine": "Quitar línea",
+      "balanced": "La póliza cuadra ✓",
+      "unbalanced": "Descuadre de {{diff}}",
+      "save": "Guardar póliza",
+      "hint": "Cada línea lleva cargo O abono. La póliza solo se guarda cuando la suma de cargos iguala la de abonos."
+    },
+    "toast": {
+      "created": "Póliza #{{folio}} registrada",
+      "createError": "No se pudo registrar la póliza"
+    }
+  },
+  "trialBalance": {
+    "title": "Balanza de comprobación",
+    "subtitle": "Saldos y movimientos por cuenta — la prueba de que tu contabilidad cuadra",
+    "period": "Periodo",
+    "balancedOk": "La balanza cuadra: cargos = abonos y saldo deudor = saldo acreedor ✓",
+    "unbalanced": "La balanza NO cuadra — revisa las pólizas del periodo",
+    "emptyTitle": "Sin movimientos en este periodo",
+    "emptyBody": "No hay pólizas registradas para el periodo seleccionado. Registra asientos en el libro diario.",
+    "goToJournal": "Ir al libro diario",
+    "error": "No se pudo cargar la balanza.",
+    "account": "Cuenta",
+    "saldoIni": "Saldo inicial",
+    "saldoFin": "Saldo final",
+    "totals": "Totales",
+    "disclosureSource": "Se calcula al vuelo desde las pólizas del libro diario; no captura nada aparte.",
+    "disclosureSign": "Los saldos en azul son acreedores; los normales, deudores. La columna de saldo final muestra deudor / acreedor."
+  },
   "payLaterAging": {
     "title": "Cuentas por Cobrar",
     "subtitle": "Órdenes \"Pagar Después\" agrupadas por antigüedad de vencimiento",

@@ -238,6 +238,8 @@ export const BusinessSummary = lazyWithRetry(() => import('@/pages/Reports/Busin
 export const BankAndCash = lazyWithRetry(() => import('@/pages/Reports/BankAndCash'))
 export const ChartOfAccounts = lazyWithRetry(() => import('@/pages/Reports/ChartOfAccounts'))
 export const AccountMapping = lazyWithRetry(() => import('@/pages/Reports/AccountMapping'))
+export const Journal = lazyWithRetry(() => import('@/pages/Reports/Journal'))
+export const TrialBalance = lazyWithRetry(() => import('@/pages/Reports/TrialBalance'))
 export const SalesByItem = lazyWithRetry(() => import('@/pages/Reports/SalesByItem'))
 export const SalesByCategory = lazyWithRetry(() => import('@/pages/Reports/SalesByCategory'))
 export const PaymentMethods = lazyWithRetry(() => import('@/pages/Reports/PaymentMethods'))
