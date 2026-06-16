@@ -1,4 +1,26 @@
 {
+  "incomeStatement": {
+    "title": "How much did I make?",
+    "subtitle": "Revenue statement for the period",
+    "grossSales": "Gross sales",
+    "grossSalesTip": "Total billed in the period, before refunds (tax included).",
+    "refunds": "Refunds",
+    "refundsCount": "{{n}} refunds",
+    "netRevenue": "Net revenue",
+    "netRevenueTip": "Gross sales minus refunds (what actually came in).",
+    "taxableBase": "Taxable base",
+    "taxableBaseTip": "Amount without VAT, on which the {{pct}}% is calculated.",
+    "iva": "VAT collected ({{pct}}%)",
+    "tips": "Tips",
+    "tipsSub": "Not business income",
+    "tipsTip": "They belong to staff; shown for reference only.",
+    "salesCount": "Sales",
+    "averageTicket": "Average ticket",
+    "error": "Could not load the revenue statement.",
+    "disclosureRevenue": "This board shows revenue, not profit: it does not yet subtract cost of goods or expenses.",
+    "disclosureIva": "VAT assumes {{pct}}% (general rate); it does not reflect 0% or exempt products.",
+    "disclosureTips": "Tips are shown for reference only and are not counted as income."
+  },
   "payLaterAging": {
     "title": "Accounts Receivable",
     "subtitle": "\"Pay Later\" orders grouped by aging",

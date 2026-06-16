@@ -99,6 +99,7 @@ import {
   PaymentMethods,
   Refunds,
   SalesSummary,
+  IncomeStatement,
   ShiftId,
   Shifts,
   SuppliersPage,
@@ -273,6 +274,12 @@ export function createVenueRoutes(): RouteObject[] {
       path: 'reports/refunds',
       element: <KYCProtectedRoute />,
       children: [{ index: true, element: <Refunds /> }],
+    },
+    {
+      // Contabilidad Capa A ("¿Cuánto gané?") — incluido, gateado solo por permiso accounting:read
+      path: 'reports/accounting',
+      element: <PermissionProtectedRoute permission="accounting:read" />,
+      children: [{ index: true, element: <IncomeStatement /> }],
     },
     {
       path: 'reports/home-charts',

@@ -72,6 +72,7 @@
   "reportsMenu": {
     "title": "Reportes",
     "payLaterAging": "Cuentas por Cobrar",
+    "accounting": "Contabilidad",
     "salesSummary": "Resumen de Ventas",
     "salesByItem": "Ventas por Artículo",
     "salesByCategory": "Ventas por Categoría",

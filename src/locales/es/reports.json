@@ -1,4 +1,26 @@
 {
+  "incomeStatement": {
+    "title": "¿Cuánto gané?",
+    "subtitle": "Estado de ingresos del periodo",
+    "grossSales": "Ventas brutas",
+    "grossSalesTip": "Total facturado en el periodo, antes de devoluciones (incluye IVA).",
+    "refunds": "Devoluciones",
+    "refundsCount": "{{n}} reembolsos",
+    "netRevenue": "Ingreso neto",
+    "netRevenueTip": "Ventas brutas menos devoluciones (lo que realmente entró).",
+    "taxableBase": "Base gravable",
+    "taxableBaseTip": "Monto sin IVA, sobre el que se calcula el {{pct}}%.",
+    "iva": "IVA trasladado ({{pct}}%)",
+    "tips": "Propinas",
+    "tipsSub": "No es ingreso del negocio",
+    "tipsTip": "Pertenecen al personal; se muestran solo de forma informativa.",
+    "salesCount": "Ventas",
+    "averageTicket": "Ticket promedio",
+    "error": "No se pudo cargar el estado de ingresos.",
+    "disclosureRevenue": "Este tablero muestra ingresos, no utilidad: aún no descuenta costo de ventas ni gastos.",
+    "disclosureIva": "El IVA es un supuesto del {{pct}}% (tasa general); no refleja productos a tasa 0% o exentos.",
+    "disclosureTips": "Las propinas se muestran solo de forma informativa y no se consideran ingreso."
+  },
   "payLaterAging": {
     "title": "Cuentas por Cobrar",
     "subtitle": "Órdenes \"Pagar Después\" agrupadas por antigüedad de vencimiento",

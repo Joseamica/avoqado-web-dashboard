@@ -73,6 +73,7 @@
   "reportsMenu": {
     "title": "Reports",
     "payLaterAging": "Accounts Receivable",
+    "accounting": "Accounting",
     "salesSummary": "Sales Summary",
     "salesByItem": "Sales by Item",
     "salesByCategory": "Sales by Category",
