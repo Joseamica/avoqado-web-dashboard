@@ -108,6 +108,98 @@
     "disclosureCash": "«Caja» es el efectivo cobrado; no pasa por el banco y no se concilia con tu estado de cuenta.",
     "disclosureBank": "«Banco» agrupa los cobros electrónicos; el neto al banco descuenta las comisiones de procesamiento."
   },
+  "chartOfAccounts": {
+    "title": "Catálogo de cuentas",
+    "subtitle": "Tus cuentas contables con el código agrupador del SAT",
+    "rfcLabel": "RFC {{rfc}}",
+    "error": "No se pudo cargar el catálogo de cuentas.",
+    "needsFiscalSetupTitle": "Primero configura tu facturación",
+    "needsFiscalSetupBody": "El catálogo de cuentas es por RFC. Este local aún no tiene un RFC/emisor fiscal configurado. Configura la facturación (CFDI) y vuelve aquí.",
+    "goToFiscalConfig": "Ir a configuración fiscal",
+    "emptyTitle": "Aún no tienes catálogo de cuentas",
+    "emptyBody": "Genera un catálogo base ya mapeado al código agrupador del SAT y adaptado a tu giro. Después puedes ajustarlo.",
+    "generateBase": "Generar catálogo base",
+    "emptyNoPermission": "Pídele a un administrador que genere el catálogo base.",
+    "addAccount": "Agregar cuenta",
+    "inactive": "inactiva",
+    "col": {
+      "code": "Cuenta",
+      "name": "Nombre",
+      "satCode": "Cód. SAT",
+      "nature": "Naturaleza"
+    },
+    "types": {
+      "ACTIVO": "Activo",
+      "PASIVO": "Pasivo",
+      "CAPITAL": "Capital",
+      "INGRESO": "Ingresos",
+      "COSTO": "Costos",
+      "GASTO": "Gastos",
+      "ORDEN": "Cuentas de orden"
+    },
+    "nature": {
+      "DEUDORA": "Deudora",
+      "ACREEDORA": "Acreedora"
+    },
+    "modal": {
+      "title": "Agregar cuenta",
+      "code": "Código de la cuenta",
+      "codePh": "p. ej. 102.01.01",
+      "name": "Nombre de la cuenta",
+      "namePh": "p. ej. BBVA Cuenta Operativa",
+      "satCode": "Código agrupador SAT",
+      "satCodePh": "p. ej. 102",
+      "type": "Tipo de cuenta",
+      "parent": "Cuenta padre",
+      "parentNone": "Ninguna (cuenta de mayor)",
+      "save": "Guardar cuenta",
+      "natureHint": "La naturaleza (deudora/acreedora) se asigna automáticamente según el tipo de cuenta."
+    },
+    "disclosureSat": "Catálogo base verificado contra el código agrupador del SAT (c_CuentasSAT / Anexo 24). Puedes editarlo y agregar cuentas.",
+    "disclosureScope": "El catálogo es por contribuyente (RFC), no por local: todos los locales del mismo RFC comparten el mismo catálogo.",
+    "toast": {
+      "seeded": "Catálogo base generado ({{count}} cuentas)",
+      "seedError": "No se pudo generar el catálogo base",
+      "created": "Cuenta agregada",
+      "createError": "No se pudo agregar la cuenta",
+      "updated": "Cuenta actualizada",
+      "updateError": "No se pudo actualizar la cuenta"
+    }
+  },
+  "accountMapping": {
+    "title": "Configuración contable",
+    "subtitle": "A qué cuenta cae cada movimiento (el sistema dicta los asientos)",
+    "generateDefaults": "Generar configuración por defecto",
+    "needsCatalogTitle": "Primero genera tu catálogo de cuentas",
+    "needsCatalogBody": "La configuración contable mapea cada movimiento a una cuenta del catálogo. Genera el catálogo de cuentas y vuelve aquí.",
+    "goToCatalog": "Ir al catálogo de cuentas",
+    "emptyTitle": "Aún no has configurado el mapeo",
+    "emptyBody": "Genera el mapeo por defecto (verificado por giro) y luego ajústalo: cada movimiento queda asignado a su cuenta.",
+    "error": "No se pudo cargar la configuración contable.",
+    "unassigned": "Sin asignar",
+    "defaultHint": "Sugerida: {{code}}",
+    "groups": {
+      "INGRESOS": "Ingresos",
+      "TESORERIA": "Tesorería (caja y bancos)",
+      "CARTERA": "Cartera (clientes y proveedores)",
+      "INVENTARIO": "Inventario",
+      "COSTOS_GASTOS": "Costos y gastos",
+      "RESULTADO": "Resultado y patrimonio"
+    },
+    "side": {
+      "DEBIT": "Cargo",
+      "CREDIT": "Abono",
+      "BOTH": "Ambos"
+    },
+    "disclosureEngine": "Este mapa es lo que el motor de pólizas usará para postear cada asiento automáticamente, sin que escojas cuenta cada vez.",
+    "disclosureTaxes": "El IVA y las retenciones se configuran aparte, en la sección de Impuestos (IVA · DIOT).",
+    "toast": {
+      "seeded": "Configuración por defecto generada",
+      "seedError": "No se pudo generar la configuración",
+      "updated": "Mapeo actualizado",
+      "updateError": "No se pudo actualizar el mapeo"
+    }
+  },
   "payLaterAging": {
     "title": "Cuentas por Cobrar",
     "subtitle": "Órdenes \"Pagar Después\" agrupadas por antigüedad de vencimiento",

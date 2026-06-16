@@ -108,6 +108,98 @@
     "disclosureCash": "“Cash” is collected cash; it never hits the bank and is not reconciled against your statement.",
     "disclosureBank": "“Bank” groups electronic collections; net to bank subtracts processing fees."
   },
+  "chartOfAccounts": {
+    "title": "Chart of accounts",
+    "subtitle": "Your ledger accounts with the SAT grouping code",
+    "rfcLabel": "RFC {{rfc}}",
+    "error": "Could not load the chart of accounts.",
+    "needsFiscalSetupTitle": "Set up invoicing first",
+    "needsFiscalSetupBody": "The chart of accounts is per RFC. This venue has no RFC / fiscal issuer configured yet. Set up invoicing (CFDI) and come back.",
+    "goToFiscalConfig": "Go to fiscal settings",
+    "emptyTitle": "You don't have a chart of accounts yet",
+    "emptyBody": "Generate a base chart already mapped to the SAT grouping code and adapted to your industry. You can adjust it afterward.",
+    "generateBase": "Generate base chart",
+    "emptyNoPermission": "Ask an administrator to generate the base chart.",
+    "addAccount": "Add account",
+    "inactive": "inactive",
+    "col": {
+      "code": "Account",
+      "name": "Name",
+      "satCode": "SAT code",
+      "nature": "Nature"
+    },
+    "types": {
+      "ACTIVO": "Assets",
+      "PASIVO": "Liabilities",
+      "CAPITAL": "Equity",
+      "INGRESO": "Income",
+      "COSTO": "Cost of sales",
+      "GASTO": "Expenses",
+      "ORDEN": "Memorandum accounts"
+    },
+    "nature": {
+      "DEUDORA": "Debit",
+      "ACREEDORA": "Credit"
+    },
+    "modal": {
+      "title": "Add account",
+      "code": "Account code",
+      "codePh": "e.g. 102.01.01",
+      "name": "Account name",
+      "namePh": "e.g. BBVA Operating Account",
+      "satCode": "SAT grouping code",
+      "satCodePh": "e.g. 102",
+      "type": "Account type",
+      "parent": "Parent account",
+      "parentNone": "None (top-level account)",
+      "save": "Save account",
+      "natureHint": "Nature (debit/credit) is assigned automatically based on the account type."
+    },
+    "disclosureSat": "Base chart verified against the SAT grouping code (c_CuentasSAT / Annex 24). You can edit it and add accounts.",
+    "disclosureScope": "The chart is per taxpayer (RFC), not per venue: all venues under the same RFC share one chart.",
+    "toast": {
+      "seeded": "Base chart generated ({{count}} accounts)",
+      "seedError": "Could not generate the base chart",
+      "created": "Account added",
+      "createError": "Could not add the account",
+      "updated": "Account updated",
+      "updateError": "Could not update the account"
+    }
+  },
+  "accountMapping": {
+    "title": "Accounting setup",
+    "subtitle": "Which account each movement posts to (the system dictates the entries)",
+    "generateDefaults": "Generate default setup",
+    "needsCatalogTitle": "Generate your chart of accounts first",
+    "needsCatalogBody": "Accounting setup maps each movement to an account in the chart. Generate the chart of accounts and come back here.",
+    "goToCatalog": "Go to chart of accounts",
+    "emptyTitle": "You haven't set up the mapping yet",
+    "emptyBody": "Generate the default mapping (verified per industry), then adjust it: each movement gets assigned to its account.",
+    "error": "Could not load the accounting setup.",
+    "unassigned": "Unassigned",
+    "defaultHint": "Suggested: {{code}}",
+    "groups": {
+      "INGRESOS": "Income",
+      "TESORERIA": "Treasury (cash & banks)",
+      "CARTERA": "Receivables & payables",
+      "INVENTARIO": "Inventory",
+      "COSTOS_GASTOS": "Costs & expenses",
+      "RESULTADO": "Result & equity"
+    },
+    "side": {
+      "DEBIT": "Debit",
+      "CREDIT": "Credit",
+      "BOTH": "Both"
+    },
+    "disclosureEngine": "This map is what the journal engine will use to post each entry automatically, without you picking an account each time.",
+    "disclosureTaxes": "VAT and withholdings are configured separately, in the Taxes section (VAT · DIOT).",
+    "toast": {
+      "seeded": "Default setup generated",
+      "seedError": "Could not generate the setup",
+      "updated": "Mapping updated",
+      "updateError": "Could not update the mapping"
+    }
+  },
   "payLaterAging": {
     "title": "Accounts Receivable",
     "subtitle": "\"Pay Later\" orders grouped by aging",

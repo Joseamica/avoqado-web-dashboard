@@ -103,6 +103,8 @@ import {
   BankReconciliation,
   BusinessSummary,
   BankAndCash,
+  ChartOfAccounts,
+  AccountMapping,
   ShiftId,
   Shifts,
   SuppliersPage,
@@ -302,6 +304,20 @@ export function createVenueRoutes(): RouteObject[] {
       path: 'contabilidad/bancos',
       element: <PermissionProtectedRoute permission="accounting:read" />,
       children: [{ index: true, element: <BankAndCash /> }],
+    },
+    {
+      // Contabilidad → Catálogo de cuentas (Capa B fiscal). Permiso accounting:read + FeatureGate
+      // CFDI (PREMIUM, bundle con facturación) en la página.
+      path: 'contabilidad/catalogo',
+      element: <PermissionProtectedRoute permission="accounting:read" />,
+      children: [{ index: true, element: <ChartOfAccounts /> }],
+    },
+    {
+      // Contabilidad → Configuración contable (AccountMapping, Capa B). Permiso accounting:read +
+      // FeatureGate CFDI (PREMIUM) en la página.
+      path: 'contabilidad/configuracion',
+      element: <PermissionProtectedRoute permission="accounting:read" />,
+      children: [{ index: true, element: <AccountMapping /> }],
     },
     {
       path: 'reports/home-charts',
