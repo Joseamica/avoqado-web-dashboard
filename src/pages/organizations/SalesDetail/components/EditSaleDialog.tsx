@@ -159,6 +159,7 @@ export function EditSaleDialog({
               <SelectItem value="COMPLETED">Venta correcta</SelectItem>
               <SelectItem value="PENDING">Pendiente</SelectItem>
               <SelectItem value="FAILED">Revisar</SelectItem>
+              <SelectItem value="REJECTED">Rechazada</SelectItem>
             </SelectContent>
           </Select>
         </div>

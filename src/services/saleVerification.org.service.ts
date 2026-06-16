@@ -128,6 +128,8 @@ export interface OrgSalesSummary {
   completedCount: number
   pendingCount: number
   failedCount: number
+  /** Terminal "Rechazada" (REJECTED) sales. Optional for backwards compat with older backends. */
+  rejectedCount?: number
   withoutVerificationCount: number
 }
 
@@ -303,8 +305,9 @@ export async function getSalesByPromoterDaily(orgId: string): Promise<PromoterDa
 }
 
 export interface ReviewOrgSaleParams {
-  decision: 'APPROVE' | 'REJECT'
-  /** Required when decision = REJECT (unless reviewNotes is provided). */
+  // APPROVE→"Venta correcta" · REJECT→"Revisar" (corregible) · REJECT_FINAL→"Rechazada" (terminal)
+  decision: 'APPROVE' | 'REJECT' | 'REJECT_FINAL'
+  /** Required when decision = REJECT (unless reviewNotes is provided). Not used for REJECT_FINAL. */
   rejectionReasons?: SaleVerificationRejectionReason[]
   /** Free-text feedback shown to the promoter on TPV. */
   reviewNotes?: string

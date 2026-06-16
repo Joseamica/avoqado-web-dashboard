@@ -11,7 +11,8 @@ import api from '@/api'
 // Types
 // ============================================================
 
-export type SaleVerificationStatus = 'PENDING' | 'COMPLETED' | 'FAILED'
+// PENDING="Pendiente" · COMPLETED="Venta correcta" · FAILED="Revisar" (corregible) · REJECTED="Rechazada" (terminal, venta perdida)
+export type SaleVerificationStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'REJECTED'
 
 // Back-office rejection reasons (PlayTelecom / Walmart documentation flow)
 export type SaleVerificationRejectionReason =
@@ -234,8 +235,9 @@ export async function getStaffWithVerifications(venueId: string): Promise<StaffW
 // ============================================================
 
 export interface ReviewSaleVerificationParams {
-  decision: 'APPROVE' | 'REJECT'
-  /** Required when decision = REJECT (or provide reviewNotes). */
+  // APPROVE→"Venta correcta" · REJECT→"Revisar" (corregible) · REJECT_FINAL→"Rechazada" (terminal)
+  decision: 'APPROVE' | 'REJECT' | 'REJECT_FINAL'
+  /** Required when decision = REJECT (or provide reviewNotes). Not used for REJECT_FINAL. */
   rejectionReasons?: SaleVerificationRejectionReason[]
   /** Free-text feedback shown to the promoter on TPV. */
   reviewNotes?: string

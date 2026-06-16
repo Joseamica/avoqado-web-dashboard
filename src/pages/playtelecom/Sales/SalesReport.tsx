@@ -89,6 +89,10 @@ const STATUS_CONFIG: Record<SaleVerificationStatus, { label: string; className: 
     label: 'FALLIDO',
     className: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700',
   },
+  REJECTED: {
+    label: 'RECHAZADA',
+    className: 'bg-red-200 text-red-900 border-red-300 dark:bg-red-950/50 dark:text-red-200 dark:border-red-800',
+  },
 }
 
 // Chart tooltip
@@ -400,6 +404,7 @@ export function SalesReport() {
       { value: 'COMPLETED', label: STATUS_CONFIG.COMPLETED.label },
       { value: 'PENDING', label: STATUS_CONFIG.PENDING.label },
       { value: 'FAILED', label: STATUS_CONFIG.FAILED.label },
+      { value: 'REJECTED', label: STATUS_CONFIG.REJECTED.label },
     ],
     [t],
   )

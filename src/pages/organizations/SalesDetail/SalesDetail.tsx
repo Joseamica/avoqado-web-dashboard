@@ -21,6 +21,7 @@ import {
   ImageIcon,
   CheckCircle2,
   XCircle,
+  Ban,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -79,6 +80,7 @@ const STATUS_OPTIONS: { value: SaleVerificationStatus; label: string }[] = [
   { value: 'PENDING', label: 'Pendiente' },
   { value: 'COMPLETED', label: 'Venta correcta' },
   { value: 'FAILED', label: 'Revisar' },
+  { value: 'REJECTED', label: 'Rechazada' },
 ]
 
 // "eSIM" is a SIM type, not a sale type — eSIM sales are now classified as
@@ -108,6 +110,12 @@ function statusBadge(status: SaleVerificationStatus) {
     return (
       <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700">
         Revisar
+      </Badge>
+    )
+  if (status === 'REJECTED')
+    return (
+      <Badge className="bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700">
+        Rechazada
       </Badge>
     )
   return <Badge className="bg-muted text-muted-foreground border-input">Pendiente</Badge>
@@ -464,11 +472,12 @@ export default function SalesDetail() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <SummaryCard label="Total ventas" value={summaryQuery.data?.totalCount ?? 0} loading={summaryQuery.isLoading} />
         <SummaryCard label="Aprobadas" value={summaryQuery.data?.completedCount ?? 0} loading={summaryQuery.isLoading} tone="success" />
         <SummaryCard label="Pendientes" value={summaryQuery.data?.pendingCount ?? 0} loading={summaryQuery.isLoading} tone="warning" />
         <SummaryCard label="Por revisar" value={summaryQuery.data?.failedCount ?? 0} loading={summaryQuery.isLoading} tone="danger" />
+        <SummaryCard label="Rechazadas" value={summaryQuery.data?.rejectedCount ?? 0} loading={summaryQuery.isLoading} tone="danger" />
       </div>
 
       {/* Date range + export */}
@@ -763,11 +772,21 @@ export default function SalesDetail() {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="text-red-700 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20"
+                              className="text-yellow-700 border-yellow-200 hover:bg-yellow-50 dark:text-yellow-300 dark:hover:bg-yellow-900/20"
                               onClick={() => openReview(row, 'reject')}
                             >
                               <XCircle className="h-3.5 w-3.5 mr-1" />
                               Revisar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-700 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20"
+                              onClick={() => openReview(row, 'mark-rejected')}
+                              title="Rechazar: venta perdida (no se pudo vincular/portar)"
+                            >
+                              <Ban className="h-3.5 w-3.5 mr-1" />
+                              Rechazar
                             </Button>
                           </>
                         ) : (
@@ -1119,7 +1138,7 @@ function SaleCard({
           </Button>
         )}
         {row.status === 'PENDING' ? (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <Button
               size="sm"
               variant="outline"
@@ -1132,11 +1151,20 @@ function SaleCard({
             <Button
               size="sm"
               variant="outline"
-              className="text-red-700 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20"
+              className="text-yellow-700 border-yellow-200 hover:bg-yellow-50 dark:text-yellow-300 dark:hover:bg-yellow-900/20"
               onClick={() => onReview('reject')}
             >
               <XCircle className="h-4 w-4 mr-1" />
               Revisar
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-red-700 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20"
+              onClick={() => onReview('mark-rejected')}
+            >
+              <Ban className="h-4 w-4 mr-1" />
+              Rechazar
             </Button>
           </div>
         ) : (

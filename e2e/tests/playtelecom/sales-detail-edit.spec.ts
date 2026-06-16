@@ -33,6 +33,16 @@ const FAILED_ROW = {
   terminal: null,
 }
 
+const PENDING_ROW = {
+  ...FAILED_ROW,
+  id: 'sv-pending-1',
+  paymentId: 'pay-2',
+  status: 'PENDING',
+  reviewNotes: null,
+  rejectionReasons: [],
+  payment: { ...FAILED_ROW.payment, id: 'pay-2' },
+}
+
 async function setupMocks(page: Page) {
   await page.addInitScript(() => {
     try { localStorage.setItem('lang', 'es') } catch { /* ignore */ }
@@ -110,5 +120,41 @@ test.describe('SalesDetail — admin edit', () => {
     expect(patchBody).toHaveProperty('status')
     expect(patchBody).toHaveProperty('paymentForm')
     expect(patchBody).toHaveProperty('isPortabilidad')
+  })
+
+  test('back-office can "Rechazar" a PENDING sale → terminal REJECT_FINAL review', async ({ page }) => {
+    await setupMocks(page)
+
+    // Serve a PENDING row (so Aprobar / Revisar / Rechazar appear). Registered after
+    // setupMocks → LIFO matches it first.
+    const base = `**/api/v1/dashboard/organizations/${TEST_ORG_ID}/sale-verifications`
+    await page.route(`${base}?*`, route =>
+      route.fulfill(json({ success: true, data: [PENDING_ROW], pagination: { pageSize: 25, pageNumber: 1, totalCount: 1, totalPages: 1 } })),
+    )
+
+    // Capture the review PATCH for this row.
+    let reviewBody: any = null
+    await page.route(`**/api/v1/dashboard/organizations/${TEST_ORG_ID}/sale-verifications/sv-pending-1/review`, route => {
+      if (route.request().method() === 'PATCH') {
+        reviewBody = JSON.parse(route.request().postData() || '{}')
+        return route.fulfill(json({ success: true, data: { id: 'sv-pending-1', status: 'REJECTED' } }))
+      }
+      return route.fulfill(json({}))
+    })
+
+    await page.goto(`/organizations/${TEST_ORG_ID}/sales/detail`)
+    await page.addStyleTag({ content: `.tsqd-parent-container, [class*="tsqd-"] { display: none !important; pointer-events: none !important; }` })
+    await expect(page.getByRole('heading', { name: 'Ventas — Detalle' })).toBeVisible({ timeout: 15_000 })
+
+    // The "Rechazar" action is available on the PENDING row.
+    await page.getByRole('button', { name: 'Rechazar', exact: true }).first().click({ force: true })
+
+    // Terminal dialog: distinct from "Revisar", says it will mark the sale RECHAZADA.
+    await expect(page.getByRole('heading', { name: 'Rechazar venta' })).toBeVisible()
+    await expect(page.getByText('RECHAZADA', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Rechazar venta' }).click({ force: true })
+
+    await expect.poll(() => reviewBody).not.toBeNull()
+    expect(reviewBody.decision).toBe('REJECT_FINAL')
   })
 })

@@ -52,7 +52,16 @@ export const PLAN_TIERS: PlanTierDef[] = [
     priceAnnual: 9990,
     checkout: 'self_serve',
     featureKeys: ['allFree', 'reportsHistory', 'aiMcp', 'loyaltyReferrals', 'reservationsOrdering', 'seatsUnlimited'],
-    includes: ['ADVANCED_REPORTS', 'AI_ASSISTANT_BUBBLE', 'LOYALTY_PROGRAM', 'REFERRAL_PROGRAM', 'PROMOTIONS', 'RESERVATIONS', 'ONLINE_ORDERING'],
+    includes: [
+      'ADVANCED_REPORTS',
+      'AI_ASSISTANT_BUBBLE',
+      'LOYALTY_PROGRAM',
+      'REFERRAL_PROGRAM',
+      'PROMOTIONS',
+      'RESERVATIONS',
+      'ONLINE_ORDERING',
+      'BANK_RECONCILIATION',
+    ],
   },
   {
     id: 'PREMIUM',

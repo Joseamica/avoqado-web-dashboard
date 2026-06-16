@@ -624,10 +624,10 @@ export function AppSidebar({
     // Ingresos ("¿Cuánto gané?") ya vivo; el resto entra como "Muy pronto" hasta construirse.
     const contabilidadSubItems = ([
       { title: t('sidebar:contabilidadMenu.income', { defaultValue: '¿Cuánto gané?' }), url: 'contabilidad/ingresos', icon: DollarSign, permission: 'accounting:read', keywords: ['cuanto gane', 'ingresos', 'estado de resultados', 'utilidad', 'ganancias'] },
-      { title: t('sidebar:contabilidadMenu.reconciliation', { defaultValue: 'Conciliación con IA' }), url: 'contabilidad/conciliacion', icon: Upload, permission: 'accounting:read', comingSoon: true, keywords: ['conciliacion', 'estado de cuenta', 'banco', 'ia'] },
-      { title: t('sidebar:contabilidadMenu.summary', { defaultValue: 'Resumen del negocio' }), url: 'contabilidad/resumen', icon: TrendingUp, permission: 'accounting:read', comingSoon: true },
+      { title: t('sidebar:contabilidadMenu.reconciliation', { defaultValue: 'Conciliación con IA' }), url: 'contabilidad/conciliacion', icon: Upload, permission: 'accounting:read', keywords: ['conciliacion', 'estado de cuenta', 'banco', 'ia'] },
+      { title: t('sidebar:contabilidadMenu.summary', { defaultValue: 'Resumen del negocio' }), url: 'contabilidad/resumen', icon: TrendingUp, permission: 'accounting:read', keywords: ['resumen', 'negocio', 'portada', 'cuanto facture', 'como me fue'] },
       { title: t('sidebar:contabilidadMenu.cfdiInbox', { defaultValue: 'Buzón de CFDIs' }), url: 'contabilidad/buzon', icon: Inbox, permission: 'accounting:read', comingSoon: true, keywords: ['cfdi recibidos', 'gastos', 'proveedores'] },
-      { title: t('sidebar:contabilidadMenu.banks', { defaultValue: 'Bancos y cajas' }), url: 'contabilidad/bancos', icon: Wallet, permission: 'accounting:read', comingSoon: true },
+      { title: t('sidebar:contabilidadMenu.banks', { defaultValue: 'Bancos y cajas' }), url: 'contabilidad/bancos', icon: Wallet, permission: 'accounting:read', keywords: ['bancos', 'cajas', 'efectivo', 'deposito', 'banco'] },
       { title: t('sidebar:contabilidadMenu.chart', { defaultValue: 'Catálogo de cuentas' }), url: 'contabilidad/catalogo', icon: Landmark, permission: 'accounting:read', comingSoon: true, keywords: ['catalogo', 'cuentas', 'codigo agrupador', 'sat'] },
       { title: t('sidebar:contabilidadMenu.mapping', { defaultValue: 'Configuración contable' }), url: 'contabilidad/configuracion', icon: Settings2, permission: 'accounting:read', comingSoon: true },
       { title: t('sidebar:contabilidadMenu.journal', { defaultValue: 'Libro diario · Pólizas' }), url: 'contabilidad/libro-diario', icon: BookOpen, permission: 'accounting:read', comingSoon: true, keywords: ['polizas', 'libro diario', 'asientos'] },

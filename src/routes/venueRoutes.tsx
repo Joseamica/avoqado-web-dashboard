@@ -100,6 +100,9 @@ import {
   Refunds,
   SalesSummary,
   IncomeStatement,
+  BankReconciliation,
+  BusinessSummary,
+  BankAndCash,
   ShiftId,
   Shifts,
   SuppliersPage,
@@ -280,6 +283,24 @@ export function createVenueRoutes(): RouteObject[] {
       path: 'contabilidad/ingresos',
       element: <PermissionProtectedRoute permission="accounting:read" />,
       children: [{ index: true, element: <IncomeStatement /> }],
+    },
+    {
+      // Contabilidad → Conciliación con IA (Bancos). Gateado por permiso + FeatureGate PRO en la página.
+      path: 'contabilidad/conciliacion',
+      element: <PermissionProtectedRoute permission="accounting:read" />,
+      children: [{ index: true, element: <BankReconciliation /> }],
+    },
+    {
+      // Contabilidad → Resumen del negocio (Capa A, portada). Incluido, gateado por accounting:read.
+      path: 'contabilidad/resumen',
+      element: <PermissionProtectedRoute permission="accounting:read" />,
+      children: [{ index: true, element: <BusinessSummary /> }],
+    },
+    {
+      // Contabilidad → Bancos y cajas (Capa A, cuentas de dinero). Incluido, gateado por accounting:read.
+      path: 'contabilidad/bancos',
+      element: <PermissionProtectedRoute permission="accounting:read" />,
+      children: [{ index: true, element: <BankAndCash /> }],
     },
     {
       path: 'reports/home-charts',
