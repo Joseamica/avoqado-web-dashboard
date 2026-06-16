@@ -46,6 +46,7 @@
   Landmark,
   Percent,
   Scale,
+  ScrollText,
   Upload,
 } from 'lucide-react'
 import * as React from 'react'
@@ -575,6 +576,15 @@ export function AppSidebar({
       ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
         ? [{ title: t('sidebar:routes.billing'), url: 'settings/billing', icon: CreditCard, permission: 'billing:read', keywords: ['facturacion', 'plan', 'suscripcion', 'cobro'] }]
         : []),
+      {
+        title: t('sidebar:auditLog.title'),
+        url: 'activity-log',
+        icon: ScrollText,
+        permission: 'activity:read',
+        premiumLocked: !hasFeatureAccess('VENUE_AUDIT_LOG'),
+        gatedFeature: 'VENUE_AUDIT_LOG',
+        keywords: ['bitacora', 'auditoria', 'actividad', 'log', 'audit'],
+      },
       { title: t('sidebar:routes.notifications', { defaultValue: 'Notificaciones' }), url: 'notifications/preferences', icon: Settings2, permission: 'settings:read', keywords: ['alertas', 'avisos', 'preferencias'] },
       ...(effectiveRole === 'SUPERADMIN' ? [{
         title: t('sidebar:superadminTools'),

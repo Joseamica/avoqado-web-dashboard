@@ -117,6 +117,7 @@ import {
   TpvId,
   VenueDocuments,
   VenueChat,
+  VenueActivityLog,
   VenueEditLayout,
   VenueIntegrations,
   Disputes,
@@ -474,6 +475,14 @@ export function createVenueRoutes(): RouteObject[] {
       path: 'cfdi/configuracion',
       element: <PermissionProtectedRoute permission="cfdi:configure" />,
       children: [{ index: true, element: <CfdiConfiguracion /> }],
+    },
+
+    // Activity Log (requires activity:read permission)
+    // VISIBLE TEASER: page self-gates with <FeatureGate feature="VENUE_AUDIT_LOG"> (PRO)
+    // so we use PermissionProtectedRoute only — no FeatureProtectedRoute wrapper.
+    {
+      element: <PermissionProtectedRoute permission="activity:read" />,
+      children: [{ path: 'activity-log', element: <VenueActivityLog /> }],
     },
 
     // Promotions - Discounts (requires discounts:read permission)

@@ -175,6 +175,9 @@
     "chargeCard": "Charge card",
     "sendLink": "Send payment link"
   },
+  "auditLog": {
+    "title": "Activity Log"
+  },
   "organizationMenu": {
     "title": "Organization",
     "config": "TPV Configuration",
