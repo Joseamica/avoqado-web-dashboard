@@ -39,6 +39,22 @@ import {
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+// ── Sensitive-key redaction (defense-in-depth) ──
+
+const SENSITIVE_KEY_RE = /pass(word)?|secret|token|api[-_]?key|authorization|auth|cvv|clabe|\bpan\b|card[-_]?number|account[-_]?number|private[-_]?key/i
+
+function redactSensitive(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(redactSensitive)
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([k, v]) =>
+        SENSITIVE_KEY_RE.test(k) ? [k, '••• redacted'] : [k, redactSensitive(v)],
+      ),
+    )
+  }
+  return value
+}
+
 // ── Action Display Config ──
 
 interface ActionConfig {
@@ -386,7 +402,7 @@ function ActivityLogRow({ log }: { log: VenueActivityLogEntry }) {
         <TableRow>
           <TableCell colSpan={5} className="bg-muted/50">
             <pre className="text-xs font-mono p-2 rounded-md overflow-x-auto max-w-full">
-              {JSON.stringify(log.data, null, 2)}
+              {JSON.stringify(redactSensitive(log.data), null, 2)}
             </pre>
           </TableCell>
         </TableRow>
