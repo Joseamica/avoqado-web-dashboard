@@ -276,8 +276,8 @@ export function createVenueRoutes(): RouteObject[] {
       children: [{ index: true, element: <Refunds /> }],
     },
     {
-      // Contabilidad Capa A ("¿Cuánto gané?") — incluido, gateado solo por permiso accounting:read
-      path: 'reports/accounting',
+      // Contabilidad → ¿Cuánto gané? (Capa A, gerencial). Incluido, gateado por accounting:read.
+      path: 'contabilidad/ingresos',
       element: <PermissionProtectedRoute permission="accounting:read" />,
       children: [{ index: true, element: <IncomeStatement /> }],
     },

@@ -70,6 +70,20 @@
   "organizations": "Organizations",
   "system": "System Status",
   "webhooks": "Webhooks",
+  "contabilidadMenu": {
+    "title": "Accounting",
+    "income": "How much did I make?",
+    "summary": "Business overview",
+    "reconciliation": "AI reconciliation",
+    "cfdiInbox": "CFDI inbox",
+    "banks": "Banks & cash",
+    "chart": "Chart of accounts",
+    "mapping": "Accounting setup",
+    "journal": "Journal · Entries",
+    "trialBalance": "Trial balance",
+    "taxes": "Cash-basis VAT · DIOT",
+    "reports": "Accounting reports"
+  },
   "reportsMenu": {
     "title": "Reports",
     "payLaterAging": "Accounts Receivable",

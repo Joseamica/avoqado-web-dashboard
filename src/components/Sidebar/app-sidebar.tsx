@@ -42,6 +42,12 @@
   RefreshCw,
   Monitor,
   Calculator,
+  BookOpen,
+  Inbox,
+  Landmark,
+  Percent,
+  Scale,
+  Upload,
 } from 'lucide-react'
 import * as React from 'react'
 import { useLocation } from 'react-router-dom'
@@ -534,7 +540,6 @@ export function AppSidebar({
       { title: t('sidebar:availableBalance'), url: 'available-balance', icon: Wallet, permission: 'settlements:read', locked: !hasKYCAccess, keywords: ['balance', 'liquidaciones', 'depositos', 'transferencias'] },
       { title: t('sidebar:reportsMenu.payLaterAging', { defaultValue: 'Cuentas por Cobrar' }), url: 'reports/pay-later-aging', icon: HandCoins, permission: 'tpv-reports:pay-later-aging', keywords: ['pay later', 'fiado', 'deudas'] },
       { title: t('sidebar:reportsMenu.salesSummary'), url: 'reports/sales-summary', icon: BarChart3, permission: 'reports:read', keywords: ['reporte', 'ventas diarias', 'ganancias', 'ingresos'] },
-      { title: t('sidebar:reportsMenu.accounting', { defaultValue: 'Contabilidad' }), url: 'reports/accounting', icon: Calculator, permission: 'accounting:read', keywords: ['contabilidad', 'cuanto gane', 'ingresos', 'iva', 'estado de resultados', 'fiscal'] },
       { title: t('sidebar:reportsMenu.salesByItem'), url: 'reports/sales-by-item', icon: Receipt, permission: 'reports:read', keywords: ['reporte de productos', 'items vendidos'] },
       { title: t('sidebar:reportsMenu.homeCharts', { defaultValue: 'Gráficas (Home)' }), url: 'reports/home-charts', icon: TrendingUp, permission: 'reports:read', keywords: ['dashboard', 'graficas', 'home legacy'] },
       { title: t('sidebar:reportsMenu.salesByCategory'), url: 'reports/sales-by-category', icon: Tag, permission: 'reports:read', keywords: ['categorias', 'familias de productos', 'ventas por categoria'] },
@@ -614,6 +619,22 @@ export function AppSidebar({
         gatedFeature: 'CFDI',
         keywords: ['emisor', 'rfc', 'csd', 'certificado', 'comercios'],
       },
+    ].filter(item => !item.permission || can(item.permission)) as any[])
+
+    // Contabilidad — el módulo completo (gerencial Capa A + fiscal Capa B + bancos).
+    // Ingresos ("¿Cuánto gané?") ya vivo; el resto entra como "Muy pronto" hasta construirse.
+    const contabilidadSubItems = ([
+      { title: t('sidebar:contabilidadMenu.income', { defaultValue: '¿Cuánto gané?' }), url: 'contabilidad/ingresos', icon: DollarSign, permission: 'accounting:read', keywords: ['cuanto gane', 'ingresos', 'estado de resultados', 'utilidad', 'ganancias'] },
+      { title: t('sidebar:contabilidadMenu.reconciliation', { defaultValue: 'Conciliación con IA' }), url: 'contabilidad/conciliacion', icon: Upload, permission: 'accounting:read', comingSoon: true, keywords: ['conciliacion', 'estado de cuenta', 'banco', 'ia'] },
+      { title: t('sidebar:contabilidadMenu.summary', { defaultValue: 'Resumen del negocio' }), url: 'contabilidad/resumen', icon: TrendingUp, permission: 'accounting:read', comingSoon: true },
+      { title: t('sidebar:contabilidadMenu.cfdiInbox', { defaultValue: 'Buzón de CFDIs' }), url: 'contabilidad/buzon', icon: Inbox, permission: 'accounting:read', comingSoon: true, keywords: ['cfdi recibidos', 'gastos', 'proveedores'] },
+      { title: t('sidebar:contabilidadMenu.banks', { defaultValue: 'Bancos y cajas' }), url: 'contabilidad/bancos', icon: Wallet, permission: 'accounting:read', comingSoon: true },
+      { title: t('sidebar:contabilidadMenu.chart', { defaultValue: 'Catálogo de cuentas' }), url: 'contabilidad/catalogo', icon: Landmark, permission: 'accounting:read', comingSoon: true, keywords: ['catalogo', 'cuentas', 'codigo agrupador', 'sat'] },
+      { title: t('sidebar:contabilidadMenu.mapping', { defaultValue: 'Configuración contable' }), url: 'contabilidad/configuracion', icon: Settings2, permission: 'accounting:read', comingSoon: true },
+      { title: t('sidebar:contabilidadMenu.journal', { defaultValue: 'Libro diario · Pólizas' }), url: 'contabilidad/libro-diario', icon: BookOpen, permission: 'accounting:read', comingSoon: true, keywords: ['polizas', 'libro diario', 'asientos'] },
+      { title: t('sidebar:contabilidadMenu.trialBalance', { defaultValue: 'Balanza de comprobación' }), url: 'contabilidad/balanza', icon: Scale, permission: 'accounting:read', comingSoon: true },
+      { title: t('sidebar:contabilidadMenu.taxes', { defaultValue: 'IVA en flujo · DIOT' }), url: 'contabilidad/impuestos', icon: Percent, permission: 'accounting:read', comingSoon: true, keywords: ['iva', 'diot', 'impuestos', 'flujo de efectivo'] },
+      { title: t('sidebar:contabilidadMenu.reports', { defaultValue: 'Reportes contables' }), url: 'contabilidad/reportes', icon: FileSpreadsheet, permission: 'accounting:read', comingSoon: true, keywords: ['estado de resultados', 'balance', 'balanza', 'auxiliares'] },
     ].filter(item => !item.permission || can(item.permission)) as any[])
 
     // ===================================================================
@@ -715,6 +736,14 @@ export function AppSidebar({
       })
     }
 
+    // Contabilidad — su propio collapsible (gerencial + fiscal + bancos), gateado por accounting:read.
+    if (contabilidadSubItems.length > 0) {
+      mainItems.push({
+        title: t('sidebar:contabilidadMenu.title', { defaultValue: 'Contabilidad' }), url: '#contabilidad', icon: Calculator, subSidebar: 'contabilidad',
+        keywords: ['contabilidad', 'cuanto gane', 'iva', 'fiscal', 'conciliacion', 'estado de resultados', 'polizas', 'balanza', 'diot'],
+      })
+    }
+
     // Configuracion
     if (settingsSubItems.length > 0) {
       mainItems.push({
@@ -740,6 +769,7 @@ export function AppSidebar({
     if (customersSubItems.length > 0) allSubSidebarSections.customers = customersSubItems
     if (reportsSubItems.length > 0) allSubSidebarSections.reports = reportsSubItems
     if (facturacionSubItems.length > 0) allSubSidebarSections.facturacion = facturacionSubItems
+    if (contabilidadSubItems.length > 0) allSubSidebarSections.contabilidad = contabilidadSubItems
     if (settingsSubItems.length > 0) allSubSidebarSections.settings = settingsSubItems
 
     // Combine: WL module items first, then Avoqado core items

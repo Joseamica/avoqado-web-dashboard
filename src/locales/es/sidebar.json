@@ -69,6 +69,20 @@
   "organizations": "Organizaciones",
   "system": "Estado del sistema",
   "webhooks": "Webhooks",
+  "contabilidadMenu": {
+    "title": "Contabilidad",
+    "income": "¿Cuánto gané?",
+    "summary": "Resumen del negocio",
+    "reconciliation": "Conciliación con IA",
+    "cfdiInbox": "Buzón de CFDIs",
+    "banks": "Bancos y cajas",
+    "chart": "Catálogo de cuentas",
+    "mapping": "Configuración contable",
+    "journal": "Libro diario · Pólizas",
+    "trialBalance": "Balanza de comprobación",
+    "taxes": "IVA en flujo · DIOT",
+    "reports": "Reportes contables"
+  },
   "reportsMenu": {
     "title": "Reportes",
     "payLaterAging": "Cuentas por Cobrar",
