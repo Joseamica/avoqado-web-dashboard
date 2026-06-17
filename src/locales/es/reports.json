@@ -1,4 +1,9 @@
 {
+  "subtitleSuffix": "{{base}} · {{suffix}}",
+  "accountingError": {
+    "body": "No se pudieron cargar los datos. Revisa tu conexión e inténtalo de nuevo.",
+    "retry": "Reintentar"
+  },
   "bankReconciliation": {
     "title": "Conciliación con IA",
     "subtitle": "Sube tu estado de cuenta y cuádralo contra lo que Avoqado depositó",
@@ -29,6 +34,8 @@
   "incomeStatement": {
     "title": "¿Cuánto gané?",
     "subtitle": "Estado de ingresos del periodo",
+    "zeroTitle": "Sin ventas en el periodo",
+    "zeroBody": "No hay ventas cobradas en las fechas seleccionadas. Prueba ampliando el rango de fechas.",
     "grossSales": "Ventas brutas",
     "grossSalesTip": "Total facturado en el periodo, antes de devoluciones (incluye IVA).",
     "refunds": "Devoluciones",
@@ -51,6 +58,8 @@
   "businessSummary": {
     "title": "Resumen del negocio",
     "subtitle": "Cómo te fue en el periodo",
+    "zeroTitle": "Sin ventas en el periodo",
+    "zeroBody": "No hay ventas cobradas en las fechas seleccionadas. Prueba ampliando el rango de fechas.",
     "netRevenue": "Ingreso neto",
     "netRevenueTip": "Lo que realmente entró: ventas menos devoluciones (incluye IVA).",
     "invoicedPct": "Facturado",
@@ -278,6 +287,32 @@
     "error": "No se pudieron cargar los reportes contables.",
     "disclosureSource": "Se calculan al vuelo desde las pólizas; el estado de resultados acumula del inicio del año fiscal al periodo.",
     "disclosureEquation": "El balance cuadra por diseño: el resultado del ejercicio se suma al capital y Activo = Pasivo + Capital."
+  },
+  "cashBasisVat": {
+    "title": "IVA en flujo de efectivo · DIOT",
+    "subtitle": "El IVA que causaste por lo que cobraste este mes (por RFC, suma todos tus locales)",
+    "preliminarBanner": "PRELIMINAR: esto calcula SOLO tu IVA de ventas (lo cobrado). NO incluye el IVA que pagaste a proveedores (acreditable), que aún no registramos (próximamente). El \"a pagar\" mostrado es un TECHO; el real será MENOR. No lo uses como pago final sin tu contador.",
+    "zeroBody": "Sin ventas cobradas este periodo. RECUERDA: aunque no tengas actividad, normalmente debes presentar tu declaración de IVA en ceros.",
+    "multiOrg": "Este RFC opera locales en más de una organización de Avoqado; el cálculo los suma todos (es por contribuyente).",
+    "cardTitle": "IVA en flujo de efectivo",
+    "ivaTrasladado": "IVA trasladado cobrado (causado del periodo)",
+    "estimado16": "Estimado 16%",
+    "baseGravable": "Base gravable",
+    "ivaAcreditable": "IVA acreditable pagado (gastos)",
+    "ivaAcreditableHint": "Requiere registrar tus CFDIs de proveedores (próximamente).",
+    "fase2": "Muy pronto",
+    "retenciones": "Retenciones de IVA",
+    "ivaAPagar": "IVA a pagar (preliminar / techo)",
+    "ivaAPagarHint": "Solo lado ventas; al restar tu IVA de gastos será menor.",
+    "saldoAFavor": "Saldo a favor del periodo",
+    "cfdiContraste": "IVA amparado por tus CFDIs (contraste)",
+    "cfdiContrasteHint": "Informativo: IVA de las facturas timbradas del mes. No es la base: el IVA causado sale de lo COBRADO, no de lo facturado.",
+    "diotTitle": "DIOT",
+    "diotBody": "La DIOT lista el IVA que pagaste a cada proveedor (lado gastos). Requiere registrar tus CFDIs recibidos (próximamente, en el Buzón de CFDIs).",
+    "error": "No se pudo cargar el IVA en flujo de efectivo.",
+    "disclosureCashBasis": "El IVA se causa por FLUJO DE EFECTIVO: sobre lo que efectivamente cobraste en el mes, no sobre lo facturado.",
+    "disclosureNotInvoiced": "La tasa 16% es un supuesto general; locales con productos a 0%, 8% (frontera) o exentos verán el IVA sobreestimado.",
+    "disclosureSaldoFavor": "El arrastre o aplicación de un saldo a favor lo decides tú y tu contador; Avoqado no lo aplica automáticamente."
   },
   "payLaterAging": {
     "title": "Cuentas por Cobrar",

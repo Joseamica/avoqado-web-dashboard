@@ -1,4 +1,9 @@
 {
+  "subtitleSuffix": "{{base}} · {{suffix}}",
+  "accountingError": {
+    "body": "Could not load the data. Check your connection and try again.",
+    "retry": "Retry"
+  },
   "bankReconciliation": {
     "title": "AI reconciliation",
     "subtitle": "Upload your bank statement and match it against what Avoqado deposited",
@@ -29,6 +34,8 @@
   "incomeStatement": {
     "title": "How much did I make?",
     "subtitle": "Revenue statement for the period",
+    "zeroTitle": "No sales this period",
+    "zeroBody": "There are no collected sales in the selected dates. Try widening the date range.",
     "grossSales": "Gross sales",
     "grossSalesTip": "Total billed in the period, before refunds (tax included).",
     "refunds": "Refunds",
@@ -51,6 +58,8 @@
   "businessSummary": {
     "title": "Business summary",
     "subtitle": "How you did this period",
+    "zeroTitle": "No sales this period",
+    "zeroBody": "There are no collected sales in the selected dates. Try widening the date range.",
     "netRevenue": "Net revenue",
     "netRevenueTip": "What actually came in: sales minus refunds (VAT included).",
     "invoicedPct": "Invoiced",
@@ -278,6 +287,32 @@
     "error": "Could not load the accounting reports.",
     "disclosureSource": "Computed on the fly from the journal entries; the income statement accumulates from the start of the fiscal year.",
     "disclosureEquation": "The balance sheet balances by design: the period result is added to equity and Assets = Liabilities + Equity."
+  },
+  "cashBasisVat": {
+    "title": "Cash-basis VAT · DIOT",
+    "subtitle": "The VAT you owe on what you collected this month (per RFC, sums all your venues)",
+    "preliminarBanner": "PRELIMINARY: this computes ONLY your sales VAT (what you collected). It does NOT include the VAT you paid to suppliers (creditable), which we don't track yet (coming soon). The \"to pay\" figure is a CEILING; the real amount will be LOWER. Don't use it as a final payment without your accountant.",
+    "zeroBody": "No sales collected this period. REMEMBER: even with no activity, you usually still have to file a zero VAT return.",
+    "multiOrg": "This RFC operates venues across more than one Avoqado organization; the calculation sums them all (it's per taxpayer).",
+    "cardTitle": "Cash-basis VAT",
+    "ivaTrasladado": "Output VAT collected (accrued this period)",
+    "estimado16": "Estimated 16%",
+    "baseGravable": "Taxable base",
+    "ivaAcreditable": "Input VAT paid (expenses)",
+    "ivaAcreditableHint": "Requires recording your supplier CFDIs (coming soon).",
+    "fase2": "Coming soon",
+    "retenciones": "VAT withholdings",
+    "ivaAPagar": "VAT to pay (preliminary / ceiling)",
+    "ivaAPagarHint": "Sales side only; it will be lower once your expense VAT is subtracted.",
+    "saldoAFavor": "Credit balance for the period",
+    "cfdiContraste": "VAT covered by your CFDIs (contrast)",
+    "cfdiContrasteHint": "Informational: VAT on the invoices stamped this month. Not the base: accrued VAT comes from what was COLLECTED, not invoiced.",
+    "diotTitle": "DIOT",
+    "diotBody": "The DIOT lists the VAT you paid to each supplier (expense side). Requires recording your received CFDIs (coming soon, in the CFDI inbox).",
+    "error": "Could not load the cash-basis VAT summary.",
+    "disclosureCashBasis": "VAT accrues on a CASH-FLOW basis: on what you actually collected in the month, not on what you invoiced.",
+    "disclosureNotInvoiced": "The 16% rate is a general assumption; venues with 0%, 8% (border) or exempt products will see VAT overstated.",
+    "disclosureSaldoFavor": "Carrying forward or applying a credit balance is your and your accountant's decision; Avoqado does not apply it automatically."
   },
   "payLaterAging": {
     "title": "Accounts Receivable",

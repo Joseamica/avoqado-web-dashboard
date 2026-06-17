@@ -18,6 +18,7 @@ import {
 import { MetricCard } from '@/components/ui/metric-card'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useBankAndCash } from '@/hooks/useAccounting'
@@ -52,7 +53,7 @@ export default function BankAndCash() {
   const from = toYmd(range.from, tz)
   const to = toYmd(range.to, tz)
 
-  const { data, isLoading, isError } = useBankAndCash({ from, to })
+  const { data, isLoading, isError, refetch } = useBankAndCash({ from, to })
   const accounts = data?.accounts ?? []
   const tot = data?.totals
   const rec = data?.reconciliation
@@ -64,8 +65,9 @@ export default function BankAndCash() {
         <div>
           <h1 className="text-xl font-semibold text-foreground">{t('bankAndCash.title')}</h1>
           <p className="text-sm text-muted-foreground">
-            {t('bankAndCash.subtitle')}
-            {data?.venueName ? ` · ${data.venueName}` : ''}
+            {data?.venueName
+              ? t('subtitleSuffix', { base: t('bankAndCash.subtitle'), suffix: data.venueName })
+              : t('bankAndCash.subtitle')}
           </p>
         </div>
         <DateRangePicker
@@ -84,6 +86,8 @@ export default function BankAndCash() {
             <Skeleton key={i} className="h-24 rounded-2xl" />
           ))}
         </div>
+      ) : isError ? (
+        <AccountingErrorState onRetry={() => refetch()} />
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard
@@ -116,18 +120,16 @@ export default function BankAndCash() {
         </div>
       )}
 
-      {isError && <p className="text-sm text-destructive">{t('bankAndCash.error')}</p>}
-
       {/* Accounts list */}
-      {!isLoading && (
+      {!isLoading && !isError && (
         <Card className="border-input">
           <CardContent className="py-3">
-            <h2 className="mb-2 text-sm font-medium text-muted-foreground">{t('bankAndCash.accountsTitle')}</h2>
+            <h2 className="mb-2 text-sm font-medium text-foreground">{t('bankAndCash.accountsTitle')}</h2>
             {accounts.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t('bankAndCash.empty')}</p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm" aria-label={t('bankAndCash.accountsTitle')}>
                   <thead>
                     <tr className="border-b border-input text-left text-xs text-muted-foreground">
                       <th className="py-2 pr-2">{t('bankAndCash.account')}</th>
@@ -173,7 +175,7 @@ export default function BankAndCash() {
       )}
 
       {/* Conciliación link */}
-      {!isLoading && (
+      {!isLoading && !isError && (
         <Link to={`${fullBasePath}/contabilidad/conciliacion`} className="block">
           <Card className="border-input transition-colors hover:bg-muted/40">
             <CardContent className="flex items-center justify-between py-3">

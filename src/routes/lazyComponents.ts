@@ -241,6 +241,7 @@ export const AccountMapping = lazyWithRetry(() => import('@/pages/Reports/Accoun
 export const Journal = lazyWithRetry(() => import('@/pages/Reports/Journal'))
 export const TrialBalance = lazyWithRetry(() => import('@/pages/Reports/TrialBalance'))
 export const AccountingReports = lazyWithRetry(() => import('@/pages/Reports/AccountingReports'))
+export const CashBasisVat = lazyWithRetry(() => import('@/pages/Reports/CashBasisVat'))
 export const SalesByItem = lazyWithRetry(() => import('@/pages/Reports/SalesByItem'))
 export const SalesByCategory = lazyWithRetry(() => import('@/pages/Reports/SalesByCategory'))
 export const PaymentMethods = lazyWithRetry(() => import('@/pages/Reports/PaymentMethods'))

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { AlertCircle, Landmark, Loader2, Plus, Sparkles } from 'lucide-react'
+import { Landmark, Loader2, Plus, Sparkles } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { FeatureGate } from '@/components/billing/FeatureGate'
+import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
+import { NatureBadge } from '@/components/accounting/StatusBadge'
+import { useToast } from '@/hooks/use-toast'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
@@ -38,6 +41,7 @@ function ChartOfAccountsInner() {
   const { t } = useTranslation('reports')
   const { fullBasePath } = useCurrentVenue()
   const { can } = useAccess()
+  const { toast } = useToast()
   const { hasAccess } = useTierFeatureAccess('CFDI')
   const canManage = can('accounting:manage')
 
@@ -67,8 +71,12 @@ function ChartOfAccountsInner() {
         <div>
           <h1 className="text-xl font-semibold text-foreground">{t('chartOfAccounts.title')}</h1>
           <p className="text-sm text-muted-foreground">
-            {t('chartOfAccounts.subtitle')}
-            {data?.rfc ? ` · ${t('chartOfAccounts.rfcLabel', { rfc: data.rfc })}` : ''}
+            {data?.rfc
+              ? t('subtitleSuffix', {
+                  base: t('chartOfAccounts.subtitle'),
+                  suffix: t('chartOfAccounts.rfcLabel', { rfc: data.rfc }),
+                })
+              : t('chartOfAccounts.subtitle')}
           </p>
         </div>
         {seeded && accounts.length > 0 && canManage && (
@@ -81,6 +89,8 @@ function ChartOfAccountsInner() {
 
       {query.isLoading && hasAccess ? (
         <Skeleton className="h-64 rounded-2xl" />
+      ) : query.isError && hasAccess ? (
+        <AccountingErrorState onRetry={() => query.refetch()} />
       ) : needsFiscalSetup ? (
         <Card className="border-input">
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
@@ -101,7 +111,17 @@ function ChartOfAccountsInner() {
             <p className="text-sm font-medium text-foreground">{t('chartOfAccounts.emptyTitle')}</p>
             <p className="max-w-md text-sm text-muted-foreground">{t('chartOfAccounts.emptyBody')}</p>
             {canManage ? (
-              <Button size="sm" onClick={() => seedMutation.mutate()} disabled={seedMutation.isPending} data-tour="ledger-seed">
+              <Button
+                size="sm"
+                onClick={() =>
+                  seedMutation.mutate(undefined, {
+                    onError: (err: any) =>
+                      toast({ title: err?.response?.data?.message ?? t('accountingError.body'), variant: 'destructive' }),
+                  })
+                }
+                disabled={seedMutation.isPending}
+                data-tour="ledger-seed"
+              >
                 {seedMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                 {t('chartOfAccounts.generateBase')}
               </Button>
@@ -138,16 +158,7 @@ function ChartOfAccountsInner() {
                           </td>
                           <td className="py-1.5 pr-2 font-mono text-xs tabular-nums text-muted-foreground">{a.satGroupingCode}</td>
                           <td className="py-1.5 pl-2">
-                            <span
-                              className={cn(
-                                'rounded-full px-2 py-0.5 text-[11px] whitespace-nowrap',
-                                a.nature === 'DEUDORA'
-                                  ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
-                                  : 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
-                              )}
-                            >
-                              {t(`chartOfAccounts.nature.${a.nature}`)}
-                            </span>
+                            <NatureBadge nature={a.nature}>{t(`chartOfAccounts.nature.${a.nature}`)}</NatureBadge>
                           </td>
                         </tr>
                       ))}
@@ -158,13 +169,6 @@ function ChartOfAccountsInner() {
             </Card>
           ))}
         </div>
-      )}
-
-      {query.isError && hasAccess && (
-        <p className="flex items-center gap-1.5 text-sm text-destructive">
-          <AlertCircle className="w-4 h-4" />
-          {t('chartOfAccounts.error')}
-        </p>
       )}
 
       <Card className="border-input">
@@ -182,6 +186,7 @@ function ChartOfAccountsInner() {
 /** Modal para agregar una cuenta nueva (hoja). */
 function AddAccountModal({ accounts, onClose }: { accounts: LedgerAccount[]; onClose: () => void }) {
   const { t } = useTranslation('reports')
+  const { toast } = useToast()
   const createMutation = useCreateLedgerAccount()
 
   const [code, setCode] = useState('')
@@ -202,7 +207,11 @@ function AddAccountModal({ accounts, onClose }: { accounts: LedgerAccount[]; onC
         type,
         parentCode: parentCode === '__none__' ? null : parentCode,
       },
-      { onSuccess: onClose },
+      {
+        onSuccess: onClose,
+        onError: (err: any) =>
+          toast({ title: err?.response?.data?.message ?? t('accountingError.body'), variant: 'destructive' }),
+      },
     )
   }
 

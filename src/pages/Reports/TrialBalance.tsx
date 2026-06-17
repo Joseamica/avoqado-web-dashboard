@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { AlertCircle, AlertTriangle, CheckCircle2, Landmark, Scale } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Landmark, Scale } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FeatureGate } from '@/components/billing/FeatureGate'
+import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useTrialBalance } from '@/hooks/useTrialBalance'
@@ -50,13 +51,14 @@ function TrialBalanceInner() {
         <div>
           <h1 className="text-xl font-semibold text-foreground">{t('trialBalance.title')}</h1>
           <p className="text-sm text-muted-foreground">
-            {t('trialBalance.subtitle')}
-            {data?.rfc ? ` · ${t('chartOfAccounts.rfcLabel', { rfc: data.rfc })}` : ''}
+            {data?.rfc
+              ? t('subtitleSuffix', { base: t('trialBalance.subtitle'), suffix: t('chartOfAccounts.rfcLabel', { rfc: data.rfc }) })
+              : t('trialBalance.subtitle')}
           </p>
         </div>
         <div className="space-y-1">
-          <span className="text-[10px] text-muted-foreground">{t('trialBalance.period')}</span>
-          <Input type="month" value={period} onChange={e => setPeriod(e.target.value)} className="h-10 w-44" />
+          <label htmlFor="balance-period" className="block text-[10px] text-muted-foreground">{t('trialBalance.period')}</label>
+          <Input id="balance-period" type="month" value={period} onChange={e => setPeriod(e.target.value)} className="h-10 w-44" />
         </div>
       </header>
 
@@ -75,6 +77,8 @@ function TrialBalanceInner() {
 
       {query.isLoading && hasAccess ? (
         <Skeleton className="h-64 rounded-2xl" />
+      ) : query.isError && hasAccess ? (
+        <AccountingErrorState onRetry={() => query.refetch()} />
       ) : needsFiscalSetup ? (
         <Card className="border-input">
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
@@ -143,13 +147,6 @@ function TrialBalanceInner() {
             </div>
           </CardContent>
         </Card>
-      )}
-
-      {query.isError && hasAccess && (
-        <p className="flex items-center gap-1.5 text-sm text-destructive">
-          <AlertCircle className="w-4 h-4" />
-          {t('trialBalance.error')}
-        </p>
       )}
 
       <Card className="border-input">

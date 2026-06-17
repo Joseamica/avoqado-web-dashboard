@@ -7,6 +7,7 @@ import { ArrowRight, Banknote, Calculator, FileCheck2, HandCoins, Landmark, Perc
 import { MetricCard } from '@/components/ui/metric-card'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useBusinessSummary } from '@/hooks/useAccounting'
@@ -43,12 +44,13 @@ export default function BusinessSummary() {
   const from = toYmd(range.from, tz)
   const to = toYmd(range.to, tz)
 
-  const { data, isLoading, isError } = useBusinessSummary({ from, to })
+  const { data, isLoading, isError, refetch } = useBusinessSummary({ from, to })
   const ivaPct = Math.round((data?.taxRateAssumed ?? 0.16) * 100)
 
   const inv = data?.invoicing
   const col = data?.collection
   const rec = data?.reconciliation
+  const hasZeroSales = !isLoading && !isError && data?.metrics?.salesCount === 0
 
   return (
     <div className="p-4 space-y-5 bg-background">
@@ -57,8 +59,9 @@ export default function BusinessSummary() {
         <div>
           <h1 className="text-xl font-semibold text-foreground">{t('businessSummary.title')}</h1>
           <p className="text-sm text-muted-foreground">
-            {t('businessSummary.subtitle')}
-            {data?.venueName ? ` · ${data.venueName}` : ''}
+            {data?.venueName
+              ? t('subtitleSuffix', { base: t('businessSummary.subtitle'), suffix: data.venueName })
+              : t('businessSummary.subtitle')}
           </p>
         </div>
         <DateRangePicker
@@ -77,6 +80,16 @@ export default function BusinessSummary() {
             <Skeleton key={i} className="h-24 rounded-2xl" />
           ))}
         </div>
+      ) : isError ? (
+        <AccountingErrorState onRetry={() => refetch()} />
+      ) : hasZeroSales ? (
+        <Card className="border-input">
+          <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
+            <Receipt className="h-8 w-8 text-muted-foreground" />
+            <h2 className="text-sm font-medium text-foreground">{t('businessSummary.zeroTitle')}</h2>
+            <p className="max-w-md text-sm text-muted-foreground">{t('businessSummary.zeroBody')}</p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard
@@ -136,10 +149,8 @@ export default function BusinessSummary() {
         </div>
       )}
 
-      {isError && <p className="text-sm text-destructive">{t('businessSummary.error')}</p>}
-
       {/* Panels: facturación + cobro */}
-      {!isLoading && (
+      {!isLoading && !isError && !hasZeroSales && (
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {/* Facturación */}
           <Card className="border-input">
@@ -185,14 +196,14 @@ export default function BusinessSummary() {
               <SplitBar pct={col?.cashPct ?? 0} leftClass="bg-amber-500" rightClass="bg-blue-500" />
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="flex items-center gap-2">
-                  <Wallet className="w-4 h-4 text-amber-500" />
+                  <Wallet className="w-4 h-4 text-amber-500 dark:text-amber-400" />
                   <div>
                     <p className="text-xs text-muted-foreground">{t('businessSummary.cash')}</p>
                     <p className="font-medium text-foreground tabular-nums">{Currency(col?.cashCents ?? 0, true)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Landmark className="w-4 h-4 text-blue-500" />
+                  <Landmark className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                   <div>
                     <p className="text-xs text-muted-foreground">{t('businessSummary.electronic')}</p>
                     <p className="font-medium text-foreground tabular-nums">{Currency(col?.electronicCents ?? 0, true)}</p>
@@ -205,7 +216,7 @@ export default function BusinessSummary() {
       )}
 
       {/* Conciliación strip */}
-      {!isLoading && (
+      {!isLoading && !isError && !hasZeroSales && (
         <Link to={`${fullBasePath}/contabilidad/conciliacion`} className="block">
           <Card className="border-input transition-colors hover:bg-muted/40">
             <CardContent className="flex items-center justify-between py-3">
@@ -229,13 +240,15 @@ export default function BusinessSummary() {
       )}
 
       {/* Disclosure */}
-      <Card className="border-input">
-        <CardContent className="py-3 space-y-1 text-xs text-muted-foreground">
-          <p>{t('businessSummary.disclosureRevenue')}</p>
-          <p>{t('businessSummary.disclosureInvoiced')}</p>
-          <p>{t('businessSummary.disclosureResult')}</p>
-        </CardContent>
-      </Card>
+      {!isError && !hasZeroSales && (
+        <Card className="border-input">
+          <CardContent className="py-3 space-y-1 text-xs text-muted-foreground">
+            <p>{t('businessSummary.disclosureRevenue')}</p>
+            <p>{t('businessSummary.disclosureInvoiced')}</p>
+            <p>{t('businessSummary.disclosureResult')}</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

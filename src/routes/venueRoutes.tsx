@@ -108,6 +108,7 @@ import {
   Journal,
   TrialBalance,
   AccountingReports,
+  CashBasisVat,
   ShiftId,
   Shifts,
   SuppliersPage,
@@ -342,6 +343,13 @@ export function createVenueRoutes(): RouteObject[] {
       path: 'contabilidad/reportes',
       element: <PermissionProtectedRoute permission="accounting:read" />,
       children: [{ index: true, element: <AccountingReports /> }],
+    },
+    {
+      // Contabilidad → IVA en flujo de efectivo · DIOT (read-model honesto sobre lo cobrado, Capa B).
+      // Permiso accounting:read + FeatureGate CFDI (PREMIUM) en la página.
+      path: 'contabilidad/impuestos',
+      element: <PermissionProtectedRoute permission="accounting:read" />,
+      children: [{ index: true, element: <CashBasisVat /> }],
     },
     {
       path: 'reports/home-charts',

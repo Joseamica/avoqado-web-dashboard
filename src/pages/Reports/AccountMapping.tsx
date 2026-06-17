@@ -1,20 +1,21 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { AlertCircle, Landmark, Loader2, Settings2, Sparkles } from 'lucide-react'
+import { Landmark, Loader2, Settings2, Sparkles } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FeatureGate } from '@/components/billing/FeatureGate'
+import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
+import { SideBadge } from '@/components/accounting/StatusBadge'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useAccountMapping, useSeedAccountMapping, useSetAccountMapping } from '@/hooks/useAccountMapping'
 import { useChartOfAccounts } from '@/hooks/useChartOfAccounts'
 import type { MappingRow, MovementGroup } from '@/services/fiscal/accountMapping.service'
-import { cn } from '@/lib/utils'
 
 const GROUP_ORDER: MovementGroup[] = ['INGRESOS', 'TESORERIA', 'CARTERA', 'INVENTARIO', 'COSTOS_GASTOS', 'RESULTADO']
 const NONE = '__none__'
@@ -70,8 +71,9 @@ function AccountMappingInner() {
         <div>
           <h1 className="text-xl font-semibold text-foreground">{t('accountMapping.title')}</h1>
           <p className="text-sm text-muted-foreground">
-            {t('accountMapping.subtitle')}
-            {data?.rfc ? ` · ${t('chartOfAccounts.rfcLabel', { rfc: data.rfc })}` : ''}
+            {data?.rfc
+              ? t('subtitleSuffix', { base: t('accountMapping.subtitle'), suffix: t('chartOfAccounts.rfcLabel', { rfc: data.rfc }) })
+              : t('accountMapping.subtitle')}
           </p>
         </div>
         {catalogSeeded && canManage && hasAccess && (
@@ -84,6 +86,8 @@ function AccountMappingInner() {
 
       {mappingQuery.isLoading && hasAccess ? (
         <Skeleton className="h-64 rounded-2xl" />
+      ) : mappingQuery.isError && hasAccess ? (
+        <AccountingErrorState onRetry={() => mappingQuery.refetch()} />
       ) : needsFiscalSetup ? (
         <Card className="border-input">
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
@@ -138,23 +142,12 @@ function AccountMappingInner() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-sm text-foreground">{row.label}</span>
-                          <span
-                            className={cn(
-                              'rounded-full px-1.5 py-0.5 text-[10px] whitespace-nowrap',
-                              row.side === 'DEBIT'
-                                ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
-                                : row.side === 'CREDIT'
-                                  ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400'
-                                  : 'bg-muted text-muted-foreground',
-                            )}
-                          >
-                            {t(`accountMapping.side.${row.side}`)}
-                          </span>
+                          <SideBadge side={row.side}>{t(`accountMapping.side.${row.side}`)}</SideBadge>
                         </div>
                         <p className="text-xs text-muted-foreground">{t('accountMapping.defaultHint', { code: row.defaultCode })}</p>
                       </div>
                       <Select value={row.account?.id ?? NONE} onValueChange={v => onPick(row.movementType, v)} disabled={!canManage || setMutation.isPending}>
-                        <SelectTrigger className="h-10 w-full sm:w-[300px]">
+                        <SelectTrigger className="h-10 w-full sm:w-[300px]" aria-label={row.label}>
                           <SelectValue placeholder={t('accountMapping.unassigned')} />
                         </SelectTrigger>
                         <SelectContent>
@@ -173,13 +166,6 @@ function AccountMappingInner() {
             </Card>
           ))}
         </div>
-      )}
-
-      {mappingQuery.isError && hasAccess && (
-        <p className="flex items-center gap-1.5 text-sm text-destructive">
-          <AlertCircle className="w-4 h-4" />
-          {t('accountMapping.error')}
-        </p>
       )}
 
       <Card className="border-input">

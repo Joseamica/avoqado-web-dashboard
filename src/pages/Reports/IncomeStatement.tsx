@@ -6,6 +6,7 @@ import { Banknote, Calculator, DollarSign, HandCoins, Landmark, Percent, Receipt
 import { MetricCard } from '@/components/ui/metric-card'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useIncomeStatement } from '@/hooks/useIncomeStatement'
@@ -29,7 +30,7 @@ export default function IncomeStatement() {
   const from = toYmd(range.from, tz)
   const to = toYmd(range.to, tz)
 
-  const { data, isLoading, isError } = useIncomeStatement({ from, to })
+  const { data, isLoading, isError, refetch } = useIncomeStatement({ from, to })
 
   const rev = data?.revenue
   const ivaPct = Math.round((data?.taxRateAssumed ?? 0.16) * 100)
@@ -41,8 +42,9 @@ export default function IncomeStatement() {
         <div>
           <h1 className="text-xl font-semibold text-foreground">{t('incomeStatement.title')}</h1>
           <p className="text-sm text-muted-foreground">
-            {t('incomeStatement.subtitle')}
-            {data?.venueName ? ` · ${data.venueName}` : ''}
+            {data?.venueName
+              ? t('subtitleSuffix', { base: t('incomeStatement.subtitle'), suffix: data.venueName })
+              : t('incomeStatement.subtitle')}
           </p>
         </div>
         <DateRangePicker
@@ -61,6 +63,16 @@ export default function IncomeStatement() {
             <Skeleton key={i} className="h-24 rounded-2xl" />
           ))}
         </div>
+      ) : isError ? (
+        <AccountingErrorState onRetry={() => refetch()} />
+      ) : data?.metrics?.salesCount === 0 ? (
+        <Card className="border-input">
+          <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
+            <Receipt className="h-8 w-8 text-muted-foreground" />
+            <h2 className="text-base font-medium text-foreground">{t('incomeStatement.zeroTitle')}</h2>
+            <p className="max-w-md text-sm text-muted-foreground">{t('incomeStatement.zeroBody')}</p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard
@@ -119,8 +131,6 @@ export default function IncomeStatement() {
           />
         </div>
       )}
-
-      {isError && <p className="text-sm text-destructive">{t('incomeStatement.error')}</p>}
 
       {/* Disclosure — what this tablero is and isn't */}
       <Card className="border-input">

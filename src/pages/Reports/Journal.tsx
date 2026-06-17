@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { AlertCircle, BookOpen, Landmark, Loader2, Plus, Scale, Trash2 } from 'lucide-react'
+import { BookOpen, Landmark, Loader2, Plus, Scale, Trash2 } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,9 +11,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { FeatureGate } from '@/components/billing/FeatureGate'
+import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
+import { useToast } from '@/hooks/use-toast'
 import { useJournal, useCreateJournalEntry } from '@/hooks/useJournal'
 import { useChartOfAccounts } from '@/hooks/useChartOfAccounts'
 import type { JournalEntryDTO } from '@/services/fiscal/journalEntry.service'
@@ -23,7 +25,7 @@ import { cn } from '@/lib/utils'
 
 const SAMPLE_ENTRIES: JournalEntryDTO[] = [
   {
-    id: 's1', date: '2026-06-15', period: '2026-06', folio: 12, type: 'INGRESO', source: 'PAYMENT', status: 'POSTED', concept: 'Cobro del día — tarjeta',
+    id: 's1', date: '2026-06-15', period: '2026-06', folio: 12, type: 'INGRESO', source: 'PAYMENT', status: 'POSTED', concept: 'Cobro del día con tarjeta',
     totalDebitCents: 116000, totalCreditCents: 116000,
     lines: [
       { id: 'l1', ledgerAccountId: 'a', accountCode: '102.01', accountName: 'Bancos nacionales', debitCents: 116000, creditCents: 0, description: null },
@@ -62,8 +64,9 @@ function JournalInner() {
         <div>
           <h1 className="text-xl font-semibold text-foreground">{t('journal.title')}</h1>
           <p className="text-sm text-muted-foreground">
-            {t('journal.subtitle')}
-            {data?.rfc ? ` · ${t('chartOfAccounts.rfcLabel', { rfc: data.rfc })}` : ''}
+            {data?.rfc
+              ? t('subtitleSuffix', { base: t('journal.subtitle'), suffix: t('chartOfAccounts.rfcLabel', { rfc: data.rfc }) })
+              : t('journal.subtitle')}
           </p>
         </div>
         {!needsFiscalSetup && canManage && hasAccess && (
@@ -76,6 +79,8 @@ function JournalInner() {
 
       {journalQuery.isLoading && hasAccess ? (
         <Skeleton className="h-64 rounded-2xl" />
+      ) : journalQuery.isError && hasAccess ? (
+        <AccountingErrorState onRetry={() => journalQuery.refetch()} />
       ) : needsFiscalSetup ? (
         <Card className="border-input">
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
@@ -147,13 +152,6 @@ function JournalInner() {
         </div>
       )}
 
-      {journalQuery.isError && hasAccess && (
-        <p className="flex items-center gap-1.5 text-sm text-destructive">
-          <AlertCircle className="w-4 h-4" />
-          {t('journal.error')}
-        </p>
-      )}
-
       <Card className="border-input">
         <CardContent className="py-3 space-y-1 text-xs text-muted-foreground">
           <p>{t('journal.disclosureBalance')}</p>
@@ -169,6 +167,7 @@ function JournalInner() {
 /** Modal para crear una póliza manual con editor de líneas + verificación de balance en vivo. */
 function NewEntryModal({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation('reports')
+  const { toast } = useToast()
   const createMutation = useCreateJournalEntry()
   const chartQuery = useChartOfAccounts()
 
@@ -214,7 +213,10 @@ function NewEntryModal({ onClose }: { onClose: () => void }) {
           description: l.description.trim() || null,
         })),
       },
-      { onSuccess: onClose },
+      {
+        onSuccess: onClose,
+        onError: (err: any) => toast({ title: err?.response?.data?.message ?? t('accountingError.body'), variant: 'destructive' }),
+      },
     )
   }
 
