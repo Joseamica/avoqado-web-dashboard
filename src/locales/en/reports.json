@@ -257,6 +257,28 @@
     "disclosureSource": "Computed on the fly from the journal entries; nothing is captured separately.",
     "disclosureSign": "Balances in blue are credit; normal ones are debit. The closing column shows debit / credit."
   },
+  "accountingReports": {
+    "title": "Accounting reports",
+    "subtitle": "Income statement and balance sheet, derived from your journal entries",
+    "incomeStatement": "Income statement (year to date)",
+    "balanceSheet": "Balance sheet",
+    "ingresos": "Income",
+    "costos": "Cost of sales",
+    "utilidadBruta": "Gross profit",
+    "gastos": "Expenses",
+    "utilidad": "Profit for the period",
+    "perdida": "Loss for the period",
+    "activo": "Assets",
+    "pasivo": "Liabilities",
+    "capital": "Equity",
+    "equationOk": "The balance sheet balances: Assets = Liabilities + Equity ✓",
+    "equationBad": "The balance sheet does NOT balance — check the entries",
+    "emptyTitle": "No data for this period",
+    "emptyBody": "There are no journal entries in the selected period's fiscal year. Record entries in the journal.",
+    "error": "Could not load the accounting reports.",
+    "disclosureSource": "Computed on the fly from the journal entries; the income statement accumulates from the start of the fiscal year.",
+    "disclosureEquation": "The balance sheet balances by design: the period result is added to equity and Assets = Liabilities + Equity."
+  },
   "payLaterAging": {
     "title": "Accounts Receivable",
     "subtitle": "\"Pay Later\" orders grouped by aging",

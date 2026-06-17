@@ -537,7 +537,7 @@ export function AppSidebar({
       { title: t('sidebar:availableBalance'), url: 'available-balance', icon: Wallet, permission: 'settlements:read', locked: !hasKYCAccess, keywords: ['balance', 'liquidaciones', 'depositos', 'transferencias'] },
       { title: t('sidebar:reportsMenu.payLaterAging', { defaultValue: 'Cuentas por Cobrar' }), url: 'reports/pay-later-aging', icon: HandCoins, permission: 'tpv-reports:pay-later-aging', keywords: ['pay later', 'fiado', 'deudas'] },
       { title: t('sidebar:reportsMenu.salesSummary'), url: 'reports/sales-summary', icon: BarChart3, permission: 'reports:read', keywords: ['reporte', 'ventas diarias', 'ganancias', 'ingresos'] },
-      { title: t('sidebar:reportsMenu.salesByItem'), url: 'reports/sales-by-item', icon: Receipt, permission: 'reports:read', keywords: ['reporte de productos', 'items vendidos'] },
+      { title: t('sidebar:reportsMenu.salesByItem'), url: 'reports/sales-by-item', icon: Receipt, permission: 'reports:read', premiumLocked: !hasFeatureAccess('ADVANCED_REPORTS'), gatedFeature: 'ADVANCED_REPORTS', keywords: ['reporte de productos', 'items vendidos'] },
       { title: t('sidebar:reportsMenu.homeCharts', { defaultValue: 'Gráficas (Home)' }), url: 'reports/home-charts', icon: TrendingUp, permission: 'reports:read', keywords: ['dashboard', 'graficas', 'home legacy'] },
       { title: t('sidebar:reportsMenu.salesByCategory'), url: 'reports/sales-by-category', icon: Tag, permission: 'reports:read', keywords: ['categorias', 'familias de productos', 'ventas por categoria'] },
       { title: t('sidebar:reportsMenu.paymentMethods'), url: 'reports/payment-methods', icon: CreditCard, permission: 'reports:read', keywords: ['metodos de pago', 'efectivo', 'tarjeta', 'propinas', 'comisiones'] },
@@ -628,19 +628,24 @@ export function AppSidebar({
     ].filter(item => !item.permission || can(item.permission)) as any[])
 
     // Contabilidad — el módulo completo (gerencial Capa A + fiscal Capa B + bancos).
-    // Ingresos ("¿Cuánto gané?") ya vivo; el resto entra como "Muy pronto" hasta construirse.
+    // Tier badges (teaser visible) — cada item espeja el <FeatureGate> de su página:
+    //   • Capa A gerencial (ingresos / resumen / bancos) → Free, sin badge.
+    //   • Conciliación con IA → PRO (BANK_RECONCILIATION ⭐).
+    //   • Capa B fiscal (catálogo / configuración / libro diario / balanza / reportes) → PREMIUM (CFDI 👑).
+    // Para superadmin el badge igual se muestra (informativo) aunque tenga bypass — ver showTierBadge.
+    const hasBankReconFeature = hasFeatureAccess('BANK_RECONCILIATION')
     const contabilidadSubItems = ([
       { title: t('sidebar:contabilidadMenu.income', { defaultValue: '¿Cuánto gané?' }), url: 'contabilidad/ingresos', icon: DollarSign, permission: 'accounting:read', keywords: ['cuanto gane', 'ingresos', 'estado de resultados', 'utilidad', 'ganancias'] },
-      { title: t('sidebar:contabilidadMenu.reconciliation', { defaultValue: 'Conciliación con IA' }), url: 'contabilidad/conciliacion', icon: Upload, permission: 'accounting:read', keywords: ['conciliacion', 'estado de cuenta', 'banco', 'ia'] },
+      { title: t('sidebar:contabilidadMenu.reconciliation', { defaultValue: 'Conciliación con IA' }), url: 'contabilidad/conciliacion', icon: Upload, permission: 'accounting:read', premiumLocked: !hasBankReconFeature, gatedFeature: 'BANK_RECONCILIATION', keywords: ['conciliacion', 'estado de cuenta', 'banco', 'ia'] },
       { title: t('sidebar:contabilidadMenu.summary', { defaultValue: 'Resumen del negocio' }), url: 'contabilidad/resumen', icon: TrendingUp, permission: 'accounting:read', keywords: ['resumen', 'negocio', 'portada', 'cuanto facture', 'como me fue'] },
       { title: t('sidebar:contabilidadMenu.cfdiInbox', { defaultValue: 'Buzón de CFDIs' }), url: 'contabilidad/buzon', icon: Inbox, permission: 'accounting:read', comingSoon: true, keywords: ['cfdi recibidos', 'gastos', 'proveedores'] },
       { title: t('sidebar:contabilidadMenu.banks', { defaultValue: 'Bancos y cajas' }), url: 'contabilidad/bancos', icon: Wallet, permission: 'accounting:read', keywords: ['bancos', 'cajas', 'efectivo', 'deposito', 'banco'] },
-      { title: t('sidebar:contabilidadMenu.chart', { defaultValue: 'Catálogo de cuentas' }), url: 'contabilidad/catalogo', icon: Landmark, permission: 'accounting:read', keywords: ['catalogo', 'cuentas', 'codigo agrupador', 'sat'] },
-      { title: t('sidebar:contabilidadMenu.mapping', { defaultValue: 'Configuración contable' }), url: 'contabilidad/configuracion', icon: Settings2, permission: 'accounting:read', keywords: ['configuracion contable', 'mapeo', 'cuentas', 'el sistema dicta', 'polizas'] },
-      { title: t('sidebar:contabilidadMenu.journal', { defaultValue: 'Libro diario · Pólizas' }), url: 'contabilidad/libro-diario', icon: BookOpen, permission: 'accounting:read', keywords: ['polizas', 'libro diario', 'asientos', 'doble partida'] },
-      { title: t('sidebar:contabilidadMenu.trialBalance', { defaultValue: 'Balanza de comprobación' }), url: 'contabilidad/balanza', icon: Scale, permission: 'accounting:read', keywords: ['balanza', 'comprobacion', 'saldos', 'cuadre', 'debe haber'] },
+      { title: t('sidebar:contabilidadMenu.chart', { defaultValue: 'Catálogo de cuentas' }), url: 'contabilidad/catalogo', icon: Landmark, permission: 'accounting:read', premiumLocked: !hasCfdiFeature, gatedFeature: 'CFDI', keywords: ['catalogo', 'cuentas', 'codigo agrupador', 'sat'] },
+      { title: t('sidebar:contabilidadMenu.mapping', { defaultValue: 'Configuración contable' }), url: 'contabilidad/configuracion', icon: Settings2, permission: 'accounting:read', premiumLocked: !hasCfdiFeature, gatedFeature: 'CFDI', keywords: ['configuracion contable', 'mapeo', 'cuentas', 'el sistema dicta', 'polizas'] },
+      { title: t('sidebar:contabilidadMenu.journal', { defaultValue: 'Libro diario · Pólizas' }), url: 'contabilidad/libro-diario', icon: BookOpen, permission: 'accounting:read', premiumLocked: !hasCfdiFeature, gatedFeature: 'CFDI', keywords: ['polizas', 'libro diario', 'asientos', 'doble partida'] },
+      { title: t('sidebar:contabilidadMenu.trialBalance', { defaultValue: 'Balanza de comprobación' }), url: 'contabilidad/balanza', icon: Scale, permission: 'accounting:read', premiumLocked: !hasCfdiFeature, gatedFeature: 'CFDI', keywords: ['balanza', 'comprobacion', 'saldos', 'cuadre', 'debe haber'] },
       { title: t('sidebar:contabilidadMenu.taxes', { defaultValue: 'IVA en flujo · DIOT' }), url: 'contabilidad/impuestos', icon: Percent, permission: 'accounting:read', comingSoon: true, keywords: ['iva', 'diot', 'impuestos', 'flujo de efectivo'] },
-      { title: t('sidebar:contabilidadMenu.reports', { defaultValue: 'Reportes contables' }), url: 'contabilidad/reportes', icon: FileSpreadsheet, permission: 'accounting:read', comingSoon: true, keywords: ['estado de resultados', 'balance', 'balanza', 'auxiliares'] },
+      { title: t('sidebar:contabilidadMenu.reports', { defaultValue: 'Reportes contables' }), url: 'contabilidad/reportes', icon: FileSpreadsheet, permission: 'accounting:read', premiumLocked: !hasCfdiFeature, gatedFeature: 'CFDI', keywords: ['estado de resultados', 'balance general', 'reportes contables', 'auxiliares'] },
     ].filter(item => !item.permission || can(item.permission)) as any[])
 
     // ===================================================================

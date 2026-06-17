@@ -100,6 +100,26 @@ export async function setupApiMocks(page: Page, options: SetupApiMocksOptions = 
     }),
   )
 
+  // Plan-tier gating signal — GET /venues/:id/plan-tier → { tier, grandfathered, exempt }.
+  // SOURCE OF TRUTH for useVenueTier() / FeatureGate (readable by every role; the gate migrated
+  // here from /plan on 2026-06-13). Derived from the SAME planState so page paywalls AND sidebar
+  // tier badges resolve correctly. Without this route getVenuePlanTierInfo() falls through to the
+  // catch-all → planTierInfo undefined → fail-open → gated features wrongly appear UNLOCKED.
+  const planTierInfo = {
+    tier: !planState.planTier || planState.planTier === 'GRATIS' ? 'FREE' : planState.planTier,
+    grandfathered: planState.grandfathered === true,
+    // exempt = grandfathered OR demo; demo venues are exercised via venue.status (the hook's
+    // isDemoVenue check), so deriving exempt from grandfathered alone is correct for the fixture.
+    exempt: planState.grandfathered === true,
+  }
+  await page.route('**/api/v1/dashboard/venues/*/plan-tier', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: planTierInfo }),
+    }),
+  )
+
   const seatStatus = createMockSeatStatus(options.seatStatus)
   await page.route('**/api/v1/dashboard/venues/*/plan/seat-status', (route) =>
     route.fulfill({

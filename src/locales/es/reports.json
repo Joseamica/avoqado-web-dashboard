@@ -257,6 +257,28 @@
     "disclosureSource": "Se calcula al vuelo desde las pólizas del libro diario; no captura nada aparte.",
     "disclosureSign": "Los saldos en azul son acreedores; los normales, deudores. La columna de saldo final muestra deudor / acreedor."
   },
+  "accountingReports": {
+    "title": "Reportes contables",
+    "subtitle": "Estado de resultados y balance general, derivados de tus pólizas",
+    "incomeStatement": "Estado de resultados (del ejercicio)",
+    "balanceSheet": "Balance general",
+    "ingresos": "Ingresos",
+    "costos": "Costos",
+    "utilidadBruta": "Utilidad bruta",
+    "gastos": "Gastos",
+    "utilidad": "Utilidad del ejercicio",
+    "perdida": "Pérdida del ejercicio",
+    "activo": "Activo",
+    "pasivo": "Pasivo",
+    "capital": "Capital",
+    "equationOk": "El balance cuadra: Activo = Pasivo + Capital ✓",
+    "equationBad": "El balance NO cuadra — revisa las pólizas",
+    "emptyTitle": "Sin datos para este periodo",
+    "emptyBody": "No hay pólizas registradas en el ejercicio del periodo seleccionado. Registra asientos en el libro diario.",
+    "error": "No se pudieron cargar los reportes contables.",
+    "disclosureSource": "Se calculan al vuelo desde las pólizas; el estado de resultados acumula del inicio del año fiscal al periodo.",
+    "disclosureEquation": "El balance cuadra por diseño: el resultado del ejercicio se suma al capital y Activo = Pasivo + Capital."
+  },
   "payLaterAging": {
     "title": "Cuentas por Cobrar",
     "subtitle": "Órdenes \"Pagar Después\" agrupadas por antigüedad de vencimiento",

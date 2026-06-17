@@ -107,6 +107,7 @@ import {
   AccountMapping,
   Journal,
   TrialBalance,
+  AccountingReports,
   ShiftId,
   Shifts,
   SuppliersPage,
@@ -334,6 +335,13 @@ export function createVenueRoutes(): RouteObject[] {
       path: 'contabilidad/balanza',
       element: <PermissionProtectedRoute permission="accounting:read" />,
       children: [{ index: true, element: <TrialBalance /> }],
+    },
+    {
+      // Contabilidad → Reportes contables (Estado de resultados + Balance general, Capa B).
+      // Permiso accounting:read + FeatureGate CFDI (PREMIUM) en la página.
+      path: 'contabilidad/reportes',
+      element: <PermissionProtectedRoute permission="accounting:read" />,
+      children: [{ index: true, element: <AccountingReports /> }],
     },
     {
       path: 'reports/home-charts',

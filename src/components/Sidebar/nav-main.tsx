@@ -223,6 +223,15 @@ export function NavMain({
     )
   }
 
+  // Whether to render the tier icon next to a nav item.
+  // - Normal user lacking the feature → premiumLocked is true (the visible-teaser badge). Unchanged.
+  // - SUPERADMIN → hasFeatureAccess() short-circuits to true (they bypass every gate), so premiumLocked
+  //   is always false and they'd see NO tier icons. But a superadmin inspecting a venue WANTS to see
+  //   which features are Pro/Premium on it, so we show the icon for ANY gated item (informational, not
+  //   a paywall — the page still lets them through). Items with no gatedFeature (Free) never get one.
+  const showTierBadge = (navItem: { premiumLocked?: boolean; gatedFeature?: string }) =>
+    !!navItem.premiumLocked || (isSuperadmin && !!navItem.gatedFeature)
+
   // Eye toggle button for superadmin visibility control
   const VisibilityToggle = ({ url, className }: { url: string; className?: string }) => {
     if (!isSuperadmin || !onToggleVisibility) return null
@@ -336,8 +345,8 @@ export function NavMain({
             {item.icon && <item.icon />}
             <span>{item.title}</span>
             {item.locked && <Lock className="ml-auto h-3 w-3 text-muted-foreground opacity-70" aria-label={t('requiresKycVerification')} />}
-            {!item.locked && item.premiumLocked && <TierBadge feature={item.gatedFeature} />}
-            {!item.locked && !item.premiumLocked && <VisibilityToggle url={item.url} className="ml-auto" />}
+            {!item.locked && showTierBadge(item) && <TierBadge feature={item.gatedFeature} />}
+            {!item.locked && <VisibilityToggle url={item.url} className={showTierBadge(item) ? 'ml-1' : 'ml-auto'} />}
             <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -503,8 +512,8 @@ export function NavMain({
                 {item.isAvoqadoCore && !isCollapsed && <AvoqadoBadge />}
                 {item.icon && <item.icon className={isSuperadminItem ? superadminIconClass : undefined} />}
                 <span className={isSuperadminItem ? superadminGradientTextClass : undefined}>{item.title}</span>
-                {item.premiumLocked && <TierBadge feature={item.gatedFeature} />}
-                {!item.premiumLocked && <VisibilityToggle url={item.url} className="ml-auto" />}
+                {!item.locked && showTierBadge(item) && <TierBadge feature={item.gatedFeature} />}
+                {!item.locked && <VisibilityToggle url={item.url} className={showTierBadge(item) ? 'ml-1' : 'ml-auto'} />}
                 <ChevronRight className="transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
               </SidebarMenuButton>
             </CollapsibleTrigger>
@@ -549,7 +558,7 @@ export function NavMain({
                           }}
                         >
                           <span className={isSuperadminSubItem ? superadminGradientTextClass : undefined}>{subItem.title}</span>
-                          {subItem.premiumLocked && <TierBadge feature={subItem.gatedFeature} />}
+                          {showTierBadge(subItem) && <TierBadge feature={subItem.gatedFeature} />}
                           <SubItemVisibilityToggle url={subItem.url} />
                         </NavLink>
                       </SidebarMenuSubButton>
@@ -610,8 +619,8 @@ export function NavMain({
             {item.icon && <item.icon className={isSuperadminItem ? superadminIconClass : undefined} />}
             <span className={isSuperadminItem ? superadminGradientTextClass : undefined}>{item.title}</span>
             {item.locked && <Lock className="ml-auto h-3 w-3 text-muted-foreground opacity-70" aria-label={t('requiresKycVerification')} />}
-            {!item.locked && item.premiumLocked && <TierBadge feature={item.gatedFeature} />}
-            {!item.locked && !item.premiumLocked && <VisibilityToggle url={item.url} className="ml-auto" />}
+            {!item.locked && showTierBadge(item) && <TierBadge feature={item.gatedFeature} />}
+            {!item.locked && <VisibilityToggle url={item.url} className={showTierBadge(item) ? 'ml-1' : 'ml-auto'} />}
           </NavLink>
         </SidebarMenuButton>
       </SidebarMenuItem>
