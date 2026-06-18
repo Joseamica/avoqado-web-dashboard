@@ -213,6 +213,7 @@
     "title": "Journal · Entries",
     "subtitle": "Your double-entry postings (each one balances: debits = credits)",
     "newEntry": "New entry",
+    "generate": "Generate entries",
     "emptyTitle": "You don't have any entries yet",
     "emptyBody": "Record your first manual entry. Each entry must balance: total debits equal total credits.",
     "error": "Could not load the journal.",
@@ -229,7 +230,7 @@
       "OPENING": "Opening"
     },
     "disclosureBalance": "Every entry balances by design: total debits always equal total credits (double-entry).",
-    "disclosureAuto": "Soon the system will generate these entries on its own, from your payments and CFDIs, using your accounting setup.",
+    "disclosureAuto": "Use \"Generate entries\" to have the system create the postings on its own, from your payments, using your accounting setup. It is idempotent: re-generating never duplicates.",
     "modal": {
       "title": "New manual entry",
       "date": "Date",
@@ -246,7 +247,11 @@
     },
     "toast": {
       "created": "Entry #{{folio}} recorded",
-      "createError": "Could not record the entry"
+      "createError": "Could not record the entry",
+      "generated": "{{posted}} entries generated from your payments",
+      "generateNone": "No new entries — already generated",
+      "generateMapping": "Some accounts are unmapped in Accounting setup",
+      "generateError": "Could not generate the entries"
     }
   },
   "trialBalance": {
@@ -291,7 +296,7 @@
   "cashBasisVat": {
     "title": "Cash-basis VAT · DIOT",
     "subtitle": "The VAT you owe on what you collected this month (per RFC, sums all your venues)",
-    "preliminarBanner": "PRELIMINARY: this computes ONLY your sales VAT (what you collected). It does NOT include the VAT you paid to suppliers (creditable), which we don't track yet (coming soon). The \"to pay\" figure is a CEILING; the real amount will be LOWER. Don't use it as a final payment without your accountant.",
+    "preliminarBanner": "PRELIMINARY: this already subtracts your creditable VAT from PAID expenses (CFDI inbox). It still assumes a 16% rate and excludes VAT clients may have withheld on your sales. Do not use as a final payment without your accountant.",
     "zeroBody": "No sales collected this period. REMEMBER: even with no activity, you usually still have to file a zero VAT return.",
     "multiOrg": "This RFC operates venues across more than one Avoqado organization; the calculation sums them all (it's per taxpayer).",
     "cardTitle": "Cash-basis VAT",
@@ -299,7 +304,7 @@
     "estimado16": "Estimated 16%",
     "baseGravable": "Taxable base",
     "ivaAcreditable": "Input VAT paid (expenses)",
-    "ivaAcreditableHint": "Requires recording your supplier CFDIs (coming soon).",
+    "ivaAcreditableHint": "VAT from your supplier CFDIs PAID this month (cash-basis). Reduces the VAT you owe.",
     "fase2": "Coming soon",
     "retenciones": "VAT withholdings",
     "ivaAPagar": "VAT to pay (preliminary / ceiling)",
@@ -312,7 +317,17 @@
     "error": "Could not load the cash-basis VAT summary.",
     "disclosureCashBasis": "VAT accrues on a CASH-FLOW basis: on what you actually collected in the month, not on what you invoiced.",
     "disclosureNotInvoiced": "The 16% rate is a general assumption; venues with 0%, 8% (border) or exempt products will see VAT overstated.",
-    "disclosureSaldoFavor": "Carrying forward or applying a credit balance is your and your accountant's decision; Avoqado does not apply it automatically."
+    "disclosureSaldoFavor": "Carrying forward or applying a credit balance is your and your accountant's decision; Avoqado does not apply it automatically.",
+    "ivaRetenidoTerceros": "VAT withheld from suppliers (to remit)",
+    "ivaRetenidoTercerosHint": "The VAT YOU withheld from suppliers; remitted SEPARATELY, it does not reduce the VAT you owe.",
+    "retencionesHint": "VAT a client may have withheld from you on sales (not captured yet).",
+    "diotProviders": "{{count}} suppliers",
+    "diotEmpty": "No paid expenses this period. Register your supplier CFDIs in the inbox and mark them paid.",
+    "diotProvider": "Supplier",
+    "diotTipo": "Party",
+    "diotIvaAcred": "Creditable VAT",
+    "diotTotal": "Total creditable VAT",
+    "diotMismatch": "⚠ DIOT VAT does not match the cash-basis VAT; check the per-rate breakdown."
   },
   "payLaterAging": {
     "title": "Accounts Receivable",
@@ -946,5 +961,88 @@
     "totals": {
       "label": "Total"
     }
+  },
+  "expenses": {
+    "title": "CFDI Inbox · Expenses",
+    "subtitle": "The CFDIs your suppliers issue you. They enable your creditable VAT, the DIOT and real costs (by tax ID).",
+    "generate": "Generate entries",
+    "new": "Add expense",
+    "posted": "Posted",
+    "notPosted": "No entry",
+    "emptyTitle": "You haven't registered expenses this period",
+    "emptyBody": "Register the CFDIs your suppliers issue you to deduct, credit VAT and build your DIOT.",
+    "disclosureCashBasis": "An expense's VAT becomes creditable when you PAY it (cash-basis), not when you receive it.",
+    "disclosurePost": "Generate the entries so the expense flows into your journal, trial balance and reports.",
+    "summary": {
+      "count": "Expenses",
+      "total": "Total",
+      "iva": "VAT",
+      "deducible": "Deductible base"
+    },
+    "col": {
+      "proveedor": "Supplier",
+      "fecha": "Issued",
+      "iva": "VAT",
+      "total": "Total",
+      "metodo": "Method",
+      "pago": "Payment",
+      "poliza": "Entry"
+    },
+    "payStatus": {
+      "PAID": "Paid",
+      "PARTIALLY_PAID": "Partial",
+      "UNPAID": "Unpaid"
+    },
+    "metodo": {
+      "PUE": "PUE · Single payment",
+      "PPD": "PPD · Installments/deferred"
+    },
+    "categoria": {
+      "COSTO_MERCANCIA": "Cost of goods",
+      "GASTO_GENERAL": "General expense",
+      "ARRENDAMIENTO": "Rent",
+      "COMBUSTIBLE": "Fuel",
+      "HONORARIOS": "Professional fees",
+      "SERVICIOS": "Services",
+      "OTRO": "Other"
+    },
+    "toast": {
+      "created": "Expense registered",
+      "createError": "Could not register the expense",
+      "generated": "{{posted}} expense entry(ies) generated",
+      "generateNone": "No new expenses to post ({{already}} already done)",
+      "generateMapping": "Missing accounts in Accounting setup",
+      "generateError": "Could not generate the entries",
+      "markedPaid": "Expense marked as paid",
+      "markPaidError": "Could not mark the expense as paid"
+    },
+    "modal": {
+      "title": "Add expense",
+      "save": "Save expense",
+      "supplier": "Supplier",
+      "rfc": "Supplier's tax ID (RFC)",
+      "name": "Name / legal name",
+      "namePh": "e.g. Café del Centro SA",
+      "date": "Issue date",
+      "categoria": "Category",
+      "metodoPago": "Payment method",
+      "amounts": "Amounts",
+      "subtotal": "Subtotal",
+      "descuento": "Discount",
+      "iva": "VAT",
+      "ieps": "Excise (IEPS)",
+      "ivaRet": "VAT withheld",
+      "isrRet": "Income tax withheld",
+      "total": "Document total",
+      "folio": "Folio (optional)",
+      "uuid": "UUID (optional)",
+      "paid": "I've already paid it (VAT credited this period)",
+      "hint": "The total is computed: subtotal − discount + VAT + excise − withholdings. It must match your CFDI."
+    },
+    "markPaid": "Mark paid",
+    "markPaidTitle": "Mark expense as paid",
+    "markPaidBody": "Record the payment to {{name}}. VAT becomes creditable in the month of the payment date.",
+    "markPaidCancel": "Cancel",
+    "markPaidConfirm": "Confirm payment"
   }
 }

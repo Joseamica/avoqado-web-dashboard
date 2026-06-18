@@ -13,16 +13,28 @@ import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useIvaCashflow } from '@/hooks/useIvaCashflow'
+import { useDiot } from '@/hooks/useExpenses'
 import type { IvaCashflowResponse } from '@/services/fiscal/ivaFlujo.service'
+import type { DiotResponse } from '@/services/fiscal/expense.service'
 import { Currency } from '@/utils/currency'
 
 const SAMPLE: IvaCashflowResponse = {
   needsFiscalSetup: false, organizationId: null, rfc: 'TESC900101AAA', period: new Date().toISOString().slice(0, 7),
   venueIds: ['v1'], baseGravableCents: 1116380, ivaTrasladadoCobradoCents: 178620, ivaAmparadoPorCfdiCents: 0, cfdiCount: 0,
-  acreditablePagadoCents: null, retencionesCents: null, saldoAFavorAplicadoCents: null,
-  ivaAPagarPreliminarCents: 178620, saldoAFavorDelPeriodoCents: 0,
-  computedAt16Percent: true, acreditableDisponible: false, diotDisponible: false, incompletoPorFaltaDeGastos: true,
-  rfcSpansMultipleOrgs: false, zeroActivity: false, diot: { disponible: false, motivo: '' },
+  acreditablePagadoCents: 64000, retencionesCents: null, ivaRetenidoTercerosCents: 0, saldoAFavorAplicadoCents: null,
+  ivaAPagarPreliminarCents: 114620, saldoAFavorDelPeriodoCents: 0,
+  computedAt16Percent: true, acreditableDisponible: true, diotDisponible: true, incompletoPorFaltaDeGastos: false,
+  rfcSpansMultipleOrgs: false, zeroActivity: false, diot: { disponible: true, motivo: '' },
+}
+
+const SAMPLE_DIOT: DiotResponse = {
+  needsFiscalSetup: false, organizationId: null, rfc: 'TESC900101AAA', period: new Date().toISOString().slice(0, 7),
+  rows: [
+    { proveedorRfc: 'CACO850101AB1', proveedorNombre: 'Café del Centro SA', tipoTercero: 'NACIONAL', tipoTerceroCodigo: '04', base16Cents: 300000, iva16Cents: 48000, base8Cents: 0, iva8Cents: 0, base0Cents: 0, exentoCents: 0, ivaRetenidoCents: 0, ivaAcreditableCents: 48000, comprobantes: 2 },
+    { proveedorRfc: 'PEPJ800101XY9', proveedorNombre: 'Servicios Pérez', tipoTercero: 'NACIONAL', tipoTerceroCodigo: '04', base16Cents: 100000, iva16Cents: 16000, base8Cents: 0, iva8Cents: 0, base0Cents: 0, exentoCents: 0, ivaRetenidoCents: 10667, ivaAcreditableCents: 16000, comprobantes: 1 },
+  ],
+  totals: { proveedores: 2, comprobantes: 3, base16Cents: 400000, iva16Cents: 64000, base8Cents: 0, iva8Cents: 0, base0Cents: 0, exentoCents: 0, ivaRetenidoCents: 10667, ivaAcreditableCents: 64000 },
+  cuadraConIvaFlujo: true,
 }
 
 /** Una fila monto. `pending` muestra el placeholder honesto (— sin datos, Fase 2). */
@@ -50,7 +62,9 @@ function CashBasisVatInner() {
   const [period, setPeriod] = useState(() => new Date().toISOString().slice(0, 7))
 
   const query = useIvaCashflow(period, { enabled: hasAccess })
+  const diotQuery = useDiot(period, { enabled: hasAccess })
   const data = hasAccess ? query.data : SAMPLE
+  const diot = hasAccess ? diotQuery.data : SAMPLE_DIOT
   const needsFiscalSetup = hasAccess && query.data?.needsFiscalSetup
 
   return (
@@ -126,8 +140,11 @@ function CashBasisVatInner() {
                   <p className="text-xs text-muted-foreground">{t('cashBasisVat.baseGravable')}: {Currency(data?.baseGravableCents ?? 0, true)}</p>
                 </div>
 
-                <Row label={t('cashBasisVat.ivaAcreditable')} pending badge={t('cashBasisVat.fase2')} hint={t('cashBasisVat.ivaAcreditableHint')} />
-                <Row label={t('cashBasisVat.retenciones')} pending badge={t('cashBasisVat.fase2')} />
+                <Row label={t('cashBasisVat.ivaAcreditable')} cents={data?.acreditablePagadoCents} hint={t('cashBasisVat.ivaAcreditableHint')} />
+                {(data?.ivaRetenidoTercerosCents ?? 0) > 0 && (
+                  <Row label={t('cashBasisVat.ivaRetenidoTerceros')} cents={data?.ivaRetenidoTercerosCents} hint={t('cashBasisVat.ivaRetenidoTercerosHint')} />
+                )}
+                <Row label={t('cashBasisVat.retenciones')} pending badge={t('cashBasisVat.fase2')} hint={t('cashBasisVat.retencionesHint')} />
 
                 <Row label={t('cashBasisVat.ivaAPagar')} cents={data?.ivaAPagarPreliminarCents} strong hint={t('cashBasisVat.ivaAPagarHint')} />
                 {(data?.saldoAFavorDelPeriodoCents ?? 0) > 0 && (
@@ -140,17 +157,54 @@ function CashBasisVatInner() {
               </CardContent>
             </Card>
 
-            {/* DIOT — stub honesto */}
+            {/* DIOT — IVA pagado a proveedores por tercero y tasa */}
             <Card className="border-input">
               <CardContent className="py-4 space-y-3">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between gap-2">
                   <h2 className="text-sm font-semibold text-foreground">{t('cashBasisVat.diotTitle')}</h2>
-                  <Badge variant="outline" className="h-4 px-1.5 text-[10px]">{t('cashBasisVat.fase2')}</Badge>
+                  {diot && diot.rows.length > 0 && (
+                    <span className="text-xs text-muted-foreground">{t('cashBasisVat.diotProviders', { count: diot.totals.proveedores })}</span>
+                  )}
                 </div>
-                <div className="flex flex-col items-center gap-2 py-6 text-center">
-                  <Landmark className="h-7 w-7 text-muted-foreground" />
-                  <p className="max-w-xs text-sm text-muted-foreground">{t('cashBasisVat.diotBody')}</p>
-                </div>
+                {!diot || diot.rows.length === 0 ? (
+                  <div className="flex flex-col items-center gap-2 py-6 text-center">
+                    <Landmark className="h-7 w-7 text-muted-foreground" />
+                    <p className="max-w-xs text-sm text-muted-foreground">{t('cashBasisVat.diotEmpty')}</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-left text-muted-foreground">
+                            <th className="py-1 pr-2 font-normal">{t('cashBasisVat.diotProvider')}</th>
+                            <th className="py-1 px-2 text-center font-normal">{t('cashBasisVat.diotTipo')}</th>
+                            <th className="py-1 pl-2 text-right font-normal">{t('cashBasisVat.diotIvaAcred')}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {diot.rows.map(r => (
+                            <tr key={`${r.proveedorRfc}-${r.tipoTercero}`} className="border-t border-input/40">
+                              <td className="py-1 pr-2">
+                                <div className="text-foreground">{r.proveedorNombre}</div>
+                                <div className="font-mono text-[10px] text-muted-foreground">{r.proveedorRfc}</div>
+                              </td>
+                              <td className="py-1 px-2 text-center text-muted-foreground">{r.tipoTerceroCodigo}</td>
+                              <td className="py-1 pl-2 text-right tabular-nums text-foreground">{Currency(r.ivaAcreditableCents, true)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-input pt-2 text-sm">
+                      <span className="font-medium text-foreground">{t('cashBasisVat.diotTotal')}</span>
+                      <span className="font-semibold tabular-nums text-foreground">{Currency(diot.totals.ivaAcreditableCents, true)}</span>
+                    </div>
+                    {!diot.cuadraConIvaFlujo && (
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400">{t('cashBasisVat.diotMismatch')}</p>
+                    )}
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { BookOpen, Landmark, Loader2, Plus, Scale, Trash2 } from 'lucide-react'
+import { BookOpen, Landmark, Loader2, Plus, Scale, Sparkles, Trash2 } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -16,7 +16,7 @@ import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useToast } from '@/hooks/use-toast'
-import { useJournal, useCreateJournalEntry } from '@/hooks/useJournal'
+import { useJournal, useCreateJournalEntry, useGeneratePolicies } from '@/hooks/useJournal'
 import { useChartOfAccounts } from '@/hooks/useChartOfAccounts'
 import type { JournalEntryDTO } from '@/services/fiscal/journalEntry.service'
 import type { LedgerAccount } from '@/services/fiscal/chartOfAccounts.service'
@@ -52,6 +52,7 @@ function JournalInner() {
   const canManage = can('accounting:manage')
 
   const journalQuery = useJournal(undefined, { enabled: hasAccess })
+  const generateMutation = useGeneratePolicies()
   const [modalOpen, setModalOpen] = useState(false)
 
   const data = journalQuery.data
@@ -70,10 +71,22 @@ function JournalInner() {
           </p>
         </div>
         {!needsFiscalSetup && canManage && hasAccess && (
-          <Button size="sm" onClick={() => setModalOpen(true)} data-tour="journal-new">
-            <Plus className="w-4 h-4" />
-            {t('journal.newEntry')}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => generateMutation.mutate(undefined)}
+              disabled={generateMutation.isPending}
+              data-tour="journal-generate"
+            >
+              {generateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              {t('journal.generate')}
+            </Button>
+            <Button size="sm" onClick={() => setModalOpen(true)} data-tour="journal-new">
+              <Plus className="w-4 h-4" />
+              {t('journal.newEntry')}
+            </Button>
+          </div>
         )}
       </header>
 

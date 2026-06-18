@@ -64,6 +64,24 @@ export async function createJournalEntry(venueId: string, entry: NewEntry): Prom
   return res.data
 }
 
+export interface GeneratePoliciesResult {
+  needsFiscalSetup: boolean
+  missingMappings: string[]
+  period: string | null
+  candidates: number
+  posted: number
+  alreadyPosted: number
+  skipped: number
+}
+
+/** Posteo automático: genera las pólizas del periodo desde los pagos. Idempotente. */
+export async function generatePolicies(venueId: string, period?: string): Promise<GeneratePoliciesResult> {
+  const res = await api.post<GeneratePoliciesResult>(`/api/v1/dashboard/venues/${venueId}/accounting/generate-policies`, null, {
+    params: period ? { period } : {},
+  })
+  return res.data
+}
+
 export const journalKeys = {
   all: ['journal'] as const,
   list: (venueId: string | null, period?: string) => [...journalKeys.all, venueId, period ?? 'all'] as const,

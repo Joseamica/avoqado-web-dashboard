@@ -213,6 +213,7 @@
     "title": "Libro diario · Pólizas",
     "subtitle": "Tus asientos de doble partida (cada uno cuadra: cargos = abonos)",
     "newEntry": "Nueva póliza",
+    "generate": "Generar pólizas",
     "emptyTitle": "Aún no tienes pólizas",
     "emptyBody": "Registra tu primer asiento manual. Cada póliza debe cuadrar: la suma de cargos igual a la suma de abonos.",
     "error": "No se pudo cargar el libro diario.",
@@ -229,7 +230,7 @@
       "OPENING": "Apertura"
     },
     "disclosureBalance": "Toda póliza cuadra por diseño: la suma de cargos siempre es igual a la suma de abonos (doble partida).",
-    "disclosureAuto": "Pronto el sistema generará estas pólizas solo, desde tus pagos y CFDIs, usando tu configuración contable.",
+    "disclosureAuto": "Usa \"Generar pólizas\" para que el sistema cree los asientos solo, desde tus pagos, usando tu configuración contable. Es idempotente: re-generar no duplica.",
     "modal": {
       "title": "Nueva póliza manual",
       "date": "Fecha",
@@ -246,7 +247,11 @@
     },
     "toast": {
       "created": "Póliza #{{folio}} registrada",
-      "createError": "No se pudo registrar la póliza"
+      "createError": "No se pudo registrar la póliza",
+      "generated": "{{posted}} pólizas generadas desde tus pagos",
+      "generateNone": "Sin pólizas nuevas — ya estaban generadas",
+      "generateMapping": "Faltan cuentas por asignar en Configuración contable",
+      "generateError": "No se pudieron generar las pólizas"
     }
   },
   "trialBalance": {
@@ -291,7 +296,7 @@
   "cashBasisVat": {
     "title": "IVA en flujo de efectivo · DIOT",
     "subtitle": "El IVA que causaste por lo que cobraste este mes (por RFC, suma todos tus locales)",
-    "preliminarBanner": "PRELIMINAR: esto calcula SOLO tu IVA de ventas (lo cobrado). NO incluye el IVA que pagaste a proveedores (acreditable), que aún no registramos (próximamente). El \"a pagar\" mostrado es un TECHO; el real será MENOR. No lo uses como pago final sin tu contador.",
+    "preliminarBanner": "PRELIMINAR: ya descuenta tu IVA acreditable de gastos PAGADOS (Buzón de CFDIs). Sigue asumiendo tasa 16% y no incluye el IVA que clientes te hayan retenido en ventas. No lo uses como pago final sin tu contador.",
     "zeroBody": "Sin ventas cobradas este periodo. RECUERDA: aunque no tengas actividad, normalmente debes presentar tu declaración de IVA en ceros.",
     "multiOrg": "Este RFC opera locales en más de una organización de Avoqado; el cálculo los suma todos (es por contribuyente).",
     "cardTitle": "IVA en flujo de efectivo",
@@ -299,7 +304,7 @@
     "estimado16": "Estimado 16%",
     "baseGravable": "Base gravable",
     "ivaAcreditable": "IVA acreditable pagado (gastos)",
-    "ivaAcreditableHint": "Requiere registrar tus CFDIs de proveedores (próximamente).",
+    "ivaAcreditableHint": "IVA de tus CFDIs de proveedores PAGADOS este mes (cash-basis). Resta al IVA a cargo.",
     "fase2": "Muy pronto",
     "retenciones": "Retenciones de IVA",
     "ivaAPagar": "IVA a pagar (preliminar / techo)",
@@ -312,7 +317,17 @@
     "error": "No se pudo cargar el IVA en flujo de efectivo.",
     "disclosureCashBasis": "El IVA se causa por FLUJO DE EFECTIVO: sobre lo que efectivamente cobraste en el mes, no sobre lo facturado.",
     "disclosureNotInvoiced": "La tasa 16% es un supuesto general; locales con productos a 0%, 8% (frontera) o exentos verán el IVA sobreestimado.",
-    "disclosureSaldoFavor": "El arrastre o aplicación de un saldo a favor lo decides tú y tu contador; Avoqado no lo aplica automáticamente."
+    "disclosureSaldoFavor": "El arrastre o aplicación de un saldo a favor lo decides tú y tu contador; Avoqado no lo aplica automáticamente.",
+    "ivaRetenidoTerceros": "IVA retenido a proveedores (a enterar)",
+    "ivaRetenidoTercerosHint": "El IVA que TÚ retuviste a proveedores; se entera APARTE, no resta a tu IVA a cargo.",
+    "retencionesHint": "Retención de IVA que un cliente te haya hecho en ventas (aún no capturado).",
+    "diotProviders": "{{count}} proveedores",
+    "diotEmpty": "Sin gastos pagados este periodo. Registra tus CFDIs de proveedores en el Buzón y márcalos pagados.",
+    "diotProvider": "Proveedor",
+    "diotTipo": "Tercero",
+    "diotIvaAcred": "IVA acreditable",
+    "diotTotal": "Total IVA acreditable",
+    "diotMismatch": "⚠ El IVA de la DIOT no cuadra con el IVA-flujo; revisa el desglose por tasa."
   },
   "payLaterAging": {
     "title": "Cuentas por Cobrar",
@@ -946,5 +961,88 @@
     "totals": {
       "label": "Total"
     }
+  },
+  "expenses": {
+    "title": "Buzón de CFDIs · Gastos",
+    "subtitle": "Los CFDIs que te emiten tus proveedores. Habilitan tu IVA acreditable, la DIOT y tus costos reales (por RFC).",
+    "generate": "Generar pólizas",
+    "new": "Registrar gasto",
+    "posted": "Posteado",
+    "notPosted": "Sin póliza",
+    "emptyTitle": "Aún no registras gastos este periodo",
+    "emptyBody": "Registra los CFDIs que te emiten tus proveedores para deducir, acreditar el IVA y armar tu DIOT.",
+    "disclosureCashBasis": "El IVA de un gasto se vuelve acreditable cuando lo PAGAS (flujo de efectivo), no cuando lo recibes.",
+    "disclosurePost": "Genera las pólizas para que el gasto entre a tu libro diario, balanza y reportes.",
+    "summary": {
+      "count": "Gastos",
+      "total": "Total",
+      "iva": "IVA",
+      "deducible": "Base deducible"
+    },
+    "col": {
+      "proveedor": "Proveedor",
+      "fecha": "Emisión",
+      "iva": "IVA",
+      "total": "Total",
+      "metodo": "Método",
+      "pago": "Pago",
+      "poliza": "Póliza"
+    },
+    "payStatus": {
+      "PAID": "Pagado",
+      "PARTIALLY_PAID": "Parcial",
+      "UNPAID": "Pendiente"
+    },
+    "metodo": {
+      "PUE": "PUE · Una exhibición",
+      "PPD": "PPD · Parcialidades/diferido"
+    },
+    "categoria": {
+      "COSTO_MERCANCIA": "Costo de mercancía",
+      "GASTO_GENERAL": "Gasto general",
+      "ARRENDAMIENTO": "Arrendamiento",
+      "COMBUSTIBLE": "Combustible",
+      "HONORARIOS": "Honorarios",
+      "SERVICIOS": "Servicios",
+      "OTRO": "Otro"
+    },
+    "toast": {
+      "created": "Gasto registrado",
+      "createError": "No se pudo registrar el gasto",
+      "generated": "{{posted}} póliza(s) de gasto generada(s)",
+      "generateNone": "Sin gastos nuevos por postear ({{already}} ya estaban)",
+      "generateMapping": "Faltan cuentas en Configuración contable",
+      "generateError": "No se pudieron generar las pólizas",
+      "markedPaid": "Gasto marcado como pagado",
+      "markPaidError": "No se pudo marcar el gasto como pagado"
+    },
+    "modal": {
+      "title": "Registrar gasto",
+      "save": "Guardar gasto",
+      "supplier": "Proveedor",
+      "rfc": "RFC del proveedor",
+      "name": "Nombre / razón social",
+      "namePh": "Ej. Café del Centro SA",
+      "date": "Fecha de emisión",
+      "categoria": "Categoría",
+      "metodoPago": "Método de pago",
+      "amounts": "Importes",
+      "subtotal": "Subtotal",
+      "descuento": "Descuento",
+      "iva": "IVA",
+      "ieps": "IEPS",
+      "ivaRet": "IVA retenido",
+      "isrRet": "ISR retenido",
+      "total": "Total del comprobante",
+      "folio": "Folio (opcional)",
+      "uuid": "UUID (opcional)",
+      "paid": "Ya lo pagué (el IVA se acredita este periodo)",
+      "hint": "El total se calcula solo: subtotal − descuento + IVA + IEPS − retenciones. Debe cuadrar con tu CFDI."
+    },
+    "markPaid": "Marcar pagado",
+    "markPaidTitle": "Marcar gasto como pagado",
+    "markPaidBody": "Registra el pago a {{name}}. El IVA se vuelve acreditable en el mes de la fecha de pago.",
+    "markPaidCancel": "Cancelar",
+    "markPaidConfirm": "Confirmar pago"
   }
 }

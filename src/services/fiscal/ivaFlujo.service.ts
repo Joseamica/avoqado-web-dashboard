@@ -18,6 +18,7 @@ export interface IvaCashflowResponse {
   cfdiCount: number
   acreditablePagadoCents: number | null
   retencionesCents: number | null
+  ivaRetenidoTercerosCents: number | null
   saldoAFavorAplicadoCents: number | null
   ivaAPagarPreliminarCents: number
   saldoAFavorDelPeriodoCents: number

@@ -109,6 +109,7 @@ import {
   TrialBalance,
   AccountingReports,
   CashBasisVat,
+  Expenses,
   ShiftId,
   Shifts,
   SuppliersPage,
@@ -308,6 +309,13 @@ export function createVenueRoutes(): RouteObject[] {
       path: 'contabilidad/bancos',
       element: <PermissionProtectedRoute permission="accounting:read" />,
       children: [{ index: true, element: <BankAndCash /> }],
+    },
+    {
+      // Contabilidad → Buzón de CFDIs / Gastos (Capa B fiscal). Permiso accounting:read +
+      // FeatureGate CFDI (PREMIUM) en la página. CFDIs recibidos → IVA acreditable + DIOT.
+      path: 'contabilidad/buzon',
+      element: <PermissionProtectedRoute permission="accounting:read" />,
+      children: [{ index: true, element: <Expenses /> }],
     },
     {
       // Contabilidad → Catálogo de cuentas (Capa B fiscal). Permiso accounting:read + FeatureGate
