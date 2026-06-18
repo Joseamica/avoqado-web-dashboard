@@ -5,7 +5,7 @@
  * Design: Modern Dashboard Design System (GlassCard, MetricCard, Pill Tabs)
  */
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Upload,
@@ -25,8 +25,15 @@ import {
   HardDrive,
   Loader2,
 } from 'lucide-react'
-import { superadminAPI, type AppUpdate, type AppEnvironment, type AppUpdateUpdateInput } from '@/services/superadmin.service'
+import {
+  superadminAPI,
+  type AppUpdate,
+  type AppEnvironment,
+  type AppUpdateUpdateInput,
+  type AppUpdateTargetType,
+} from '@/services/superadmin.service'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -95,6 +102,122 @@ function formatDate(dateString: string): string {
 }
 
 // ============================================================================
+// TARGETING SECTION (Aplica a: Todas / Sucursales / TPVs por serie)
+// ============================================================================
+
+function TargetingSection({
+  targetType,
+  onTargetTypeChange,
+  selectedVenueIds,
+  onToggleVenue,
+}: {
+  targetType: AppUpdateTargetType
+  onTargetTypeChange: (t: AppUpdateTargetType) => void
+  selectedVenueIds: string[]
+  onToggleVenue: (venueId: string) => void
+}) {
+  const [venueSearch, setVenueSearch] = useState('')
+
+  const { data: venues = [], isLoading: venuesLoading } = useQuery({
+    queryKey: ['superadmin', 'venues', 'tpv-update-targeting'],
+    queryFn: () => superadminAPI.getAllVenues(),
+    enabled: targetType === 'VENUES',
+  })
+
+  const filteredVenues = useMemo(() => {
+    const q = venueSearch.trim().toLowerCase()
+    if (!q) return venues
+    return venues.filter(v => v.name?.toLowerCase().includes(q) || v.slug?.toLowerCase().includes(q))
+  }, [venues, venueSearch])
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <Label htmlFor="targetType">Aplica a</Label>
+        <Select value={targetType} onValueChange={(v: AppUpdateTargetType) => onTargetTypeChange(v)}>
+          <SelectTrigger className="h-12 text-base">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">
+              <Badge variant="outline" className="bg-green-500/10 text-green-600 rounded-full">
+                Todas las TPV
+              </Badge>
+            </SelectItem>
+            <SelectItem value="VENUES">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="bg-blue-500/10 text-blue-600 rounded-full">
+                  Solo ciertas sucursales
+                </Badge>
+              </div>
+            </SelectItem>
+            <SelectItem value="TERMINALS" disabled>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="bg-muted text-muted-foreground rounded-full">
+                  TPVs por número de serie
+                </Badge>
+                <span className="text-[10px] text-muted-foreground">Muy pronto</span>
+              </div>
+            </SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          {targetType === 'ALL' && 'Todas las terminales del ambiente reciben esta versión (comportamiento por defecto).'}
+          {targetType === 'VENUES' &&
+            'Solo las TPV de las sucursales seleccionadas la recibirán. Las demás se quedan en su versión actual.'}
+          {targetType === 'TERMINALS' &&
+            'Disponible con el próximo APK — la terminal debe empezar a mandar su número de serie en el chequeo de updates.'}
+        </p>
+      </div>
+
+      {targetType === 'VENUES' && (
+        <div className="rounded-2xl border border-input p-3 space-y-2">
+          <Input
+            placeholder="Buscar sucursal por nombre o slug..."
+            value={venueSearch}
+            onChange={e => setVenueSearch(e.target.value)}
+            className="h-10"
+          />
+          <div className="text-xs text-muted-foreground">
+            {selectedVenueIds.length} sucursal{selectedVenueIds.length === 1 ? '' : 'es'} seleccionada
+            {selectedVenueIds.length === 1 ? '' : 's'}
+          </div>
+          <div className="max-h-56 overflow-y-auto space-y-1">
+            {venuesLoading ? (
+              <div className="space-y-2 py-1">
+                {[...Array(4)].map((_, i) => (
+                  <Skeleton key={i} className="h-9 w-full rounded-lg" />
+                ))}
+              </div>
+            ) : filteredVenues.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-3 text-center">Sin sucursales que coincidan</p>
+            ) : (
+              filteredVenues.map(v => (
+                <div
+                  key={v.id}
+                  className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-muted/50 cursor-pointer"
+                  onClick={() => onToggleVenue(v.id)}
+                >
+                  <Checkbox
+                    checked={selectedVenueIds.includes(v.id)}
+                    onClick={e => e.stopPropagation()}
+                    onCheckedChange={() => onToggleVenue(v.id)}
+                  />
+                  <div className="min-w-0">
+                    <p className="text-sm truncate">{v.name}</p>
+                    {v.slug && <p className="text-xs text-muted-foreground truncate">{v.slug}</p>}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ============================================================================
 // UPLOAD DIALOG
 // ============================================================================
 
@@ -119,6 +242,8 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
     updateMode: 'NONE' as 'NONE' | 'BANNER' | 'FORCE',
     minAndroidSdk: '',
   })
+  const [targetType, setTargetType] = useState<AppUpdateTargetType>('ALL')
+  const [targetVenueIds, setTargetVenueIds] = useState<string[]>([])
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -180,6 +305,15 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
       return
     }
 
+    if (targetType === 'VENUES' && targetVenueIds.length === 0) {
+      toast({
+        title: 'Selecciona al menos una sucursal',
+        description: 'Elegiste "Solo ciertas sucursales" pero no marcaste ninguna.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setIsUploading(true)
 
     try {
@@ -191,6 +325,8 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
         releaseNotes: formData.releaseNotes || undefined,
         updateMode: formData.updateMode,
         ...(formData.minAndroidSdk && { minAndroidSdk: parseInt(formData.minAndroidSdk, 10) }),
+        targetType,
+        targetVenueIds: targetType === 'VENUES' ? targetVenueIds : [],
         apkBase64,
       })
 
@@ -228,6 +364,8 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
     setSelectedFile(null)
     setApkBase64Cache(null)
     setFormData({ versionName: '', versionCode: '', environment: 'SANDBOX', releaseNotes: '', updateMode: 'NONE', minAndroidSdk: '' })
+    setTargetType('ALL')
+    setTargetVenueIds([])
     onClose()
   }
 
@@ -458,6 +596,15 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
               </p>
             </div>
 
+            <TargetingSection
+              targetType={targetType}
+              onTargetTypeChange={setTargetType}
+              selectedVenueIds={targetVenueIds}
+              onToggleVenue={venueId =>
+                setTargetVenueIds(prev => (prev.includes(venueId) ? prev.filter(id => id !== venueId) : [...prev, venueId]))
+              }
+            />
+
             <div className="space-y-2">
               <Label htmlFor="releaseNotes">Notas de Version</Label>
               <Textarea
@@ -495,10 +642,20 @@ function EditDialog({ update, isOpen, onClose, onSuccess }: EditDialogProps) {
     updateMode: update?.updateMode || 'NONE',
     isActive: update?.isActive ?? true,
     minAndroidSdk: update?.minAndroidSdk || 27,
+    targetType: update?.targetType || 'ALL',
+    targetVenueIds: update?.targetVenueIds || [],
   })
 
   const handleSubmit = async () => {
     if (!update) return
+    if (formData.targetType === 'VENUES' && (formData.targetVenueIds?.length ?? 0) === 0) {
+      toast({
+        title: 'Selecciona al menos una sucursal',
+        description: 'Elegiste "Solo ciertas sucursales" pero no marcaste ninguna.',
+        variant: 'destructive',
+      })
+      return
+    }
     setIsSubmitting(true)
     try {
       await superadminAPI.updateAppUpdate(update.id, formData)
@@ -519,6 +676,8 @@ function EditDialog({ update, isOpen, onClose, onSuccess }: EditDialogProps) {
         updateMode: update.updateMode || 'NONE',
         isActive: update.isActive,
         minAndroidSdk: update.minAndroidSdk,
+        targetType: update.targetType || 'ALL',
+        targetVenueIds: update.targetVenueIds || [],
       })
     }
   }, [update])
@@ -586,6 +745,21 @@ function EditDialog({ update, isOpen, onClose, onSuccess }: EditDialogProps) {
                 </SelectContent>
               </Select>
             </div>
+
+            <TargetingSection
+              targetType={formData.targetType ?? 'ALL'}
+              onTargetTypeChange={t => setFormData(prev => ({ ...prev, targetType: t }))}
+              selectedVenueIds={formData.targetVenueIds ?? []}
+              onToggleVenue={venueId =>
+                setFormData(prev => {
+                  const current = prev.targetVenueIds ?? []
+                  return {
+                    ...prev,
+                    targetVenueIds: current.includes(venueId) ? current.filter(id => id !== venueId) : [...current, venueId],
+                  }
+                })
+              }
+            />
 
             <div
               className="flex items-center justify-between rounded-2xl border border-border/50 p-4 cursor-pointer hover:bg-muted/50"
@@ -805,6 +979,16 @@ function UpdatesTable({
                       Forzar
                     </Badge>
                   )}
+                  {update.targetType === 'VENUES' && (
+                    <Badge variant="outline" className="bg-blue-500/10 text-blue-600 w-fit rounded-full">
+                      Solo {update.targetVenueIds?.length ?? 0} sucursal{(update.targetVenueIds?.length ?? 0) === 1 ? '' : 'es'}
+                    </Badge>
+                  )}
+                  {update.targetType === 'TERMINALS' && (
+                    <Badge variant="outline" className="bg-purple-500/10 text-purple-600 w-fit rounded-full">
+                      Solo {update.targetTerminalIds?.length ?? 0} TPV
+                    </Badge>
+                  )}
                 </div>
               </TableCell>
               <TableCell>
@@ -874,7 +1058,11 @@ export default function TpvUpdates() {
   const [editingUpdate, setEditingUpdate] = useState<AppUpdate | null>(null)
   const [deletingUpdate, setDeletingUpdate] = useState<AppUpdate | null>(null)
 
-  const { data: updates = [], isLoading, isFetching } = useQuery({
+  const {
+    data: updates = [],
+    isLoading,
+    isFetching,
+  } = useQuery({
     queryKey: ['superadmin', 'app-updates', activeTab],
     queryFn: () => superadminAPI.getAppUpdates({ environment: activeTab }),
   })
@@ -907,7 +1095,14 @@ export default function TpvUpdates() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isFetching} title="Actualizar" className="rounded-full cursor-pointer">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isFetching}
+            title="Actualizar"
+            className="rounded-full cursor-pointer"
+          >
             <RefreshCw className={cn('h-4 w-4', isFetching && 'animate-spin')} />
           </Button>
           <Button onClick={() => setIsUploadOpen(true)} className="rounded-full cursor-pointer">

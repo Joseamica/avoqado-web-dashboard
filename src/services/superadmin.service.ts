@@ -722,6 +722,9 @@ export async function updateVenueModuleConfig(venueId: string, moduleCode: strin
 
 export type AppEnvironment = 'SANDBOX' | 'PRODUCTION'
 export type UpdateMode = 'NONE' | 'BANNER' | 'FORCE'
+// How a version is targeted: ALL = todas las TPV, VENUES = solo ciertas sucursales,
+// TERMINALS = solo terminales por serie (requiere próximo APK que mande la serie)
+export type AppUpdateTargetType = 'ALL' | 'VENUES' | 'TERMINALS'
 
 export interface AppUpdate {
   id: string
@@ -735,6 +738,9 @@ export interface AppUpdate {
   checksum: string
   minAndroidSdk: number
   isActive: boolean
+  targetType: AppUpdateTargetType
+  targetVenueIds: string[]
+  targetTerminalIds: string[]
   uploadedById: string
   uploadedBy: {
     firstName: string
@@ -752,6 +758,10 @@ export interface AppUpdateCreateInput {
   releaseNotes?: string
   updateMode?: UpdateMode // NONE=silent, BANNER=recommended, FORCE=blocking
   minAndroidSdk?: number // Optional - auto-detected from APK if not provided
+  // Audience targeting (defaults to ALL). VENUES → targetVenueIds; TERMINALS → targetTerminalIds.
+  targetType?: AppUpdateTargetType
+  targetVenueIds?: string[]
+  targetTerminalIds?: string[]
   apkBase64: string
 }
 
@@ -777,6 +787,9 @@ export interface AppUpdateUpdateInput {
   updateMode?: UpdateMode
   isActive?: boolean
   minAndroidSdk?: number
+  targetType?: AppUpdateTargetType
+  targetVenueIds?: string[]
+  targetTerminalIds?: string[]
 }
 
 // ===== APP UPDATES API FUNCTIONS =====
@@ -821,6 +834,9 @@ export async function createAppUpdate(data: AppUpdateCreateInput): Promise<AppUp
   if (data.releaseNotes !== undefined) payload.releaseNotes = data.releaseNotes
   if (data.updateMode !== undefined) payload.updateMode = data.updateMode
   if (data.minAndroidSdk !== undefined) payload.minAndroidSdk = data.minAndroidSdk
+  if (data.targetType !== undefined) payload.targetType = data.targetType
+  if (data.targetVenueIds !== undefined) payload.targetVenueIds = data.targetVenueIds
+  if (data.targetTerminalIds !== undefined) payload.targetTerminalIds = data.targetTerminalIds
 
   const response = await api.post('/api/v1/superadmin/app-updates', payload)
   return {
