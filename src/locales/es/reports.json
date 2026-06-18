@@ -1057,6 +1057,21 @@
     "empty": "No hay datos para generar el XML en este periodo.",
     "error": "No se pudo generar el XML."
   },
+  "fiscalReadiness": {
+    "title": "Preparación fiscal",
+    "subtitle": "Qué le falta a este local para empezar a operar la contabilidad fiscal.",
+    "summary": {
+      "ok": "{{n}} listos",
+      "warn": "{{n}} por revisar",
+      "missing": "{{n}} faltan"
+    },
+    "cap": {
+      "invoice": "Puede facturar",
+      "payroll": "Puede timbrar nómina",
+      "electronic": "Contabilidad electrónica lista"
+    },
+    "disclosure": "Este diagnóstico solo revisa tu configuración; no envía nada al SAT. Verde = listo, ámbar = revísalo, rojo = falta."
+  },
   "isr": {
     "title": "ISR · Pago provisional",
     "subtitle": "Estimación de tu ISR del mes (persona física, por RFC).",

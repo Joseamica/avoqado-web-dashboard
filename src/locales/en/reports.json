@@ -1057,6 +1057,21 @@
     "empty": "No data to generate the XML for this period.",
     "error": "Could not generate the XML."
   },
+  "fiscalReadiness": {
+    "title": "Tax readiness",
+    "subtitle": "What this venue still needs to start running fiscal accounting.",
+    "summary": {
+      "ok": "{{n}} ready",
+      "warn": "{{n}} to review",
+      "missing": "{{n}} missing"
+    },
+    "cap": {
+      "invoice": "Can invoice",
+      "payroll": "Can stamp payroll",
+      "electronic": "Electronic accounting ready"
+    },
+    "disclosure": "This check only reviews your setup; it sends nothing to the SAT. Green = ready, amber = review, red = missing."
+  },
   "isr": {
     "title": "Income tax · Provisional payment",
     "subtitle": "Estimate of your monthly income tax (individual, by tax ID).",

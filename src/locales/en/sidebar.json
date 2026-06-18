@@ -72,6 +72,7 @@
   "webhooks": "Webhooks",
   "contabilidadMenu": {
     "title": "Accounting",
+    "readiness": "Tax readiness",
     "income": "How much did I make?",
     "summary": "Business overview",
     "reconciliation": "AI reconciliation",

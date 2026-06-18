@@ -245,6 +245,7 @@ export const CashBasisVat = lazyWithRetry(() => import('@/pages/Reports/CashBasi
 export const Expenses = lazyWithRetry(() => import('@/pages/Reports/Expenses'))
 export const Isr = lazyWithRetry(() => import('@/pages/Reports/Isr'))
 export const Nomina = lazyWithRetry(() => import('@/pages/Reports/Nomina'))
+export const FiscalReadiness = lazyWithRetry(() => import('@/pages/Reports/FiscalReadiness'))
 export const SalesByItem = lazyWithRetry(() => import('@/pages/Reports/SalesByItem'))
 export const SalesByCategory = lazyWithRetry(() => import('@/pages/Reports/SalesByCategory'))
 export const PaymentMethods = lazyWithRetry(() => import('@/pages/Reports/PaymentMethods'))

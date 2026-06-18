@@ -112,6 +112,7 @@ import {
   Expenses,
   Isr,
   Nomina,
+  FiscalReadiness,
   ShiftId,
   Shifts,
   SuppliersPage,
@@ -318,6 +319,13 @@ export function createVenueRoutes(): RouteObject[] {
       path: 'contabilidad/buzon',
       element: <PermissionProtectedRoute permission="accounting:read" />,
       children: [{ index: true, element: <Expenses /> }],
+    },
+    {
+      // Contabilidad → Preparación fiscal (onboarding, Capa B). Permiso accounting:read +
+      // FeatureGate CFDI (PREMIUM) en la página. Checklist read-only de qué falta para operar.
+      path: 'contabilidad/preparacion',
+      element: <PermissionProtectedRoute permission="accounting:read" />,
+      children: [{ index: true, element: <FiscalReadiness /> }],
     },
     {
       // Contabilidad → ISR · Pago provisional (Capa B fiscal). Permiso accounting:read +

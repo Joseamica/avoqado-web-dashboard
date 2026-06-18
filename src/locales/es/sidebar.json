@@ -71,6 +71,7 @@
   "webhooks": "Webhooks",
   "contabilidadMenu": {
     "title": "Contabilidad",
+    "readiness": "Preparación fiscal",
     "income": "¿Cuánto gané?",
     "summary": "Resumen del negocio",
     "reconciliation": "Conciliación con IA",

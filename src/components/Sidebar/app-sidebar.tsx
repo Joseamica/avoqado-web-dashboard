@@ -636,6 +636,7 @@ export function AppSidebar({
     // Para superadmin el badge igual se muestra (informativo) aunque tenga bypass — ver showTierBadge.
     const hasBankReconFeature = hasFeatureAccess('BANK_RECONCILIATION')
     const contabilidadSubItems = ([
+      { title: t('sidebar:contabilidadMenu.readiness', { defaultValue: 'Preparación fiscal' }), url: 'contabilidad/preparacion', icon: ClipboardList, permission: 'accounting:read', premiumLocked: !hasCfdiFeature, gatedFeature: 'CFDI', keywords: ['preparacion fiscal', 'onboarding', 'que me falta', 'csd', 'listo para facturar', 'checklist'] },
       { title: t('sidebar:contabilidadMenu.income', { defaultValue: '¿Cuánto gané?' }), url: 'contabilidad/ingresos', icon: DollarSign, permission: 'accounting:read', keywords: ['cuanto gane', 'ingresos', 'estado de resultados', 'utilidad', 'ganancias'] },
       { title: t('sidebar:contabilidadMenu.reconciliation', { defaultValue: 'Conciliación con IA' }), url: 'contabilidad/conciliacion', icon: Upload, permission: 'accounting:read', premiumLocked: !hasBankReconFeature, gatedFeature: 'BANK_RECONCILIATION', keywords: ['conciliacion', 'estado de cuenta', 'banco', 'ia'] },
       { title: t('sidebar:contabilidadMenu.summary', { defaultValue: 'Resumen del negocio' }), url: 'contabilidad/resumen', icon: TrendingUp, permission: 'accounting:read', keywords: ['resumen', 'negocio', 'portada', 'cuanto facture', 'como me fue'] },
