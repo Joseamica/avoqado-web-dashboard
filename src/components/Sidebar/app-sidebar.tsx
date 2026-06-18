@@ -55,7 +55,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { NavMain } from '@/components/Sidebar/nav-main'
 import { NavUser } from '@/components/Sidebar/nav-user'
 import { VenuesSwitcher } from '@/components/Sidebar/venues-switcher'
-import { ChatBubble } from '@/components/Chatbot'
+// TEMP: "Asistente IA" deshabilitado por ahora. No borrar — solo comentado para que no aparezca en el sidebar.
+// import { ChatBubble } from '@/components/Chatbot'
 import { AcceptPaymentTrigger } from '@/components/Sidebar/AcceptPaymentTrigger'
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail, useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/context/AuthContext'
@@ -850,11 +851,11 @@ export function AppSidebar({
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader className="p-0 border-b border-sidebar-border">
+      <SidebarHeader className="shrink-0 p-0 border-b border-sidebar-border">
         {defaultVenue && <VenuesSwitcher venues={venuesToShow} defaultVenue={defaultVenue} />}
       </SidebarHeader>
       {/* Search trigger for command palette */}
-      <div className="px-2 py-2">
+      <div className="shrink-0 px-2 py-2">
         <button
           type="button"
           onClick={onSearchClick}
@@ -874,7 +875,7 @@ export function AppSidebar({
           )}
         </button>
       </div>
-      <SidebarContent>
+      <SidebarContent className="overscroll-contain">
         <NavMain
           items={navMain.items}
           superadminItems={user.role === 'SUPERADMIN' ? superAdminRoutes : []}
@@ -885,11 +886,10 @@ export function AppSidebar({
         />
         {/* <NavProjects projects={data.projects} /> */}
       </SidebarContent>
-      <SidebarFooter className="p-0 border-t border-sidebar-border">
-        {/* Chatbot trigger is always visible in the sidebar. Backend endpoints
-            still enforce feature access and return 403 when the venue is not
-            subscribed. */}
-        <ChatBubble variant="sidebar" />
+      <SidebarFooter className="shrink-0 p-0 border-t border-sidebar-border">
+        {/* TEMP: "Asistente IA" (ChatBubble) deshabilitado por ahora. No borrar — solo comentado
+            para que no aparezca en el sidebar. Reactivar descomentando el import arriba y la línea de abajo. */}
+        {/* <ChatBubble variant="sidebar" /> */}
         <AcceptPaymentTrigger />
         <NavUser user={navUser} />
       </SidebarFooter>

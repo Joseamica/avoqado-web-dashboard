@@ -638,7 +638,11 @@ export function NavMain({
   const displayedParentItem = displayedKey ? items.find(i => i.subSidebar === displayedKey) : null
 
   return (
-    <div className={cn(!isCollapsed && 'overflow-hidden')}>
+    // `shrink-0` is required: this wrapper uses `overflow-hidden` to clip the horizontal
+    // sliding sub-sidebar panels, but per the flexbox spec an overflow!=visible flex item
+    // resolves `min-height:auto` to 0, letting it shrink to fit and clip its nav items with
+    // no scrollbar. Forcing no-shrink keeps full content height so SidebarContent scrolls.
+    <div className={cn('shrink-0', !isCollapsed && 'overflow-hidden')}>
       <div
         className={cn(!isCollapsed && 'flex transition-transform duration-200 ease-in-out', isSubSidebarActive && '-translate-x-full')}
         onTransitionEnd={e => {
