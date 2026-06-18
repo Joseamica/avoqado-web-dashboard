@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { AlertTriangle, Landmark, Loader2, Plus, Users } from 'lucide-react'
+import { AlertTriangle, FileCheck2, Landmark, Loader2, Plus, Users } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -15,7 +15,7 @@ import { AccountingErrorState } from '@/components/accounting/AccountingErrorSta
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
-import { useEmployees, useCreateEmployee, usePayrollPreview, useRunPayroll } from '@/hooks/useNomina'
+import { useEmployees, useCreateEmployee, usePayrollPreview, useRunPayroll, useStampPayroll } from '@/hooks/useNomina'
 import type { PayrollPeriodicity } from '@/services/fiscal/nomina.service'
 import { Currency } from '@/utils/currency'
 
@@ -34,6 +34,8 @@ function NominaInner() {
   const empQuery = useEmployees({ enabled: hasAccess })
   const preview = usePayrollPreview(period, periodicidad, { enabled: hasAccess })
   const runMutation = useRunPayroll()
+  const stampMutation = useStampPayroll()
+  const [lastRunId, setLastRunId] = useState<string | null>(null)
   const employees = empQuery.data?.employees ?? []
   const needsFiscalSetup = hasAccess && empQuery.data?.needsFiscalSetup
   const totals = preview.data?.totals
@@ -142,8 +144,23 @@ function NominaInner() {
           </Card>
 
           {canManage && (
-            <div className="flex justify-end">
-              <Button size="sm" onClick={() => runMutation.mutate({ period, periodicidad, fechaPago: `${period}-28` })} disabled={runMutation.isPending || employees.length === 0}>
+            <div className="flex justify-end gap-2">
+              {lastRunId && (
+                <Button size="sm" variant="outline" onClick={() => stampMutation.mutate(lastRunId)} disabled={stampMutation.isPending}>
+                  {stampMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileCheck2 className="w-4 h-4" />}
+                  {t('nomina.stamp')}
+                </Button>
+              )}
+              <Button
+                size="sm"
+                onClick={() =>
+                  runMutation.mutate(
+                    { period, periodicidad, fechaPago: `${period}-28` },
+                    { onSuccess: r => r.payrollRunId && setLastRunId(r.payrollRunId) },
+                  )
+                }
+                disabled={runMutation.isPending || employees.length === 0}
+              >
                 {runMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 {t('nomina.run')}
               </Button>
@@ -172,12 +189,22 @@ function NewEmployeeModal({ onClose }: { onClose: () => void }) {
   const [puesto, setPuesto] = useState('')
   const [salario, setSalario] = useState('')
   const [periodicidadPago, setPeriodicidad] = useState<PayrollPeriodicity>('MENSUAL')
+  const [claveEntFed, setClaveEntFed] = useState('')
+  const [registroPatronal, setRegistroPatronal] = useState('')
 
   const canSubmit = !!nombre.trim() && !!rfcEmpleado.trim() && peso(salario) > 0 && !createMutation.isPending
   const submit = () => {
     if (!canSubmit) return
     createMutation.mutate(
-      { nombre: nombre.trim(), rfcEmpleado: rfcEmpleado.trim().toUpperCase(), puesto: puesto.trim() || null, salarioMensualBrutoCents: peso(salario), periodicidadPago },
+      {
+        nombre: nombre.trim(),
+        rfcEmpleado: rfcEmpleado.trim().toUpperCase(),
+        puesto: puesto.trim() || null,
+        salarioMensualBrutoCents: peso(salario),
+        periodicidadPago,
+        claveEntFed: claveEntFed.trim().toUpperCase() || null,
+        registroPatronal: registroPatronal.trim() || null,
+      },
       { onSuccess: onClose },
     )
   }
@@ -224,6 +251,14 @@ function NewEmployeeModal({ onClose }: { onClose: () => void }) {
                   <SelectItem value="SEMANAL">{t('nomina.periodicidad.SEMANAL')}</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>{t('nomina.modal.claveEntFed')}</Label>
+              <Input value={claveEntFed} onChange={e => setClaveEntFed(e.target.value.toUpperCase())} placeholder="CMX" maxLength={3} className="h-11" />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('nomina.modal.registroPatronal')}</Label>
+              <Input value={registroPatronal} onChange={e => setRegistroPatronal(e.target.value)} className="h-11 font-mono" />
             </div>
           </div>
           <p className="text-xs text-muted-foreground">{t('nomina.modal.hint')}</p>

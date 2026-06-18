@@ -1111,7 +1111,11 @@
       "runPosted": "Nómina posteada ({{empleados}} empleados)",
       "runExists": "Ya existe una corrida para este periodo",
       "runMapping": "Faltan cuentas de nómina en Configuración contable",
-      "runError": "No se pudo correr la nómina"
+      "runError": "No se pudo correr la nómina",
+      "stamped": "{{stamped}} recibo(s) de nómina timbrado(s)",
+      "stampNeedsCsd": "El emisor no tiene su sello digital (CSD) activo; súbelo en Facturación",
+      "stampErrors": "Timbrados {{stamped}}, con {{errors}} error(es) — revisa los datos",
+      "stampError": "No se pudieron timbrar los recibos"
     },
     "modal": {
       "title": "Nuevo empleado",
@@ -1121,7 +1125,10 @@
       "puesto": "Puesto",
       "salario": "Salario mensual bruto",
       "periodicidad": "Periodicidad de pago",
-      "hint": "El salario mensual bruto es la base del cálculo de ISR e IMSS. Puedes capturar el SBC exacto después."
-    }
+      "hint": "El salario mensual bruto es la base del cálculo de ISR e IMSS. Puedes capturar el SBC exacto después.",
+      "claveEntFed": "Estado (clave SAT)",
+      "registroPatronal": "Registro patronal (opcional)"
+    },
+    "stamp": "Timbrar recibos"
   }
 }

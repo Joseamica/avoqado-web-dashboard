@@ -38,7 +38,17 @@ export interface NewEmployee {
   puesto?: string | null
   sbcMensualCents?: number | null
   periodicidadPago?: PayrollPeriodicity
+  claveEntFed?: string | null
+  registroPatronal?: string | null
   fechaIngreso?: string | null
+}
+
+export interface StampPayrollResult {
+  needsFiscalSetup: boolean
+  needsCsd: boolean
+  stamped: number
+  alreadyStamped: number
+  errors: { employeeId: string; nombre: string; error: string }[]
 }
 
 export interface PayrollPreviewLine {
@@ -100,6 +110,12 @@ export async function getPayrollPreview(venueId: string, period: string, periodi
 
 export async function runPayroll(venueId: string, period: string, periodicidad: PayrollPeriodicity, fechaPago: string): Promise<RunPayrollResult> {
   const res = await api.post<RunPayrollResult>(`${base(venueId)}/run`, { period, periodicidad, fechaPago })
+  return res.data
+}
+
+/** Timbra los recibos de nómina (CFDI) de una corrida posteada. */
+export async function stampPayroll(venueId: string, payrollRunId: string): Promise<StampPayrollResult> {
+  const res = await api.post<StampPayrollResult>(`${base(venueId)}/${payrollRunId}/stamp`)
   return res.data
 }
 

@@ -8,6 +8,7 @@ import {
   getEmployees,
   getPayrollPreview,
   runPayroll,
+  stampPayroll,
   nominaKeys,
   type EmployeesResponse,
   type NewEmployee,
@@ -65,5 +66,23 @@ export function useRunPayroll() {
       else toast({ title: t('nomina.toast.runPosted', { empleados: r.totals.empleados }) })
     },
     onError: (err: any) => toast({ title: t('nomina.toast.runError'), description: err?.response?.data?.message ?? err?.message ?? '', variant: 'destructive' }),
+  })
+}
+
+/** Timbra los recibos de nómina (CFDI) de una corrida. Permiso accounting:manage. */
+export function useStampPayroll() {
+  const { venueId } = useCurrentVenue()
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const { t } = useTranslation('reports')
+  return useMutation({
+    mutationFn: (payrollRunId: string) => stampPayroll(venueId!, payrollRunId),
+    onSuccess: r => {
+      queryClient.invalidateQueries({ queryKey: nominaKeys.all })
+      if (r.needsCsd) toast({ title: t('nomina.toast.stampNeedsCsd'), variant: 'destructive' })
+      else if (r.errors.length > 0) toast({ title: t('nomina.toast.stampErrors', { stamped: r.stamped, errors: r.errors.length }), variant: 'destructive' })
+      else toast({ title: t('nomina.toast.stamped', { stamped: r.stamped }) })
+    },
+    onError: (err: any) => toast({ title: t('nomina.toast.stampError'), description: err?.response?.data?.message ?? err?.message ?? '', variant: 'destructive' }),
   })
 }

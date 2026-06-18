@@ -1111,7 +1111,11 @@
       "runPosted": "Payroll posted ({{empleados}} employees)",
       "runExists": "A run already exists for this period",
       "runMapping": "Missing payroll accounts in Accounting setup",
-      "runError": "Could not run payroll"
+      "runError": "Could not run payroll",
+      "stamped": "{{stamped}} payroll receipt(s) stamped",
+      "stampNeedsCsd": "The issuer has no active digital seal (CSD); upload it in Invoicing",
+      "stampErrors": "Stamped {{stamped}}, with {{errors}} error(s) — check the data",
+      "stampError": "Could not stamp the receipts"
     },
     "modal": {
       "title": "New employee",
@@ -1121,7 +1125,10 @@
       "puesto": "Position",
       "salario": "Monthly gross salary",
       "periodicidad": "Pay frequency",
-      "hint": "The monthly gross salary is the base for the income tax and IMSS calc. You can enter the exact SBC later."
-    }
+      "hint": "The monthly gross salary is the base for the income tax and IMSS calc. You can enter the exact SBC later.",
+      "claveEntFed": "State (SAT code)",
+      "registroPatronal": "Employer registration (optional)"
+    },
+    "stamp": "Stamp receipts"
   }
 }
