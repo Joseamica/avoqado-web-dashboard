@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { AlertTriangle, BarChart3, CheckCircle2, Landmark } from 'lucide-react'
+import { AlertTriangle, BarChart3, CheckCircle2, FileCode, FileDown, Landmark, Loader2 } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,8 +11,10 @@ import { FeatureGate } from '@/components/billing/FeatureGate'
 import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
+import { useToast } from '@/hooks/use-toast'
 import { useAccountingReports } from '@/hooks/useAccountingReports'
 import type { AccountingReportsResponse, ReportLine } from '@/services/fiscal/accountingReports.service'
+import { getCatalogoXml, getBalanzaXml, downloadXml } from '@/services/fiscal/contabilidadElectronica.service'
 import { Currency } from '@/utils/currency'
 import { cn } from '@/lib/utils'
 
@@ -157,6 +159,8 @@ function AccountingReportsInner() {
         </div>
       )}
 
+      {!needsFiscalSetup && <ContaElectronicaCard period={period} hasAccess={hasAccess} />}
+
       <Card className="border-input">
         <CardContent className="py-3 space-y-1 text-xs text-muted-foreground">
           <p>{t('accountingReports.disclosureSource')}</p>
@@ -164,6 +168,52 @@ function AccountingReportsInner() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+/** Descarga de los XML de Contabilidad electrónica (SAT, Anexo 24): catálogo + balanza del periodo. */
+function ContaElectronicaCard({ period, hasAccess }: { period: string; hasAccess: boolean }) {
+  const { t } = useTranslation('reports')
+  const { toast } = useToast()
+  const { venueId } = useCurrentVenue()
+  const [loading, setLoading] = useState<'catalogo' | 'balanza' | null>(null)
+
+  const download = async (kind: 'catalogo' | 'balanza') => {
+    if (!venueId || !hasAccess) return
+    setLoading(kind)
+    try {
+      const r = kind === 'catalogo' ? await getCatalogoXml(venueId, period) : await getBalanzaXml(venueId, period)
+      if (r.needsFiscalSetup) toast({ title: t('chartOfAccounts.needsFiscalSetupTitle'), variant: 'destructive' })
+      else if (r.empty || !r.xml || !r.filename) toast({ title: t('electronicAccounting.empty'), variant: 'destructive' })
+      else downloadXml(r.xml, r.filename)
+    } catch (err: any) {
+      toast({ title: t('electronicAccounting.error'), description: err?.response?.data?.message ?? err?.message ?? '', variant: 'destructive' })
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  return (
+    <Card className="border-input">
+      <CardContent className="py-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <FileCode className="h-4 w-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold text-foreground">{t('electronicAccounting.title')}</h2>
+        </div>
+        <p className="text-xs text-muted-foreground">{t('electronicAccounting.body')}</p>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" disabled={!hasAccess || loading !== null} onClick={() => download('catalogo')}>
+            {loading === 'catalogo' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+            {t('electronicAccounting.catalogo')}
+          </Button>
+          <Button size="sm" variant="outline" disabled={!hasAccess || loading !== null} onClick={() => download('balanza')}>
+            {loading === 'balanza' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+            {t('electronicAccounting.balanza')}
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">{t('electronicAccounting.disclaimer')}</p>
+      </CardContent>
+    </Card>
   )
 }
 

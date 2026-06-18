@@ -139,6 +139,12 @@ export async function createExpense(venueId: string, expense: NewExpense): Promi
   return res.data
 }
 
+/** Importa un gasto desde el XML (texto) de un CFDI recibido. */
+export async function importExpenseXml(venueId: string, xml: string): Promise<ExpenseDTO> {
+  const res = await api.post<ExpenseDTO>(`${base(venueId)}/import-xml`, { xml })
+  return res.data
+}
+
 export async function generateExpensePolicies(venueId: string, period?: string): Promise<GenerateExpensePoliciesResult> {
   const res = await api.post<GenerateExpensePoliciesResult>(`${base(venueId)}/generate-policies`, null, { params: period ? { period } : {} })
   return res.data

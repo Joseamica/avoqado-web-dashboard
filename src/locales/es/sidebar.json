@@ -81,7 +81,9 @@
     "journal": "Libro diario · Pólizas",
     "trialBalance": "Balanza de comprobación",
     "taxes": "IVA en flujo · DIOT",
-    "reports": "Reportes contables"
+    "reports": "Reportes contables",
+    "isr": "ISR · Pago provisional",
+    "payroll": "Nómina"
   },
   "reportsMenu": {
     "title": "Reportes",

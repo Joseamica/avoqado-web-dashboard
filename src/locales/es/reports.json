@@ -1014,7 +1014,9 @@
       "generateMapping": "Faltan cuentas en Configuración contable",
       "generateError": "No se pudieron generar las pólizas",
       "markedPaid": "Gasto marcado como pagado",
-      "markPaidError": "No se pudo marcar el gasto como pagado"
+      "markPaidError": "No se pudo marcar el gasto como pagado",
+      "imported": "Gasto importado del CFDI",
+      "importError": "No se pudo importar el XML"
     },
     "modal": {
       "title": "Registrar gasto",
@@ -1043,6 +1045,83 @@
     "markPaidTitle": "Marcar gasto como pagado",
     "markPaidBody": "Registra el pago a {{name}}. El IVA se vuelve acreditable en el mes de la fecha de pago.",
     "markPaidCancel": "Cancelar",
-    "markPaidConfirm": "Confirmar pago"
+    "markPaidConfirm": "Confirmar pago",
+    "importXml": "Importar XML"
+  },
+  "electronicAccounting": {
+    "title": "Contabilidad electrónica (SAT · Anexo 24)",
+    "body": "Descarga tu catálogo de cuentas y tu balanza de comprobación en el formato XML 1.3 del SAT, listos para que tu contador los selle con la e.firma y los envíe.",
+    "catalogo": "Catálogo de cuentas (XML)",
+    "balanza": "Balanza de comprobación (XML)",
+    "disclaimer": "XML sin sellar. Valídalo y séllalo con tu contador (e.firma) antes de enviarlo al SAT.",
+    "empty": "No hay datos para generar el XML en este periodo.",
+    "error": "No se pudo generar el XML."
+  },
+  "isr": {
+    "title": "ISR · Pago provisional",
+    "subtitle": "Estimación de tu ISR del mes (persona física, por RFC).",
+    "preliminarBanner": "ESTIMACIÓN: no incluye retenciones de ISR en tus ventas, pérdidas de ejercicios anteriores ni PTU, y asume 16% de IVA en el ingreso. La tarifa del régimen general es la 2024/2025 (vigente en 2026 salvo publicación nueva). No lo uses como pago final sin tu contador.",
+    "zeroBody": "Sin ventas cobradas este periodo: no se causa ISR. Recuerda presentar tu declaración aunque sea en ceros.",
+    "excedeTope": "Tus ingresos acumulados rebasan los $3,500,000 anuales: ya no puedes tributar en RESICO; cambia a régimen general.",
+    "ingresosMes": "Ingresos cobrados del mes",
+    "ingresosMesHint": "Lo que efectivamente cobraste este mes, sin IVA (todos tus locales del RFC).",
+    "tasaAplicada": "Tasa RESICO aplicada",
+    "ingresosAcum": "Ingresos acumulados (ejercicio)",
+    "deduccionesAcum": "Deducciones autorizadas",
+    "deduccionesHint": "Tus gastos deducibles PAGADOS del ejercicio (Buzón de CFDIs).",
+    "utilidadFiscal": "Utilidad fiscal",
+    "isrCausadoAcum": "ISR causado acumulado",
+    "pagosPrevios": "Pagos provisionales previos",
+    "pagosPreviosHint": "ISR estimado de los meses anteriores del ejercicio.",
+    "isrAPagar": "ISR a pagar (estimado)",
+    "regime": {
+      "RESICO": "RESICO",
+      "GENERAL": "Régimen general"
+    },
+    "disclosureEstimate": "Es una estimación: el ISR definitivo lo calcula y presenta tu contador.",
+    "disclosureRegime": "RESICO aplica una tasa baja (1%–2.5%) sobre lo cobrado, sin deducciones. El régimen general aplica la tarifa progresiva sobre tu utilidad (ingresos − deducciones).",
+    "disclosureTariff": "No incluye IVA, IMSS, ISR de nómina ni impuesto sobre nóminas estatal; esos se calculan aparte."
+  },
+  "nomina": {
+    "title": "Nómina",
+    "subtitle": "Tus empleados y la corrida de nómina del periodo (estimación, por RFC).",
+    "newEmployee": "Nuevo empleado",
+    "run": "Correr nómina y postear",
+    "preliminarBanner": "ESTIMACIÓN: el ISR usa la tarifa art-96 menos el subsidio para el empleo (2026) y el IMSS obrero se estima al 2.375% del salario. Falta el cálculo fino por SBC y el timbrado del CFDI de nómina. No lo uses como recibo final sin tu nominista.",
+    "emptyTitle": "Aún no registras empleados",
+    "emptyBody": "Da de alta a tus empleados para calcular su ISR, IMSS y neto, y postear la póliza de nómina.",
+    "total": "Total ({{count}} empleados)",
+    "disclosureEstimate": "Cálculo estimado: el ISR es tarifa art-96 − subsidio; el IMSS obrero ~2.375% del SBC. El definitivo lo hace tu nominista.",
+    "disclosurePoliza": "Correr la nómina postea la póliza (sueldos · ISR retenido · IMSS · sueldos por pagar) en tu libro diario.",
+    "col": {
+      "empleado": "Empleado",
+      "percepciones": "Percepciones",
+      "isr": "ISR",
+      "imss": "IMSS",
+      "neto": "Neto"
+    },
+    "periodicidad": {
+      "MENSUAL": "Mensual",
+      "QUINCENAL": "Quincenal",
+      "SEMANAL": "Semanal"
+    },
+    "toast": {
+      "employeeCreated": "Empleado dado de alta",
+      "employeeError": "No se pudo dar de alta al empleado",
+      "runPosted": "Nómina posteada ({{empleados}} empleados)",
+      "runExists": "Ya existe una corrida para este periodo",
+      "runMapping": "Faltan cuentas de nómina en Configuración contable",
+      "runError": "No se pudo correr la nómina"
+    },
+    "modal": {
+      "title": "Nuevo empleado",
+      "save": "Guardar empleado",
+      "nombre": "Nombre",
+      "rfc": "RFC del empleado",
+      "puesto": "Puesto",
+      "salario": "Salario mensual bruto",
+      "periodicidad": "Periodicidad de pago",
+      "hint": "El salario mensual bruto es la base del cálculo de ISR e IMSS. Puedes capturar el SBC exacto después."
+    }
   }
 }

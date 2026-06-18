@@ -1014,7 +1014,9 @@
       "generateMapping": "Missing accounts in Accounting setup",
       "generateError": "Could not generate the entries",
       "markedPaid": "Expense marked as paid",
-      "markPaidError": "Could not mark the expense as paid"
+      "markPaidError": "Could not mark the expense as paid",
+      "imported": "Expense imported from CFDI",
+      "importError": "Could not import the XML"
     },
     "modal": {
       "title": "Add expense",
@@ -1043,6 +1045,83 @@
     "markPaidTitle": "Mark expense as paid",
     "markPaidBody": "Record the payment to {{name}}. VAT becomes creditable in the month of the payment date.",
     "markPaidCancel": "Cancel",
-    "markPaidConfirm": "Confirm payment"
+    "markPaidConfirm": "Confirm payment",
+    "importXml": "Import XML"
+  },
+  "electronicAccounting": {
+    "title": "Electronic accounting (SAT · Anexo 24)",
+    "body": "Download your chart of accounts and trial balance in the SAT 1.3 XML format, ready for your accountant to seal with the e.firma and submit.",
+    "catalogo": "Chart of accounts (XML)",
+    "balanza": "Trial balance (XML)",
+    "disclaimer": "Unsealed XML. Validate and seal it with your accountant (e.firma) before submitting to the SAT.",
+    "empty": "No data to generate the XML for this period.",
+    "error": "Could not generate the XML."
+  },
+  "isr": {
+    "title": "Income tax · Provisional payment",
+    "subtitle": "Estimate of your monthly income tax (individual, by tax ID).",
+    "preliminarBanner": "ESTIMATE: it excludes income-tax withheld on your sales, prior-year losses and profit-sharing, and assumes 16% VAT on income. The general-regime tariff is the 2024/2025 one (in force in 2026 unless newly published). Do not use as a final payment without your accountant.",
+    "zeroBody": "No sales collected this period: no income tax accrues. Remember to file even if it is zero.",
+    "excedeTope": "Your cumulative income exceeds $3,500,000/year: you can no longer be in RESICO; switch to the general regime.",
+    "ingresosMes": "Income collected this month",
+    "ingresosMesHint": "What you actually collected this month, excluding VAT (all your venues under the tax ID).",
+    "tasaAplicada": "RESICO rate applied",
+    "ingresosAcum": "Cumulative income (fiscal year)",
+    "deduccionesAcum": "Authorized deductions",
+    "deduccionesHint": "Your deductible expenses PAID this year (CFDI inbox).",
+    "utilidadFiscal": "Taxable profit",
+    "isrCausadoAcum": "Cumulative tax accrued",
+    "pagosPrevios": "Prior provisional payments",
+    "pagosPreviosHint": "Estimated income tax from earlier months of the year.",
+    "isrAPagar": "Income tax to pay (estimate)",
+    "regime": {
+      "RESICO": "RESICO",
+      "GENERAL": "General regime"
+    },
+    "disclosureEstimate": "This is an estimate: your accountant computes and files the final income tax.",
+    "disclosureRegime": "RESICO applies a low rate (1%–2.5%) on collections, with no deductions. The general regime applies the progressive tariff on your profit (income − deductions).",
+    "disclosureTariff": "It excludes VAT, social security, payroll income-tax withholding and state payroll tax; those are computed separately."
+  },
+  "nomina": {
+    "title": "Payroll",
+    "subtitle": "Your employees and the period payroll run (estimate, by tax ID).",
+    "newEmployee": "New employee",
+    "run": "Run payroll & post",
+    "preliminarBanner": "ESTIMATE: income tax uses the art-96 tariff minus the employment subsidy (2026) and the employee IMSS is estimated at 2.375% of salary. The precise SBC calc and the payroll CFDI stamping are missing. Do not use as a final pay stub without your payroll specialist.",
+    "emptyTitle": "You haven't registered employees yet",
+    "emptyBody": "Add your employees to compute their income tax, social security and net pay, and post the payroll entry.",
+    "total": "Total ({{count}} employees)",
+    "disclosureEstimate": "Estimated calc: income tax is art-96 tariff − subsidy; employee IMSS ~2.375% of SBC. The final figure is your payroll specialist’s.",
+    "disclosurePoliza": "Running payroll posts the entry (salaries · income tax withheld · IMSS · salaries payable) into your journal.",
+    "col": {
+      "empleado": "Employee",
+      "percepciones": "Earnings",
+      "isr": "Income tax",
+      "imss": "IMSS",
+      "neto": "Net"
+    },
+    "periodicidad": {
+      "MENSUAL": "Monthly",
+      "QUINCENAL": "Biweekly",
+      "SEMANAL": "Weekly"
+    },
+    "toast": {
+      "employeeCreated": "Employee added",
+      "employeeError": "Could not add the employee",
+      "runPosted": "Payroll posted ({{empleados}} employees)",
+      "runExists": "A run already exists for this period",
+      "runMapping": "Missing payroll accounts in Accounting setup",
+      "runError": "Could not run payroll"
+    },
+    "modal": {
+      "title": "New employee",
+      "save": "Save employee",
+      "nombre": "Name",
+      "rfc": "Employee's tax ID (RFC)",
+      "puesto": "Position",
+      "salario": "Monthly gross salary",
+      "periodicidad": "Pay frequency",
+      "hint": "The monthly gross salary is the base for the income tax and IMSS calc. You can enter the exact SBC later."
+    }
   }
 }

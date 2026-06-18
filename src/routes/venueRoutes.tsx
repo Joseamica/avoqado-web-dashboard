@@ -110,6 +110,8 @@ import {
   AccountingReports,
   CashBasisVat,
   Expenses,
+  Isr,
+  Nomina,
   ShiftId,
   Shifts,
   SuppliersPage,
@@ -316,6 +318,20 @@ export function createVenueRoutes(): RouteObject[] {
       path: 'contabilidad/buzon',
       element: <PermissionProtectedRoute permission="accounting:read" />,
       children: [{ index: true, element: <Expenses /> }],
+    },
+    {
+      // Contabilidad → ISR · Pago provisional (Capa B fiscal). Permiso accounting:read +
+      // FeatureGate CFDI (PREMIUM) en la página. Estimación RESICO / régimen general.
+      path: 'contabilidad/isr',
+      element: <PermissionProtectedRoute permission="accounting:read" />,
+      children: [{ index: true, element: <Isr /> }],
+    },
+    {
+      // Contabilidad → Nómina (Capa B fiscal). Permiso accounting:read + FeatureGate CFDI (PREMIUM)
+      // en la página. Empleados + corrida de nómina (ISR/IMSS) + póliza.
+      path: 'contabilidad/nomina',
+      element: <PermissionProtectedRoute permission="accounting:read" />,
+      children: [{ index: true, element: <Nomina /> }],
     },
     {
       // Contabilidad → Catálogo de cuentas (Capa B fiscal). Permiso accounting:read + FeatureGate

@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { Inbox, Landmark, Loader2, Plus, Scale, Sparkles } from 'lucide-react'
+import { FileUp, Inbox, Landmark, Loader2, Plus, Scale, Sparkles } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -17,7 +17,7 @@ import { AccountingErrorState } from '@/components/accounting/AccountingErrorSta
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
-import { useExpenses, useCreateExpense, useGenerateExpensePolicies, useMarkExpensePaid } from '@/hooks/useExpenses'
+import { useExpenses, useCreateExpense, useGenerateExpensePolicies, useImportExpenseXml, useMarkExpensePaid } from '@/hooks/useExpenses'
 import type { ExpenseCategoria, ExpenseDTO, ExpenseMetodoPago } from '@/services/fiscal/expense.service'
 import { Currency } from '@/utils/currency'
 import { cn } from '@/lib/utils'
@@ -63,8 +63,18 @@ function ExpensesInner() {
   const query = useExpenses({ period }, { enabled: hasAccess })
   const generateMutation = useGenerateExpensePolicies()
   const markPaidMutation = useMarkExpensePaid()
+  const importMutation = useImportExpenseXml()
+  const fileRef = useRef<HTMLInputElement>(null)
   const [payTarget, setPayTarget] = useState<ExpenseDTO | null>(null)
   const data = query.data
+
+  const onPickXml = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = '' // permite re-subir el mismo archivo
+    if (!file) return
+    const xml = await file.text()
+    importMutation.mutate(xml)
+  }
   const expenses = hasAccess ? data?.expenses ?? [] : SAMPLE
   const summary = hasAccess ? data?.summary : { count: 1, totalCents: 116000, ivaCents: 16000, deducibleCents: 100000 }
   const needsFiscalSetup = hasAccess && data?.needsFiscalSetup
@@ -87,6 +97,11 @@ function ExpensesInner() {
           </div>
           {!needsFiscalSetup && canManage && hasAccess && (
             <>
+              <input ref={fileRef} type="file" accept=".xml,text/xml,application/xml" className="hidden" onChange={onPickXml} />
+              <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()} disabled={importMutation.isPending}>
+                {importMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileUp className="w-4 h-4" />}
+                {t('expenses.importXml')}
+              </Button>
               <Button size="sm" variant="outline" onClick={() => generateMutation.mutate(period)} disabled={generateMutation.isPending}>
                 {generateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                 {t('expenses.generate')}

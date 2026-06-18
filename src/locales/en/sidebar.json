@@ -82,7 +82,9 @@
     "journal": "Journal · Entries",
     "trialBalance": "Trial balance",
     "taxes": "Cash-basis VAT · DIOT",
-    "reports": "Accounting reports"
+    "reports": "Accounting reports",
+    "isr": "Income tax · Provisional",
+    "payroll": "Payroll"
   },
   "reportsMenu": {
     "title": "Reports",

@@ -8,6 +8,7 @@ import {
   generateExpensePolicies,
   getDiot,
   getExpenses,
+  importExpenseXml,
   markExpensePaid,
   expenseKeys,
   type DiotResponse,
@@ -44,6 +45,25 @@ export function useCreateExpense() {
     },
     onError: (err: any) => {
       toast({ title: t('expenses.toast.createError'), description: err?.response?.data?.message ?? err?.message ?? '', variant: 'destructive' })
+    },
+  })
+}
+
+/** Importa un gasto desde el XML de un CFDI recibido. Permiso accounting:manage. */
+export function useImportExpenseXml() {
+  const { venueId } = useCurrentVenue()
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const { t } = useTranslation('reports')
+
+  return useMutation({
+    mutationFn: (xml: string) => importExpenseXml(venueId!, xml),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: expenseKeys.all })
+      toast({ title: t('expenses.toast.imported') })
+    },
+    onError: (err: any) => {
+      toast({ title: t('expenses.toast.importError'), description: err?.response?.data?.message ?? err?.message ?? '', variant: 'destructive' })
     },
   })
 }
