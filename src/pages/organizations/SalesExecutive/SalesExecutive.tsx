@@ -633,6 +633,11 @@ function PromoterDailyTable({ data }: { data: PromoterDailyResult }) {
   const firstColPad = isMobile ? 'px-2 py-1.5' : 'px-3 py-2'
   const cellText = isMobile ? 'text-[10px]' : 'text-xs'
   const amber = 'text-amber-600 dark:text-amber-500'
+  // To-review columns are kept deliberately narrow (fixed width + compact padding +
+  // wrapping header) so they don't steal focus from the confirmed-sales grid — this
+  // table is sent to the promoters and must read clean (Isaac, 18-jun).
+  const toReviewPad = isMobile ? 'px-1 py-1.5' : 'px-1 py-2'
+  const toReviewCol = 'w-14'
 
   return (
     <div className="overflow-x-auto">
@@ -655,10 +660,10 @@ function PromoterDailyTable({ data }: { data: PromoterDailyResult }) {
               Pendientes de revisar por el promotor en TPV
             </th>
           </tr>
-          {/* Row 2: the two to-review sub-columns */}
+          {/* Row 2: the two to-review sub-columns — fixed-narrow; "Meses anteriores" wraps */}
           <tr className={cn(cellText, 'uppercase text-muted-foreground')}>
-            <th className={cn(cellPad, 'text-center whitespace-nowrap', amber)}>{currentMonthLabel}</th>
-            <th className={cn(cellPad, 'text-center whitespace-nowrap', amber)}>Meses anteriores</th>
+            <th className={cn(toReviewPad, toReviewCol, 'text-center whitespace-nowrap', amber)}>{currentMonthLabel}</th>
+            <th className={cn(toReviewPad, toReviewCol, 'text-center whitespace-normal leading-tight', amber)}>Meses anteriores</th>
           </tr>
         </thead>
         <tbody>
@@ -671,8 +676,10 @@ function PromoterDailyTable({ data }: { data: PromoterDailyResult }) {
               </td>
             ))}
             <td className={cn(cellPad, 'text-right font-mono')}>{totals.grand}</td>
-            <td className={cn(cellPad, 'text-center font-mono', totals.toReview > 0 && amber)}>{totals.toReview}</td>
-            <td className={cn(cellPad, 'text-center font-mono', totals.toReviewPrevious > 0 && amber)}>{totals.toReviewPrevious}</td>
+            <td className={cn(toReviewPad, toReviewCol, 'text-center font-mono', totals.toReview > 0 && amber)}>{totals.toReview}</td>
+            <td className={cn(toReviewPad, toReviewCol, 'text-center font-mono', totals.toReviewPrevious > 0 && amber)}>
+              {totals.toReviewPrevious}
+            </td>
           </tr>
           {sortedRows.map(row => (
             <tr key={`${row.staffId ?? 'none'}-${row.promoterName}`} className="border-t border-border/30">
@@ -695,7 +702,8 @@ function PromoterDailyTable({ data }: { data: PromoterDailyResult }) {
               <td className={cn(cellPad, 'text-right font-bold font-mono')}>{row.total}</td>
               <td
                 className={cn(
-                  cellPad,
+                  toReviewPad,
+                  toReviewCol,
                   'text-center font-mono font-semibold',
                   row.toReview > 0 ? cn(amber, 'bg-amber-500/10') : 'text-muted-foreground',
                 )}
@@ -704,7 +712,8 @@ function PromoterDailyTable({ data }: { data: PromoterDailyResult }) {
               </td>
               <td
                 className={cn(
-                  cellPad,
+                  toReviewPad,
+                  toReviewCol,
                   'text-center font-mono font-semibold',
                   row.toReviewPrevious > 0 ? cn(amber, 'bg-amber-500/10') : 'text-muted-foreground',
                 )}
