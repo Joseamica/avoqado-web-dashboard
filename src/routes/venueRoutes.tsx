@@ -113,6 +113,7 @@ import {
   Isr,
   Nomina,
   FiscalReadiness,
+  AccountsPayable,
   ShiftId,
   Shifts,
   SuppliersPage,
@@ -382,6 +383,13 @@ export function createVenueRoutes(): RouteObject[] {
       path: 'contabilidad/impuestos',
       element: <PermissionProtectedRoute permission="accounting:read" />,
       children: [{ index: true, element: <CashBasisVat /> }],
+    },
+    {
+      // Contabilidad → Cuentas por pagar (antigüedad de saldos a proveedores, Capa B). Permiso
+      // accounting:read + FeatureGate CFDI (PREMIUM) en la página. Read-only sobre el Buzón.
+      path: 'contabilidad/cuentas-por-pagar',
+      element: <PermissionProtectedRoute permission="accounting:read" />,
+      children: [{ index: true, element: <AccountsPayable /> }],
     },
     {
       path: 'reports/home-charts',

@@ -1057,6 +1057,20 @@
     "empty": "No data to generate the XML for this period.",
     "error": "Could not generate the XML."
   },
+  "accountsPayable": {
+    "title": "Accounts payable",
+    "subtitle": "Who you owe and since when (supplier balance aging).",
+    "asOf": "As of",
+    "totalPending": "Total payable",
+    "suppliersCount": "{{n}} suppliers",
+    "current": "Current (0-30)",
+    "over90": "Over 90",
+    "supplier": "Supplier",
+    "pending": "Pending",
+    "docsAndDays": "{{docs}} document(s) · {{days}} days oldest",
+    "empty": "You have no outstanding supplier balances as of this date.",
+    "disclosure": "From Inbox expenses with a pending balance (total − paid). Aging is counted from the CFDI issue date."
+  },
   "fiscalReadiness": {
     "title": "Tax readiness",
     "subtitle": "What this venue still needs to start running fiscal accounting.",

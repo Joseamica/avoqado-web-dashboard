@@ -77,6 +77,7 @@
     "summary": "Business overview",
     "reconciliation": "AI reconciliation",
     "cfdiInbox": "CFDI inbox",
+    "payable": "Accounts payable",
     "banks": "Banks & cash",
     "chart": "Chart of accounts",
     "mapping": "Accounting setup",

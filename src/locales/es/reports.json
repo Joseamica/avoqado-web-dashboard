@@ -1057,6 +1057,20 @@
     "empty": "No hay datos para generar el XML en este periodo.",
     "error": "No se pudo generar el XML."
   },
+  "accountsPayable": {
+    "title": "Cuentas por pagar",
+    "subtitle": "A quién le debes y desde cuándo (antigüedad de saldos a proveedores).",
+    "asOf": "Al corte",
+    "totalPending": "Total por pagar",
+    "suppliersCount": "{{n}} proveedores",
+    "current": "Corriente (0-30)",
+    "over90": "Más de 90",
+    "supplier": "Proveedor",
+    "pending": "Pendiente",
+    "docsAndDays": "{{docs}} comprobante(s) · {{days}} días el más antiguo",
+    "empty": "No tienes saldos pendientes con proveedores a esta fecha.",
+    "disclosure": "Sale de los gastos del Buzón con saldo pendiente (total − pagado). La antigüedad se cuenta desde la fecha de emisión del CFDI."
+  },
   "fiscalReadiness": {
     "title": "Preparación fiscal",
     "subtitle": "Qué le falta a este local para empezar a operar la contabilidad fiscal.",
