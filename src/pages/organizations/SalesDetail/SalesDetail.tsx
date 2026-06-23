@@ -77,9 +77,9 @@ const MAX_EXPORT_ROWS = 10_000
 const EXPORT_TZ = 'America/Mexico_City'
 
 const STATUS_OPTIONS: { value: SaleVerificationStatus; label: string }[] = [
-  { value: 'PENDING', label: 'Pendiente' },
-  { value: 'COMPLETED', label: 'Venta correcta' },
-  { value: 'FAILED', label: 'Revisar' },
+  { value: 'PENDING', label: 'En revisión por administración' },
+  { value: 'COMPLETED', label: 'Aprobada' },
+  { value: 'FAILED', label: 'Revisar por promotor' },
   { value: 'REJECTED', label: 'Rechazada' },
 ]
 
@@ -103,13 +103,13 @@ function statusBadge(status: SaleVerificationStatus) {
   if (status === 'COMPLETED')
     return (
       <Badge className="bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700">
-        Venta correcta
+        Aprobada
       </Badge>
     )
   if (status === 'FAILED')
     return (
       <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700">
-        Revisar
+        Revisar por promotor
       </Badge>
     )
   if (status === 'REJECTED')
@@ -118,7 +118,7 @@ function statusBadge(status: SaleVerificationStatus) {
         Rechazada
       </Badge>
     )
-  return <Badge className="bg-muted text-muted-foreground border-input">Pendiente</Badge>
+  return <Badge className="bg-muted text-muted-foreground border-input">En revisión por administración</Badge>
 }
 
 /** "Tipo de venta" column: the actual sale type (Línea nueva / Portabilidad). */
@@ -404,12 +404,14 @@ export default function SalesDetail() {
         'Monto MXN': r.payment?.amount ?? 0,
         Status:
           r.status === 'COMPLETED'
-            ? 'Venta correcta'
+            ? 'Aprobada'
             : r.status === 'FAILED'
-              ? 'Revisar'
+              ? 'Revisar por promotor'
               : r.status === 'PENDING'
-                ? 'Pendiente'
-                : r.status,
+                ? 'En revisión por administración'
+                : r.status === 'REJECTED'
+                  ? 'Rechazada'
+                  : r.status,
         'Razones de Rechazo': r.rejectionReasons.map(rr => SALE_VERIFICATION_REJECTION_REASON_LABELS[rr] ?? rr).join('; '),
         'Notas de Revisión': r.reviewNotes ?? '',
         'Revisado Por': r.reviewedBy ? `${r.reviewedBy.firstName} ${r.reviewedBy.lastName}`.trim() : '',
@@ -475,8 +477,13 @@ export default function SalesDetail() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <SummaryCard label="Total ventas" value={summaryQuery.data?.totalCount ?? 0} loading={summaryQuery.isLoading} />
         <SummaryCard label="Aprobadas" value={summaryQuery.data?.completedCount ?? 0} loading={summaryQuery.isLoading} tone="success" />
-        <SummaryCard label="Pendientes" value={summaryQuery.data?.pendingCount ?? 0} loading={summaryQuery.isLoading} tone="warning" />
-        <SummaryCard label="Por revisar" value={summaryQuery.data?.failedCount ?? 0} loading={summaryQuery.isLoading} tone="danger" />
+        <SummaryCard
+          label="En revisión por administración"
+          value={summaryQuery.data?.pendingCount ?? 0}
+          loading={summaryQuery.isLoading}
+          tone="warning"
+        />
+        <SummaryCard label="Revisar por promotor" value={summaryQuery.data?.failedCount ?? 0} loading={summaryQuery.isLoading} tone="danger" />
         <SummaryCard label="Rechazadas" value={summaryQuery.data?.rejectedCount ?? 0} loading={summaryQuery.isLoading} tone="danger" />
       </div>
 

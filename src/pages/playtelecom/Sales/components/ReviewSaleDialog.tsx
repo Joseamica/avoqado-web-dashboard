@@ -97,10 +97,10 @@ export function ReviewSaleDialog({ open, mode, verification, venueId, orgId, onC
     onSuccess: updated => {
       toast({
         title:
-          mode === 'approve' ? 'Venta confirmada' : mode === 'mark-rejected' ? 'Venta rechazada' : 'Documentación marcada para revisar',
+          mode === 'approve' ? 'Venta aprobada' : mode === 'mark-rejected' ? 'Venta rechazada' : 'Documentación marcada para revisar',
         description:
           mode === 'approve'
-            ? 'El promotor verá la venta como correcta en la TPV.'
+            ? 'El promotor verá la venta como aprobada en la TPV.'
             : mode === 'mark-rejected'
               ? 'La venta queda como rechazada. El promotor la verá como rechazada en la TPV.'
               : 'El promotor verá las observaciones en la TPV.',
@@ -165,7 +165,7 @@ export function ReviewSaleDialog({ open, mode, verification, venueId, orgId, onC
             {mode === 'approve' ? (
               <>
                 <CheckCircle2 className="w-5 h-5 text-green-600" />
-                Confirmar venta
+                Aprobar venta
               </>
             ) : mode === 'mark-rejected' ? (
               <>
@@ -193,7 +193,7 @@ export function ReviewSaleDialog({ open, mode, verification, venueId, orgId, onC
 
         {mode === 'approve' ? (
           <div className="py-2 text-sm text-muted-foreground">
-            La venta se marcará como <span className="font-bold text-green-700 dark:text-green-400">VENTA CORRECTA</span>{' '}
+            La venta se marcará como <span className="font-bold text-green-700 dark:text-green-400">APROBADA</span>{' '}
             en la TPV del promotor.
           </div>
         ) : mode === 'mark-rejected' ? (
@@ -284,7 +284,7 @@ export function ReviewSaleDialog({ open, mode, verification, venueId, orgId, onC
             }
           >
             {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {mode === 'approve' ? 'Confirmar venta' : mode === 'mark-rejected' ? 'Rechazar venta' : 'Marcar para revisar'}
+            {mode === 'approve' ? 'Aprobar venta' : mode === 'mark-rejected' ? 'Rechazar venta' : 'Marcar para revisar'}
           </Button>
         </DialogFooter>
       </DialogContent>

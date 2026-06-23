@@ -76,11 +76,11 @@ export function ReportePage() {
 
   const saleStatusColor = (status?: string) => {
     switch (status) {
-      case 'Venta correcta':
+      case 'Aprobada':
         return 'bg-green-900/40 text-green-300 border-green-800'
-      case 'En revisión':
+      case 'En revisión por administración':
         return 'bg-yellow-900/40 text-yellow-300 border-yellow-800'
-      case 'Venta sin documentación completa':
+      case 'Revisar por promotor':
         return 'bg-red-900/40 text-red-300 border-red-800'
       case 'Sin verificación':
       default:

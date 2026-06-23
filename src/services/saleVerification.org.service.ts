@@ -305,7 +305,7 @@ export async function getSalesByPromoterDaily(orgId: string): Promise<PromoterDa
 }
 
 export interface ReviewOrgSaleParams {
-  // APPROVE→"Venta correcta" · REJECT→"Revisar" (corregible) · REJECT_FINAL→"Rechazada" (terminal)
+  // APPROVE→"Aprobada" · REJECT→"Revisar por promotor" (corregible) · REJECT_FINAL→"Rechazada" (terminal)
   decision: 'APPROVE' | 'REJECT' | 'REJECT_FINAL'
   /** Required when decision = REJECT (unless reviewNotes is provided). Not used for REJECT_FINAL. */
   rejectionReasons?: SaleVerificationRejectionReason[]

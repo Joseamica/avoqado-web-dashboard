@@ -78,19 +78,19 @@ import { ReviewSaleDialog, type ReviewMode } from './components/ReviewSaleDialog
 // Status colors and labels
 const STATUS_CONFIG: Record<SaleVerificationStatus, { label: string; className: string }> = {
   COMPLETED: {
-    label: 'CONCILIADO',
+    label: 'Aprobada',
     className: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700',
   },
   PENDING: {
-    label: 'PENDIENTE',
+    label: 'En revisión por administración',
     className: 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700',
   },
   FAILED: {
-    label: 'FALLIDO',
+    label: 'Revisar por promotor',
     className: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700',
   },
   REJECTED: {
-    label: 'RECHAZADA',
+    label: 'Rechazada',
     className: 'bg-red-200 text-red-900 border-red-300 dark:bg-red-950/50 dark:text-red-200 dark:border-red-800',
   },
 }

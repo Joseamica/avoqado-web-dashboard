@@ -372,7 +372,7 @@ export interface ClosingReportRow {
   // Back-office review columns (PlayTelecom / Walmart documentation flow).
   // Optional for backwards compat with older backends that don't return these fields.
   isPortabilidad?: boolean
-  /** "Venta correcta" | "En revisión" | "Venta sin documentación completa" | "Sin verificación" */
+  /** "Aprobada" | "En revisión por administración" | "Revisar por promotor" | "Rechazada" | "Sin verificación" */
   saleStatus?: string
 }
 

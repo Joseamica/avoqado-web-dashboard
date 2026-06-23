@@ -248,17 +248,17 @@ export default function SalesExecutive() {
 
       {/* KPI cards — confirmed-only totals; pending/failed are counters, never part of totals */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard label="Total confirmadas" value={summary.data?.completedCount ?? 0} loading={summary.isLoading} />
+        <KpiCard label="Total aprobadas" value={summary.data?.completedCount ?? 0} loading={summary.isLoading} />
         <KpiCard
-          label="Monto confirmado"
+          label="Monto aprobado"
           // confirmedRevenue excludes "en revisión" / "sin verificación"; fall back to
           // legacy totalRevenue only while an older backend is still deployed.
           value={MXN(summary.data?.confirmedRevenue ?? summary.data?.totalRevenue ?? 0)}
           loading={summary.isLoading}
           asString
         />
-        <KpiCard label="Pendientes de revisión" value={summary.data?.pendingCount ?? 0} loading={summary.isLoading} tone="warning" />
-        <KpiCard label="Por revisar" value={summary.data?.failedCount ?? 0} loading={summary.isLoading} tone="danger" />
+        <KpiCard label="En revisión por administración" value={summary.data?.pendingCount ?? 0} loading={summary.isLoading} tone="warning" />
+        <KpiCard label="Revisar por promotor" value={summary.data?.failedCount ?? 0} loading={summary.isLoading} tone="danger" />
       </div>
 
       {/* Row 1: by month + by sim type */}
