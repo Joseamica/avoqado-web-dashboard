@@ -8,10 +8,14 @@ import './i18n'
 import './index.css'
 import './theme.css'
 import { captureDemoTourParams } from './lib/demo-tour-capture'
+import { initPostHog } from './lib/posthog'
 
 // Avoqado Tour handoff (?demoTour=...): stash + strip BEFORE the router mounts —
 // the auth/venue redirects would drop the query string before any hook sees it.
 captureDemoTourParams()
+
+// PostHog product analytics — no-op unless VITE_POSTHOG_KEY is set
+initPostHog()
 
 // Handle Vite preload errors (CSS/JS chunks missing after deploy)
 // Vite emits this event when a dynamic import's preloaded dependency fails to load

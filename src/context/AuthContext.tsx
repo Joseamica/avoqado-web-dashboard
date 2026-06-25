@@ -9,6 +9,7 @@ import { clearAllChatStorage } from '@/services/chatService'
 import { LoadingScreen } from '@/components/spinner'
 import { useToast } from '@/hooks/use-toast'
 import { User, Venue, SessionVenue, StaffRole } from '@/types'
+import { identifyUser, resetUser } from '@/lib/posthog'
 import { FEATURE_ROUTE_MAP } from '@/hooks/useWhiteLabelConfig'
 
 // Tipos y la Interfaz del Contexto
@@ -111,6 +112,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const isAuthenticated = !!statusData?.authenticated
   const user = statusData?.user || null
+
+  // PostHog: identify the logged-in user (reset on logout) for product analytics + onboarding funnel.
+  useEffect(() => {
+    if (user?.id) identifyUser(user)
+    else resetUser()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- identify only when the user id changes, not on every refetch
+  }, [user?.id])
 
   // FAANG-style retry with exponential backoff
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))

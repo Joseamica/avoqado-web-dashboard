@@ -18,6 +18,7 @@ import { setupService } from '@/services/setup.service'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import type { SetupData } from './types'
+import { track } from '@/lib/posthog'
 
 import { BusinessInfoStep } from './steps/BusinessInfoStep'
 import { BusinessTypeStep } from './steps/BusinessTypeStep'
@@ -291,6 +292,18 @@ export default function SetupWizard() {
     return () => window.removeEventListener('popstate', handlePopState)
   }, [isInitialized, currentStep])
 
+  // PostHog onboarding funnel: which step each user reaches (drop-off analysis).
+  useEffect(() => {
+    if (!isInitialized) return
+    const step = SETUP_STEPS[currentStep]
+    if (!step) return
+    track('setup_step_viewed', {
+      step_id: step.id,
+      step_index: currentStep + 1,
+      step_total: SETUP_STEPS.length,
+    })
+  }, [currentStep, isInitialized])
+
   const handleNext = useCallback(
     async (stepData: Partial<SetupData>) => {
       // Merge step data into state
@@ -322,6 +335,8 @@ export default function SetupWizard() {
           setIsSaving(false)
         }
       }
+
+      track('setup_step_completed', { step_id: SETUP_STEPS[currentStep].id, step_index: currentStep + 1 })
 
       // Advance to next step or complete
       if (currentStep < SETUP_STEPS.length - 1) {
@@ -383,6 +398,8 @@ export default function SetupWizard() {
       title: t('wizard.progressSaved'),
       description: t('wizard.progressSavedDesc'),
     })
+    track('setup_finish_later', { step_id: SETUP_STEPS[currentStep].id, step_index: currentStep + 1 })
+
     // Logout and go to login — user can resume setup on next login
     await logout('/login')
   }, [data.plan, logout, toast, t])
@@ -392,6 +409,8 @@ export default function SetupWizard() {
     setIsSaving(true)
     try {
       await setupService.completeSetup(orgId, i18n.language?.startsWith('en') ? 'en' : 'es')
+
+      track('setup_completed', { steps_total: SETUP_STEPS.length })
 
       // Refetch auth status to get the new venue
       await queryClient.refetchQueries({ queryKey: ['status'], type: 'active' })
