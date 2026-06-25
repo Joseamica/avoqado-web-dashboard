@@ -39,6 +39,7 @@ import { DateTime } from 'luxon'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useOrgPromoters } from '@/hooks/use-org-staff-by-role'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
 import { useVenueDateTime, getLast30Days } from '@/utils/datetime'
@@ -51,6 +52,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { FilterPill } from '@/components/filters/FilterPill'
 import { CheckboxFilterContent } from '@/components/filters/CheckboxFilterContent'
+import { SingleSelectFilterContent } from '@/components/filters/SingleSelectFilterContent'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { GlassCard } from '@/components/ui/glass-card'
 import { cn } from '@/lib/utils'
@@ -183,6 +185,9 @@ export default function SalesDetail() {
   const [saleTypeFilter, setSaleTypeFilter] = useState<string[]>([])
   const [paymentFormFilter, setPaymentFormFilter] = useState<string[]>([])
   const [venueFilter, setVenueFilter] = useState<string[]>([])
+  // Promotor filter — single-select, server-side via staffId. Per Isaac (2026-06-25):
+  // "por promotor a la vez" → one promotor narrows results across ALL pages.
+  const [staffFilter, setStaffFilter] = useState<string | null>(null)
 
   // Search + pagination
   const [search, setSearch] = useState('')
@@ -229,6 +234,8 @@ export default function SalesDetail() {
       // we let the frontend display them all and skip server filter (broad fetch). For PlayTelecom's
       // 38 venues with paginated results this is acceptable; can be tightened later.
       venueId: venueFilter.length === 1 ? venueFilter[0] : undefined,
+      // Promotor — single-select, always server-side (filters across all pages).
+      staffId: staffFilter ?? undefined,
       isPortabilidad:
         saleTypeFilter.length === 1 && saleTypeFilter[0] === 'PORTABILIDAD'
           ? true
@@ -240,7 +247,7 @@ export default function SalesDetail() {
       fromDate: fromDateStr,
       toDate: toDateStr,
     }),
-    [pageNumber, statusFilter, venueFilter, saleTypeFilter, paymentFormFilter, debouncedSearch, fromDateStr, toDateStr],
+    [pageNumber, statusFilter, venueFilter, staffFilter, saleTypeFilter, paymentFormFilter, debouncedSearch, fromDateStr, toDateStr],
   )
 
   const listQuery = useQuery({
@@ -256,6 +263,10 @@ export default function SalesDetail() {
     enabled: !!orgId,
     staleTime: 60_000,
   })
+
+  // Promotores for the "Promotor" filter dropdown — full org list (any-staff
+  // /promoters endpoint), so options aren't limited to the current page.
+  const promotersQuery = useOrgPromoters(orgId)
 
   // Client-side filter pass — handles multi-select cases the backend serves broadly
   const rows = useMemo(() => {
@@ -284,6 +295,17 @@ export default function SalesDetail() {
     }
     return Array.from(seen.entries()).map(([id, name]) => ({ value: id, label: name }))
   }, [listQuery.data?.data])
+
+  // Promotor options (id → "Nombre Apellido") + the selected promotor's label
+  // for the pill. Sourced from the full org promoter list, searchable.
+  const promoterOptions = useMemo(
+    () => (promotersQuery.data ?? []).map(p => ({ value: p.id, label: p.fullName })),
+    [promotersQuery.data],
+  )
+  const selectedPromoterLabel = useMemo(
+    () => promoterOptions.find(o => o.value === staffFilter)?.label ?? null,
+    [promoterOptions, staffFilter],
+  )
 
   const openReopen = (row: OrgSaleRow) => {
     setReopenRow(row)
@@ -566,6 +588,27 @@ export default function SalesDetail() {
                 selectedValues={venueFilter}
                 onApply={values => {
                   setVenueFilter(values)
+                  setPageNumber(1)
+                }}
+                searchable
+              />
+            </FilterPill>
+          )}
+          {promoterOptions.length > 0 && (
+            <FilterPill
+              label="Promotor"
+              activeLabel={selectedPromoterLabel}
+              onClear={() => {
+                setStaffFilter(null)
+                setPageNumber(1)
+              }}
+            >
+              <SingleSelectFilterContent
+                title="Promotor"
+                options={promoterOptions}
+                selectedValue={staffFilter}
+                onSelect={value => {
+                  setStaffFilter(value)
                   setPageNumber(1)
                 }}
                 searchable

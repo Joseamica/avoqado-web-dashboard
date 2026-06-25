@@ -1,6 +1,7 @@
 export { FilterPill, FilterPopoverHeader, FilterPopoverFooter } from './FilterPill'
 export { FilterPillBar } from './FilterPillBar'
 export { CheckboxFilterContent } from './CheckboxFilterContent'
+export { SingleSelectFilterContent } from './SingleSelectFilterContent'
 export { ColumnCustomizer } from './ColumnCustomizer'
 export { AmountFilterContent, type AmountFilter } from './AmountFilterContent'
 export { DateFilterContent, type DateFilter } from './DateFilterContent'
