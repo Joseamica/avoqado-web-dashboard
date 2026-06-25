@@ -36,6 +36,9 @@ env:
   VITE_FIREBASE_RECAPTCHA_SITE_KEY: '6LcM7AcqAAAAADw4D1UBS38j30SXxn3OTl2jAqi3'
   VITE_GOOGLE_CLIENT_ID: '219752736783-r20hp7rn5aam58o5vn5qr7ij46pqhht8.apps.googleusercontent.com'
   VITE_STRIPE_PUBLISHABLE_KEY: 'pk_test_XCv57wYNRXqzP7A5exFgiw4d005M9XPM6X'
+  # PostHog product analytics (public client key — safe to expose, like the keys above)
+  VITE_POSTHOG_KEY: 'phc_ywJ2xb3rYnXnaipgNQ6tbqS5pZK8HamLUNo4bUMsingG'
+  VITE_POSTHOG_HOST: 'https://us.i.posthog.com'
 
 jobs:
   # 🧪 Quality Gate: Test, lint and build
