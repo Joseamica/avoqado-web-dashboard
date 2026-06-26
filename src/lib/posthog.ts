@@ -25,6 +25,9 @@ export function initPostHog(): void {
       capture_pageview: true,
       capture_pageleave: true,
       autocapture: true,
+      // Share the anonymous distinct_id across *.avoqado.io subdomains so a visitor's
+      // marketing-site session (avoqado.io) stitches to their dashboard session here.
+      cross_subdomain_cookie: true,
       // Privacy: never record input values (bank account, RFC/CURP, KYC, etc.).
       session_recording: { maskAllInputs: true },
     })

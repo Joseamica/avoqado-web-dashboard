@@ -113,10 +113,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isAuthenticated = !!statusData?.authenticated
   const user = statusData?.user || null
 
-  // PostHog: identify the logged-in user (reset on logout) for product analytics + onboarding funnel.
+  // PostHog: identify the logged-in user for product analytics + the onboarding funnel.
+  // Only reset on an ACTUAL logout (had a user, now gone) — never on the initial
+  // anonymous load, so a cross-subdomain distinct_id arriving from the marketing site
+  // (avoqado.io) survives until signup/login, where identify() aliases those landing
+  // events to this user. An unconditional reset here would orphan that journey.
+  const hadIdentifiedUserRef = useRef(false)
   useEffect(() => {
-    if (user?.id) identifyUser(user)
-    else resetUser()
+    if (user?.id) {
+      identifyUser(user)
+      hadIdentifiedUserRef.current = true
+    } else if (hadIdentifiedUserRef.current) {
+      resetUser()
+      hadIdentifiedUserRef.current = false
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- identify only when the user id changes, not on every refetch
   }, [user?.id])
 
