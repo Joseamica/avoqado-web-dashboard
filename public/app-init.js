@@ -20,7 +20,7 @@
     const isSuperadminRoute = pathname.startsWith('/superadmin')
     const favicon = document.getElementById('favicon')
     const pageTitle = document.getElementById('page-title')
-    let baseFaviconHref = '/favicon.ico'
+    let baseFaviconHref = '/favicon.svg?v=3'
 
     if (isLocal) {
       baseFaviconHref = '/favicon-development.svg'
@@ -36,8 +36,7 @@
     }
 
     if (favicon) {
-      // Favicon is always the crisp vector logo; environment shows in the title only.
-      favicon.href = '/favicon.svg?v=3'
+      favicon.href = isSuperadminRoute ? '/favicon-superadmin.svg' : baseFaviconHref
     }
   } catch (e) {
     // ignore DOM errors

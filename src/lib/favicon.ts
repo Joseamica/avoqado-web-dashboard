@@ -1,12 +1,35 @@
-// Brand favicon is a single vector logo (favicon.svg) across ALL environments.
-// The environment (DEV / STAGING / prod) is indicated in the page <title>, not the
-// favicon — the old per-environment letter badges were retired so the tab always
-// shows the crisp Avoqado mark. ?v=3 busts the browser's favicon cache.
-const LOGO_FAVICON = '/favicon.svg?v=3'
+// Production (non-superadmin) uses the crisp vector brand logo. Dev / staging keep
+// their letter badges (D / S) and superadmin routes keep their badge so the tab still
+// tells you which environment / context you're in. ?v=3 busts the favicon cache.
+const DEFAULT_FAVICON = '/favicon.svg?v=3'
+const DEVELOPMENT_FAVICON = '/favicon-development.svg'
+const STAGING_FAVICON = '/favicon-staging.svg'
+const SUPERADMIN_FAVICON = '/favicon-superadmin.svg'
+const SUPERADMIN_PRODUCTION_FAVICON = '/favicon-superadmin-production.svg'
+
+const getEnv = (): string | null => {
+  if (typeof document === 'undefined') return null
+  return document.documentElement.getAttribute('data-env')
+}
+
+export const getEnvironmentFaviconHref = (): string => {
+  const env = getEnv()
+
+  if (env === 'development') return DEVELOPMENT_FAVICON
+  if (env === 'staging') return STAGING_FAVICON
+
+  return DEFAULT_FAVICON
+}
 
 export const resolveFaviconHref = (pathname: string): string => {
-  void pathname
-  return LOGO_FAVICON
+  if (pathname.startsWith('/superadmin')) {
+    const env = getEnv()
+    // Green in production, amber-pink in dev/staging
+    if (env === 'development' || env === 'staging') return SUPERADMIN_FAVICON
+    return SUPERADMIN_PRODUCTION_FAVICON
+  }
+
+  return getEnvironmentFaviconHref()
 }
 
 export const applyFaviconHref = (href: string): void => {
