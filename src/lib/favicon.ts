@@ -1,32 +1,12 @@
-const DEFAULT_FAVICON = '/favicon.ico'
-const DEVELOPMENT_FAVICON = '/favicon-development.svg'
-const STAGING_FAVICON = '/favicon-staging.svg'
-const SUPERADMIN_FAVICON = '/favicon-superadmin.svg'
-const SUPERADMIN_PRODUCTION_FAVICON = '/favicon-superadmin-production.svg'
-
-const getEnv = (): string | null => {
-  if (typeof document === 'undefined') return null
-  return document.documentElement.getAttribute('data-env')
-}
-
-export const getEnvironmentFaviconHref = (): string => {
-  const env = getEnv()
-
-  if (env === 'development') return DEVELOPMENT_FAVICON
-  if (env === 'staging') return STAGING_FAVICON
-
-  return DEFAULT_FAVICON
-}
+// Brand favicon is a single vector logo (favicon.svg) across ALL environments.
+// The environment (DEV / STAGING / prod) is indicated in the page <title>, not the
+// favicon — the old per-environment letter badges were retired so the tab always
+// shows the crisp Avoqado mark. ?v=3 busts the browser's favicon cache.
+const LOGO_FAVICON = '/favicon.svg?v=3'
 
 export const resolveFaviconHref = (pathname: string): string => {
-  if (pathname.startsWith('/superadmin')) {
-    const env = getEnv()
-    // Green in production, amber-pink in dev/staging
-    if (env === 'development' || env === 'staging') return SUPERADMIN_FAVICON
-    return SUPERADMIN_PRODUCTION_FAVICON
-  }
-
-  return getEnvironmentFaviconHref()
+  void pathname
+  return LOGO_FAVICON
 }
 
 export const applyFaviconHref = (href: string): void => {
@@ -46,4 +26,3 @@ export const applyFaviconHref = (href: string): void => {
     faviconElement.setAttribute('href', href)
   }
 }
-

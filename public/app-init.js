@@ -36,7 +36,8 @@
     }
 
     if (favicon) {
-      favicon.href = isSuperadminRoute ? '/favicon-superadmin.svg' : baseFaviconHref
+      // Favicon is always the crisp vector logo; environment shows in the title only.
+      favicon.href = '/favicon.svg?v=3'
     }
   } catch (e) {
     // ignore DOM errors

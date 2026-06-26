@@ -2,7 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" id="favicon" href="/favicon.ico?v=3" />
+    <link rel="icon" id="favicon" type="image/svg+xml" href="/favicon.svg?v=3" />
+    <link rel="icon" href="/favicon.ico?v=3" sizes="32x32" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=3" />
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -48,7 +49,8 @@
           document.documentElement.setAttribute('data-env', 'production')
         }
 
-        favicon.href = (isSuperadminRoute && (isLocal || isStaging)) ? '/favicon-superadmin.svg' : baseFaviconHref
+        // Favicon is always the crisp vector logo; environment shows in the title only.
+        favicon.href = '/favicon.svg?v=3'
       })()
     </script>
   </head>
