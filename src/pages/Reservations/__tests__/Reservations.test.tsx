@@ -117,8 +117,15 @@ vi.mock('@tanstack/react-query', () => ({
     if (queryKey[0] === 'reservation-stats') {
       return { data: mockStatsData, isLoading: false }
     }
-    return { data: mockReservationsData, isLoading: false }
+    // The page reads `reservationsData?.data` (a PaginatedReservationsResponse object).
+    if (queryKey[0] === 'reservations') {
+      return { data: mockReservationsData, isLoading: false }
+    }
+    // Everything else the tree fetches (products, categories, …) is consumed as a raw
+    // array via .filter/.map (CreateClassSessionDialog, CreateReservation) → default [].
+    return { data: [], isLoading: false }
   },
+  useMutation: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false, isLoading: false, reset: vi.fn() }),
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
 }))
 
@@ -144,21 +151,26 @@ vi.mock('@/components/PageTitleWithInfo', () => ({
 
 vi.mock('@/components/filters', () => ({
   FilterPill: ({ label }: { label: string }) => <div data-testid="filter-pill">{label}</div>,
+  FilterPillBar: ({ children }: { children?: any }) => <div data-testid="filter-pill-bar">{children}</div>,
   CheckboxFilterContent: () => null,
 }))
 
 vi.mock('@/components/data-table', () => ({
-  default: ({ data }: { data: any[] }) => (
-    <table data-testid="data-table">
-      <tbody>
-        {data.map((row: any) => (
-          <tr key={row.id} data-testid="reservation-row">
-            <td>{row.confirmationCode}</td>
-            <td>{row.guestName}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+  // Render tableTabLeft too — the search bar + channel FilterPillBar live there.
+  default: ({ data, tableTabLeft }: { data: any[]; tableTabLeft?: any }) => (
+    <div>
+      {tableTabLeft}
+      <table data-testid="data-table">
+        <tbody>
+          {data.map((row: any) => (
+            <tr key={row.id} data-testid="reservation-row">
+              <td>{row.confirmationCode}</td>
+              <td>{row.guestName}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   ),
 }))
 
@@ -210,7 +222,8 @@ describe('Reservations List Page', () => {
 
   it('should render New Reservation button', () => {
     renderComponent()
-    expect(screen.getByText('actions.newReservation')).toBeDefined()
+    // The CTA is now a "Crear" dropdown (t('actions.create')); the test i18n mock returns the key.
+    expect(screen.getByText('actions.create')).toBeDefined()
   })
 
   it('should render channel filter', () => {

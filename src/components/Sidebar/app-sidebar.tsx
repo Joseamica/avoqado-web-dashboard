@@ -535,7 +535,7 @@ export function AppSidebar({
 
     // ── Reportes ──
     const reportsSubItems = [
-      { title: t('sidebar:availableBalance'), url: 'available-balance', icon: Wallet, permission: 'settlements:read', locked: !hasKYCAccess, keywords: ['balance', 'liquidaciones', 'depositos', 'transferencias'] },
+      { title: t('sidebar:availableBalance'), url: 'available-balance', icon: Wallet, permission: 'settlements:read', locked: !hasKYCAccess, premiumLocked: !hasFeatureAccess('ADVANCED_REPORTS'), gatedFeature: 'ADVANCED_REPORTS', keywords: ['balance', 'liquidaciones', 'depositos', 'transferencias'] },
       { title: t('sidebar:reportsMenu.payLaterAging', { defaultValue: 'Cuentas por Cobrar' }), url: 'reports/pay-later-aging', icon: HandCoins, permission: 'tpv-reports:pay-later-aging', keywords: ['pay later', 'fiado', 'deudas'] },
       { title: t('sidebar:reportsMenu.salesSummary'), url: 'reports/sales-summary', icon: BarChart3, permission: 'reports:read', keywords: ['reporte', 'ventas diarias', 'ganancias', 'ingresos'] },
       { title: t('sidebar:reportsMenu.salesByItem'), url: 'reports/sales-by-item', icon: Receipt, permission: 'reports:read', premiumLocked: !hasFeatureAccess('ADVANCED_REPORTS'), gatedFeature: 'ADVANCED_REPORTS', keywords: ['reporte de productos', 'items vendidos'] },

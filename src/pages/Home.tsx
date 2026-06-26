@@ -30,6 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useDashboardData } from '@/hooks/useDashboardData'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useVenueTier } from '@/hooks/use-tier-feature-access'
 import { PerformanceChart } from '@/components/home/PerformanceChart'
 import { Currency } from '@/utils/currency'
 import { buildCompareOptions, detectRangeKind, type CompareOption } from '@/utils/dashboard-comparison'
@@ -45,18 +46,15 @@ import { cn } from '@/lib/utils'
 export default function Home() {
   const { t, i18n } = useTranslation('home')
   const dashboardData = useDashboardData()
-  const {
-    selectedRange,
-    compareRange,
-    setSelectedRange,
-    setCompareRange,
-    setCompareType,
-    setComparisonLabel,
-    setActiveFilter,
-  } = dashboardData
+  const { selectedRange, compareRange, setSelectedRange, setCompareRange, setCompareType, setComparisonLabel, setActiveFilter } =
+    dashboardData
   const localeCode = getIntlLocale(i18n.language)
   const { venueTimezone } = useVenueDateTime()
   const { fullBasePath, venueId, venue } = useCurrentVenue()
+  // Available Balance (incl. the "today settlement" widget) is a PRO feature (ADVANCED_REPORTS).
+  // Gate the query + the widget so free venues don't fire a now-403 request or see a dead card.
+  const { hasFeatureAccess } = useVenueTier()
+  const hasAvailableBalance = hasFeatureAccess('ADVANCED_REPORTS')
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -100,9 +98,7 @@ export default function Home() {
   const [chatInput, setChatInput] = useState('')
   const [chatFocused, setChatFocused] = useState(false)
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
-  const [tourActive, setTourActive] = useState(
-    () => typeof document !== 'undefined' && document.body.classList.contains('tour-active'),
-  )
+  const [tourActive, setTourActive] = useState(() => typeof document !== 'undefined' && document.body.classList.contains('tour-active'))
 
   // Sigue el flag `tour-active` que los hooks de driver.js setean en <body>
   // mientras hay un tour corriendo. Lo usamos para congelar la rotación de
@@ -199,10 +195,7 @@ export default function Home() {
   // Se filtra el byCardType excluyendo CASH porque el efectivo ya está en
   // mano del comerciante — la "liquidación" se refiere al depósito bancario.
   // Esto matchea el toggle "Tarjetas" del AvailableBalance.
-  const todayIso = useMemo(
-    () => DateTime.now().setZone(venueTimezone).toISODate() ?? '',
-    [venueTimezone],
-  )
+  const todayIso = useMemo(() => DateTime.now().setZone(venueTimezone).toISODate() ?? '', [venueTimezone])
 
   const todayRange = useMemo(() => {
     const { from, to } = getToday(venueTimezone)
@@ -218,7 +211,7 @@ export default function Home() {
       const res = await getSettlementCalendar(venueId!, { from: todayRange.from, to: todayRange.to })
       return res.data
     },
-    enabled: !!venueId && !!todayIso,
+    enabled: !!venueId && !!todayIso && hasAvailableBalance, // PRO-only — don't 403 free venues
     staleTime: 60_000,
   })
 
@@ -268,8 +261,7 @@ export default function Home() {
   const compareTips = useMemo(
     () =>
       dashboardData.comparePayments.reduce(
-        (sumTips: number, payment: any) =>
-          sumTips + (payment.tips || []).reduce((s: number, tip: any) => s + Number(tip.amount || 0), 0),
+        (sumTips: number, payment: any) => sumTips + (payment.tips || []).reduce((s: number, tip: any) => s + Number(tip.amount || 0), 0),
         0,
       ),
     [dashboardData.comparePayments],
@@ -307,8 +299,7 @@ export default function Home() {
 
     if (kind === 'day') {
       if (from.hasSame(now, 'day')) return formatRangeLabel(selectedRange, t('newHome.performance.today'))
-      if (from.hasSame(now.minus({ days: 1 }), 'day'))
-        return formatRangeLabel(selectedRange, t('newHome.datePicker.yesterday'))
+      if (from.hasSame(now.minus({ days: 1 }), 'day')) return formatRangeLabel(selectedRange, t('newHome.datePicker.yesterday'))
     }
     return formatRangeLabel(selectedRange)
   }, [selectedRange, venueTimezone, formatRangeLabel, t])
@@ -359,21 +350,14 @@ export default function Home() {
   )
 
   const suggestions = useMemo(
-    () => [
-      t('newHome.chatbot.q1'),
-      t('newHome.chatbot.q2'),
-      t('newHome.chatbot.q3'),
-      t('newHome.chatbot.q4'),
-    ],
+    () => [t('newHome.chatbot.q1'), t('newHome.chatbot.q2'), t('newHome.chatbot.q3'), t('newHome.chatbot.q4')],
     [t],
   )
 
   const sendToChatbot = useCallback((message: string) => {
     const trimmed = message.trim()
     if (!trimmed) return
-    window.dispatchEvent(
-      new CustomEvent('chatbot:openWithMessage', { detail: { message: trimmed } }),
-    )
+    window.dispatchEvent(new CustomEvent('chatbot:openWithMessage', { detail: { message: trimmed } }))
     setChatInput('')
     setChatFocused(false)
   }, [])
@@ -439,113 +423,114 @@ export default function Home() {
                   sin empujar el contenido de abajo (Performance). El wrapper
                   conserva la altura "collapsed" del card, así Liquidación
                   al lado mantiene su match de height. */}
-              <div className="relative xl:col-span-9">
+              <div className={cn('relative', hasAvailableBalance ? 'xl:col-span-9' : 'xl:col-span-12')}>
                 <Card
                   className={cn(
                     'rounded-2xl border-input transition-shadow',
-                    showSuggestions
-                      ? 'absolute inset-x-0 top-0 z-30 shadow-2xl'
-                      : 'h-full',
+                    showSuggestions ? 'absolute inset-x-0 top-0 z-30 shadow-2xl' : 'h-full',
                   )}
                   data-tour="home-chatbot-overview"
                 >
-                <CardContent className="relative p-0">
-                  <form onSubmit={handleChatSubmit} className="flex items-center gap-3 px-5 py-5">
-                    {/* Wrapper relativo para superponer el placeholder
+                  <CardContent className="relative p-0">
+                    <form onSubmit={handleChatSubmit} className="flex items-center gap-3 px-5 py-5">
+                      {/* Wrapper relativo para superponer el placeholder
                         animado encima del input. El input mantiene su
                         placeholder vacío y nosotros pintamos el texto
                         rotativo en una capa absoluta con transición fade. */}
-                    <div className="relative flex-1">
-                      <input
-                        type="text"
-                        value={chatInput}
-                        onChange={event => setChatInput(event.target.value)}
-                        onFocus={() => setChatFocused(true)}
-                        onBlur={() => window.setTimeout(() => setChatFocused(false), 150)}
-                        onKeyDown={handleChatKeyDown}
-                        placeholder={chatFocused ? t('newHome.chatbot.placeholder') : ' '}
-                        aria-label={t('newHome.chatbot.placeholder')}
-                        className="w-full bg-transparent text-base text-foreground placeholder:text-muted-foreground/80 outline-none"
-                        data-tour="home-chatbot-input"
-                      />
-                      {!chatFocused && chatInput.length === 0 && (
-                        <div
-                          key={currentPlaceholder}
-                          aria-hidden="true"
-                          className="pointer-events-none absolute inset-0 flex items-center text-base text-muted-foreground/80 animate-in fade-in slide-in-from-bottom-1 duration-500"
-                        >
-                          <span className="truncate">{currentPlaceholder}</span>
-                        </div>
-                      )}
-                    </div>
-                    <Button
-                      type="submit"
-                      size="icon"
-                      disabled={!chatInput.trim()}
-                      aria-label={t('newHome.chatbot.send')}
-                      className="h-9 w-9 shrink-0 cursor-pointer rounded-full"
-                    >
-                      <ArrowUp className="h-4 w-4" />
-                    </Button>
-                  </form>
+                      <div className="relative flex-1">
+                        <input
+                          type="text"
+                          value={chatInput}
+                          onChange={event => setChatInput(event.target.value)}
+                          onFocus={() => setChatFocused(true)}
+                          onBlur={() => window.setTimeout(() => setChatFocused(false), 150)}
+                          onKeyDown={handleChatKeyDown}
+                          placeholder={chatFocused ? t('newHome.chatbot.placeholder') : ' '}
+                          aria-label={t('newHome.chatbot.placeholder')}
+                          className="w-full bg-transparent text-base text-foreground placeholder:text-muted-foreground/80 outline-none"
+                          data-tour="home-chatbot-input"
+                        />
+                        {!chatFocused && chatInput.length === 0 && (
+                          <div
+                            key={currentPlaceholder}
+                            aria-hidden="true"
+                            className="pointer-events-none absolute inset-0 flex items-center text-base text-muted-foreground/80 animate-in fade-in slide-in-from-bottom-1 duration-500"
+                          >
+                            <span className="truncate">{currentPlaceholder}</span>
+                          </div>
+                        )}
+                      </div>
+                      <Button
+                        type="submit"
+                        size="icon"
+                        disabled={!chatInput.trim()}
+                        aria-label={t('newHome.chatbot.send')}
+                        className="h-9 w-9 shrink-0 cursor-pointer rounded-full"
+                      >
+                        <ArrowUp className="h-4 w-4" />
+                      </Button>
+                    </form>
 
-                  {showSuggestions && (
-                    <div className="border-t border-border">
-                      {suggestions.map((suggestion, index) => (
-                        <button
-                          key={suggestion}
-                          type="button"
-                          onMouseDown={event => event.preventDefault()}
-                          onClick={() => sendToChatbot(suggestion)}
-                          className={`block w-full cursor-pointer px-5 py-4 text-left text-base font-semibold text-foreground transition-colors hover:bg-muted/60 ${
-                            index < suggestions.length - 1 ? 'border-b border-border' : ''
-                          }`}
-                        >
-                          {suggestion}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
+                    {showSuggestions && (
+                      <div className="border-t border-border">
+                        {suggestions.map((suggestion, index) => (
+                          <button
+                            key={suggestion}
+                            type="button"
+                            onMouseDown={event => event.preventDefault()}
+                            onClick={() => sendToChatbot(suggestion)}
+                            className={`block w-full cursor-pointer px-5 py-4 text-left text-base font-semibold text-foreground transition-colors hover:bg-muted/60 ${
+                              index < suggestions.length - 1 ? 'border-b border-border' : ''
+                            }`}
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
                 </Card>
               </div>
 
-              {/* Liquidación de hoy — celda hermana del chatbot. Mismo height
-                  por estar dentro del mismo row de la grid. */}
-              <Card
-                className="cursor-pointer rounded-2xl border-input transition-colors hover:bg-muted/30 xl:col-span-3"
-                onClick={() => navigate(`${fullBasePath}/available-balance`)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={event => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault()
-                    navigate(`${fullBasePath}/available-balance`)
-                  }
-                }}
-              >
-                <CardContent className="space-y-2 p-5">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm text-muted-foreground">{t('newHome.side.todaySettlement')}</p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          aria-label={t('newHome.side.todaySettlementInfo')}
-                          onClick={event => event.stopPropagation()}
-                          className="flex h-5 w-5 cursor-help items-center justify-center rounded-full text-muted-foreground/60 hover:text-muted-foreground"
-                        >
-                          <Info className="h-3.5 w-3.5" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-[260px] text-center">
-                        {t('newHome.side.todaySettlementTooltip')}
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <p className="text-2xl font-bold tracking-tight">{Currency(todaySettlement, false)}</p>
-                </CardContent>
-              </Card>
+              {/* Liquidación de hoy — celda hermana del chatbot. PRO (Available Balance):
+                  oculta para venues sin acceso, para no dejar una card muerta ni disparar
+                  el endpoint settlement-calendar (que ahora es 403 en free). */}
+              {hasAvailableBalance && (
+                <Card
+                  className="cursor-pointer rounded-2xl border-input transition-colors hover:bg-muted/30 xl:col-span-3"
+                  onClick={() => navigate(`${fullBasePath}/available-balance`)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      navigate(`${fullBasePath}/available-balance`)
+                    }
+                  }}
+                >
+                  <CardContent className="space-y-2 p-5">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm text-muted-foreground">{t('newHome.side.todaySettlement')}</p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            aria-label={t('newHome.side.todaySettlementInfo')}
+                            onClick={event => event.stopPropagation()}
+                            className="flex h-5 w-5 cursor-help items-center justify-center rounded-full text-muted-foreground/60 hover:text-muted-foreground"
+                          >
+                            <Info className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[260px] text-center">
+                          {t('newHome.side.todaySettlementTooltip')}
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <p className="text-2xl font-bold tracking-tight">{Currency(todaySettlement, false)}</p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Fila 2: Performance (col-9) + Acciones rápidas (col-3).
@@ -596,7 +581,6 @@ export default function Home() {
                         })}
                       </DropdownMenuContent>
                     </DropdownMenu>
-
                   </div>
 
                   <div className="grid gap-6 md:grid-cols-[220px_1fr]">
@@ -713,9 +697,7 @@ export default function Home() {
                 icon={Users}
                 title={t('newHome.businessCenter.staff')}
                 subtitle={
-                  teamCount <= 1
-                    ? t('newHome.businessCenter.staffSub')
-                    : t('newHome.businessCenter.staffSubCount', { count: teamCount })
+                  teamCount <= 1 ? t('newHome.businessCenter.staffSub') : t('newHome.businessCenter.staffSubCount', { count: teamCount })
                 }
                 isLoading={isTeamCountLoading}
                 onClick={() => navigate(`${fullBasePath}/team`)}
@@ -784,8 +766,7 @@ function TrendBadge({
     )
   }
 
-  const colorClass =
-    value < 0 ? 'text-destructive' : value > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'
+  const colorClass = value < 0 ? 'text-destructive' : value > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'
 
   return (
     <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
@@ -810,10 +791,7 @@ function BusinessCard({
   const interactive = typeof onClick === 'function'
   return (
     <Card
-      className={cn(
-        'min-h-56 rounded-2xl border-input transition-colors',
-        interactive && 'cursor-pointer hover:bg-muted/30',
-      )}
+      className={cn('min-h-56 rounded-2xl border-input transition-colors', interactive && 'cursor-pointer hover:bg-muted/30')}
       onClick={onClick}
       role={interactive ? 'button' : undefined}
       tabIndex={interactive ? 0 : undefined}
@@ -832,11 +810,7 @@ function BusinessCard({
         <Icon className="h-10 w-10 text-foreground" />
         <div>
           <p className="text-2xl font-semibold">{title}</p>
-          {isLoading ? (
-            <Skeleton className="mt-1 h-4 w-24" />
-          ) : (
-            <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
-          )}
+          {isLoading ? <Skeleton className="mt-1 h-4 w-24" /> : <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
         </div>
       </CardContent>
     </Card>

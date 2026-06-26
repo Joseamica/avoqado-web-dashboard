@@ -717,6 +717,49 @@ export async function deleteVenuePaymentConfig(venueId: string): Promise<void> {
   await api.delete(`/api/v1/dashboard/superadmin/venue-pricing/config/${venueId}`)
 }
 
+// ─── Venue merchant roster (PR-2 N-account model) ───────────────────────────
+
+export interface VenueMerchantRosterAccount {
+  merchantAccountId: string
+  priority: number
+  /** null = an extra account beyond the 3 legacy slots */
+  legacySlotType: 'PRIMARY' | 'SECONDARY' | 'TERTIARY' | null
+  label: string | null
+  active: boolean
+  inheritedFromOrg: boolean
+  merchantAccount: { id: string; displayName: string | null; active: boolean; provider: { code: string } | null } | null
+}
+
+export interface VenueMerchantRoster {
+  venueId: string
+  rosterRolloutEnabled: boolean
+  hasConfig: boolean
+  count: number
+  accounts: VenueMerchantRosterAccount[]
+}
+
+/**
+ * Get the venue's merchant-account roster + the per-venue rollout flag.
+ * Backend: GET /api/v1/dashboard/superadmin/venue-pricing/roster/:venueId
+ */
+export async function getVenueMerchantRoster(venueId: string): Promise<VenueMerchantRoster> {
+  const response = await api.get(`/api/v1/dashboard/superadmin/venue-pricing/roster/${venueId}`)
+  return response.data.data
+}
+
+/**
+ * Toggle the venue's roster-rollout flag (switches cost/routing to the N-account
+ * engine). Flip ON only after the recompute-diff gate passes for the venue.
+ * Backend: PATCH /api/v1/dashboard/superadmin/venue-pricing/roster/:venueId/rollout
+ */
+export async function updateVenueRosterRollout(
+  venueId: string,
+  enabled: boolean,
+): Promise<{ venueId: string; rosterRolloutEnabled: boolean }> {
+  const response = await api.patch(`/api/v1/dashboard/superadmin/venue-pricing/roster/${venueId}/rollout`, { enabled })
+  return response.data.data
+}
+
 /**
  * Legacy function - kept for compatibility
  * Use getVenuePaymentConfig(venueId) instead
@@ -1347,6 +1390,8 @@ export const paymentProviderAPI = {
   createVenuePaymentConfig,
   updateVenuePaymentConfig,
   deleteVenuePaymentConfig,
+  getVenueMerchantRoster,
+  updateVenueRosterRollout,
   getVenuePricingStructures,
   getVenuePricingStructure,
   getActivePricingStructure,

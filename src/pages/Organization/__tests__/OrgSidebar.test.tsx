@@ -159,12 +159,11 @@ describe('OrgSidebar', () => {
     // Section label should be present
     expect(screen.getByText('Configuración Org.')).toBeInTheDocument()
 
-    // All 5 items should be present
+    // Core WL items should be present (staff-assignment was removed in the sidebar refactor 61576cac)
     expect(screen.getByText('Configuración TPV')).toBeInTheDocument()
     expect(screen.getByText('Metas')).toBeInTheDocument()
     expect(screen.getByText('Categorías')).toBeInTheDocument()
     expect(screen.getByText('Mensajes')).toBeInTheDocument()
-    expect(screen.getByText('Asignación de Personal')).toBeInTheDocument()
   })
 
   it('hides "Configuracion Org." section when org has no WHITE_LABEL_DASHBOARD module', () => {
@@ -184,25 +183,5 @@ describe('OrgSidebar', () => {
     // WL-specific items should NOT be present
     expect(screen.queryByText('Configuración TPV')).not.toBeInTheDocument()
     expect(screen.queryByText('Asignación de Personal')).not.toBeInTheDocument()
-  })
-
-  it('renders the staff assignment link pointing to the correct route', () => {
-    const wlVenue = makeWLVenue(ORG_ID)
-
-    mockedUseAuth.mockReturnValue({
-      user: { role: 'OWNER', firstName: 'Test', lastName: 'User', email: 'test@test.com' },
-      allVenues: [wlVenue],
-      isAuthenticated: true,
-    } as any)
-
-    renderSidebar()
-
-    // Find the NavLink for staff assignment by its text
-    const staffLink = screen.getByText('Asignación de Personal')
-    expect(staffLink).toBeInTheDocument()
-
-    // The NavLink wrapping it should point to the correct href
-    const anchor = staffLink.closest('a')
-    expect(anchor).toHaveAttribute('href', `/organizations/${ORG_ID}/staff-assignment`)
   })
 })

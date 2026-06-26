@@ -1,6 +1,7 @@
 import { CashCloseoutDialog } from '@/components/CashCloseout/CashCloseoutDialog'
 import { CashCloseoutHistory } from '@/components/CashCloseout/CashCloseoutHistory'
 import { CreditOfferBanner } from '@/components/CreditOffer/CreditOfferBanner'
+import { FeatureGate } from '@/components/billing/FeatureGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { PendingIncidentsAlert } from '@/components/SettlementIncident/PendingIncidentsAlert'
 import { Badge } from '@/components/ui/badge'
@@ -47,7 +48,7 @@ import { SettlementTimelineTable } from './SettlementTimelineTable'
 // Tab filter type
 type TabValue = 'all' | 'cards' | 'cash'
 
-export default function AvailableBalance() {
+function AvailableBalanceContent() {
   const { t } = useTranslation('availableBalance')
   const { t: tCashCloseout } = useTranslation('cashCloseout')
   const { venueId } = useCurrentVenue()
@@ -755,5 +756,16 @@ export default function AvailableBalance() {
         />
       )}
     </div>
+  )
+}
+
+// Available Balance is a PRO feature (ADVANCED_REPORTS) — the backend now enforces it,
+// so the page must show the upsell paywall instead of letting a non-PRO venue hit a 403.
+// Mirrors the SalesByItem / SalesSummary FeatureGate pattern.
+export default function AvailableBalance() {
+  return (
+    <FeatureGate feature="ADVANCED_REPORTS">
+      <AvailableBalanceContent />
+    </FeatureGate>
   )
 }

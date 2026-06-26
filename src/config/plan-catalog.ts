@@ -40,7 +40,7 @@ export const PLAN_TIERS: PlanTierDef[] = [
     priceAnnual: 0,
     checkout: 'current',
     featureKeys: ['pos', 'menuOrders', 'inventoryBasic', 'dailyReports', 'chatbotBeta', 'seats2'],
-    includes: ['AVAILABLE_BALANCE', 'CHATBOT'],
+    includes: ['CHATBOT'], // AVAILABLE_BALANCE moved to PRO (founder: available balance = PRO)
   },
   {
     id: 'PRO',
@@ -54,6 +54,7 @@ export const PLAN_TIERS: PlanTierDef[] = [
     featureKeys: ['allFree', 'reportsHistory', 'auditLog', 'aiMcp', 'loyaltyReferrals', 'reservationsOrdering', 'seatsUnlimited'],
     includes: [
       'ADVANCED_REPORTS',
+      'AVAILABLE_BALANCE',
       'AI_ASSISTANT_BUBBLE',
       'LOYALTY_PROGRAM',
       'REFERRAL_PROGRAM',

@@ -20,6 +20,7 @@ import PricingCard from './cards/PricingCard'
 import SettlementCard from './cards/SettlementCard'
 import RevenueShareCard from './cards/RevenueShareCard'
 import TerminalsCard from './cards/TerminalsCard'
+import VenueRosterPanel from '../VenueRosterPanel'
 
 interface MerchantSetupPanelProps {
   open: boolean
@@ -298,6 +299,13 @@ export default function MerchantSetupPanel({
             merchantAccountId={mode === 'edit' ? merchantAccountId : undefined}
           />
           <TerminalsCard state={state} dispatch={dispatch} mode={mode} />
+          {/* Venue-level overview: the full N-account roster + the roster cost-engine
+              rollout flag (PR-2). Full width so the roster list has room. */}
+          {state.venue.id && (
+            <div className="md:col-span-2 xl:col-span-3">
+              <VenueRosterPanel venueId={state.venue.id} />
+            </div>
+          )}
         </div>
       </div>
 
