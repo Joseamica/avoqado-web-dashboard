@@ -6,7 +6,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
-import Logo from '@/assets/logo'
+import logoLight from '@/assets/logo/avoqado-logo-light.png'
+import logoDark from '@/assets/logo/avoqado-logo-dark.png'
 import CoverLogin from '@/assets/cover-login.png'
 import { ThemeToggle } from '@/components/theme-toggle'
 import LanguageSwitcher from '@/components/language-switcher'
@@ -194,11 +195,9 @@ const ResetPassword: React.FC = () => {
           <ThemeToggle />
         </div>
         <div className="flex justify-center gap-2 md:justify-start">
-          <a href="#" className="flex items-center gap-2 font-medium">
-            <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
-              <Logo className="size-4" />
-            </div>
-            Avoqado
+          <a href="#" className="flex items-center">
+            <img src={logoLight} alt="Avoqado" className="h-8 w-auto dark:hidden" />
+            <img src={logoDark} alt="Avoqado" className="hidden h-8 w-auto dark:block" />
           </a>
         </div>
         <div className="flex flex-1 items-center justify-center">
