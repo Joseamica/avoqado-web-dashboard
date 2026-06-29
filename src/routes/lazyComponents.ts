@@ -272,6 +272,7 @@ export const PlayTelecomUsers = lazyWithRetry(() => import('@/pages/playtelecom/
 export const PlayTelecomTpvConfig = lazyWithRetry(() => import('@/pages/playtelecom/TpvConfig/TpvConfiguration'))
 export const PlayTelecomSupervisor = lazyWithRetry(() => import('@/pages/playtelecom/Supervisor/SupervisorDashboard'))
 export const PlayTelecomReporte = lazyWithRetry(() => import('@/pages/playtelecom/Reporte/ReportePage'))
+export const PlayTelecomComisiones = lazyWithRetry(() => import('@/pages/playtelecom/Comisiones/ComisionesPage'))
 
 // Organization pages (WL OWNER-only)
 export const PlayTelecomOrgConfig = lazyWithRetry(() => import('@/pages/playtelecom/Organization/OrgConfigPage'))

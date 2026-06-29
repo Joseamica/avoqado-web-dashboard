@@ -195,7 +195,7 @@ export function AppSidebar({
   onSidebarReady?: (meta: SidebarMeta) => void
   onSearchClick?: () => void
 }) {
-  const { allVenues, activeVenue, staffInfo } = useAuth()
+  const { allVenues, activeVenue, staffInfo, checkModuleAccess } = useAuth()
   const { t } = useTranslation(['translation', 'sidebar'])
   const { can, canFeature } = useAccess()
   // Tier-aware feature access for BADGE (premiumLocked) decisions on normal (non-white-label)
@@ -279,6 +279,24 @@ export function AppSidebar({
           title,
           url: `${wlBasePath}/${getFeatureRoute(featureCode)}`,
           icon: getIconComponent(navItem.icon, featureCode),
+          isActive: true,
+          locked: false,
+          isAvoqadoCore: false,
+        })
+      }
+    }
+
+    // ── Cash Out / Comisiones — static item (not a WL feature code) ──
+    // Founder's gate: cash-out appears by default wherever SERIALIZED_INVENTORY is on,
+    // never a separate module/feature. Mirrors the route guard in router.tsx
+    // (requiredModule=SERIALIZED_INVENTORY + MANAGER/ADMIN/OWNER/SUPERADMIN).
+    if (isWhiteLabelVenue && wlBasePath && checkModuleAccess('SERIALIZED_INVENTORY')) {
+      const comisionesRoles = ['MANAGER', 'ADMIN', 'OWNER', 'SUPERADMIN']
+      if (effectiveRole && comisionesRoles.includes(effectiveRole)) {
+        whiteLabelModuleItems.push({
+          title: t('sidebar:playtelecom.comisiones', { defaultValue: 'Comisiones' }),
+          url: `${wlBasePath}/comisiones`,
+          icon: getIconComponent('DollarSign'),
           isActive: true,
           locked: false,
           isAvoqadoCore: false,
@@ -797,6 +815,7 @@ export function AppSidebar({
     t,
     term,
     effectiveRole,
+    checkModuleAccess,
     can,
     hasKYCAccess,
     hasFeatureAccess,

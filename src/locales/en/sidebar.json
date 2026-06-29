@@ -110,7 +110,8 @@
     "managers": "Managers",
     "promoters": "Sales Force",
     "users": "Users",
-    "tpvConfig": "{{orgName}} Configuration"
+    "tpvConfig": "{{orgName}} Configuration",
+    "comisiones": "Commissions"
   },
   "reports": "Reports",
   "support": "Support",

@@ -109,7 +109,8 @@
     "managers": "Gerentes",
     "promoters": "Fuerza de Venta",
     "users": "Usuarios",
-    "tpvConfig": "Configuración {{orgName}}"
+    "tpvConfig": "Configuración {{orgName}}",
+    "comisiones": "Comisiones"
   },
   "support": "Soporte",
   "admin": "Administración",

@@ -50,6 +50,7 @@ import {
   PlayTelecomStock,
   PlayTelecomStores,
   PlayTelecomTpvConfig,
+  PlayTelecomComisiones,
   PlayTelecomUsers,
   PlayTelecomSupervisor,
   PlayTelecomReporte,
@@ -631,6 +632,16 @@ const router = createBrowserRouter(
                           children: [{ index: true, element: <PlayTelecomPromoters /> }],
                         },
                         {
+                          path: 'comisiones',
+                          element: (
+                            <ModuleProtectedRoute
+                              requiredModule="SERIALIZED_INVENTORY"
+                              allowedRoles={[StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                            />
+                          ),
+                          children: [{ index: true, element: <PlayTelecomComisiones /> }],
+                        },
+                        {
                           path: 'managers',
                           element: (
                             <ModuleProtectedRoute
@@ -820,6 +831,19 @@ const router = createBrowserRouter(
                       path: 'reporte',
                       element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" featureCode="CLOSING_REPORT" />,
                       children: [{ index: true, element: <PlayTelecomReporte /> }],
+                    },
+                    {
+                      // Cash Out / Comisiones — gated by SERIALIZED_INVENTORY (appears wherever
+                      // serialized inventory is on, not a separate WL feature). Mirrors the
+                      // /venues/:slug/playtelecom/comisiones route so WL users can reach it too.
+                      path: 'comisiones',
+                      element: (
+                        <ModuleProtectedRoute
+                          requiredModule="SERIALIZED_INVENTORY"
+                          allowedRoles={[StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                        />
+                      ),
+                      children: [{ index: true, element: <PlayTelecomComisiones /> }],
                     },
                   ],
                 },
