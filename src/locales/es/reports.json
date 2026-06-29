@@ -209,6 +209,29 @@
       "updateError": "No se pudo actualizar el mapeo"
     }
   },
+  "periodLock": {
+    "title": "Cierre de periodo",
+    "subtitle": "Cierra un mes para que no se puedan postear ni corregir pólizas dentro. Protege lo ya declarado al SAT.",
+    "month": "Mes",
+    "statusClosed": "Cerrado",
+    "statusOpen": "Abierto",
+    "close": "Cerrar mes",
+    "reopen": "Reabrir",
+    "closeConfirmTitle": "¿Cerrar el periodo {{period}}?",
+    "closeConfirmBody": "Después de cerrarlo, nadie podrá postear ni corregir pólizas dentro de ese mes. Podrás reabrirlo si necesitas corregir.",
+    "reopenConfirmTitle": "¿Reabrir el periodo {{period}}?",
+    "reopenConfirmBody": "Se podrán volver a postear y corregir pólizas en ese mes. Ojo: el periodo pudo ya declararse al SAT.",
+    "reasonLabel": "Motivo (opcional)",
+    "reasonPh": "Ej. cierre mensual, corrección de gasto…",
+    "cancel": "Cancelar",
+    "closedMonths": "Meses cerrados",
+    "modalLocked": "El periodo {{period}} está cerrado. Reábrelo desde \"Cierre de periodo\" para poder postear en él.",
+    "toast": {
+      "closed": "Periodo {{period}} cerrado",
+      "reopened": "Periodo {{period}} reabierto",
+      "error": "No se pudo actualizar el candado de periodo"
+    }
+  },
   "journal": {
     "title": "Libro diario · Pólizas",
     "subtitle": "Tus asientos de doble partida (cada uno cuadra: cargos = abonos)",

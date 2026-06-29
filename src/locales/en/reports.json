@@ -209,6 +209,29 @@
       "updateError": "Could not update the mapping"
     }
   },
+  "periodLock": {
+    "title": "Period close",
+    "subtitle": "Close a month so no journal entries can be posted or edited inside it. Protects what you already filed with the SAT.",
+    "month": "Month",
+    "statusClosed": "Closed",
+    "statusOpen": "Open",
+    "close": "Close month",
+    "reopen": "Reopen",
+    "closeConfirmTitle": "Close period {{period}}?",
+    "closeConfirmBody": "Once closed, no one can post or edit journal entries within that month. You can reopen it if you need to make corrections.",
+    "reopenConfirmTitle": "Reopen period {{period}}?",
+    "reopenConfirmBody": "Journal entries can be posted and edited in that month again. Note: the period may already have been filed with the SAT.",
+    "reasonLabel": "Reason (optional)",
+    "reasonPh": "e.g. monthly close, expense correction…",
+    "cancel": "Cancel",
+    "closedMonths": "Closed months",
+    "modalLocked": "Period {{period}} is closed. Reopen it from \"Period close\" to post in it.",
+    "toast": {
+      "closed": "Period {{period}} closed",
+      "reopened": "Period {{period}} reopened",
+      "error": "Could not update the period lock"
+    }
+  },
   "journal": {
     "title": "Journal · Entries",
     "subtitle": "Your double-entry postings (each one balances: debits = credits)",

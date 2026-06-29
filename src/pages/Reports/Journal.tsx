@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { BookOpen, Landmark, Loader2, Plus, Scale, Sparkles, Trash2 } from 'lucide-react'
+import { BookOpen, Landmark, Loader2, Lock, Plus, Scale, Sparkles, Trash2 } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -17,7 +17,9 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useToast } from '@/hooks/use-toast'
 import { useJournal, useCreateJournalEntry, useGeneratePolicies } from '@/hooks/useJournal'
+import { usePeriodLocks } from '@/hooks/usePeriodLocks'
 import { useChartOfAccounts } from '@/hooks/useChartOfAccounts'
+import { PeriodLockCard } from '@/components/accounting/PeriodLockCard'
 import type { JournalEntryDTO } from '@/services/fiscal/journalEntry.service'
 import type { LedgerAccount } from '@/services/fiscal/chartOfAccounts.service'
 import { Currency } from '@/utils/currency'
@@ -89,6 +91,8 @@ function JournalInner() {
           </div>
         )}
       </header>
+
+      {hasAccess && !needsFiscalSetup && <PeriodLockCard enabled />}
 
       {journalQuery.isLoading && hasAccess ? (
         <Skeleton className="h-64 rounded-2xl" />
@@ -183,6 +187,7 @@ function NewEntryModal({ onClose }: { onClose: () => void }) {
   const { toast } = useToast()
   const createMutation = useCreateJournalEntry()
   const chartQuery = useChartOfAccounts()
+  const locksQuery = usePeriodLocks()
 
   const accountOptions = useMemo<LedgerAccount[]>(
     () => (chartQuery.data?.accounts ?? []).filter(a => a.isPostable && a.isActive).sort((a, b) => a.code.localeCompare(b.code)),
@@ -211,7 +216,11 @@ function NewEntryModal({ onClose }: { onClose: () => void }) {
     const c = peso(l.credit)
     return l.ledgerAccountId && (d > 0) !== (c > 0)
   })
-  const canSubmit = !!date && !!concept.trim() && lines.length >= 2 && linesValid && balanced && !createMutation.isPending
+  const periodLocked = useMemo(
+    () => (locksQuery.data?.locks ?? []).some(l => l.status === 'CLOSED' && l.period === date.slice(0, 7)),
+    [locksQuery.data, date],
+  )
+  const canSubmit = !!date && !!concept.trim() && lines.length >= 2 && linesValid && balanced && !periodLocked && !createMutation.isPending
 
   const submit = () => {
     if (!canSubmit) return
@@ -257,6 +266,13 @@ function NewEntryModal({ onClose }: { onClose: () => void }) {
             <Input value={concept} onChange={e => setConcept(e.target.value)} placeholder={t('journal.modal.conceptPh')} className="h-12 text-base" />
           </div>
         </div>
+
+        {periodLocked && (
+          <div className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm text-amber-600 dark:text-amber-400">
+            <Lock className="h-4 w-4 shrink-0" />
+            <span>{t('periodLock.modalLocked', { period: date.slice(0, 7) })}</span>
+          </div>
+        )}
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
