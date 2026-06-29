@@ -270,7 +270,7 @@ export default function ComisionesPage() {
                 {withdrawals.map(w => (
                   <tr key={w.id} className="border-b border-input/50">
                     <td className="py-2 pr-3 font-mono text-xs">{w.folio}</td>
-                    <td className="py-2 pr-3">{w.staffId}</td>
+                    <td className="py-2 pr-3">{w.promoterName || w.staffId}</td>
                     <td className="py-2 pr-3 font-mono text-xs">{w.clabe ?? '—'}</td>
                     <td className="py-2 pr-3 text-right tabular-nums">${w.netAmount}</td>
                     <td className="py-2 pr-3">

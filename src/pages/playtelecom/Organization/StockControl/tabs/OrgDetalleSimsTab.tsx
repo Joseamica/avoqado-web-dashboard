@@ -13,6 +13,8 @@ import { CustodyStateBadge } from '../components/CustodyStateBadge'
 import { SimTimelineDrawer } from '../components/SimTimelineDrawer'
 import { CollectSimDialog, type CollectFrom } from '../components/CollectSimDialog'
 import { AssignToPromoterDialog } from '../components/AssignToPromoterDialog'
+import { ReassignPromoterDialog } from '../components/ReassignPromoterDialog'
+import { ChangeCategoryDialog } from '../components/ChangeCategoryDialog'
 import { collectFromPromoter, collectFromSupervisor, type SimCustodyState } from '@/services/simCustody.service'
 import { useAccess } from '@/hooks/use-access'
 import { useAuth } from '@/context/AuthContext'
@@ -42,15 +44,22 @@ export function OrgDetalleSimsTab({ data }: OrgDetalleSimsTabProps) {
     contextLabel?: string
   } | null>(null)
   const [assignPromoterSerials, setAssignPromoterSerials] = useState<string[] | null>(null)
+  const [reassignPromoterOpen, setReassignPromoterOpen] = useState(false)
+  const [changeCategoryOpen, setChangeCategoryOpen] = useState(false)
 
   // Mirror OrgUsersPage pattern: useAccess stays empty on org-level routes
   // (no venueId). staffInfo.role is venue-scoped (null here) → fallback to
   // user.role (global highest). Then combine with canonical perms.
   const currentUserRole = staffInfo?.role ?? user?.role
   const isSuperOrOwner = currentUserRole === 'SUPERADMIN' || currentUserRole === 'OWNER'
+  // ADMIN org-role can also use the two new bulk-action buttons; they have the
+  // backend permissions but can() returns false here (no venue context).
+  const isAdminOrAbove = ['SUPERADMIN', 'OWNER', 'ADMIN'].includes(currentUserRole ?? '')
   const canCollectPromoter = can('sim-custody:collect-from-promoter') || isSuperOrOwner
   const canCollectSupervisor = can('sim-custody:collect-from-supervisor') || isSuperOrOwner
   const canAssignToPromoter = can('sim-custody:assign-to-promoter') || isSuperOrOwner
+  const canReassignPromoter = can('sim-custody:reassign') || isAdminOrAbove
+  const canChangeCategory = can('serialized-inventory:change-category') || isAdminOrAbove
   const currentStaffId = user?.id ?? null
 
   const categorias = useMemo(() => {
@@ -121,6 +130,18 @@ export function OrgDetalleSimsTab({ data }: OrgDetalleSimsTabProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <h3 className="text-lg font-semibold">Detalle SIMs</h3>
+        <div className="flex items-center gap-2">
+          {canReassignPromoter && (
+            <Button variant="outline" size="sm" onClick={() => setReassignPromoterOpen(true)}>
+              Reasignar a Promotor
+            </Button>
+          )}
+          {canChangeCategory && (
+            <Button variant="outline" size="sm" onClick={() => setChangeCategoryOpen(true)}>
+              Cambiar Categoría
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -324,6 +345,22 @@ export function OrgDetalleSimsTab({ data }: OrgDetalleSimsTabProps) {
           onOpenChange={o => !o && setAssignPromoterSerials(null)}
           orgId={orgId}
           serialNumbers={assignPromoterSerials}
+        />
+      )}
+
+      {orgId && (
+        <ReassignPromoterDialog
+          open={reassignPromoterOpen}
+          onOpenChange={setReassignPromoterOpen}
+          orgId={orgId}
+        />
+      )}
+
+      {orgId && (
+        <ChangeCategoryDialog
+          open={changeCategoryOpen}
+          onOpenChange={setChangeCategoryOpen}
+          orgId={orgId}
         />
       )}
     </GlassCard>

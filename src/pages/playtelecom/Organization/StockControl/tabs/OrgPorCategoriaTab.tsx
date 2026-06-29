@@ -1,19 +1,35 @@
 import { useMemo, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { Search, Package } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 import type { OrgStockOverview, OrgStockCategoriaAggregate } from '@/services/stockDashboard.service'
 import { CategoryChip } from '../components/CategoryChip'
+import { ChangeCategoryDialog } from '../components/ChangeCategoryDialog'
 import { includesNormalized } from '@/lib/utils'
+import { useAccess } from '@/hooks/use-access'
+import { useAuth } from '@/context/AuthContext'
 
 interface OrgPorCategoriaTabProps {
   data: OrgStockOverview
 }
 
 export function OrgPorCategoriaTab({ data }: OrgPorCategoriaTabProps) {
+  const { orgId } = useParams<{ orgId: string }>()
+  const { can } = useAccess()
+  const { user, staffInfo } = useAuth()
   const [search, setSearch] = useState('')
   const [stockFilter, setStockFilter] = useState<'all' | 'with' | 'without'>('all')
+  const [changeCategoryOpen, setChangeCategoryOpen] = useState(false)
+
+  // Mirror OrgDetalleSimsTab pattern: useAccess stays empty on org-level routes.
+  const currentUserRole = staffInfo?.role ?? user?.role
+  // ADMIN org-role can also use the new Cambiar Categoría button; they have the
+  // backend permission but can() returns false here (no venue context).
+  const isAdminOrAbove = ['SUPERADMIN', 'OWNER', 'ADMIN'].includes(currentUserRole ?? '')
+  const canChangeCategory = can('serialized-inventory:change-category') || isAdminOrAbove
 
   const filtered = useMemo(() => {
     let result = [...data.aggregatesByCategoria]
@@ -65,6 +81,11 @@ export function OrgPorCategoriaTab({ data }: OrgPorCategoriaTabProps) {
       <GlassCard className="p-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
           <h3 className="text-lg font-semibold">Detalle por Categoría</h3>
+          {canChangeCategory && (
+            <Button variant="outline" size="sm" onClick={() => setChangeCategoryOpen(true)}>
+              Cambiar Categoría
+            </Button>
+          )}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -141,6 +162,14 @@ export function OrgPorCategoriaTab({ data }: OrgPorCategoriaTabProps) {
           )}
         </div>
       </GlassCard>
+
+      {orgId && (
+        <ChangeCategoryDialog
+          open={changeCategoryOpen}
+          onOpenChange={setChangeCategoryOpen}
+          orgId={orgId}
+        />
+      )}
     </>
   )
 }

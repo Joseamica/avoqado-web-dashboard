@@ -1,5 +1,5 @@
 /**
- * SimMultiSelect — input-as-search multi-select for ADMIN_HELD ICCIDs.
+ * SimMultiSelect — input-as-search multi-select for ICCIDs in given custody states.
  *
  * Matches the Recipe Wizard pattern (`SearchCombobox`): a plain text input
  * expands a results list below on focus, filters in-place as the user types,
@@ -7,7 +7,8 @@
  *
  * Key differences vs SearchCombobox:
  *   - multi-select with chips below the input
- *   - constrained to ADMIN_HELD items (assignable — plan §1.4)
+ *   - constrained to `allowedStates` (defaults to `['ADMIN_HELD']` for the
+ *     AssignToSupervisorDialog use-case; callers can pass other states)
  *   - dropdown stays open after selection so the operator can keep picking
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -15,34 +16,52 @@ import { Check, Loader2, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn, includesNormalized } from '@/lib/utils'
 import type { OrgStockOverviewItem } from '@/services/stockDashboard.service'
+import type { SimCustodyState } from '@/services/simCustody.service'
 
 interface Props {
   items: OrgStockOverviewItem[]
   /** Optional filter: only show SIMs matching this category. */
   categoryId?: string
+  /**
+   * Custody states to surface in the picker. Defaults to `['ADMIN_HELD']`
+   * so the existing AssignToSupervisorDialog behaviour is unchanged. Dialogs
+   * that operate on downstream SIMs (ReassignPromoterDialog, ChangeCategoryDialog)
+   * must pass the states they care about explicitly.
+   */
+  allowedStates?: SimCustodyState[]
   value: string[]
   onChange: (serialNumbers: string[]) => void
   placeholder?: string
   isLoading?: boolean
 }
 
-export function SimMultiSelect({ items, categoryId, value, onChange, placeholder, isLoading = false }: Props) {
+const DEFAULT_ALLOWED_STATES: SimCustodyState[] = ['ADMIN_HELD']
+
+export function SimMultiSelect({
+  items,
+  categoryId,
+  allowedStates = DEFAULT_ALLOWED_STATES,
+  value,
+  onChange,
+  placeholder,
+  isLoading = false,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [search, setSearch] = useState('')
   const [isFocused, setIsFocused] = useState(false)
 
-  // Only ADMIN_HELD SIMs are assignable (plan §1.4). Everything else is
-  // either already downstream or sold.
+  // Filter to only items whose custody state is in allowedStates (caller-supplied
+  // or defaulting to ['ADMIN_HELD'] for the AssignToSupervisor path).
   const assignable = useMemo(
     () =>
       items.filter(i => {
         const state = i.custodyState ?? 'ADMIN_HELD'
-        if (state !== 'ADMIN_HELD') return false
+        if (!allowedStates.includes(state)) return false
         if (categoryId && i.categoryId !== categoryId) return false
         return true
       }),
-    [items, categoryId],
+    [items, categoryId, allowedStates],
   )
 
   const filtered = useMemo(() => {

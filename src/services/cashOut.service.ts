@@ -23,6 +23,7 @@ export interface CashOutWithdrawal {
   id: string
   folio: string
   staffId: string
+  promoterName?: string // resolved display name (falls back to staffId)
   status: CashOutWithdrawalStatus
   grossAmount: string // pesos
   netAmount: string // pesos

@@ -75,6 +75,16 @@ export interface CollectInput {
   reason: SimCustodyCollectionReason
 }
 
+export interface ReassignToPromoterInput {
+  toPromoterStaffId: string
+  serialNumbers: string[]
+}
+
+export interface ChangeCategoryInput {
+  categoryId: string
+  serialNumbers: string[]
+}
+
 export interface CustodyEventStaff {
   id: string
   firstName: string | null
@@ -167,6 +177,34 @@ export async function collectFromSupervisor(
   venueId?: string | null,
 ): Promise<{ custodyState: SimCustodyState }> {
   const { data } = await api.post(`${base(orgId)}/collect-from-supervisor`, body, { headers: venueHeaders(venueId) })
+  return data
+}
+
+/**
+ * Admin bulk reassign: move SIMs from one promotor to another.
+ * Only SIMs in PROMOTER_HELD / PROMOTER_PENDING state are eligible.
+ * Partial-success: HTTP 200 always; check summary.failed for per-row errors.
+ */
+export async function reassignSimsToPromoter(
+  orgId: string,
+  body: ReassignToPromoterInput,
+  venueId?: string | null,
+): Promise<BulkResponse> {
+  const { data } = await api.post(`${base(orgId)}/reassign-promoter`, body, {
+    headers: { 'Idempotency-Key': uuidv4(), ...venueHeaders(venueId) },
+  })
+  return data
+}
+
+/**
+ * Admin bulk category change: move SIMs to a different org-level ItemCategory.
+ * SIMs in any non-SOLD state are eligible.
+ * Partial-success: HTTP 200 always; check summary.failed for per-row errors.
+ */
+export async function changeSimsCategory(orgId: string, body: ChangeCategoryInput, venueId?: string | null): Promise<BulkResponse> {
+  const { data } = await api.post(`${base(orgId)}/change-category`, body, {
+    headers: { 'Idempotency-Key': uuidv4(), ...venueHeaders(venueId) },
+  })
   return data
 }
 
