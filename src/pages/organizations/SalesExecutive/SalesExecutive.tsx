@@ -41,8 +41,11 @@ import {
   getSalesByStore,
   getSalesByPromoter,
   getSalesByPromoterDaily,
+  getSalesBySaleTypeWeekly,
+  getSalesBySimTypeWeekly,
   type PromoterDailyResult,
 } from '@/services/saleVerification.org.service'
+import { weekBucketsAsc } from './weekBuckets'
 
 const MXN = (n: number) => n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 })
 
@@ -127,6 +130,18 @@ export default function SalesExecutive() {
   const byWeek = useQuery({
     queryKey: ['org', orgId, 'sales-by-week'],
     queryFn: () => getSalesByWeek(orgId!),
+    enabled: !!orgId,
+    staleTime: 60_000,
+  })
+  const bySaleTypeWeekly = useQuery({
+    queryKey: ['org', orgId, 'sales-by-sale-type-weekly'],
+    queryFn: () => getSalesBySaleTypeWeekly(orgId!),
+    enabled: !!orgId,
+    staleTime: 60_000,
+  })
+  const bySimTypeWeekly = useQuery({
+    queryKey: ['org', orgId, 'sales-by-sim-type-weekly'],
+    queryFn: () => getSalesBySimTypeWeekly(orgId!),
     enabled: !!orgId,
     staleTime: 60_000,
   })
@@ -349,6 +364,40 @@ export default function SalesExecutive() {
         )}
       </GlassCard>
 
+      {/* Row 2b: weekly sale-type table */}
+      <GlassCard className="p-4 overflow-hidden">
+        <h2 className="text-sm font-semibold mb-3">Ventas por Tipo de Venta (semanal)</h2>
+        {bySaleTypeWeekly.isLoading ? (
+          <Skeleton className="h-40 w-full" />
+        ) : (bySaleTypeWeekly.data ?? []).every(r => r.total === 0) ? (
+          <EmptyChart />
+        ) : (
+          <HeatmapTable
+            rows={(bySaleTypeWeekly.data ?? []).map(r => ({ name: r.name, byBucket: r.byWeek, total: r.total }))}
+            rowLabel="Tipo de Venta"
+            sortBuckets={weekBucketsAsc}
+            sortRows={false}
+          />
+        )}
+      </GlassCard>
+
+      {/* Row 2c: weekly SIM-type table */}
+      <GlassCard className="p-4 overflow-hidden">
+        <h2 className="text-sm font-semibold mb-3">Ventas por Tipo de SIM (semanal)</h2>
+        {bySimTypeWeekly.isLoading ? (
+          <Skeleton className="h-40 w-full" />
+        ) : (bySimTypeWeekly.data ?? []).every(r => r.total === 0) ? (
+          <EmptyChart />
+        ) : (
+          <HeatmapTable
+            rows={(bySimTypeWeekly.data ?? []).map(r => ({ name: r.name, byBucket: r.byWeek, total: r.total }))}
+            rowLabel="Tipo de SIM"
+            sortBuckets={weekBucketsAsc}
+            sortRows={false}
+          />
+        )}
+      </GlassCard>
+
       {/* Row 3: city heatmap table */}
       <GlassCard className="p-4 overflow-hidden">
         <h2 className="text-sm font-semibold mb-3">Ventas Totales por Ciudad</h2>
@@ -478,16 +527,21 @@ function HeatmapTable({
   rows,
   rowLabel,
   sortBuckets,
+  sortRows = true,
 }: {
   rows: HeatmapRow[]
   rowLabel: string
   sortBuckets: (keys: string[]) => { key: string; label: string }[]
+  sortRows?: boolean
 }) {
   const isMobile = useIsMobile()
 
-  // Rows sorted by total desc (client spec: "ordenado de mayor a menor").
-  // Backend already sorts, but enforce here so the contract doesn't depend on it.
-  const sortedRows = useMemo(() => rows.slice().sort((a, b) => b.total - a.total), [rows])
+  // Rows by total desc (default). Pass sortRows={false} to keep the given order
+  // (fixed enumerated categories, e.g. the weekly type tables).
+  const sortedRows = useMemo(
+    () => (sortRows ? rows.slice().sort((a, b) => b.total - a.total) : rows),
+    [rows, sortRows],
+  )
 
   // Build the column list from all buckets across rows
   const allBuckets = useMemo(() => {

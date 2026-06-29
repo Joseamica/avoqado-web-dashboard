@@ -151,6 +151,18 @@ export interface SalesByWeekRow {
   revenue: number
 }
 
+export interface SalesBySaleTypeWeeklyRow {
+  name: string
+  byWeek: Record<string, number>
+  total: number
+}
+
+export interface SalesBySimTypeWeeklyRow {
+  name: string
+  byWeek: Record<string, number>
+  total: number
+}
+
 export interface SalesByCityRow {
   city: string
   byMonth: Record<string, number>
@@ -265,6 +277,18 @@ export async function getSalesBySimType(orgId: string, params: RangeParams = {})
 
 export async function getSalesByWeek(orgId: string, params: RangeParams = {}): Promise<SalesByWeekRow[]> {
   const url = `/api/v1/dashboard/organizations/${orgId}/sale-verifications/by-week${buildQuery(params)}`
+  const response = await api.get(url)
+  return response.data.data
+}
+
+export async function getSalesBySaleTypeWeekly(orgId: string, params: RangeParams = {}): Promise<SalesBySaleTypeWeeklyRow[]> {
+  const url = `/api/v1/dashboard/organizations/${orgId}/sale-verifications/by-sale-type-weekly${buildQuery(params)}`
+  const response = await api.get(url)
+  return response.data.data
+}
+
+export async function getSalesBySimTypeWeekly(orgId: string, params: RangeParams = {}): Promise<SalesBySimTypeWeeklyRow[]> {
+  const url = `/api/v1/dashboard/organizations/${orgId}/sale-verifications/by-sim-type-weekly${buildQuery(params)}`
   const response = await api.get(url)
   return response.data.data
 }
