@@ -297,10 +297,7 @@ export default function SalesExecutive() {
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                 <XAxis dataKey="month" tick={{ fontSize: isMobile ? 10 : 12 }} />
                 <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} width={isMobile ? 30 : 40} />
-                <RechartsTooltip
-                  contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }}
-                  formatter={(value: number) => [value, 'Ventas']}
-                />
+                <RechartsTooltip content={<CountAmountTooltip />} cursor={{ fill: 'hsl(var(--muted))', fillOpacity: 0.35 }} />
                 <Bar dataKey="count" fill={PALETTE[0]} radius={[4, 4, 0, 0]}>
                   <LabelList dataKey="count" position="top" className="fill-foreground" style={{ fontSize: isMobile ? 9 : 11, fontWeight: 600 }} />
                 </Bar>
@@ -356,10 +353,7 @@ export default function SalesExecutive() {
               <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
               <XAxis dataKey="week" tick={{ fontSize: isMobile ? 9 : 12 }} interval={isMobile ? 'preserveStartEnd' : 0} />
               <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} width={isMobile ? 30 : 40} />
-              <RechartsTooltip
-                contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }}
-                formatter={(value: number) => [value, 'Ventas']}
-              />
+              <RechartsTooltip content={<CountAmountTooltip />} cursor={{ fill: 'hsl(var(--muted))', fillOpacity: 0.35 }} />
               {/* Single blue (client spec) — was multi-color per bar */}
               <Bar dataKey="count" fill={PALETTE[0]} radius={[4, 4, 0, 0]}>
                 <LabelList dataKey="count" position="top" className="fill-foreground" style={{ fontSize: isMobile ? 9 : 11, fontWeight: 600 }} />
@@ -562,6 +556,41 @@ function SimTypeTooltip({
         <span className="font-mono font-semibold tabular-nums text-foreground">
           {total.toLocaleString('es-MX')} {total === 1 ? 'venta' : 'ventas'}
         </span>
+      </div>
+      {revenue != null && (
+        <div className="flex items-center justify-between gap-6">
+          <span className="text-muted-foreground">Monto</span>
+          <span className="font-mono font-semibold tabular-nums text-foreground">{MXN(revenue)}</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Themed tooltip for the single-series count bar charts ("Ventas Totales por Mes"
+ * and "Ventas Totales Semanales"): the period label, the sales count, and the
+ * amount sold (MXN). Replaces the plain default Recharts tooltip.
+ */
+function CountAmountTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean
+  payload?: Array<{ value?: number; payload?: Record<string, unknown> }>
+  label?: string | number
+}) {
+  if (!active || !payload?.length) return null
+  const row = (payload[0]?.payload ?? {}) as Record<string, unknown>
+  const count = typeof row.count === 'number' ? row.count : (payload[0]?.value ?? 0)
+  const revenue = typeof row.revenue === 'number' ? row.revenue : null
+  return (
+    <div className="rounded-lg border border-border bg-card/95 px-3 py-2 text-xs shadow-md backdrop-blur">
+      <p className="mb-1.5 font-semibold text-foreground">{label}</p>
+      <div className="flex items-center justify-between gap-6">
+        <span className="text-muted-foreground">Ventas</span>
+        <span className="font-mono font-semibold tabular-nums text-foreground">{count.toLocaleString('es-MX')}</span>
       </div>
       {revenue != null && (
         <div className="flex items-center justify-between gap-6">
