@@ -191,13 +191,20 @@ export default function SalesExecutive() {
     const categories = new Set<string>()
     months.forEach(m => Object.keys(m.byCategory).forEach(c => categories.add(c)))
     const categoryList = Array.from(categories)
+    // Month key ("2026-05") → revenue (MXN), so the tooltip can show the amount sold.
+    const revenueByMonth = new Map((byMonth.data ?? []).map(d => [d.month, d.revenue]))
     return {
-      // `total` rides along (not a category, so it's not stacked) so the chart
-      // can label each column's grand total on top of the stack.
-      data: months.map(m => ({ month: formatMonth(m.month), ...m.byCategory, total: m.total })),
+      // `total` (count) and `revenue` ride along (not categories, so not stacked) so the
+      // chart can label the column total on top and the tooltip can show counts + amount.
+      data: months.map(m => ({
+        month: formatMonth(m.month),
+        ...m.byCategory,
+        total: m.total,
+        revenue: revenueByMonth.get(m.month) ?? 0,
+      })),
       categories: categoryList,
     }
-  }, [bySimType.data])
+  }, [bySimType.data, byMonth.data])
 
   const weekData = useMemo(
     () =>
@@ -314,9 +321,7 @@ export default function SalesExecutive() {
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                 <XAxis dataKey="month" tick={{ fontSize: isMobile ? 10 : 12 }} />
                 <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} width={isMobile ? 30 : 40} />
-                <RechartsTooltip
-                  contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }}
-                />
+                <RechartsTooltip content={<SimTypeTooltip />} cursor={{ fill: 'hsl(var(--muted))', fillOpacity: 0.35 }} />
                 <Legend wrapperStyle={{ fontSize: isMobile ? '0.625rem' : '0.75rem' }} />
                 {simTypeData.categories.map((cat, i) => (
                   <Bar
@@ -515,6 +520,57 @@ function KpiCard({
 
 function EmptyChart() {
   return <div className="h-48 flex items-center justify-center text-sm text-muted-foreground">Sin datos en el rango.</div>
+}
+
+/**
+ * Themed tooltip for the "Ventas por Tipo de SIM" stacked bar. Replaces the default
+ * Recharts tooltip (series-colored text, hard to read in dark mode, no total/amount):
+ * each SIM type with a color dot + count (desc), then the column total and the amount
+ * sold (MXN) for that month.
+ */
+function SimTypeTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean
+  payload?: Array<{ name?: string; value?: number; color?: string; payload?: Record<string, unknown> }>
+  label?: string
+}) {
+  if (!active || !payload?.length) return null
+  const row = (payload[0]?.payload ?? {}) as Record<string, unknown>
+  const items = payload
+    .filter(p => (p.value ?? 0) > 0)
+    .map(p => ({ name: p.name ?? '', value: p.value ?? 0, color: p.color ?? 'currentColor' }))
+    .sort((a, b) => b.value - a.value)
+  const total = typeof row.total === 'number' ? row.total : items.reduce((a, it) => a + it.value, 0)
+  const revenue = typeof row.revenue === 'number' ? row.revenue : null
+  return (
+    <div className="rounded-lg border border-border bg-card/95 px-3 py-2 text-xs shadow-md backdrop-blur">
+      <p className="mb-1.5 font-semibold text-foreground">{label}</p>
+      <div className="space-y-1">
+        {items.map(it => (
+          <div key={it.name} className="flex items-center gap-2">
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: it.color }} />
+            <span className="flex-1 whitespace-nowrap text-muted-foreground">{it.name}</span>
+            <span className="font-mono font-medium tabular-nums text-foreground">{it.value.toLocaleString('es-MX')}</span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-1.5 flex items-center justify-between gap-6 border-t border-border/60 pt-1.5">
+        <span className="text-muted-foreground">Total</span>
+        <span className="font-mono font-semibold tabular-nums text-foreground">
+          {total.toLocaleString('es-MX')} {total === 1 ? 'venta' : 'ventas'}
+        </span>
+      </div>
+      {revenue != null && (
+        <div className="flex items-center justify-between gap-6">
+          <span className="text-muted-foreground">Monto</span>
+          <span className="font-mono font-semibold tabular-nums text-foreground">{MXN(revenue)}</span>
+        </div>
+      )}
+    </div>
+  )
 }
 
 interface HeatmapRow {
