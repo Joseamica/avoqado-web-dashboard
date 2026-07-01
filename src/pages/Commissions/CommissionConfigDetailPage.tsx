@@ -38,6 +38,7 @@ import {
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { PermissionGate } from '@/components/PermissionGate'
+import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import {
@@ -212,6 +213,7 @@ export default function CommissionConfigDetailPage() {
 	const hasCategories = config.filterByCategories && config.categoryIds && config.categoryIds.length > 0
 
 	return (
+		<FeatureGate feature="COMMISSIONS">
 		<div className="p-4 bg-background text-foreground">
 			{/* Header */}
 			<div className="flex items-center justify-between mb-6">
@@ -456,5 +458,6 @@ export default function CommissionConfigDetailPage() {
 				</AlertDialogContent>
 			</AlertDialog>
 		</div>
+		</FeatureGate>
 	)
 }

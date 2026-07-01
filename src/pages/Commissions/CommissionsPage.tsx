@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { PermissionGate } from '@/components/PermissionGate'
+import { FeatureGate } from '@/components/billing/FeatureGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useCommissionStats, useEffectiveCommissionConfigs, usePendingCommissionSummaries, useCommissionPayouts } from '@/hooks/useCommissions'
 import { useAccess } from '@/hooks/use-access'
@@ -68,6 +69,7 @@ export default function CommissionsPage() {
 	const configCount = effectiveConfigs?.length || 0
 
 	return (
+		<FeatureGate feature="COMMISSIONS">
 		<div className="p-4 bg-background text-foreground">
 			<div className="mb-6">
 				<PageTitleWithInfo
@@ -183,5 +185,6 @@ export default function CommissionsPage() {
 				onOpenChange={setShowSetupPanel}
 			/>
 		</div>
+		</FeatureGate>
 	)
 }

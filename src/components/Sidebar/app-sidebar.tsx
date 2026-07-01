@@ -477,7 +477,10 @@ export function AppSidebar({
       ...(activeVenue?.settings?.enableShifts ? [
         { title: t('sidebar:routes.shifts'), url: 'shifts', permission: 'shifts:read', locked: !hasKYCAccess, keywords: ['horarios', 'turnos', 'reloj checador', 'cortes de caja', 'caja', 'cierre', 'arqueo'] },
       ] : []),
-      { title: t('sidebar:routes.commissions'), url: 'commissions', permission: 'commissions:read', locked: !hasKYCAccess, keywords: ['propinas', 'bonos', 'metas', 'goals'] },
+      // Commissions — VISIBLE TEASER (Premium feature). Normal venues always see it with a 👑 badge
+      // (the commissions pages themselves show the <FeatureGate> paywall); white-label venues keep the
+      // per-partner AVOQADO_COMMISSIONS toggle below. Never use checkFeatureAccess here — it can't tier-gate.
+      { title: t('sidebar:routes.commissions'), url: 'commissions', permission: 'commissions:read', locked: !hasKYCAccess, premiumLocked: !hasFeatureAccess('COMMISSIONS'), gatedFeature: 'COMMISSIONS', keywords: ['propinas', 'bonos', 'metas', 'goals'] },
     ].filter(item => {
       if (item.permission && !can(item.permission)) return false
       if (isWhiteLabelVenue) {
