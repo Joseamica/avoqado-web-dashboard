@@ -10,6 +10,22 @@
     <title id="page-title">Avoqado | Dashboard</title>
     <!-- App init (theme/env) moved to external script for CSP compliance -->
     <script src="/app-init.js"></script>
+    <!-- Google tag (gtag.js) — Google Ads AW-18201754401 + GA4 G-F6JCDF9K3P.
+         Tags the dashboard so ad destinations (e.g. /signup) are measured and signups
+         attribute in Google Ads. GA4 shares the marketing property; cookies are
+         cross-subdomain (.avoqado.io) so a landing session continues into the dashboard. -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18201754401"></script>
+    <script>
+      window.dataLayer = window.dataLayer || []
+      function gtag() { dataLayer.push(arguments) }
+      gtag('consent', 'default', {
+        ad_storage: 'granted', ad_user_data: 'granted', ad_personalization: 'granted',
+        analytics_storage: 'granted', functionality_storage: 'granted', security_storage: 'granted',
+      })
+      gtag('js', new Date())
+      gtag('config', 'AW-18201754401')
+      gtag('config', 'G-F6JCDF9K3P')
+    </script>
     <!-- Geist (variable) + Geist Mono for Sidebar; Inter (variable) for content -->
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

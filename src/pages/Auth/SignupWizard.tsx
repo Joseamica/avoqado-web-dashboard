@@ -18,6 +18,7 @@ import { SetupWizardLayout } from '@/components/layouts/SetupWizardLayout'
 import { useAuth } from '@/context/AuthContext'
 import { authService } from '@/services/auth.service'
 import { cn } from '@/lib/utils'
+import { trackSignup } from '@/lib/gtag'
 
 interface SignupFormInputs {
   email: string
@@ -47,6 +48,10 @@ export default function SignupWizard() {
         organizationName: '',
         wizardVersion: 2,
       })
+
+      // Account created → GA4 sign_up event so ad-driven signups attribute in
+      // Google Ads (mark sign_up as a conversion in GA4 → imported via the link).
+      trackSignup('email')
 
       // DEV: Skip email verification with bypass code
       const skipVerification =
