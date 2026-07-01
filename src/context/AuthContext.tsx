@@ -961,7 +961,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   )
 
   // --- FUNCIÓN 'checkFeatureAccess' ---
-  // Checks VenueFeature (billing features like ADVANCED_ANALYTICS, MULTI_LOCATION)
+  // Checks VenueFeature (billing features like CFDI, INVENTORY_TRACKING)
   const checkFeatureAccess = useCallback(
     (featureCode: string): boolean => {
       if (!activeVenue?.features) {
