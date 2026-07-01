@@ -29,6 +29,7 @@ import { OrgPorCategoriaTab } from './StockControl/tabs/OrgPorCategoriaTab'
 import { OrgSolicitudesTab } from './StockControl/tabs/OrgSolicitudesTab'
 import { AssignToSupervisorDialog } from './StockControl/components/AssignToSupervisorDialog'
 import { OrgBulkUploadDialog } from './StockControl/components/OrgBulkUploadDialog'
+import { ReassignPromoterDialog } from './StockControl/components/ReassignPromoterDialog'
 import { useAccess } from '@/hooks/use-access'
 import { useAuth } from '@/context/AuthContext'
 import { useSimRegistrationRequestsCount } from './StockControl/hooks/useSimRegistrationRequests'
@@ -71,13 +72,17 @@ export default function OrgStockControlPage() {
   const [activeTab, setActiveTab] = useState<TabValue>('resumen')
   const [assignOpen, setAssignOpen] = useState(false)
   const [uploadOpen, setUploadOpen] = useState(false)
+  const [reassignOpen, setReassignOpen] = useState(false)
   // Role fallback pattern copied from OrgUsersPage: staffInfo.role is
   // venue-scoped (null on org-level routes like /wl/organizations/:slug where
   // useAccess also stays empty because there's no venueId). Fall back to
   // user.role (global highest role) to gate the button for SUPERADMIN/OWNER.
   const currentUserRole = staffInfo?.role ?? user?.role
   const isSuperOrOwner = currentUserRole === 'SUPERADMIN' || currentUserRole === 'OWNER'
+  const isAdminOrAbove = ['SUPERADMIN', 'OWNER', 'ADMIN'].includes(currentUserRole ?? '')
   const canAssignToSupervisor = can('sim-custody:assign-to-supervisor') || can('inventory:org-manage') || isSuperOrOwner
+  // Mirrors OrgDetalleSimsTab.tsx's canReassignPromoter exactly — same action, same door.
+  const canReassignPromoter = can('sim-custody:reassign') || isAdminOrAbove
   const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date }>(() => ({
     from: defaultRangeStart(),
     to: todayEndOfDay(),
@@ -201,11 +206,20 @@ export default function OrgStockControlPage() {
               Cargar Items
             </Button>
           )}
+          {canReassignPromoter && (
+            <Button variant="warning" onClick={() => setReassignOpen(true)}>
+              Reasignar SIMs
+            </Button>
+          )}
           {canAssignToSupervisor && <Button onClick={() => setAssignOpen(true)}>Asignar SIMs</Button>}
         </div>
       </div>
 
       {orgId && canAssignToSupervisor && <AssignToSupervisorDialog open={assignOpen} onOpenChange={setAssignOpen} orgId={orgId} />}
+
+      {orgId && canReassignPromoter && (
+        <ReassignPromoterDialog open={reassignOpen} onOpenChange={setReassignOpen} orgId={orgId} />
+      )}
 
       {canAssignToSupervisor && venues.length > 0 && <OrgBulkUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} />}
 
