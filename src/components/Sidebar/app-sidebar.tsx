@@ -46,7 +46,6 @@
   Landmark,
   Percent,
   Scale,
-  ScrollText,
   Upload,
 } from 'lucide-react'
 import * as React from 'react'
@@ -576,52 +575,6 @@ export function AppSidebar({
       return true
     }) as any[]
 
-    // ── Configuracion ──
-    const settingsSubItems = [
-      { title: t('sidebar:routes.editvenue'), url: 'settings/local', icon: Store, permission: 'venues:read', keywords: ['ajustes', 'settings', 'negocio'] },
-      // Direct shortcut to integrations (Stripe Connect, Google, Crypto, POS).
-      // The page itself lives at settings/integrations (its own Settings Hub section).
-      // — this is just a one-click entry from the Configuración group.
-      {
-        title: t('sidebar:routes.integrations', { defaultValue: 'Integraciones' }),
-        url: 'settings/integrations',
-        icon: Link2,
-        permission: 'venues:read',
-        keywords: ['stripe', 'connect', 'pagos', 'google', 'integraciones', 'integrations', 'pos'],
-      },
-      ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
-        ? [{ title: t('sidebar:rolePermissions'), url: 'settings/role-permissions', icon: Shield }]
-        : []),
-      ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
-        ? [{ title: t('sidebar:routes.billing'), url: 'settings/billing', icon: CreditCard, permission: 'billing:read', keywords: ['facturacion', 'plan', 'suscripcion', 'cobro'] }]
-        : []),
-      {
-        title: t('sidebar:auditLog.title'),
-        url: 'activity-log',
-        icon: ScrollText,
-        permission: 'activity:read',
-        premiumLocked: !hasFeatureAccess('VENUE_AUDIT_LOG'),
-        gatedFeature: 'VENUE_AUDIT_LOG',
-        keywords: ['bitacora', 'auditoria', 'actividad', 'log', 'audit'],
-      },
-      { title: t('sidebar:routes.notifications', { defaultValue: 'Notificaciones' }), url: 'notifications/preferences', icon: Settings2, permission: 'settings:read', keywords: ['alertas', 'avisos', 'preferencias'] },
-      ...(effectiveRole === 'SUPERADMIN' ? [{
-        title: t('sidebar:superadminTools'),
-        url: '#superadmin-venue',
-        icon: Shield,
-        superadminOnly: true,
-        items: [
-          { title: t('sidebar:paymentConfig'), url: 'payment-config', superadminOnly: true },
-          { title: t('sidebar:ecommerceChannels'), url: 'ecommerce-merchants', superadminOnly: true },
-          { title: t('sidebar:merchantAccounts'), url: 'merchant-accounts', superadminOnly: true },
-        ],
-      }] : []),
-    ].filter(item => {
-      if ('permission' in item && item.permission && !can(item.permission as string)) return false
-      if (isWhiteLabelVenue && !canWL('AVOQADO_SETTINGS')) return false
-      return true
-    }) as any[]
-
     // ── Facturación (CFDI) ──
     // VISIBLE TEASER (not hidden-when-locked): the group is ALWAYS present so
     // the feature stays discoverable. Sub-items are still permission-filtered
@@ -781,11 +734,19 @@ export function AppSidebar({
       })
     }
 
-    // Configuracion
-    if (settingsSubItems.length > 0) {
+    // Configuracion — single link into the Settings Hub (account + venue settings).
+    // Sub-items now live in the hub's own left nav; keywords keep them findable
+    // in the command palette.
+    if (!isWhiteLabelVenue || canWL('AVOQADO_SETTINGS')) {
       mainItems.push({
-        title: t('sidebar:settingsMenu.title', { defaultValue: 'Configuración' }), url: '#settings', icon: Settings, subSidebar: 'settings',
-        keywords: ['ajustes', 'configuracion'],
+        title: t('sidebar:settingsMenu.title', { defaultValue: 'Configuración' }),
+        url: 'settings',
+        icon: Settings,
+        keywords: [
+          'ajustes', 'configuracion', 'settings', 'cuenta', 'perfil', 'seguridad', 'idioma', 'tema',
+          'integraciones', 'integrations', 'stripe', 'google', 'pos',
+          'plan', 'suscripcion', 'facturacion', 'roles', 'permisos', 'bitacora', 'notificaciones',
+        ],
       })
     }
 
@@ -807,7 +768,6 @@ export function AppSidebar({
     if (reportsSubItems.length > 0) allSubSidebarSections.reports = reportsSubItems
     if (facturacionSubItems.length > 0) allSubSidebarSections.facturacion = facturacionSubItems
     if (contabilidadSubItems.length > 0) allSubSidebarSections.contabilidad = contabilidadSubItems
-    if (settingsSubItems.length > 0) allSubSidebarSections.settings = settingsSubItems
 
     // Combine: WL module items first, then Avoqado core items
     return {

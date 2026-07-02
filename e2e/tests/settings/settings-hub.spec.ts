@@ -6,12 +6,33 @@
  * Entry points (sidebar + avatar menu) are covered in Task 6's additions.
  * App E2E locale is English.
  */
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 import { setupApiMocks } from '../../fixtures/api-mocks'
 import { StaffRole, createMockVenue } from '../../fixtures/mock-data'
 
 test.setTimeout(45_000)
 test.use({ viewport: { width: 1280, height: 900 } })
+
+// ─── Helpers ────────────────────────────────────────────────────
+
+/**
+ * Close TanStack Query DevTools if open, then hide via CSS as fallback.
+ * ReactQueryDevtools mounts with `initialIsOpen` in App.tsx, and its panel
+ * covers the sidebar footer (where NavUser's avatar trigger lives) at the
+ * bottom of the viewport. Mirrors the same helper in e2e/tests/auth/login.spec.ts.
+ */
+async function closeTanStackDevTools(page: Page) {
+  const closeBtn = page.locator('button[aria-label="Close tanstack query devtools"]')
+  if (await closeBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+    await closeBtn.click()
+    await page.waitForTimeout(300)
+  }
+  await page.evaluate(() => {
+    document.querySelectorAll('.tsqd-parent-container').forEach(el => {
+      ;(el as HTMLElement).style.display = 'none'
+    })
+  })
+}
 
 const SETTINGS_VENUE = createMockVenue({
   id: 'venue-alpha',
@@ -39,6 +60,17 @@ test.describe('Settings hub', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ connections: [] }),
+      }),
+    )
+    // Mark the cross-page platform welcome tour as already completed so it
+    // doesn't auto-launch (useAutoLaunchPlatformWelcomeTour fires ~1.2s after
+    // an OWNER/ADMIN lands on /home) and cover the sidebar/avatar-menu click
+    // targets with its driver.js overlay.
+    await page.route('**/api/v1/dashboard/venues/*/onboarding-state', route =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { 'platform-welcome-completed': true } }),
       }),
     )
   })
@@ -87,5 +119,26 @@ test.describe('Settings hub', () => {
 
     await page.goto('/venues/venue-alpha/activity-log')
     await page.waitForURL('**/venues/venue-alpha/settings/activity-log')
+  })
+
+  test('sidebar link and avatar menu both enter the hub', async ({ page }) => {
+    await page.goto('/venues/venue-alpha/home')
+
+    // Entry 1: sidebar "Settings" — single direct link straight to the hub.
+    // The item has no sub-items after Task 6, so NavMain renders it as a
+    // direct <NavLink> (role="link"), not a sub-sidebar trigger button.
+    // Target by its stable data-tour key (tourKey('settings') = 'sidebar-settings')
+    // rather than role+name, since role/name is ambiguous with other UI text.
+    await page.locator('[data-tour="sidebar-settings"]').click()
+    await page.waitForURL('**/settings/local/basic-info', { timeout: 15_000 })
+
+    // Entry 2: avatar menu → Configuración → account side.
+    // setupApiMocks (no `email` override) uses createMockUser's default email,
+    // 'test@avoqado.io' — not 'owner@test.com' (that's login.spec's own fixture).
+    await page.goto('/venues/venue-alpha/home')
+    await closeTanStackDevTools(page)
+    await page.getByText('test@avoqado.io').first().click()
+    await page.locator('[data-tour="user-menu-settings"]').click()
+    await page.waitForURL('**/settings/profile')
   })
 })
