@@ -33,7 +33,7 @@ export default function ProfileSettings() {
     queryFn: () => googleCalendarService.listConnections(),
   })
   const personalGoogleCalendarConnection =
-    gcalConnectionsData?.connections.find(
+    gcalConnectionsData?.connections?.find(
       c => c.scope === 'STAFF_PERSONAL' && c.staffId === user?.id && c.status !== 'DISCONNECTED',
     ) ?? null
 

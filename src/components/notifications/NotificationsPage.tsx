@@ -135,7 +135,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             {t('common:refresh')}
           </Button>
-          <Button variant="outline" size="sm" onClick={() => navigate(`${fullBasePath}/notifications/preferences`)}>
+          <Button variant="outline" size="sm" onClick={() => navigate(`${fullBasePath}/settings/notifications`)}>
             <Settings className="h-4 w-4 mr-2" />
             {t('common:settings')}
           </Button>
