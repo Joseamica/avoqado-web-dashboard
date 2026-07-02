@@ -55,7 +55,7 @@
       "twoFactorTitle": "Verification code",
       "twoFactorDesc": "Enter the 6-digit code from your authenticator app (Google Authenticator). It expires in under a minute — have it ready.",
       "deviceTitle": "Validate this device",
-      "deviceDesc": "Your bank sent a verification code to authorize this connection. Enter it here.",
+      "deviceDesc": "Enter the code from your authenticator app (Google Authenticator) to authorize this device.",
       "codeLabel": "Code",
       "submit": "Validate",
       "validating": "Validating…"
