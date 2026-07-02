@@ -154,6 +154,7 @@ export const InventoryTransferDetailPage = lazyWithRetry(() => import('@/pages/I
 export const AutoReorderSettings = lazyWithRetry(() => import('@/pages/Inventory/AutoReorderSettings'))
 
 // Settings
+export const SettingsLayout = lazyWithRetry(() => import('@/pages/Settings/SettingsLayout'))
 export const RolePermissions = lazyWithRetry(() => import('@/pages/Settings/RolePermissions'))
 export const GoogleIntegration = lazyWithRetry(() => import('@/pages/Settings/GoogleIntegration'))
 
