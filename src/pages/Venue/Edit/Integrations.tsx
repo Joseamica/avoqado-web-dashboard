@@ -33,6 +33,8 @@ import { EcommerceMerchantWizard } from '../components/EcommerceMerchantWizard'
 import { useAuth } from '@/context/AuthContext'
 import { StaffRole } from '@/types'
 import { McpConnectGuide } from '@/components/mcp/McpConnectGuide'
+import { BankAccountsSection } from './components/BankAccountsSection'
+import { PermissionGate } from '@/components/PermissionGate'
 
 // eslint-disable-next-line unused-imports/no-unused-vars
 const posFormSchema = z.object({
@@ -288,6 +290,11 @@ export default function VenueIntegrations() {
           </Button>
         </CardContent>
       </Card>
+
+      <PermissionGate permission="financialConnections:manage">
+        <Separator />
+        <BankAccountsSection />
+      </PermissionGate>
 
       {canManageCrypto && (
         <>
