@@ -102,6 +102,11 @@ test.describe('Settings hub', () => {
 
     await nav.locator('[data-tour="settings-nav-integrations"]').click()
     await page.waitForURL('**/settings/integrations')
+    // Regression: VenueIntegrations used to call useVenueEditActions(), a hook
+    // that throws outside <VenueEditLayout>. Since this page was promoted to a
+    // standalone route (Task 4), that call crashed the page on every visit —
+    // caught only by asserting real content renders, not just the URL.
+    await expect(page.locator('[data-tour="settings-integrations-page"]')).toBeVisible()
   })
 
   test('legacy URLs redirect to their new homes', async ({ page }) => {

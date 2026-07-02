@@ -11,13 +11,10 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { useForm } from 'react-hook-form'
 import { useToast } from '@/hooks/use-toast'
 import { CryptoConfigSection } from '@/pages/Settings/components/CryptoConfigSection'
 import { PosType } from '@/types'
 import api from '@/api'
-import { z } from 'zod'
-import { useVenueEditActions } from '../VenueEditLayout'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,13 +33,6 @@ import { McpConnectGuide } from '@/components/mcp/McpConnectGuide'
 import { BankAccountsSection } from './components/BankAccountsSection'
 import { PermissionGate } from '@/components/PermissionGate'
 
-// eslint-disable-next-line unused-imports/no-unused-vars
-const posFormSchema = z.object({
-  posType: z.nativeEnum(PosType).nullable().optional(),
-})
-
-type PosFormValues = z.infer<typeof posFormSchema>
-
 interface VenueIntegrations {
   id: string
   name: string
@@ -53,9 +43,6 @@ interface VenueIntegrations {
 export default function VenueIntegrations() {
   const { t } = useTranslation('venue')
   const { venueId } = useCurrentVenue()
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
-  const { setActions } = useVenueEditActions()
   const { user } = useAuth()
   // Crypto config requires venue-crypto:manage permission, which only OWNER+
   // has. Skipping the render for ADMIN/MANAGER eliminates noisy 403 warnings
@@ -89,58 +76,6 @@ export default function VenueIntegrations() {
     },
   })
 
-  const form = useForm<PosFormValues>({
-    defaultValues: {
-      posType: null,
-    },
-  })
-
-  useEffect(() => {
-    if (venue) {
-      form.reset({
-        posType: (venue.posType as PosType) || null,
-      })
-    }
-  }, [venue, form])
-
-  const updateVenue = useMutation({
-    mutationFn: async (data: PosFormValues) => {
-      const venueData: any = {}
-      if (data.posType) venueData.posType = data.posType
-      return await api.put(`/api/v1/dashboard/venues/${venueId}`, venueData)
-    },
-    onSuccess: () => {
-      toast({
-        title: t('edit.integrations.toast.success'),
-        description: t('edit.integrations.toast.successDesc'),
-      })
-      queryClient.invalidateQueries({ queryKey: ['venue-integrations', venueId] })
-      queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
-    },
-    onError: (error: any) => {
-      toast({
-        title: t('edit.integrations.toast.error'),
-        description: error.response?.data?.message || t('edit.integrations.toast.errorDesc'),
-        variant: 'destructive',
-      })
-    },
-  })
-
-  const onSubmit = (data: PosFormValues) => {
-    updateVenue.mutate(data)
-  }
-
-  // Register actions with parent layout
-  useEffect(() => {
-    setActions({
-      onSave: form.handleSubmit(onSubmit),
-      onCancel: () => form.reset(),
-      isDirty: form.formState.isDirty,
-      isLoading: updateVenue.isPending,
-      canEdit: true, // No permission check for integrations
-    })
-  }, [form.formState.isDirty, updateVenue.isPending, setActions, form])
-
   if (isLoading) {
     return (
       <div className="container mx-auto pt-6 pb-20 px-3 md:px-4 space-y-6">
@@ -163,7 +98,7 @@ export default function VenueIntegrations() {
   }
 
   return (
-    <div className="container mx-auto pt-6 pb-20 px-3 md:px-4 space-y-6">
+    <div className="container mx-auto pt-6 pb-20 px-3 md:px-4 space-y-6" data-tour="settings-integrations-page">
       <div>
         <h2 className="text-2xl font-bold text-foreground">{t('edit.integrations.title')}</h2>
         <p className="text-muted-foreground mt-2">{t('edit.integrations.subtitle')}</p>
