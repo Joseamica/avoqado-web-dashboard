@@ -17,9 +17,10 @@ import { AdminAccessLevel, AdminProtectedRoute } from './AdminProtectedRoute'
 import { KYCProtectedRoute } from './KYCProtectedRoute'
 import { ManagerProtectedRoute } from './ManagerProtectedRoute'
 import { PermissionProtectedRoute } from './PermissionProtectedRoute'
+import LegacyRedirect from './LegacyRedirect'
+import SettingsIndexRedirect from './SettingsIndexRedirect'
 
 import {
-  Account,
   AnalyticsLayout,
   AnalyticsOverview,
   AvailableBalance,
@@ -84,6 +85,10 @@ import {
   Services,
   Recipes,
   Profitability,
+  ProfileSettings,
+  SecuritySettings,
+  PreferenceSettings,
+  SettingsLayout,
   ReservationsPage,
   ReservationDetail,
   ReservationCalendar,
@@ -157,8 +162,8 @@ export function createVenueRoutes(): RouteObject[] {
       ],
     },
 
-    // Account (no special permission)
-    { path: 'account', element: <Account /> },
+    // Legacy: account page moved into the Settings Hub
+    { path: 'account', element: <LegacyRedirect to="settings/profile" /> },
 
     // Menu Management (requires menu:read permission)
     {
@@ -408,29 +413,18 @@ export function createVenueRoutes(): RouteObject[] {
       ],
     },
 
-    // Venue Edit (ADMIN only)
+    // Legacy: venue edit moved into the Settings Hub (settings/local + settings/integrations)
     {
       path: 'edit',
-      element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
       children: [
-        {
-          element: <VenueEditLayout />,
-          children: [
-            { index: true, element: <Navigate to="basic-info" replace /> },
-            { path: 'basic-info', element: <BasicInfo /> },
-            { path: 'contact-images', element: <ContactImages /> },
-            { path: 'general', element: <Navigate to="../basic-info" replace /> },
-            { path: 'documents', element: <VenueDocuments /> },
-            {
-              path: 'integrations',
-              children: [
-                { index: true, element: <VenueIntegrations /> },
-                { path: 'google', element: <GoogleIntegration /> },
-              ],
-            },
-            { path: 'chat', element: <VenueChat /> },
-          ],
-        },
+        { index: true, element: <LegacyRedirect to="settings/local/basic-info" /> },
+        { path: 'basic-info', element: <LegacyRedirect to="settings/local/basic-info" /> },
+        { path: 'general', element: <LegacyRedirect to="settings/local/basic-info" /> },
+        { path: 'contact-images', element: <LegacyRedirect to="settings/local/contact-images" /> },
+        { path: 'documents', element: <LegacyRedirect to="settings/local/documents" /> },
+        { path: 'chat', element: <LegacyRedirect to="settings/local/chat" /> },
+        { path: 'integrations', element: <LegacyRedirect to="settings/integrations" /> },
+        { path: 'integrations/google', element: <LegacyRedirect to="settings/integrations/google" /> },
       ],
     },
 
@@ -586,13 +580,8 @@ export function createVenueRoutes(): RouteObject[] {
       children: [{ index: true, element: <CfdiConfiguracion /> }],
     },
 
-    // Activity Log (requires activity:read permission)
-    // VISIBLE TEASER: page self-gates with <FeatureGate feature="VENUE_AUDIT_LOG"> (PRO)
-    // so we use PermissionProtectedRoute only — no FeatureProtectedRoute wrapper.
-    {
-      element: <PermissionProtectedRoute permission="activity:read" />,
-      children: [{ path: 'activity-log', element: <VenueActivityLog /> }],
-    },
+    // Legacy: activity log moved into the Settings Hub
+    { path: 'activity-log', element: <LegacyRedirect to="settings/activity-log" /> },
 
     // Promotions - Discounts (requires discounts:read permission)
     {
@@ -626,48 +615,98 @@ export function createVenueRoutes(): RouteObject[] {
     { path: 'notifications/preferences/4', element: <NotificationPreferences4 /> },
     { path: 'notifications/preferences/5', element: <NotificationPreferences5 /> },
 
-    // Role Permissions Management (OWNER and ADMIN only)
+    // ── Settings Hub — "Tu cuenta" + "Este local" in one two-pane layout ──
     {
-      path: 'settings/role-permissions',
-      element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
-      children: [{ index: true, element: <RolePermissions /> }],
-    },
-
-    // Billing Management (requires billing:read permission + ADMIN role)
-    {
-      path: 'settings/billing',
-      element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
+      path: 'settings',
+      element: <SettingsLayout />,
       children: [
+        { index: true, element: <SettingsIndexRedirect /> },
+
+        // Tu cuenta (no special permission — mirrors the old /account route)
+        { path: 'profile', element: <ProfileSettings /> },
+        { path: 'security', element: <SecuritySettings /> },
+        { path: 'preferences', element: <PreferenceSettings /> },
+        { path: 'notifications', element: <NotificationPreferences /> },
+
+        // Este local — venue information (ex /edit, minus integrations)
         {
-          element: <PermissionProtectedRoute permission="billing:read" />,
+          path: 'local',
+          element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
           children: [
             {
-              element: <BillingLayout />,
+              element: <VenueEditLayout />,
               children: [
-                { index: true, element: <Navigate to="subscriptions" replace /> },
+                { index: true, element: <Navigate to="basic-info" replace /> },
+                { path: 'basic-info', element: <BasicInfo /> },
+                { path: 'contact-images', element: <ContactImages /> },
+                { path: 'documents', element: <VenueDocuments /> },
+                { path: 'chat', element: <VenueChat /> },
+              ],
+            },
+          ],
+        },
+
+        // Este local — integrations, promoted to its own section
+        {
+          path: 'integrations',
+          element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
+          children: [
+            { index: true, element: <VenueIntegrations /> },
+            { path: 'google', element: <GoogleIntegration /> },
+          ],
+        },
+
+        // Este local — roles (URL unchanged: settings/role-permissions)
+        {
+          path: 'role-permissions',
+          element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
+          children: [{ index: true, element: <RolePermissions /> }],
+        },
+
+        // Este local — billing (URL unchanged: settings/billing/*) — inner block moved VERBATIM from the old settings/billing route
+        {
+          path: 'billing',
+          element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
+          children: [
+            {
+              element: <PermissionProtectedRoute permission="billing:read" />,
+              children: [
                 {
-                  path: 'subscriptions',
-                  element: <PermissionProtectedRoute permission="billing:subscriptions:read" />,
-                  children: [{ index: true, element: <BillingSubscriptions /> }],
-                },
-                {
-                  path: 'history',
-                  element: <PermissionProtectedRoute permission="billing:history:read" />,
-                  children: [{ index: true, element: <BillingHistory /> }],
-                },
-                {
-                  path: 'payment-methods',
-                  element: <PermissionProtectedRoute permission="billing:payment-methods:read" />,
-                  children: [{ index: true, element: <BillingPaymentMethods /> }],
-                },
-                {
-                  path: 'tokens',
-                  element: <PermissionProtectedRoute permission="billing:tokens:read" />,
-                  children: [{ index: true, element: <BillingTokens /> }],
+                  element: <BillingLayout />,
+                  children: [
+                    { index: true, element: <Navigate to="subscriptions" replace /> },
+                    {
+                      path: 'subscriptions',
+                      element: <PermissionProtectedRoute permission="billing:subscriptions:read" />,
+                      children: [{ index: true, element: <BillingSubscriptions /> }],
+                    },
+                    {
+                      path: 'history',
+                      element: <PermissionProtectedRoute permission="billing:history:read" />,
+                      children: [{ index: true, element: <BillingHistory /> }],
+                    },
+                    {
+                      path: 'payment-methods',
+                      element: <PermissionProtectedRoute permission="billing:payment-methods:read" />,
+                      children: [{ index: true, element: <BillingPaymentMethods /> }],
+                    },
+                    {
+                      path: 'tokens',
+                      element: <PermissionProtectedRoute permission="billing:tokens:read" />,
+                      children: [{ index: true, element: <BillingTokens /> }],
+                    },
+                  ],
                 },
               ],
             },
           ],
+        },
+
+        // Este local — activity log (page self-gates with FeatureGate VENUE_AUDIT_LOG)
+        {
+          path: 'activity-log',
+          element: <PermissionProtectedRoute permission="activity:read" />,
+          children: [{ index: true, element: <VenueActivityLog /> }],
         },
       ],
     },
