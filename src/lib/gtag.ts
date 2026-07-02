@@ -23,7 +23,9 @@ function gtag(...args: unknown[]): void {
  * ad-driven signups attribute without a separate native Ads conversion action.
  */
 export function trackSignup(method = 'email'): void {
-  // send_to the GA4 property explicitly — the tag is loaded with the GA4 id, so
-  // events route to GA4 (not Ads) and don't multi-fire across mixed products.
+  // send_to the MARKETING property (G-F6JCDF9K3P) explicitly — the dashboard's
+  // dual-tag setup (index.html) routes general usage to the product property
+  // (G-RHVHM6V578); sign_up is the ONE event that must land in marketing so it
+  // keeps importing into Google Ads as a conversion.
   gtag('event', 'sign_up', { send_to: 'G-F6JCDF9K3P', method })
 }

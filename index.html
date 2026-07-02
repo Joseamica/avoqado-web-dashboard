@@ -10,21 +10,34 @@
     <title id="page-title">Avoqado | Dashboard</title>
     <!-- App init (theme/env) moved to external script for CSP compliance -->
     <script src="/app-init.js"></script>
-    <!-- Google tag (gtag.js) — Google Ads AW-18201754401 + GA4 G-F6JCDF9K3P.
-         Tags the dashboard so ad destinations (e.g. /signup) are measured and signups
-         attribute in Google Ads. GA4 shares the marketing property; cookies are
-         cross-subdomain (.avoqado.io) so a landing session continues into the dashboard. -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-F6JCDF9K3P"></script>
+    <!-- Google tag (gtag.js) — dual-property setup (keeps product and marketing data apart):
+         · G-RHVHM6V578 (GA4 "Avoqado", product property 336228296): ALL dashboard usage.
+         · G-F6JCDF9K3P (GA4 "Avoqado Web", marketing property 540042836): send_page_view:false —
+           receives ONLY the explicit sign_up event (src/lib/gtag.ts, send_to) so ad-driven
+           signups keep attributing in Google Ads via the linked property.
+         · AW-18201754401 (Google Ads): keeps the dashboard tagged for Ads conversion coverage.
+         Cookies are cross-subdomain (.avoqado.io) so a landing ad-click session continues here.
+         Skipped entirely on localhost/dev so dev traffic never reaches any property. -->
     <script>
       window.dataLayer = window.dataLayer || []
       function gtag() { dataLayer.push(arguments) }
-      gtag('consent', 'default', {
-        ad_storage: 'granted', ad_user_data: 'granted', ad_personalization: 'granted',
-        analytics_storage: 'granted', functionality_storage: 'granted', security_storage: 'granted',
-      })
-      gtag('js', new Date())
-      gtag('config', 'G-F6JCDF9K3P')
-      gtag('config', 'AW-18201754401')
+      ;(function () {
+        var h = window.location.hostname
+        var isLocalDev = h === 'localhost' || h === '127.0.0.1' || h.indexOf('192.168.') === 0 || /\.local$/.test(h)
+        if (isLocalDev) return
+        gtag('consent', 'default', {
+          ad_storage: 'granted', ad_user_data: 'granted', ad_personalization: 'granted',
+          analytics_storage: 'granted', functionality_storage: 'granted', security_storage: 'granted',
+        })
+        gtag('js', new Date())
+        gtag('config', 'G-RHVHM6V578')
+        gtag('config', 'G-F6JCDF9K3P', { send_page_view: false })
+        gtag('config', 'AW-18201754401')
+        var s = document.createElement('script')
+        s.async = true
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=G-RHVHM6V578'
+        document.head.appendChild(s)
+      })()
     </script>
     <!-- Geist (variable) + Geist Mono for Sidebar; Inter (variable) for content -->
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
