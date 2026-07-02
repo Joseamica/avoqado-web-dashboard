@@ -101,5 +101,24 @@
       "pageOf": "Page {{page}} of {{pages}}"
     },
     "openAria": "View account movements"
+  },
+  "transfer": {
+    "button": "Send transfer",
+    "title": "Internal transfer",
+    "description": "Send money from {{label}} to another Moneygiver account.",
+    "destination": "Destination account (internal number)",
+    "amount": "Amount",
+    "concept": "Concept",
+    "conceptPlaceholder": "Test",
+    "review": "Continue",
+    "confirmTitle": "Send this transfer?",
+    "confirmBody": "You're about to send {{amount}} to account {{account}}. This moves real money and can't be undone.",
+    "send": "Send",
+    "sending": "Sending…",
+    "cancel": "Cancel",
+    "successTitle": "Transfer sent",
+    "successBody": "Movement: {{id}}",
+    "errorTitle": "The transfer could not be sent",
+    "close": "Close"
   }
 }

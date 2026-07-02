@@ -101,5 +101,24 @@
       "pageOf": "Página {{page}} de {{pages}}"
     },
     "openAria": "Ver movimientos de la cuenta"
+  },
+  "transfer": {
+    "button": "Enviar traspaso",
+    "title": "Traspaso interno",
+    "description": "Envía dinero desde {{label}} a otra cuenta Moneygiver.",
+    "destination": "Cuenta destino (número interno)",
+    "amount": "Monto",
+    "concept": "Concepto",
+    "conceptPlaceholder": "Prueba",
+    "review": "Continuar",
+    "confirmTitle": "¿Enviar este traspaso?",
+    "confirmBody": "Vas a enviar {{amount}} a la cuenta {{account}}. Esta acción mueve dinero real y no se puede deshacer.",
+    "send": "Enviar",
+    "sending": "Enviando…",
+    "cancel": "Cancelar",
+    "successTitle": "Traspaso enviado",
+    "successBody": "Movimiento: {{id}}",
+    "errorTitle": "No se pudo enviar el traspaso",
+    "close": "Cerrar"
   }
 }

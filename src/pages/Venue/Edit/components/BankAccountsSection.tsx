@@ -7,7 +7,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Landmark, Plus, RefreshCw, Unlink } from 'lucide-react'
+import { ArrowUpRight, Landmark, Plus, RefreshCw, Unlink } from 'lucide-react'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -34,6 +34,7 @@ import {
 } from '@/services/financialConnection.service'
 import { BankConnectWizard } from '@/pages/Venue/components/BankConnectWizard'
 import { BankAccountMovementsSheet } from './BankAccountMovementsSheet'
+import { BankInternalTransferDialog } from './BankInternalTransferDialog'
 
 const STATUS_BADGE: Record<FinancialConnectionStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   CONNECTED: 'default',
@@ -45,10 +46,21 @@ const STATUS_BADGE: Record<FinancialConnectionStatus, 'default' | 'secondary' | 
   ERROR: 'destructive',
 }
 
-function AccountRow({ venueId, account, onOpen }: { venueId: string; account: FinancialAccountSummary; onOpen: () => void }) {
+function AccountRow({
+  venueId,
+  account,
+  canTransfer,
+  onOpen,
+}: {
+  venueId: string
+  account: FinancialAccountSummary
+  canTransfer: boolean
+  onOpen: () => void
+}) {
   const { t } = useTranslation('financialConnections')
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const [transferOpen, setTransferOpen] = useState(false)
 
   const refresh = useMutation({
     mutationFn: () => financialConnectionAPI.getBalance(venueId, account.id),
@@ -72,6 +84,11 @@ function AccountRow({ venueId, account, onOpen }: { venueId: string; account: Fi
           {account.lastBalance != null ? Currency(account.lastBalance) : t('account.noBalance')}
         </span>
         {account.balanceState !== 'OK' && <Badge variant="destructive">{t(`account.balanceState.${account.balanceState}`)}</Badge>}
+        {canTransfer && (
+          <Button variant="ghost" size="icon" aria-label={t('transfer.button')} onClick={() => setTransferOpen(true)}>
+            <ArrowUpRight className="h-4 w-4" />
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon"
@@ -82,6 +99,9 @@ function AccountRow({ venueId, account, onOpen }: { venueId: string; account: Fi
           <RefreshCw className={`h-4 w-4 ${refresh.isPending ? 'animate-spin' : ''}`} />
         </Button>
       </div>
+      {canTransfer && (
+        <BankInternalTransferDialog open={transferOpen} onClose={() => setTransferOpen(false)} venueId={venueId} account={account} />
+      )}
     </div>
   )
 }
@@ -130,7 +150,7 @@ function ConnectionCard({
         </div>
       </div>
       {connection.accounts.map(a => (
-        <AccountRow key={a.id} venueId={venueId} account={a} onOpen={() => setMovementsAccount(a)} />
+        <AccountRow key={a.id} venueId={venueId} account={a} canTransfer={connection.status === 'CONNECTED'} onOpen={() => setMovementsAccount(a)} />
       ))}
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>

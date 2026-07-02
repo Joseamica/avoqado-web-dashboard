@@ -103,6 +103,12 @@ export interface AccountMovementStats {
   dispersions: MovementCategoryStats
 }
 
+export interface InternalTransferResult {
+  ok: boolean
+  movementId: string | null
+  message: string | null
+}
+
 const BASE = '/api/v1/dashboard'
 
 export const financialConnectionAPI = {
@@ -169,6 +175,19 @@ export const financialConnectionAPI = {
     if (range.from) params.from = range.from
     if (range.to) params.to = range.to
     const { data } = await api.get(`${BASE}/venues/${venueId}/financial-accounts/${financialAccountId}/movements/stats`, { params })
+    return data.data
+  },
+
+  /**
+   * MUEVE DINERO — traspaso interno MG→MG desde la cuenta conectada a la cuenta destino.
+   * El backend responde 422 con { success:false } si el proveedor rechaza el traspaso.
+   */
+  async internalTransfer(
+    venueId: string,
+    financialAccountId: string,
+    body: { destinationAccount: string; amount: number; concept: string },
+  ): Promise<InternalTransferResult> {
+    const { data } = await api.post(`${BASE}/venues/${venueId}/financial-accounts/${financialAccountId}/internal-transfer`, body)
     return data.data
   },
 }

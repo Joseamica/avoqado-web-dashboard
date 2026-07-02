@@ -101,5 +101,24 @@
       "pageOf": "Page {{page}} sur {{pages}}"
     },
     "openAria": "Voir les mouvements du compte"
+  },
+  "transfer": {
+    "button": "Envoyer un virement",
+    "title": "Virement interne",
+    "description": "Envoyez de l'argent depuis {{label}} vers un autre compte Moneygiver.",
+    "destination": "Compte destinataire (numéro interne)",
+    "amount": "Montant",
+    "concept": "Concept",
+    "conceptPlaceholder": "Test",
+    "review": "Continuer",
+    "confirmTitle": "Envoyer ce virement ?",
+    "confirmBody": "Vous allez envoyer {{amount}} au compte {{account}}. Cette action déplace de l'argent réel et est irréversible.",
+    "send": "Envoyer",
+    "sending": "Envoi…",
+    "cancel": "Annuler",
+    "successTitle": "Virement envoyé",
+    "successBody": "Mouvement : {{id}}",
+    "errorTitle": "Le virement n'a pas pu être envoyé",
+    "close": "Fermer"
   }
 }
