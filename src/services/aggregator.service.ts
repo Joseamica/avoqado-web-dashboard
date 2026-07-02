@@ -17,11 +17,22 @@ export interface Aggregator {
   venueCommissions?: VenueCommissionWithVenue[]
 }
 
+/** Cuenta bancaria (financial-connections) ligada a este merchant, si el OWNER ya conectó su banco. */
+export interface AggregatorMerchantFinancialAccount {
+  id: string
+  label: string | null
+  lastBalance: number | null
+  balanceState: 'OK' | 'ERROR' | 'UNKNOWN'
+  connection: { provider: { code: string; name: string } }
+}
+
 export interface AggregatorMerchant {
   id: string
   displayName: string | null
   externalMerchantId: string
   active: boolean
+  /** null si el OWNER del venue aún no conecta su banco (self-connect desde Integraciones). */
+  financialAccount?: AggregatorMerchantFinancialAccount | null
 }
 
 export interface VenueCommission {

@@ -12,7 +12,7 @@
  */
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Loader2, Pencil, Settings2, Wallet, Building2, Info } from 'lucide-react'
+import { Loader2, Pencil, Settings2, Wallet, Building2, Info, RefreshCw } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -22,9 +22,48 @@ import {
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import api from '@/api'
+import { Currency } from '@/utils/currency'
 import { aggregatorAPI, type Aggregator } from '@/services/aggregator.service'
 import { merchantRevenueShareAPI } from '@/services/merchantRevenueShare.service'
+import type { AccountBalance } from '@/services/financialConnection.service'
 import RevenueShareEditDialog from './RevenueShareEditDialog'
+
+/**
+ * Saldo bancario del merchant vía su FinancialAccount ligada (financial-connections).
+ * Solo-lectura: el ligado lo hace el OWNER del venue al conectar su banco desde
+ * Integraciones (self-connect); superadmin aquí sólo consulta el saldo en vivo
+ * bajo demanda — cada consulta pega al banco real, por eso no se auto-fetchea.
+ */
+function MerchantBankBalance({ merchantId, hasLinkedAccount }: { merchantId: string; hasLinkedAccount: boolean }) {
+  const { data, isFetching, refetch, isError } = useQuery({
+    queryKey: ['superadmin-merchant-balance', merchantId],
+    queryFn: async (): Promise<AccountBalance> => {
+      const r = await api.get(`/api/v1/dashboard/superadmin/merchant-accounts/${merchantId}/balance`)
+      return r.data.data
+    },
+    enabled: false, // saldo bajo demanda: cada consulta pega al banco real
+    retry: false,
+  })
+
+  if (!hasLinkedAccount) {
+    return <span className="text-xs text-muted-foreground">Sin banco conectado — el dueño lo conecta en Integraciones</span>
+  }
+  return (
+    <div className="flex items-center gap-2">
+      {data &&
+        (data.state === 'OK' && data.amount != null ? (
+          <span className="font-medium tabular-nums">{Currency(data.amount)}</span>
+        ) : (
+          <Badge variant="destructive">Sin saldo</Badge>
+        ))}
+      {isError && <Badge variant="destructive">Error</Badge>}
+      <Button variant="ghost" size="icon" aria-label="Consultar saldo" disabled={isFetching} onClick={() => refetch()}>
+        <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+      </Button>
+    </div>
+  )
+}
 
 interface AggregatorDetailSheetProps {
   open: boolean
@@ -135,7 +174,7 @@ export default function AggregatorDetailSheet({
                     return (
                       <div
                         key={m.id}
-                        className="flex items-center justify-between gap-2 rounded-lg border border-input p-2.5 hover:bg-muted/30 transition-colors"
+                        className="flex items-start justify-between gap-2 rounded-lg border border-input p-2.5 hover:bg-muted/30 transition-colors"
                       >
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium truncate">
@@ -157,6 +196,17 @@ export default function AggregatorDetailSheet({
                                 sin reparto
                               </Badge>
                             )}
+                          </div>
+                          {m.financialAccount && (
+                            <p className="text-[11px] text-muted-foreground mt-1">
+                              {m.financialAccount.connection.provider.name} · último saldo conocido:{' '}
+                              <span className="tabular-nums">
+                                {m.financialAccount.lastBalance != null ? Currency(m.financialAccount.lastBalance) : '—'}
+                              </span>
+                            </p>
+                          )}
+                          <div className="mt-1.5">
+                            <MerchantBankBalance merchantId={m.id} hasLinkedAccount={!!m.financialAccount} />
                           </div>
                         </div>
                         <Button
