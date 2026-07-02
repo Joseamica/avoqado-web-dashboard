@@ -27,8 +27,6 @@ interface HubItem {
   dataTour: string
   /** Show the tier Star badge (gating itself stays inside the page) */
   premiumLocked?: boolean
-  /** Absolute link that leaves the hub (superadmin tools) */
-  external?: boolean
 }
 
 const ADMIN_ROLES = ['ADMIN', 'OWNER', 'SUPERADMIN']
@@ -43,7 +41,7 @@ function HubNavLink({ item }: { item: HubItem }) {
     <NavLink to={item.to} className={linkClasses} data-tour={item.dataTour}>
       <item.icon className="h-4 w-4 shrink-0" />
       <span className="truncate">{item.label}</span>
-      {item.premiumLocked && <Star className="ml-auto h-3.5 w-3.5 shrink-0 text-green-500" />}
+      {item.premiumLocked && <Star className="ml-auto h-3.5 w-3.5 shrink-0 text-emerald-400" />}
     </NavLink>
   )
 }
@@ -94,9 +92,9 @@ export default function SettingsLayout() {
   const superadminItems: HubItem[] =
     role === 'SUPERADMIN'
       ? [
-          { to: `${fullBasePath}/payment-config`, label: t('hub.items.paymentConfig'), icon: Shield, dataTour: 'settings-nav-sa-payment-config', external: true },
-          { to: `${fullBasePath}/ecommerce-merchants`, label: t('hub.items.ecommerceChannels'), icon: Shield, dataTour: 'settings-nav-sa-ecommerce', external: true },
-          { to: `${fullBasePath}/merchant-accounts`, label: t('hub.items.merchantAccounts'), icon: Shield, dataTour: 'settings-nav-sa-merchants', external: true },
+          { to: `${fullBasePath}/payment-config`, label: t('hub.items.paymentConfig'), icon: Shield, dataTour: 'settings-nav-sa-payment-config' },
+          { to: `${fullBasePath}/ecommerce-merchants`, label: t('hub.items.ecommerceChannels'), icon: Shield, dataTour: 'settings-nav-sa-ecommerce' },
+          { to: `${fullBasePath}/merchant-accounts`, label: t('hub.items.merchantAccounts'), icon: Shield, dataTour: 'settings-nav-sa-merchants' },
         ]
       : []
 
@@ -149,21 +147,29 @@ export default function SettingsLayout() {
         {/* Mobile nav: horizontal scroll strip */}
         <div className="border-b border-border px-2 py-2 md:hidden">
           <div className="flex items-center gap-1 overflow-x-auto">
-            <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate(`${fullBasePath}/home`)}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="shrink-0"
+              aria-label={t('hub.back')}
+              onClick={() => navigate(`${fullBasePath}/home`)}
+            >
               <ArrowLeft className="h-4 w-4" />
             </Button>
             {groups.flatMap(g => g.items).map(item => (
               <NavLink
                 key={item.to}
                 to={item.to}
+                data-tour={item.dataTour}
                 className={({ isActive }) =>
                   cn(
-                    'whitespace-nowrap rounded-full px-3 py-1.5 text-sm',
+                    'flex items-center whitespace-nowrap rounded-full px-3 py-1.5 text-sm',
                     isActive ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground',
                   )
                 }
               >
                 {item.label}
+                {item.premiumLocked && <Star className="ml-1 inline h-3 w-3 text-emerald-400" />}
               </NavLink>
             ))}
           </div>
