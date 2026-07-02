@@ -691,7 +691,7 @@ export default function Home() {
                 title={t('newHome.businessCenter.profile')}
                 subtitle={venue?.name ?? t('newHome.businessCenter.profileSub')}
                 isLoading={!venue}
-                onClick={() => navigate(`${fullBasePath}/edit/basic-info`)}
+                onClick={() => navigate(`${fullBasePath}/settings/local/basic-info`)}
               />
               <BusinessCard
                 icon={Users}

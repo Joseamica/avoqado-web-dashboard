@@ -831,7 +831,7 @@ export function EcommerceMerchantWizard({ open, onClose, venueId, merchant }: Pr
   const stripeOnboardMutation = useMutation({
     mutationFn: ({ merchantId, businessType }: { merchantId: string; businessType: 'company' | 'individual' }) =>
       // Pass current pathname so Stripe redirects back to wherever the user
-      // started the flow (could be /edit/integrations, /ecommerce-merchants,
+      // started the flow (could be settings/integrations, /ecommerce-merchants,
       // payment-links, or home checklist), instead of always falling back to
       // the legacy /ecommerce-merchants admin page.
       ecommerceMerchantAPI.createStripeOnboardingLink(venueId, merchantId, businessType, window.location.pathname),

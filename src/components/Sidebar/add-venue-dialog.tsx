@@ -59,7 +59,7 @@ export function AddVenueDialog({ onClose, navigate }: AddVenueDialogProps) {
       })
       queryClient.invalidateQueries({ queryKey: ['status'] }) // Refetch product data
       form.reset()
-      navigate(`/venues/${venueId}/edit`)
+      navigate(`/venues/${venueId}/settings/local`)
       onClose()
     },
     onError: (error: any) => {

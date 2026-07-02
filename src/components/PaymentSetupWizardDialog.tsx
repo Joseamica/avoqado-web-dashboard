@@ -65,7 +65,7 @@ const CHECKLIST_CONFIG: ChecklistItemConfig[] = [
     descriptionKey: 'paymentSetup.checklist.kycApprovedDesc',
     actionLabelKey: 'paymentSetup.actions.reviewKyc',
     // KYC documents are in the venue edit section
-    getActionPath: (venueSlug: string) => `/venues/${venueSlug}/edit/documents`,
+    getActionPath: (venueSlug: string) => `/venues/${venueSlug}/settings/local/documents`,
     isBlocking: true,
   },
   {
@@ -135,7 +135,7 @@ const CHECKLIST_CONFIG: ChecklistItemConfig[] = [
     descriptionKey: 'paymentSetup.checklist.clabeProvidedDesc',
     actionLabelKey: 'paymentSetup.actions.addClabe',
     // CLABE is in venue documents/KYC
-    getActionPath: (venueSlug: string) => `/venues/${venueSlug}/edit/documents`,
+    getActionPath: (venueSlug: string) => `/venues/${venueSlug}/settings/local/documents`,
     isBlocking: false,
   },
 ]

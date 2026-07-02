@@ -602,7 +602,7 @@ export default function PaymentLinks() {
 
       {/* Stripe Connect setup wizard — opened from the "Configurar Stripe ahora"
           CTA in the empty-state alert. After the user completes onboarding on
-          Stripe, they return to /edit/integrations (the wizard's redirect),
+          Stripe, they return to settings/integrations (the wizard's redirect),
           so we just need to invalidate the ecommerce-merchants query when the
           modal closes. */}
       <EcommerceMerchantWizard

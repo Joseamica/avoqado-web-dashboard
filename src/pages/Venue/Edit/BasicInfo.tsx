@@ -620,7 +620,7 @@ export default function BasicInfo() {
                 </p>
               )}
               <Button asChild variant="outline" size="sm" className="border-destructive/50 hover:bg-destructive/10">
-                <Link to={`${fullBasePath}/edit/documents`}>
+                <Link to={`${fullBasePath}/settings/local/documents`}>
                   <FileText className="mr-2 h-4 w-4" />
                   {t('edit.kycRejected.resubmitButton')}
                 </Link>

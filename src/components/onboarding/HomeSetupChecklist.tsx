@@ -112,12 +112,12 @@ const STEPS: StepConfig[] = [
   {
     // "Activa pagos online" — auto-completed when the venue has at least one
     // ecommerce merchant with onboardingStatus=COMPLETED. The user is navigated
-    // to /edit/integrations where they configure Stripe via EcommerceMerchantWizard.
+    // to settings/integrations where they configure Stripe via EcommerceMerchantWizard.
     // No atomic tour involved.
     id: 'payments',
     titleKey: 'newHome.setup.steps.payments.title',
     descriptionKey: 'newHome.setup.steps.payments.description',
-    path: 'edit/integrations',
+    path: 'settings/integrations',
     canSkip: true,
   },
 ]

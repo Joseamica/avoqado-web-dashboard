@@ -1,7 +1,6 @@
 import { createContext, useContext, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Outlet, useNavigate } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { Outlet } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { NavTabs } from '@/components/ui/nav-tabs'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
@@ -43,7 +42,6 @@ export const useVenueEditActions = () => {
 
 export default function VenueEditLayout() {
   const { fullBasePath } = useCurrentVenue()
-  const navigate = useNavigate()
   const { t } = useTranslation('venue')
 
   const [actions, setActions] = useState<{
@@ -73,11 +71,8 @@ export default function VenueEditLayout() {
         {/* Sticky Header */}
         <div className="sticky top-0 z-10 flex flex-row justify-between w-full px-4 py-3 bg-background/95 backdrop-blur-sm">
           <div className="space-x-3 flex items-center">
-            <Button variant="ghost" size="icon" onClick={() => navigate(fullBasePath)}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
             <PageTitleWithInfo
-              title={t('edit.title', { defaultValue: 'Venue Settings' })}
+              title={t('edit.title', { defaultValue: 'Información del local' })}
               className="text-xl font-semibold text-foreground"
               tooltip={t('info.edit', {
                 defaultValue: 'Actualiza datos del venue, documentos e integraciones.',
@@ -139,11 +134,10 @@ export default function VenueEditLayout() {
         <NavTabs
           className="sticky top-14 bg-background h-14 z-10"
           items={[
-            { to: `${fullBasePath}/edit/basic-info`, label: t('edit.nav.basicInfo', { defaultValue: 'Información Básica' }) },
-            { to: `${fullBasePath}/edit/contact-images`, label: t('edit.nav.contactImages', { defaultValue: 'Contacto e Imágenes' }) },
-            { to: `${fullBasePath}/edit/documents`, label: t('edit.nav.documents', { defaultValue: 'Documentación' }) },
-            { to: `${fullBasePath}/edit/integrations`, label: t('edit.nav.integrations', { defaultValue: 'Integraciones' }) },
-            { to: `${fullBasePath}/edit/chat`, label: t('edit.nav.chat', { defaultValue: 'Chat con clientes' }) },
+            { to: `${fullBasePath}/settings/local/basic-info`, label: t('edit.nav.basicInfo', { defaultValue: 'Información Básica' }) },
+            { to: `${fullBasePath}/settings/local/contact-images`, label: t('edit.nav.contactImages', { defaultValue: 'Contacto e Imágenes' }) },
+            { to: `${fullBasePath}/settings/local/documents`, label: t('edit.nav.documents', { defaultValue: 'Documentación' }) },
+            { to: `${fullBasePath}/settings/local/chat`, label: t('edit.nav.chat', { defaultValue: 'Chat con clientes' }) },
           ]}
         />
 

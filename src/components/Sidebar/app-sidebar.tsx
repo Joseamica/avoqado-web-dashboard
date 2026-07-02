@@ -578,13 +578,13 @@ export function AppSidebar({
 
     // ── Configuracion ──
     const settingsSubItems = [
-      { title: t('sidebar:routes.editvenue'), url: 'edit', icon: Store, permission: 'venues:read', keywords: ['ajustes', 'settings', 'negocio'] },
+      { title: t('sidebar:routes.editvenue'), url: 'settings/local', icon: Store, permission: 'venues:read', keywords: ['ajustes', 'settings', 'negocio'] },
       // Direct shortcut to integrations (Stripe Connect, Google, Crypto, POS).
-      // The page itself still lives at /edit/integrations (inside VenueEditLayout)
+      // The page itself lives at settings/integrations (its own Settings Hub section).
       // — this is just a one-click entry from the Configuración group.
       {
         title: t('sidebar:routes.integrations', { defaultValue: 'Integraciones' }),
-        url: 'edit/integrations',
+        url: 'settings/integrations',
         icon: Link2,
         permission: 'venues:read',
         keywords: ['stripe', 'connect', 'pagos', 'google', 'integraciones', 'integrations', 'pos'],

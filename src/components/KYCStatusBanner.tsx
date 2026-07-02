@@ -66,7 +66,7 @@ function KYCMissingBanner() {
         <Button
           size="sm"
           className="shrink-0 bg-orange-600 hover:bg-orange-700 text-orange-50"
-          onClick={() => navigate(`/venues/${activeVenue.slug}/edit/documents`)}
+          onClick={() => navigate(`/venues/${activeVenue.slug}/settings/local/documents`)}
         >
           {t('banner.missing.action')}
         </Button>
@@ -109,7 +109,7 @@ function KYCRejectedBanner() {
 
   // Hide completely if user is already on the documents page
   // (that page has its own rejection message)
-  const isOnDocumentsPage = location.pathname.includes('/edit/documents')
+  const isOnDocumentsPage = location.pathname.includes('/settings/local/documents')
   if (isOnDocumentsPage) return null
 
   return (
@@ -117,7 +117,7 @@ function KYCRejectedBanner() {
       <XCircle className="h-4 w-4" />
       <AlertDescription className="flex items-center justify-between gap-4">
         <p className="text-sm font-medium">{t('banner.rejected.message')}</p>
-        <Button size="sm" variant="destructive" className="shrink-0" onClick={() => navigate(`/venues/${activeVenue.slug}/edit/documents`)}>
+        <Button size="sm" variant="destructive" className="shrink-0" onClick={() => navigate(`/venues/${activeVenue.slug}/settings/local/documents`)}>
           {t('banner.rejected.action')}
         </Button>
       </AlertDescription>

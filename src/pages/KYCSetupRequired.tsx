@@ -82,7 +82,7 @@ export function KYCSetupRequired() {
             <AlertTitle>{t('setupRequired.rejected.title')}</AlertTitle>
             <AlertDescription>
               <p>{activeVenue.kycRejectionReason || t('setupRequired.rejected.defaultReason')}</p>
-              <Button className="mt-4" variant="destructive" onClick={() => navigate(`/venues/${activeVenue.slug}/edit/documents`)}>
+              <Button className="mt-4" variant="destructive" onClick={() => navigate(`/venues/${activeVenue.slug}/settings/local/documents`)}>
                 {t('setupRequired.rejected.action')}
               </Button>
             </AlertDescription>

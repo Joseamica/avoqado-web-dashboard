@@ -904,7 +904,7 @@ export default function ReservationSettings() {
 												cliente paga al llegar al local.
 											</p>
 											<Button asChild size="sm" variant="outline" className="h-8">
-												<Link to={`${fullBasePath}/edit/integrations`}>Conectar Stripe</Link>
+												<Link to={`${fullBasePath}/settings/integrations`}>Conectar Stripe</Link>
 											</Button>
 										</div>
 									</div>
@@ -976,7 +976,7 @@ export default function ReservationSettings() {
 											a tu cuenta.
 										</p>
 										<Link
-											to={`${fullBasePath}/edit/integrations`}
+											to={`${fullBasePath}/settings/integrations`}
 											className="font-medium text-emerald-700 underline-offset-4 hover:underline dark:text-emerald-300"
 										>
 											Administrar
@@ -992,7 +992,7 @@ export default function ReservationSettings() {
 											reservaciones se confirman pero el cliente paga al llegar al local.
 										</p>
 										<Button asChild size="sm" variant="outline" className="h-8">
-											<Link to={`${fullBasePath}/edit/integrations`}>Conectar Stripe</Link>
+											<Link to={`${fullBasePath}/settings/integrations`}>Conectar Stripe</Link>
 										</Button>
 									</div>
 								</div>

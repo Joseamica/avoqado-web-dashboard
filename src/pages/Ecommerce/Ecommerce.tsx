@@ -49,7 +49,7 @@ const Ecommerce: React.FC = () => {
   })
 
   const canTransact = useMemo(() => merchants.some(isUsable), [merchants])
-  const integrationsHref = `${fullBasePath}/edit/integrations`
+  const integrationsHref = `${fullBasePath}/settings/integrations`
 
   // Build the embed snippet from the live selections. Inline is the widget's
   // default so we only emit data-mode for modal; data-amount only when fixed.
