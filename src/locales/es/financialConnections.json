@@ -74,5 +74,32 @@
       "generic": "Algo salió mal. Intenta de nuevo.",
       "rateLimited": "Demasiados intentos. Espera unos minutos e intenta de nuevo."
     }
+  },
+  "movements": {
+    "title": "Movimientos",
+    "subtitle": "Estado de cuenta de {{label}}",
+    "range": { "7": "Últimos 7 días", "30": "Últimos 30 días", "90": "Últimos 90 días" },
+    "stats": {
+      "speiIn": "SPEI recibido",
+      "speiOut": "SPEI enviado",
+      "internalTransfers": "Transferencias internas",
+      "dispersions": "Dispersiones",
+      "operations": "{{count}} operaciones"
+    },
+    "table": {
+      "date": "Fecha",
+      "concept": "Concepto",
+      "type": "Tipo",
+      "counterparty": "Contraparte",
+      "reference": "Referencia",
+      "status": "Estatus",
+      "amount": "Monto",
+      "empty": "Sin movimientos en este periodo.",
+      "loadError": "No se pudieron cargar los movimientos.",
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "pageOf": "Página {{page}} de {{pages}}"
+    },
+    "openAria": "Ver movimientos de la cuenta"
   }
 }

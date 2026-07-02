@@ -74,5 +74,32 @@
       "generic": "Something went wrong. Try again.",
       "rateLimited": "Too many attempts. Wait a few minutes and try again."
     }
+  },
+  "movements": {
+    "title": "Movements",
+    "subtitle": "Account statement for {{label}}",
+    "range": { "7": "Last 7 days", "30": "Last 30 days", "90": "Last 90 days" },
+    "stats": {
+      "speiIn": "SPEI received",
+      "speiOut": "SPEI sent",
+      "internalTransfers": "Internal transfers",
+      "dispersions": "Disbursements",
+      "operations": "{{count}} operations"
+    },
+    "table": {
+      "date": "Date",
+      "concept": "Concept",
+      "type": "Type",
+      "counterparty": "Counterparty",
+      "reference": "Reference",
+      "status": "Status",
+      "amount": "Amount",
+      "empty": "No movements in this period.",
+      "loadError": "Movements could not be loaded.",
+      "previous": "Previous",
+      "next": "Next",
+      "pageOf": "Page {{page}} of {{pages}}"
+    },
+    "openAria": "View account movements"
   }
 }
