@@ -12,9 +12,10 @@
     <script src="/app-init.js"></script>
     <!-- Google tag (gtag.js) — dual-property setup (keeps product and marketing data apart):
          · G-RHVHM6V578 (GA4 "Avoqado", product property 336228296): ALL dashboard usage.
-         · G-F6JCDF9K3P (GA4 "Avoqado Web", marketing property 540042836): send_page_view:false —
-           receives ONLY the explicit sign_up event (src/lib/gtag.ts, send_to) so ad-driven
-           signups keep attributing in Google Ads via the linked property.
+         · G-F6JCDF9K3P (GA4 "Avoqado Web", marketing property 540042836): NOT configured here —
+           daily usage sends NOTHING to marketing (not even enhanced-measurement scroll).
+           src/lib/gtag.ts configures it just-in-time to fire the sign_up event, the ONE
+           event that must land in marketing so ad-driven signups attribute in Google Ads.
          · AW-18201754401 (Google Ads): keeps the dashboard tagged for Ads conversion coverage.
          Cookies are cross-subdomain (.avoqado.io) so a landing ad-click session continues here.
          Skipped entirely on localhost/dev so dev traffic never reaches any property. -->
@@ -31,7 +32,6 @@
         })
         gtag('js', new Date())
         gtag('config', 'G-RHVHM6V578')
-        gtag('config', 'G-F6JCDF9K3P', { send_page_view: false })
         gtag('config', 'AW-18201754401')
         var s = document.createElement('script')
         s.async = true

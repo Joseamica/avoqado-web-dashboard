@@ -23,9 +23,13 @@ function gtag(...args: unknown[]): void {
  * ad-driven signups attribute without a separate native Ads conversion action.
  */
 export function trackSignup(method = 'email'): void {
-  // send_to the MARKETING property (G-F6JCDF9K3P) explicitly — the dashboard's
-  // dual-tag setup (index.html) routes general usage to the product property
-  // (G-RHVHM6V578); sign_up is the ONE event that must land in marketing so it
-  // keeps importing into Google Ads as a conversion.
+  // Configure the MARKETING property just-in-time — it is intentionally NOT
+  // configured in index.html, so daily dashboard usage sends NOTHING to it
+  // (general usage goes to the product property G-RHVHM6V578 instead).
+  // send_page_view:false so this JIT config emits no page_view; the shared
+  // .avoqado.io cookies keep the ad-click session/attribution intact.
+  gtag('config', 'G-F6JCDF9K3P', { send_page_view: false })
+  // sign_up is the ONE event that must land in marketing so it keeps importing
+  // into Google Ads as a conversion.
   gtag('event', 'sign_up', { send_to: 'G-F6JCDF9K3P', method })
 }
