@@ -62,4 +62,22 @@ describe('financialConnectionAPI', () => {
     await financialConnectionAPI.disconnect('v1', 'c9')
     expect(mocked.delete).toHaveBeenCalledWith('/api/v1/dashboard/venues/v1/financial-connections/c9')
   })
+
+  it('getMovements: GET con query params y desenvuelve data', async () => {
+    mocked.get.mockResolvedValue({ data: { success: true, data: { movements: [{ id: 'op1', amount: 10 }], total: 1 } } })
+    const r = await financialConnectionAPI.getMovements('v1', 'fa1', { page: 0, size: 10, from: '2026-07-01T00:00:00.000Z' })
+    expect(mocked.get).toHaveBeenCalledWith('/api/v1/dashboard/venues/v1/financial-accounts/fa1/movements', {
+      params: { page: 0, size: 10, from: '2026-07-01T00:00:00.000Z' },
+    })
+    expect(r.total).toBe(1)
+  })
+
+  it('getMovementStats: GET stats, amounts null se preservan', async () => {
+    mocked.get.mockResolvedValue({
+      data: { success: true, data: { accountName: 'X', clabe: '7381', speiIn: { amount: null, fee: null, count: 0 }, speiOut: { amount: 5, fee: 0, count: 1 }, internalTransfers: { amount: 0, fee: 0, count: 0 }, dispersions: { amount: 0, fee: 0, count: 0 } } },
+    })
+    const s = await financialConnectionAPI.getMovementStats('v1', 'fa1', {})
+    expect(mocked.get).toHaveBeenCalledWith('/api/v1/dashboard/venues/v1/financial-accounts/fa1/movements/stats', { params: {} })
+    expect(s.speiIn.amount).toBeNull()
+  })
 })

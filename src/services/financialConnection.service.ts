@@ -69,6 +69,40 @@ export interface AccountBalance {
   state: 'OK' | 'ERROR'
 }
 
+export interface AccountMovement {
+  id: string | null
+  type: string | null
+  operationType: string | null
+  concept: string | null
+  date: string | null
+  amount: number | null
+  status: string | null
+  statusId: number | null
+  beneficiary: string | null
+  originator: string | null
+  reference: string | null
+}
+
+export interface MovementsPage {
+  movements: AccountMovement[]
+  total: number
+}
+
+export interface MovementCategoryStats {
+  amount: number | null
+  fee: number | null
+  count: number | null
+}
+
+export interface AccountMovementStats {
+  accountName: string | null
+  clabe: string | null
+  speiIn: MovementCategoryStats
+  speiOut: MovementCategoryStats
+  internalTransfers: MovementCategoryStats
+  dispersions: MovementCategoryStats
+}
+
 const BASE = '/api/v1/dashboard'
 
 export const financialConnectionAPI = {
@@ -112,5 +146,29 @@ export const financialConnectionAPI = {
 
   async disconnect(venueId: string, connectionId: string): Promise<void> {
     await api.delete(`${BASE}/venues/${venueId}/financial-connections/${connectionId}`)
+  },
+
+  async getMovements(
+    venueId: string,
+    financialAccountId: string,
+    opts: { page: number; size: number; from?: string; to?: string },
+  ): Promise<MovementsPage> {
+    const params: Record<string, unknown> = { page: opts.page, size: opts.size }
+    if (opts.from) params.from = opts.from
+    if (opts.to) params.to = opts.to
+    const { data } = await api.get(`${BASE}/venues/${venueId}/financial-accounts/${financialAccountId}/movements`, { params })
+    return data.data
+  },
+
+  async getMovementStats(
+    venueId: string,
+    financialAccountId: string,
+    range: { from?: string; to?: string },
+  ): Promise<AccountMovementStats> {
+    const params: Record<string, unknown> = {}
+    if (range.from) params.from = range.from
+    if (range.to) params.to = range.to
+    const { data } = await api.get(`${BASE}/venues/${venueId}/financial-accounts/${financialAccountId}/movements/stats`, { params })
+    return data.data
   },
 }
