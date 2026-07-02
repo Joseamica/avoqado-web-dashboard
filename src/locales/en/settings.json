@@ -1,4 +1,46 @@
 {
+  "hub": {
+    "title": "Settings",
+    "back": "Back",
+    "groups": {
+      "account": "Your account",
+      "venue": "This venue",
+      "superadmin": "Superadmin"
+    },
+    "items": {
+      "profile": "Profile",
+      "security": "Security",
+      "preferences": "Preferences",
+      "notifications": "Notifications",
+      "venueInfo": "Venue information",
+      "integrations": "Integrations",
+      "roles": "Roles & permissions",
+      "billing": "Plan & billing",
+      "activityLog": "Activity log",
+      "paymentConfig": "Payment config",
+      "ecommerceChannels": "E-commerce merchants",
+      "merchantAccounts": "Merchant accounts"
+    }
+  },
+  "preferences": {
+    "title": "Preferences",
+    "subtitle": "Language and appearance. These only apply to your account.",
+    "language": {
+      "label": "Language",
+      "help": "The language of the dashboard for you."
+    },
+    "theme": {
+      "label": "Theme",
+      "help": "Light, dark, or follow your system."
+    }
+  },
+  "security": {
+    "title": "Security",
+    "subtitle": "Your password and sign-in credentials.",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "submit": "Update password"
+  },
   "rolePermissions": {
     "title": "Role Permissions",
     "description": "Customize permissions for each role in your venue",

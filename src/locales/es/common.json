@@ -588,6 +588,7 @@
   "userMenu": {
     "account": "Cuenta",
     "notifications": "Notificaciones",
+    "settings": "Configuración",
     "logout": "Cerrar sesión",
     "logoutSuccess": "Sesión cerrada",
     "logoutSuccessDesc": "Has cerrado sesión correctamente"

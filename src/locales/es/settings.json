@@ -1,4 +1,46 @@
 {
+  "hub": {
+    "title": "Configuración",
+    "back": "Regresar",
+    "groups": {
+      "account": "Tu cuenta",
+      "venue": "Este local",
+      "superadmin": "Superadmin"
+    },
+    "items": {
+      "profile": "Perfil",
+      "security": "Seguridad",
+      "preferences": "Preferencias",
+      "notifications": "Notificaciones",
+      "venueInfo": "Información del local",
+      "integrations": "Integraciones",
+      "roles": "Roles y permisos",
+      "billing": "Plan y facturación",
+      "activityLog": "Bitácora",
+      "paymentConfig": "Config. de pagos",
+      "ecommerceChannels": "Comercios e-commerce",
+      "merchantAccounts": "Cuentas merchant"
+    }
+  },
+  "preferences": {
+    "title": "Preferencias",
+    "subtitle": "Idioma y apariencia. Solo aplican a tu cuenta.",
+    "language": {
+      "label": "Idioma",
+      "help": "El idioma del dashboard para ti."
+    },
+    "theme": {
+      "label": "Tema",
+      "help": "Claro, oscuro o seguir tu sistema."
+    }
+  },
+  "security": {
+    "title": "Seguridad",
+    "subtitle": "Tu contraseña y credenciales de acceso.",
+    "currentPassword": "Contraseña actual",
+    "newPassword": "Contraseña nueva",
+    "submit": "Actualizar contraseña"
+  },
   "rolePermissions": {
     "title": "Permisos de Roles",
     "description": "Personaliza los permisos para cada rol en tu establecimiento",

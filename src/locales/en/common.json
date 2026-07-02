@@ -588,6 +588,7 @@
   "userMenu": {
     "account": "Account",
     "notifications": "Notifications",
+    "settings": "Settings",
     "logout": "Log out",
     "logoutSuccess": "Logged out",
     "logoutSuccessDesc": "You have been logged out successfully"
