@@ -41,7 +41,8 @@ export function BankInternalTransferDialog({ open, onClose, venueId, account }: 
   const [error, setError] = useState<string | null>(null)
 
   const amountNum = Number(amount)
-  const canReview = destination.trim().length >= 4 && Number.isFinite(amountNum) && amountNum > 0
+  // Destino: 4-6 dígitos (paridad con la validación de cuenta interna del dashboard de producción).
+  const canReview = /^\d{4,6}$/.test(destination.trim()) && Number.isFinite(amountNum) && amountNum > 0
 
   const send = useMutation({
     mutationFn: () =>
@@ -107,7 +108,7 @@ export function BankInternalTransferDialog({ open, onClose, venueId, account }: 
             </div>
             <div className="grid gap-2">
               <Label htmlFor="tr-concept">{t('transfer.concept')}</Label>
-              <Input id="tr-concept" value={concept} placeholder={t('transfer.conceptPlaceholder')} onChange={e => setConcept(e.target.value)} />
+              <Input id="tr-concept" value={concept} maxLength={40} placeholder={t('transfer.conceptPlaceholder')} onChange={e => setConcept(e.target.value)} />
             </div>
             <DialogFooter>
               <Button type="submit" disabled={!canReview}>
@@ -141,6 +142,7 @@ export function BankInternalTransferDialog({ open, onClose, venueId, account }: 
                 <AlertCircle className="h-10 w-10 text-destructive" aria-hidden />
                 <p className="font-medium">{t('transfer.errorTitle')}</p>
                 <p className="text-sm text-muted-foreground">{error ?? result?.message}</p>
+                <p className="text-xs text-muted-foreground">{t('transfer.errorHint')}</p>
               </>
             ) : (
               <>

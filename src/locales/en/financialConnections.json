@@ -119,6 +119,7 @@
     "successTitle": "Transfer sent",
     "successBody": "Movement: {{id}}",
     "errorTitle": "The transfer could not be sent",
+    "errorHint": "It may still have gone through. Check your movements before retrying.",
     "close": "Close"
   }
 }

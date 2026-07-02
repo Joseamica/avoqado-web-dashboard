@@ -119,6 +119,7 @@
     "successTitle": "Virement envoyé",
     "successBody": "Mouvement : {{id}}",
     "errorTitle": "Le virement n'a pas pu être envoyé",
+    "errorHint": "Il a peut-être quand même été envoyé. Vérifiez vos mouvements avant de réessayer.",
     "close": "Fermer"
   }
 }

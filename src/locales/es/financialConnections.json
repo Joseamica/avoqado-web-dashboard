@@ -119,6 +119,7 @@
     "successTitle": "Traspaso enviado",
     "successBody": "Movimiento: {{id}}",
     "errorTitle": "No se pudo enviar el traspaso",
+    "errorHint": "Puede que sí se haya enviado. Revisa tus movimientos antes de reintentar.",
     "close": "Cerrar"
   }
 }
