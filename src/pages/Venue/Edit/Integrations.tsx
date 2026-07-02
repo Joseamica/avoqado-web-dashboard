@@ -5,7 +5,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { AlertCircle, ArrowRight, Bitcoin, CheckCircle2, Globe, Landmark, Link2, Plus, Power, ShoppingCart, Sparkles, Trash2, Unlink } from 'lucide-react'
+import { AlertCircle, ArrowRight, Bitcoin, CheckCircle2, Globe, Landmark, Link2, MessageCircle, Plus, Power, ShoppingCart, Sparkles, Trash2, Unlink } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -35,6 +35,8 @@ import { BankAccountsSection } from './components/BankAccountsSection'
 import { IntegrationCard } from './components/IntegrationCard'
 import { PermissionGate } from '@/components/PermissionGate'
 import { financialConnectionAPI } from '@/services/financialConnection.service'
+import { getVenueChatStatus } from '@/services/venueChat.service'
+import VenueChat from './VenueChat'
 
 interface VenueIntegrations {
   id: string
@@ -58,6 +60,7 @@ export default function VenueIntegrations() {
   // Each integration manages itself in its own FullScreenModal — the page is
   // a catalog of cards, not a wall of inline management UIs.
   const [mcpOpen, setMcpOpen] = useState(false)
+  const [whatsappOpen, setWhatsappOpen] = useState(false)
   const [ecommerceOpen, setEcommerceOpen] = useState(false)
   const [banksOpen, setBanksOpen] = useState(false)
   const [cryptoOpen, setCryptoOpen] = useState(false)
@@ -82,6 +85,11 @@ export default function VenueIntegrations() {
     queryKey: ['financial-connections', venueId],
     queryFn: () => financialConnectionAPI.listConnections(venueId!),
     enabled: !!venueId && canManageBanks,
+  })
+  const { data: chatStatus } = useQuery({
+    queryKey: ['venue', venueId, 'chat-status'],
+    queryFn: () => getVenueChatStatus(venueId!),
+    enabled: !!venueId,
   })
 
   const { data: venue, isLoading } = useQuery<VenueIntegrations>({
@@ -140,6 +148,7 @@ export default function VenueIntegrations() {
     connected ? t('edit.integrations.catalog.manage') : t('edit.integrations.catalog.connect')
 
   const googleConnected = !!googleStatus?.connected
+  const whatsappConnected = !!chatStatus?.mode && chatStatus.mode !== 'DISABLED'
   const ecommerceConnected = merchants.length > 0
   const banksConnected = bankConnections.some(c => c.status === 'CONNECTED')
 
@@ -172,6 +181,18 @@ export default function VenueIntegrations() {
           actionVariant={googleConnected ? 'outline' : 'default'}
           onAction={() => navigate('google')}
           dataTour="integration-card-google"
+        />
+
+        {/* WhatsApp — chat con clientes (activación por QR, ex tab de Información del local) */}
+        <IntegrationCard
+          icon={MessageCircle}
+          title={t('edit.integrations.catalog.whatsapp.title')}
+          description={t('edit.integrations.catalog.whatsapp.description')}
+          status={statusLabel(whatsappConnected)}
+          actionLabel={ctaLabel(whatsappConnected)}
+          actionVariant={whatsappConnected ? 'outline' : 'default'}
+          onAction={() => setWhatsappOpen(true)}
+          dataTour="integration-card-whatsapp"
         />
 
         {/* E-commerce / Pagos online (Stripe Connect, Mercado Pago, …) */}
@@ -219,6 +240,17 @@ export default function VenueIntegrations() {
       <FullScreenModal open={mcpOpen} onClose={() => setMcpOpen(false)} title={t('edit.integrations.mcp.title')} contentClassName="bg-muted/30">
         <div className="container mx-auto max-w-3xl p-4 md:p-6">
           <McpConnectGuide />
+        </div>
+      </FullScreenModal>
+
+      <FullScreenModal
+        open={whatsappOpen}
+        onClose={() => setWhatsappOpen(false)}
+        title={t('edit.integrations.catalog.whatsapp.title')}
+        contentClassName="bg-muted/30"
+      >
+        <div className="container mx-auto max-w-3xl p-4 md:p-6">
+          <VenueChat />
         </div>
       </FullScreenModal>
 

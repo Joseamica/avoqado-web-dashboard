@@ -159,6 +159,10 @@
           "title": "Paiements en ligne",
           "description": "Encaissez sur votre site web, appli ou liens de paiement avec Stripe ou Mercado Pago."
         },
+        "whatsapp": {
+          "title": "WhatsApp",
+          "description": "Discutez avec vos clients sur WhatsApp — activez-le en scannant un code QR."
+        },
         "banks": {
           "title": "Comptes bancaires",
           "description": "Consultez le solde et les mouvements de vos comptes sans quitter le tableau de bord."

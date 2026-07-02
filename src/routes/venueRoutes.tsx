@@ -135,7 +135,6 @@ import {
   Tpv,
   TpvId,
   VenueDocuments,
-  VenueChat,
   VenueActivityLog,
   VenueEditLayout,
   VenueIntegrations,
@@ -422,7 +421,7 @@ export function createVenueRoutes(): RouteObject[] {
         { path: 'general', element: <LegacyRedirect to="settings/local/basic-info" /> },
         { path: 'contact-images', element: <LegacyRedirect to="settings/local/contact-images" /> },
         { path: 'documents', element: <LegacyRedirect to="settings/local/documents" /> },
-        { path: 'chat', element: <LegacyRedirect to="settings/local/chat" /> },
+        { path: 'chat', element: <LegacyRedirect to="settings/integrations" /> },
         { path: 'integrations', element: <LegacyRedirect to="settings/integrations" /> },
         { path: 'integrations/google', element: <LegacyRedirect to="settings/integrations/google" /> },
       ],
@@ -640,9 +639,10 @@ export function createVenueRoutes(): RouteObject[] {
                 { path: 'basic-info', element: <BasicInfo /> },
                 { path: 'contact-images', element: <ContactImages /> },
                 { path: 'documents', element: <VenueDocuments /> },
-                { path: 'chat', element: <VenueChat /> },
               ],
             },
+            // Legacy: WhatsApp chat moved into the Integrations catalog
+            { path: 'chat', element: <LegacyRedirect to="settings/integrations" /> },
           ],
         },
 

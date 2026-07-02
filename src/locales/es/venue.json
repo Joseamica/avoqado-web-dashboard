@@ -329,6 +329,10 @@
           "title": "Pagos online",
           "description": "Cobra en tu sitio web, app o ligas de pago con Stripe o Mercado Pago."
         },
+        "whatsapp": {
+          "title": "WhatsApp",
+          "description": "Chatea con tus clientes por WhatsApp — actívalo escaneando un código QR."
+        },
         "banks": {
           "title": "Cuentas de banco",
           "description": "Consulta el saldo y los movimientos de tus cuentas sin salir del dashboard."

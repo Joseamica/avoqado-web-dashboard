@@ -137,7 +137,6 @@ export default function VenueEditLayout() {
             { to: `${fullBasePath}/settings/local/basic-info`, label: t('edit.nav.basicInfo', { defaultValue: 'Información Básica' }) },
             { to: `${fullBasePath}/settings/local/contact-images`, label: t('edit.nav.contactImages', { defaultValue: 'Contacto e Imágenes' }) },
             { to: `${fullBasePath}/settings/local/documents`, label: t('edit.nav.documents', { defaultValue: 'Documentación' }) },
-            { to: `${fullBasePath}/settings/local/chat`, label: t('edit.nav.chat', { defaultValue: 'Chat con clientes' }) },
           ]}
         />
 

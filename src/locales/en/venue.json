@@ -329,6 +329,10 @@
           "title": "Online payments",
           "description": "Accept payments on your website, app or payment links with Stripe or Mercado Pago."
         },
+        "whatsapp": {
+          "title": "WhatsApp",
+          "description": "Chat with your customers over WhatsApp — activate it by scanning a QR code."
+        },
         "banks": {
           "title": "Bank accounts",
           "description": "Check your account balances and statements without leaving the dashboard."
