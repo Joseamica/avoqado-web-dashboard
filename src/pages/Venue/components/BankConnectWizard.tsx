@@ -87,7 +87,10 @@ export function BankConnectWizard({ open, onClose, venueId }: Props) {
 
   const select = useMutation({
     mutationFn: (externalId: string) => financialConnectionAPI.selectAccount(venueId, connectionId!, externalId),
-    onSuccess: () => advance({ connectionId: connectionId!, status: 'CONNECTED' }),
+    // Rutea por el status que devuelve el backend (igual que las otras dos mutaciones)
+    // en vez de asumir CONNECTED — si algún día select-account tuviera un paso extra,
+    // el wizard lo respeta en lugar de saltar directo a "done".
+    onSuccess: r => advance({ connectionId: connectionId!, status: r.status }),
     onError: err => setError(errorMessage(err, t)),
   })
 

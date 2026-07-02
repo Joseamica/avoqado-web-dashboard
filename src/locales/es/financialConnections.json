@@ -21,7 +21,11 @@
     "lastSynced": "Actualizado {{when}}",
     "neverSynced": "Sin consultar",
     "refresh": "Actualizar saldo",
-    "balanceError": "No se pudo obtener el saldo"
+    "balanceError": "No se pudo obtener el saldo",
+    "balanceState": {
+      "ERROR": "Error",
+      "UNKNOWN": "Sin dato"
+    }
   },
   "actions": {
     "disconnect": "Desconectar",

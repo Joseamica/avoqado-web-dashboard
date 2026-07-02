@@ -70,7 +70,7 @@ function AccountRow({ venueId, account }: { venueId: string; account: FinancialA
         <span className="text-base font-semibold tabular-nums">
           {account.lastBalance != null ? Currency(account.lastBalance) : t('account.noBalance')}
         </span>
-        {account.balanceState !== 'OK' && <Badge variant="destructive">{account.balanceState}</Badge>}
+        {account.balanceState !== 'OK' && <Badge variant="destructive">{t(`account.balanceState.${account.balanceState}`)}</Badge>}
         <Button
           variant="ghost"
           size="icon"

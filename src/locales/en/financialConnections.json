@@ -21,7 +21,11 @@
     "lastSynced": "Updated {{when}}",
     "neverSynced": "Never fetched",
     "refresh": "Refresh balance",
-    "balanceError": "Could not fetch balance"
+    "balanceError": "Could not fetch balance",
+    "balanceState": {
+      "ERROR": "Error",
+      "UNKNOWN": "No data"
+    }
   },
   "actions": {
     "disconnect": "Disconnect",
