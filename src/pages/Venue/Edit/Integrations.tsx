@@ -5,13 +5,14 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { AlertCircle, ArrowRight, CheckCircle2, Link2, Plus, Power, ShoppingCart, Sparkles, Trash2, Unlink, XCircle } from 'lucide-react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { AlertCircle, ArrowRight, Bitcoin, CheckCircle2, Globe, Landmark, Link2, Plus, Power, ShoppingCart, Sparkles, Trash2, Unlink } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
+import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { useToast } from '@/hooks/use-toast'
+import { useAccess } from '@/hooks/use-access'
 import { CryptoConfigSection } from '@/pages/Settings/components/CryptoConfigSection'
 import { PosType } from '@/types'
 import api from '@/api'
@@ -31,7 +32,9 @@ import { useAuth } from '@/context/AuthContext'
 import { StaffRole } from '@/types'
 import { McpConnectGuide } from '@/components/mcp/McpConnectGuide'
 import { BankAccountsSection } from './components/BankAccountsSection'
+import { IntegrationCard } from './components/IntegrationCard'
 import { PermissionGate } from '@/components/PermissionGate'
+import { financialConnectionAPI } from '@/services/financialConnection.service'
 
 interface VenueIntegrations {
   id: string
@@ -44,10 +47,42 @@ export default function VenueIntegrations() {
   const { t } = useTranslation('venue')
   const { venueId } = useCurrentVenue()
   const { user } = useAuth()
+  const { can } = useAccess()
+  const navigate = useNavigate()
   // Crypto config requires venue-crypto:manage permission, which only OWNER+
   // has. Skipping the render for ADMIN/MANAGER eliminates noisy 403 warnings
   // from the API call inside CryptoConfigSection.
   const canManageCrypto = user?.role === StaffRole.OWNER || user?.role === StaffRole.SUPERADMIN
+  const canManageBanks = can('financialConnections:manage')
+
+  // Each integration manages itself in its own FullScreenModal — the page is
+  // a catalog of cards, not a wall of inline management UIs.
+  const [mcpOpen, setMcpOpen] = useState(false)
+  const [ecommerceOpen, setEcommerceOpen] = useState(false)
+  const [banksOpen, setBanksOpen] = useState(false)
+  const [cryptoOpen, setCryptoOpen] = useState(false)
+
+  // Mercado Pago's OAuth callback redirects back to this page with ?mp_status=…
+  // The success/error banner renders inside EcommercePaymentsSection (now in a
+  // modal), so auto-open the modal when returning from OAuth.
+  const [searchParams] = useSearchParams()
+  const hasMpReturn = searchParams.get('mp_status') != null
+  useEffect(() => {
+    if (hasMpReturn) setEcommerceOpen(true)
+  }, [hasMpReturn])
+
+  // Status queries for the card footers. These share queryKeys with the
+  // management components inside the modals, so the cache is reused.
+  const { data: merchants = [] } = useQuery({
+    queryKey: ['ecommerce-merchants', venueId],
+    queryFn: () => ecommerceMerchantAPI.listByVenue(venueId!),
+    enabled: !!venueId,
+  })
+  const { data: bankConnections = [] } = useQuery({
+    queryKey: ['financial-connections', venueId],
+    queryFn: () => financialConnectionAPI.listConnections(venueId!),
+    enabled: !!venueId && canManageBanks,
+  })
 
   const { data: venue, isLoading } = useQuery<VenueIntegrations>({
     queryKey: ['venue-integrations', venueId],
@@ -97,6 +132,17 @@ export default function VenueIntegrations() {
     )
   }
 
+  const statusLabel = (connected: boolean) => ({
+    connected,
+    label: connected ? t('edit.integrations.catalog.status.connected') : t('edit.integrations.catalog.status.available'),
+  })
+  const ctaLabel = (connected: boolean) =>
+    connected ? t('edit.integrations.catalog.manage') : t('edit.integrations.catalog.connect')
+
+  const googleConnected = !!googleStatus?.connected
+  const ecommerceConnected = merchants.length > 0
+  const banksConnected = bankConnections.some(c => c.status === 'CONNECTED')
+
   return (
     <div className="container mx-auto pt-6 pb-20 px-3 md:px-4 space-y-6" data-tour="settings-integrations-page">
       <div>
@@ -104,140 +150,113 @@ export default function VenueIntegrations() {
         <p className="text-muted-foreground mt-2">{t('edit.integrations.subtitle')}</p>
       </div>
 
-      {/* Avoqado MCP — featured first */}
-      <McpIntegrationCard />
+      <div className="grid gap-3 md:grid-cols-2">
+        {/* Avoqado MCP — featured first */}
+        <IntegrationCard
+          icon={Sparkles}
+          title={t('edit.integrations.mcp.title')}
+          description={t('edit.integrations.mcp.description')}
+          badge={t('edit.integrations.mcp.badge')}
+          actionLabel={t('edit.integrations.catalog.viewGuide')}
+          onAction={() => setMcpOpen(true)}
+          dataTour="integration-card-mcp"
+        />
 
-      <Separator />
+        {/* Google Business Profile — manages itself on its own subpage */}
+        <IntegrationCard
+          icon={Globe}
+          title={t('edit.integrations.google.title', { defaultValue: 'Google Business Profile' })}
+          description={t('edit.integrations.google.description')}
+          status={statusLabel(googleConnected)}
+          actionLabel={ctaLabel(googleConnected)}
+          actionVariant={googleConnected ? 'outline' : 'default'}
+          onAction={() => navigate('google')}
+          dataTour="integration-card-google"
+        />
 
-      {/* TEMP HIDDEN: Integración con POS — la integración con sistemas externos (Square / Toast /
-          Clover / Aloha / Micros / NCR / Custom / SoftRestaurant) no está lista todavía. Se oculta
-          temporalmente; restaurar este bloque cuando esté implementada. */}
-      {/* <Card>
-        <CardHeader>
-          <CardTitle>{t('edit.integrations.pos.title')}</CardTitle>
-          <CardDescription>{t('edit.integrations.pos.description')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="posType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('edit.integrations.pos.system')}</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t('edit.integrations.pos.selectPlaceholder')} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={PosType.SOFTRESTAURANT}>
-                          {t('edit.integrations.pos.types.softRestaurant')}
-                        </SelectItem>
-                        <SelectItem value={PosType.SQUARE}>{t('edit.integrations.pos.types.square')}</SelectItem>
-                        <SelectItem value={PosType.TOAST}>{t('edit.integrations.pos.types.toast')}</SelectItem>
-                        <SelectItem value={PosType.CLOVER}>{t('edit.integrations.pos.types.clover')}</SelectItem>
-                        <SelectItem value={PosType.ALOHA}>{t('edit.integrations.pos.types.aloha')}</SelectItem>
-                        <SelectItem value={PosType.MICROS}>{t('edit.integrations.pos.types.micros')}</SelectItem>
-                        <SelectItem value={PosType.NCR}>{t('edit.integrations.pos.types.ncr')}</SelectItem>
-                        <SelectItem value={PosType.CUSTOM}>{t('edit.integrations.pos.types.custom')}</SelectItem>
-                        <SelectItem value={PosType.NONE}>{t('edit.integrations.pos.types.none')}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+        {/* E-commerce / Pagos online (Stripe Connect, Mercado Pago, …) */}
+        <IntegrationCard
+          icon={ShoppingCart}
+          title={t('edit.integrations.catalog.ecommerce.title')}
+          description={t('edit.integrations.catalog.ecommerce.description')}
+          status={statusLabel(ecommerceConnected)}
+          actionLabel={ctaLabel(ecommerceConnected)}
+          actionVariant={ecommerceConnected ? 'outline' : 'default'}
+          onAction={() => setEcommerceOpen(true)}
+          dataTour="integration-card-ecommerce"
+        />
 
-      <Separator /> */}
+        {/* Cuentas de banco — OWNER (financialConnections:manage) */}
+        <PermissionGate permission="financialConnections:manage">
+          <IntegrationCard
+            icon={Landmark}
+            title={t('edit.integrations.catalog.banks.title')}
+            description={t('edit.integrations.catalog.banks.description')}
+            status={statusLabel(banksConnected)}
+            actionLabel={ctaLabel(banksConnected)}
+            actionVariant={banksConnected ? 'outline' : 'default'}
+            onAction={() => setBanksOpen(true)}
+            dataTour="integration-card-banks"
+          />
+        </PermissionGate>
 
-      {/* E-commerce / Pagos online (Stripe Connect, Blumon eCommerce, ...) */}
-      <EcommercePaymentsSection venueId={venueId!} />
+        {/* Crypto — OWNER+ only. No status dot: connection state isn't known
+            at page level and an invented one would lie. */}
+        {canManageCrypto && (
+          <IntegrationCard
+            icon={Bitcoin}
+            title={t('edit.integrations.catalog.crypto.title')}
+            description={t('edit.integrations.catalog.crypto.description')}
+            actionLabel={t('edit.integrations.catalog.manage')}
+            onAction={() => setCryptoOpen(true)}
+            dataTour="integration-card-crypto"
+          />
+        )}
+      </div>
 
-      <Separator />
+      {/* ── Management surfaces ── */}
 
-      {/* Google Business Profile Integration */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>{t('edit.integrations.google.title', { defaultValue: 'Google Business Profile' })}</CardTitle>
-              <CardDescription>{t('edit.integrations.google.description')}</CardDescription>
-            </div>
-            {googleStatus?.connected ? (
-              <Badge variant="default" className="gap-1">
-                <CheckCircle2 className="h-3 w-3" />
-                {t('edit.integrations.google.connected')}
-              </Badge>
-            ) : (
-              <Badge variant="secondary" className="gap-1">
-                <XCircle className="h-3 w-3" />
-                {t('edit.integrations.google.notConnected')}
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {googleStatus?.connected ? (
-            <>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">
-                  {t('edit.integrations.google.connectedTo')}: <span className="font-medium text-foreground">{googleStatus.email}</span>
-                </p>
-                {googleStatus.locationName && (
-                  <p className="text-sm text-muted-foreground">
-                    {t('edit.integrations.google.location')}: <span className="font-medium text-foreground">{googleStatus.locationName}</span>
-                  </p>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">{t('edit.integrations.google.notConnectedDesc')}</p>
-              <ul className="text-sm text-muted-foreground space-y-1 ml-4">
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-600 dark:text-green-400 shrink-0" />
-                  {t('edit.integrations.google.benefit1')}
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-600 dark:text-green-400 shrink-0" />
-                  {t('edit.integrations.google.benefit2')}
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-600 dark:text-green-400 shrink-0" />
-                  {t('edit.integrations.google.benefit3')}
-                </li>
-              </ul>
-            </div>
-          )}
+      <FullScreenModal open={mcpOpen} onClose={() => setMcpOpen(false)} title={t('edit.integrations.mcp.title')} contentClassName="bg-muted/30">
+        <div className="container mx-auto max-w-3xl p-4 md:p-6">
+          <McpConnectGuide />
+        </div>
+      </FullScreenModal>
 
-          <Button asChild>
-            <Link to="google">
-              {googleStatus?.connected ? t('edit.integrations.google.manage') : t('edit.integrations.google.connect')}
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <FullScreenModal
+        open={ecommerceOpen}
+        onClose={() => setEcommerceOpen(false)}
+        title={t('edit.integrations.catalog.ecommerce.title')}
+        contentClassName="bg-muted/30"
+      >
+        <div className="container mx-auto max-w-3xl p-4 md:p-6">
+          <EcommercePaymentsSection venueId={venueId!} />
+        </div>
+      </FullScreenModal>
 
       <PermissionGate permission="financialConnections:manage">
-        <Separator />
-        <BankAccountsSection />
+        <FullScreenModal
+          open={banksOpen}
+          onClose={() => setBanksOpen(false)}
+          title={t('edit.integrations.catalog.banks.title')}
+          contentClassName="bg-muted/30"
+        >
+          <div className="container mx-auto max-w-3xl p-4 md:p-6">
+            <BankAccountsSection />
+          </div>
+        </FullScreenModal>
       </PermissionGate>
 
       {canManageCrypto && (
-        <>
-          <Separator />
-          {/* B4Bit Crypto Payments — OWNER+ only (backend gates with
-              `venue-crypto:manage`). */}
-          <CryptoConfigSection />
-        </>
+        <FullScreenModal
+          open={cryptoOpen}
+          onClose={() => setCryptoOpen(false)}
+          title={t('edit.integrations.catalog.crypto.title')}
+          contentClassName="bg-muted/30"
+        >
+          <div className="container mx-auto max-w-3xl p-4 md:p-6">
+            <CryptoConfigSection />
+          </div>
+        </FullScreenModal>
       )}
     </div>
   )
@@ -699,37 +718,5 @@ function EcommercePaymentsSection({ venueId }: { venueId: string }) {
         </AlertDialogContent>
       </AlertDialog>
     </>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-// Avoqado MCP — install/connect tutorial card.
-// The connection itself happens in the operator's own AI client (Claude etc.)
-// via OAuth, so this card is purely informational: the connect command + the
-// 3 steps. Access is scoped + role-gated server-side (no dashboard auth flow).
-// ─────────────────────────────────────────────────────────────────────────
-
-function McpIntegrationCard() {
-  const { t } = useTranslation('venue')
-  return (
-    <Card className="border-input">
-      <CardHeader>
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Sparkles className="h-5 w-5 text-muted-foreground shrink-0" />
-            <div>
-              <CardTitle>{t('edit.integrations.mcp.title')}</CardTitle>
-              <CardDescription>{t('edit.integrations.mcp.description')}</CardDescription>
-            </div>
-          </div>
-          <Badge variant="secondary" className="shrink-0">
-            {t('edit.integrations.mcp.badge')}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <McpConnectGuide />
-      </CardContent>
-    </Card>
   )
 }

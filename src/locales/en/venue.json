@@ -317,6 +317,27 @@
     "integrations": {
       "title": "Integrations",
       "subtitle": "Configure external integrations and POS systems",
+      "catalog": {
+        "status": {
+          "connected": "Connected",
+          "available": "Available"
+        },
+        "manage": "Manage",
+        "connect": "Connect",
+        "viewGuide": "View guide",
+        "ecommerce": {
+          "title": "Online payments",
+          "description": "Accept payments on your website, app or payment links with Stripe or Mercado Pago."
+        },
+        "banks": {
+          "title": "Bank accounts",
+          "description": "Check your account balances and statements without leaving the dashboard."
+        },
+        "crypto": {
+          "title": "Crypto payments",
+          "description": "Accept cryptocurrency payments with B4Bit."
+        }
+      },
       "errorLoading": "Failed to load venue information",
       "pos": {
         "title": "POS Integration",

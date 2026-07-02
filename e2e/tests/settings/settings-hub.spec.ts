@@ -107,6 +107,13 @@ test.describe('Settings hub', () => {
     // standalone route (Task 4), that call crashed the page on every visit —
     // caught only by asserting real content renders, not just the URL.
     await expect(page.locator('[data-tour="settings-integrations-page"]')).toBeVisible()
+
+    // Catalog layout: integration cards render, and a card CTA opens its
+    // management surface in a FullScreenModal (ecommerce → "Online payments").
+    await expect(page.locator('[data-tour="integration-card-google"]')).toBeVisible()
+    await closeTanStackDevTools(page)
+    await page.locator('[data-tour="integration-card-ecommerce"]').getByRole('button').click()
+    await expect(page.getByRole('dialog').getByRole('heading', { name: 'Online payments' })).toBeVisible()
   })
 
   test('legacy URLs redirect to their new homes', async ({ page }) => {

@@ -317,6 +317,27 @@
     "integrations": {
       "title": "Integraciones",
       "subtitle": "Configura integraciones externas y sistemas POS",
+      "catalog": {
+        "status": {
+          "connected": "Conectada",
+          "available": "Disponible"
+        },
+        "manage": "Administrar",
+        "connect": "Conectar",
+        "viewGuide": "Ver guía",
+        "ecommerce": {
+          "title": "Pagos online",
+          "description": "Cobra en tu sitio web, app o ligas de pago con Stripe o Mercado Pago."
+        },
+        "banks": {
+          "title": "Cuentas de banco",
+          "description": "Consulta el saldo y los movimientos de tus cuentas sin salir del dashboard."
+        },
+        "crypto": {
+          "title": "Pagos con cripto",
+          "description": "Acepta pagos en criptomonedas con B4Bit."
+        }
+      },
       "errorLoading": "No se pudo cargar la información del local",
       "pos": {
         "title": "Integración con POS",
