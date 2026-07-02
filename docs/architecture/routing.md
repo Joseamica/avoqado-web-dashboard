@@ -125,8 +125,60 @@ All venue-specific features follow this pattern:
   │   └── pricing
   ├── team/          # Staff management
   ├── analytics/     # Reports
-  └── settings/      # Venue configuration
+  └── settings/      # Settings hub (see below)
 ```
+
+### Settings Hub
+
+**Location**: `src/routes/venueRoutes.tsx` (`createVenueRoutes`) — shared verbatim by `/venues/:slug` and
+`/wl/venues/:slug` (see [white-label docs](../features/WHITE_LABEL_DASHBOARD.md)).
+
+`settings/` is a single two-pane layout (`SettingsLayout`, `src/pages/Settings/SettingsLayout.tsx`) with two
+groups: **"Tu cuenta"** (no special permission — every authenticated venue member) and **"Este local"**
+(ADMIN+, mirrors the old venue-edit pages):
+
+```
+/venues/:slug/settings/
+  ├── (index)              # SettingsIndexRedirect — ADMIN+ lands on local/basic-info, others on profile
+  │
+  ├── profile              # Tu cuenta
+  ├── security              # Tu cuenta
+  ├── preferences            # Tu cuenta — language + theme
+  ├── notifications          # Tu cuenta
+  │
+  ├── local/                 # Este local (AdminProtectedRoute ADMIN+) — ex /edit
+  │   ├── basic-info          # index redirects here
+  │   ├── contact-images
+  │   ├── documents
+  │   └── chat
+  ├── integrations/          # Este local (ADMIN+) — promoted to its own section
+  │   ├── (index)
+  │   └── google
+  ├── role-permissions       # Este local (ADMIN+) — URL unchanged from pre-hub
+  ├── billing/                # Este local (ADMIN+, billing:read) — URL unchanged from pre-hub
+  │   ├── subscriptions
+  │   ├── history
+  │   ├── payment-methods
+  │   └── tokens
+  └── activity-log           # Este local (activity:read) — page self-gates on FeatureGate VENUE_AUDIT_LOG
+```
+
+**Legacy redirects** (`LegacyRedirect`, `src/routes/LegacyRedirect.tsx`) preserve old bookmarks/links —
+each renders nothing but immediately `<Navigate replace>`s to its settings-hub equivalent:
+
+| Legacy path | Redirects to |
+|---|---|
+| `edit` (index), `edit/basic-info`, `edit/general` | `settings/local/basic-info` |
+| `edit/contact-images` | `settings/local/contact-images` |
+| `edit/documents` | `settings/local/documents` |
+| `edit/chat` | `settings/local/chat` |
+| `edit/integrations` | `settings/integrations` |
+| `edit/integrations/google` | `settings/integrations/google` |
+| `account` | `settings/profile` |
+| `activity-log` | `settings/activity-log` |
+
+Entry points into the hub: sidebar "Configuración" link and the avatar-menu "Configuración" item (both go to
+`settings`, letting `SettingsIndexRedirect` pick the landing tab by role).
 
 ### Admin Routes
 
