@@ -1,0 +1,74 @@
+{
+  "section": {
+    "title": "Bank accounts",
+    "description": "Connect the bank account where your sales are deposited and check its balance without leaving Avoqado.",
+    "empty": "You haven't connected a bank account yet.",
+    "connectCta": "Connect bank",
+    "loadError": "Your bank connections could not be loaded."
+  },
+  "status": {
+    "CONNECTED": "Connected",
+    "NEEDS_REAUTH": "Needs reconnection",
+    "PENDING_DEVICE_VALIDATION": "Validation pending",
+    "PENDING_TWO_FACTOR_AUTH": "2FA code pending",
+    "PENDING_ACCOUNT_SELECTION": "Account selection pending",
+    "REVOKED": "Disconnected",
+    "ERROR": "Error"
+  },
+  "account": {
+    "balance": "Balance",
+    "noBalance": "—",
+    "lastSynced": "Updated {{when}}",
+    "neverSynced": "Never fetched",
+    "refresh": "Refresh balance",
+    "balanceError": "Could not fetch balance"
+  },
+  "actions": {
+    "disconnect": "Disconnect",
+    "reconnect": "Reconnect",
+    "disconnectTitle": "Disconnect this account?",
+    "disconnectDesc": "You'll stop seeing this bank's balance in Avoqado. You can reconnect anytime.",
+    "disconnectConfirm": "Yes, disconnect",
+    "cancel": "Cancel",
+    "disconnected": "Account disconnected"
+  },
+  "wizard": {
+    "title": "Connect bank account",
+    "step1": {
+      "title": "Choose your bank",
+      "description": "Select the institution where you receive your deposits.",
+      "none": "No banks available yet."
+    },
+    "step2": {
+      "title": "Sign in to your bank",
+      "description": "Use the credentials you use for your bank's portal. They are sent encrypted and never stored in plain text.",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Connect",
+      "connecting": "Connecting…"
+    },
+    "code": {
+      "twoFactorTitle": "Verification code",
+      "twoFactorDesc": "Enter the 6-digit code from your authenticator app (Google Authenticator). It expires in under a minute — have it ready.",
+      "deviceTitle": "Validate this device",
+      "deviceDesc": "Your bank sent a verification code to authorize this connection. Enter it here.",
+      "codeLabel": "Code",
+      "submit": "Validate",
+      "validating": "Validating…"
+    },
+    "selectAccount": {
+      "title": "Choose the account",
+      "description": "Your bank has more than one business under this login. Choose which one to see in Avoqado.",
+      "submit": "Use this account"
+    },
+    "done": {
+      "title": "Bank connected!",
+      "description": "You can now see your account balance in Integrations.",
+      "close": "Done"
+    },
+    "errors": {
+      "generic": "Something went wrong. Try again.",
+      "rateLimited": "Too many attempts. Wait a few minutes and try again."
+    }
+  }
+}

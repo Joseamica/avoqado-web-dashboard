@@ -1,0 +1,74 @@
+{
+  "section": {
+    "title": "Comptes bancaires",
+    "description": "Connectez le compte bancaire où vos ventes sont déposées et consultez son solde sans quitter Avoqado.",
+    "empty": "Vous n'avez pas encore connecté de compte bancaire.",
+    "connectCta": "Connecter une banque",
+    "loadError": "Impossible de charger vos connexions bancaires."
+  },
+  "status": {
+    "CONNECTED": "Connecté",
+    "NEEDS_REAUTH": "Reconnexion requise",
+    "PENDING_DEVICE_VALIDATION": "Validation en attente",
+    "PENDING_TWO_FACTOR_AUTH": "Code 2FA en attente",
+    "PENDING_ACCOUNT_SELECTION": "Choix du compte en attente",
+    "REVOKED": "Déconnecté",
+    "ERROR": "Erreur"
+  },
+  "account": {
+    "balance": "Solde",
+    "noBalance": "—",
+    "lastSynced": "Mis à jour {{when}}",
+    "neverSynced": "Jamais consulté",
+    "refresh": "Actualiser le solde",
+    "balanceError": "Impossible d'obtenir le solde"
+  },
+  "actions": {
+    "disconnect": "Déconnecter",
+    "reconnect": "Reconnecter",
+    "disconnectTitle": "Déconnecter ce compte ?",
+    "disconnectDesc": "Vous ne verrez plus le solde de cette banque dans Avoqado. Vous pouvez la reconnecter à tout moment.",
+    "disconnectConfirm": "Oui, déconnecter",
+    "cancel": "Annuler",
+    "disconnected": "Compte déconnecté"
+  },
+  "wizard": {
+    "title": "Connecter un compte bancaire",
+    "step1": {
+      "title": "Choisissez votre banque",
+      "description": "Sélectionnez l'institution où vous recevez vos dépôts.",
+      "none": "Aucune banque disponible pour le moment."
+    },
+    "step2": {
+      "title": "Connectez-vous à votre banque",
+      "description": "Utilisez les identifiants du portail de votre banque. Ils sont envoyés chiffrés et jamais stockés en clair.",
+      "email": "E-mail",
+      "password": "Mot de passe",
+      "submit": "Connecter",
+      "connecting": "Connexion…"
+    },
+    "code": {
+      "twoFactorTitle": "Code de vérification",
+      "twoFactorDesc": "Saisissez le code à 6 chiffres de votre application d'authentification (Google Authenticator). Il expire en moins d'une minute.",
+      "deviceTitle": "Validez cet appareil",
+      "deviceDesc": "Votre banque a envoyé un code de vérification pour autoriser cette connexion. Saisissez-le ici.",
+      "codeLabel": "Code",
+      "submit": "Valider",
+      "validating": "Validation…"
+    },
+    "selectAccount": {
+      "title": "Choisissez le compte",
+      "description": "Votre banque a plusieurs entreprises sous cet accès. Choisissez celle à afficher dans Avoqado.",
+      "submit": "Utiliser ce compte"
+    },
+    "done": {
+      "title": "Banque connectée !",
+      "description": "Vous pouvez maintenant voir le solde de votre compte dans Intégrations.",
+      "close": "Terminé"
+    },
+    "errors": {
+      "generic": "Une erreur s'est produite. Réessayez.",
+      "rateLimited": "Trop de tentatives. Attendez quelques minutes et réessayez."
+    }
+  }
+}

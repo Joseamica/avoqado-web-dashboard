@@ -1,0 +1,74 @@
+{
+  "section": {
+    "title": "Cuentas de banco",
+    "description": "Conecta la cuenta bancaria donde se depositan tus ventas y consulta su saldo sin salir de Avoqado.",
+    "empty": "Aún no tienes ninguna cuenta de banco conectada.",
+    "connectCta": "Conectar banco",
+    "loadError": "No se pudieron cargar tus conexiones bancarias."
+  },
+  "status": {
+    "CONNECTED": "Conectada",
+    "NEEDS_REAUTH": "Requiere reconexión",
+    "PENDING_DEVICE_VALIDATION": "Validación pendiente",
+    "PENDING_TWO_FACTOR_AUTH": "Código 2FA pendiente",
+    "PENDING_ACCOUNT_SELECTION": "Falta elegir cuenta",
+    "REVOKED": "Desconectada",
+    "ERROR": "Error"
+  },
+  "account": {
+    "balance": "Saldo",
+    "noBalance": "—",
+    "lastSynced": "Actualizado {{when}}",
+    "neverSynced": "Sin consultar",
+    "refresh": "Actualizar saldo",
+    "balanceError": "No se pudo obtener el saldo"
+  },
+  "actions": {
+    "disconnect": "Desconectar",
+    "reconnect": "Reconectar",
+    "disconnectTitle": "¿Desconectar esta cuenta?",
+    "disconnectDesc": "Dejarás de ver el saldo de este banco en Avoqado. Puedes volver a conectarla cuando quieras.",
+    "disconnectConfirm": "Sí, desconectar",
+    "cancel": "Cancelar",
+    "disconnected": "Cuenta desconectada"
+  },
+  "wizard": {
+    "title": "Conectar cuenta de banco",
+    "step1": {
+      "title": "Elige tu banco",
+      "description": "Selecciona la institución donde recibes tus depósitos.",
+      "none": "No hay bancos disponibles por ahora."
+    },
+    "step2": {
+      "title": "Inicia sesión en tu banco",
+      "description": "Usa las credenciales con las que entras al portal de tu banco. Se envían cifradas y no se guardan en texto plano.",
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "submit": "Conectar",
+      "connecting": "Conectando…"
+    },
+    "code": {
+      "twoFactorTitle": "Código de verificación",
+      "twoFactorDesc": "Ingresa el código de 6 dígitos de tu app de autenticación (Google Authenticator). Caduca en menos de un minuto — tenlo a la mano.",
+      "deviceTitle": "Valida este dispositivo",
+      "deviceDesc": "Tu banco envió un código de verificación para autorizar esta conexión. Ingrésalo aquí.",
+      "codeLabel": "Código",
+      "submit": "Validar",
+      "validating": "Validando…"
+    },
+    "selectAccount": {
+      "title": "Elige la cuenta",
+      "description": "Tu banco tiene más de un negocio asociado a este acceso. Elige cuál quieres ver en Avoqado.",
+      "submit": "Usar esta cuenta"
+    },
+    "done": {
+      "title": "¡Banco conectado!",
+      "description": "Ya puedes ver el saldo de tu cuenta en Integraciones.",
+      "close": "Listo"
+    },
+    "errors": {
+      "generic": "Algo salió mal. Intenta de nuevo.",
+      "rateLimited": "Demasiados intentos. Espera unos minutos e intenta de nuevo."
+    }
+  }
+}
