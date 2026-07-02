@@ -78,7 +78,7 @@ export async function setupApiMocks(page: Page, options: SetupApiMocksOptions = 
   const authResponse = createAuthStatusResponse(user)
 
   // ── 1. Catch-all FIRST (lowest priority in LIFO) ─────────────
-  await page.route('**/api/**', (route) =>
+  await page.route('**/api/v1/**', (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',

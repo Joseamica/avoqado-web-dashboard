@@ -63,7 +63,7 @@ async function setupOrgMocks(page: Page, options: { whiteLabelEnabled: boolean }
   const orgName = options.whiteLabelEnabled ? 'WL Organization' : 'Basic Organization'
 
   // 1. Catch-all (lowest priority — registered first in LIFO)
-  await page.route('**/api/**', (route) =>
+  await page.route('**/api/v1/**', (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',

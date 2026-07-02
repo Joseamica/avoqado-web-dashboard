@@ -58,7 +58,7 @@ async function setupMocks(page: Page) {
   const venueWithRole = { ...venue, role: StaffRole.OWNER }
   const user = createMockUser(StaffRole.OWNER, [venueWithRole])
 
-  await page.route('**/api/**', route => route.fulfill(json({})))
+  await page.route('**/api/v1/**', route => route.fulfill(json({})))
   await page.route(`**/api/v1/dashboard/organizations/${TEST_ORG_ID}/stats`, route =>
     route.fulfill(json({ id: TEST_ORG_ID, name: 'PlayTelecom', venueCount: 1, totalRevenue: 0, totalOrders: 0 })),
   )

@@ -26,6 +26,26 @@ const BACKEND_ROUTES_DIR = path.join(BACKEND_DIR, 'routes')
 const BACKEND_APP_FILE = path.join(BACKEND_DIR, 'app.ts')
 
 // ─────────────────────────────────────────────
+// 0. Backend-pending allowlist
+// ─────────────────────────────────────────────
+// Frontend calls whose backend route is NOT built yet (frontend shipped ahead of the
+// backend PR). Each entry MUST say which workstream owns it. These report as
+// informational instead of failing the check — and the moment the backend DOES
+// implement the route, the entry turns STALE and the check FAILS until it is removed
+// here, so the list cannot rot silently.
+// Format: 'METHOD /exact/frontend/path/with/:params'
+const BACKEND_PENDING = new Map([
+  [
+    'GET /api/v1/dashboard/superadmin/venue-pricing/roster/:venueId',
+    'PR-2 N-account merchant roster — backend route pending (frontend shipped in d657c8a9)',
+  ],
+  [
+    'PATCH /api/v1/dashboard/superadmin/venue-pricing/roster/:venueId/rollout',
+    'PR-2 N-account merchant roster — backend route pending (frontend shipped in d657c8a9)',
+  ],
+])
+
+// ─────────────────────────────────────────────
 // 1. Frontend endpoint extraction
 // ─────────────────────────────────────────────
 
@@ -60,10 +80,11 @@ function extractFrontendEndpoints() {
       // optional TypeScript generic params between `async` and `(` so that
       // methods like `set: async <T = unknown>(…)` are detected — without
       // this the previous method's name leaks into subsequent lines.
-      const fnMatch = line.match(/(?:export\s+)?(?:async\s+)?function\s+(\w+)/)
-        || line.match(/(?:export\s+)?const\s+(\w+)\s*=\s*async/)
-        || line.match(/^\s+(?:async\s+)?(\w+)\s*\(/)
-        || line.match(/(\w+)\s*:\s*(?:async\s+)?(?:<[^>]*>\s*)?\(/)
+      const fnMatch =
+        line.match(/(?:export\s+)?(?:async\s+)?function\s+(\w+)/) ||
+        line.match(/(?:export\s+)?const\s+(\w+)\s*=\s*async/) ||
+        line.match(/^\s+(?:async\s+)?(\w+)\s*\(/) ||
+        line.match(/(\w+)\s*:\s*(?:async\s+)?(?:<[^>]*>\s*)?\(/)
       if (fnMatch && !/^(if|for|while|switch|return|await|new|typeof|throw|catch|else|do)$/.test(fnMatch[1])) {
         currentFunctionName = fnMatch[1]
       }
@@ -242,8 +263,8 @@ function processRouteFile(filePath, prefix, routes, depth) {
 
   // Strip comments but preserve line structure (replace with spaces to keep offsets)
   const stripped = content
-    .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))  // block comments → spaces
-    .replace(/\/\/.*$/gm, m => ' '.repeat(m.length))               // line comments → spaces
+    .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' ')) // block comments → spaces
+    .replace(/\/\/.*$/gm, m => ' '.repeat(m.length)) // line comments → spaces
 
   function lineAt(offset) {
     let line = 1
@@ -364,14 +385,29 @@ function compareEndpoints(frontendEndpoints, backendRoutes) {
     if (!frontendSet.has(key)) frontendSet.set(key, e)
   }
 
+  // Normalize the backend-pending allowlist with the SAME normalization as real keys.
+  const pendingKeys = new Map()
+  for (const [entry, reason] of BACKEND_PENDING) {
+    const [method, ...pathParts] = entry.split(' ')
+    pendingKeys.set(method + ' ' + normalizeForComparison(pathParts.join(' ')), reason)
+  }
+  // Anti-rot: a pending entry whose backend route NOW EXISTS is stale — must be removed.
+  const stalePending = []
+  for (const [key, reason] of pendingKeys) {
+    if (backendSet.has(key)) stalePending.push({ key, reason })
+  }
+
   const matched = []
   const mismatches = []
+  const pending = []
   const backendOnly = []
 
   for (const e of frontendEndpoints) {
     const key = e.method + ' ' + normalizeForComparison(e.path)
     if (backendSet.has(key)) {
       matched.push(e)
+    } else if (pendingKeys.has(key)) {
+      pending.push({ ...e, pendingReason: pendingKeys.get(key) })
     } else {
       const suggestions = findSuggestion(e, backendRoutes)
       mismatches.push({ ...e, suggestions })
@@ -403,7 +439,16 @@ function compareEndpoints(frontendEndpoints, backendRoutes) {
     return true
   })
 
-  return { matched: uniqueMatched, mismatches: uniqueMismatches, backendOnly }
+  // Deduplicate pending
+  const seenPending = new Set()
+  const uniquePending = pending.filter(m => {
+    const key = m.method + ' ' + normalizeForComparison(m.path)
+    if (seenPending.has(key)) return false
+    seenPending.add(key)
+    return true
+  })
+
+  return { matched: uniqueMatched, mismatches: uniqueMismatches, backendOnly, pending: uniquePending, stalePending }
 }
 
 // ─────────────────────────────────────────────
@@ -471,15 +516,14 @@ function stringSimilarity(a, b) {
 }
 
 function levenshtein(a, b) {
-  const m = a.length, n = b.length
+  const m = a.length,
+    n = b.length
   const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0))
   for (let i = 0; i <= m; i++) dp[i][0] = i
   for (let j = 0; j <= n; j++) dp[0][j] = j
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
-      dp[i][j] = a[i - 1] === b[j - 1]
-        ? dp[i - 1][j - 1]
-        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1])
+      dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1])
     }
   }
   return dp[m][n]
@@ -570,9 +614,7 @@ function findPageUrl(serviceFile, serviceToPages) {
     for (const { content: routerContent, file: routeFile } of allRouterContent) {
       // Pattern: { path: 'something', element: <ComponentName /> }
       // Also handle: path: 'something', element: <ComponentName />  (multiline)
-      const routeRegex = new RegExp(
-        `path:\\s*['"]([^'"]+)['"][\\s\\S]{0,200}element:\\s*<${page.pageName}[\\s/>]`
-      )
+      const routeRegex = new RegExp(`path:\\s*['"]([^'"]+)['"][\\s\\S]{0,200}element:\\s*<${page.pageName}[\\s/>]`)
       const routeMatch = routeRegex.exec(routerContent)
       if (routeMatch) {
         const routePath = routeMatch[1]
@@ -616,9 +658,7 @@ function findFiles(dir, pattern) {
 }
 
 function joinPaths(...parts) {
-  return ('/' + parts.join('/'))
-    .replace(/\/+/g, '/')
-    .replace(/\/$/, '') || '/'
+  return ('/' + parts.join('/')).replace(/\/+/g, '/').replace(/\/$/, '') || '/'
 }
 
 function printMismatch(m, serviceToPages, isDead = false) {
@@ -664,7 +704,7 @@ function main() {
   console.log(`  Frontend: ${frontendEndpoints.length} endpoints (${serviceFiles.length} service files)`)
   console.log(`  Backend:  ${backendRoutes.length} routes\n`)
 
-  const { matched, mismatches, backendOnly } = compareEndpoints(frontendEndpoints, backendRoutes)
+  const { matched, mismatches, backendOnly, pending, stalePending } = compareEndpoints(frontendEndpoints, backendRoutes)
 
   // Build a map of service file → frontend pages that import it
   const serviceToPages = buildServiceToPageMap()
@@ -694,6 +734,27 @@ function main() {
     }
   }
 
+  // Backend-pending (allowlisted): informational, does not fail the check.
+  if (pending.length > 0) {
+    console.log(`\x1b[33m  BACKEND-PENDING (${pending.length}) — allowlisted in BACKEND_PENDING, backend route not built yet:\x1b[0m\n`)
+    for (const m of pending) {
+      console.log(`    ${m.method} ${m.path}`)
+      console.log(`    \x1b[2m  Frontend: src/services/${m.file}:${m.line}${m.functionName ? ` → ${m.functionName}()` : ''}\x1b[0m`)
+      console.log(`    \x1b[2m  Why: ${m.pendingReason}\x1b[0m\n`)
+    }
+  }
+
+  // Stale allowlist entries: the backend route EXISTS now — remove the entry (hard fail).
+  if (stalePending.length > 0) {
+    console.log(
+      `\x1b[31m  STALE BACKEND_PENDING (${stalePending.length}) — the backend route now exists; remove the entry from BACKEND_PENDING:\x1b[0m\n`,
+    )
+    for (const s of stalePending) {
+      console.log(`    ${s.key}`)
+      console.log(`    \x1b[2m  Entry: ${s.reason}\x1b[0m\n`)
+    }
+  }
+
   // Verbose: show all matched
   if (VERBOSE && matched.length > 0) {
     console.log(`\x1b[32m  MATCHED (${matched.length}):\x1b[0m\n`)
@@ -719,7 +780,12 @@ function main() {
 
   console.log()
 
-  if (activeMismatches.length > 0) {
+  if (stalePending.length > 0) {
+    console.log(
+      `\x1b[31m  FAIL: ${stalePending.length} stale BACKEND_PENDING entr(y/ies) — backend route landed, clean up the allowlist.\x1b[0m\n`,
+    )
+    process.exit(1)
+  } else if (activeMismatches.length > 0) {
     console.log(`\x1b[31m  FAIL: ${activeMismatches.length} active mismatch(es), ${deadMismatches.length} dead code.\x1b[0m\n`)
     process.exit(1)
   } else if (deadMismatches.length > 0) {

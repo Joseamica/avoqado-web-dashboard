@@ -26,7 +26,7 @@ async function setupSignupMocks(page: Page) {
   let isVerified = false
 
   // Catch-all first (lowest priority in LIFO)
-  await page.route('**/api/**', (route) =>
+  await page.route('**/api/v1/**', (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',

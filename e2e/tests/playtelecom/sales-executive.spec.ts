@@ -43,7 +43,7 @@ async function setupSalesExecutiveMocks(page: Page) {
   const user = createMockUser(StaffRole.OWNER, [venueWithRole])
 
   // 1. Catch-all (lowest priority — LIFO)
-  await page.route('**/api/**', route => route.fulfill(json({})))
+  await page.route('**/api/v1/**', route => route.fulfill(json({})))
 
   // 2. Org shell endpoints
   await page.route(`**/api/v1/dashboard/organizations/${TEST_ORG_ID}/stats`, route =>

@@ -114,7 +114,7 @@ async function setupSalesReportMocks(page: Page, opts: { withReviewPermission: b
   const user = createMockUser(StaffRole.OWNER, [venue])
 
   // Catch-all so unmocked endpoints don't 404 the test
-  await page.route('**/api/**', route =>
+  await page.route('**/api/v1/**', route =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) }),
   )
 

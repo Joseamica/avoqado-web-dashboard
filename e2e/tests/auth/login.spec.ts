@@ -46,7 +46,7 @@ async function setupLoginMocks(page: Page, options: {
   const authResponse = createAuthStatusResponse(user)
 
   // Catch-all first (lowest LIFO priority)
-  await page.route('**/api/**', (route) =>
+  await page.route('**/api/v1/**', (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -454,7 +454,7 @@ test.describe('Login Page', () => {
 test.describe('Forgot Password Page', () => {
   test.beforeEach(async ({ page }) => {
     // Minimal mocks for unauthenticated page
-    await page.route('**/api/**', (route) =>
+    await page.route('**/api/v1/**', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) }),
     )
     await page.route('**/api/v1/dashboard/auth/status', (route) =>
