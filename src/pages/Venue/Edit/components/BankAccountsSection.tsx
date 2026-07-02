@@ -33,6 +33,7 @@ import {
   type FinancialConnectionStatus,
 } from '@/services/financialConnection.service'
 import { BankConnectWizard } from '@/pages/Venue/components/BankConnectWizard'
+import { BankAccountMovementsSheet } from './BankAccountMovementsSheet'
 
 const STATUS_BADGE: Record<FinancialConnectionStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   CONNECTED: 'default',
@@ -44,7 +45,7 @@ const STATUS_BADGE: Record<FinancialConnectionStatus, 'default' | 'secondary' | 
   ERROR: 'destructive',
 }
 
-function AccountRow({ venueId, account }: { venueId: string; account: FinancialAccountSummary }) {
+function AccountRow({ venueId, account, onOpen }: { venueId: string; account: FinancialAccountSummary; onOpen: () => void }) {
   const { t } = useTranslation('financialConnections')
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -61,11 +62,11 @@ function AccountRow({ venueId, account }: { venueId: string; account: FinancialA
 
   return (
     <div className="flex items-center justify-between rounded-lg border p-3">
-      <div className="flex flex-col">
+      <button type="button" onClick={onOpen} aria-label={t('movements.openAria')} className="flex min-w-0 flex-1 flex-col text-left cursor-pointer">
         <span className="text-sm font-medium">{account.label ?? account.externalId}</span>
         {account.clabe && <span className="text-xs text-muted-foreground">CLABE {account.clabe}</span>}
         <span className="text-xs text-muted-foreground">{synced}</span>
-      </div>
+      </button>
       <div className="flex items-center gap-2">
         <span className="text-base font-semibold tabular-nums">
           {account.lastBalance != null ? Currency(account.lastBalance) : t('account.noBalance')}
@@ -98,6 +99,7 @@ function ConnectionCard({
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [movementsAccount, setMovementsAccount] = useState<FinancialAccountSummary | null>(null)
 
   const disconnect = useMutation({
     mutationFn: () => financialConnectionAPI.disconnect(venueId, connection.id),
@@ -128,7 +130,7 @@ function ConnectionCard({
         </div>
       </div>
       {connection.accounts.map(a => (
-        <AccountRow key={a.id} venueId={venueId} account={a} />
+        <AccountRow key={a.id} venueId={venueId} account={a} onOpen={() => setMovementsAccount(a)} />
       ))}
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
@@ -142,6 +144,14 @@ function ConnectionCard({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {movementsAccount && (
+        <BankAccountMovementsSheet
+          open={!!movementsAccount}
+          onClose={() => setMovementsAccount(null)}
+          venueId={venueId}
+          account={movementsAccount}
+        />
+      )}
     </div>
   )
 }
