@@ -30,6 +30,7 @@
   "actions": {
     "disconnect": "Disconnect",
     "reconnect": "Reconnect",
+    "continue": "Continue",
     "disconnectTitle": "Disconnect this account?",
     "disconnectDesc": "You'll stop seeing this bank's balance in Avoqado. You can reconnect anytime.",
     "disconnectConfirm": "Yes, disconnect",
@@ -49,7 +50,13 @@
       "email": "Email",
       "password": "Password",
       "submit": "Connect",
-      "connecting": "Connecting…"
+      "connecting": "Connecting…",
+      "kind": {
+        "business": "Business account",
+        "personal": "Personal account",
+        "badge": "Personal",
+        "hint": "Personal: the account you use to sign in to your bank app. Business: your merchant panel."
+      }
     },
     "code": {
       "twoFactorTitle": "Verification code",
@@ -78,7 +85,11 @@
   "movements": {
     "title": "Movements",
     "subtitle": "Account statement for {{label}}",
-    "range": { "7": "Last 7 days", "30": "Last 30 days", "90": "Last 90 days" },
+    "range": {
+      "7": "Last 7 days",
+      "30": "Last 30 days",
+      "90": "Last 90 days"
+    },
     "stats": {
       "speiIn": "SPEI received",
       "speiOut": "SPEI sent",
@@ -126,5 +137,34 @@
     "errorTitle": "The transfer could not be sent",
     "errorHint": "It may still have gone through. Check your movements before retrying.",
     "close": "Close"
+  },
+  "hub": {
+    "overview": {
+      "title": "Banks",
+      "description": "Check balances and movements of your connected accounts."
+    },
+    "empty": {
+      "title": "Connect your bank",
+      "description": "Connect your bank account to see balances, movements and transfer without leaving Avoqado.",
+      "noProviders": "No banks available right now. Contact support to enable your connection.",
+      "connectCta": "Connect bank",
+      "pendingTitle": "Your connection needs attention",
+      "pendingDescription": "You have a connected bank that needs to reconnect or finish validating. Go to Overview to continue.",
+      "goToResumen": "Go to Overview"
+    },
+    "movements": {
+      "title": "Movements",
+      "description": "Live statement of your connected accounts."
+    },
+    "transfers": {
+      "title": "Internal transfers",
+      "description": "Move money between accounts at the same bank.",
+      "merchantOnly": "Transfers are only available for business accounts."
+    },
+    "error": {
+      "title": "Could not load your banks",
+      "description": "There was a problem fetching your connections. Try again in a moment.",
+      "retry": "Retry"
+    }
   }
 }

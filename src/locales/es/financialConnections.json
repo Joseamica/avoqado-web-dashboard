@@ -30,6 +30,7 @@
   "actions": {
     "disconnect": "Desconectar",
     "reconnect": "Reconectar",
+    "continue": "Continuar",
     "disconnectTitle": "¿Desconectar esta cuenta?",
     "disconnectDesc": "Dejarás de ver el saldo de este banco en Avoqado. Puedes volver a conectarla cuando quieras.",
     "disconnectConfirm": "Sí, desconectar",
@@ -49,7 +50,13 @@
       "email": "Correo electrónico",
       "password": "Contraseña",
       "submit": "Conectar",
-      "connecting": "Conectando…"
+      "connecting": "Conectando…",
+      "kind": {
+        "business": "Cuenta de negocio",
+        "personal": "Cuenta personal",
+        "badge": "Personal",
+        "hint": "Personal: la cuenta con la que entras a la app de tu banco. Negocio: tu panel de comercio."
+      }
     },
     "code": {
       "twoFactorTitle": "Código de verificación",
@@ -78,7 +85,11 @@
   "movements": {
     "title": "Movimientos",
     "subtitle": "Estado de cuenta de {{label}}",
-    "range": { "7": "Últimos 7 días", "30": "Últimos 30 días", "90": "Últimos 90 días" },
+    "range": {
+      "7": "Últimos 7 días",
+      "30": "Últimos 30 días",
+      "90": "Últimos 90 días"
+    },
     "stats": {
       "speiIn": "SPEI recibido",
       "speiOut": "SPEI enviado",
@@ -126,5 +137,34 @@
     "errorTitle": "No se pudo enviar el traspaso",
     "errorHint": "Puede que sí se haya enviado. Revisa tus movimientos antes de reintentar.",
     "close": "Cerrar"
+  },
+  "hub": {
+    "overview": {
+      "title": "Bancos",
+      "description": "Consulta saldos y movimientos de tus cuentas conectadas."
+    },
+    "empty": {
+      "title": "Conecta tu banco",
+      "description": "Conecta tu cuenta bancaria para ver saldos, movimientos y transferir sin salir de Avoqado.",
+      "noProviders": "No hay bancos disponibles por ahora. Contacta a soporte para habilitar tu conexión.",
+      "connectCta": "Conectar banco",
+      "pendingTitle": "Tu conexión necesita atención",
+      "pendingDescription": "Tienes un banco conectado que requiere reconectarse o terminar de validarse. Ve al Resumen para continuar.",
+      "goToResumen": "Ir al Resumen"
+    },
+    "movements": {
+      "title": "Movimientos",
+      "description": "Estado de cuenta en vivo de tus cuentas conectadas."
+    },
+    "transfers": {
+      "title": "Transferencias internas",
+      "description": "Traspasa dinero entre cuentas del mismo banco.",
+      "merchantOnly": "Las transferencias solo están disponibles para cuentas de negocio."
+    },
+    "error": {
+      "title": "No se pudieron cargar tus bancos",
+      "description": "Hubo un problema al consultar tus conexiones. Reintenta en un momento.",
+      "retry": "Reintentar"
+    }
   }
 }

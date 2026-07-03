@@ -31,7 +31,6 @@ import { EcommerceMerchantWizard } from '../components/EcommerceMerchantWizard'
 import { useAuth } from '@/context/AuthContext'
 import { StaffRole } from '@/types'
 import { McpConnectGuide } from '@/components/mcp/McpConnectGuide'
-import { BankAccountsSection } from './components/BankAccountsSection'
 import { IntegrationCard } from './components/IntegrationCard'
 import { PermissionGate } from '@/components/PermissionGate'
 import { financialConnectionAPI } from '@/services/financialConnection.service'
@@ -47,7 +46,7 @@ interface VenueIntegrations {
 
 export default function VenueIntegrations() {
   const { t } = useTranslation('venue')
-  const { venueId } = useCurrentVenue()
+  const { venueId, fullBasePath } = useCurrentVenue()
   const { user } = useAuth()
   const { can } = useAccess()
   const navigate = useNavigate()
@@ -62,7 +61,6 @@ export default function VenueIntegrations() {
   const [mcpOpen, setMcpOpen] = useState(false)
   const [whatsappOpen, setWhatsappOpen] = useState(false)
   const [ecommerceOpen, setEcommerceOpen] = useState(false)
-  const [banksOpen, setBanksOpen] = useState(false)
   const [cryptoOpen, setCryptoOpen] = useState(false)
 
   // Mercado Pago's OAuth callback redirects back to this page with ?mp_status=…
@@ -207,7 +205,8 @@ export default function VenueIntegrations() {
           dataTour="integration-card-ecommerce"
         />
 
-        {/* Cuentas de banco — OWNER (financialConnections:manage) */}
+        {/* Cuentas de banco — OWNER (financialConnections:manage). La gestión vive ahora en el hub
+            "Bancos" (sidebar); esta tarjeta solo redirige allá (una sola fuente de verdad). */}
         <PermissionGate permission="financialConnections:manage">
           <IntegrationCard
             icon={Landmark}
@@ -216,7 +215,7 @@ export default function VenueIntegrations() {
             status={statusLabel(banksConnected)}
             actionLabel={ctaLabel(banksConnected)}
             actionVariant={banksConnected ? 'outline' : 'default'}
-            onAction={() => setBanksOpen(true)}
+            onAction={() => navigate(`${fullBasePath}/bancos`)}
             dataTour="integration-card-banks"
           />
         </PermissionGate>
@@ -264,19 +263,6 @@ export default function VenueIntegrations() {
           <EcommercePaymentsSection venueId={venueId!} />
         </div>
       </FullScreenModal>
-
-      <PermissionGate permission="financialConnections:manage">
-        <FullScreenModal
-          open={banksOpen}
-          onClose={() => setBanksOpen(false)}
-          title={t('edit.integrations.catalog.banks.title')}
-          contentClassName="bg-muted/30"
-        >
-          <div className="container mx-auto max-w-3xl p-4 md:p-6">
-            <BankAccountsSection />
-          </div>
-        </FullScreenModal>
-      </PermissionGate>
 
       {canManageCrypto && (
         <FullScreenModal

@@ -28,15 +28,28 @@ describe('financialConnectionAPI', () => {
     expect(r[0].status).toBe('CONNECTED')
   })
 
+  it('listConnections: accountKind fluye desde la respuesta', async () => {
+    mocked.get.mockResolvedValue({ data: { success: true, data: [{ id: 'c1', status: 'CONNECTED', provider: { code: 'X', name: 'Banco' }, accounts: [], accountKind: 'CLIENT' }] } })
+    const r = await financialConnectionAPI.listConnections('v1')
+    expect(r[0].accountKind).toBe('CLIENT')
+  })
+
   it('createConnection: POST credenciales, devuelve el paso (2FA)', async () => {
     mocked.post.mockResolvedValue({ data: { success: true, data: { connectionId: 'c9', status: 'PENDING_TWO_FACTOR_AUTH' } } })
-    const r = await financialConnectionAPI.createConnection('v1', { providerId: 'p1', email: 'a@b.co', password: 'x' })
+    const r = await financialConnectionAPI.createConnection('v1', { providerId: 'p1', email: 'a@b.co', password: 'x', accountKind: 'MERCHANT' })
     expect(mocked.post).toHaveBeenCalledWith('/api/v1/dashboard/venues/v1/financial-connections', {
       providerId: 'p1',
       email: 'a@b.co',
       password: 'x',
+      accountKind: 'MERCHANT',
     })
     expect(r.status).toBe('PENDING_TWO_FACTOR_AUTH')
+  })
+
+  it('createConnection envía accountKind en el body', async () => {
+    mocked.post.mockResolvedValue({ data: { data: { connectionId: 'c1', status: 'PENDING_TWO_FACTOR_AUTH' } } })
+    await financialConnectionAPI.createConnection('v1', { providerId: 'p1', email: 'a@b.co', password: 'x', accountKind: 'CLIENT' })
+    expect(mocked.post).toHaveBeenCalledWith('/api/v1/dashboard/venues/v1/financial-connections', { providerId: 'p1', email: 'a@b.co', password: 'x', accountKind: 'CLIENT' })
   })
 
   it('validateTwoFactor / validateDevice / selectAccount: POST al endpoint correcto', async () => {

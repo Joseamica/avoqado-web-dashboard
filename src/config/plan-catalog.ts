@@ -62,6 +62,7 @@ export const PLAN_TIERS: PlanTierDef[] = [
       'RESERVATIONS',
       'ONLINE_ORDERING',
       'BANK_RECONCILIATION',
+      'BANKING_HUB',
       'VENUE_AUDIT_LOG',
     ],
   },

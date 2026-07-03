@@ -87,6 +87,16 @@
     "isr": "ISR · Pago provisional",
     "payroll": "Nómina"
   },
+  "bancosMenu": {
+    "title": "Bancos",
+    "overview": "Resumen",
+    "movements": "Movimientos",
+    "transfers": "Transferencias internas",
+    "spei": "SPEI externo",
+    "dispersions": "Dispersiones",
+    "beneficiaries": "Beneficiarios",
+    "reports": "Reportes"
+  },
   "reportsMenu": {
     "title": "Reportes",
     "payLaterAging": "Cuentas por Cobrar",

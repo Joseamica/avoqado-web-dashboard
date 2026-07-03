@@ -60,6 +60,7 @@ export interface FinancialConnectionSummary {
   lastError: string | null
   provider: { code: string; name: string }
   accounts: FinancialAccountSummary[]
+  accountKind: 'MERCHANT' | 'CLIENT'
 }
 
 export interface AccountBalance {
@@ -129,7 +130,7 @@ export const financialConnectionAPI = {
 
   async createConnection(
     venueId: string,
-    body: { providerId: string; email: string; password: string },
+    body: { providerId: string; email: string; password: string; accountKind: 'MERCHANT' | 'CLIENT' },
   ): Promise<ConnectionStepResult> {
     const { data } = await api.post(`${BASE}/venues/${venueId}/financial-connections`, body)
     return data.data

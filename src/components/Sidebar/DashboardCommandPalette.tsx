@@ -129,6 +129,9 @@ const DashboardCommandPalette: React.FC<DashboardCommandPaletteProps> = ({
             // Items without sub-items (direct links)
             // Skip anchor-only URLs like #sales, #customers
             if (item.url.startsWith('#')) return null
+            // Skip "Muy pronto" items — navegarían a una ruta inexistente (404). El filtro de
+            // comingSoon de arriba (sub-items anidados) no cubre esta rama de links planos.
+            if (item.comingSoon) return null
 
             return (
               <CommandItem

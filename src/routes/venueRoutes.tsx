@@ -108,6 +108,9 @@ import {
   BankReconciliation,
   BusinessSummary,
   BankAndCash,
+  BancosResumen,
+  BancosMovimientos,
+  BancosTransferencias,
   ChartOfAccounts,
   AccountMapping,
   Journal,
@@ -293,6 +296,23 @@ export function createVenueRoutes(): RouteObject[] {
       path: 'reports/refunds',
       element: <KYCProtectedRoute />,
       children: [{ index: true, element: <Refunds /> }],
+    },
+    // Bancos — hub de banca en vivo (PRO, teaser visible). Permiso financialConnections:manage;
+    // el FeatureGate PRO vive dentro de cada página. Distinto de contabilidad/bancos (conciliación).
+    {
+      path: 'bancos',
+      element: <PermissionProtectedRoute permission="financialConnections:manage" />,
+      children: [{ index: true, element: <BancosResumen /> }],
+    },
+    {
+      path: 'bancos/movimientos',
+      element: <PermissionProtectedRoute permission="financialConnections:manage" />,
+      children: [{ index: true, element: <BancosMovimientos /> }],
+    },
+    {
+      path: 'bancos/transferencias',
+      element: <PermissionProtectedRoute permission="financialConnections:manage" />,
+      children: [{ index: true, element: <BancosTransferencias /> }],
     },
     {
       // Contabilidad → ¿Cuánto gané? (Capa A, gerencial). Incluido, gateado por accounting:read.

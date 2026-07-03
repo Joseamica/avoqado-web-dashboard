@@ -88,6 +88,16 @@
     "isr": "Income tax · Provisional",
     "payroll": "Payroll"
   },
+  "bancosMenu": {
+    "title": "Banks",
+    "overview": "Overview",
+    "movements": "Movements",
+    "transfers": "Internal transfers",
+    "spei": "External SPEI",
+    "dispersions": "Dispersals",
+    "beneficiaries": "Beneficiaries",
+    "reports": "Reports"
+  },
   "reportsMenu": {
     "title": "Reports",
     "payLaterAging": "Accounts Receivable",

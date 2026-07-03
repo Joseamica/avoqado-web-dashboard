@@ -144,5 +144,15 @@
     "title": "Accepter un paiement",
     "chargeCard": "Débiter la carte",
     "sendLink": "Envoyer un lien de paiement"
+  },
+  "bancosMenu": {
+    "title": "Banques",
+    "overview": "Aperçu",
+    "movements": "Mouvements",
+    "transfers": "Virements internes",
+    "spei": "SPEI externe",
+    "dispersions": "Dispersions",
+    "beneficiaries": "Bénéficiaires",
+    "reports": "Rapports"
   }
 }

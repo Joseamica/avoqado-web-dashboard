@@ -627,6 +627,20 @@ export function AppSidebar({
       { title: t('sidebar:contabilidadMenu.reports', { defaultValue: 'Reportes contables' }), url: 'contabilidad/reportes', icon: FileSpreadsheet, permission: 'accounting:read', premiumLocked: !hasCfdiFeature, gatedFeature: 'CFDI', keywords: ['estado de resultados', 'balance general', 'reportes contables', 'auxiliares'] },
     ].filter(item => !item.permission || can(item.permission)) as any[])
 
+    // Bancos — hub de banca EN VIVO (distinto de Contabilidad→"Bancos y cajas", que es conciliación
+    // contable). Todo gated financialConnections:manage (OWNER). Los que MUEVEN DINERO y aún no tienen
+    // backend (SPEI externo, Dispersiones) van comingSoon → "Muy pronto" deshabilitado, nunca un flujo
+    // que finja mover dinero. Beneficiarios/Reportes se navegan pero muestran su badge (Beta/Mock) dentro.
+    const bancosSubItems = ([
+      { title: t('sidebar:bancosMenu.overview', { defaultValue: 'Resumen' }), url: 'bancos', icon: Wallet, permission: 'financialConnections:manage', keywords: ['bancos', 'cuentas', 'saldo', 'saldos', 'resumen bancario'] },
+      { title: t('sidebar:bancosMenu.movements', { defaultValue: 'Movimientos' }), url: 'bancos/movimientos', icon: Receipt, permission: 'financialConnections:manage', keywords: ['movimientos', 'estado de cuenta', 'transacciones bancarias', 'spei recibidos'] },
+      { title: t('sidebar:bancosMenu.transfers', { defaultValue: 'Transferencias internas' }), url: 'bancos/transferencias', icon: HandCoins, permission: 'financialConnections:manage', keywords: ['traspaso', 'transferencia interna', 'entre cuentas', 'mover dinero'] },
+      { title: t('sidebar:bancosMenu.spei', { defaultValue: 'SPEI externo' }), url: 'bancos/spei', icon: CreditCard, permission: 'financialConnections:manage', comingSoon: true, keywords: ['spei', 'transferencia externa', 'enviar a clabe', 'otro banco'] },
+      { title: t('sidebar:bancosMenu.dispersions', { defaultValue: 'Dispersiones' }), url: 'bancos/dispersiones', icon: DollarSign, permission: 'financialConnections:manage', comingSoon: true, keywords: ['dispersion', 'pagos masivos', 'nomina', 'pagar empleados', 'lote'] },
+      { title: t('sidebar:bancosMenu.beneficiaries', { defaultValue: 'Beneficiarios' }), url: 'bancos/beneficiarios', icon: Users, permission: 'financialConnections:manage', comingSoon: true, keywords: ['beneficiarios', 'destinatarios', 'contactos', 'a quien le pago'] },
+      { title: t('sidebar:bancosMenu.reports', { defaultValue: 'Reportes' }), url: 'bancos/reportes', icon: BarChart3, permission: 'financialConnections:manage', comingSoon: true, keywords: ['reportes bancarios', 'cobrado', 'dispersado', 'comisiones', 'tendencia'] },
+    ].filter(item => !item.permission || can(item.permission)) as any[])
+
     // ===================================================================
     // Build Main Sidebar Items (triggers + direct links)
     // ===================================================================
@@ -666,6 +680,19 @@ export function AppSidebar({
         title: t('sidebar:salesMenu.title', { defaultValue: 'Ventas' }), url: '#sales', icon: ShoppingCart, subSidebar: 'sales',
         locked: !hasKYCAccess,
         keywords: ['pedidos', 'cobros', 'pagos', 'ventas', 'transacciones'],
+      })
+    }
+
+    // Bancos — hub de banca en vivo (PRO ⭐). Teaser visible: badge cuando el venue no tiene BANKING_HUB;
+    // las páginas muestran su <FeatureGate>. Solo aparece si hay items (⇒ solo OWNER con financialConnections:manage).
+    // NO en white-label: la feature es de Avoqado (upsell + branding propio); en WL, hasFeatureAccess delega a
+    // canFeature('BANKING_HUB')→false, así que se filtraría el paywall de Avoqado a un dashboard de marca ajena.
+    if (bancosSubItems.length > 0 && !isWhiteLabelVenue) {
+      mainItems.push({
+        title: t('sidebar:bancosMenu.title', { defaultValue: 'Bancos' }), url: '#bancos', icon: Landmark, subSidebar: 'bancos',
+        premiumLocked: !hasFeatureAccess('BANKING_HUB'),
+        gatedFeature: 'BANKING_HUB',
+        keywords: ['bancos', 'banca', 'tesoreria', 'cuentas bancarias', 'saldo', 'movimientos', 'spei', 'transferencias', 'dispersiones'],
       })
     }
 
@@ -768,6 +795,7 @@ export function AppSidebar({
     if (reportsSubItems.length > 0) allSubSidebarSections.reports = reportsSubItems
     if (facturacionSubItems.length > 0) allSubSidebarSections.facturacion = facturacionSubItems
     if (contabilidadSubItems.length > 0) allSubSidebarSections.contabilidad = contabilidadSubItems
+    if (bancosSubItems.length > 0) allSubSidebarSections.bancos = bancosSubItems
 
     // Combine: WL module items first, then Avoqado core items
     return {

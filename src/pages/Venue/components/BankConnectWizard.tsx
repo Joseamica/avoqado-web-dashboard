@@ -6,7 +6,7 @@
  * El paso siguiente SIEMPRE lo decide la respuesta del backend vía
  * stepForStatus(result.status) — el wizard no asume el orden.
  */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { AlertCircle, Building2, CheckCircle2, Loader2 } from 'lucide-react'
@@ -17,19 +17,30 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 import { Currency } from '@/utils/currency'
 import {
   financialConnectionAPI,
   type FinancialProvider,
   type ProviderAccountOption,
   type ConnectionStepResult,
+  type FinancialConnectionStatus,
 } from '@/services/financialConnection.service'
 import { stepForStatus, type WizardStep } from './bankConnectSteps'
+
+/** Reanuda una conexión ya iniciada (estado PENDING_*) en el paso que le toca, en vez de empezar de cero. */
+export interface WizardResume {
+  connectionId: string
+  status: FinancialConnectionStatus
+  accountOptions?: ProviderAccountOption[]
+}
 
 interface Props {
   open: boolean
   onClose: () => void
   venueId: string
+  /** Si viene, el wizard abre directo en el paso de `status` con esta conexión (Continuar validación). */
+  resume?: WizardResume | null
 }
 
 /** Mensaje de error legible: el backend ya responde en español; 429 tiene copy propio. */
@@ -39,7 +50,7 @@ function errorMessage(err: unknown, t: (k: string) => string): string {
   return e?.response?.data?.message ?? t('wizard.errors.generic')
 }
 
-export function BankConnectWizard({ open, onClose, venueId }: Props) {
+export function BankConnectWizard({ open, onClose, venueId, resume }: Props) {
   const { t } = useTranslation('financialConnections')
   const queryClient = useQueryClient()
 
@@ -47,6 +58,7 @@ export function BankConnectWizard({ open, onClose, venueId }: Props) {
   const [provider, setProvider] = useState<FinancialProvider | null>(null)
   const [connectionId, setConnectionId] = useState<string | null>(null)
   const [accountOptions, setAccountOptions] = useState<ProviderAccountOption[]>([])
+  const [accountKind, setAccountKind] = useState<'MERCHANT' | 'CLIENT'>('MERCHANT')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
@@ -71,7 +83,7 @@ export function BankConnectWizard({ open, onClose, venueId }: Props) {
   }
 
   const connect = useMutation({
-    mutationFn: () => financialConnectionAPI.createConnection(venueId, { providerId: provider!.id, email, password }),
+    mutationFn: () => financialConnectionAPI.createConnection(venueId, { providerId: provider!.id, email, password, accountKind }),
     onSuccess: advance,
     onError: err => setError(errorMessage(err, t)),
   })
@@ -94,11 +106,24 @@ export function BankConnectWizard({ open, onClose, venueId }: Props) {
     onError: err => setError(errorMessage(err, t)),
   })
 
+  // Reanudar una conexión PENDING_*: al abrir con `resume`, saltar directo al paso que le toca
+  // (código 2FA/dispositivo o selección de cuenta) con la conexión ya creada. El reto server-side
+  // tiene TTL de 5 min: si expiró, el backend responde "el reto expiró; vuelve a iniciar".
+  useEffect(() => {
+    if (!open || !resume) return
+    setConnectionId(resume.connectionId)
+    setAccountOptions(resume.accountOptions ?? [])
+    setWizard(stepForStatus(resume.status))
+    setCode('')
+    setError(null)
+  }, [open, resume])
+
   const reset = () => {
     setWizard({ step: 'providers' })
     setProvider(null)
     setConnectionId(null)
     setAccountOptions([])
+    setAccountKind('MERCHANT')
     setEmail('')
     setPassword('')
     setCode('')
@@ -168,6 +193,24 @@ export function BankConnectWizard({ open, onClose, venueId }: Props) {
               <h2 className="text-lg font-semibold">{t('wizard.step2.title')}</h2>
               <p className="text-sm text-muted-foreground">{t('wizard.step2.description')}</p>
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              {(['MERCHANT', 'CLIENT'] as const).map(k => (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={accountKind === k}
+                  disabled={connect.isPending}
+                  onClick={() => setAccountKind(k)}
+                  className={cn(
+                    'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
+                    accountKind === k ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:bg-muted',
+                  )}
+                >
+                  {t(`wizard.step2.kind.${k === 'MERCHANT' ? 'business' : 'personal'}`)}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">{t('wizard.step2.kind.hint')}</p>
             <div className="grid gap-2">
               <Label htmlFor="fc-email">{t('wizard.step2.email')}</Label>
               <Input id="fc-email" type="email" required autoComplete="off" value={email} onChange={e => setEmail(e.target.value)} />
