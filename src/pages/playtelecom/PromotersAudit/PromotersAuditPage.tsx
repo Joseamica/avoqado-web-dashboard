@@ -12,7 +12,15 @@
  */
 
 import { useState, useMemo } from 'react'
-import { FilterPill, FilterPillBar, CheckboxFilterContent, DateFilterContent, AmountFilterContent, type DateFilter, type AmountFilter } from '@/components/filters'
+import {
+  FilterPill,
+  FilterPillBar,
+  CheckboxFilterContent,
+  DateFilterContent,
+  AmountFilterContent,
+  type DateFilter,
+  type AmountFilter,
+} from '@/components/filters'
 import DataTable from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -132,9 +140,7 @@ export default function PromotersAuditPage() {
     }
 
     if ((operator === 'before' || operator === 'after') && dateFilter.value) {
-      return operator === 'before'
-        ? { endDate: dateFilter.value as string }
-        : { startDate: dateFilter.value as string }
+      return operator === 'before' ? { endDate: dateFilter.value as string } : { startDate: dateFilter.value as string }
     }
 
     if (operator === 'last' && dateFilter.value) {
@@ -204,7 +210,7 @@ export default function PromotersAuditPage() {
       (venuesData ?? []).map(venueItem => ({
         value: venueItem.id,
         label: venueItem.name,
-      }))
+      })),
     )
   }, [venuesData])
 
@@ -742,7 +748,7 @@ export default function PromotersAuditPage() {
                   variant={selectedPromoter.status === 'ACTIVE' ? 'default' : 'secondary'}
                   className={cn(
                     'text-sm font-bold',
-                    selectedPromoter.status === 'ACTIVE' && 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400'
+                    selectedPromoter.status === 'ACTIVE' && 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
                   )}
                 >
                   {selectedPromoter.status === 'ACTIVE' ? (
@@ -797,7 +803,13 @@ export default function PromotersAuditPage() {
 
       {/* GPS Location Modal */}
       {selectedPromoterForMap && (
-        <PromoterLocationModal open={locationModalOpen} onOpenChange={setLocationModalOpen} promoter={selectedPromoterForMap} />
+        <PromoterLocationModal
+          open={locationModalOpen}
+          onOpenChange={setLocationModalOpen}
+          venueId={selectedPromoterForMap.storeId}
+          timezone={venueTimezone}
+          promoter={selectedPromoterForMap}
+        />
       )}
 
       {/* All Check-Ins Dialog */}

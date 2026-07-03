@@ -13,6 +13,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
+import { getPromoterTrack } from '@/services/promoters.service'
+import { useQuery } from '@tanstack/react-query'
 import { CheckCircle2, Clock, ExternalLink, MapPin, Navigation, XCircle } from 'lucide-react'
 import { useMemo } from 'react'
 
@@ -26,6 +28,10 @@ interface LocationPoint {
 interface PromoterLocationModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Venue (tienda) del promotor — necesario para consultar su recorrido (cambaceo) */
+  venueId?: string
+  /** Timezone del venue para mostrar horas locales (NUNCA UTC) */
+  timezone?: string
   promoter: {
     id: string
     name: string
@@ -41,7 +47,18 @@ interface PromoterLocationModalProps {
   }
 }
 
-export function PromoterLocationModal({ open, onOpenChange, promoter }: PromoterLocationModalProps) {
+export function PromoterLocationModal({ open, onOpenChange, venueId, timezone, promoter }: PromoterLocationModalProps) {
+  // Recorrido del día (cambaceo): pings horarios 11:00–18:00. Solo venues con
+  // trackPromoterLocation activo tienen puntos; sin puntos la sección no se muestra.
+  const { data: track } = useQuery({
+    queryKey: ['promoter-track', venueId, promoter.id],
+    queryFn: () => getPromoterTrack(venueId!, promoter.id),
+    enabled: open && !!venueId,
+    refetchInterval: open ? 120_000 : false, // near-live por polling suave (sin socket)
+  })
+  const trackPoints = track?.points ?? []
+  const formatPingTime = (iso: string) =>
+    new Date(iso).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', ...(timezone ? { timeZone: timezone } : {}) })
   // Calculate distance between check-in and check-out (Haversine formula)
   const distance = useMemo(() => {
     if (!promoter.checkInLocation || !promoter.checkOutLocation) return null
@@ -262,6 +279,65 @@ export function PromoterLocationModal({ open, onOpenChange, promoter }: Promoter
             )}
           </div>
         </div>
+
+        {/* Recorrido del día (cambaceo) — pings horarios; solo aparece cuando hay puntos */}
+        {trackPoints.length > 0 && (
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="font-bold text-sm flex items-center gap-1.5">
+                <Navigation className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                Recorrido del día (Cambaceo)
+              </h4>
+              {track?.latest && (
+                <Badge variant="secondary" className="text-xs">
+                  Última ubicación: {formatPingTime(track.latest.capturedAt)}
+                </Badge>
+              )}
+            </div>
+            <div className="max-h-40 overflow-y-auto rounded-xl border divide-y divide-border/50">
+              {trackPoints.map((p, i) => (
+                <a
+                  key={`${p.capturedAt}-${i}`}
+                  href={`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between px-3 py-2 text-sm hover:bg-muted/50"
+                >
+                  <span className="flex items-center gap-2">
+                    <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="font-mono text-xs">{formatPingTime(p.capturedAt)}</span>
+                  </span>
+                  <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    {p.accuracy != null && <span>±{Math.round(p.accuracy)}m</span>}
+                    <ExternalLink className="w-3 h-3" />
+                  </span>
+                </a>
+              ))}
+            </div>
+            {trackPoints.length >= 2 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => {
+                  const first = trackPoints[0]
+                  const last = trackPoints[trackPoints.length - 1]
+                  // Google Maps admite ~9 waypoints intermedios — suficiente para 8 pings/día
+                  const waypoints = trackPoints
+                    .slice(1, -1)
+                    .slice(0, 9)
+                    .map(p => `${p.lat},${p.lng}`)
+                    .join('|')
+                  const url = `https://www.google.com/maps/dir/?api=1&origin=${first.lat},${first.lng}&destination=${last.lat},${last.lng}${waypoints ? `&waypoints=${waypoints}` : ''}`
+                  window.open(url, '_blank')
+                }}
+              >
+                <Navigation className="w-4 h-4 mr-1.5" />
+                Ver ruta completa en Google Maps
+              </Button>
+            )}
+          </div>
+        )}
 
         {/* Distance between points */}
         {distance !== null && (

@@ -57,6 +57,7 @@ import CreateStoreGoalDialog from '@/pages/playtelecom/Supervisor/CreateStoreGoa
 // Default module state (matches backend defaults)
 const DEFAULT_MODULES: ModuleToggleState = {
   attendanceTracking: false,
+  trackPromoterLocation: false,
   requireFacadePhoto: false,
   requireDepositPhoto: false,
   enableCashPayments: true,
@@ -72,6 +73,7 @@ type TabValue = (typeof VALID_TABS)[number]
 function settingsToState(settings: VenueTpvSettings): ModuleToggleState {
   return {
     attendanceTracking: settings.attendanceTracking,
+    trackPromoterLocation: settings.trackPromoterLocation,
     requireFacadePhoto: settings.requireFacadePhoto,
     requireDepositPhoto: settings.requireDepositPhoto,
     enableCashPayments: settings.enableCashPayments,
@@ -198,12 +200,8 @@ export function TpvConfiguration() {
       setModules(settingsToState(tpvSettings))
       // Preserve null — empty string in the form means "inherit".
       setExpectedCheckInTime(tpvSettings.expectedCheckInTime ?? '')
-      setLatenessThresholdStr(
-        tpvSettings.latenessThresholdMinutes != null ? String(tpvSettings.latenessThresholdMinutes) : '',
-      )
-      setGeofenceRadiusStr(
-        tpvSettings.geofenceRadiusMeters != null ? String(tpvSettings.geofenceRadiusMeters) : '',
-      )
+      setLatenessThresholdStr(tpvSettings.latenessThresholdMinutes != null ? String(tpvSettings.latenessThresholdMinutes) : '')
+      setGeofenceRadiusStr(tpvSettings.geofenceRadiusMeters != null ? String(tpvSettings.geofenceRadiusMeters) : '')
     }
   }, [tpvSettings, hasChanges])
 
@@ -346,7 +344,6 @@ export function TpvConfiguration() {
     },
   })
 
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -393,9 +390,7 @@ export function TpvConfiguration() {
               }`}
             >
               {t('playtelecom:tpvConfig.tabs.general', { defaultValue: 'General' })}
-              {activeTab === 'general' && (
-                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-              )}
+              {activeTab === 'general' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
             </button>
             <button
               role="tab"
@@ -405,9 +400,7 @@ export function TpvConfiguration() {
               }`}
             >
               {t('playtelecom:tpvConfig.tabs.metas', { defaultValue: 'Metas' })}
-              {activeTab === 'metas' && (
-                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-              )}
+              {activeTab === 'metas' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
             </button>
             <button
               role="tab"
@@ -417,9 +410,7 @@ export function TpvConfiguration() {
               }`}
             >
               {t('playtelecom:tpvConfig.tabs.tpv', { defaultValue: 'TPV' })}
-              {activeTab === 'tpv' && (
-                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-              )}
+              {activeTab === 'tpv' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
             </button>
             <button
               role="tab"
@@ -429,9 +420,7 @@ export function TpvConfiguration() {
               }`}
             >
               {t('playtelecom:tpvConfig.tabs.categorias', { defaultValue: 'Categorias' })}
-              {activeTab === 'categorias' && (
-                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-              )}
+              {activeTab === 'categorias' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
             </button>
             <button
               role="tab"
@@ -441,9 +430,7 @@ export function TpvConfiguration() {
               }`}
             >
               {t('playtelecom:tpvConfig.tabs.mensajes', { defaultValue: 'Mensajes' })}
-              {activeTab === 'mensajes' && (
-                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-              )}
+              {activeTab === 'mensajes' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
             </button>
             {can('inventory:org-manage') && (
               <button
@@ -454,9 +441,7 @@ export function TpvConfiguration() {
                 }`}
               >
                 Organizacional
-                {activeTab === 'organizacional' && (
-                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-                )}
+                {activeTab === 'organizacional' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
               </button>
             )}
           </nav>
@@ -805,7 +790,9 @@ export function TpvConfiguration() {
                           <Label className="text-sm font-medium">{t('tpv:tpvSettings.expectedCheckInTime')}</Label>
                           <p className="text-xs text-muted-foreground mt-0.5">{t('tpv:tpvSettings.expectedCheckInTimeDesc')}</p>
                           {expectedCheckInTime === '' && (
-                            <p className="text-[11px] text-amber-500/80 mt-1">Heredado de organización. Deja vacío para mantener herencia.</p>
+                            <p className="text-[11px] text-amber-500/80 mt-1">
+                              Heredado de organización. Deja vacío para mantener herencia.
+                            </p>
                           )}
                         </div>
                         <Input
@@ -822,9 +809,7 @@ export function TpvConfiguration() {
                         <div>
                           <Label className="text-sm font-medium">{t('tpv:tpvSettings.latenessThreshold')}</Label>
                           <p className="text-xs text-muted-foreground mt-0.5">{t('tpv:tpvSettings.latenessThresholdDesc')}</p>
-                          {latenessThresholdStr === '' && (
-                            <p className="text-[11px] text-amber-500/80 mt-1">Heredado de organización.</p>
-                          )}
+                          {latenessThresholdStr === '' && <p className="text-[11px] text-amber-500/80 mt-1">Heredado de organización.</p>}
                         </div>
                         <div className="flex items-center gap-2">
                           <Input
@@ -846,9 +831,7 @@ export function TpvConfiguration() {
                         <div>
                           <Label className="text-sm font-medium">{t('tpv:tpvSettings.geofenceRadius')}</Label>
                           <p className="text-xs text-muted-foreground mt-0.5">{t('tpv:tpvSettings.geofenceRadiusDesc')}</p>
-                          {geofenceRadiusStr === '' && (
-                            <p className="text-[11px] text-amber-500/80 mt-1">Heredado de organización.</p>
-                          )}
+                          {geofenceRadiusStr === '' && <p className="text-[11px] text-amber-500/80 mt-1">Heredado de organización.</p>}
                         </div>
                         <div className="flex items-center gap-2">
                           <Input

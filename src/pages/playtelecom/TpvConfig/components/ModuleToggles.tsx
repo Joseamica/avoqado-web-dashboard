@@ -6,11 +6,12 @@
 import { useTranslation } from 'react-i18next'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Switch } from '@/components/ui/switch'
-import { Clock, Banknote, CreditCard, Package, ScanBarcode, Store, Camera } from 'lucide-react'
+import { Clock, Banknote, CreditCard, MapPin, Package, ScanBarcode, Store, Camera } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface ModuleToggleState {
   attendanceTracking: boolean
+  trackPromoterLocation: boolean
   requireFacadePhoto: boolean
   requireDepositPhoto: boolean
   enableCashPayments: boolean
@@ -33,6 +34,16 @@ const MODULES = [
     descKey: 'tpvConfig.modules.attendanceDesc',
     descDefault: 'Clock-in / Clock-out obligatorio',
     colorClass: 'from-blue-500/20 to-blue-500/5 text-blue-600 dark:text-blue-400',
+  },
+  {
+    // Independiente de attendanceTracking: cambaceo aplica a promotores sin tienda fija
+    key: 'trackPromoterLocation' as const,
+    icon: MapPin,
+    labelKey: 'tpvConfig.modules.promoterLocation',
+    labelDefault: 'Ubicación de Promotor (Cambaceo)',
+    descKey: 'tpvConfig.modules.promoterLocationDesc',
+    descDefault: 'Registra la ubicación cada hora (11:00–18:00)',
+    colorClass: 'from-rose-500/20 to-rose-500/5 text-rose-600 dark:text-rose-400',
   },
   {
     key: 'enableCashPayments' as const,
@@ -86,10 +97,7 @@ export function ModuleToggles({ values, onChange }: ModuleTogglesProps) {
           const isAttendance = mod.key === 'attendanceTracking'
 
           return (
-            <div
-              key={mod.key}
-              className="rounded-xl border border-border/50 bg-card/50 overflow-hidden"
-            >
+            <div key={mod.key} className="rounded-xl border border-border/50 bg-card/50 overflow-hidden">
               {/* Main toggle */}
               <div className="flex items-center justify-between p-4">
                 <div className="flex items-center gap-3">
@@ -101,10 +109,7 @@ export function ModuleToggles({ values, onChange }: ModuleTogglesProps) {
                     <p className="text-[10px] text-muted-foreground">{t(mod.descKey, { defaultValue: mod.descDefault })}</p>
                   </div>
                 </div>
-                <Switch
-                  checked={values[mod.key]}
-                  onCheckedChange={(checked) => onChange(mod.key, checked)}
-                />
+                <Switch checked={values[mod.key]} onCheckedChange={checked => onChange(mod.key, checked)} />
               </div>
 
               {/* Sub-toggles inside attendance card */}
@@ -132,7 +137,7 @@ export function ModuleToggles({ values, onChange }: ModuleTogglesProps) {
                     <Switch
                       checked={values.requireFacadePhoto}
                       disabled={!values.attendanceTracking}
-                      onCheckedChange={(checked) => onChange('requireFacadePhoto', checked)}
+                      onCheckedChange={checked => onChange('requireFacadePhoto', checked)}
                     />
                   </div>
                   <div
@@ -150,14 +155,16 @@ export function ModuleToggles({ values, onChange }: ModuleTogglesProps) {
                           {t('tpvConfig.modules.depositPhoto', { defaultValue: 'Foto de Voucher Bancario' })}
                         </p>
                         <p className="text-[10px] text-muted-foreground">
-                          {t('tpvConfig.modules.depositPhotoDesc', { defaultValue: 'Foto del comprobante de deposito al registrar salida' })}
+                          {t('tpvConfig.modules.depositPhotoDesc', {
+                            defaultValue: 'Foto del comprobante de deposito al registrar salida',
+                          })}
                         </p>
                       </div>
                     </div>
                     <Switch
                       checked={values.requireDepositPhoto}
                       disabled={!values.attendanceTracking}
-                      onCheckedChange={(checked) => onChange('requireDepositPhoto', checked)}
+                      onCheckedChange={checked => onChange('requireDepositPhoto', checked)}
                     />
                   </div>
                 </>

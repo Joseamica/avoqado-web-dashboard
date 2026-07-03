@@ -108,6 +108,8 @@ export type TpvSettingsUpdate = Partial<TpvSettings>
  */
 export interface VenueTpvSettings {
   attendanceTracking: boolean
+  // "Cambaceo": la TPV registra la ubicación del promotor cada hora (11:00–18:00)
+  trackPromoterLocation: boolean
   enableCashPayments: boolean
   enableCardPayments: boolean
   enableBarcodeScanner: boolean
@@ -124,6 +126,7 @@ export interface VenueTpvSettings {
 
 const DEFAULT_VENUE_TPV_SETTINGS: VenueTpvSettings = {
   attendanceTracking: false,
+  trackPromoterLocation: false,
   enableCashPayments: true,
   enableCardPayments: true,
   enableBarcodeScanner: true,

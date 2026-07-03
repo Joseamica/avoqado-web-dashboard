@@ -124,10 +124,7 @@ export interface ValidateDepositResult {
 /**
  * Get list of promoters for a venue
  */
-export const getPromoters = async (
-  venueId: string,
-  params?: { status?: string; search?: string }
-): Promise<PromotersListResponse> => {
+export const getPromoters = async (venueId: string, params?: { status?: string; search?: string }): Promise<PromotersListResponse> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/promoters`, { params })
   return response.data.data
 }
@@ -136,11 +133,32 @@ export const getPromoters = async (
  * Get detailed info for a single promoter
  * Backend route: GET /dashboard/venues/:venueId/promoters/:promoterId
  */
-export const getPromoterDetail = async (
-  venueId: string,
-  promoterId: string
-): Promise<PromoterDetail> => {
+export const getPromoterDetail = async (venueId: string, promoterId: string): Promise<PromoterDetail> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/promoters/${promoterId}`)
+  return response.data.data
+}
+
+/**
+ * Day route ("cambaceo") of a promoter: hourly location pings + latest live position.
+ * Backend route: GET /dashboard/venues/:venueId/promoters/:promoterId/track
+ */
+export interface PromoterTrackPoint {
+  lat: number
+  lng: number
+  accuracy: number | null
+  capturedAt: string
+  source: string
+}
+
+export interface PromoterTrack {
+  points: PromoterTrackPoint[]
+  latest: PromoterTrackPoint | null
+}
+
+export const getPromoterTrack = async (venueId: string, promoterId: string, date?: string): Promise<PromoterTrack> => {
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/promoters/${promoterId}/track`, {
+    params: date ? { date } : undefined,
+  })
   return response.data.data
 }
 
@@ -150,12 +168,9 @@ export const getPromoterDetail = async (
 export const getPromoterDeposits = async (
   venueId: string,
   promoterId: string,
-  params?: { status?: string; limit?: number }
+  params?: { status?: string; limit?: number },
 ): Promise<DepositsResponse> => {
-  const response = await api.get(
-    `/api/v1/dashboard/venues/${venueId}/promoters/${promoterId}/deposits`,
-    { params }
-  )
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/promoters/${promoterId}/deposits`, { params })
   return response.data.data
 }
 
@@ -166,11 +181,8 @@ export const validateDeposit = async (
   venueId: string,
   promoterId: string,
   depositId: string,
-  data: { action: 'approve' | 'reject'; notes?: string }
+  data: { action: 'approve' | 'reject'; notes?: string },
 ): Promise<ValidateDepositResult> => {
-  const response = await api.post(
-    `/api/v1/dashboard/venues/${venueId}/promoters/${promoterId}/deposits/${depositId}/approve`,
-    data
-  )
+  const response = await api.post(`/api/v1/dashboard/venues/${venueId}/promoters/${promoterId}/deposits/${depositId}/approve`, data)
   return response.data.data
 }
