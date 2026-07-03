@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Users, Trophy, Gift, Sparkles, TrendingUp, PauseCircle } from 'lucide-react'
+import { Users, Trophy, Gift, Sparkles, TrendingUp, PauseCircle, Pencil } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -33,6 +33,8 @@ import { cn } from '@/lib/utils'
 import HallOfFame from './components/HallOfFame'
 import RecentReferralsTable from './components/RecentReferralsTable'
 import TierRewardSummary from './components/TierRewardSummary'
+import TierRewardEditor from './components/TierRewardEditor'
+import type { TierRewardInput } from '@/types/referrals'
 
 // ─── Defaults (Mindform PDF reference values) ────────────────────────────────
 const DEFAULT_ACTIVATION = {
@@ -164,6 +166,7 @@ export default function ReferralsSettings() {
 
   const [pauseOpen, setPauseOpen] = useState(false)
   const [pauseReason, setPauseReason] = useState('')
+  const [editingTier, setEditingTier] = useState<1 | 2 | 3 | null>(null)
 
   // ── Queries ──────────────────────────────────────────────────────────────
   const { data: config, isLoading: configLoading } = useQuery({
@@ -192,17 +195,24 @@ export default function ReferralsSettings() {
 
   // ── Mutations ────────────────────────────────────────────────────────────
   const activateMutation = useMutation({
-    mutationFn: (data: FormData) =>
-      referralsService.activate(venueId!, {
+    mutationFn: (data: FormData) => {
+      // Send explicit per-tier rewards (spec D4) so new venues land with
+      // tierRewards populated from the start, not just the legacy flat percent
+      // fields (which the backend's activate schema silently strips anyway).
+      const tiers: TierRewardInput[] = [
+        { tierLevel: 1, rewardType: 'PERCENT_COUPON', recurrence: 'ONE_TIME', rewardPercent: data.tier1RewardPercent },
+        { tierLevel: 2, rewardType: 'PERCENT_COUPON', recurrence: 'ONE_TIME', rewardPercent: data.tier2RewardPercent },
+        { tierLevel: 3, rewardType: 'PERCENT_COUPON', recurrence: 'ONE_TIME', rewardPercent: data.tier3RewardPercent },
+      ]
+      return referralsService.activate(venueId!, {
         newCustomerDiscountPercent: data.newCustomerDiscountPercent,
         tier1ReferralsRequired: data.tier1ReferralsRequired,
-        tier1RewardPercent: data.tier1RewardPercent,
         tier2ReferralsRequired: data.tier2ReferralsRequired,
-        tier2RewardPercent: data.tier2RewardPercent,
         tier3ReferralsRequired: data.tier3ReferralsRequired,
-        tier3RewardPercent: data.tier3RewardPercent,
         rewardCouponExpiryDays: data.rewardCouponExpiryDays,
-      }),
+        tiers,
+      })
+    },
     onSuccess: () => {
       toast({ title: t('activate.success') })
       queryClient.invalidateQueries({ queryKey: ['referrals-config', venueId] })
@@ -284,6 +294,19 @@ export default function ReferralsSettings() {
       ? [summary.topReferrer.firstName, summary.topReferrer.lastName].filter(Boolean).join(' ').trim() || '—'
       : '—'
 
+    // Thresholds per level — used both for display and to bound the "Editar
+    // nivel" editor's ordering validation (tier1 < tier2 < tier3).
+    const tierThresholds: Record<1 | 2 | 3, number | undefined> = {
+      1: config?.tier1ReferralsRequired,
+      2: config?.tier2ReferralsRequired,
+      3: config?.tier3ReferralsRequired,
+    }
+    const tierLegacyPercents: Record<1 | 2 | 3, number | undefined> = {
+      1: config?.tier1RewardPercent,
+      2: config?.tier2RewardPercent,
+      3: config?.tier3RewardPercent,
+    }
+
     return (
       <FeatureGate feature="REFERRAL_PROGRAM">
       <div className="p-6">
@@ -348,55 +371,54 @@ export default function ReferralsSettings() {
                     // New: natural-language read-only summary (spec D4). Only used once the
                     // backend returns `tierRewards` — legacy venues keep the table below untouched.
                     ([1, 2, 3] as const).map(level => (
-                      <TierRewardSummary
-                        key={level}
-                        venueId={venueId!}
-                        tierLevel={level}
-                        referralsRequired={
-                          level === 1
-                            ? config?.tier1ReferralsRequired
-                            : level === 2
-                              ? config?.tier2ReferralsRequired
-                              : config?.tier3ReferralsRequired
-                        }
-                        legacyRewardPercent={
-                          level === 1
-                            ? config?.tier1RewardPercent
-                            : level === 2
-                              ? config?.tier2RewardPercent
-                              : config?.tier3RewardPercent
-                        }
-                        tierRewards={config?.tierRewards ?? []}
-                      />
+                      <div key={level} className="flex items-center gap-2 pr-2">
+                        <div className="flex-1 min-w-0">
+                          <TierRewardSummary
+                            venueId={venueId!}
+                            tierLevel={level}
+                            referralsRequired={tierThresholds[level]}
+                            legacyRewardPercent={tierLegacyPercents[level]}
+                            tierRewards={config?.tierRewards ?? []}
+                          />
+                        </div>
+                        <PermissionGate permission="referral:configure">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="shrink-0"
+                            onClick={() => setEditingTier(level)}
+                            data-tour={`referrals-tier${level}-edit-btn`}
+                          >
+                            <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                            {t('activate.editTier')}
+                          </Button>
+                        </PermissionGate>
+                      </div>
                     ))
                   ) : (
                     <>
-                      <div className="grid grid-cols-3 px-3 py-2 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                      <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 px-3 py-2 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
                         <span>{t('activate.tierLevel')}</span>
                         <span>{t('activate.tierReferralsRequired')}</span>
                         <span className="text-right">{t('activate.tierRewardPercent')}</span>
+                        <span />
                       </div>
-                      {[
-                        {
-                          level: 1,
-                          ref: config?.tier1ReferralsRequired,
-                          reward: config?.tier1RewardPercent,
-                        },
-                        {
-                          level: 2,
-                          ref: config?.tier2ReferralsRequired,
-                          reward: config?.tier2RewardPercent,
-                        },
-                        {
-                          level: 3,
-                          ref: config?.tier3ReferralsRequired,
-                          reward: config?.tier3RewardPercent,
-                        },
-                      ].map(row => (
-                        <div key={row.level} className="grid grid-cols-3 px-3 py-2.5 text-sm">
-                          <span className="font-semibold">{row.level}</span>
-                          <span>{row.ref ?? '—'}</span>
-                          <span className="text-right font-medium">{row.reward ?? '—'}%</span>
+                      {([1, 2, 3] as const).map(level => (
+                        <div key={level} className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 px-3 py-2.5 text-sm items-center">
+                          <span className="font-semibold">{level}</span>
+                          <span>{tierThresholds[level] ?? '—'}</span>
+                          <span className="text-right font-medium">{tierLegacyPercents[level] ?? '—'}%</span>
+                          <PermissionGate permission="referral:configure">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingTier(level)}
+                              data-tour={`referrals-tier${level}-edit-btn`}
+                            >
+                              <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                              {t('activate.editTier')}
+                            </Button>
+                          </PermissionGate>
                         </div>
                       ))}
                     </>
@@ -484,6 +506,20 @@ export default function ReferralsSettings() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Per-tier reward editor (spec D4 "Editar nivel") */}
+        {editingTier !== null && (
+          <TierRewardEditor
+            venueId={venueId!}
+            tierLevel={editingTier}
+            initialReferralsRequired={tierThresholds[editingTier]}
+            initialRewards={(config?.tierRewards ?? []).filter(r => r.tierLevel === editingTier && r.active)}
+            legacyRewardPercent={tierLegacyPercents[editingTier]}
+            minReferralsRequired={editingTier > 1 ? tierThresholds[(editingTier - 1) as 1 | 2] : undefined}
+            maxReferralsRequired={editingTier < 3 ? tierThresholds[(editingTier + 1) as 2 | 3] : undefined}
+            onClose={() => setEditingTier(null)}
+          />
+        )}
       </div>
       </FeatureGate>
     )

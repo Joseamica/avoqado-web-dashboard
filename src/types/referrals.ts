@@ -119,13 +119,22 @@ export interface ReferralProgramConfig {
 export interface ActivateReferralProgramRequest {
   newCustomerDiscountPercent: number
   tier1ReferralsRequired: number
-  tier1RewardPercent: number
   tier2ReferralsRequired: number
-  tier2RewardPercent: number
   tier3ReferralsRequired: number
-  tier3RewardPercent: number
   rewardCouponExpiryDays: number
   codePrefix?: string
+  /**
+   * @deprecated The backend's activate Zod schema never required these flat
+   * per-tier percent fields (only the TS interface used to carry them) — it
+   * strips any unrecognized keys. Per-tier rewards are configured via `tiers`
+   * below. Kept optional here only so old call sites that still pass them
+   * don't break; new code should omit them and send `tiers` instead.
+   */
+  tier1RewardPercent?: number
+  /** @deprecated see `tier1RewardPercent` */
+  tier2RewardPercent?: number
+  /** @deprecated see `tier1RewardPercent` */
+  tier3RewardPercent?: number
   /** Per-tier reward config — same shape accepted by PATCH /config. Omit/empty leaves defaults. */
   tiers?: TierRewardInput[]
 }

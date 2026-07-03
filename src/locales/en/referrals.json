@@ -20,7 +20,39 @@
     "rewardPermanentDiscount": "{{percent}}% permanent on all purchases",
     "rewardFreeProduct": "{{quantity}}× {{product}} free",
     "rewardMonthlySuffix": " every month",
-    "rewardProductFallback": "product"
+    "rewardProductFallback": "product",
+    "editTier": "Edit level"
+  },
+  "editor": {
+    "title": "Edit Level {{level}}",
+    "description": "Adjust this level's referral threshold and rewards. Changes only affect this level.",
+    "rewardIndex": "Reward {{index}}",
+    "rewardType": "Reward type",
+    "rewardTypeCoupon": "Discount coupon",
+    "rewardTypePermanent": "Permanent discount",
+    "rewardTypePermanentNote": "Requires a terminal update (coming soon)",
+    "rewardTypeFreeProduct": "Free product",
+    "rewardProduct": "Product",
+    "rewardProductPlaceholder": "Search product...",
+    "rewardQuantity": "Quantity",
+    "rewardRecurrence": "Recurrence",
+    "recurrenceOnce": "Once",
+    "recurrenceMonthly": "Every month",
+    "rewardManualHint": "Manually handed over by staff — not applied automatically at checkout.",
+    "addReward": "Add another reward",
+    "save": "Save changes",
+    "saving": "Saving...",
+    "success": "Level updated successfully",
+    "error": "Could not save the level",
+    "errors": {
+      "referralsRequired": "Enter a valid number of referrals required (minimum 1)",
+      "thresholdTooLow": "Must be greater than {{min}} (the previous level's threshold)",
+      "thresholdTooHigh": "Must be less than {{max}} (the next level's threshold)",
+      "atLeastOneReward": "Add at least one reward for this level",
+      "percentInvalid": "The percentage must be between 0 and 100",
+      "productRequired": "Select a product for this reward",
+      "quantityInvalid": "Quantity must be at least 1"
+    }
   },
   "active": {
     "banner": "✓ Active since {{date}}",
