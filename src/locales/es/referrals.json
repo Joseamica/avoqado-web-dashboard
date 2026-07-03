@@ -14,7 +14,13 @@
     "submit": "Activar programa de referidos",
     "submitting": "Activando...",
     "success": "Programa activado correctamente",
-    "error": "No se pudo activar el programa"
+    "error": "No se pudo activar el programa",
+    "tierSummaryLine": "Nivel {{level}} · {{referralsCount}} referidos → {{rewards}}",
+    "rewardPercentCoupon": "{{percent}}% en su próxima compra",
+    "rewardPermanentDiscount": "{{percent}}% permanente en todas sus compras",
+    "rewardFreeProduct": "{{quantity}}× {{product}} gratis",
+    "rewardMonthlySuffix": " cada mes",
+    "rewardProductFallback": "producto"
   },
   "active": {
     "banner": "✓ Activo desde {{date}}",

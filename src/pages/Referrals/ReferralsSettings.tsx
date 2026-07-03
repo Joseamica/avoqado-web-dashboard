@@ -32,6 +32,7 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { cn } from '@/lib/utils'
 import HallOfFame from './components/HallOfFame'
 import RecentReferralsTable from './components/RecentReferralsTable'
+import TierRewardSummary from './components/TierRewardSummary'
 
 // ─── Defaults (Mindform PDF reference values) ────────────────────────────────
 const DEFAULT_ACTIVATION = {
@@ -278,6 +279,7 @@ export default function ReferralsSettings() {
   // ── ACTIVE STATE ─────────────────────────────────────────────────────────
   if (isActive) {
     const conversionPct = summary ? Math.round((summary.conversionRate ?? 0) * 100) : 0
+    const hasTierRewards = (config?.tierRewards?.length ?? 0) > 0
     const topReferrerName = summary?.topReferrer
       ? [summary.topReferrer.firstName, summary.topReferrer.lastName].filter(Boolean).join(' ').trim() || '—'
       : '—'
@@ -342,34 +344,63 @@ export default function ReferralsSettings() {
 
                 {/* Tier rows */}
                 <div className="rounded-xl border border-input divide-y divide-input">
-                  <div className="grid grid-cols-3 px-3 py-2 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-                    <span>{t('activate.tierLevel')}</span>
-                    <span>{t('activate.tierReferralsRequired')}</span>
-                    <span className="text-right">{t('activate.tierRewardPercent')}</span>
-                  </div>
-                  {[
-                    {
-                      level: 1,
-                      ref: config?.tier1ReferralsRequired,
-                      reward: config?.tier1RewardPercent,
-                    },
-                    {
-                      level: 2,
-                      ref: config?.tier2ReferralsRequired,
-                      reward: config?.tier2RewardPercent,
-                    },
-                    {
-                      level: 3,
-                      ref: config?.tier3ReferralsRequired,
-                      reward: config?.tier3RewardPercent,
-                    },
-                  ].map(row => (
-                    <div key={row.level} className="grid grid-cols-3 px-3 py-2.5 text-sm">
-                      <span className="font-semibold">{row.level}</span>
-                      <span>{row.ref ?? '—'}</span>
-                      <span className="text-right font-medium">{row.reward ?? '—'}%</span>
-                    </div>
-                  ))}
+                  {hasTierRewards ? (
+                    // New: natural-language read-only summary (spec D4). Only used once the
+                    // backend returns `tierRewards` — legacy venues keep the table below untouched.
+                    ([1, 2, 3] as const).map(level => (
+                      <TierRewardSummary
+                        key={level}
+                        venueId={venueId!}
+                        tierLevel={level}
+                        referralsRequired={
+                          level === 1
+                            ? config?.tier1ReferralsRequired
+                            : level === 2
+                              ? config?.tier2ReferralsRequired
+                              : config?.tier3ReferralsRequired
+                        }
+                        legacyRewardPercent={
+                          level === 1
+                            ? config?.tier1RewardPercent
+                            : level === 2
+                              ? config?.tier2RewardPercent
+                              : config?.tier3RewardPercent
+                        }
+                        tierRewards={config?.tierRewards ?? []}
+                      />
+                    ))
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-3 px-3 py-2 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                        <span>{t('activate.tierLevel')}</span>
+                        <span>{t('activate.tierReferralsRequired')}</span>
+                        <span className="text-right">{t('activate.tierRewardPercent')}</span>
+                      </div>
+                      {[
+                        {
+                          level: 1,
+                          ref: config?.tier1ReferralsRequired,
+                          reward: config?.tier1RewardPercent,
+                        },
+                        {
+                          level: 2,
+                          ref: config?.tier2ReferralsRequired,
+                          reward: config?.tier2RewardPercent,
+                        },
+                        {
+                          level: 3,
+                          ref: config?.tier3ReferralsRequired,
+                          reward: config?.tier3RewardPercent,
+                        },
+                      ].map(row => (
+                        <div key={row.level} className="grid grid-cols-3 px-3 py-2.5 text-sm">
+                          <span className="font-semibold">{row.level}</span>
+                          <span>{row.ref ?? '—'}</span>
+                          <span className="text-right font-medium">{row.reward ?? '—'}%</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </div>
 
                 {/* Coupon expiry */}

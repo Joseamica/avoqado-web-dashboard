@@ -14,7 +14,13 @@
     "submit": "Activate referral program",
     "submitting": "Activating...",
     "success": "Program activated successfully",
-    "error": "Could not activate the program"
+    "error": "Could not activate the program",
+    "tierSummaryLine": "Level {{level}} · {{referralsCount}} referrals → {{rewards}}",
+    "rewardPercentCoupon": "{{percent}}% on their next purchase",
+    "rewardPermanentDiscount": "{{percent}}% permanent on all purchases",
+    "rewardFreeProduct": "{{quantity}}× {{product}} free",
+    "rewardMonthlySuffix": " every month",
+    "rewardProductFallback": "product"
   },
   "active": {
     "banner": "✓ Active since {{date}}",
