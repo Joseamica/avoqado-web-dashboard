@@ -91,7 +91,19 @@
     "activateError": "Could not generate the code",
     "activateSuccess": "Code generated successfully",
     "loadingReferrals": "Loading referrals...",
-    "noReferralsYet": "Has not referred anyone yet"
+    "noReferralsYet": "Has not referred anyone yet",
+    "rewardBadgeCoupon": "Coupon {{percent}}%",
+    "rewardBadgeCouponWithCode": "Coupon {{percent}}% ({{code}})",
+    "rewardBadgePermanent": "{{percent}}% permanent",
+    "rewardBadgeProduct": "Free product ×{{quantity}}",
+    "pendingCourtesyTitle": "Pending courtesy",
+    "pendingCourtesyItem": "{{quantity}}× {{product}} for {{name}}",
+    "fulfillButton": "Mark as delivered",
+    "fulfillConfirmTitle": "Mark courtesy as delivered",
+    "fulfillConfirmDescription": "Confirm you already handed this product to the customer. This action cannot be undone.",
+    "fulfillSuccess": "Courtesy marked as delivered",
+    "fulfillError": "Could not mark the courtesy",
+    "fulfillErrorAlreadyHandled": "This courtesy was already processed. Refresh the page to see its current status."
   },
   "hallOfFame": {
     "title": "Hall of Fame",

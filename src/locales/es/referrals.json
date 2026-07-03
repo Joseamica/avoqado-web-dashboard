@@ -91,7 +91,19 @@
     "activateError": "No se pudo generar el código",
     "activateSuccess": "Código generado correctamente",
     "loadingReferrals": "Cargando referidos...",
-    "noReferralsYet": "Aún no ha referido a nadie"
+    "noReferralsYet": "Aún no ha referido a nadie",
+    "rewardBadgeCoupon": "Cupón {{percent}}%",
+    "rewardBadgeCouponWithCode": "Cupón {{percent}}% ({{code}})",
+    "rewardBadgePermanent": "{{percent}}% permanente",
+    "rewardBadgeProduct": "Producto gratis ×{{quantity}}",
+    "pendingCourtesyTitle": "Cortesía pendiente",
+    "pendingCourtesyItem": "{{quantity}}× {{product}} para {{name}}",
+    "fulfillButton": "Marcar entregada",
+    "fulfillConfirmTitle": "Marcar cortesía como entregada",
+    "fulfillConfirmDescription": "Confirma que ya le entregaste este producto al cliente. Esta acción no se puede deshacer.",
+    "fulfillSuccess": "Cortesía marcada como entregada",
+    "fulfillError": "No se pudo marcar la cortesía",
+    "fulfillErrorAlreadyHandled": "Esta cortesía ya fue procesada. Actualiza la página para ver el estado actual."
   },
   "hallOfFame": {
     "title": "Hall of Fame",
