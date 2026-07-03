@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { ChevronLeft, ChevronRight, Table as TableIcon } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Table as TableIcon } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -22,8 +22,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useVenueDateTime } from '@/utils/datetime'
+import { cn } from '@/lib/utils'
 import referralsService from '@/services/referrals.service'
-import type { ReferralStatus } from '@/types/referrals'
+import type { ReferralStatus, ReferralRewardGrantView } from '@/types/referrals'
 
 interface RecentReferralsTableProps {
   venueId: string
@@ -41,6 +42,65 @@ const STATUS_BADGE_CLASS: Record<ReferralStatus, string> = {
 function fullName(firstName: string | null, lastName: string | null, fallback: string): string {
   const combined = [firstName, lastName].filter(Boolean).join(' ').trim()
   return combined || fallback
+}
+
+// ─── Multi-reward chips (Task 5 — mirrors `ReferralCard`'s `RewardBadge`) ──
+// Kept as its own small component rather than importing `ReferralCard`'s
+// `RewardBadge`: the copy is table-scoped (`table.rewardChip*`, compact —
+// "X% perm." vs the card's full "X% permanente") to fit the dense row
+// layout, and the shapes/testids differ enough that sharing one component
+// would mean threading table-specific i18n keys through the customer-card
+// file. The status→style mapping (REVOKED muted+strikethrough, REDEEMED /
+// MANUAL_FULFILLED check, MANUAL_PENDING amber) is duplicated intentionally
+// — it's a handful of className lines, not worth extracting for one caller.
+
+type TFunction = (key: string, options?: Record<string, unknown>) => string
+
+function formatPercentValue(value: string | number | null | undefined): string {
+  if (value == null) return '0'
+  const n = Number(value)
+  return Number.isFinite(n) ? n.toString() : String(value)
+}
+
+function RewardChip({ reward, t }: { reward: ReferralRewardGrantView; t: TFunction }) {
+  const label = (() => {
+    switch (reward.rewardType) {
+      case 'PERCENT_COUPON':
+        return reward.couponCode
+          ? t('table.rewardChipCouponWithCode', {
+              percent: formatPercentValue(reward.rewardPercent),
+              code: reward.couponCode,
+            })
+          : t('table.rewardChipCoupon', { percent: formatPercentValue(reward.rewardPercent) })
+      case 'PERMANENT_DISCOUNT':
+        return t('table.rewardChipPermanent', { percent: formatPercentValue(reward.rewardPercent) })
+      case 'FREE_PRODUCT':
+        return t('table.rewardChipProduct', { quantity: reward.rewardQuantity })
+      default:
+        return ''
+    }
+  })()
+
+  const showCheck = reward.status === 'REDEEMED' || reward.status === 'MANUAL_FULFILLED'
+
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        'text-[11px] font-normal gap-1',
+        reward.status === 'REDEEMED' && 'text-muted-foreground',
+        reward.status === 'REVOKED' && 'text-muted-foreground line-through opacity-70',
+        reward.status === 'MANUAL_PENDING' &&
+          'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-900/40 dark:text-amber-200 dark:border-amber-800',
+        reward.status === 'MANUAL_FULFILLED' &&
+          'text-green-700 dark:text-green-300 border-green-300 dark:border-green-800',
+      )}
+      data-testid={`recent-referrals-reward-chip-${reward.id}`}
+    >
+      {showCheck && <Check className="h-3 w-3" aria-hidden="true" />}
+      {label}
+    </Badge>
+  )
 }
 
 export function RecentReferralsTable({
@@ -165,9 +225,20 @@ export function RecentReferralsTable({
                       <Badge className={STATUS_BADGE_CLASS[item.status]}>{statusLabel}</Badge>
                     </TableCell>
                     <TableCell className="text-right text-sm tabular-nums">
-                      {item.rewardDiscount && item.status === 'QUALIFIED'
-                        ? `${item.rewardDiscount.value}%`
-                        : t('table.noRewardYet')}
+                      {item.rewards && item.rewards.length > 0 ? (
+                        <div
+                          className="flex flex-wrap justify-end gap-1"
+                          data-testid={`recent-referrals-reward-chips-${item.id}`}
+                        >
+                          {item.rewards.map(reward => (
+                            <RewardChip key={reward.id} reward={reward} t={t} />
+                          ))}
+                        </div>
+                      ) : item.rewardDiscount && item.status === 'QUALIFIED' ? (
+                        `${item.rewardDiscount.value}%`
+                      ) : (
+                        t('table.noRewardYet')
+                      )}
                     </TableCell>
                   </TableRow>
                 )

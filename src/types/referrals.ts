@@ -61,6 +61,14 @@ export interface ReferralRewardGrantView {
   rewardQuantity: number
   status: ReferralGrantStatus
   couponCode: string | null
+  /**
+   * OPTIONAL — only present once the grant has been manually fulfilled
+   * (MANUAL_FULFILLED FREE_PRODUCT courtesies). Included in both list
+   * projections (customer history + paginated referrals list) as of
+   * avoqado-server develop `561d09db`; a venue on an older backend deploy
+   * may omit it — treat as "no date available" when absent.
+   */
+  fulfilledAt?: string | null
 }
 
 /**
@@ -194,9 +202,9 @@ export interface ReferralRecord {
   rewardDiscount: { id: string; value: number; active: boolean } | null
   /**
    * OPTIONAL — a venue on an older backend deploy won't send this field.
-   * Fall back to `rewardDiscount` above when missing/empty. Only populated
-   * on `GET /referrals/customers/:customerId/referrals` rows (not on the
-   * paginated `GET /referrals` list).
+   * Fall back to `rewardDiscount` above when missing/empty. Populated on
+   * `GET /referrals/customers/:customerId/referrals` rows AND, as of
+   * avoqado-server develop `561d09db`, the paginated `GET /referrals` list.
    */
   rewards?: ReferralRewardGrantView[]
 }

@@ -29,7 +29,7 @@ vi.mock('@/utils/datetime', () => ({
 }))
 
 // ─── permissions ────────────────────────────────────────────────────────────
-const canMock = vi.fn(() => true)
+const canMock = vi.fn((_perm?: string) => true)
 vi.mock('@/hooks/use-access', () => ({
   useAccess: () => ({ can: canMock, canAny: () => true, canAll: () => true }),
 }))
