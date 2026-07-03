@@ -2,11 +2,13 @@ import api from '@/api'
 import type {
   ReferralProgramConfig,
   ActivateReferralProgramRequest,
+  UpdateReferralConfigRequest,
   ReferralSummary,
   HallOfFameEntry,
   ListReferralsParams,
   PaginatedReferrals,
   ReferralRecord,
+  ReferralRewardGrant,
 } from '@/types/referrals'
 
 /**
@@ -32,6 +34,16 @@ export const referralsService = {
    */
   async activate(venueId: string, data: ActivateReferralProgramRequest): Promise<{ ok: true }> {
     const response = await api.post(`/api/v1/dashboard/venues/${venueId}/referrals/activate`, data)
+    return response.data
+  },
+
+  /**
+   * PATCH /config — partial update of the program config, incl. per-tier
+   * reward config (`tiers[]`). Only the fields provided are changed; `tiers`,
+   * when present, versions ONLY the tier levels it lists (others untouched).
+   */
+  async updateConfig(venueId: string, patch: UpdateReferralConfigRequest): Promise<{ ok: true }> {
+    const response = await api.patch(`/api/v1/dashboard/venues/${venueId}/referrals/config`, patch)
     return response.data
   },
 
@@ -95,6 +107,21 @@ export const referralsService = {
   ): Promise<{ referralCode: string }> {
     const response = await api.post(
       `/api/v1/dashboard/venues/${venueId}/referrals/customers/${customerId}/generate-code`,
+    )
+    return response.data
+  },
+
+  // ==================== GRANTS ====================
+
+  /**
+   * POST /grants/:grantId/fulfill — mark a MANUAL_PENDING FREE_PRODUCT courtesy
+   * as handed over (MANUAL_FULFILLED). Requires `referral:fulfill-courtesy`.
+   * Throws (404) if the grant doesn't exist for this venue, (409) if it isn't
+   * currently MANUAL_PENDING.
+   */
+  async fulfillGrant(venueId: string, grantId: string): Promise<ReferralRewardGrant> {
+    const response = await api.post(
+      `/api/v1/dashboard/venues/${venueId}/referrals/grants/${grantId}/fulfill`,
     )
     return response.data
   },

@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMemo, useState } from 'react'
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
+  Check,
   ChevronDown,
   ChevronUp,
   Copy,
@@ -15,12 +16,15 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Progress } from '@/components/ui/progress'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { PermissionGate } from '@/components/PermissionGate'
 import { useToast } from '@/hooks/use-toast'
 import referralsService from '@/services/referrals.service'
+import { getProduct } from '@/services/menu.service'
 import { useVenueDateTime } from '@/utils/datetime'
 import { getIntlLocale } from '@/utils/i18n-locale'
-import type { ReferralTier } from '@/types/referrals'
+import { cn } from '@/lib/utils'
+import type { ReferralTier, ReferralRewardGrantView } from '@/types/referrals'
 
 // TODO: tier thresholds (7 / 12 / 20) are hardcoded to the Mindform defaults.
 // Ideally these come from the ReferralProgramConfig fetched at page level
@@ -72,13 +76,121 @@ function getNextTierInfo(count: number): NextTierInfo {
   return { level: 3, threshold: TIER_THRESHOLDS.TIER_3, reached: true }
 }
 
+// ─── Reward grant badges (rewards[] per referral — Task 4) ─────────────────
+
+type TFunction = (key: string, options?: Record<string, unknown>) => string
+
+function formatPercentValue(value: string | number | null | undefined): string {
+  if (value == null) return '0'
+  const n = Number(value)
+  return Number.isFinite(n) ? n.toString() : String(value)
+}
+
+/** One badge per `ReferralRewardGrantView`, styled by `status` (spec: ISSUED
+ * normal, REDEEMED check+muted, REVOKED strikethrough+muted, MANUAL_PENDING
+ * amber, MANUAL_FULFILLED check). `fulfilledDate`, when present, is ONLY
+ * known for grants fulfilled in THIS session (the list endpoint doesn't
+ * return `fulfilledAt` — see `fulfilledDates` state below) — "date if
+ * available" degrades gracefully to no date otherwise. */
+function RewardBadge({
+  reward,
+  t,
+  fulfilledDate,
+  formatDate,
+}: {
+  reward: ReferralRewardGrantView
+  t: TFunction
+  fulfilledDate?: string
+  formatDate: (date: string) => string
+}) {
+  const label = (() => {
+    switch (reward.rewardType) {
+      case 'PERCENT_COUPON':
+        return reward.couponCode
+          ? t('card.rewardBadgeCouponWithCode', {
+              percent: formatPercentValue(reward.rewardPercent),
+              code: reward.couponCode,
+            })
+          : t('card.rewardBadgeCoupon', { percent: formatPercentValue(reward.rewardPercent) })
+      case 'PERMANENT_DISCOUNT':
+        return t('card.rewardBadgePermanent', { percent: formatPercentValue(reward.rewardPercent) })
+      case 'FREE_PRODUCT':
+        return t('card.rewardBadgeProduct', { quantity: reward.rewardQuantity })
+      default:
+        return ''
+    }
+  })()
+
+  const showCheck = reward.status === 'REDEEMED' || reward.status === 'MANUAL_FULFILLED'
+  const dateSuffix =
+    reward.status === 'MANUAL_FULFILLED' && fulfilledDate
+      ? ` · ${formatDate(fulfilledDate)}`
+      : ''
+
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        'text-[11px] font-normal gap-1',
+        reward.status === 'REDEEMED' && 'text-muted-foreground',
+        reward.status === 'REVOKED' && 'text-muted-foreground line-through opacity-70',
+        reward.status === 'MANUAL_PENDING' &&
+          'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-900/40 dark:text-amber-200 dark:border-amber-800',
+        reward.status === 'MANUAL_FULFILLED' &&
+          'text-green-700 dark:text-green-300 border-green-300 dark:border-green-800',
+      )}
+      data-testid={`referral-card-reward-badge-${reward.id}`}
+    >
+      {showCheck && <Check className="h-3 w-3" aria-hidden="true" />}
+      {label}
+      {dateSuffix}
+    </Badge>
+  )
+}
+
+/** Product ids for `FREE_PRODUCT` grants pending manual fulfillment — resolved
+ * to display names so staff know exactly what to hand over. Same query-key
+ * shape as `TierRewardSummary`'s `useProductNames` so the cache is shared. */
+function usePendingProductNames(venueId: string, productIds: string[]): Record<string, string> {
+  const uniqueIds = Array.from(new Set(productIds.filter(Boolean)))
+
+  const results = useQueries({
+    queries: uniqueIds.map(id => ({
+      queryKey: ['product-name', venueId, id],
+      queryFn: () => getProduct(venueId, id),
+      enabled: !!venueId && !!id,
+      staleTime: 5 * 60 * 1000,
+    })),
+  })
+
+  const map: Record<string, string> = {}
+  uniqueIds.forEach((id, idx) => {
+    const name = results[idx]?.data?.name
+    if (name) map[id] = name
+  })
+  return map
+}
+
+interface PendingCourtesy {
+  grantId: string
+  referredCustomerName: string
+  rewardProductId: string | null
+  rewardQuantity: number
+}
+
 export function ReferralCard({ customer, venueId, venueName }: ReferralCardProps) {
   const { t, i18n } = useTranslation('referrals')
+  const { t: tCommon } = useTranslation()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { formatDate } = useVenueDateTime()
 
   const [showReferralsList, setShowReferralsList] = useState(false)
+  const [confirmingGrantId, setConfirmingGrantId] = useState<string | null>(null)
+  // Grants fulfilled DURING this session — the list endpoint never returns
+  // `fulfilledAt`, so this is the only source for "check + date" on a
+  // freshly-fulfilled MANUAL_FULFILLED badge (spec: "date if available").
+  const [fulfilledDates, setFulfilledDates] = useState<Record<string, string>>({})
 
   const referralCount = customer.referralCount ?? 0
   const hasCode = !!customer.referralCode
@@ -89,11 +201,68 @@ export function ReferralCard({ customer, venueId, venueName }: ReferralCardProps
     ? 100
     : Math.min(100, Math.round((referralCount / nextTier.threshold) * 100))
 
-  // ─── Customer referrals list (lazy on first expand) ────────────
+  // ─── Customer referrals list ────────────────────────────────────
+  // Fetched whenever the customer has a code (not gated by `showReferralsList`
+  // anymore) — the "Cortesía pendiente" block below must be visible without
+  // the owner having to expand the collapsible history first.
   const { data: referralsList, isLoading: referralsLoading } = useQuery({
     queryKey: ['customer-referrals', venueId, customer.id],
     queryFn: () => referralsService.getCustomerReferrals(venueId, customer.id),
-    enabled: showReferralsList && hasCode,
+    enabled: hasCode,
+  })
+
+  // ─── Pending courtesies (FREE_PRODUCT grants awaiting manual handoff) ───
+  const pendingCourtesies: PendingCourtesy[] = useMemo(() => {
+    if (!referralsList) return []
+    const items: PendingCourtesy[] = []
+    referralsList.forEach(ref => {
+      ref.rewards?.forEach(reward => {
+        if (reward.rewardType === 'FREE_PRODUCT' && reward.status === 'MANUAL_PENDING') {
+          const name =
+            [ref.referredCustomer.firstName, ref.referredCustomer.lastName].filter(Boolean).join(' ').trim() ||
+            t('hallOfFame.unknown')
+          items.push({
+            grantId: reward.id,
+            referredCustomerName: name,
+            rewardProductId: reward.rewardProductId,
+            rewardQuantity: reward.rewardQuantity,
+          })
+        }
+      })
+    })
+    return items
+  }, [referralsList, t])
+
+  const pendingProductIds = pendingCourtesies
+    .filter(item => item.rewardProductId)
+    .map(item => item.rewardProductId as string)
+  const pendingProductNames = usePendingProductNames(venueId, pendingProductIds)
+
+  // ─── Fulfill a pending courtesy (Task 4) ─────────────────────────
+  const fulfillMutation = useMutation({
+    mutationFn: (grantId: string) => referralsService.fulfillGrant(venueId, grantId),
+    onSuccess: grant => {
+      toast({ title: t('card.fulfillSuccess') })
+      if (grant.fulfilledAt) {
+        setFulfilledDates(prev => ({ ...prev, [grant.id]: grant.fulfilledAt as string }))
+      }
+      queryClient.invalidateQueries({ queryKey: ['customer-referrals', venueId, customer.id] })
+    },
+    onError: (error: unknown) => {
+      const responseData =
+        error && typeof error === 'object' && 'response' in error
+          ? (error as { response?: { data?: { error?: string; message?: string } } }).response?.data
+          : undefined
+      const description =
+        responseData?.error === 'GRANT_NO_PENDIENTE'
+          ? t('card.fulfillErrorAlreadyHandled')
+          : responseData?.message || responseData?.error
+      toast({
+        title: t('card.fulfillError'),
+        description,
+        variant: 'destructive',
+      })
+    },
   })
 
   // ─── Activate code mutation (State C) ────────────────────────────
@@ -272,6 +441,53 @@ export function ReferralCard({ customer, venueId, venueName }: ReferralCardProps
         )}
       </div>
 
+      {/* Cortesía pendiente — FREE_PRODUCT grants awaiting manual handoff */}
+      {pendingCourtesies.length > 0 && (
+        <div className="rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-3 mb-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Gift className="h-3.5 w-3.5 text-amber-700 dark:text-amber-300" />
+            <h4 className="text-xs font-semibold text-amber-800 dark:text-amber-200">
+              {t('card.pendingCourtesyTitle')}
+            </h4>
+          </div>
+          <ul className="space-y-1.5" data-testid="referral-card-pending-courtesies">
+            {pendingCourtesies.map(item => {
+              const productName =
+                (item.rewardProductId && pendingProductNames[item.rewardProductId]) ||
+                t('activate.rewardProductFallback')
+              const isFulfillingThis = fulfillMutation.isPending && fulfillMutation.variables === item.grantId
+              return (
+                <li
+                  key={item.grantId}
+                  className="flex items-center justify-between gap-2 text-xs"
+                  data-testid={`referral-card-pending-item-${item.grantId}`}
+                >
+                  <span className="truncate">
+                    {t('card.pendingCourtesyItem', {
+                      quantity: item.rewardQuantity,
+                      product: productName,
+                      name: item.referredCustomerName,
+                    })}
+                  </span>
+                  <PermissionGate permission="referral:fulfill-courtesy">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 h-7 text-xs cursor-pointer"
+                      onClick={() => setConfirmingGrantId(item.grantId)}
+                      disabled={isFulfillingThis}
+                      data-testid={`referral-card-fulfill-btn-${item.grantId}`}
+                    >
+                      {t('card.fulfillButton')}
+                    </Button>
+                  </PermissionGate>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+
       {/* Referred by */}
       {referredByName && (
         <p className="text-xs text-muted-foreground mb-2">
@@ -320,30 +536,48 @@ export function ReferralCard({ customer, venueId, venueName }: ReferralCardProps
                     return (
                       <li
                         key={ref.id}
-                        className="flex items-center justify-between text-xs px-2 py-1.5 rounded-md bg-muted/40"
+                        className="flex flex-col gap-1.5 text-xs px-2 py-1.5 rounded-md bg-muted/40"
                       >
-                        <span className="truncate">{refName}</span>
-                        <span className="flex items-center gap-1.5 shrink-0">
-                          <span className="text-muted-foreground">{formatDate(ref.createdAt)}</span>
-                          <Badge
-                            variant="outline"
-                            className={
-                              ref.status === 'QUALIFIED'
-                                ? 'text-green-700 dark:text-green-300'
-                                : ref.status === 'VOID'
-                                  ? 'text-red-700 dark:text-red-300'
-                                  : 'text-amber-700 dark:text-amber-300'
-                            }
-                          >
-                            {t(
-                              ref.status === 'QUALIFIED'
-                                ? 'table.statusQualified'
-                                : ref.status === 'VOID'
-                                  ? 'table.statusVoid'
-                                  : 'table.statusPending',
-                            )}
-                          </Badge>
-                        </span>
+                        <div className="flex items-center justify-between">
+                          <span className="truncate">{refName}</span>
+                          <span className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-muted-foreground">{formatDate(ref.createdAt)}</span>
+                            <Badge
+                              variant="outline"
+                              className={
+                                ref.status === 'QUALIFIED'
+                                  ? 'text-green-700 dark:text-green-300'
+                                  : ref.status === 'VOID'
+                                    ? 'text-red-700 dark:text-red-300'
+                                    : 'text-amber-700 dark:text-amber-300'
+                              }
+                            >
+                              {t(
+                                ref.status === 'QUALIFIED'
+                                  ? 'table.statusQualified'
+                                  : ref.status === 'VOID'
+                                    ? 'table.statusVoid'
+                                    : 'table.statusPending',
+                              )}
+                            </Badge>
+                          </span>
+                        </div>
+                        {/* Reward grants — only rendered when the backend sends `rewards[]`
+                            (Task 1 optional field). Absent/empty → identical to the
+                            legacy render above (backward compat). */}
+                        {ref.rewards && ref.rewards.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {ref.rewards.map(reward => (
+                              <RewardBadge
+                                key={reward.id}
+                                reward={reward}
+                                t={t}
+                                fulfilledDate={fulfilledDates[reward.id]}
+                                formatDate={formatDate}
+                              />
+                            ))}
+                          </div>
+                        )}
                       </li>
                     )
                   })}
@@ -353,6 +587,21 @@ export function ReferralCard({ customer, venueId, venueName }: ReferralCardProps
           )}
         </div>
       )}
+
+      {/* Fulfill-courtesy confirmation */}
+      <ConfirmDialog
+        open={confirmingGrantId !== null}
+        onOpenChange={open => {
+          if (!open) setConfirmingGrantId(null)
+        }}
+        title={t('card.fulfillConfirmTitle')}
+        description={t('card.fulfillConfirmDescription')}
+        confirmText={t('card.fulfillButton')}
+        cancelText={tCommon('common.cancel', { defaultValue: 'Cancelar' })}
+        onConfirm={() => {
+          if (confirmingGrantId) fulfillMutation.mutate(confirmingGrantId)
+        }}
+      />
     </GlassCard>
   )
 }
