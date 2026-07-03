@@ -109,6 +109,11 @@ export interface InternalTransferResult {
   message: string | null
 }
 
+export interface TransferDestination {
+  name: string | null
+  accountType: string | null
+}
+
 const BASE = '/api/v1/dashboard'
 
 export const financialConnectionAPI = {
@@ -188,6 +193,17 @@ export const financialConnectionAPI = {
     body: { destinationAccount: string; amount: number; concept: string },
   ): Promise<InternalTransferResult> {
     const { data } = await api.post(`${BASE}/venues/${venueId}/financial-accounts/${financialAccountId}/internal-transfer`, body)
+    return data.data
+  },
+
+  /**
+   * Read-only: resuelve un número de cuenta destino a su nombre de beneficiario, para MOSTRARLO
+   * en la confirmación antes de enviar. El backend responde 404 si la cuenta no existe.
+   */
+  async resolveTransferDestination(venueId: string, financialAccountId: string, account: string): Promise<TransferDestination> {
+    const { data } = await api.get(`${BASE}/venues/${venueId}/financial-accounts/${financialAccountId}/resolve-destination`, {
+      params: { account },
+    })
     return data.data
   },
 }

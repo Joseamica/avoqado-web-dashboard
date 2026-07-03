@@ -39,10 +39,27 @@ export function BankInternalTransferDialog({ open, onClose, venueId, account }: 
   const [concept, setConcept] = useState('')
   const [result, setResult] = useState<InternalTransferResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [destName, setDestName] = useState<string | null>(null)
+  const [resolveError, setResolveError] = useState<string | null>(null)
 
   const amountNum = Number(amount)
   // Destino: 4-6 dígitos (paridad con la validación de cuenta interna del dashboard de producción).
   const canReview = /^\d{4,6}$/.test(destination.trim()) && Number.isFinite(amountNum) && amountNum > 0
+
+  // Antes de confirmar, resolvemos el número destino a su NOMBRE de beneficiario: el usuario
+  // confirma un nombre, no solo un número (un dígito mal tecleado se cacha a simple vista).
+  const resolve = useMutation({
+    mutationFn: () => financialConnectionAPI.resolveTransferDestination(venueId, account.id, destination.trim()),
+    onSuccess: d => {
+      setDestName(d.name)
+      setResolveError(null)
+      setPhase('confirm')
+    },
+    onError: err => {
+      const status = (err as { response?: { status?: number } })?.response?.status
+      setResolveError(status === 404 ? t('transfer.destinationNotFound') : errorMessage(err, t('transfer.destinationError')))
+    },
+  })
 
   const send = useMutation({
     mutationFn: () =>
@@ -70,6 +87,8 @@ export function BankInternalTransferDialog({ open, onClose, venueId, account }: 
     setConcept('')
     setResult(null)
     setError(null)
+    setDestName(null)
+    setResolveError(null)
   }
   const handleClose = () => {
     if (send.isPending) return
@@ -95,12 +114,22 @@ export function BankInternalTransferDialog({ open, onClose, venueId, account }: 
             className="flex flex-col gap-4"
             onSubmit={e => {
               e.preventDefault()
-              if (canReview) setPhase('confirm')
+              if (canReview && !resolve.isPending) resolve.mutate()
             }}
           >
             <div className="grid gap-2">
               <Label htmlFor="tr-dest">{t('transfer.destination')}</Label>
-              <Input id="tr-dest" inputMode="numeric" autoFocus value={destination} onChange={e => setDestination(e.target.value.replace(/\D/g, ''))} />
+              <Input
+                id="tr-dest"
+                inputMode="numeric"
+                autoFocus
+                value={destination}
+                onChange={e => {
+                  setDestination(e.target.value.replace(/\D/g, ''))
+                  if (resolveError) setResolveError(null)
+                }}
+              />
+              {resolveError && <p className="text-xs text-destructive">{resolveError}</p>}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="tr-amount">{t('transfer.amount')}</Label>
@@ -111,8 +140,9 @@ export function BankInternalTransferDialog({ open, onClose, venueId, account }: 
               <Input id="tr-concept" value={concept} maxLength={40} placeholder={t('transfer.conceptPlaceholder')} onChange={e => setConcept(e.target.value)} />
             </div>
             <DialogFooter>
-              <Button type="submit" disabled={!canReview}>
-                {t('transfer.review')}
+              <Button type="submit" disabled={!canReview || resolve.isPending}>
+                {resolve.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />}
+                {resolve.isPending ? t('transfer.resolving') : t('transfer.review')}
               </Button>
             </DialogFooter>
           </form>
@@ -120,8 +150,12 @@ export function BankInternalTransferDialog({ open, onClose, venueId, account }: 
 
         {phase === 'confirm' && (
           <div className="flex flex-col gap-4">
-            <div className="rounded-xl bg-muted/50 p-4 text-sm">
-              {t('transfer.confirmBody', { amount: amountLabel, account: destination })}
+            <div className="rounded-xl bg-muted/50 p-4">
+              <p className="text-sm text-muted-foreground">{t('transfer.confirmLead')}</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">{amountLabel}</p>
+              <p className="mt-3 text-base font-medium">{destName ?? t('transfer.unnamedAccount')}</p>
+              <p className="text-xs text-muted-foreground">{t('transfer.accountLabel', { account: destination })}</p>
+              <p className="mt-3 text-xs text-muted-foreground">{t('transfer.irreversibleWarning')}</p>
             </div>
             <DialogFooter className="gap-2">
               <Button variant="ghost" disabled={send.isPending} onClick={() => setPhase('form')}>
