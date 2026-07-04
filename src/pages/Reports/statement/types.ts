@@ -5,8 +5,17 @@ import type {
   SettlementCalendarDay,
 } from '@/services/reports/salesSummary.service'
 
-/** Payout timing of one merchant's card money vs today. */
-export type PayoutStatus = 'lands' | 'landed' | 'noRule'
+/**
+ * Estimated payout timing of one merchant's card money vs today. Everything is a
+ * SUPPOSITION from settlement rules — there is no bank confirmation yet, so no
+ * state here means "confirmed deposited".
+ * - `lands`  — the whole net is estimated to land on one future day ("Cae ~fecha")
+ * - `landed` — estimated it should have landed by a past day ("Debió caer ~fecha")
+ * - `next`   — money is estimated across SEVERAL days; show only the NEXT upcoming
+ *              slice (amount + date) so the chip never implies the full net lands once
+ * - `noRule` — no settlement rule → can't estimate a date
+ */
+export type PayoutStatus = 'lands' | 'landed' | 'next' | 'noRule'
 
 /** One slice of the "Cobraste" segmented bar (by payment method). */
 export interface StatementSegment {
@@ -31,7 +40,9 @@ export interface MerchantStatementRowModel {
   /** netToReceive / Σ net × 100. */
   shareOfNetPct: number
   payoutStatus: PayoutStatus
-  payoutDate: string | null // YYYY-MM-DD
+  payoutDate: string | null // YYYY-MM-DD — the relevant estimated date for the chip
+  /** For `next`: the estimated net of the NEXT upcoming deposit (< full net). Else null. */
+  payoutAmount: number | null
   settlementRules?: MerchantSettlementRule[]
   /** This merchant's slices pulled out of the settlement calendar days. */
   deposits: Array<{ date: string; status: SettlementCalendarDay['status']; platformFee: number; netToReceive: number }>

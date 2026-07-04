@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronLeft, ChevronRight, Check, CircleDot, Diamond } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CircleDashed, CircleDot, Diamond } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Currency } from '@/utils/currency'
 import { GlassCard } from '@/components/ui/glass-card'
@@ -21,8 +21,10 @@ const CARD_TYPE_LABEL_KEYS: Record<string, string> = {
   AMEX: 'salesSummary.controls.filterBy.cardType.options.amex',
   INTERNATIONAL: 'salesSummary.controls.filterBy.cardType.options.international',
 }
-const STATUS_META: Record<SettlementWeekDay['status'], { icon: typeof Check; tone: string }> = {
-  settled: { icon: Check, tone: 'text-muted-foreground' },
+// All statuses are ESTIMATES (no bank confirmation exists yet). Past days use a
+// dashed circle — "estimated it landed", NOT a ✓ that would imply a confirmed deposit.
+const STATUS_META: Record<SettlementWeekDay['status'], { icon: typeof CircleDashed; tone: string }> = {
+  settled: { icon: CircleDashed, tone: 'text-muted-foreground' },
   today: { icon: CircleDot, tone: 'text-amber-600 dark:text-amber-400' },
   projected: { icon: Diamond, tone: 'text-blue-600 dark:text-blue-400' },
 }

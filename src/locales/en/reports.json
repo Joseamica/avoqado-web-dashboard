@@ -786,6 +786,7 @@
         "payout": {
           "lands": "Lands ~{{date}}",
           "landed": "Should have landed ~{{date}}",
+          "nextEstimated": "Next ≈{{amount}} · ~{{date}}",
           "noRule": "No settlement rule"
         },
         "rules": {

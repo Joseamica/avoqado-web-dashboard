@@ -786,6 +786,7 @@
         "payout": {
           "lands": "Cae ~{{date}}",
           "landed": "Debió caer ~{{date}}",
+          "nextEstimated": "Próx. ≈{{amount}} · ~{{date}}",
           "noRule": "Sin regla de liquidación"
         },
         "rules": {

@@ -159,4 +159,40 @@ describe('deriveStatement', () => {
     })
     expect(m.merchants[0].deposits).toEqual([{ date: '2026-07-06', status: 'projected', platformFee: 8, netToReceive: 92 }])
   })
+
+  it("payout=next when money is estimated across several days: shows only the NEXT upcoming slice (amount+date)", () => {
+    // 3 slices around today (2026-07-04): two past (should-have-landed) + one upcoming.
+    const m = deriveStatement({
+      buckets: [],
+      merchants: [merchant({ merchantAccountId: 'x', netToReceive: 300, estimatedSettlement: { nextDate: '2026-07-06', settlementDays: 1 } })],
+      calendar: [
+        { date: '2026-07-01', status: 'settled', totalNet: 60, byMerchant: [{ merchantAccountId: 'x', displayName: 'X', platformFee: 4, netToReceive: 60, transactionCount: 1 }] },
+        { date: '2026-07-03', status: 'settled', totalNet: 40, byMerchant: [{ merchantAccountId: 'x', displayName: 'X', platformFee: 3, netToReceive: 40, transactionCount: 1 }] },
+        { date: '2026-07-06', status: 'projected', totalNet: 200, byMerchant: [{ merchantAccountId: 'x', displayName: 'X', platformFee: 8, netToReceive: 200, transactionCount: 1 }] },
+      ],
+      todayKey: TODAY,
+    })
+    const row = m.merchants[0]
+    expect(row.payoutStatus).toBe('next')
+    expect(row.payoutDate).toBe('2026-07-06') // the soonest UPCOMING slice, not the full net's single date
+    expect(row.payoutAmount).toBe(200) // only that slice (< netToReceive 300)
+  })
+
+  it('payout stays a single date (lands/landed, amount null) when a merchant lands on ONE day', () => {
+    const single = (nextDate: string, date: string) =>
+      deriveStatement({
+        buckets: [],
+        merchants: [merchant({ merchantAccountId: 'x', netToReceive: 200, estimatedSettlement: { nextDate, settlementDays: 1 } })],
+        calendar: [{ date, status: 'projected', totalNet: 200, byMerchant: [{ merchantAccountId: 'x', displayName: 'X', platformFee: 8, netToReceive: 200, transactionCount: 1 }] }],
+        todayKey: TODAY,
+      }).merchants[0]
+
+    const future = single('2026-07-09', '2026-07-09')
+    expect(future.payoutStatus).toBe('lands')
+    expect(future.payoutAmount).toBeNull()
+
+    const past = single('2026-07-01', '2026-07-01')
+    expect(past.payoutStatus).toBe('landed')
+    expect(past.payoutAmount).toBeNull()
+  })
 })

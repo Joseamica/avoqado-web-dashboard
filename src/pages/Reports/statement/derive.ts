@@ -71,8 +71,30 @@ export function deriveStatement(input: DeriveStatementInput): StatementModel {
   const totalNet = merchants.reduce((s, m) => s + m.netToReceive, 0)
   const merchantRows: MerchantStatementRowModel[] = merchants.map(m => {
     const nextDate = m.estimatedSettlement?.nextDate ?? null
-    const payoutStatus: MerchantStatementRowModel['payoutStatus'] =
-      nextDate == null ? 'noRule' : nextDate < todayKey ? 'landed' : 'lands'
+    const deposits = (depositsByMerchant.get(m.merchantAccountId) ?? [])
+      .slice()
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+    const upcoming = deposits.filter(d => d.date >= todayKey)
+
+    // Payout chip — all ESTIMATES (no bank confirmation exists yet, so nothing here
+    // means "confirmed deposited"). When the money is estimated across SEVERAL days
+    // with an upcoming slice, show only that NEXT deposit (amount + date) so the chip
+    // never implies the full net lands on one date. A single-day estimate keeps the
+    // plain "Cae/Debió caer ~fecha".
+    let payoutStatus: MerchantStatementRowModel['payoutStatus']
+    let payoutDate: string | null
+    let payoutAmount: number | null = null
+    if (nextDate == null) {
+      payoutStatus = 'noRule'
+      payoutDate = null
+    } else if (deposits.length > 1 && upcoming.length > 0) {
+      payoutStatus = 'next'
+      payoutDate = upcoming[0].date
+      payoutAmount = upcoming[0].netToReceive
+    } else {
+      payoutStatus = nextDate < todayKey ? 'landed' : 'lands'
+      payoutDate = nextDate
+    }
     return {
       merchantAccountId: m.merchantAccountId,
       displayName: m.displayName,
@@ -85,9 +107,10 @@ export function deriveStatement(input: DeriveStatementInput): StatementModel {
       effectiveRatePct: m.collectedOnCard > 0 ? (m.platformFee / m.collectedOnCard) * 100 : null,
       shareOfNetPct: totalNet > 0 ? (m.netToReceive / totalNet) * 100 : 0,
       payoutStatus,
-      payoutDate: nextDate,
+      payoutDate,
+      payoutAmount,
       settlementRules: m.settlementRules,
-      deposits: depositsByMerchant.get(m.merchantAccountId) ?? [],
+      deposits,
     }
   })
 

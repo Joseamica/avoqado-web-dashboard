@@ -24,6 +24,7 @@ const row = (over: Partial<MerchantStatementRowModel> & { merchantAccountId: str
   shareOfNetPct: 100,
   payoutStatus: 'lands',
   payoutDate: '2026-07-09',
+  payoutAmount: null,
   deposits: [],
   ...over,
 })
@@ -41,6 +42,7 @@ describe('MerchantStatementRows', () => {
           row({ merchantAccountId: 'a', payoutStatus: 'lands', payoutDate: '2026-07-09' }),
           row({ merchantAccountId: 'b', payoutStatus: 'landed', payoutDate: '2026-06-29' }),
           row({ merchantAccountId: 'c', payoutStatus: 'noRule', payoutDate: null }),
+          row({ merchantAccountId: 'd', payoutStatus: 'next', payoutDate: '2026-07-06', payoutAmount: 200 }),
         ]}
         formatCurrency={fmt}
       />,
@@ -48,6 +50,10 @@ describe('MerchantStatementRows', () => {
     expect(screen.getAllByTestId('payout-chip-lands').length).toBeGreaterThan(0)
     expect(screen.getAllByTestId('payout-chip-landed').length).toBeGreaterThan(0)
     expect(screen.getAllByTestId('payout-chip-no-rule').length).toBeGreaterThan(0)
+    // 'next' chip renders the interpolated amount ($200.00) — only the upcoming slice.
+    const nextChips = screen.getAllByTestId('payout-chip-next')
+    expect(nextChips.length).toBeGreaterThan(0)
+    expect(nextChips[0].textContent).toContain('$200.00')
   })
 
   it('hides the Share column when there is only one merchant', () => {

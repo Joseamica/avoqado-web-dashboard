@@ -235,6 +235,39 @@ test.describe('Sales Summary — period statement', () => {
     await expect(page.getByTestId('payout-chip-landed').first()).toBeVisible()
   })
 
+  test('payout chip shows only the NEXT estimated deposit when a merchant lands across several days', async ({ page }) => {
+    // 'ext' lands in two estimated slices: one past (5,000) + one upcoming (8,329.30).
+    // The chip must show only the upcoming slice, never the full net (13,329.30 on one date).
+    await setupMocks(page, {
+      ...SUMMARY_WITH_MERCHANTS,
+      settlementCalendar: [
+        {
+          date: PAST_DATE,
+          status: 'settled',
+          totalNet: 6757.4,
+          byMerchant: [
+            { merchantAccountId: 'ext', displayName: 'Amaena - Externo', platformFee: 179.71, netToReceive: 5000, transactionCount: 10 },
+            { merchantAccountId: 'a', displayName: 'Amaena - A', platformFee: 65.6, netToReceive: 1757.4, transactionCount: 5 },
+          ],
+        },
+        {
+          date: FUTURE_DATE,
+          status: 'projected',
+          totalNet: 8329.3,
+          byMerchant: [{ merchantAccountId: 'ext', displayName: 'Amaena - Externo', platformFee: 317.99, netToReceive: 8329.3, transactionCount: 7 }],
+        },
+      ],
+    })
+    await gotoReport(page)
+
+    const nextChip = page.getByTestId('payout-chip-next').first()
+    await expect(nextChip).toBeVisible({ timeout: 10_000 })
+    await expect(nextChip).toContainText('8,329.30') // the upcoming slice…
+    await expect(nextChip).not.toContainText('13,329.30') // …never the full net
+    // 'a' lands once in the past → keeps its plain "should have landed" chip.
+    await expect(page.getByTestId('payout-chip-landed').first()).toBeVisible()
+  })
+
   test('settlement week strip renders 7 landing-day cells and the week total', async ({ page }) => {
     await setupMocks(page)
     await gotoReport(page)

@@ -21,14 +21,21 @@ const CARD_TYPE_LABEL_KEYS: Record<string, string> = {
 const PAYOUT_TESTID: Record<PayoutStatus, string> = {
   lands: 'payout-chip-lands',
   landed: 'payout-chip-landed',
+  next: 'payout-chip-next',
   noRule: 'payout-chip-no-rule',
 }
 
 type TFn = (key: string, opts?: Record<string, unknown>) => string
 
-/** Chip that says when this merchant's money lands (or that it has no rule). */
-function PayoutChip({ row, locale, t }: { row: MerchantStatementRowModel; locale: string; t: TFn }) {
+/**
+ * Estimated-payout chip. Everything is a supposition from settlement rules (no bank
+ * confirmation exists yet) — the copy stays in "~/debió" tense and never claims a
+ * deposit is done. When money is estimated across several days, it shows only the
+ * NEXT upcoming slice (amount + date) so it never implies the full net lands at once.
+ */
+function PayoutChip({ row, locale, formatCurrency, t }: { row: MerchantStatementRowModel; locale: string; formatCurrency: (n: number) => string; t: TFn }) {
   const base = 'inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap'
+  const blue = 'border-blue-600/40 text-blue-600 dark:border-blue-400/40 dark:text-blue-400'
   if (row.payoutStatus === 'noRule' || !row.payoutDate) {
     return (
       <span className={cn(base, 'border-input text-muted-foreground')} data-testid={PAYOUT_TESTID.noRule}>
@@ -44,8 +51,15 @@ function PayoutChip({ row, locale, t }: { row: MerchantStatementRowModel; locale
       </span>
     )
   }
+  if (row.payoutStatus === 'next') {
+    return (
+      <span className={cn(base, blue)} data-testid={PAYOUT_TESTID.next}>
+        {t('salesSummary.statement.merchants.payout.nextEstimated', { amount: formatCurrency(row.payoutAmount ?? 0), date })}
+      </span>
+    )
+  }
   return (
-    <span className={cn(base, 'border-blue-600/40 text-blue-600 dark:border-blue-400/40 dark:text-blue-400')} data-testid={PAYOUT_TESTID.lands}>
+    <span className={cn(base, blue)} data-testid={PAYOUT_TESTID.lands}>
       {t('salesSummary.statement.merchants.payout.lands', { date })}
     </span>
   )
@@ -180,7 +194,7 @@ export function MerchantStatementRows({ rows, formatCurrency }: Props) {
                     </td>
                   )}
                   <td className="py-2.5 pl-2 text-right">
-                    <PayoutChip row={row} locale={locale} t={t} />
+                    <PayoutChip row={row} locale={locale} formatCurrency={formatCurrency} t={t} />
                   </td>
                 </tr>
                 {isOpen && (
@@ -209,7 +223,7 @@ export function MerchantStatementRows({ rows, formatCurrency }: Props) {
                   </span>
                   <span className="truncate text-[11px] text-muted-foreground">{row.provider}</span>
                 </div>
-                <PayoutChip row={row} locale={locale} t={t} />
+                <PayoutChip row={row} locale={locale} formatCurrency={formatCurrency} t={t} />
               </button>
               <dl className="mt-3 grid grid-cols-2 gap-y-2 text-sm">
                 <dt className="text-muted-foreground">{t('salesSummary.statement.merchants.cols.collected')}</dt>
