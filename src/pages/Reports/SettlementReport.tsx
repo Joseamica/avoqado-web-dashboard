@@ -431,7 +431,7 @@ export default function SettlementReport() {
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
           <div>
             <h1 className="text-lg font-bold text-foreground">
-              {data?.aggregator?.name ?? 'Moneygiver'} — Reporte de Liquidaciones
+              {data?.aggregator?.name ?? 'Agregador'} — Reporte de Liquidaciones
             </h1>
             {data?.dateRange && (
               <p className="text-xs text-muted-foreground mt-0.5">

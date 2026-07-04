@@ -151,7 +151,7 @@ function AggregatorDialog({
           <div className="space-y-2">
             <Label>Nombre *</Label>
             <Input
-              placeholder="ej. Moneygiver"
+              placeholder="ej. Nombre del agregador"
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
             />

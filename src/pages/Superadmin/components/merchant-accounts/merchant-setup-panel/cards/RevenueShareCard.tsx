@@ -347,8 +347,7 @@ function RevenueShareDialogBody({
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 Marca esto si Avoqado <em>NO</em> le cobra directamente al venue,
-                sino a un intermediario que después le cobra al venue (ej.
-                Moneygiver).
+                sino a un intermediario que después le cobra al venue.
               </p>
             </div>
           </label>

@@ -406,7 +406,7 @@ function EditDialogForm({ existing, merchantAccountId, onClose, onAskDelete, onS
         />
         <div className="flex-1">
           <p className="font-medium">
-            Este merchant pasa por un <strong>agregador intermediario</strong> (ej. Moneygiver) antes de
+            Este merchant pasa por un <strong>agregador intermediario</strong> antes de
             llegar al venue.
           </p>
           <p className="text-xs text-muted-foreground mt-1">
@@ -426,7 +426,7 @@ function EditDialogForm({ existing, merchantAccountId, onClose, onAskDelete, onS
             </Label>
             <p className="text-xs text-muted-foreground mt-0.5">
               Es lo que el agregador nos paga por usar nuestra infraestructura. Pon el porcentaje literal:
-              <strong> 4 = 4%</strong>. Ejemplo Moneygiver: ~4% débito/crédito, ~5% Amex.
+              <strong> 4 = 4%</strong>. Ejemplo: ~4% débito/crédito, ~5% Amex.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3">
