@@ -14,12 +14,14 @@
     "lastName": "Apellido",
     "password": "Contraseña",
     "confirmPassword": "Confirmar Contraseña",
-    "pin": "PIN (opcional)"
+    "pin": "PIN (opcional)",
+    "pinRequired": "PIN *"
   },
   "placeholders": {
     "firstName": "Tu nombre",
     "lastName": "Tu apellido",
     "password": "Ingresa tu contraseña",
+    "enterPassword": "Ingresa tu contraseña",
     "confirmPassword": "Confirma tu contraseña",
     "pin": "4-10 dígitos para acceso rápido"
   },
@@ -31,6 +33,8 @@
     "number": "Un número (0-9)"
   },
   "pinHelp": "El PIN te permitirá acceder rápidamente a las terminales de cobro",
+  "pinHelpRequired": "El administrador requiere que crees un PIN para acceder a las terminales de cobro.",
+  "verifying": "Verificando...",
   "nameEditNote": "Tu nombre y apellido podrán ser editados luego en la configuración de tu cuenta.",
   "acceptButton": "Aceptar invitación y crear cuenta",
   "creatingAccount": "Creando cuenta...",
@@ -91,6 +95,8 @@
   "existingAccount": {
     "title": "¡Ya tienes cuenta!",
     "description": "Ya tienes una cuenta en esta organización. Inicia sesión para aceptar la invitación y unirte al nuevo venue.",
+    "verifyDescription": "Ingresa tu contraseña para verificar tu identidad y unirte al nuevo venue.",
+    "acceptButton": "Verificar y aceptar invitación",
     "loginMessage": "Inicia sesión para aceptar la invitación",
     "loginButton": "Iniciar sesión y aceptar"
   }

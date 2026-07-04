@@ -418,8 +418,10 @@ export default function InviteAccept() {
     )
   }
 
-  // Direct accept only when a password re-verification is NOT required
-  if (sessionStatus.hasSession && sessionStatus.emailMatches && !invitationDetails.userAlreadyHasPassword) {
+  // Direct accept only when a password re-verification is NOT required.
+  // requirePin invitations can't use direct accept (empty body) — fall through
+  // to the full form so the PIN gets captured.
+  if (sessionStatus.hasSession && sessionStatus.emailMatches && !invitationDetails.userAlreadyHasPassword && !invitationDetails.requirePin) {
     return (
       <DirectAcceptInvitation
         invitationDetails={invitationDetails}
@@ -726,23 +728,44 @@ interface ExistingUserPasswordVerificationProps {
 
 const ExistingUserPasswordVerification: React.FC<ExistingUserPasswordVerificationProps> = ({ invitationDetails, token, onSuccess, t }) => {
   const [password, setPassword] = useState('')
+  const [pin, setPin] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [pinError, setPinError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // PIN lives on StaffVenue (per venue), so an existing account still needs a
+  // PIN for the NEW venue when the inviter required one
+  const pinRequired = invitationDetails.requirePin === true
+  const isPinValid = !pinRequired || /^\d{4,10}$/.test(pin)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    setPinError(null)
+
+    if (pinRequired && !/^\d{4,10}$/.test(pin)) {
+      setPinError(t('validation.pinFormat', 'El PIN debe tener entre 4 y 10 dígitos'))
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
       await api.post(`/api/v1/invitations/${token}/accept`, {
         password,
+        pin: pin || null,
       })
       await onSuccess(password)
     } catch (err: any) {
+      const status = err.response?.status
       const errorMessage = err.response?.data?.message || err.response?.data?.error || 'Error al aceptar la invitación'
-      setError(errorMessage)
+      // Show PIN errors inline on the field (409 = PIN taken, 400 = PIN required/format)
+      if ((status === 409 || status === 400) && errorMessage.toLowerCase().includes('pin')) {
+        setPinError(errorMessage)
+      } else {
+        setError(errorMessage)
+      }
       setIsSubmitting(false)
     }
   }
@@ -798,6 +821,27 @@ const ExistingUserPasswordVerification: React.FC<ExistingUserPasswordVerificatio
               </div>
             </div>
 
+            {pinRequired && (
+              <div className="space-y-2">
+                <Label htmlFor="verify-pin">{t('labels.pinRequired', 'PIN *')}</Label>
+                <Input
+                  id="verify-pin"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder={t('placeholders.pin', '4-10 dígitos para acceso rápido')}
+                  maxLength={10}
+                  value={pin}
+                  onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
+                  disabled={isSubmitting}
+                />
+                {pinError && <p className="text-sm text-red-600">{pinError}</p>}
+                <p className="text-xs text-muted-foreground">
+                  {t('pinHelpRequired', 'El administrador requiere que crees un PIN para acceder a las terminales de cobro.')}
+                </p>
+              </div>
+            )}
+
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
@@ -805,7 +849,7 @@ const ExistingUserPasswordVerification: React.FC<ExistingUserPasswordVerificatio
               </Alert>
             )}
 
-            <Button type="submit" disabled={!password || isSubmitting} className="w-full">
+            <Button type="submit" disabled={!password || !isPinValid || isSubmitting} className="w-full">
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
