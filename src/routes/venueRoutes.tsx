@@ -329,14 +329,14 @@ export function createVenueRoutes(): RouteObject[] {
       children: [{ index: true, element: <BancosReportes /> }],
     },
     {
-      // SPEI/Dispersiones: ruta viva (por si alguien llega por URL directa), pero el sidebar
-      // las mantiene comingSoon (no navegables por click) — la página ya deja el submit
-      // deshabilitado igual, doble candado sobre lo que mueve dinero sin backend.
+      // SPEI externo: LIVE — envío real a cualquier banco (backend con idempotencia + auditoría).
       path: 'bancos/spei',
       element: <PermissionProtectedRoute permission="financialConnections:manage" />,
       children: [{ index: true, element: <BancosSpei /> }],
     },
     {
+      // Dispersiones: ruta viva (por si alguien llega por URL directa), pero el sidebar la
+      // mantiene comingSoon — la página deja el submit deshabilitado (sin backend de lote aún).
       path: 'bancos/dispersiones',
       element: <PermissionProtectedRoute permission="financialConnections:manage" />,
       children: [{ index: true, element: <BancosDispersiones /> }],

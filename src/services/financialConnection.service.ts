@@ -115,6 +115,20 @@ export interface TransferDestination {
   accountType: string | null
 }
 
+export interface SpeiBank {
+  idBanco: number
+  name: string | null
+  clabePrefix: number | null
+}
+
+export interface SpeiOutResult {
+  ok: boolean
+  /** Folio de la operación en el proveedor — el que el usuario puede rastrear. */
+  operationId: string | null
+  transferId: string | null
+  message: string | null
+}
+
 const BASE = '/api/v1/dashboard'
 
 export const financialConnectionAPI = {
@@ -205,6 +219,29 @@ export const financialConnectionAPI = {
     const { data } = await api.get(`${BASE}/venues/${venueId}/financial-accounts/${financialAccountId}/resolve-destination`, {
       params: { account },
     })
+    return data.data
+  },
+
+  /** Catálogo de bancos destino para SPEI externo (poblar el selector antes de enviar). */
+  async listSpeiBanks(venueId: string, financialAccountId: string): Promise<SpeiBank[]> {
+    const { data } = await api.get(`${BASE}/venues/${venueId}/financial-accounts/${financialAccountId}/spei-banks`)
+    return data.data
+  },
+
+  /**
+   * MUEVE DINERO fuera del ecosistema del proveedor — SPEI a cualquier banco vía CLABE.
+   * `idempotencyKey` se genera AQUÍ EN EL CLIENTE, una por intento de envío (no por request):
+   * si el retry automático de api.ts reenvía el POST tras un error de red, viaja la MISMA key
+   * y la idempotencia del proveedor absorbe el duplicado — con una key por request, ese retry
+   * sería un segundo cobro. El backend valida CLABE (dígito verificador), deduplica y audita;
+   * responde 422 con { success:false } si el proveedor rechaza el envío.
+   */
+  async sendSpeiOut(
+    venueId: string,
+    financialAccountId: string,
+    body: { destinationClabe: string; beneficiaryName: string; idBanco: number; amount: number; concept: string; idempotencyKey: string },
+  ): Promise<SpeiOutResult> {
+    const { data } = await api.post(`${BASE}/venues/${venueId}/financial-accounts/${financialAccountId}/spei-out`, body)
     return data.data
   },
 }

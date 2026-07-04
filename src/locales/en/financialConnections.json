@@ -128,7 +128,7 @@
   "transfer": {
     "button": "Send transfer",
     "title": "Internal transfer",
-    "description": "Send money from {{label}} to another Moneygiver account.",
+    "description": "Send money from {{label}} to another account at the same bank.",
     "destination": "Destination account (internal number)",
     "amount": "Amount",
     "concept": "Concept",
@@ -236,19 +236,33 @@
     },
     "spei": {
       "title": "External SPEI",
-      "description": "Send money to a CLABE at any bank, not just Moneygiver.",
+      "description": "Send money to a CLABE at any bank.",
       "formTitle": "New SPEI transfer",
-      "formDescription": "Form preview — the real send is coming soon.",
+      "formDescription": "Review every field carefully: the money leaves your account and cannot be undone.",
       "fields": {
         "sourceAccount": "Source account",
         "clabe": "Destination CLABE",
+        "bank": "Destination bank",
+        "bankPlaceholder": "Select the bank",
         "beneficiaryName": "Beneficiary name",
         "amount": "Amount",
-        "twoFactorCode": "Verification code",
         "concept": "Concept"
       },
-      "previewNote": "This form is a preview. Sending will be available soon.",
-      "submit": "Send (coming soon)"
+      "clabeInvalid": "That CLABE isn't valid. Check the 18 digits.",
+      "multiAccountUnavailable": "For now, SPEI transfers are only available for connections with a single account.",
+      "banksLoading": "Loading banks…",
+      "banksLoadError": "The bank list could not be loaded.",
+      "review": "Review transfer",
+      "confirmLead": "You're about to send",
+      "irreversibleWarning": "This goes to an external bank, it's real money and CANNOT be undone. Verify the name and CLABE.",
+      "back": "Back",
+      "send": "Send",
+      "sending": "Sending…",
+      "successTitle": "SPEI sent",
+      "successBody": "Reference: {{id}}",
+      "errorTitle": "The SPEI could not be sent",
+      "errorHint": "It may still have gone through. Check your movements before retrying.",
+      "newSend": "Make another transfer"
     },
     "dispersions": {
       "title": "Disbursements",

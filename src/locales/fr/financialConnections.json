@@ -128,7 +128,7 @@
   "transfer": {
     "button": "Envoyer un virement",
     "title": "Virement interne",
-    "description": "Envoyez de l'argent depuis {{label}} vers un autre compte Moneygiver.",
+    "description": "Envoyez de l'argent depuis {{label}} vers un autre compte de la même banque.",
     "destination": "Compte destinataire (numéro interne)",
     "amount": "Montant",
     "concept": "Concept",
@@ -236,19 +236,33 @@
     },
     "spei": {
       "title": "SPEI externe",
-      "description": "Envoyez de l'argent vers une CLABE de n'importe quelle banque, pas seulement Moneygiver.",
+      "description": "Envoyez de l'argent vers une CLABE de n'importe quelle banque.",
       "formTitle": "Nouvel envoi SPEI",
-      "formDescription": "Aperçu du formulaire — l'envoi réel arrive bientôt.",
+      "formDescription": "Vérifiez chaque champ avec soin : l'argent quitte votre compte et ne peut pas être annulé.",
       "fields": {
         "sourceAccount": "Compte source",
         "clabe": "CLABE de destination",
+        "bank": "Banque de destination",
+        "bankPlaceholder": "Sélectionnez la banque",
         "beneficiaryName": "Nom du bénéficiaire",
         "amount": "Montant",
-        "twoFactorCode": "Code de vérification",
         "concept": "Concept"
       },
-      "previewNote": "Ce formulaire est un aperçu. L'envoi sera bientôt disponible.",
-      "submit": "Envoyer (bientôt disponible)"
+      "clabeInvalid": "Cette CLABE n'est pas valide. Vérifiez les 18 chiffres.",
+      "multiAccountUnavailable": "Pour l'instant, l'envoi SPEI n'est disponible que pour les connexions à compte unique.",
+      "banksLoading": "Chargement des banques…",
+      "banksLoadError": "Impossible de charger la liste des banques.",
+      "review": "Vérifier l'envoi",
+      "confirmLead": "Vous allez envoyer",
+      "irreversibleWarning": "Cet envoi part vers une banque externe, c'est de l'argent réel et il NE PEUT PAS être annulé. Vérifiez le nom et la CLABE.",
+      "back": "Retour",
+      "send": "Envoyer",
+      "sending": "Envoi…",
+      "successTitle": "SPEI envoyé",
+      "successBody": "Folio : {{id}}",
+      "errorTitle": "Le SPEI n'a pas pu être envoyé",
+      "errorHint": "Il a peut-être quand même été envoyé. Vérifiez vos mouvements avant de réessayer.",
+      "newSend": "Faire un autre envoi"
     },
     "dispersions": {
       "title": "Déboursements",

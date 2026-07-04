@@ -36,24 +36,7 @@ import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { BancosPageHeader } from '@/pages/Bancos/BancosPageHeader'
 import { beneficiariesService, DuplicateClabeError, type Beneficiary, type BeneficiaryInput } from '@/services/bankingHub.service'
-
-const CLABE_PATTERN = /^\d{18}$/
-
-/**
- * Dígito verificador de la CLABE mexicana (Banxico): pesos cíclicos [3,7,1] sobre los primeros
- * 17 dígitos, mod 10 por producto, y el checksum es (10 - suma%10) % 10. Sin esto, el patrón de
- * 18 dígitos deja pasar CLABEs con un dígito trocado — el error típico al capturar a mano.
- */
-function clabeCheckDigit(first17: string): number {
-  const weights = [3, 7, 1]
-  let sum = 0
-  for (let i = 0; i < 17; i++) sum += (Number(first17[i]) * weights[i % 3]) % 10
-  return (10 - (sum % 10)) % 10
-}
-
-function isValidClabe(clabe: string): boolean {
-  return CLABE_PATTERN.test(clabe) && clabeCheckDigit(clabe.slice(0, 17)) === Number(clabe[17])
-}
+import { isValidClabe } from '@/utils/clabe'
 
 function BeneficiaryFormModal({
   open,

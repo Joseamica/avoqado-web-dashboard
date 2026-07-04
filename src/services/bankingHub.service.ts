@@ -1,12 +1,13 @@
 /**
- * Banking Hub — contrato UI-first para Beneficiarios, Reportes, SPEI externo y Dispersiones.
+ * Banking Hub — contrato UI-first para Beneficiarios, Reportes y Dispersiones.
+ * (SPEI externo ya se graduó: su envío real vive en financialConnection.service.ts.)
  * Sin backend propio todavía (roadmap Fase B del plan del hub Bancos). Drop-in later: cuando
  * exista backend real, cambiar el cuerpo de cada función por `api.*` y quitar los badges — las
  * firmas ya son provider-agnósticas y no cambian.
  *
  * Reads (beneficiarios, tendencia): stub en memoria, se resetea al recargar la página — honesto
  * sobre no ser durable, nunca pretende ser más de lo que es.
- * Dinero (SPEI, dispersión): SIEMPRE lanzan BankingHubNotImplementedError. La UI ya deja el submit
+ * Dinero (dispersión): SIEMPRE lanza BankingHubNotImplementedError. La UI ya deja el submit
  * deshabilitado, pero el stub nunca finge un envío exitoso aunque alguien lo invoque directo.
  */
 
@@ -108,31 +109,10 @@ export async function getReportTrend(months = 6, locale = 'es-MX'): Promise<Repo
   return delay({ isMock: true as const, points })
 }
 
-// ── SPEI externo — MUEVE DINERO. Sin backend: el stub lanza siempre, la UI deja el submit
-// deshabilitado ("Muy pronto") en vez de dejar llegar aquí. ──
+// ── SPEI externo: YA NO es stub — el envío real vive en financialConnection.service.ts
+// (sendSpeiOut), con backend real en avoqado-server. Este archivo conserva solo lo UI-first. ──
 
-export interface SpeiOutInput {
-  financialAccountId: string
-  destinationClabe: string
-  beneficiaryName: string
-  amount: number
-  concept: string
-  twoFactorCode: string
-}
-
-export interface SpeiOutResult {
-  ok: boolean
-  movementId: string | null
-  message: string | null
-}
-
-export const speiService = {
-  async send(_venueId: string, _input: SpeiOutInput): Promise<SpeiOutResult> {
-    throw new BankingHubNotImplementedError('El envío SPEI externo')
-  },
-}
-
-// ── Dispersiones — MUEVE DINERO en lote. Mismo trato que SPEI: siempre lanza. ──
+// ── Dispersiones — MUEVE DINERO en lote. Sin backend todavía: el stub lanza siempre. ──
 
 export interface DispersionItemInput {
   clabe: string

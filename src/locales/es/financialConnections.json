@@ -128,7 +128,7 @@
   "transfer": {
     "button": "Enviar traspaso",
     "title": "Traspaso interno",
-    "description": "Envía dinero desde {{label}} a otra cuenta Moneygiver.",
+    "description": "Envía dinero desde {{label}} a otra cuenta del mismo banco.",
     "destination": "Cuenta destino (número interno)",
     "amount": "Monto",
     "concept": "Concepto",
@@ -236,19 +236,33 @@
     },
     "spei": {
       "title": "SPEI externo",
-      "description": "Envía dinero a una CLABE de cualquier banco, no solo Moneygiver.",
+      "description": "Envía dinero a una CLABE de cualquier banco.",
       "formTitle": "Nuevo envío SPEI",
-      "formDescription": "Vista previa del formulario — el envío real llega pronto.",
+      "formDescription": "Revisa cada dato con calma: el dinero sale de tu cuenta y no se puede deshacer.",
       "fields": {
         "sourceAccount": "Cuenta origen",
         "clabe": "CLABE destino",
+        "bank": "Banco destino",
+        "bankPlaceholder": "Selecciona el banco",
         "beneficiaryName": "Nombre del beneficiario",
         "amount": "Monto",
-        "twoFactorCode": "Código de verificación",
         "concept": "Concepto"
       },
-      "previewNote": "Este formulario es una vista previa. El envío estará disponible próximamente.",
-      "submit": "Enviar (muy pronto)"
+      "clabeInvalid": "Esa CLABE no es válida. Revisa los 18 dígitos.",
+      "multiAccountUnavailable": "Por ahora el envío SPEI solo está disponible para conexiones con una sola cuenta.",
+      "banksLoading": "Cargando bancos…",
+      "banksLoadError": "No se pudo cargar la lista de bancos.",
+      "review": "Revisar envío",
+      "confirmLead": "Vas a enviar",
+      "irreversibleWarning": "Este envío va a un banco externo, es dinero real y NO se puede deshacer. Verifica el nombre y la CLABE.",
+      "back": "Regresar",
+      "send": "Enviar",
+      "sending": "Enviando…",
+      "successTitle": "SPEI enviado",
+      "successBody": "Folio: {{id}}",
+      "errorTitle": "No se pudo enviar el SPEI",
+      "errorHint": "Puede que sí se haya enviado. Revisa tus movimientos antes de reintentar.",
+      "newSend": "Hacer otro envío"
     },
     "dispersions": {
       "title": "Dispersiones",

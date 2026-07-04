@@ -1,6 +1,6 @@
 /**
  * Seam multi-proveedor para el wizard de conexión bancaria. Hoy solo existe EXTERNAL_BANK
- * (Moneygiver, DIRECT_CREDENTIAL — usuario/contraseña propios). El paso de credenciales del
+ * (el proveedor actual, DIRECT_CREDENTIAL — usuario/contraseña propios). El paso de credenciales del
  * wizard branchea por `connectionType`, NUNCA por `provider.code`, para que sumar un proveedor
  * OAuth o un agregador después sea agregar un nuevo case aquí, no reescribir el wizard.
  */
