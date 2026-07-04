@@ -235,6 +235,10 @@ export const WLSalesDetail = lazyWithRetry(() => import('@/pages/organizations/S
 export const BancosResumen = lazyWithRetry(() => import('@/pages/Bancos/BancosResumen'))
 export const BancosMovimientos = lazyWithRetry(() => import('@/pages/Bancos/BancosMovimientos'))
 export const BancosTransferencias = lazyWithRetry(() => import('@/pages/Bancos/BancosTransferencias'))
+export const BancosBeneficiarios = lazyWithRetry(() => import('@/pages/Bancos/BancosBeneficiarios'))
+export const BancosReportes = lazyWithRetry(() => import('@/pages/Bancos/BancosReportes'))
+export const BancosSpei = lazyWithRetry(() => import('@/pages/Bancos/BancosSpei'))
+export const BancosDispersiones = lazyWithRetry(() => import('@/pages/Bancos/BancosDispersiones'))
 
 // Reports
 export const PayLaterAging = lazyWithRetry(() => import('@/pages/Reports/PayLaterAging'))

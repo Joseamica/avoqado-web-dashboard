@@ -80,6 +80,12 @@
     "errors": {
       "generic": "Something went wrong. Try again.",
       "rateLimited": "Too many attempts. Wait a few minutes and try again."
+    },
+    "unsupported": {
+      "badge": "Coming soon",
+      "title": "{{provider}} isn't available yet",
+      "description": "This connection type (signing in with your bank directly, without a username/password) isn't ready yet. You'll be able to connect it from here soon.",
+      "back": "Choose another bank"
     }
   },
   "movements": {
@@ -111,7 +117,13 @@
       "next": "Next",
       "pageOf": "Page {{page}} of {{pages}}"
     },
-    "openAria": "View account movements"
+    "openAria": "View account movements",
+    "detail": {
+      "title": "Movement detail",
+      "origin": "Origin",
+      "destination": "Destination",
+      "folio": "Folio"
+    }
   },
   "transfer": {
     "button": "Send transfer",
@@ -165,6 +177,93 @@
       "title": "Could not load your banks",
       "description": "There was a problem fetching your connections. Try again in a moment.",
       "retry": "Retry"
+    },
+    "comingSoonBadge": "Coming soon",
+    "merchantOnly": "This feature is only available for business accounts.",
+    "beneficiaries": {
+      "title": "Beneficiaries",
+      "description": "Save who you pay to reuse them later in SPEI and disbursements.",
+      "betaBadge": "Beta",
+      "notPersistedWarning": "Trial feature: this list resets when you reload the page or sign out. It isn't saved permanently yet.",
+      "newCta": "New beneficiary",
+      "searchPlaceholder": "Search by name or CLABE…",
+      "empty": "You haven't saved any beneficiaries yet.",
+      "columns": {
+        "name": "Name",
+        "clabe": "CLABE",
+        "bank": "Bank"
+      },
+      "deleteTitle": "Delete this beneficiary?",
+      "deleteDesc": "You'll stop seeing {{name}} in your address book. You can add them again anytime.",
+      "toasts": {
+        "created": "Beneficiary saved",
+        "updated": "Beneficiary updated",
+        "deleted": "Beneficiary deleted"
+      },
+      "form": {
+        "createTitle": "New beneficiary",
+        "editTitle": "Edit beneficiary",
+        "save": "Save",
+        "fields": {
+          "name": "Name",
+          "clabe": "CLABE",
+          "bankName": "Bank",
+          "alias": "Nickname or note"
+        },
+        "placeholders": {
+          "name": "Full name",
+          "bankName": "e.g. BBVA, Santander…",
+          "alias": "e.g. Rent, Juan's payroll…"
+        },
+        "validation": {
+          "nameRequired": "Name is required",
+          "clabeRequired": "CLABE is required",
+          "clabeInvalid": "That CLABE isn't valid. Check the 18 digits.",
+          "clabeDuplicate": "You already have a beneficiary saved with that CLABE."
+        }
+      }
+    },
+    "reports": {
+      "title": "Reports",
+      "description": "What you've received, sent, and disbursed in the last 30 days, across all your accounts.",
+      "statsError": "Some accounts' data couldn't be loaded. The totals above may be incomplete.",
+      "trend": {
+        "title": "Trend",
+        "description": "Illustrative chart with sample data — your real trend will show here soon.",
+        "mockBadge": "Sample data",
+        "label": "Amount"
+      }
+    },
+    "spei": {
+      "title": "External SPEI",
+      "description": "Send money to a CLABE at any bank, not just Moneygiver.",
+      "formTitle": "New SPEI transfer",
+      "formDescription": "Form preview — the real send is coming soon.",
+      "fields": {
+        "sourceAccount": "Source account",
+        "clabe": "Destination CLABE",
+        "beneficiaryName": "Beneficiary name",
+        "amount": "Amount",
+        "twoFactorCode": "Verification code",
+        "concept": "Concept"
+      },
+      "previewNote": "This form is a preview. Sending will be available soon.",
+      "submit": "Send (coming soon)"
+    },
+    "dispersions": {
+      "title": "Disbursements",
+      "description": "Pay several beneficiaries in a single batch, e.g. payroll or commissions.",
+      "formTitle": "New disbursement",
+      "formDescription": "Form preview — batch sending is coming soon.",
+      "fields": {
+        "csv": "CSV file"
+      },
+      "csvHelp": "One row per beneficiary: CLABE, name, amount, concept.",
+      "fileTooLarge": "The file is too large. Use one under 5 MB.",
+      "rowsDetected": "{{count}} row detected",
+      "rowsDetected_other": "{{count}} rows detected",
+      "previewNote": "This form is a preview. Batch sending will be available soon.",
+      "submit": "Process disbursement (coming soon)"
     }
   }
 }

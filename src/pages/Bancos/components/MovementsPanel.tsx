@@ -12,10 +12,16 @@ import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { ArrowDownLeft, ArrowUpRight, Loader2, Repeat, Send } from 'lucide-react'
 
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { Currency } from '@/utils/currency'
-import { financialConnectionAPI, type FinancialAccountSummary, type MovementCategoryStats } from '@/services/financialConnection.service'
+import {
+  financialConnectionAPI,
+  type AccountMovement,
+  type FinancialAccountSummary,
+  type MovementCategoryStats,
+} from '@/services/financialConnection.service'
 
 const PAGE_SIZE = 10
 const RANGE_PRESETS = [7, 30, 90] as const
@@ -34,6 +40,11 @@ const STAT_TONE = {
   transfer: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',
   dispersion: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
 } as const
+
+/** El proveedor no manda una dirección explícita — se infiere del texto libre de type/operationType. */
+function isOutgoingMovement(m: Pick<AccountMovement, 'type' | 'operationType'>): boolean {
+  return /egreso|out|env|cargo|salida/i.test(`${m.type ?? ''} ${m.operationType ?? ''}`)
+}
 
 function StatCard({
   label,
@@ -59,6 +70,62 @@ function StatCard({
   )
 }
 
+/** Detalle de un movimiento — todos los campos que la fila de la lista no muestra por separado. */
+function MovementDetailSheet({ movement, onClose }: { movement: AccountMovement | null; onClose: () => void }) {
+  const { t } = useTranslation('financialConnections')
+  const outgoing = movement ? isOutgoingMovement(movement) : false
+
+  const rows: Array<{ label: string; value: string }> = movement
+    ? [
+        { label: t('movements.table.type'), value: movement.type ?? '—' },
+        {
+          label: outgoing ? t('movements.detail.destination') : t('movements.detail.origin'),
+          value: movement.beneficiary ?? movement.originator ?? '—',
+        },
+        { label: t('movements.table.reference'), value: movement.reference ?? '—' },
+        { label: t('movements.table.status'), value: movement.status ?? '—' },
+        { label: t('movements.detail.folio'), value: movement.id ?? '—' },
+      ]
+    : []
+
+  return (
+    <Sheet open={!!movement} onOpenChange={o => !o && onClose()}>
+      <SheetContent side="right" className="w-full gap-0 overflow-y-auto sm:max-w-md">
+        {movement && (
+          <>
+            <SheetHeader className="gap-3 px-6 pb-4 pt-6">
+              <span
+                className={cn('flex h-10 w-10 items-center justify-center rounded-full', outgoing ? STAT_TONE.out : STAT_TONE.in)}
+                aria-hidden
+              >
+                {outgoing ? <ArrowUpRight className="h-5 w-5" /> : <ArrowDownLeft className="h-5 w-5" />}
+              </span>
+              <SheetTitle>{movement.concept ?? movement.type ?? t('movements.detail.title')}</SheetTitle>
+              <SheetDescription>{movement.date ? new Date(movement.date).toLocaleString() : '—'}</SheetDescription>
+              <span
+                className={cn(
+                  'text-2xl font-semibold tabular-nums',
+                  outgoing ? 'text-foreground' : 'text-emerald-600 dark:text-emerald-400',
+                )}
+              >
+                {movement.amount != null ? `${outgoing ? '−' : '+'}${Currency(movement.amount)}` : '—'}
+              </span>
+            </SheetHeader>
+            <div className="divide-y divide-border/40 px-6">
+              {rows.map(r => (
+                <div key={r.label} className="flex items-center justify-between gap-4 py-3">
+                  <span className="text-sm text-muted-foreground">{r.label}</span>
+                  <span className="max-w-[60%] truncate text-right text-sm font-medium">{r.value}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
+  )
+}
+
 /**
  * Panel de movimientos. `enabled` controla el disparo de las queries (para el Sheet,
  * que solo consulta cuando está abierto; en una página siempre es true).
@@ -75,6 +142,7 @@ export function MovementsPanel({
   const { t } = useTranslation('financialConnections')
   const [rangeDays, setRangeDays] = useState<RangePreset>(30)
   const [page, setPage] = useState(0)
+  const [selectedMovement, setSelectedMovement] = useState<AccountMovement | null>(null)
   const range = useMemo(() => rangeToIso(rangeDays), [rangeDays])
 
   const stats = useQuery({
@@ -150,9 +218,14 @@ export function MovementsPanel({
         <div className="flex flex-col gap-4">
           <div className="overflow-hidden rounded-xl bg-muted/30 divide-y divide-border/40">
             {movs.data.movements.map((m, i) => {
-              const outgoing = /egreso|out|env|cargo|salida/i.test(`${m.type ?? ''} ${m.operationType ?? ''}`)
+              const outgoing = isOutgoingMovement(m)
               return (
-                <div key={m.id ?? i} className="flex items-start justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted/60">
+                <button
+                  key={m.id ?? i}
+                  type="button"
+                  onClick={() => setSelectedMovement(m)}
+                  className="flex w-full cursor-pointer items-start justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60"
+                >
                   <div className="flex min-w-0 items-start gap-3">
                     <span
                       className={cn('mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full', outgoing ? STAT_TONE.out : STAT_TONE.in)}
@@ -174,7 +247,7 @@ export function MovementsPanel({
                     </span>
                     {m.status && <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{m.status}</span>}
                   </div>
-                </div>
+                </button>
               )
             })}
           </div>
@@ -203,6 +276,8 @@ export function MovementsPanel({
           </div>
         </div>
       )}
+
+      <MovementDetailSheet movement={selectedMovement} onClose={() => setSelectedMovement(null)} />
     </div>
   )
 }

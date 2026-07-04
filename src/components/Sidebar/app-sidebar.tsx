@@ -637,8 +637,8 @@ export function AppSidebar({
       { title: t('sidebar:bancosMenu.transfers', { defaultValue: 'Transferencias internas' }), url: 'bancos/transferencias', icon: HandCoins, permission: 'financialConnections:manage', keywords: ['traspaso', 'transferencia interna', 'entre cuentas', 'mover dinero'] },
       { title: t('sidebar:bancosMenu.spei', { defaultValue: 'SPEI externo' }), url: 'bancos/spei', icon: CreditCard, permission: 'financialConnections:manage', comingSoon: true, keywords: ['spei', 'transferencia externa', 'enviar a clabe', 'otro banco'] },
       { title: t('sidebar:bancosMenu.dispersions', { defaultValue: 'Dispersiones' }), url: 'bancos/dispersiones', icon: DollarSign, permission: 'financialConnections:manage', comingSoon: true, keywords: ['dispersion', 'pagos masivos', 'nomina', 'pagar empleados', 'lote'] },
-      { title: t('sidebar:bancosMenu.beneficiaries', { defaultValue: 'Beneficiarios' }), url: 'bancos/beneficiarios', icon: Users, permission: 'financialConnections:manage', comingSoon: true, keywords: ['beneficiarios', 'destinatarios', 'contactos', 'a quien le pago'] },
-      { title: t('sidebar:bancosMenu.reports', { defaultValue: 'Reportes' }), url: 'bancos/reportes', icon: BarChart3, permission: 'financialConnections:manage', comingSoon: true, keywords: ['reportes bancarios', 'cobrado', 'dispersado', 'comisiones', 'tendencia'] },
+      { title: t('sidebar:bancosMenu.beneficiaries', { defaultValue: 'Beneficiarios' }), url: 'bancos/beneficiarios', icon: Users, permission: 'financialConnections:manage', keywords: ['beneficiarios', 'destinatarios', 'contactos', 'a quien le pago'] },
+      { title: t('sidebar:bancosMenu.reports', { defaultValue: 'Reportes' }), url: 'bancos/reportes', icon: BarChart3, permission: 'financialConnections:manage', keywords: ['reportes bancarios', 'cobrado', 'dispersado', 'comisiones', 'tendencia'] },
     ].filter(item => !item.permission || can(item.permission)) as any[])
 
     // ===================================================================

@@ -27,6 +27,7 @@ import {
   type FinancialConnectionStatus,
 } from '@/services/financialConnection.service'
 import { stepForStatus, type WizardStep } from './bankConnectSteps'
+import { connectStrategyFor } from './connectStrategies'
 
 /** Reanuda una conexión ya iniciada (estado PENDING_*) en el paso que le toca, en vez de empezar de cero. */
 export interface WizardResume {
@@ -169,7 +170,7 @@ export function BankConnectWizard({ open, onClose, venueId, resume }: Props) {
                   type="button"
                   onClick={() => {
                     setProvider(p)
-                    setWizard({ step: 'credentials' })
+                    setWizard(connectStrategyFor(p.connectionType) === 'credential-form' ? { step: 'credentials' } : { step: 'unsupported' })
                   }}
                   className="flex items-center gap-3 rounded-2xl border-2 border-input bg-card p-4 text-left transition-all hover:border-primary/30 hover:shadow-md"
                 >
@@ -288,6 +289,17 @@ export function BankConnectWizard({ open, onClose, venueId, resume }: Props) {
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {wizard.step === 'unsupported' && provider && (
+          <div className="flex flex-col items-center gap-4 py-8 text-center">
+            <Badge variant="outline">{t('wizard.unsupported.badge')}</Badge>
+            <h2 className="text-lg font-semibold">{t('wizard.unsupported.title', { provider: provider.name })}</h2>
+            <p className="text-sm text-muted-foreground">{t('wizard.unsupported.description')}</p>
+            <Button variant="outline" onClick={() => setWizard({ step: 'providers' })}>
+              {t('wizard.unsupported.back')}
+            </Button>
           </div>
         )}
 

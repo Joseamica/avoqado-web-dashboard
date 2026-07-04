@@ -6,6 +6,8 @@ export type WizardStep =
   | { step: 'code'; variant: 'twoFactor' | 'device' }
   | { step: 'selectAccount' }
   | { step: 'done' }
+  /** Proveedor con connectionType OAuth/agregador — el seam existe, el flujo real no todavía. */
+  | { step: 'unsupported' }
 
 /** Traduce el status que devuelve el backend al paso de UI que sigue. */
 export function stepForStatus(status: FinancialConnectionStatus): WizardStep {

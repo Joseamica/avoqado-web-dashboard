@@ -80,6 +80,12 @@
     "errors": {
       "generic": "Algo salió mal. Intenta de nuevo.",
       "rateLimited": "Demasiados intentos. Espera unos minutos e intenta de nuevo."
+    },
+    "unsupported": {
+      "badge": "Muy pronto",
+      "title": "{{provider}} aún no está disponible",
+      "description": "Este tipo de conexión (inicio de sesión con tu banco directamente, sin usuario/contraseña) todavía no está listo. Pronto podrás conectarlo desde aquí.",
+      "back": "Elegir otro banco"
     }
   },
   "movements": {
@@ -111,7 +117,13 @@
       "next": "Siguiente",
       "pageOf": "Página {{page}} de {{pages}}"
     },
-    "openAria": "Ver movimientos de la cuenta"
+    "openAria": "Ver movimientos de la cuenta",
+    "detail": {
+      "title": "Detalle del movimiento",
+      "origin": "Origen",
+      "destination": "Destino",
+      "folio": "Folio"
+    }
   },
   "transfer": {
     "button": "Enviar traspaso",
@@ -165,6 +177,93 @@
       "title": "No se pudieron cargar tus bancos",
       "description": "Hubo un problema al consultar tus conexiones. Reintenta en un momento.",
       "retry": "Reintentar"
+    },
+    "comingSoonBadge": "Muy pronto",
+    "merchantOnly": "Esta función solo está disponible para cuentas de negocio.",
+    "beneficiaries": {
+      "title": "Beneficiarios",
+      "description": "Guarda a quién le pagas para usarlo después en SPEI y dispersiones.",
+      "betaBadge": "Beta",
+      "notPersistedWarning": "Función de prueba: esta lista se reinicia al recargar la página o cerrar sesión. Todavía no se guarda de forma permanente.",
+      "newCta": "Nuevo beneficiario",
+      "searchPlaceholder": "Buscar por nombre o CLABE…",
+      "empty": "Aún no has guardado ningún beneficiario.",
+      "columns": {
+        "name": "Nombre",
+        "clabe": "CLABE",
+        "bank": "Banco"
+      },
+      "deleteTitle": "¿Eliminar este beneficiario?",
+      "deleteDesc": "Dejarás de ver a {{name}} en tu libreta. Puedes volver a agregarlo cuando quieras.",
+      "toasts": {
+        "created": "Beneficiario guardado",
+        "updated": "Beneficiario actualizado",
+        "deleted": "Beneficiario eliminado"
+      },
+      "form": {
+        "createTitle": "Nuevo beneficiario",
+        "editTitle": "Editar beneficiario",
+        "save": "Guardar",
+        "fields": {
+          "name": "Nombre",
+          "clabe": "CLABE",
+          "bankName": "Banco",
+          "alias": "Apodo o nota"
+        },
+        "placeholders": {
+          "name": "Nombre completo",
+          "bankName": "Ej. BBVA, Santander…",
+          "alias": "Ej. Renta, Nómina Juan…"
+        },
+        "validation": {
+          "nameRequired": "El nombre es obligatorio",
+          "clabeRequired": "La CLABE es obligatoria",
+          "clabeInvalid": "Esa CLABE no es válida. Revisa los 18 dígitos.",
+          "clabeDuplicate": "Ya tienes un beneficiario guardado con esa CLABE."
+        }
+      }
+    },
+    "reports": {
+      "title": "Reportes",
+      "description": "Lo cobrado, enviado y dispersado en los últimos 30 días, en todas tus cuentas.",
+      "statsError": "No se pudieron cargar los datos de algunas cuentas. Los totales de arriba pueden estar incompletos.",
+      "trend": {
+        "title": "Tendencia",
+        "description": "Gráfica ilustrativa con datos de ejemplo — pronto verás aquí tu tendencia real.",
+        "mockBadge": "Datos de ejemplo",
+        "label": "Monto"
+      }
+    },
+    "spei": {
+      "title": "SPEI externo",
+      "description": "Envía dinero a una CLABE de cualquier banco, no solo Moneygiver.",
+      "formTitle": "Nuevo envío SPEI",
+      "formDescription": "Vista previa del formulario — el envío real llega pronto.",
+      "fields": {
+        "sourceAccount": "Cuenta origen",
+        "clabe": "CLABE destino",
+        "beneficiaryName": "Nombre del beneficiario",
+        "amount": "Monto",
+        "twoFactorCode": "Código de verificación",
+        "concept": "Concepto"
+      },
+      "previewNote": "Este formulario es una vista previa. El envío estará disponible próximamente.",
+      "submit": "Enviar (muy pronto)"
+    },
+    "dispersions": {
+      "title": "Dispersiones",
+      "description": "Paga a varios beneficiarios de un solo lote, por ejemplo nómina o comisiones.",
+      "formTitle": "Nueva dispersión",
+      "formDescription": "Vista previa del formulario — el envío por lote llega pronto.",
+      "fields": {
+        "csv": "Archivo CSV"
+      },
+      "csvHelp": "Una fila por beneficiario: CLABE, nombre, monto, concepto.",
+      "fileTooLarge": "El archivo es demasiado grande. Usa uno de menos de 5 MB.",
+      "rowsDetected": "{{count}} fila detectada",
+      "rowsDetected_other": "{{count}} filas detectadas",
+      "previewNote": "Este formulario es una vista previa. El envío por lote estará disponible próximamente.",
+      "submit": "Procesar dispersión (muy pronto)"
     }
   }
 }

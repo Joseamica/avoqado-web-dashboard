@@ -43,7 +43,7 @@ async function goToCredentialsStep() {
 describe('BankConnectWizard', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockListProviders.mockResolvedValue([{ id: 'prov-1', name: 'Banco Uno' }])
+    mockListProviders.mockResolvedValue([{ id: 'prov-1', name: 'Banco Uno', connectionType: 'DIRECT_CREDENTIAL' }])
     // Mutation never resolves in these tests — we only assert on the call args.
     mockCreateConnection.mockImplementation(() => new Promise(() => {}))
   })
@@ -83,5 +83,16 @@ describe('BankConnectWizard', () => {
         accountKind: 'CLIENT',
       }),
     )
+  })
+
+  it('provider with a non-credential connectionType (OAuth/aggregator) shows the unsupported step, never the credentials form', async () => {
+    mockListProviders.mockResolvedValue([{ id: 'prov-2', name: 'Banco OAuth', connectionType: 'DIRECT_OAUTH' }])
+    renderWithClient(<BankConnectWizard open onClose={vi.fn()} venueId="venue-1" />)
+
+    await waitFor(() => expect(screen.getByText('Banco OAuth')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('Banco OAuth'))
+
+    await waitFor(() => expect(screen.getByText('wizard.unsupported.title')).toBeInTheDocument())
+    expect(screen.queryByLabelText('wizard.step2.email')).not.toBeInTheDocument()
   })
 })

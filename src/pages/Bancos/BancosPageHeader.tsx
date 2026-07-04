@@ -1,7 +1,7 @@
 /** Encabezado consistente para las páginas del hub Bancos: título + descripción + acciones opcionales. */
 import { type ReactNode } from 'react'
 
-export function BancosPageHeader({ title, description, actions }: { title: string; description?: string; actions?: ReactNode }) {
+export function BancosPageHeader({ title, description, actions }: { title: ReactNode; description?: string; actions?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>

@@ -80,6 +80,12 @@
     "errors": {
       "generic": "Une erreur s'est produite. Réessayez.",
       "rateLimited": "Trop de tentatives. Attendez quelques minutes et réessayez."
+    },
+    "unsupported": {
+      "badge": "Bientôt disponible",
+      "title": "{{provider}} n'est pas encore disponible",
+      "description": "Ce type de connexion (connexion directe avec votre banque, sans identifiant/mot de passe) n'est pas encore prêt. Vous pourrez bientôt la connecter depuis ici.",
+      "back": "Choisir une autre banque"
     }
   },
   "movements": {
@@ -111,7 +117,13 @@
       "next": "Suivant",
       "pageOf": "Page {{page}} sur {{pages}}"
     },
-    "openAria": "Voir les mouvements du compte"
+    "openAria": "Voir les mouvements du compte",
+    "detail": {
+      "title": "Détail du mouvement",
+      "origin": "Origine",
+      "destination": "Destination",
+      "folio": "Folio"
+    }
   },
   "transfer": {
     "button": "Envoyer un virement",
@@ -165,6 +177,93 @@
       "title": "Impossible de charger vos banques",
       "description": "Un problème est survenu lors du chargement de vos connexions. Réessayez dans un instant.",
       "retry": "Réessayer"
+    },
+    "comingSoonBadge": "Bientôt disponible",
+    "merchantOnly": "Cette fonction n'est disponible que pour les comptes entreprise.",
+    "beneficiaries": {
+      "title": "Bénéficiaires",
+      "description": "Enregistrez qui vous payez pour le réutiliser plus tard dans SPEI et les déboursements.",
+      "betaBadge": "Bêta",
+      "notPersistedWarning": "Fonction d'essai : cette liste est réinitialisée au rechargement de la page ou à la déconnexion. Elle n'est pas encore enregistrée de façon permanente.",
+      "newCta": "Nouveau bénéficiaire",
+      "searchPlaceholder": "Rechercher par nom ou CLABE…",
+      "empty": "Vous n'avez pas encore enregistré de bénéficiaire.",
+      "columns": {
+        "name": "Nom",
+        "clabe": "CLABE",
+        "bank": "Banque"
+      },
+      "deleteTitle": "Supprimer ce bénéficiaire ?",
+      "deleteDesc": "Vous ne verrez plus {{name}} dans votre carnet d'adresses. Vous pouvez le rajouter à tout moment.",
+      "toasts": {
+        "created": "Bénéficiaire enregistré",
+        "updated": "Bénéficiaire mis à jour",
+        "deleted": "Bénéficiaire supprimé"
+      },
+      "form": {
+        "createTitle": "Nouveau bénéficiaire",
+        "editTitle": "Modifier le bénéficiaire",
+        "save": "Enregistrer",
+        "fields": {
+          "name": "Nom",
+          "clabe": "CLABE",
+          "bankName": "Banque",
+          "alias": "Surnom ou note"
+        },
+        "placeholders": {
+          "name": "Nom complet",
+          "bankName": "Ex. BBVA, Santander…",
+          "alias": "Ex. Loyer, Paie de Juan…"
+        },
+        "validation": {
+          "nameRequired": "Le nom est obligatoire",
+          "clabeRequired": "La CLABE est obligatoire",
+          "clabeInvalid": "Cette CLABE n'est pas valide. Vérifiez les 18 chiffres.",
+          "clabeDuplicate": "Vous avez déjà un bénéficiaire enregistré avec cette CLABE."
+        }
+      }
+    },
+    "reports": {
+      "title": "Rapports",
+      "description": "Reçu, envoyé et déboursé sur les 30 derniers jours, sur tous vos comptes.",
+      "statsError": "Les données de certains comptes n'ont pas pu être chargées. Les totaux ci-dessus peuvent être incomplets.",
+      "trend": {
+        "title": "Tendance",
+        "description": "Graphique illustratif avec des données fictives — votre tendance réelle s'affichera bientôt ici.",
+        "mockBadge": "Données fictives",
+        "label": "Montant"
+      }
+    },
+    "spei": {
+      "title": "SPEI externe",
+      "description": "Envoyez de l'argent vers une CLABE de n'importe quelle banque, pas seulement Moneygiver.",
+      "formTitle": "Nouvel envoi SPEI",
+      "formDescription": "Aperçu du formulaire — l'envoi réel arrive bientôt.",
+      "fields": {
+        "sourceAccount": "Compte source",
+        "clabe": "CLABE de destination",
+        "beneficiaryName": "Nom du bénéficiaire",
+        "amount": "Montant",
+        "twoFactorCode": "Code de vérification",
+        "concept": "Concept"
+      },
+      "previewNote": "Ce formulaire est un aperçu. L'envoi sera bientôt disponible.",
+      "submit": "Envoyer (bientôt disponible)"
+    },
+    "dispersions": {
+      "title": "Déboursements",
+      "description": "Payez plusieurs bénéficiaires en un seul lot, par exemple la paie ou les commissions.",
+      "formTitle": "Nouveau déboursement",
+      "formDescription": "Aperçu du formulaire — l'envoi en lot arrive bientôt.",
+      "fields": {
+        "csv": "Fichier CSV"
+      },
+      "csvHelp": "Une ligne par bénéficiaire : CLABE, nom, montant, concept.",
+      "fileTooLarge": "Le fichier est trop volumineux. Utilisez-en un de moins de 5 Mo.",
+      "rowsDetected": "{{count}} ligne détectée",
+      "rowsDetected_other": "{{count}} lignes détectées",
+      "previewNote": "Ce formulaire est un aperçu. L'envoi en lot sera bientôt disponible.",
+      "submit": "Traiter le déboursement (bientôt disponible)"
     }
   }
 }

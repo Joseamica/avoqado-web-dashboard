@@ -111,6 +111,10 @@ import {
   BancosResumen,
   BancosMovimientos,
   BancosTransferencias,
+  BancosBeneficiarios,
+  BancosReportes,
+  BancosSpei,
+  BancosDispersiones,
   ChartOfAccounts,
   AccountMapping,
   Journal,
@@ -313,6 +317,29 @@ export function createVenueRoutes(): RouteObject[] {
       path: 'bancos/transferencias',
       element: <PermissionProtectedRoute permission="financialConnections:manage" />,
       children: [{ index: true, element: <BancosTransferencias /> }],
+    },
+    {
+      path: 'bancos/beneficiarios',
+      element: <PermissionProtectedRoute permission="financialConnections:manage" />,
+      children: [{ index: true, element: <BancosBeneficiarios /> }],
+    },
+    {
+      path: 'bancos/reportes',
+      element: <PermissionProtectedRoute permission="financialConnections:manage" />,
+      children: [{ index: true, element: <BancosReportes /> }],
+    },
+    {
+      // SPEI/Dispersiones: ruta viva (por si alguien llega por URL directa), pero el sidebar
+      // las mantiene comingSoon (no navegables por click) — la página ya deja el submit
+      // deshabilitado igual, doble candado sobre lo que mueve dinero sin backend.
+      path: 'bancos/spei',
+      element: <PermissionProtectedRoute permission="financialConnections:manage" />,
+      children: [{ index: true, element: <BancosSpei /> }],
+    },
+    {
+      path: 'bancos/dispersiones',
+      element: <PermissionProtectedRoute permission="financialConnections:manage" />,
+      children: [{ index: true, element: <BancosDispersiones /> }],
     },
     {
       // Contabilidad → ¿Cuánto gané? (Capa A, gerencial). Incluido, gateado por accounting:read.
