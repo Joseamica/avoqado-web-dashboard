@@ -56,9 +56,7 @@ import {
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { PeriodBreakdownTable } from './components/PeriodBreakdownTable'
-import { MerchantBreakdownPanel } from './MerchantBreakdownPanel'
-import { MoneyLocationStrip } from './MoneyLocationStrip'
-import { SettlementMiniCalendar } from './SettlementMiniCalendar'
+import { StatementSection } from './statement/StatementSection'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 
 // ============================================
@@ -1045,21 +1043,15 @@ export default function SalesSummary() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 
-  // Per-merchant reconciliation (Entrega 1): the breakdown + the inputs for the
-  // "¿Dónde está tu dinero?" strip. All derived from the additive API fields.
+  // Period statement inputs — the additive API fields powering the Mercury-style
+  // "estado de cuenta" (StatementSection derives all money math from these).
   const merchantBreakdown = useMemo(() => apiResponse?.byMerchantAccount ?? [], [apiResponse])
-  const cashInHand = useMemo(
-    () => apiResponse?.byPaymentMethodDetailed?.find(b => b.bucket === 'CASH')?.amount ?? 0,
-    [apiResponse],
-  )
-  const cardNetToReceive = useMemo(() => merchantBreakdown.reduce((s, m) => s + m.netToReceive, 0), [merchantBreakdown])
-  const commissionsPaid = useMemo(() => merchantBreakdown.reduce((s, m) => s + m.platformFee, 0), [merchantBreakdown])
-
-  // Settlement projection (Entrega 2): the per-day "¿cuándo cae?" calendar. The
-  // settled-vs-incoming split lives inside the calendar (it can only project
-  // payments with a settlement rule), so it is deliberately kept out of the
-  // money-location strip to avoid under-reporting unprojectable card money.
+  const detailedBuckets = useMemo(() => apiResponse?.byPaymentMethodDetailed ?? [], [apiResponse])
   const settlementCalendar = useMemo(() => apiResponse?.settlementCalendar ?? [], [apiResponse])
+  // Show the statement only when advanced reporting is unlocked, no payment-method
+  // filter is active (it would collapse the by-method view to 100%), and the
+  // backend returned the detailed buckets the hero bar needs.
+  const showStatement = hasAccess && !isFiltered && detailedBuckets.length > 0
 
   // Transform API response to component data format
   const data = useMemo(() => {
@@ -2274,20 +2266,22 @@ export default function SalesSummary() {
       </Collapsible>
       )}
 
-      {/* Per-merchant reconciliation (Entrega 1): "¿Dónde está tu dinero?" + the
-          per-merchant card breakdown. Advanced analysis → Pro-only. Hidden under a
-          payment filter. */}
-      {hasAccess && merchantBreakdown.length > 0 && !isFiltered && (
-        <div className="space-y-4">
-          <MoneyLocationStrip
-            cashInHand={cashInHand}
-            cardNetToReceive={cardNetToReceive}
-            commissionsPaid={commissionsPaid}
-            formatCurrency={Currency}
-          />
-          <MerchantBreakdownPanel items={merchantBreakdown} formatCurrency={Currency} venueTimezone={venueTimezone} />
-          <SettlementMiniCalendar days={settlementCalendar} formatCurrency={Currency} />
-        </div>
+      {/* Period statement (Mercury-style): "cuánto gané, cuánto me pagan, cuándo
+          y cómo" in one cohesive card. Advanced analysis → Pro-only. Hidden under
+          a payment filter (which would collapse the by-method view to 100%). */}
+      {showStatement && (
+        <StatementSection
+          buckets={detailedBuckets}
+          merchants={merchantBreakdown}
+          calendar={settlementCalendar}
+          venueTimezone={venueTimezone}
+          formatCurrency={Currency}
+        />
+      )}
+      {hasAccess && isFiltered && (
+        <p className="px-1 text-xs text-muted-foreground" data-testid="statement-filtered-note">
+          {t('salesSummary.statement.filteredNote')}
+        </p>
       )}
 
       {/* Period Breakdown Table - Only shown for time-based reports (Pro-only:
@@ -2301,7 +2295,10 @@ export default function SalesSummary() {
         />
       )}
 
-      {/* Payment Methods Section (Collapsible) */}
+      {/* Payment Methods Section (Collapsible). For Pro + unfiltered the statement
+          above already tells the by-method story, so this only shows for Free or
+          when a payment filter is active. */}
+      {!showStatement && (
       <Collapsible open={paymentsOpen} onOpenChange={setPaymentsOpen}>
         <GlassCard>
           <CollapsibleTrigger asChild>
@@ -2409,6 +2406,7 @@ export default function SalesSummary() {
           </CollapsibleContent>
         </GlassCard>
       </Collapsible>
+      )}
 
       {/* FREE upsell: history + advanced reporting are Pro. Inline FeatureGate
           renders a blurred teaser of what Pro unlocks (it's already a paywall card

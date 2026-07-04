@@ -7,7 +7,7 @@ import type { TierReward } from '@/types/referrals'
 
 // i18n stub: echoes the key with interpolated values so assertions are
 // deterministic without depending on the JSON catalog (repo convention —
-// see PlanPicker.test.tsx / MerchantBreakdownPanel.test.tsx).
+// see PlanPicker.test.tsx / statement/MerchantStatementRows.test.tsx).
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, opts?: Record<string, unknown>) =>

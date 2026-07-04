@@ -5,7 +5,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { BankConnectWizard } from './BankConnectWizard'
 
 // ─── i18n: echo key — repo convention (see ReferralCard.test.tsx /
-// MoneyLocationStrip.test.tsx). Echoing the key lets this test target the
+// statement/StatementFlow.test.tsx). Echoing the key lets this test target the
 // toggle without depending on translated copy.
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({

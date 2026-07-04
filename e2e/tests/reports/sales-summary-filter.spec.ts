@@ -305,37 +305,31 @@ test.describe('Sales Summary — payment filter', () => {
     await expect(
       page.getByText('Clear the filter to see the full distribution').first(),
     ).toBeVisible({ timeout: 5_000 })
+
+    // Under a payment-method filter the period statement is suppressed (it can't
+    // honestly answer "where's my money" per-method), and a one-line note explains it.
+    await expect(page.getByTestId('statement-hero-net')).toHaveCount(0)
+    await expect(page.getByTestId('statement-filtered-note')).toBeVisible()
   })
 
-  test('5 — enriched breakdown: Card row expands to card sub-types', async ({ page }) => {
+  test('5 — enriched card-type detail lives in the period statement (Pro, unfiltered)', async ({ page }) => {
     await setupSalesSummaryMocks(page)
     await gotoReport(page)
 
-    // Scope to the Payment Methods section so we don't collide with the filter
-    // panel or the distribution-chart legend (which also renders a "Card" label).
-    await expect(page.getByRole('heading', { name: 'Payment Methods', level: 3 })).toBeVisible({ timeout: 10_000 })
-
-    // The enriched Card breakdown row — the clickable grid row carrying the
-    // transaction count (vs. the chart legend's plain "Card" text).
-    const cardRow = page
-      .locator('div.grid')
-      .filter({ hasText: 'Card' })
-      .filter({ hasText: 'trans.' })
-      .first()
-    await expect(cardRow).toBeVisible()
+    // On the Pro, unfiltered view the statement replaces the old Payment Methods
+    // block; card sub-types now live behind its "View card type detail" toggle.
+    await expect(page.getByTestId('statement-hero-net')).toBeVisible({ timeout: 10_000 })
 
     // Sub-types hidden until expanded.
     await expect(page.getByText('AMEX', { exact: true })).toHaveCount(0)
-    await expect(page.getByText('International', { exact: true })).toHaveCount(0)
 
-    // Expand the Card row.
-    await cardRow.click()
+    await page.getByTestId('statement-card-detail-toggle').click()
 
-    // Card sub-buckets become visible.
-    await expect(page.getByText('AMEX', { exact: true })).toBeVisible({ timeout: 5_000 })
-    await expect(page.getByText('International', { exact: true })).toBeVisible()
-    await expect(page.getByText('Credit', { exact: true })).toBeVisible()
-    await expect(page.getByText('Debit', { exact: true })).toBeVisible()
+    // Card sub-buckets become visible (labels from the shared cardType options).
+    await expect(page.getByText('AMEX', { exact: true }).first()).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByText('International', { exact: true }).first()).toBeVisible()
+    await expect(page.getByText('Credit', { exact: true }).first()).toBeVisible()
+    await expect(page.getByText('Debit', { exact: true }).first()).toBeVisible()
   })
 
   test('6 — clearing the filter returns to the unfiltered view', async ({ page }) => {

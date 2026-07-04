@@ -561,26 +561,6 @@
       "totalCollected": "Total collected",
       "netProfit": "Net profit"
     },
-    "merchantBreakdown": {
-      "title": "Breakdown by merchant",
-      "description": "Card money per account, tips included. Cash is shown above (already in hand).",
-      "totalNet": "Total to receive",
-      "cols": {
-        "merchant": "Merchant",
-        "collected": "Collected",
-        "commission": "Commission",
-        "net": "Net to receive",
-        "share": "Share"
-      },
-      "lands": "Lands ~{{date}}",
-      "landed": "Should have landed ~{{date}}"
-    },
-    "moneyLocation": {
-      "title": "Where is your money?",
-      "cashInHand": "In hand (cash)",
-      "cardNetToReceive": "Card · net to receive",
-      "summaryLine": "You paid {{commissions}} in fees · you keep {{net}}"
-    },
     "tooltips": {
       "grossSales": "Total sales amount before discounts and refunds are applied",
       "items": "All item sales, excluding taxes, discounts, comps, and refunds",
@@ -602,19 +582,7 @@
       "label": "Settlement",
       "businessDay": "{{count}} business day",
       "businessDays": "{{count}} business days",
-      "immediate": "Immediate",
-      "calendar": {
-        "title": "Settlement calendar",
-        "subtitle": "When this range's card money lands · estimated",
-        "incoming": "Incoming",
-        "status": {
-          "settled": "estimated · should have landed",
-          "pending": "lands today",
-          "projected": "projected"
-        },
-        "merchantLine": "fee {{fee}} · you receive {{net}}",
-        "note": "Estimated from each merchant's settlement rules (business days + holidays). Real confirmation will arrive once we connect your bank. Cash isn't shown here — it's already in hand."
-      }
+      "immediate": "Immediate"
     },
     "paymentTypes": {
       "card": "Card",
@@ -790,6 +758,55 @@
       "allWeekSubtitle": "All days in the period",
       "allWeeksSubtitle": "All weeks in the period",
       "allMonthsSubtitle": "All months in the period"
+    },
+    "statement": {
+      "title": "Period statement",
+      "flow": {
+        "youKeep": "You keep",
+        "collected": "You collected",
+        "fees": "Fees",
+        "cashRow": "Already in hand (cash)",
+        "cashTiming": "immediate",
+        "bankRow": "Arriving to your bank",
+        "lastDepositLands": "last deposit ~{{date}}",
+        "lastDepositLanded": "last deposit should have landed ~{{date}}",
+        "otherRow": "Other methods",
+        "cardDetailToggle": "View card type detail"
+      },
+      "merchants": {
+        "title": "By merchant",
+        "cols": {
+          "merchant": "Merchant",
+          "collected": "Collected",
+          "commission": "Commission",
+          "net": "Net to receive",
+          "share": "Share",
+          "payout": "Payout"
+        },
+        "payout": {
+          "lands": "Lands ~{{date}}",
+          "landed": "Should have landed ~{{date}}",
+          "noRule": "No settlement rule"
+        },
+        "rules": {
+          "title": "Settlement rules",
+          "visaMc": "Visa/MC"
+        },
+        "deposits": "This merchant's deposits"
+      },
+      "timeline": {
+        "title": "When it lands",
+        "incoming": "Incoming",
+        "unprojected": "No estimated date: {{amount}} (accounts without a settlement rule)",
+        "status": {
+          "settled": "should have landed",
+          "pending": "today",
+          "projected": "projected"
+        },
+        "merchantLine": "fee {{fee}} · you receive {{net}}",
+        "note": "Estimated from each merchant's settlement rules (business days + holidays). Real confirmation will arrive once we connect your bank. Cash isn't shown here — it's already in your hand."
+      },
+      "filteredNote": "The statement is shown without payment-method filters."
     }
   },
   "salesByItem": {

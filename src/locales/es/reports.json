@@ -561,26 +561,6 @@
       "totalCollected": "Total cobrado",
       "netProfit": "Ganancia neta"
     },
-    "merchantBreakdown": {
-      "title": "Desglose por comercio",
-      "description": "Dinero de tarjeta por cada cuenta, con propinas incluidas. El efectivo se muestra arriba (ya en tu mano).",
-      "totalNet": "Total a recibir",
-      "cols": {
-        "merchant": "Comercio",
-        "collected": "Cobrado",
-        "commission": "Comisión",
-        "net": "Neto a recibir",
-        "share": "Parte"
-      },
-      "lands": "Cae ~{{date}}",
-      "landed": "Debió caer ~{{date}}"
-    },
-    "moneyLocation": {
-      "title": "¿Dónde está tu dinero?",
-      "cashInHand": "En tu mano (efectivo)",
-      "cardNetToReceive": "Tarjeta · neto a recibir",
-      "summaryLine": "Pagaste {{commissions}} de comisión · te queda {{net}}"
-    },
     "tooltips": {
       "grossSales": "Importe total de ventas antes de aplicar descuentos y reembolsos",
       "items": "Todas las ventas de artículos, sin incluir impuestos, descuentos, cortesías ni reembolsos",
@@ -602,19 +582,7 @@
       "label": "Liquidación",
       "businessDay": "{{count}} día hábil",
       "businessDays": "{{count}} días hábiles",
-      "immediate": "Inmediato",
-      "calendar": {
-        "title": "Calendario de liquidación",
-        "subtitle": "Cuándo cae el dinero de tarjeta de este rango · estimado",
-        "incoming": "Por caer",
-        "status": {
-          "settled": "estimado · debió caer",
-          "pending": "cae hoy",
-          "projected": "proyectado"
-        },
-        "merchantLine": "comisión {{fee}} · recibes {{net}}",
-        "note": "Estimado según las reglas de liquidación de cada comercio (días hábiles + festivos). La confirmación real llegará cuando conectemos tu banco. El efectivo no aparece aquí: ya está en tu mano."
-      }
+      "immediate": "Inmediato"
     },
     "paymentTypes": {
       "card": "Tarjeta",
@@ -790,6 +758,55 @@
       "allWeekSubtitle": "Todos los días del período",
       "allWeeksSubtitle": "Todas las semanas del período",
       "allMonthsSubtitle": "Todos los meses del período"
+    },
+    "statement": {
+      "title": "Estado del periodo",
+      "flow": {
+        "youKeep": "Te queda",
+        "collected": "Cobraste",
+        "fees": "Comisiones",
+        "cashRow": "Ya en tu mano (efectivo)",
+        "cashTiming": "inmediato",
+        "bankRow": "Llega a tu banco",
+        "lastDepositLands": "último depósito ~{{date}}",
+        "lastDepositLanded": "último depósito debió caer ~{{date}}",
+        "otherRow": "Otros métodos",
+        "cardDetailToggle": "Ver detalle por tipo de tarjeta"
+      },
+      "merchants": {
+        "title": "Por comercio",
+        "cols": {
+          "merchant": "Comercio",
+          "collected": "Cobrado",
+          "commission": "Comisión",
+          "net": "Neto a recibir",
+          "share": "Parte",
+          "payout": "Depósito"
+        },
+        "payout": {
+          "lands": "Cae ~{{date}}",
+          "landed": "Debió caer ~{{date}}",
+          "noRule": "Sin regla de liquidación"
+        },
+        "rules": {
+          "title": "Reglas de liquidación",
+          "visaMc": "Visa/MC"
+        },
+        "deposits": "Depósitos de este comercio"
+      },
+      "timeline": {
+        "title": "Cuándo cae",
+        "incoming": "Por caer",
+        "unprojected": "Sin fecha estimada: {{amount}} (cuentas sin regla de liquidación)",
+        "status": {
+          "settled": "debió caer",
+          "pending": "hoy",
+          "projected": "proyectado"
+        },
+        "merchantLine": "comisión {{fee}} · recibes {{net}}",
+        "note": "Estimado según las reglas de liquidación de cada comercio (días hábiles + festivos). La confirmación real llegará cuando conectemos tu banco. El efectivo no aparece aquí: ya está en tu mano."
+      },
+      "filteredNote": "El estado de cuenta se muestra sin filtros de método de pago."
     }
   },
   "salesByItem": {

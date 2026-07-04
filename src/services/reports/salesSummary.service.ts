@@ -79,6 +79,13 @@ export interface TimePeriodMetrics {
 export type ReportType = 'summary' | 'hours' | 'days' | 'weeks' | 'months' | 'hourlySum' | 'dailySum'
 export type GroupBy = 'none' | 'paymentMethod'
 
+/** Active settlement rule for one card type on a merchant account. Additive —
+ *  present only when the backend attaches it (guard `?.length` everywhere). */
+export interface MerchantSettlementRule {
+  cardType: 'CREDIT' | 'DEBIT' | 'AMEX' | 'INTERNATIONAL' | 'OTHER'
+  settlementDays: number
+}
+
 export interface MerchantAccountBreakdown {
   merchantAccountId: string
   displayName: string
@@ -93,6 +100,9 @@ export interface MerchantAccountBreakdown {
     nextDate: string | null // YYYY-MM-DD in venue timezone
     settlementDays: number | null
   }
+  /** Per-card-type settlement rules (active SettlementConfiguration); present
+   *  only when includeMerchantBreakdown=true and the account has rules. */
+  settlementRules?: MerchantSettlementRule[]
 }
 
 // Entrega 2 — settlement projection ("¿cuándo cae el dinero?").
