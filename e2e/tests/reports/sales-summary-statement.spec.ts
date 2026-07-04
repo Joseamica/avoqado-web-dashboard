@@ -4,7 +4,8 @@
  * + payment-methods blocks with one cohesive card. Covers:
  *  - the hero reconciliation (You keep = collected − fees; segments; fee shown once)
  *  - per-merchant rows: effective rate %, payout chips (lands / should-have-landed)
- *  - the always-visible payout timeline + the honesty chip for unprojected money
+ *  - the honesty note for unprojected money (card money with no settlement rule)
+ *  - the shared SettlementWeekStrip: 7 landing-day cells, week total, ‹ › paging, day detail
  *  - card-type detail expander
  *  - PRO gating: FREE venues fall back to the old Payment Methods block + paywall
  *
@@ -28,6 +29,12 @@ function isoDaysFromNow(days: number): string {
 }
 const PAST_DATE = isoDaysFromNow(-5)
 const FUTURE_DATE = isoDaysFromNow(5)
+
+/** Add n days to a bare yyyy-MM-dd (UTC parts, no timezone shift). */
+function addDaysKey(key: string, n: number): string {
+  const [y, m, d] = key.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10)
+}
 
 // Internally CONSISTENT scenario so the statement reconciles visibly:
 //   cash 9,070 + card collected 15,650 = collected 24,720
@@ -118,13 +125,53 @@ const SUMMARY_WITH_MERCHANTS = {
 
 interface MockState {
   lastUrl: string | null
+  /** Every `weekStart` the SettlementWeekStrip requested, in order (for ‹ › paging assertions). */
+  requestedWeeks: string[]
+}
+
+/**
+ * Mock the settlement-week endpoint the SettlementWeekStrip fetches, anchored
+ * DYNAMICALLY to whatever `weekStart` (the Monday) the strip is currently
+ * showing — so the returned day keys always match the rendered cells, even after
+ * paging with ‹ ›. Two populated days: Mon net 965 + Tue net 528.5 → week 1,493.50.
+ */
+async function routeSettlementWeek(page: Page, state: MockState): Promise<void> {
+  await page.route('**/api/v1/dashboard/venues/*/available-balance/settlement-week*', route => {
+    const monday = new URL(route.request().url()).searchParams.get('weekStart') ?? '2026-07-06'
+    state.requestedWeeks.push(monday)
+    const merchant = { merchantAccountId: 'm1', displayName: 'Amaena - B', provider: 'AngelPay (Nexgo)' }
+    const day = (date: string, status: string, gross: number, commission: number, cardType: string) => ({
+      date,
+      status,
+      gross,
+      commission,
+      net: gross - commission,
+      count: 1,
+      byMerchant: [{ ...merchant, gross, commission, net: gross - commission, count: 1 }],
+      byCardType: [{ cardType, gross, commission, net: gross - commission, count: 1 }],
+    })
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: {
+          weekStart: monday,
+          weekEnd: addDaysKey(monday, 6),
+          days: [day(monday, 'settled', 1000, 35, 'CREDIT'), day(addDaysKey(monday, 1), 'projected', 550, 21.5, 'DEBIT')],
+          weekTotal: { gross: 1550, commission: 56.5, net: 1493.5, count: 2 },
+        },
+      }),
+    })
+  })
 }
 
 async function setupMocks(page: Page, summaryOverride?: object, extraOptions: Partial<SetupApiMocksOptions> = {}): Promise<MockState> {
   const venue = createMockVenue({ id: 'venue-alpha', name: 'Restaurante Alpha', slug: 'venue-alpha' })
   await setupApiMocks(page, { userRole: StaffRole.OWNER, venues: [venue], ...extraOptions })
 
-  const state: MockState = { lastUrl: null }
+  const state: MockState = { lastUrl: null, requestedWeeks: [] }
+  await routeSettlementWeek(page, state)
 
   await page.route('**/api/v1/dashboard/venues/*/payment-config/merchant-accounts*', route =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: [] }) }),
@@ -185,26 +232,72 @@ test.describe('Sales Summary — period statement', () => {
     await expect(page.getByTestId('payout-chip-landed').first()).toBeVisible()
   })
 
-  test('payout timeline is always visible; no unprojected chip when totals reconcile', async ({ page }) => {
+  test('settlement week strip renders 7 landing-day cells and the week total', async ({ page }) => {
     await setupMocks(page)
     await gotoReport(page)
 
-    // Two day nodes render WITHOUT any click (no collapsible).
-    await expect(page.locator('[data-testid^="timeline-day-"]')).toHaveCount(2, { timeout: 10_000 })
-    // Incoming = the non-settled (projected) day only.
-    await expect(page.getByTestId('timeline-incoming')).toContainText('13,329.30')
-    // Calendar covers the full card net → no honesty chip.
-    await expect(page.getByTestId('timeline-unprojected-chip')).toHaveCount(0)
+    await expect(page.getByTestId('settlement-week')).toBeVisible({ timeout: 10_000 })
+    // Always exactly 7 day cells (Mon–Sun), regardless of how many land.
+    await expect(page.locator('[data-testid^="settlement-week-day-"]')).toHaveCount(7)
+    // Week total = net of the two landing days (965 + 528.5).
+    await expect(page.getByTestId('settlement-week-total')).toContainText('1,493.50')
   })
 
-  test('honesty chip appears when card money has no estimated date', async ({ page }) => {
+  test('settlement week strip pages back a week with ‹ (re-fetches the prior Monday)', async ({ page }) => {
+    const state = await setupMocks(page)
+    await gotoReport(page)
+    await expect(page.getByTestId('settlement-week')).toBeVisible({ timeout: 10_000 })
+
+    const firstMonday = state.requestedWeeks[0]
+    await page.getByTestId('settlement-week-prev').click()
+    // Paging back → a fresh request keyed to the Monday one week earlier.
+    await expect.poll(() => state.requestedWeeks.at(-1)).toBe(addDaysKey(firstMonday, -7))
+    // The rendered cells move to that earlier week too.
+    await expect(page.getByTestId(`settlement-week-day-${addDaysKey(firstMonday, -7)}`)).toBeVisible()
+  })
+
+  test('settlement week strip: clicking a landing day opens its per-merchant detail', async ({ page }) => {
+    const state = await setupMocks(page)
+    await gotoReport(page)
+    await expect(page.getByTestId('settlement-week')).toBeVisible({ timeout: 10_000 })
+
+    const monday = state.requestedWeeks[0]
+    await page.getByTestId(`settlement-week-day-${monday}`).click()
+    const detail = page.getByTestId('settlement-week-detail')
+    await expect(detail).toBeVisible({ timeout: 10_000 })
+    await expect(detail).toContainText('Amaena - B')
+    await expect(detail).toContainText('965') // "you receive $965.00"
+  })
+
+  test('settlement week strip: empty week shows the "nothing lands" note', async ({ page }) => {
+    await setupMocks(page)
+    // LIFO: this more-specific override wins over setupMocks' populated route.
+    await page.route('**/api/v1/dashboard/venues/*/available-balance/settlement-week*', route => {
+      const monday = new URL(route.request().url()).searchParams.get('weekStart') ?? '2026-07-06'
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: { weekStart: monday, weekEnd: addDaysKey(monday, 6), days: [], weekTotal: { gross: 0, commission: 0, net: 0, count: 0 } },
+        }),
+      })
+    })
+    await gotoReport(page)
+
+    await expect(page.getByTestId('settlement-week')).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByTestId('settlement-week-empty')).toBeVisible()
+    await expect(page.getByTestId('settlement-week-detail')).toHaveCount(0)
+  })
+
+  test('honesty note appears when card money has no estimated date', async ({ page }) => {
     // Same payload but an EMPTY calendar → all card net is unprojected.
     await setupMocks(page, { ...SUMMARY_WITH_MERCHANTS, settlementCalendar: [] })
     await gotoReport(page)
 
-    const chip = page.getByTestId('timeline-unprojected-chip')
-    await expect(chip).toBeVisible({ timeout: 10_000 })
-    await expect(chip).toContainText('15,086.70')
+    const note = page.getByTestId('statement-unprojected')
+    await expect(note).toBeVisible({ timeout: 10_000 })
+    await expect(note).toContainText('15,086.70')
   })
 
   test('expanding a merchant reveals its settlement rules', async ({ page }) => {
