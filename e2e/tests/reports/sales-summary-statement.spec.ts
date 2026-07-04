@@ -137,7 +137,10 @@ interface MockState {
  */
 async function routeSettlementWeek(page: Page, state: MockState): Promise<void> {
   await page.route('**/api/v1/dashboard/venues/*/available-balance/settlement-week*', route => {
-    const monday = new URL(route.request().url()).searchParams.get('weekStart') ?? '2026-07-06'
+    const monday = new URL(route.request().url()).searchParams.get('weekStart')
+    // The strip must always send weekStart; a missing param means a real regression
+    // upstream — fail loudly (400) instead of masking it with a fixed date.
+    if (!monday) return route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'mock expected weekStart' }) })
     state.requestedWeeks.push(monday)
     const merchant = { merchantAccountId: 'm1', displayName: 'Amaena - B', provider: 'AngelPay (Nexgo)' }
     const day = (date: string, status: string, gross: number, commission: number, cardType: string) => ({
@@ -273,7 +276,8 @@ test.describe('Sales Summary — period statement', () => {
     await setupMocks(page)
     // LIFO: this more-specific override wins over setupMocks' populated route.
     await page.route('**/api/v1/dashboard/venues/*/available-balance/settlement-week*', route => {
-      const monday = new URL(route.request().url()).searchParams.get('weekStart') ?? '2026-07-06'
+      const monday = new URL(route.request().url()).searchParams.get('weekStart')
+      if (!monday) return route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'mock expected weekStart' }) })
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
