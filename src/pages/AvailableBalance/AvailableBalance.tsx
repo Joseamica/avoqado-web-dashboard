@@ -42,7 +42,7 @@ import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { CardTypeBreakdownStrip } from './CardTypeBreakdownStrip'
 import { NextDepositHero } from './NextDepositHero'
-import { SettlementCalendarWeek } from './SettlementCalendarWeek'
+import { SettlementWeekStrip } from '@/components/settlement/SettlementWeekStrip'
 import { SettlementTimelineTable } from './SettlementTimelineTable'
 
 // Tab filter type
@@ -501,15 +501,8 @@ function AvailableBalanceContent() {
         />
       )}
 
-      {/* ===== SETTLEMENT CALENDAR — moved to top, primary view ===== */}
-      {activeTab !== 'cash' && (
-        <SettlementCalendarWeek
-          entries={filteredCalendar}
-          timezone={venueTimezone}
-          formatCurrency={Currency}
-          cardTypeLabel={key => t(`cardType.${key.toLowerCase()}`, key)}
-        />
-      )}
+      {/* ===== SETTLEMENT CALENDAR — weekly, navigable, by settlement date ===== */}
+      {activeTab !== 'cash' && venueId && <SettlementWeekStrip venueId={venueId} venueTimezone={venueTimezone} />}
 
       {/* ===== CARD TYPE BREAKDOWN — under the calendar ===== */}
       {activeTab !== 'cash' && filteredCardBreakdown.length > 0 && (

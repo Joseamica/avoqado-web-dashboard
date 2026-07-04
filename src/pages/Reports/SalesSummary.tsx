@@ -57,6 +57,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { PeriodBreakdownTable } from './components/PeriodBreakdownTable'
 import { StatementSection } from './statement/StatementSection'
+import { SettlementWeekStrip } from '@/components/settlement/SettlementWeekStrip'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 
 // ============================================
@@ -2270,13 +2271,16 @@ export default function SalesSummary() {
           y cómo" in one cohesive card. Advanced analysis → Pro-only. Hidden under
           a payment filter (which would collapse the by-method view to 100%). */}
       {showStatement && (
-        <StatementSection
-          buckets={detailedBuckets}
-          merchants={merchantBreakdown}
-          calendar={settlementCalendar}
-          venueTimezone={venueTimezone}
-          formatCurrency={Currency}
-        />
+        <>
+          <StatementSection
+            buckets={detailedBuckets}
+            merchants={merchantBreakdown}
+            calendar={settlementCalendar}
+            venueTimezone={venueTimezone}
+            formatCurrency={Currency}
+          />
+          {venueId && <SettlementWeekStrip venueId={venueId} venueTimezone={venueTimezone} />}
+        </>
       )}
       {hasAccess && isFiltered && (
         <p className="px-1 text-xs text-muted-foreground" data-testid="statement-filtered-note">

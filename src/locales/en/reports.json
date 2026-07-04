@@ -807,6 +807,15 @@
         "note": "Estimated from each merchant's settlement rules (business days + holidays). Real confirmation will arrive once we connect your bank. Cash isn't shown here — it's already in your hand."
       },
       "filteredNote": "The statement is shown without payment-method filters."
+    },
+    "settlementWeek": {
+      "title": "When it lands (week)",
+      "prev": "Previous week",
+      "next": "Next week",
+      "weekTotal": "Week total",
+      "merchantLine": "fee {{commission}} · you receive {{net}}",
+      "empty": "Nothing lands this week.",
+      "note": "How much lands in your bank each day, by settlement date. Estimated from each merchant's rules (business days + holidays). Cash isn't shown here — it's already in your hand."
     }
   },
   "salesByItem": {

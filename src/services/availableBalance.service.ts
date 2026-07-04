@@ -179,3 +179,45 @@ export async function getSettlementCalendar(
   })
   return res.data
 }
+
+// ── Weekly settlement view (settlement-date, Monday–Sunday) ──────────────────
+
+export interface SettlementWeekAgg {
+  gross: number
+  commission: number
+  net: number
+  count: number
+}
+export interface SettlementWeekMerchant extends SettlementWeekAgg {
+  merchantAccountId: string
+  displayName: string
+  provider: string
+}
+export interface SettlementWeekCardType extends SettlementWeekAgg {
+  cardType: string
+}
+export interface SettlementWeekDay extends SettlementWeekAgg {
+  date: string // yyyy-MM-dd (venue-local settlement day)
+  status: 'settled' | 'today' | 'projected'
+  byMerchant: SettlementWeekMerchant[]
+  byCardType: SettlementWeekCardType[]
+}
+export interface SettlementWeek {
+  weekStart: string
+  weekEnd: string
+  days: SettlementWeekDay[]
+  weekTotal: SettlementWeekAgg
+}
+
+/**
+ * Weekly settlement calendar — how much card money lands in the bank on each day
+ * of a Monday–Sunday week (by settlement date). `weekStart` (yyyy-MM-dd, any day
+ * in the target week) selects the week; omit for the current week.
+ */
+export async function getSettlementWeek(venueId: string, weekStart?: string): Promise<{ success: boolean; data: SettlementWeek }> {
+  const res = await api.get(`/api/v1/dashboard/venues/${venueId}/available-balance/settlement-week`, {
+    params: weekStart ? { weekStart } : {},
+    withCredentials: true,
+  })
+  return res.data
+}

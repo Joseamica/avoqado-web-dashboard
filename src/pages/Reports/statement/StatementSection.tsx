@@ -1,11 +1,11 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { GlassCard } from '@/components/ui/glass-card'
 import type { MerchantAccountBreakdown, PaymentMethodDetailedBreakdown, SettlementCalendarDay } from '@/services/reports/salesSummary.service'
 import { deriveStatement } from './derive'
 import { MerchantStatementRows } from './MerchantStatementRows'
-import { PayoutTimeline } from './PayoutTimeline'
 import { StatementFlow } from './StatementFlow'
 import { todayInVenue } from './venueDates'
 
@@ -32,7 +32,6 @@ export function StatementSection({ buckets, merchants, calendar, venueTimezone, 
   const model = useMemo(() => deriveStatement({ buckets, merchants, calendar, todayKey }), [buckets, merchants, calendar, todayKey])
 
   const showMerchants = model.merchants.length > 0
-  const showTimeline = model.days.length > 0 || model.unprojected > 1
 
   return (
     <GlassCard className={cn('overflow-hidden border-input p-0', className)} data-tour="statement">
@@ -48,9 +47,14 @@ export function StatementSection({ buckets, merchants, calendar, venueTimezone, 
         </div>
       )}
 
-      {showTimeline && (
-        <div className="border-t border-input">
-          <PayoutTimeline days={model.days} incoming={model.incoming} unprojected={model.unprojected} formatCurrency={formatCurrency} />
+      {/* Honesty: card money with no settlement rule can't be placed on a landing
+          day (the week calendar below shows only what lands). Surface it here. */}
+      {model.unprojected > 1 && (
+        <div className="border-t border-input px-5 py-3 sm:px-6" data-testid="statement-unprojected">
+          <p className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            {t('salesSummary.statement.timeline.unprojected', { amount: formatCurrency(model.unprojected) })}
+          </p>
         </div>
       )}
     </GlassCard>
