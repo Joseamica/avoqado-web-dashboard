@@ -175,7 +175,7 @@
     "eslint-plugin-react-refresh": "^0.4.24",
     "eslint-plugin-unused-imports": "^4.3.0",
     "globals": "^15.15.0",
-    "jsdom": "^27.3.0",
+    "jsdom": "^27.4.0",
     "knip": "^5.83.1",
     "msw": "^2.12.9",
     "postcss": "^8.4.49",
