@@ -376,7 +376,7 @@ export function MovementsPanel({
             variant="outline"
             size="sm"
             onClick={clearFilters}
-            className="h-7 gap-1.5 rounded-full bg-background dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:hover:text-black"
+            className="h-7 gap-1.5 rounded-full bg-background text-foreground hover:bg-muted"
           >
             <X className="h-3.5 w-3.5" />
             {t('movements.filters.reset')}
