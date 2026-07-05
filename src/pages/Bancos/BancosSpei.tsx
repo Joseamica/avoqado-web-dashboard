@@ -6,7 +6,7 @@
  *  - Banco destino del catálogo real del proveedor, autosugerido por el prefijo de la CLABE.
  *  - Advertencia fuerte de irreversibilidad en la confirmación; botón deshabilitado al enviar.
  * El backend agrega idempotencyKey del proveedor + dedup por contenido + auditoría + rate limit.
- * Solo cuentas de NEGOCIO (guard backend + UI, igual que Transferencias internas).
+ * Solo cuentas PERSONALES (guard backend + UI, igual que Transferencias internas).
  */
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -39,13 +39,13 @@ function errorMessage(err: unknown, fallback: string): string {
 
 function SpeiForm({ venueId, accounts }: { venueId: string; accounts: BancosData['accounts'] }) {
   const { t } = useTranslation('financialConnections')
-  // Solo cuentas de NEGOCIO cuya conexión tiene UNA sola cuenta: el proveedor debita por la
+  // Solo cuentas PERSONALES cuya conexión tiene UNA sola cuenta: el proveedor debita por la
   // identidad del USUARIO, no por la cuenta elegida — en conexiones multi-cuenta el dinero
   // podría salir de otra cuenta. El backend lo rechaza igual; aquí ni se ofrece.
-  const merchantAccounts = accounts.filter(a => a.connection.accountKind === 'MERCHANT' && a.connection.accounts.length === 1)
-  const hasExcludedMultiAccount = accounts.some(a => a.connection.accountKind === 'MERCHANT' && a.connection.accounts.length > 1)
+  const eligibleAccounts = accounts.filter(a => a.connection.accountKind === 'CLIENT' && a.connection.accounts.length === 1)
+  const hasExcludedMultiAccount = accounts.some(a => a.connection.accountKind === 'CLIENT' && a.connection.accounts.length > 1)
 
-  const [sourceAccountId, setSourceAccountId] = useState(merchantAccounts[0]?.account.id ?? '')
+  const [sourceAccountId, setSourceAccountId] = useState(eligibleAccounts[0]?.account.id ?? '')
   const [clabe, setClabe] = useState('')
   const [beneficiaryName, setBeneficiaryName] = useState('')
   const [amount, setAmount] = useState('')
@@ -58,7 +58,7 @@ function SpeiForm({ venueId, accounts }: { venueId: string; accounts: BancosData
   const [result, setResult] = useState<SpeiOutResult | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const sourceAccount = merchantAccounts.find(a => a.account.id === sourceAccountId)?.account ?? merchantAccounts[0]?.account
+  const sourceAccount = eligibleAccounts.find(a => a.account.id === sourceAccountId)?.account ?? eligibleAccounts[0]?.account
 
   // Catálogo real de bancos del proveedor — puebla el selector de banco destino.
   const banks = useQuery({
@@ -118,10 +118,10 @@ function SpeiForm({ venueId, accounts }: { venueId: string; accounts: BancosData
   const bankName = banks.data?.find(b => b.idBanco === idBanco)?.name ?? null
   const amountLabel = useMemo(() => (Number.isFinite(amountNum) && amountNum > 0 ? Currency(amountNum) : '—'), [amountNum])
 
-  if (merchantAccounts.length === 0) {
+  if (eligibleAccounts.length === 0) {
     return (
       <div className="rounded-xl border border-input bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
-        {hasExcludedMultiAccount ? t('hub.spei.multiAccountUnavailable') : t('hub.merchantOnly')}
+        {hasExcludedMultiAccount ? t('hub.spei.multiAccountUnavailable') : t('hub.personalOnly')}
       </div>
     )
   }
@@ -153,7 +153,7 @@ function SpeiForm({ venueId, accounts }: { venueId: string; accounts: BancosData
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {merchantAccounts.map(({ account }) => (
+                  {eligibleAccounts.map(({ account }) => (
                     <SelectItem key={account.id} value={account.id}>
                       {account.label ?? account.externalId}
                       {account.lastBalance != null ? ` · ${Currency(account.lastBalance)}` : ''}

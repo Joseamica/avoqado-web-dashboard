@@ -30,12 +30,12 @@ vi.mock('@/services/financialConnection.service', () => ({
         mode: 'LIVE',
         lastError: null,
         provider: { code: 'EXTERNAL_BANK', name: 'Banco Uno' },
-        accountKind: 'MERCHANT',
+        accountKind: 'CLIENT',
         accounts: [
           {
             id: 'acc-1',
             externalId: 'ext-1',
-            label: 'Cuenta negocio',
+            label: 'Cuenta personal',
             clabe: '032180000118359719',
             currency: 'MXN',
             lastBalance: 1000,
@@ -137,7 +137,7 @@ describe('BancosSpei (flujo real)', () => {
     expect(screen.getByText('hub.spei.errorHint')).toBeInTheDocument()
   })
 
-  it('sin cuentas MERCHANT (solo CLIENT): muestra el aviso "solo negocio", nunca el formulario', async () => {
+  it('sin cuentas personales (solo MERCHANT): muestra el aviso "solo personal", nunca el formulario', async () => {
     const { financialConnectionAPI } = await import('@/services/financialConnection.service')
     vi.mocked(financialConnectionAPI.listConnections).mockResolvedValueOnce([
       {
@@ -146,12 +146,12 @@ describe('BancosSpei (flujo real)', () => {
         mode: 'LIVE',
         lastError: null,
         provider: { code: 'EXTERNAL_BANK', name: 'Banco Uno' },
-        accountKind: 'CLIENT',
+        accountKind: 'MERCHANT',
         accounts: [
           {
             id: 'acc-2',
             externalId: 'ext-2',
-            label: 'Cuenta personal',
+            label: 'Cuenta negocio',
             clabe: null,
             currency: 'MXN',
             lastBalance: 500,
@@ -165,16 +165,16 @@ describe('BancosSpei (flujo real)', () => {
 
     renderPage()
 
-    await waitFor(() => expect(screen.getByText('hub.merchantOnly')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('hub.personalOnly')).toBeInTheDocument())
     expect(screen.queryByLabelText('hub.spei.fields.clabe')).not.toBeInTheDocument()
   })
 
-  it('conexión MERCHANT con VARIAS cuentas: se excluye del envío (el proveedor debita por usuario, no por cuenta elegida)', async () => {
+  it('conexión CLIENT con VARIAS cuentas: se excluye del envío (el proveedor debita por usuario, no por cuenta elegida)', async () => {
     const { financialConnectionAPI } = await import('@/services/financialConnection.service')
     const acc = (id: string) => ({
       id,
       externalId: `ext-${id}`,
-      label: `Negocio ${id}`,
+      label: `Cuenta ${id}`,
       clabe: null,
       currency: 'MXN',
       lastBalance: 100,
@@ -189,7 +189,7 @@ describe('BancosSpei (flujo real)', () => {
         mode: 'LIVE',
         lastError: null,
         provider: { code: 'EXTERNAL_BANK', name: 'Banco Uno' },
-        accountKind: 'MERCHANT',
+        accountKind: 'CLIENT',
         accounts: [acc('m1'), acc('m2')], // 2 cuentas en UNA conexión
       },
     ])

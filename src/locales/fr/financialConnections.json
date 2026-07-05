@@ -171,7 +171,7 @@
     "transfers": {
       "title": "Virements internes",
       "description": "Transférez de l'argent entre comptes de la même banque.",
-      "merchantOnly": "Les virements ne sont disponibles que pour les comptes entreprise."
+      "personalOnly": "Les virements ne sont disponibles que pour les comptes personnels."
     },
     "error": {
       "title": "Impossible de charger vos banques",
@@ -179,7 +179,7 @@
       "retry": "Réessayer"
     },
     "comingSoonBadge": "Bientôt disponible",
-    "merchantOnly": "Cette fonction n'est disponible que pour les comptes entreprise.",
+    "personalOnly": "Cette fonction n'est disponible que pour les comptes personnels.",
     "beneficiaries": {
       "title": "Bénéficiaires",
       "description": "Enregistrez qui vous payez pour le réutiliser plus tard dans SPEI et les déboursements.",

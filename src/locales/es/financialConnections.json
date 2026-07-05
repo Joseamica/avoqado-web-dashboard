@@ -171,7 +171,7 @@
     "transfers": {
       "title": "Transferencias internas",
       "description": "Traspasa dinero entre cuentas del mismo banco.",
-      "merchantOnly": "Las transferencias solo están disponibles para cuentas de negocio."
+      "personalOnly": "Las transferencias solo están disponibles para cuentas personales."
     },
     "error": {
       "title": "No se pudieron cargar tus bancos",
@@ -179,7 +179,7 @@
       "retry": "Reintentar"
     },
     "comingSoonBadge": "Muy pronto",
-    "merchantOnly": "Esta función solo está disponible para cuentas de negocio.",
+    "personalOnly": "Esta función solo está disponible para cuentas personales.",
     "beneficiaries": {
       "title": "Beneficiarios",
       "description": "Guarda a quién le pagas para usarlo después en SPEI y dispersiones.",

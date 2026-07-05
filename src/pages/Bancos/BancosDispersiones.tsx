@@ -28,9 +28,9 @@ const CSV_MAX_BYTES = 5 * 1024 * 1024 // 5MB — solo vista previa local, no hac
 function DispersionForm({ accounts }: { accounts: BancosData['accounts'] }) {
   const { t } = useTranslation('financialConnections')
   const { toast } = useToast()
-  const merchantAccounts = accounts.filter(a => a.connection.accountKind === 'MERCHANT')
+  const eligibleAccounts = accounts.filter(a => a.connection.accountKind === 'CLIENT')
 
-  const [sourceAccountId, setSourceAccountId] = useState(merchantAccounts[0]?.account.id ?? '')
+  const [sourceAccountId, setSourceAccountId] = useState(eligibleAccounts[0]?.account.id ?? '')
   const [file, setFile] = useState<File | null>(null)
   const [rowCount, setRowCount] = useState<number | null>(null)
   // Descarta la lectura si el usuario selecciona OTRO archivo antes de que termine `f.text()` —
@@ -59,10 +59,10 @@ function DispersionForm({ accounts }: { accounts: BancosData['accounts'] }) {
     setRowCount(rows.length)
   }
 
-  if (merchantAccounts.length === 0) {
+  if (eligibleAccounts.length === 0) {
     return (
       <div className="rounded-xl border border-input bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
-        {t('hub.merchantOnly')}
+        {t('hub.personalOnly')}
       </div>
     )
   }
@@ -86,7 +86,7 @@ function DispersionForm({ accounts }: { accounts: BancosData['accounts'] }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {merchantAccounts.map(({ account }) => (
+              {eligibleAccounts.map(({ account }) => (
                 <SelectItem key={account.id} value={account.id}>
                   {account.label ?? account.externalId}
                 </SelectItem>

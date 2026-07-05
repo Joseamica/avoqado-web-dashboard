@@ -1,6 +1,7 @@
 /**
  * Bancos → Transferencias internas. Traspaso MG→MG entre cuentas del mismo proveedor.
- * Solo cuentas de NEGOCIO (MERCHANT) — las personales (CLIENT) no transfieren (guard backend + UI).
+ * Solo cuentas PERSONALES (CLIENT) — el proveedor no soporta este flujo desde cuentas de
+ * NEGOCIO (guard backend + UI).
  * Reusa BankInternalTransferDialog. Gated PRO (teaser visible).
  */
 import { useState } from 'react'
@@ -26,8 +27,8 @@ export default function BancosTransferencias() {
   })
   const [transferAccount, setTransferAccount] = useState<FinancialAccountSummary | null>(null)
 
-  // Solo cuentas de conexiones MERCHANT pueden transferir.
-  const merchantAccounts = accounts.filter(a => a.connection.accountKind === 'MERCHANT')
+  // Solo cuentas de conexiones CLIENT (personales) pueden transferir.
+  const eligibleAccounts = accounts.filter(a => a.connection.accountKind === 'CLIENT')
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 p-4 sm:p-6">
@@ -39,13 +40,13 @@ export default function BancosTransferencias() {
           <BancosErrorState onRetry={refetch} />
         ) : !hasConnection || !venueId ? (
           <BancosEmptyState venueId={venueId ?? ''} hasProviders={hasProviders} pendingReconnect={hasPendingConnection} />
-        ) : merchantAccounts.length === 0 ? (
+        ) : eligibleAccounts.length === 0 ? (
           <div className="rounded-xl border border-input bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
-            {t('hub.transfers.merchantOnly')}
+            {t('hub.transfers.personalOnly')}
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {merchantAccounts.map(({ account }) => (
+            {eligibleAccounts.map(({ account }) => (
               <div key={account.id} className="flex items-center justify-between gap-3 rounded-lg border border-input p-4">
                 <div className="flex min-w-0 flex-col">
                   <span className="truncate text-sm font-medium">{account.label ?? account.externalId}</span>
