@@ -221,10 +221,13 @@ behind the platform.
 
 **Whenever you add, change, or remove a customer-visible capability (feature, module, product,
 payment method, supported sector, tier packaging), you MUST update BOTH deliverables as part of
-the SAME change — never "later":** the full deck (`avoqado-presentacion.html`) AND the one-pager
-(`avoqado-one-pager.html`), then regenerate both PDFs following that folder's `README.md`.
-Updating only one of the two is an incomplete change. Internal refactors and bugfixes with no
-customer-visible impact are exempt.
+the SAME change — never "later":** the full deck (`avoqado-presentacion-v2.html`) AND the one-pager
+(`avoqado-one-pager-v2.html`) — plus the client one-pager (`avoqado-one-pager-cliente.html`).
+**Editing the HTML is only HALF the change.** You MUST then **regenerate the PDF of each** with the
+Chrome-headless HTML→PDF command in that folder's `README.md` — the PDF is the file partners actually
+open and send, so an HTML edit WITHOUT a freshly regenerated PDF is an INCOMPLETE change.
+Updating only one deliverable, or editing HTML without regenerating its PDF, is incomplete. Internal
+refactors and bugfixes with no customer-visible impact are exempt.
 
 ---
 
