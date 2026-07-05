@@ -86,9 +86,18 @@
       "fees": "Frais",
       "net": "Montant Net",
       "settlementDate": "Date de Règlement",
+      "type": "Type",
       "noData": "Aucune donnée de règlement disponible"
     },
-    "viewAll": "Voir Tout ({{count}})"
+    "viewAll": "Voir Tout ({{count}})",
+    "filterAll": "Tous les moyens",
+    "today": "Aujourd'hui",
+    "showEarlier": "Afficher les jours précédents ({{count}})",
+    "daysSummary_one": "{{count}} jour · {{net}} net",
+    "daysSummary_other": "{{count}} jours · {{net}} net",
+    "txns_one": "{{count}} txn",
+    "txns_other": "{{count}} txns",
+    "estimatedNote": "Dates de règlement estimées selon les règles de chaque commerce (jours ouvrables et fériés). Rien ici n'est un dépôt confirmé."
   },
 
   "status": {

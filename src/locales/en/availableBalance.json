@@ -99,9 +99,18 @@
       "fees": "Fees",
       "net": "Net Amount",
       "settlementDate": "Settlement Date",
+      "type": "Type",
       "noData": "No settlement data available"
     },
-    "viewAll": "View All ({{count}})"
+    "viewAll": "View All ({{count}})",
+    "filterAll": "All methods",
+    "today": "Today",
+    "showEarlier": "Show earlier days ({{count}})",
+    "daysSummary_one": "{{count}} day · {{net}} net",
+    "daysSummary_other": "{{count}} days · {{net}} net",
+    "txns_one": "{{count}} txn",
+    "txns_other": "{{count}} txns",
+    "estimatedNote": "Settlement dates are estimates based on each merchant's rules (business days and holidays). Nothing here is a confirmed deposit."
   },
 
   "status": {

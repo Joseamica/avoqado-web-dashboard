@@ -3,7 +3,11 @@ import { CashCloseoutHistory } from '@/components/CashCloseout/CashCloseoutHisto
 import { CreditOfferBanner } from '@/components/CreditOffer/CreditOfferBanner'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
-import { PendingIncidentsAlert } from '@/components/SettlementIncident/PendingIncidentsAlert'
+// DISABLED (2026-07-05, Jose): manual settlement-confirmation flow. Everything on this
+// page is an automatic ESTIMATE by settlement date — nobody confirms deposits by hand,
+// and the "Confirmar Todo (N)" banner contradicted that. Re-enable when the real bank
+// integration lands and confirmations become factual instead of manual.
+// import { PendingIncidentsAlert } from '@/components/SettlementIncident/PendingIncidentsAlert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -424,8 +428,11 @@ function AvailableBalanceContent() {
         </nav>
       </div>
 
-      {/* Pending Incidents Alert */}
-      {venueId && <PendingIncidentsAlert venueId={venueId} />}
+      {/* Pending Incidents Alert — DISABLED: manual "Confirmar liquidación" flow.
+          All settlement state here is an automatic estimate by date (no bank
+          integration yet), so asking the user to confirm deposits was dishonest
+          noise. Restore alongside the import above when bank data is real. */}
+      {/* {venueId && <PendingIncidentsAlert venueId={venueId} />} */}
 
       {/* Credit Offer Banner - Shows when venue has a pending financing offer */}
       {venueId && <CreditOfferBanner venueId={venueId} />}

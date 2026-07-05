@@ -102,9 +102,18 @@
       "fees": "Comisiones",
       "net": "Monto Neto",
       "settlementDate": "Fecha de Liquidación",
+      "type": "Tipo",
       "noData": "No hay datos de liquidación disponibles"
     },
-    "viewAll": "Ver Todo ({{count}})"
+    "viewAll": "Ver Todo ({{count}})",
+    "filterAll": "Todos los métodos",
+    "today": "Hoy",
+    "showEarlier": "Mostrar días anteriores ({{count}})",
+    "daysSummary_one": "{{count}} día · {{net}} neto",
+    "daysSummary_other": "{{count}} días · {{net}} neto",
+    "txns_one": "{{count}} txn",
+    "txns_other": "{{count}} txns",
+    "estimatedNote": "Fechas de liquidación estimadas según las reglas de cada comercio (días hábiles y festivos). Nada aquí es un depósito confirmado."
   },
 
   "status": {
