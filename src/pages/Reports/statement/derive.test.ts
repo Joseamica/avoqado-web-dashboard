@@ -195,4 +195,21 @@ describe('deriveStatement', () => {
     expect(past.payoutStatus).toBe('landed')
     expect(past.payoutAmount).toBeNull()
   })
+
+  it('trusts the calendar slices over a disagreeing backend nextDate (no future flip on all-past slices)', () => {
+    // All slices are past, but the backend's single estimate points to a FUTURE date
+    // (e.g. clock skew or a stale nextDate). The chip must follow the slices — the same
+    // data the strip/expand show — not flip to a future "Cae".
+    const m = deriveStatement({
+      buckets: [],
+      merchants: [merchant({ merchantAccountId: 'x', netToReceive: 100, estimatedSettlement: { nextDate: '2026-07-20', settlementDays: 1 } })],
+      calendar: [
+        { date: '2026-07-01', status: 'settled', totalNet: 60, byMerchant: [{ merchantAccountId: 'x', displayName: 'X', platformFee: 4, netToReceive: 60, transactionCount: 1 }] },
+        { date: '2026-07-02', status: 'settled', totalNet: 40, byMerchant: [{ merchantAccountId: 'x', displayName: 'X', platformFee: 3, netToReceive: 40, transactionCount: 1 }] },
+      ],
+      todayKey: TODAY, // 2026-07-04 → both slices past
+    })
+    expect(m.merchants[0].payoutStatus).toBe('landed') // NOT 'lands' from nextDate 2026-07-20
+    expect(m.merchants[0].payoutDate).toBe('2026-07-02') // last slice, not the backend date
+  })
 })

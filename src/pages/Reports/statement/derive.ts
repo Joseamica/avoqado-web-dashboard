@@ -84,16 +84,30 @@ export function deriveStatement(input: DeriveStatementInput): StatementModel {
     let payoutStatus: MerchantStatementRowModel['payoutStatus']
     let payoutDate: string | null
     let payoutAmount: number | null = null
-    if (nextDate == null) {
-      payoutStatus = 'noRule'
-      payoutDate = null
-    } else if (deposits.length > 1 && upcoming.length > 0) {
-      payoutStatus = 'next'
-      payoutDate = upcoming[0].date
-      payoutAmount = upcoming[0].netToReceive
-    } else {
+    if (deposits.length > 0) {
+      // The calendar slices are the SINGLE source of truth for timing — the same data
+      // the week strip and the expanded per-day list render — so the chip can never
+      // disagree with them (e.g. all-past slices must not flip to a future "Cae" from a
+      // separately-clocked nextDate). Derive everything here from the slices + venue today.
+      if (deposits.length > 1 && upcoming.length > 0) {
+        payoutStatus = 'next'
+        payoutDate = upcoming[0].date
+        payoutAmount = upcoming[0].netToReceive
+      } else if (upcoming.length > 0) {
+        payoutStatus = 'lands' // one upcoming slice ⇒ the whole net lands then
+        payoutDate = upcoming[0].date
+      } else {
+        payoutStatus = 'landed' // every slice is in the past
+        payoutDate = deposits[deposits.length - 1].date
+      }
+    } else if (nextDate != null) {
+      // No per-day slices for this merchant (calendar not requested, or no projectable
+      // payments in range) → fall back to the backend's single estimate.
       payoutStatus = nextDate < todayKey ? 'landed' : 'lands'
       payoutDate = nextDate
+    } else {
+      payoutStatus = 'noRule'
+      payoutDate = null
     }
     return {
       merchantAccountId: m.merchantAccountId,
