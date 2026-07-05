@@ -256,7 +256,22 @@
         "desc": "La funcionalidad de email estará disponible pronto"
       }
     },
-    "unknownVenue": "Restaurante"
+    "unknownVenue": "Restaurante",
+    "review": {
+      "title": "¿Cómo estuvo tu experiencia?",
+      "commentPlaceholder": "Cuéntanos más (opcional)",
+      "namePlaceholder": "Tu nombre (opcional)",
+      "submit": "Enviar calificación",
+      "submitting": "Enviando...",
+      "thanksTitle": "¡Gracias por tu opinión!",
+      "thanksBody": "Tu calificación nos ayuda a mejorar.",
+      "googleTitle": "¡Gracias! ⭐",
+      "googleBody": "¿Nos ayudas con una reseña en Google? Toma 10 segundos.",
+      "googleCta": "Califícanos en Google",
+      "alreadyRated": "Ya calificaste este ticket",
+      "error": "No se pudo enviar tu calificación. Inténtalo de nuevo.",
+      "ratingRequired": "Selecciona una calificación"
+    }
   },
   "editDialog": {
     "description": "Editar pago #{{id}}"

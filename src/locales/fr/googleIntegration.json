@@ -88,5 +88,16 @@
       "confirm": "Déconnecter",
       "cancel": "Annuler"
     }
+  },
+
+  "reviewRedirect": {
+    "title": "Lien d'avis Google",
+    "description": "Lorsqu'un client note 5 étoiles sur le reçu, nous l'envoyons laisser son avis sur Google. Collez le lien de votre profil Google (Profil d'établissement → \"Obtenir plus d'avis\") ou juste votre Place ID.",
+    "inputLabel": "Lien Google ou Place ID",
+    "placeholder": "https://g.page/r/XXXX/review  ou  ChIJ...",
+    "save": "Enregistrer",
+    "saved": "Lien d'avis enregistré",
+    "saveError": "Impossible d'enregistrer le lien",
+    "clearHint": "Laissez le champ vide pour désactiver la redirection vers Google."
   }
 }

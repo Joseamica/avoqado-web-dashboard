@@ -3,9 +3,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
+import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useToast } from '@/hooks/use-toast'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { validateGoogleReviewLink } from '@/lib/googleReviewLink'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight, CheckCircle2, ExternalLink, Loader2, RefreshCw, XCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -133,6 +137,29 @@ export default function GoogleIntegration() {
         description: error.response?.data?.message || error.message,
       })
     },
+  })
+
+  // Review redirect link (PRO-gated)
+  const [reviewLink, setReviewLink] = useState('')
+  const [reviewLinkError, setReviewLinkError] = useState<string | null>(null)
+
+  const { data: venueSettings } = useQuery({
+    queryKey: ['venue-settings', venueId],
+    queryFn: async () => (await api.get(`/api/v1/dashboard/venues/${venueId}/settings`)).data,
+    enabled: !!venueId,
+  })
+  useEffect(() => {
+    if (venueSettings?.googleReviewLink != null) setReviewLink(venueSettings.googleReviewLink)
+  }, [venueSettings?.googleReviewLink])
+
+  const saveReviewLinkMutation = useMutation({
+    mutationFn: async (link: string) => (await api.put(`/api/v1/dashboard/venues/${venueId}/settings`, { googleReviewLink: link })).data,
+    onSuccess: () => {
+      toast({ title: t('reviewRedirect.saved') })
+      queryClient.invalidateQueries({ queryKey: ['venue-settings', venueId] })
+    },
+    onError: (error: any) =>
+      toast({ variant: 'destructive', title: t('reviewRedirect.saveError'), description: error?.response?.data?.message }),
   })
 
   const formatLastSync = (dateString?: string) => {
@@ -287,6 +314,44 @@ export default function GoogleIntegration() {
           )}
         </CardContent>
       </Card>
+
+      {/* Google Review Redirect Card (PRO-gated) */}
+      <FeatureGate feature="GOOGLE_REVIEW_REDIRECT">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('reviewRedirect.title')}</CardTitle>
+            <CardDescription>{t('reviewRedirect.description')}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Label htmlFor="google-review-link">{t('reviewRedirect.inputLabel')}</Label>
+            <Input
+              id="google-review-link"
+              value={reviewLink}
+              onChange={e => {
+                setReviewLink(e.target.value)
+                setReviewLinkError(validateGoogleReviewLink(e.target.value))
+              }}
+              placeholder={t('reviewRedirect.placeholder')}
+              className="h-11"
+            />
+            {reviewLinkError && <p className="text-sm text-destructive">{reviewLinkError}</p>}
+            <p className="text-xs text-muted-foreground">{t('reviewRedirect.clearHint')}</p>
+            <Button
+              onClick={() => saveReviewLinkMutation.mutate(reviewLink)}
+              disabled={!!reviewLinkError || saveReviewLinkMutation.isPending}
+            >
+              {saveReviewLinkMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t('reviewRedirect.save')}
+                </>
+              ) : (
+                t('reviewRedirect.save')
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </FeatureGate>
 
       {/* Instructions Card */}
       <Card>

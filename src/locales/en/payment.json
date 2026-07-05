@@ -256,7 +256,22 @@
         "desc": "Email functionality will be available soon"
       }
     },
-    "unknownVenue": "Restaurant"
+    "unknownVenue": "Restaurant",
+    "review": {
+      "title": "How was your experience?",
+      "commentPlaceholder": "Tell us more (optional)",
+      "namePlaceholder": "Your name (optional)",
+      "submit": "Submit rating",
+      "submitting": "Submitting...",
+      "thanksTitle": "Thanks for your feedback!",
+      "thanksBody": "Your rating helps us improve.",
+      "googleTitle": "Thank you! ⭐",
+      "googleBody": "Would you help us with a Google review? It takes 10 seconds.",
+      "googleCta": "Rate us on Google",
+      "alreadyRated": "You already rated this receipt",
+      "error": "We couldn't submit your rating. Please try again.",
+      "ratingRequired": "Select a rating"
+    }
   },
   "editDialog": {
     "description": "Edit payment #{{id}}"

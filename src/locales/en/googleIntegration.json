@@ -95,5 +95,16 @@
     "googleBusinessProfile": "Google Business Profile",
     "manageProfile": "Manage your profile on Google",
     "open": "Open"
+  },
+
+  "reviewRedirect": {
+    "title": "Google Review Link",
+    "description": "When a customer rates 5 stars on the receipt, we send them to leave a review on Google. Paste your Google profile link (Business Profile → \"Get more reviews\") or just your Place ID.",
+    "inputLabel": "Google Link or Place ID",
+    "placeholder": "https://g.page/r/XXXX/review  or  ChIJ...",
+    "save": "Save",
+    "saved": "Review link saved",
+    "saveError": "Could not save the link",
+    "clearHint": "Leave the field empty to disable the redirect to Google."
   }
 }

@@ -95,5 +95,16 @@
     "googleBusinessProfile": "Google Business Profile",
     "manageProfile": "Administra tu perfil en Google",
     "open": "Abrir"
+  },
+
+  "reviewRedirect": {
+    "title": "Link de reseñas de Google",
+    "description": "Cuando un cliente califica con 5 estrellas en el recibo, lo enviamos a dejar su reseña en Google. Pega el link de tu perfil de Google (Perfil de Empresa → \"Obtener más reseñas\") o solo tu Place ID.",
+    "inputLabel": "Link de Google o Place ID",
+    "placeholder": "https://g.page/r/XXXX/review  o  ChIJ...",
+    "save": "Guardar",
+    "saved": "Link de reseñas guardado",
+    "saveError": "No se pudo guardar el link",
+    "clearHint": "Deja el campo vacío para desactivar la redirección a Google."
   }
 }

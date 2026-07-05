@@ -55,6 +55,12 @@ interface ModernReceiptDesignProps {
    * without coupling this presentational component to that feature.
    */
   autofacturaSlot?: React.ReactNode
+  /**
+   * Optional slot rendered right after autofacturaSlot (public view only).
+   * Used by the public page to mount the receipt review widget without
+   * coupling this presentational component to that feature.
+   */
+  reviewSlot?: React.ReactNode
   className?: string
 }
 
@@ -158,6 +164,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
   onPrint,
   onEmail: _onEmail,
   autofacturaSlot,
+  reviewSlot,
   className = '',
 }) => {
   const [copied, setCopied] = useState(false)
@@ -611,6 +618,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
 
           {/* Autofactura (CFDI self-invoice) — public view only, injected by the page */}
           {autofacturaSlot}
+          {reviewSlot}
 
           {/* Footer */}
           <Card className={`border-0 shadow-lg ${isRefund ? 'bg-linear-to-r from-red-50 dark:from-red-950/20 to-transparent' : 'bg-linear-to-r from-primary/5 to-transparent'}`}>

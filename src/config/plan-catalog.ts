@@ -64,6 +64,7 @@ export const PLAN_TIERS: PlanTierDef[] = [
       'BANK_RECONCILIATION',
       'BANKING_HUB',
       'VENUE_AUDIT_LOG',
+      'GOOGLE_REVIEW_REDIRECT',
     ],
   },
   {

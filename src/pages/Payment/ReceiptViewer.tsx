@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast'
 import { ReceiptUrls } from '@/constants/receipt'
 import { ModernReceiptDesign } from '@/components/receipts/ModernReceiptDesign'
 import { AutofacturaPanel } from '@/pages/Payment/AutofacturaPanel'
+import { ReceiptReviewWidget } from '@/components/receipts/ReceiptReviewWidget'
 import { useTranslation } from 'react-i18next'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 
@@ -179,6 +180,11 @@ export default function ReceiptViewer() {
         // Public view only — never on the authenticated dashboard receipt view,
         // and not for refund receipts (you can't self-invoice a refund).
         isPublicView && accessKey && !isRefund ? <AutofacturaPanel accessKey={accessKey} /> : undefined
+      }
+      reviewSlot={
+        // Public view only, non-refund. The widget self-hides unless the venue's
+        // plan enables reviews (reviewsEnabled from the status endpoint).
+        isPublicView && accessKey && !isRefund ? <ReceiptReviewWidget accessKey={accessKey} /> : undefined
       }
     />
   )
