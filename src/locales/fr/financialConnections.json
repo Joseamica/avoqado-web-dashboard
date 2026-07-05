@@ -117,6 +117,12 @@
       "next": "Suivant",
       "pageOf": "Page {{page}} sur {{pages}}"
     },
+    "filters": {
+      "type": "Type",
+      "status": "Statut",
+      "empty": "Aucune option",
+      "reset": "Effacer les filtres"
+    },
     "openAria": "Voir les mouvements du compte",
     "detail": {
       "title": "Détail du mouvement",

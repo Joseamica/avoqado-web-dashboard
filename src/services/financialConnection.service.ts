@@ -73,6 +73,7 @@ export interface AccountBalance {
 export interface AccountMovement {
   id: string | null
   type: string | null
+  typeId: number | null
   operationType: string | null
   concept: string | null
   date: string | null
@@ -177,11 +178,13 @@ export const financialConnectionAPI = {
   async getMovements(
     venueId: string,
     financialAccountId: string,
-    opts: { page: number; size: number; from?: string; to?: string },
+    opts: { page: number; size: number; from?: string; to?: string; type?: number; status?: number },
   ): Promise<MovementsPage> {
     const params: Record<string, unknown> = { page: opts.page, size: opts.size }
     if (opts.from) params.from = opts.from
     if (opts.to) params.to = opts.to
+    if (opts.type != null) params.type = opts.type
+    if (opts.status != null) params.status = opts.status
     const { data } = await api.get(`${BASE}/venues/${venueId}/financial-accounts/${financialAccountId}/movements`, { params })
     return data.data
   },
