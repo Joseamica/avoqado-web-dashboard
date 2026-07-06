@@ -4,7 +4,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { PhoneInput } from '@/components/phone-input'
 import { ALL_ENTITY_OPTIONS } from '@/config/entity-types'
 import type { StepProps } from '../types'
 
@@ -12,28 +11,18 @@ export function EntityTypeStep({ data, onNext }: StepProps) {
   const { t } = useTranslation('setup')
   const [entityType, setEntityType] = useState(data.entityType || '')
   const [commercialName, setCommercialName] = useState(data.commercialName || data.businessName || '')
-  // Phone is stored as E.164 (`+526648442154`) end-to-end so the backend has
-  // a canonical format. PhoneInput handles the country + local split internally.
-  const [phone, setPhone] = useState(data.phone || '')
 
   const [entityTypeError, setEntityTypeError] = useState('')
-  const [phoneError, setPhoneError] = useState('')
 
   const handleNext = () => {
     const entityErr = !entityType ? t('step4.entityTypeRequired') : ''
-    // Require at least 6 digits beyond the country dial code to avoid empty
-    // submissions or accidental short numbers.
-    const digitCount = phone.replace(/\D/g, '').length
-    const phoneErr = digitCount < 8 ? t('step4.phoneRequired') : ''
     setEntityTypeError(entityErr)
-    setPhoneError(phoneErr)
-    if (entityErr || phoneErr) return
+    if (entityErr) return
     const selectedOption = ALL_ENTITY_OPTIONS.find(opt => opt.value === entityType)
     onNext({
       entityType,
       entitySubType: selectedOption?.parentValue,
       commercialName,
-      phone,
     })
   }
 
@@ -80,24 +69,6 @@ export function EntityTypeStep({ data, onNext }: StepProps) {
             className="rounded-lg h-12 text-base"
           />
           <p className="text-xs text-muted-foreground">{t('step4.commercialNameHint')}</p>
-        </div>
-
-        {/* Phone — stored as E.164 (`+<dial><digits>`) so the backend has a
-            canonical format. Defaults to MX dial code per Avoqado's primary market. */}
-        <div className="grid gap-2">
-          <Label htmlFor="phone">{t('step4.phoneLabel')}</Label>
-          <PhoneInput
-            id="phone"
-            value={phone}
-            onChange={next => {
-              setPhone(next)
-              if (phoneError) setPhoneError('')
-            }}
-            placeholder={t('step4.phonePlaceholder')}
-            invalid={Boolean(phoneError)}
-            className="rounded-lg"
-          />
-          {phoneError && <p className="text-xs text-destructive">{phoneError}</p>}
         </div>
       </div>
 

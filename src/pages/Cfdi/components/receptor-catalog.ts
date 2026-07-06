@@ -53,6 +53,37 @@ export const USO_CFDI_OPTIONS: ReadonlyArray<{ code: string; description: string
 ]
 
 /**
+ * SAT compatibility matrix (catálogo c_UsoCFDI, CFDI 4.0): which "uso de CFDI"
+ * codes are valid for a given régimen fiscal DEL RECEPTOR. Picking an invalid
+ * pair (e.g. régimen 616 + uso G01) makes the PAC/SAT reject the stamp, so the
+ * UI filters the uso options by the chosen régimen — an invalid combo becomes
+ * impossible to select.
+ *
+ * Grouping (official SAT lists, condensed to the codes we expose):
+ *  - BUSINESS (adquisiciones/gastos/inversiones G0x·I0x): 601,603,606,612,620–626
+ *  - DEDUCTIONS (deducciones personales D0x): 605,606,608,611,612,614,616,620–625
+ *  - S01 "Sin efectos fiscales": válido para TODOS los regímenes.
+ */
+const USO_GROUP_BUSINESS = ['G01', 'G02', 'G03', 'I01', 'I02', 'I03', 'I04']
+const USO_GROUP_DEDUCTIONS = ['D01', 'D04', 'D10']
+const REGIMEN_ALLOWS_BUSINESS = new Set(['601', '603', '606', '612', '620', '621', '622', '623', '624', '625', '626'])
+const REGIMEN_ALLOWS_DEDUCTIONS = new Set(['605', '606', '608', '611', '612', '614', '616', '620', '621', '622', '623', '624', '625'])
+
+/**
+ * The uso-de-CFDI options valid for a given régimen. Empty régimen → empty list
+ * (the uso picker stays disabled until a régimen is chosen). S01 is always
+ * included. Used by `ReceptorFields` to filter the uso dropdown so an invalid
+ * régimen↔uso pair can't be submitted.
+ */
+export function usoCfdiOptionsForRegimen(regimen: string): ReadonlyArray<{ code: string; description: string }> {
+  if (!regimen) return []
+  const allowed = new Set<string>(['S01'])
+  if (REGIMEN_ALLOWS_BUSINESS.has(regimen)) USO_GROUP_BUSINESS.forEach(c => allowed.add(c))
+  if (REGIMEN_ALLOWS_DEDUCTIONS.has(regimen)) USO_GROUP_DEDUCTIONS.forEach(c => allowed.add(c))
+  return USO_CFDI_OPTIONS.filter(o => allowed.has(o.code))
+}
+
+/**
  * The SAT codes as non-empty string tuples, derived from the catalogs above so
  * the two stay in lockstep. Used to constrain the receptor schema to valid codes
  * (a future text-input caller can't submit garbage; the Select UX is unchanged).

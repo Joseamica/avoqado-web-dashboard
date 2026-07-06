@@ -28,6 +28,8 @@
     "businessNameLabel": "Nom de l'entreprise",
     "businessNamePlaceholder": "Ex: Mon Restaurant",
     "businessNameRequired": "Le nom de l'entreprise est requis",
+    "phoneLabel": "Telephone professionnel",
+    "phonePlaceholder": "+52 55 1234 5678",
     "addressLabel": "Adresse",
     "addressPlaceholder": "Rechercher votre adresse",
     "noPhysicalAddress": "Mon entreprise n'a pas d'adresse physique permanente"
@@ -47,8 +49,6 @@
     "commercialNameLabel": "Nom commercial",
     "commercialNamePlaceholder": "Nom sous lequel votre entreprise est connue",
     "commercialNameHint": "C'est le nom que vos clients verront sur leurs recus et releves",
-    "phoneLabel": "Telephone professionnel",
-    "phonePlaceholder": "+52 55 1234 5678",
     "helpLink": "Aidez-moi a le determiner"
   },
   "step5": {

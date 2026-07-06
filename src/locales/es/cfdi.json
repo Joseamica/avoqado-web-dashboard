@@ -89,7 +89,15 @@
       "forbidden": "Activa el Plan Pro o la facturación no está disponible.",
       "notFound": "Orden no encontrada o sin emisor fiscal configurado.",
       "generic": "No se pudo emitir la factura."
-    }
+    },
+    "regimenFiscalSelect": "Selecciona tu régimen",
+    "regimenSearch": "Busca por código o nombre…",
+    "regimenFiscalHint": "Es tu régimen ante el SAT (viene en tu Constancia de Situación Fiscal).",
+    "usoCfdiSelect": "Selecciona el uso",
+    "usoCfdiNeedsRegimen": "Primero elige tu régimen",
+    "usoSearch": "Busca el uso…",
+    "usoCfdiHint": "Solo mostramos los usos válidos para tu régimen.",
+    "noResults": "Sin resultados"
   },
   "autofactura": {
     "cta": {
@@ -113,11 +121,19 @@
     },
     "errors": {
       "validation": "No se pudo facturar. Corrige lo siguiente:",
-      "pacRejected": "El SAT rechazó el timbrado, intenta más tarde.",
+      "pacRejected": "El SAT rechazó la factura. Revisa que tus datos fiscales coincidan con tu Constancia de Situación Fiscal.",
       "forbidden": "La facturación no está disponible para esta cuenta.",
       "conflict": "Esta cuenta no se puede facturar en este momento.",
       "notFound": "Recibo no encontrado.",
       "generic": "No se pudo generar la factura. Intenta de nuevo."
+    },
+    "sentEmail": "Te la enviamos por correo a {{email}}",
+    "close": "Cerrar",
+    "whatsapp": {
+      "title": "¿La quieres también por WhatsApp?",
+      "send": "Enviar por WhatsApp",
+      "sent": "¡Listo! Te la enviamos por WhatsApp.",
+      "error": "No pudimos enviarla por WhatsApp. Verifica el número e intenta de nuevo."
     }
   },
   "config": {

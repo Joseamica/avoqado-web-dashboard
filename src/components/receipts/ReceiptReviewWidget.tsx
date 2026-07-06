@@ -34,6 +34,13 @@ export function ReceiptReviewWidget({ accessKey }: { accessKey: string }) {
       )).data.data,
     enabled: !!accessKey,
     retry: 1,
+    // The status can't change mid-session except via our own POST (which drives
+    // the UI through `submitted`). A window-focus refetch after submitting would
+    // flip canSubmit→false and, on mobile (switching apps / opening the Google
+    // tab), replace the 5★ Google CTA with "already rated" — killing the
+    // conversion moment this widget exists for.
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   })
 
   // Hide entirely unless the venue's plan enables reviews.
@@ -57,6 +64,13 @@ export function ReceiptReviewWidget({ accessKey }: { accessKey: string }) {
         customerName: name.trim() || null,
       })
       setSubmitted(true)
+      // Auto-redirect on 5★: same-tab navigation (NOT window.open) because a
+      // popup opened asynchronously — after this `await` — is silently blocked
+      // by mobile Safari/Chrome (no longer counts as a direct user gesture).
+      // The internal save above already completed, so nothing is lost by leaving.
+      if (rating === 5 && status.googleReviewUrl) {
+        window.location.href = status.googleReviewUrl
+      }
     } catch {
       setError(t('receipt.review.error'))
     } finally {
@@ -66,9 +80,11 @@ export function ReceiptReviewWidget({ accessKey }: { accessKey: string }) {
 
   return (
     <div className="rounded-2xl border border-border/50 bg-card p-6 space-y-4">
-      {alreadyRated ? (
-        <p className="text-sm font-medium text-muted-foreground">✅ {t('receipt.review.alreadyRated')}</p>
-      ) : submitted ? (
+      {/* `submitted` takes precedence over `alreadyRated`: after THIS session's
+          submit, the server reports "already submitted" on any refetch — the
+          customer must keep seeing their thank-you / Google CTA, not a stale
+          "already rated" notice. */}
+      {submitted ? (
         showGoogleCta ? (
           <div className="space-y-3 text-center">
             <h3 className="text-lg font-semibold">{t('receipt.review.googleTitle')}</h3>
@@ -76,7 +92,9 @@ export function ReceiptReviewWidget({ accessKey }: { accessKey: string }) {
             <Button
               size="lg"
               className="w-full"
-              onClick={() => window.open(status.googleReviewUrl!, '_blank', 'noopener,noreferrer')}
+              onClick={() => {
+                window.location.href = status.googleReviewUrl!
+              }}
             >
               <Star className="w-5 h-5 mr-2" />
               {t('receipt.review.googleCta')}
@@ -88,6 +106,8 @@ export function ReceiptReviewWidget({ accessKey }: { accessKey: string }) {
             <p className="text-sm text-muted-foreground">{t('receipt.review.thanksBody')}</p>
           </div>
         )
+      ) : alreadyRated ? (
+        <p className="text-sm font-medium text-muted-foreground">✅ {t('receipt.review.alreadyRated')}</p>
       ) : (
         <>
           <h3 className="text-lg font-semibold text-center">{t('receipt.review.title')}</h3>

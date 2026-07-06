@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { AddressAutocomplete, type PlaceDetails } from '@/components/address-autocomplete'
+import { PhoneInput } from '@/components/phone-input'
 import { useAuth } from '@/context/AuthContext'
 import type { StepProps } from '../types'
 
@@ -17,6 +18,9 @@ export function BusinessInfoStep({ data, onNext }: StepProps) {
   const { t } = useTranslation('setup')
   const { user } = useAuth()
   const [businessName, setBusinessName] = useState(data.businessName || '')
+  // Phone is stored as E.164 (`+526648442154`) end-to-end so the backend has
+  // a canonical format. PhoneInput handles the country + local split internally.
+  const [phone, setPhone] = useState(data.phone || '')
   // Pre-fill with the signup email so the operator doesn't have to retype it;
   // they can still override before submitting. Without this default the field
   // was previously never collected at all (V2 wizard skipped it) and venues
@@ -31,6 +35,7 @@ export function BusinessInfoStep({ data, onNext }: StepProps) {
   const [longitude, setLongitude] = useState(data.longitude || 0)
   const [noPhysicalAddress, setNoPhysicalAddress] = useState(data.noPhysicalAddress || false)
   const [error, setError] = useState('')
+  const [phoneError, setPhoneError] = useState('')
   const [emailError, setEmailError] = useState('')
 
   const handleAddressSelect = (place: PlaceDetails) => {
@@ -47,6 +52,10 @@ export function BusinessInfoStep({ data, onNext }: StepProps) {
 
   const handleNext = () => {
     const nameErr = !businessName.trim() ? t('step2.businessNameRequired') : ''
+    // Require at least 8 digits total (country dial code + local number) to
+    // avoid empty submissions or accidental short numbers.
+    const digitCount = phone.replace(/\D/g, '').length
+    const phoneErr = digitCount < 8 ? t('step2.phoneRequired') : ''
     const addrErr = !noPhysicalAddress && !address.trim() ? t('step2.addressRequired') : ''
     const trimmedEmail = email.trim()
     // Email is OPTIONAL: if left empty the backend falls back to the signup
@@ -56,11 +65,13 @@ export function BusinessInfoStep({ data, onNext }: StepProps) {
       ? t('step2.emailInvalid', { defaultValue: 'Correo inválido' })
       : ''
     setError(nameErr)
+    setPhoneError(phoneErr)
     setAddressError(addrErr)
     setEmailError(emailErr)
-    if (nameErr || addrErr || emailErr) return
+    if (nameErr || phoneErr || addrErr || emailErr) return
     onNext({
       businessName: businessName.trim(),
+      phone,
       email: trimmedEmail,
       address,
       city,
@@ -96,6 +107,24 @@ export function BusinessInfoStep({ data, onNext }: StepProps) {
             autoFocus
           />
           {error && <p className="text-xs text-destructive">{error}</p>}
+        </div>
+
+        {/* Phone — stored as E.164 (`+<dial><digits>`) so the backend has a
+            canonical format. Defaults to MX dial code per Avoqado's primary market. */}
+        <div className="grid gap-2">
+          <Label htmlFor="phone">{t('step2.phoneLabel')}</Label>
+          <PhoneInput
+            id="phone"
+            value={phone}
+            onChange={next => {
+              setPhone(next)
+              if (phoneError) setPhoneError('')
+            }}
+            placeholder={t('step2.phonePlaceholder')}
+            invalid={Boolean(phoneError)}
+            className="rounded-lg"
+          />
+          {phoneError && <p className="text-xs text-destructive">{phoneError}</p>}
         </div>
 
         {/* Business contact email — OPTIONAL. Pre-filled with the signup email

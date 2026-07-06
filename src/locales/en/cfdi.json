@@ -89,7 +89,15 @@
       "forbidden": "Activate the Pro Plan or invoicing is unavailable.",
       "notFound": "Order not found or no fiscal issuer configured.",
       "generic": "Could not issue the invoice."
-    }
+    },
+    "regimenFiscalSelect": "Select your tax regime",
+    "regimenSearch": "Search by code or name…",
+    "regimenFiscalHint": "Your SAT tax regime (shown on your Constancia de Situación Fiscal).",
+    "usoCfdiSelect": "Select the CFDI use",
+    "usoCfdiNeedsRegimen": "First choose your tax regime",
+    "usoSearch": "Search the use…",
+    "usoCfdiHint": "We only show CFDI uses valid for your tax regime.",
+    "noResults": "No results"
   },
   "autofactura": {
     "cta": {
@@ -113,11 +121,19 @@
     },
     "errors": {
       "validation": "Could not invoice. Fix the following:",
-      "pacRejected": "The SAT rejected the stamp, please try again later.",
+      "pacRejected": "The SAT rejected the invoice. Check that your tax details match your Constancia de Situación Fiscal.",
       "forbidden": "Invoicing is not available for this account.",
       "conflict": "This bill cannot be invoiced right now.",
       "notFound": "Receipt not found.",
       "generic": "Could not generate the invoice. Please try again."
+    },
+    "sentEmail": "We emailed it to you at {{email}}",
+    "close": "Close",
+    "whatsapp": {
+      "title": "Want it on WhatsApp too?",
+      "send": "Send via WhatsApp",
+      "sent": "Done! We sent it to you on WhatsApp.",
+      "error": "We couldn't send it via WhatsApp. Check the number and try again."
     }
   },
   "config": {

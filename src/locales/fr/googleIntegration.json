@@ -98,6 +98,6 @@
     "save": "Enregistrer",
     "saved": "Lien d'avis enregistré",
     "saveError": "Impossible d'enregistrer le lien",
-    "clearHint": "Laissez le champ vide pour désactiver la redirection vers Google."
+    "clearHint": "Si vous laissez ce champ vide, les clients qui notent 5★ seront envoyés vers le profil Google d'Avoqado au lieu du vôtre."
   }
 }

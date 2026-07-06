@@ -105,6 +105,6 @@
     "save": "Guardar",
     "saved": "Link de reseñas guardado",
     "saveError": "No se pudo guardar el link",
-    "clearHint": "Deja el campo vacío para desactivar la redirección a Google."
+    "clearHint": "Si dejas el campo vacío, tus clientes que califiquen 5★ serán enviados al perfil de Google de Avoqado en lugar del tuyo."
   }
 }

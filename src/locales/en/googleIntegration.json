@@ -105,6 +105,6 @@
     "save": "Save",
     "saved": "Review link saved",
     "saveError": "Could not save the link",
-    "clearHint": "Leave the field empty to disable the redirect to Google."
+    "clearHint": "If you leave this empty, customers who rate 5★ will be sent to Avoqado's Google profile instead of yours."
   }
 }

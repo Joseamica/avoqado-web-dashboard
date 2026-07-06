@@ -30,6 +30,13 @@ interface SearchableSelectProps {
   size?: 'default' | 'lg'
   /** Optional footer content rendered below the options list (e.g., a "Create new" button). */
   footer?: React.ReactNode
+  /**
+   * Popover width. "trigger" (default) locks it to the trigger's width — labels
+   * truncate. "auto" lets the popover grow to fit its content (min = trigger
+   * width, capped at ~32rem/90vw) and shows full labels — use it when options
+   * have long text that would otherwise get cut off (e.g. SAT catalogs).
+   */
+  contentWidth?: 'trigger' | 'auto'
 }
 
 export function SearchableSelect({
@@ -45,6 +52,7 @@ export function SearchableSelect({
   searchThreshold = 5,
   size = 'default',
   footer,
+  contentWidth = 'trigger',
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -92,9 +100,14 @@ export function SearchableSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="!w-[--radix-popover-trigger-width] p-0 bg-card border-input"
+        className={cn(
+          'p-0 bg-card border-input',
+          contentWidth === 'auto'
+            ? 'w-auto min-w-[--radix-popover-trigger-width] max-w-[min(90vw,32rem)]'
+            : '!w-[--radix-popover-trigger-width]'
+        )}
         align="start"
-        style={{ width: 'var(--radix-popover-trigger-width)' }}
+        style={contentWidth === 'auto' ? undefined : { width: 'var(--radix-popover-trigger-width)' }}
       >
         <Command shouldFilter={false} className="bg-card">
           {showSearch && (
@@ -129,7 +142,7 @@ export function SearchableSelect({
                       )}
                     />
                     {option.icon && <span className="shrink-0 text-base">{option.icon}</span>}
-                    <span className="truncate text-sm">{option.label}</span>
+                    <span className={cn('text-sm', contentWidth === 'auto' ? 'whitespace-nowrap' : 'truncate')}>{option.label}</span>
                   </CommandItem>
                 ))}
               </CommandGroup>

@@ -20,12 +20,13 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, CheckCircle2, Download, FileText, Loader2, Receipt as ReceiptIcon } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Download, FileText, Loader2, Mail, MessageCircle, Receipt as ReceiptIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Form } from '@/components/ui/form'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { PhoneInput } from '@/components/phone-input'
 import {
   autofacturaReceptorSchema,
   EMPTY_AUTOFACTURA_RECEPTOR,
@@ -63,7 +64,7 @@ type ResultState =
   | { kind: 'idle' }
   | { kind: 'success'; cfdi: AutofacturaCfdi }
   | { kind: 'validation'; reasons: string[] }
-  | { kind: 'pacRejected' }
+  | { kind: 'pacRejected'; message?: string }
   | { kind: 'forbidden' }
   | { kind: 'conflict'; message: string }
   | { kind: 'notFound' }
@@ -122,7 +123,9 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
     },
     onError: (err: unknown) => {
       const status = axios.isAxiosError(err) ? err.response?.status : undefined
-      const data = (axios.isAxiosError(err) ? err.response?.data : undefined) as { error?: string; reasons?: string[] } | undefined
+      const data = (axios.isAxiosError(err) ? err.response?.data : undefined) as
+        | { error?: string; reasons?: string[]; message?: string }
+        | undefined
 
       switch (status) {
         case 422: {
@@ -132,7 +135,7 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
           return
         }
         case 502:
-          setResult({ kind: 'pacRejected' })
+          setResult({ kind: 'pacRejected', message: data?.message })
           return
         case 403:
           setResult({ kind: 'forbidden' })
@@ -160,6 +163,14 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
     },
   })
 
+  // ── Send the stamped factura to a WhatsApp number (post-success) ─────────────
+  const [waPhone, setWaPhone] = useState('')
+  const waMutation = useMutation({
+    mutationFn: async (phone: string) => {
+      await axios.post(`${API_BASE}/api/v1/public/receipt/${accessKey}/cfdi/whatsapp`, { phone })
+    },
+  })
+
   const onSubmit = (values: AutofacturaReceptorFormValues) => {
     setResult(prev => (prev.kind === 'validation' ? { kind: 'idle' } : prev))
     mutation.mutate(values)
@@ -174,41 +185,94 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
   // While we don't yet know the status, don't flash a CTA.
   if (isStatusLoading) return null
 
-  // ── Success view (just stamped) ─────────────────────────────────────────────
+  // ── Success view (just stamped) — rendered INSIDE the dialog so the send
+  //    options don't get mixed with the receipt's own share buttons. ───────────
   if (result.kind === 'success') {
     const cfdi = result.cfdi
     const folio = [cfdi.serie, cfdi.folio].filter(Boolean).join('-')
+    const sentEmail = form.getValues('email')
+    const waValid = /^\+\d{8,15}$/.test(waPhone)
+    const closeSuccess = () => {
+      queryClient.invalidateQueries({ queryKey: ['public-cfdi-status', accessKey] })
+      setWaPhone('')
+      waMutation.reset()
+      setResult({ kind: 'idle' })
+    }
     return (
-      <Card className="border-input shadow-sm">
-        <CardContent className="p-6 space-y-4 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-500/10">
-            <CheckCircle2 className="h-7 w-7 text-green-600 dark:text-green-400" />
-          </div>
-          <div className="space-y-1">
-            <h2 className="text-lg font-semibold">{t('autofactura.success.title')}</h2>
-            {folio && <p className="text-sm text-muted-foreground">{t('autofactura.success.folio', { folio })}</p>}
-            <p className="text-xs font-mono text-muted-foreground break-all">{t('autofactura.success.uuid', { uuid: cfdi.uuid })}</p>
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-            {cfdi.pdfUrl && (
-              <Button asChild size="lg" className="h-12 w-full sm:w-auto">
-                <a href={cfdi.pdfUrl} target="_blank" rel="noopener noreferrer" data-tour="autofactura-download-pdf">
-                  <Download className="mr-2 h-4 w-4" />
-                  {t('autofactura.downloadPdf')}
-                </a>
-              </Button>
+      <Dialog open onOpenChange={o => !o && closeSuccess()}>
+        <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-md overflow-y-auto">
+          <div className="space-y-5">
+            <div className="space-y-3 text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-500/10">
+                <CheckCircle2 className="h-7 w-7 text-green-600 dark:text-green-400" />
+              </div>
+              <div className="space-y-1">
+                <h2 className="text-lg font-semibold">{t('autofactura.success.title')}</h2>
+                {folio && <p className="text-sm text-muted-foreground">{t('autofactura.success.folio', { folio })}</p>}
+                <p className="text-xs font-mono text-muted-foreground break-all">{t('autofactura.success.uuid', { uuid: cfdi.uuid })}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              {cfdi.pdfUrl && (
+                <Button asChild size="lg" className="h-12 w-full sm:flex-1">
+                  <a href={cfdi.pdfUrl} target="_blank" rel="noopener noreferrer" data-tour="autofactura-download-pdf">
+                    <Download className="mr-2 h-4 w-4" />
+                    {t('autofactura.downloadPdf')}
+                  </a>
+                </Button>
+              )}
+              {cfdi.xmlUrl && (
+                <Button asChild variant="outline" size="lg" className="h-12 w-full sm:flex-1">
+                  <a href={cfdi.xmlUrl} target="_blank" rel="noopener noreferrer">
+                    <FileText className="mr-2 h-4 w-4" />
+                    {t('autofactura.downloadXml')}
+                  </a>
+                </Button>
+              )}
+            </div>
+
+            {sentEmail && (
+              <div className="flex items-center gap-2 rounded-xl bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
+                <Mail className="h-4 w-4 shrink-0" />
+                <span>{t('autofactura.sentEmail', { email: sentEmail })}</span>
+              </div>
             )}
-            {cfdi.xmlUrl && (
-              <Button asChild variant="outline" size="lg" className="h-12 w-full sm:w-auto">
-                <a href={cfdi.xmlUrl} target="_blank" rel="noopener noreferrer">
-                  <FileText className="mr-2 h-4 w-4" />
-                  {t('autofactura.downloadXml')}
-                </a>
-              </Button>
-            )}
+
+            <div className="space-y-3 rounded-xl border border-input p-4">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <MessageCircle className="h-4 w-4 text-green-600" />
+                {t('autofactura.whatsapp.title')}
+              </div>
+              {waMutation.isSuccess ? (
+                <p className="flex items-center gap-2 text-sm text-green-600">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  {t('autofactura.whatsapp.sent')}
+                </p>
+              ) : (
+                <>
+                  <PhoneInput value={waPhone} onChange={setWaPhone} />
+                  {waMutation.isError && <p className="text-sm text-destructive">{t('autofactura.whatsapp.error')}</p>}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-11 w-full"
+                    disabled={!waValid || waMutation.isPending}
+                    onClick={() => waMutation.mutate(waPhone)}
+                  >
+                    {waMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {t('autofactura.whatsapp.send')}
+                  </Button>
+                </>
+              )}
+            </div>
+
+            <Button variant="ghost" className="w-full" onClick={closeSuccess}>
+              {t('autofactura.close')}
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </DialogContent>
+      </Dialog>
     )
   }
 
@@ -335,7 +399,7 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
 
           {result.kind === 'pacRejected' && (
             <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-              {t('autofactura.errors.pacRejected')}
+              {result.message || t('autofactura.errors.pacRejected')}
             </div>
           )}
 
