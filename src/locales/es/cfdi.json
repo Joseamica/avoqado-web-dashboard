@@ -134,7 +134,8 @@
       "send": "Enviar por WhatsApp",
       "sent": "¡Listo! Te la enviamos por WhatsApp.",
       "error": "No pudimos enviarla por WhatsApp. Verifica el número e intenta de nuevo."
-    }
+    },
+    "downloadZip": "Descargar factura (PDF + XML)"
   },
   "config": {
     "title": "Configuración de facturación",

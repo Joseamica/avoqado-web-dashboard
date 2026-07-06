@@ -49,26 +49,22 @@ export function ReceiptReviewWidget({ accessKey }: { accessKey: string }) {
   const alreadyRated = status.canSubmit === false && status.reason === 'Review already submitted'
   const showGoogleCta = submitted && rating === 5 && !!status.googleReviewUrl
 
-  const handleSubmit = async () => {
-    if (rating === 0) {
-      setError(t('receipt.review.ratingRequired'))
-      return
-    }
+  const submitReview = async (value: number, extra?: { comment?: string; name?: string }) => {
     setSubmitting(true)
     setError(null)
     try {
       // ALWAYS save internally first (source=AVOQADO server-side), regardless of rating.
       await axios.post(`${API_BASE}/api/v1/public/receipt/${accessKey}/review`, {
-        overallRating: rating,
-        comment: comment.trim() || null,
-        customerName: name.trim() || null,
+        overallRating: value,
+        comment: extra?.comment?.trim() || null,
+        customerName: extra?.name?.trim() || null,
       })
       setSubmitted(true)
       // Auto-redirect on 5★: same-tab navigation (NOT window.open) because a
       // popup opened asynchronously — after this `await` — is silently blocked
       // by mobile Safari/Chrome (no longer counts as a direct user gesture).
       // The internal save above already completed, so nothing is lost by leaving.
-      if (rating === 5 && status.googleReviewUrl) {
+      if (value === 5 && status.googleReviewUrl) {
         window.location.href = status.googleReviewUrl
       }
     } catch {
@@ -76,6 +72,27 @@ export function ReceiptReviewWidget({ accessKey }: { accessKey: string }) {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  // 5★ fires instantly on tap (no comment box, no submit button) — every extra
+  // click between "happy customer" and the Google redirect is lost conversion.
+  // 1-4★ keeps the deliberate flow (comment/name + Enviar) since that's the
+  // rating range where written internal feedback is actually valuable.
+  const handleStarClick = (v: number) => {
+    if (submitting) return
+    setRating(v)
+    setError(null)
+    if (v === 5) {
+      submitReview(v)
+    }
+  }
+
+  const handleSubmit = () => {
+    if (rating === 0) {
+      setError(t('receipt.review.ratingRequired'))
+      return
+    }
+    submitReview(rating, { comment, name })
   }
 
   return (
@@ -117,13 +134,11 @@ export function ReceiptReviewWidget({ accessKey }: { accessKey: string }) {
                 key={v}
                 type="button"
                 aria-label={`${v}`}
+                disabled={submitting}
                 onMouseEnter={() => setHover(v)}
                 onMouseLeave={() => setHover(0)}
-                onClick={() => {
-                  setRating(v)
-                  setError(null)
-                }}
-                className="p-1 cursor-pointer"
+                onClick={() => handleStarClick(v)}
+                className="p-1 cursor-pointer disabled:cursor-default disabled:opacity-60"
               >
                 <Star
                   className={`w-9 h-9 transition-colors ${
@@ -133,18 +148,25 @@ export function ReceiptReviewWidget({ accessKey }: { accessKey: string }) {
               </button>
             ))}
           </div>
-          <Textarea
-            value={comment}
-            onChange={e => setComment(e.target.value)}
-            placeholder={t('receipt.review.commentPlaceholder')}
-            rows={3}
-          />
-          <Input value={name} onChange={e => setName(e.target.value)} placeholder={t('receipt.review.namePlaceholder')} />
-          {error && <p className="text-sm text-destructive text-center">{error}</p>}
-          <Button onClick={handleSubmit} disabled={submitting} className="w-full" size="lg">
-            {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-            {submitting ? t('receipt.review.submitting') : t('receipt.review.submit')}
-          </Button>
+          {submitting ? (
+            <div className="flex justify-center py-2">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <>
+              <Textarea
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+                placeholder={t('receipt.review.commentPlaceholder')}
+                rows={3}
+              />
+              <Input value={name} onChange={e => setName(e.target.value)} placeholder={t('receipt.review.namePlaceholder')} />
+              {error && <p className="text-sm text-destructive text-center">{error}</p>}
+              <Button onClick={handleSubmit} disabled={submitting} className="w-full" size="lg">
+                {t('receipt.review.submit')}
+              </Button>
+            </>
+          )}
         </>
       )}
     </div>

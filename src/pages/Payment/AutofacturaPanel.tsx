@@ -20,7 +20,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, CheckCircle2, Download, FileText, Loader2, Mail, MessageCircle, Receipt as ReceiptIcon } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Download, Loader2, Mail, MessageCircle, Receipt as ReceiptIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -69,6 +69,27 @@ type ResultState =
   | { kind: 'conflict'; message: string }
   | { kind: 'notFound' }
   | { kind: 'generic'; message: string }
+
+/**
+ * Map a CFDI/SAT error string to the receptor field it's about + a plain-language
+ * hint, so we can surface it INLINE on that field instead of only as a generic
+ * banner ("no se pudo facturar"). Order matters: the SAT "combination" error
+ * ("DomicilioFiscalReceptor debe pertenecer al nombre asociado al RFC") mentions
+ * RFC too, but the actionable field is the CP/name — so those are checked first.
+ */
+function fieldForCfdiError(msg: string): { field: 'rfc' | 'razonSocial' | 'codigoPostal' | 'regimenFiscal' | 'usoCfdi'; hint: string } | null {
+  const m = msg.toLowerCase()
+  if (/domicilio|c[oó]digo postal|codigo postal/.test(m))
+    return { field: 'codigoPostal', hint: 'Revisa tu código postal — debe ser el de tu domicilio fiscal registrado en el SAT.' }
+  if (/uso\s*(del)?\s*cfdi|usocfdi/.test(m))
+    return { field: 'usoCfdi', hint: 'Este uso de CFDI no aplica a tu régimen. Elige otro de la lista.' }
+  if (/r[eé]gimen/.test(m))
+    return { field: 'regimenFiscal', hint: 'Revisa tu régimen fiscal (viene en tu Constancia de Situación Fiscal).' }
+  if (/raz[oó]n social|nombre/.test(m))
+    return { field: 'razonSocial', hint: 'El nombre debe coincidir EXACTO con tu Constancia (mayúsculas, sin "S.A. de C.V.").' }
+  if (/rfc/.test(m)) return { field: 'rfc', hint: 'Revisa el RFC — no coincide o no está registrado en el SAT.' }
+  return null
+}
 
 export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
   const { t } = useTranslation('cfdi')
@@ -131,12 +152,20 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
         case 422: {
           const reasons =
             Array.isArray(data?.reasons) && data.reasons.length > 0 ? data.reasons : [data?.error || t('autofactura.errors.validation')]
+          // Surface each field-specific reason ON its field (RFC, CP, régimen…).
+          reasons.forEach(r => {
+            const mapped = fieldForCfdiError(r)
+            if (mapped) form.setError(mapped.field, { type: 'server', message: mapped.hint })
+          })
           setResult({ kind: 'validation', reasons })
           return
         }
-        case 502:
+        case 502: {
+          const mapped = data?.message ? fieldForCfdiError(data.message) : null
+          if (mapped) form.setError(mapped.field, { type: 'server', message: mapped.hint })
           setResult({ kind: 'pacRejected', message: data?.message })
           return
+        }
         case 403:
           setResult({ kind: 'forbidden' })
           setOpen(false)
@@ -173,6 +202,8 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
 
   const onSubmit = (values: AutofacturaReceptorFormValues) => {
     setResult(prev => (prev.kind === 'validation' ? { kind: 'idle' } : prev))
+    // Clear any inline server errors from a previous attempt so stale hints don't linger.
+    form.clearErrors(['rfc', 'razonSocial', 'codigoPostal', 'regimenFiscal', 'usoCfdi'])
     mutation.mutate(values)
   }
 
@@ -191,6 +222,7 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
     const cfdi = result.cfdi
     const folio = [cfdi.serie, cfdi.folio].filter(Boolean).join('-')
     const sentEmail = form.getValues('email')
+    const zipUrl = `${API_BASE}/api/v1/public/receipt/${accessKey}/cfdi/download`
     const waValid = /^\+\d{8,15}$/.test(waPhone)
     const closeSuccess = () => {
       queryClient.invalidateQueries({ queryKey: ['public-cfdi-status', accessKey] })
@@ -213,24 +245,12 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row">
-              {cfdi.pdfUrl && (
-                <Button asChild size="lg" className="h-12 w-full sm:flex-1">
-                  <a href={cfdi.pdfUrl} target="_blank" rel="noopener noreferrer" data-tour="autofactura-download-pdf">
-                    <Download className="mr-2 h-4 w-4" />
-                    {t('autofactura.downloadPdf')}
-                  </a>
-                </Button>
-              )}
-              {cfdi.xmlUrl && (
-                <Button asChild variant="outline" size="lg" className="h-12 w-full sm:flex-1">
-                  <a href={cfdi.xmlUrl} target="_blank" rel="noopener noreferrer">
-                    <FileText className="mr-2 h-4 w-4" />
-                    {t('autofactura.downloadXml')}
-                  </a>
-                </Button>
-              )}
-            </div>
+            <Button asChild size="lg" className="h-12 w-full">
+              <a href={zipUrl} data-tour="autofactura-download-pdf">
+                <Download className="mr-2 h-4 w-4" />
+                {t('autofactura.downloadZip')}
+              </a>
+            </Button>
 
             {sentEmail && (
               <div className="flex items-center gap-2 rounded-xl bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
@@ -281,33 +301,54 @@ export function AutofacturaPanel({ accessKey }: { accessKey: string }) {
     const folio = [existingCfdi.serie, existingCfdi.folio].filter(Boolean).join('-')
     return (
       <Card className="border-input shadow-sm">
-        <CardContent className="p-6 space-y-4 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <ReceiptIcon className="h-6 w-6 text-primary" />
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm font-medium">{t('autofactura.alreadyInvoiced')}</p>
-            {folio && <p className="text-xs text-muted-foreground">{t('autofactura.success.folio', { folio })}</p>}
+        <CardContent className="space-y-4 p-6">
+          <div className="space-y-3 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <ReceiptIcon className="h-6 w-6 text-primary" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium">{t('autofactura.alreadyInvoiced')}</p>
+              {folio && <p className="text-xs text-muted-foreground">{t('autofactura.success.folio', { folio })}</p>}
+            </div>
           </div>
           {existingCfdi.pdfUrl ? (
-            <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
-              <Button asChild size="lg" className="h-12 w-full sm:w-auto">
-                <a href={existingCfdi.pdfUrl} target="_blank" rel="noopener noreferrer" data-tour="autofactura-download-pdf">
+            <>
+              <Button asChild size="lg" className="h-12 w-full">
+                <a href={`${API_BASE}/api/v1/public/receipt/${accessKey}/cfdi/download`} data-tour="autofactura-download-pdf">
                   <Download className="mr-2 h-4 w-4" />
-                  {t('autofactura.downloadPdf')}
+                  {t('autofactura.downloadZip')}
                 </a>
               </Button>
-              {existingCfdi.xmlUrl && (
-                <Button asChild variant="outline" size="lg" className="h-12 w-full sm:w-auto">
-                  <a href={existingCfdi.xmlUrl} target="_blank" rel="noopener noreferrer">
-                    <Download className="mr-2 h-4 w-4" />
-                    {t('autofactura.downloadXml')}
-                  </a>
-                </Button>
-              )}
-            </div>
+              <div className="space-y-3 rounded-xl border border-input p-4 text-left">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <MessageCircle className="h-4 w-4 text-green-600" />
+                  {t('autofactura.whatsapp.title')}
+                </div>
+                {waMutation.isSuccess ? (
+                  <p className="flex items-center gap-2 text-sm text-green-600">
+                    <CheckCircle2 className="h-4 w-4 shrink-0" />
+                    {t('autofactura.whatsapp.sent')}
+                  </p>
+                ) : (
+                  <>
+                    <PhoneInput value={waPhone} onChange={setWaPhone} />
+                    {waMutation.isError && <p className="text-sm text-destructive">{t('autofactura.whatsapp.error')}</p>}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-11 w-full"
+                      disabled={!/^\+\d{8,15}$/.test(waPhone) || waMutation.isPending}
+                      onClick={() => waMutation.mutate(waPhone)}
+                    >
+                      {waMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {t('autofactura.whatsapp.send')}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </>
           ) : (
-            <p className="text-sm text-muted-foreground">{t('autofactura.noPdf')}</p>
+            <p className="text-center text-sm text-muted-foreground">{t('autofactura.noPdf')}</p>
           )}
         </CardContent>
       </Card>

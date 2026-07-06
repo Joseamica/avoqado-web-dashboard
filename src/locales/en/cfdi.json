@@ -134,7 +134,8 @@
       "send": "Send via WhatsApp",
       "sent": "Done! We sent it to you on WhatsApp.",
       "error": "We couldn't send it via WhatsApp. Check the number and try again."
-    }
+    },
+    "downloadZip": "Download invoice (PDF + XML)"
   },
   "config": {
     "title": "Invoicing settings",
