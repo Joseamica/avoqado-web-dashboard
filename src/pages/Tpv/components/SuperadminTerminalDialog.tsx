@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { terminalAPI, TerminalType, CreateTerminalRequest } from '@/services/superadmin-terminals.service'
+import { TERMINAL_BRAND_OPTIONS, type TerminalBrand } from '@/pages/Superadmin/components/TerminalDialog'
 import { DEFAULT_TPV_SETTINGS, type TpvSettings } from '@/services/tpv-settings.service'
 import { TpvSettingsFields } from '@/components/tpv/TpvSettingsFields'
 import { cn } from '@/lib/utils'
@@ -249,7 +250,18 @@ export const SuperadminTerminalDialog: React.FC<SuperadminTerminalDialogProps> =
 
               <div className="grid gap-2">
                 <Label>{t('tpv.superadmin.brand', { defaultValue: 'Marca' })}</Label>
-                <Input value={formData.brand} onChange={e => setFormData({ ...formData, brand: e.target.value })} />
+                <Select value={formData.brand} onValueChange={value => setFormData({ ...formData, brand: value as TerminalBrand })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TERMINAL_BRAND_OPTIONS.map(brand => (
+                      <SelectItem key={brand} value={brand}>
+                        {brand}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="grid gap-2">
