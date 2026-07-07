@@ -10,6 +10,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { useUpsertEmisor } from '@/hooks/use-cfdi'
 import type { Emisor, GlobalPeriodicity } from '@/services/cfdi.service'
 
@@ -29,6 +30,7 @@ const emisorSchema = z.object({
   serie: z.string().trim().optional(),
   defaultUsoCfdi: z.string().trim().optional(),
   globalPeriodicity: z.enum(['DIARIO', 'SEMANAL', 'QUINCENAL', 'MENSUAL', 'BIMESTRAL']),
+  invoiceCashSales: z.boolean(),
 })
 
 type EmisorFormValues = z.infer<typeof emisorSchema>
@@ -54,6 +56,7 @@ export function EmisorFormModal({ open, onClose, emisor }: EmisorFormModalProps)
       serie: '',
       defaultUsoCfdi: '',
       globalPeriodicity: 'MENSUAL',
+      invoiceCashSales: false,
     },
   })
 
@@ -68,6 +71,7 @@ export function EmisorFormModal({ open, onClose, emisor }: EmisorFormModalProps)
       serie: emisor?.serie ?? '',
       defaultUsoCfdi: emisor?.defaultUsoCfdi ?? '',
       globalPeriodicity: emisor?.globalPeriodicity ?? 'MENSUAL',
+      invoiceCashSales: emisor?.invoiceCashSales ?? false,
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, emisor])
@@ -84,6 +88,7 @@ export function EmisorFormModal({ open, onClose, emisor }: EmisorFormModalProps)
           ...(values.serie?.trim() && { serie: values.serie.trim() }),
           ...(values.defaultUsoCfdi?.trim() && { defaultUsoCfdi: values.defaultUsoCfdi.trim() }),
           globalPeriodicity: values.globalPeriodicity,
+          invoiceCashSales: values.invoiceCashSales,
         },
       },
       { onSuccess: () => onClose() },
@@ -241,6 +246,22 @@ export function EmisorFormModal({ open, onClose, emisor }: EmisorFormModalProps)
                       </SelectContent>
                     </Select>
                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="invoiceCashSales"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between gap-3 rounded-lg border border-input p-4">
+                    <div className="space-y-0.5 pr-2">
+                      <FormLabel>{t('emisorForm.invoiceCashSales')}</FormLabel>
+                      <FormDescription>{t('emisorForm.invoiceCashSalesHint')}</FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} className="cursor-pointer" />
+                    </FormControl>
                   </FormItem>
                 )}
               />

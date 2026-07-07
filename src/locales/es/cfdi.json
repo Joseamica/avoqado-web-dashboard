@@ -179,7 +179,9 @@
     "defaultUsoCfdiPlaceholder": "G03",
     "globalPeriodicity": "Periodicidad de factura global",
     "save": "Guardar emisor",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "invoiceCashSales": "Facturar ventas en efectivo",
+    "invoiceCashSalesHint": "Apagado por defecto. La mayoría de los negocios no declara el efectivo, así que no se factura ni en el recibo (QR) ni en la factura global mensual. Actívalo solo si quieres que las ventas en efectivo sí se puedan facturar."
   },
   "periodicity": {
     "DIARIO": "Diario",
@@ -218,6 +220,13 @@
       "tagOnline": "En línea",
       "button": "Agregar",
       "allConfigured": "Todos los comercios ya están configurados."
+    },
+    "globalHelp": "Facturación activa: permite emitir CFDI de este comercio. Autofactura: el cliente se factura solo con el QR del recibo. Incluir en global: Avoqado emite automáticamente cada mes la factura global al Público en General por las ventas que nadie facturó. ⚠️ Actívalo SOLO si tu contador NO la emite por su cuenta — si ambos la emiten, declararás los mismos ingresos dos veces ante el SAT.",
+    "confirmGlobal": {
+      "title": "¿Que Avoqado emita tu factura global?",
+      "description": "Con esto activado, Avoqado emitirá automáticamente cada mes una factura global al Público en General por las ventas de este comercio que ningún cliente facturó. Si tu contador ya emite esa factura global por su cuenta, NO lo actives: estarías declarando los mismos ingresos dos veces ante el SAT. Actívalo solo si quieres que Avoqado se encargue de la global.",
+      "confirm": "Sí, que Avoqado la emita",
+      "cancel": "Cancelar"
     }
   },
   "globalInvoice": {

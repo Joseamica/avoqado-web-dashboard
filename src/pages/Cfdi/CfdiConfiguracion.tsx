@@ -247,13 +247,13 @@ const SAMPLE_EMISORES: Emisor[] = [
     regimenFiscal: '601', lugarExpedicion: '06000', provider: 'facturapi', providerOrgId: 'org_sample',
     csdStatus: 'ACTIVE', csdExpiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString(),
     csdLastCheckedAt: new Date().toISOString(), serie: 'A', defaultUsoCfdi: 'G03', globalPeriodicity: 'MENSUAL',
-    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    invoiceCashSales: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
   },
   {
     id: 'sample-emisor-2', venueId: 'sample', rfc: 'XYZ980505QW7', legalName: 'Sucursal Centro SA de CV',
     regimenFiscal: '626', lugarExpedicion: '64000', provider: 'facturapi', providerOrgId: null,
     csdStatus: 'NONE', csdExpiresAt: null, csdLastCheckedAt: null, serie: 'B', defaultUsoCfdi: 'G03',
-    globalPeriodicity: 'SEMANAL', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    globalPeriodicity: 'SEMANAL', invoiceCashSales: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
   },
 ]
 
@@ -435,6 +435,9 @@ export default function CfdiConfiguracion() {
   // The emisor currently being provisioned, so only its button spins/disables
   // (mirrors GlobalInvoiceSection's per-row `pendingId`).
   const [provisioningId, setProvisioningId] = useState<string | null>(null)
+  // Turning ON "incluir en global" is a fiscal decision (Avoqado would auto-emit the monthly factura
+  // global for this merchant's sales). Confirm before enabling; turning it OFF is safe and immediate.
+  const [confirmGlobal, setConfirmGlobal] = useState<MerchantConfig | null>(null)
 
   // When locked, feed sample cards so the teaser looks real behind the blur.
   const emisores = useMemo(() => (hasCfdi ? data?.emisores ?? [] : SAMPLE_EMISORES), [data, hasCfdi])
@@ -456,8 +459,8 @@ export default function CfdiConfiguracion() {
   /**
    * Create the FIRST fiscal config for a merchant that had none. Sends EXACTLY
    * one of merchantAccountId / ecommerceMerchantId (the discriminated union
-   * guarantees it) so the backend XOR guard never trips. Defaults match the row
-   * UI: facturación on, autofactura off, included in global.
+   * guarantees it) so the backend XOR guard never trips. Defaults: facturación on,
+   * autofactura off, and NOT in the global (opt-in — see includeInGlobal below).
    */
   const addMerchantConfig = ({
     merchant,
@@ -471,7 +474,7 @@ export default function CfdiConfiguracion() {
       fiscalEmisorId,
       facturacionEnabled: true,
       autofacturaEnabled: false,
-      includeInGlobal: true,
+      includeInGlobal: false,
     })
   }
 
@@ -636,11 +639,17 @@ export default function CfdiConfiguracion() {
                       <span className="text-sm">{t('merchants.includeInGlobal')}</span>
                       <Switch
                         checked={config.includeInGlobal}
-                        onCheckedChange={on => saveMerchant(config, { includeInGlobal: on })}
+                        // Enabling is a fiscal decision → confirm first. Disabling is safe → immediate.
+                        onCheckedChange={on =>
+                          on ? setConfirmGlobal(config) : saveMerchant(config, { includeInGlobal: false })
+                        }
                         className="cursor-pointer"
                       />
                     </label>
                   </div>
+
+                  {/* Explica qué hace cada switch — sobre todo el global, que puede duplicar ingresos. */}
+                  <p className="text-xs text-muted-foreground">{t('merchants.globalHelp')}</p>
                 </div>
               ))}
             </div>
@@ -679,6 +688,27 @@ export default function CfdiConfiguracion() {
             />
           </>
         )}
+
+        {/* Confirmación al PRENDER "incluir en global" — advierte del riesgo de doble facturación. */}
+        <AlertDialog open={!!confirmGlobal} onOpenChange={open => !open && setConfirmGlobal(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('merchants.confirmGlobal.title')}</AlertDialogTitle>
+              <AlertDialogDescription>{t('merchants.confirmGlobal.description')}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t('merchants.confirmGlobal.cancel')}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (confirmGlobal) saveMerchant(confirmGlobal, { includeInGlobal: true })
+                  setConfirmGlobal(null)
+                }}
+              >
+                {t('merchants.confirmGlobal.confirm')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </FeatureGate>
   )

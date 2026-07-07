@@ -34,6 +34,8 @@ export interface Emisor {
   serie: string | null
   defaultUsoCfdi: string
   globalPeriodicity: GlobalPeriodicity
+  /** Opt-in: permitir facturar ventas en efectivo (QR + factura global). Default false. */
+  invoiceCashSales: boolean
   createdAt: string
   updatedAt: string
 }
@@ -48,6 +50,8 @@ export interface UpsertEmisorRequest {
   serie?: string
   defaultUsoCfdi?: string
   globalPeriodicity?: GlobalPeriodicity
+  /** Opt-in: permitir facturar ventas en efectivo (QR + factura global). */
+  invoiceCashSales?: boolean
 }
 
 export interface UploadCsdRequest {

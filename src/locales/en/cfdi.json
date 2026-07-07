@@ -179,7 +179,9 @@
     "defaultUsoCfdiPlaceholder": "G03",
     "globalPeriodicity": "Global invoice periodicity",
     "save": "Save issuer",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "invoiceCashSales": "Invoice cash sales",
+    "invoiceCashSalesHint": "Off by default. Most businesses don't declare cash, so cash sales aren't invoiced via the receipt QR or the monthly global invoice. Turn it on only if you want cash sales to be invoiceable."
   },
   "periodicity": {
     "DIARIO": "Daily",
@@ -218,6 +220,13 @@
       "tagOnline": "Online",
       "button": "Add",
       "allConfigured": "All merchants are already configured."
+    },
+    "globalHelp": "Billing on: lets this merchant issue CFDIs. Self-invoice: customers invoice themselves via the receipt QR. Include in global: Avoqado automatically issues the monthly global invoice to the General Public for sales nobody invoiced. ⚠️ Turn this on ONLY if your accountant does NOT issue it separately — if both do, you'll report the same income twice to the SAT.",
+    "confirmGlobal": {
+      "title": "Let Avoqado issue your global invoice?",
+      "description": "With this on, Avoqado will automatically issue a monthly global invoice to the General Public for this merchant's sales that no customer invoiced. If your accountant already issues that global invoice, do NOT enable this — you'd be reporting the same income twice to the SAT. Enable only if you want Avoqado to handle the global.",
+      "confirm": "Yes, let Avoqado issue it",
+      "cancel": "Cancel"
     }
   },
   "globalInvoice": {
