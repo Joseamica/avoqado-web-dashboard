@@ -32,6 +32,7 @@ const emisorSchema = z.object({
   globalPeriodicity: z.enum(['DIARIO', 'SEMANAL', 'QUINCENAL', 'MENSUAL', 'BIMESTRAL']),
   invoiceCashSales: z.boolean(),
   includeCashInAccounting: z.boolean(),
+  isnRatePct: z.number().min(0).max(10), // ISN como PORCENTAJE (0-10); se guarda como fracción
 })
 
 type EmisorFormValues = z.infer<typeof emisorSchema>
@@ -59,6 +60,7 @@ export function EmisorFormModal({ open, onClose, emisor }: EmisorFormModalProps)
       globalPeriodicity: 'MENSUAL',
       invoiceCashSales: false,
       includeCashInAccounting: false,
+      isnRatePct: 0,
     },
   })
 
@@ -75,6 +77,7 @@ export function EmisorFormModal({ open, onClose, emisor }: EmisorFormModalProps)
       globalPeriodicity: emisor?.globalPeriodicity ?? 'MENSUAL',
       invoiceCashSales: emisor?.invoiceCashSales ?? false,
       includeCashInAccounting: emisor?.includeCashInAccounting ?? false,
+      isnRatePct: Math.round(Number(emisor?.isnRate ?? 0) * 100 * 100) / 100, // fracción → % (2 decimales)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, emisor])
@@ -93,6 +96,7 @@ export function EmisorFormModal({ open, onClose, emisor }: EmisorFormModalProps)
           globalPeriodicity: values.globalPeriodicity,
           invoiceCashSales: values.invoiceCashSales,
           includeCashInAccounting: values.includeCashInAccounting,
+          isnRate: values.isnRatePct / 100, // % → fracción
         },
       },
       { onSuccess: () => onClose() },
@@ -282,6 +286,31 @@ export function EmisorFormModal({ open, onClose, emisor }: EmisorFormModalProps)
                     <FormControl>
                       <Switch checked={field.value} onCheckedChange={field.onChange} className="cursor-pointer" />
                     </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="isnRatePct"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('emisorForm.isnRate')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        step="0.1"
+                        min={0}
+                        max={10}
+                        value={field.value ?? ''}
+                        onChange={e => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                        placeholder="0"
+                        className="h-12 text-base"
+                      />
+                    </FormControl>
+                    <FormDescription>{t('emisorForm.isnRateHint')}</FormDescription>
+                    <FormMessage />
                   </FormItem>
                 )}
               />

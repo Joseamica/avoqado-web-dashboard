@@ -38,6 +38,8 @@ export interface Emisor {
   invoiceCashSales: boolean
   /** Opt-in: que el efectivo cuente en los libros fiscales (IVA/ISR/pólizas). Default false. */
   includeCashInAccounting: boolean
+  /** Tasa de ISN (impuesto sobre nómina, estatal), fracción 0-0.10 (0.03 = 3%). */
+  isnRate: number
   createdAt: string
   updatedAt: string
 }
@@ -56,6 +58,8 @@ export interface UpsertEmisorRequest {
   invoiceCashSales?: boolean
   /** Opt-in: que el efectivo cuente en los libros fiscales (IVA/ISR/pólizas). */
   includeCashInAccounting?: boolean
+  /** Tasa de ISN (fracción 0-0.10). */
+  isnRate?: number
 }
 
 export interface UploadCsdRequest {

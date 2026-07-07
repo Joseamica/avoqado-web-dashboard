@@ -183,7 +183,9 @@
     "invoiceCashSales": "Facturar ventas en efectivo",
     "invoiceCashSalesHint": "Apagado por defecto. La mayoría de los negocios no declara el efectivo, así que no se factura ni en el recibo (QR) ni en la factura global mensual. Actívalo solo si quieres que las ventas en efectivo sí se puedan facturar.",
     "includeCashInAccounting": "Contar el efectivo en la contabilidad",
-    "includeCashInAccountingHint": "Apagado por defecto. Tus ventas en EFECTIVO no entran a los libros fiscales (IVA, ISR, pólizas). Tu vista de “¿cuánto gané?” siempre las muestra. Actívalo solo si quieres declarar el efectivo."
+    "includeCashInAccountingHint": "Apagado por defecto. Tus ventas en EFECTIVO no entran a los libros fiscales (IVA, ISR, pólizas). Tu vista de “¿cuánto gané?” siempre las muestra. Actívalo solo si quieres declarar el efectivo.",
+    "isnRate": "Tasa de ISN (%)",
+    "isnRateHint": "Impuesto sobre nómina de tu estado, lo paga el patrón sobre los sueldos. Varía por estado (~1%–4%). Déjalo en 0 si no aplica; el sistema lo calcula en cada nómina."
   },
   "periodicity": {
     "DIARIO": "Diario",

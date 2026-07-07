@@ -183,7 +183,9 @@
     "invoiceCashSales": "Invoice cash sales",
     "invoiceCashSalesHint": "Off by default. Most businesses don't declare cash, so cash sales aren't invoiced via the receipt QR or the monthly global invoice. Turn it on only if you want cash sales to be invoiceable.",
     "includeCashInAccounting": "Count cash in accounting",
-    "includeCashInAccountingHint": "Off by default. Your CASH sales don't enter the fiscal books (IVA, ISR, journal entries). Your “how much did I make?” view always shows them. Turn on only if you want to declare cash."
+    "includeCashInAccountingHint": "Off by default. Your CASH sales don't enter the fiscal books (IVA, ISR, journal entries). Your “how much did I make?” view always shows them. Turn on only if you want to declare cash.",
+    "isnRate": "Payroll tax rate (%)",
+    "isnRateHint": "State payroll tax (ISN), paid by the employer on wages. Varies by state (~1%–4%). Leave 0 if not applicable; the system computes it on each payroll."
   },
   "periodicity": {
     "DIARIO": "Daily",

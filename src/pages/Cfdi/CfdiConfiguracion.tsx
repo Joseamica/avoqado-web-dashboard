@@ -247,13 +247,13 @@ const SAMPLE_EMISORES: Emisor[] = [
     regimenFiscal: '601', lugarExpedicion: '06000', provider: 'facturapi', providerOrgId: 'org_sample',
     csdStatus: 'ACTIVE', csdExpiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString(),
     csdLastCheckedAt: new Date().toISOString(), serie: 'A', defaultUsoCfdi: 'G03', globalPeriodicity: 'MENSUAL',
-    invoiceCashSales: false, includeCashInAccounting: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    invoiceCashSales: false, includeCashInAccounting: false, isnRate: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
   },
   {
     id: 'sample-emisor-2', venueId: 'sample', rfc: 'XYZ980505QW7', legalName: 'Sucursal Centro SA de CV',
     regimenFiscal: '626', lugarExpedicion: '64000', provider: 'facturapi', providerOrgId: null,
     csdStatus: 'NONE', csdExpiresAt: null, csdLastCheckedAt: null, serie: 'B', defaultUsoCfdi: 'G03',
-    globalPeriodicity: 'SEMANAL', invoiceCashSales: false, includeCashInAccounting: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    globalPeriodicity: 'SEMANAL', invoiceCashSales: false, includeCashInAccounting: false, isnRate: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
   },
 ]
 
