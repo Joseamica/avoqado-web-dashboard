@@ -247,13 +247,13 @@ const SAMPLE_EMISORES: Emisor[] = [
     regimenFiscal: '601', lugarExpedicion: '06000', provider: 'facturapi', providerOrgId: 'org_sample',
     csdStatus: 'ACTIVE', csdExpiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString(),
     csdLastCheckedAt: new Date().toISOString(), serie: 'A', defaultUsoCfdi: 'G03', globalPeriodicity: 'MENSUAL',
-    invoiceCashSales: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    invoiceCashSales: false, includeCashInAccounting: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
   },
   {
     id: 'sample-emisor-2', venueId: 'sample', rfc: 'XYZ980505QW7', legalName: 'Sucursal Centro SA de CV',
     regimenFiscal: '626', lugarExpedicion: '64000', provider: 'facturapi', providerOrgId: null,
     csdStatus: 'NONE', csdExpiresAt: null, csdLastCheckedAt: null, serie: 'B', defaultUsoCfdi: 'G03',
-    globalPeriodicity: 'SEMANAL', invoiceCashSales: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    globalPeriodicity: 'SEMANAL', invoiceCashSales: false, includeCashInAccounting: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
   },
 ]
 
@@ -453,6 +453,7 @@ export default function CfdiConfiguracion() {
       facturacionEnabled: next.facturacionEnabled,
       autofacturaEnabled: next.autofacturaEnabled,
       includeInGlobal: next.includeInGlobal,
+      includeInAccounting: next.includeInAccounting,
     })
   }
 
@@ -475,6 +476,7 @@ export default function CfdiConfiguracion() {
       facturacionEnabled: true,
       autofacturaEnabled: false,
       includeInGlobal: false,
+      includeInAccounting: true, // opt-out: por default el merchant SÍ entra a la contabilidad
     })
   }
 
@@ -618,7 +620,7 @@ export default function CfdiConfiguracion() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <label className="flex items-center justify-between gap-2 rounded-lg border border-input px-3 py-2.5">
                       <span className="text-sm">{t('merchants.facturacionEnabled')}</span>
                       <Switch
@@ -646,9 +648,17 @@ export default function CfdiConfiguracion() {
                         className="cursor-pointer"
                       />
                     </label>
+                    <label className="flex items-center justify-between gap-2 rounded-lg border border-input px-3 py-2.5">
+                      <span className="text-sm">{t('merchants.includeInAccounting')}</span>
+                      <Switch
+                        checked={config.includeInAccounting}
+                        onCheckedChange={on => saveMerchant(config, { includeInAccounting: on })}
+                        className="cursor-pointer"
+                      />
+                    </label>
                   </div>
 
-                  {/* Explica qué hace cada switch — sobre todo el global, que puede duplicar ingresos. */}
+                  {/* Explica qué hace cada switch — sobre todo el global (duplica ingresos) y contabilidad. */}
                   <p className="text-xs text-muted-foreground">{t('merchants.globalHelp')}</p>
                 </div>
               ))}

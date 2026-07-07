@@ -36,6 +36,8 @@ export interface Emisor {
   globalPeriodicity: GlobalPeriodicity
   /** Opt-in: permitir facturar ventas en efectivo (QR + factura global). Default false. */
   invoiceCashSales: boolean
+  /** Opt-in: que el efectivo cuente en los libros fiscales (IVA/ISR/pólizas). Default false. */
+  includeCashInAccounting: boolean
   createdAt: string
   updatedAt: string
 }
@@ -52,6 +54,8 @@ export interface UpsertEmisorRequest {
   globalPeriodicity?: GlobalPeriodicity
   /** Opt-in: permitir facturar ventas en efectivo (QR + factura global). */
   invoiceCashSales?: boolean
+  /** Opt-in: que el efectivo cuente en los libros fiscales (IVA/ISR/pólizas). */
+  includeCashInAccounting?: boolean
 }
 
 export interface UploadCsdRequest {
@@ -70,6 +74,8 @@ export interface MerchantConfig {
   facturacionEnabled: boolean
   autofacturaEnabled: boolean
   includeInGlobal: boolean
+  /** Opt-out: excluir este merchant de los libros fiscales (pólizas / IVA / ISR). Default true. */
+  includeInAccounting: boolean
   merchantAccount?: { id: string; alias: string; displayName: string } | null
   ecommerceMerchant?: { id: string; channelName: string } | null
 }
@@ -82,6 +88,8 @@ export interface UpsertMerchantConfigRequest {
   facturacionEnabled: boolean
   autofacturaEnabled: boolean
   includeInGlobal: boolean
+  /** Opt-out: excluir este merchant de los libros fiscales. */
+  includeInAccounting?: boolean
 }
 
 export interface FiscalConfig {

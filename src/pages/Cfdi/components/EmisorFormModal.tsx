@@ -31,6 +31,7 @@ const emisorSchema = z.object({
   defaultUsoCfdi: z.string().trim().optional(),
   globalPeriodicity: z.enum(['DIARIO', 'SEMANAL', 'QUINCENAL', 'MENSUAL', 'BIMESTRAL']),
   invoiceCashSales: z.boolean(),
+  includeCashInAccounting: z.boolean(),
 })
 
 type EmisorFormValues = z.infer<typeof emisorSchema>
@@ -57,6 +58,7 @@ export function EmisorFormModal({ open, onClose, emisor }: EmisorFormModalProps)
       defaultUsoCfdi: '',
       globalPeriodicity: 'MENSUAL',
       invoiceCashSales: false,
+      includeCashInAccounting: false,
     },
   })
 
@@ -72,6 +74,7 @@ export function EmisorFormModal({ open, onClose, emisor }: EmisorFormModalProps)
       defaultUsoCfdi: emisor?.defaultUsoCfdi ?? '',
       globalPeriodicity: emisor?.globalPeriodicity ?? 'MENSUAL',
       invoiceCashSales: emisor?.invoiceCashSales ?? false,
+      includeCashInAccounting: emisor?.includeCashInAccounting ?? false,
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, emisor])
@@ -89,6 +92,7 @@ export function EmisorFormModal({ open, onClose, emisor }: EmisorFormModalProps)
           ...(values.defaultUsoCfdi?.trim() && { defaultUsoCfdi: values.defaultUsoCfdi.trim() }),
           globalPeriodicity: values.globalPeriodicity,
           invoiceCashSales: values.invoiceCashSales,
+          includeCashInAccounting: values.includeCashInAccounting,
         },
       },
       { onSuccess: () => onClose() },
@@ -258,6 +262,22 @@ export function EmisorFormModal({ open, onClose, emisor }: EmisorFormModalProps)
                     <div className="space-y-0.5 pr-2">
                       <FormLabel>{t('emisorForm.invoiceCashSales')}</FormLabel>
                       <FormDescription>{t('emisorForm.invoiceCashSalesHint')}</FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} className="cursor-pointer" />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="includeCashInAccounting"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between gap-3 rounded-lg border border-input p-4">
+                    <div className="space-y-0.5 pr-2">
+                      <FormLabel>{t('emisorForm.includeCashInAccounting')}</FormLabel>
+                      <FormDescription>{t('emisorForm.includeCashInAccountingHint')}</FormDescription>
                     </div>
                     <FormControl>
                       <Switch checked={field.value} onCheckedChange={field.onChange} className="cursor-pointer" />
