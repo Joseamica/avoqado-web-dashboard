@@ -220,7 +220,15 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
               side={isMobile ? 'bottom' : 'right'}
               sideOffset={8}
             >
-              <Command shouldFilter={true}>
+              <Command
+                shouldFilter={true}
+                filter={(value, search, keywords) => {
+                  const query = search.trim().toLowerCase()
+                  if (!query) return 1
+                  const haystack = [value, ...(keywords ?? [])].join(' ').toLowerCase()
+                  return haystack.includes(query) ? 1 : 0
+                }}
+              >
                 <CommandInput
                   placeholder={t('venuesSwitcher.searchPlaceholder')}
                   value={searchValue}
@@ -273,7 +281,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                             return (
                               <CommandItem
                                 key={venue.id}
-                                value={`${venue.name}-${venue.id}`}
+                                value={`${venue.name}-${venue.slug}`}
                                 keywords={[venue.city || '', venue.slug, group.orgName || '']}
                                 onSelect={() => handleVenueChange(venue)}
                                 disabled={!hasAccess || isLoading}

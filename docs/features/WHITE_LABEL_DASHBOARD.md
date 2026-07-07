@@ -10,6 +10,10 @@ El módulo `WHITE_LABEL_DASHBOARD` permite crear experiencias de dashboard compl
 - **Composición**: Dashboards pueden incluir features de Avoqado (Commissions, Tips) + features específicos
 - **Sin hardcoding**: Nunca `if (venue.slug === 'playtelecom')` - siempre módulos
 
+> **Contexto de negocio (quién es PlayTelecom, Bait, org vs venue scope)**: ese contexto NO
+> vive aquí — ver `.claude/rules/playtelecom-vertical.md`. Este doc es solo el mecanismo
+> técnico genérico.
+
 ---
 
 ## Arquitectura
@@ -304,48 +308,29 @@ El sidebar ahora usa el hook `useWhiteLabelConfig()` para detectar si hay un whi
 
 ## Rutas
 
-### Rutas White-Label
+> ⚠️ **Corregido 2026-07-07** — esta sección describía un patrón de rutas (`/wl/:slug`,
+> `/venues/:slug/wl`, `WhiteLabelDashboardLayout`/`WhiteLabelFeatureRouter`/
+> `DynamicFeatureLoader` genéricos) que ya **no** coincide con `src/routes/router.tsx`. Los
+> patrones reales, verificados en código, son estos dos scopes independientes:
 
-El sistema soporta **dos patrones de URL** para máxima flexibilidad:
+### Rutas White-Label — dos scopes, no un solo patrón
 
-| Patrón | Uso | Ejemplo |
-|--------|-----|---------|
-| `/wl/:slug/*` | Modo white-label puro (sin branding Avoqado) | `/wl/playtelecom/stock` |
-| `/venues/:slug/wl/*` | Modo híbrido (dentro del dashboard Avoqado) | `/venues/playtelecom/wl/stock` |
+| Scope | Ruta | Layout | Gate |
+|---|---|---|---|
+| **Organizacional** (multi-venue) | `/wl/organizations/:orgSlug/*` | `WLOrganizationLayout` | `OwnerProtectedRoute` (org OWNER) |
+| **Venue** (una sola tienda) | `/wl/venues/:slug/*` | `Dashboard` (comparte `createVenueRoutes()` + páginas WL) | `ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD"` |
+| Legacy embebido (sigue vivo) | `/venues/:slug/playtelecom/*` | `PlayTelecomLayout` | `ModuleProtectedRoute requiredModule="SERIALIZED_INVENTORY"` (NO `WHITE_LABEL_DASHBOARD`) |
 
-```
-/wl/:slug                         → WhiteLabelDashboardLayout (standalone)
-/wl/:slug/:featureSlug/*          → WhiteLabelFeatureRouter → DynamicFeatureLoader
+No existe hoy un router genérico `WhiteLabelFeatureRouter`/`DynamicFeatureLoader` que
+resuelva el `featureSlug` dinámicamente desde el Feature Registry para estas páginas — las
+páginas de `/wl/organizations/:orgSlug` y `/wl/venues/:slug` están montadas explícitamente en
+`router.tsx` contra componentes concretos (hoy, componentes `PlayTelecom*` / `WL*`). El
+Feature Registry + `DynamicFeatureLoader` sí existen y están implementados
+(`src/components/WhiteLabel/DynamicFeatureLoader.tsx`), pero la composición dinámica completa
+por `featureSlug` es trabajo pendiente, no el estado actual.
 
-/venues/:slug/wl                  → WhiteLabelDashboardLayout (nested)
-/venues/:slug/wl/:featureSlug/*   → WhiteLabelFeatureRouter → DynamicFeatureLoader
-```
-
-### Protección de Rutas
-
-```typescript
-// Rutas standalone /wl/:slug
-<Route
-  path="wl/:slug"
-  element={<WhiteLabelRouteGuard />}
->
-  <Route element={<WhiteLabelDashboardLayout />}>
-    <Route index element={<WhiteLabelIndex />} />
-    <Route path=":featureSlug/*" element={<WhiteLabelFeatureRouter />} />
-  </Route>
-</Route>
-
-// Rutas nested /venues/:slug/wl
-<Route
-  path="wl"
-  element={<ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" />}
->
-  <Route element={<WhiteLabelDashboardLayout />}>
-    <Route index element={<WhiteLabelIndex />} />
-    <Route path=":featureSlug/*" element={<WhiteLabelFeatureRouter />} />
-  </Route>
-</Route>
-```
+Detalle de negocio + qué es genérico vs bespoke en cada scope:
+`.claude/rules/playtelecom-vertical.md`.
 
 ---
 

@@ -150,6 +150,8 @@ See: `docs/architecture/permissions.md`
 **Features**: [i18n](docs/features/i18n.md) | [theme](docs/features/theme.md) | [inventory](docs/features/inventory.md) |
 [white-label](docs/features/WHITE_LABEL_DASHBOARD.md)
 
+**Verticals**: [PlayTelecom (org vs venue white-label scopes)](.claude/rules/playtelecom-vertical.md)
+
 **Guides**: [UI patterns](docs/guides/ui-patterns.md) | [performance](docs/guides/performance.md) |
 [design system](docs/guides/DESIGN_SYSTEM_GUIDE.md) | [timezone](docs/guides/TIMEZONE_GUIDE.md) |
 [real-time/Socket.IO](docs/guides/REALTIME_GUIDE.md)
