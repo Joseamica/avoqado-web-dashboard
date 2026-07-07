@@ -166,6 +166,20 @@ describe('OrgSidebar', () => {
     expect(screen.getByText('Mensajes')).toBeInTheDocument()
   })
 
+  it('shows Comisiones link for white-label orgs', () => {
+    const wlVenue = makeWLVenue(ORG_ID)
+
+    mockedUseAuth.mockReturnValue({
+      user: { role: 'OWNER', firstName: 'Test', lastName: 'User', email: 'test@test.com' },
+      allVenues: [wlVenue],
+      isAuthenticated: true,
+    } as any)
+
+    renderSidebar()
+
+    expect(screen.getByRole('link', { name: /Comisiones/i })).toHaveAttribute('href', `/organizations/${ORG_ID}/comisiones`)
+  })
+
   it('hides "Configuracion Org." section when org has no WHITE_LABEL_DASHBOARD module', () => {
     const nonWLVenue = makeNonWLVenue(ORG_ID)
 

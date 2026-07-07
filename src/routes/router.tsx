@@ -60,6 +60,7 @@ import {
   PlayTelecomOrgMessages,
   PlayTelecomOrgUsers,
   PlayTelecomOrgStockControl,
+  PlayTelecomOrgComisiones,
   Privacy,
   ProfitAnalyticsDashboard,
   PublicBookingPage,
@@ -566,6 +567,7 @@ const router = createBrowserRouter(
                     { path: 'org-messages', element: <PlayTelecomOrgMessages /> },
                     { path: 'users', element: <PlayTelecomOrgUsers /> },
                     { path: 'stock-control', element: <PlayTelecomOrgStockControl /> },
+                    { path: 'comisiones', element: <PlayTelecomOrgComisiones /> },
                     // PlayTelecom / Walmart back-office sale-verification approval (cross-venue)
                     { path: 'sales', element: <WLSalesExecutive /> },
                     { path: 'sales/detail', element: <WLSalesDetail /> },

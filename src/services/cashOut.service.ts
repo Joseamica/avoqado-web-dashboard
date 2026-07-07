@@ -7,6 +7,7 @@ import api from '@/api'
  */
 
 const BASE = (venueId: string) => `/api/v1/dashboard/cash-out/venues/${venueId}`
+const ORG_BASE = (orgId: string) => `/api/v1/dashboard/organizations/${orgId}/cash-out`
 
 export type CashOutSaleType = 'LINEA_NUEVA' | 'PORTABILIDAD'
 export type CashOutWithdrawalStatus = 'REQUESTED' | 'REPORTED' | 'PAID' | 'FAILED'
@@ -49,6 +50,10 @@ export interface DispersionReport {
   totalNet: string // pesos
   count: number
 }
+
+// The org-wide report aggregates across all the org's venues, so it is keyed by
+// orgId and (unlike the per-venue report) has no venueId.
+export type OrgDispersionReport = Omit<DispersionReport, 'venueId'> & { orgId: string }
 
 const unwrap = <T>(payload: unknown): T => {
   if (payload && typeof payload === 'object' && 'data' in (payload as Record<string, unknown>)) {
@@ -96,5 +101,34 @@ export const cashOutService = {
   generateReport: async (venueId: string, businessDate?: string): Promise<DispersionReport> => {
     const res = await api.post(`${BASE(venueId)}/report`, businessDate ? { businessDate } : {})
     return unwrap<DispersionReport>(res.data)
+  },
+
+  // --- Org-level (organization-wide cash-out config/reporting) ---
+  getOrgRates: async (orgId: string): Promise<CashOutRate[]> => {
+    const res = await api.get(`${ORG_BASE(orgId)}/commission-rates`)
+    return unwrap<CashOutRate[]>(res.data) ?? []
+  },
+  saveOrgRates: async (orgId: string, rates: CashOutRate[]): Promise<CashOutRate[]> => {
+    const res = await api.put(`${ORG_BASE(orgId)}/commission-rates`, { rates })
+    return unwrap<CashOutRate[]>(res.data) ?? []
+  },
+  getOrgActiveDays: async (orgId: string, from?: string, to?: string): Promise<string[]> => {
+    const res = await api.get(`${ORG_BASE(orgId)}/active-days`, { params: { from, to } })
+    return unwrap<string[]>(res.data) ?? []
+  },
+  saveOrgActiveDays: async (orgId: string, days: string[]): Promise<string[]> => {
+    const res = await api.put(`${ORG_BASE(orgId)}/active-days`, { days })
+    return unwrap<string[]>(res.data) ?? []
+  },
+  listOrgWithdrawals: async (
+    orgId: string,
+    params?: { status?: CashOutWithdrawalStatus; businessDate?: string },
+  ): Promise<Array<CashOutWithdrawal & { venueName?: string }>> => {
+    const res = await api.get(`${ORG_BASE(orgId)}/withdrawals`, { params })
+    return unwrap<Array<CashOutWithdrawal & { venueName?: string }>>(res.data) ?? []
+  },
+  generateOrgReport: async (orgId: string, businessDate?: string): Promise<OrgDispersionReport> => {
+    const res = await api.post(`${ORG_BASE(orgId)}/report`, businessDate ? { businessDate } : {})
+    return unwrap<OrgDispersionReport>(res.data)
   },
 }

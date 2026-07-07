@@ -518,6 +518,9 @@
   },
   "comisiones": {
     "title": "Comisiones",
+    "orgTooltip": "Configuración y reporte de comisiones a nivel organización. Los retiros se generan desde cada sucursal/TPV.",
+    "orgSubtitle": "Tarifas, calendario y retiros agregados de todas las sucursales.",
+    "branch": "Sucursal",
     "ratesTitle": "Tabla de comisiones escalonada",
     "ratesHelp": "El monto de la comisión depende de las ventas acumuladas en la semana (Lun–Dom). El último tramo debe quedar abierto (sin máximo).",
     "ratesSaved": "Tarifas guardadas",

@@ -518,6 +518,9 @@
   },
   "comisiones": {
     "title": "Commissions",
+    "orgTooltip": "Organization-wide commission configuration and reporting. Withdrawals are created from each branch/TPV.",
+    "orgSubtitle": "Rates, calendar, and aggregated withdrawals across all branches.",
+    "branch": "Branch",
     "ratesTitle": "Escalated commission table",
     "ratesHelp": "The commission amount depends on accumulated sales in the week (Mon–Sun). The last tier must stay open (no maximum).",
     "ratesSaved": "Rates saved",
