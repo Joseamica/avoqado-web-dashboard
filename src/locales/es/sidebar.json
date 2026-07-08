@@ -85,7 +85,8 @@
     "taxes": "IVA en flujo · DIOT",
     "reports": "Reportes contables",
     "isr": "ISR · Pago provisional",
-    "payroll": "Nómina"
+    "payroll": "Nómina",
+    "fixedAssets": "Activos fijos"
   },
   "bancosMenu": {
     "title": "Bancos",

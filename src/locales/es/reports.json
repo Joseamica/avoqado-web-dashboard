@@ -1227,5 +1227,41 @@
       "registroPatronal": "Registro patronal (opcional)"
     },
     "stamp": "Timbrar recibos"
+  },
+  "fixedAssets": {
+    "title": "Activos fijos · depreciación",
+    "subtitle": "Registra tus inversiones y deprécialas 'a plazos' (deducción de inversiones).",
+    "optInHint": "Nada se deprecia solo: registra una compra como activo fijo y luego corre la depreciación del mes. La deducción se resta en tu ISR general.",
+    "disclosure": "Depreciación en línea recta con la tasa del SAT por tipo (editable). La actualización por inflación (INPC) la aplica tu contador en la declaración anual.",
+    "register": "Registrar activo",
+    "registerSubtitle": "Confirma una compra como activo fijo para depreciarla.",
+    "registered": "Activo registrado",
+    "registerError": "No se pudo registrar el activo",
+    "save": "Registrar",
+    "saving": "Guardando…",
+    "runDepreciation": "Correr depreciación",
+    "depreciationDone": "Depreciación corrida: {{count}} activos, {{total}} del periodo",
+    "depreciationError": "No se pudo correr la depreciación",
+    "emptyTitle": "Sin activos fijos",
+    "emptyBody": "Registra tu primera inversión (equipo, mobiliario, vehículo…) para empezar a depreciarla.",
+    "colDescription": "Descripción",
+    "colType": "Tipo",
+    "colMoi": "Monto (MOI)",
+    "colBase": "Base depreciable",
+    "colRate": "Tasa anual",
+    "colAcquisition": "Adquisición",
+    "colStatus": "Estado",
+    "pickType": "Elige un tipo…",
+    "moiLabel": "Monto de la inversión (sin IVA)",
+    "rateLabel": "Tasa anual (%)",
+    "acquisitionLabel": "Fecha de adquisición",
+    "salvageLabel": "Valor de rescate (opcional)",
+    "descriptionPlaceholder": "Ej. Laptop del mostrador",
+    "formHint": "La tasa cae al default del SAT según el tipo; puedes ajustarla. Los autos topan su base deducible a $175,000.",
+    "status": {
+      "ACTIVE": "Activo",
+      "FULLY_DEPRECIATED": "Depreciado",
+      "DISPOSED": "Baja"
+    }
   }
 }

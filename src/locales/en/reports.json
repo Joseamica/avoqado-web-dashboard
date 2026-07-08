@@ -1227,5 +1227,41 @@
       "registroPatronal": "Employer registration (optional)"
     },
     "stamp": "Stamp receipts"
+  },
+  "fixedAssets": {
+    "title": "Fixed assets · depreciation",
+    "subtitle": "Register your investments and depreciate them over time (investment deduction).",
+    "optInHint": "Nothing depreciates on its own: register a purchase as a fixed asset, then run the month's depreciation. The deduction is subtracted in your general-regime income tax.",
+    "disclosure": "Straight-line depreciation at the SAT rate by type (editable). The inflation update (INPC) is applied by your accountant in the annual return.",
+    "register": "Register asset",
+    "registerSubtitle": "Confirm a purchase as a fixed asset to depreciate it.",
+    "registered": "Asset registered",
+    "registerError": "Could not register the asset",
+    "save": "Register",
+    "saving": "Saving…",
+    "runDepreciation": "Run depreciation",
+    "depreciationDone": "Depreciation run: {{count}} assets, {{total}} this period",
+    "depreciationError": "Could not run depreciation",
+    "emptyTitle": "No fixed assets",
+    "emptyBody": "Register your first investment (equipment, furniture, vehicle…) to start depreciating it.",
+    "colDescription": "Description",
+    "colType": "Type",
+    "colMoi": "Amount (MOI)",
+    "colBase": "Depreciable base",
+    "colRate": "Annual rate",
+    "colAcquisition": "Acquired",
+    "colStatus": "Status",
+    "pickType": "Pick a type…",
+    "moiLabel": "Investment amount (excl. VAT)",
+    "rateLabel": "Annual rate (%)",
+    "acquisitionLabel": "Acquisition date",
+    "salvageLabel": "Salvage value (optional)",
+    "descriptionPlaceholder": "E.g. Front-counter laptop",
+    "formHint": "The rate defaults to the SAT rate for the type; you can adjust it. Vehicles cap their deductible base at $175,000.",
+    "status": {
+      "ACTIVE": "Active",
+      "FULLY_DEPRECIATED": "Depreciated",
+      "DISPOSED": "Disposed"
+    }
   }
 }

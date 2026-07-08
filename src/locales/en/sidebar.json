@@ -86,7 +86,8 @@
     "taxes": "Cash-basis VAT · DIOT",
     "reports": "Accounting reports",
     "isr": "Income tax · Provisional",
-    "payroll": "Payroll"
+    "payroll": "Payroll",
+    "fixedAssets": "Fixed assets"
   },
   "bancosMenu": {
     "title": "Banks",

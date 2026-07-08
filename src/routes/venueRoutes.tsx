@@ -123,6 +123,7 @@ import {
   CashBasisVat,
   Expenses,
   Isr,
+  FixedAssets,
   Nomina,
   FiscalReadiness,
   AccountsPayable,
@@ -385,6 +386,13 @@ export function createVenueRoutes(): RouteObject[] {
       path: 'contabilidad/isr',
       element: <PermissionProtectedRoute permission="accounting:read" />,
       children: [{ index: true, element: <Isr /> }],
+    },
+    {
+      // Contabilidad → Activos fijos · depreciación (Capa B fiscal). Permiso accounting:read +
+      // FeatureGate CFDI (PREMIUM) en la página. Deducción de inversiones (LISR 34-35), opt-in.
+      path: 'contabilidad/activos-fijos',
+      element: <PermissionProtectedRoute permission="accounting:read" />,
+      children: [{ index: true, element: <FixedAssets /> }],
     },
     {
       // Contabilidad → Nómina (Capa B fiscal). Permiso accounting:read + FeatureGate CFDI (PREMIUM)
