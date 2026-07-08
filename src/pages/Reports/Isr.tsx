@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { AlertTriangle, Info, Landmark, Receipt } from 'lucide-react'
+import { AlertTriangle, HandCoins, Info, Landmark, Receipt } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -12,15 +12,17 @@ import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useIsrProvisional } from '@/hooks/useIsr'
+import { useSalesRetention, useSetSalesRetention } from '@/hooks/useSalesRetention'
+import { useToast } from '@/hooks/use-toast'
 import type { IsrProvisionalResponse, IsrRegime } from '@/services/fiscal/isr.service'
 import { Currency } from '@/utils/currency'
 import { cn } from '@/lib/utils'
 
 const SAMPLE: IsrProvisionalResponse = {
   needsFiscalSetup: false, organizationId: null, rfc: 'TESC900101AAA', period: new Date().toISOString().slice(0, 7), regime: 'RESICO',
-  venueIds: ['v1'], ingresosMesCents: 4500000, ingresosAcumCents: 27000000, deduccionesAcumCents: 0, utilidadFiscalCents: 0,
-  tasaResico: 0.011, isrCausadoCents: 49500, pagosProvisionalesPreviosCents: 0, isrAPagarCents: 49500,
-  excedeTopeResico: false, zeroActivity: false, computedAt16Percent: true, rfcSpansMultipleOrgs: false,
+  venueIds: ['v1'], ingresosMesCents: 4500000, ingresosAcumCents: 27000000, deduccionesAcumCents: 0, costoVentasAcumCents: 0, utilidadFiscalCents: 0,
+  tasaResico: 0.011, isrCausadoCents: 49500, pagosProvisionalesPreviosCents: 0, retencionesIsrCents: 0, isrAPagarCents: 49500,
+  excedeTopeResico: false, zeroActivity: false, computedAt16Percent: true, rfcSpansMultipleOrgs: false, isEstimate: true,
 }
 
 function Row({ label, cents, hint, strong, badge }: { label: string; cents?: number | null; hint?: string; strong?: boolean; badge?: string }) {
@@ -32,6 +34,118 @@ function Row({ label, cents, hint, strong, badge }: { label: string; cents?: num
       </div>
       <span className={`shrink-0 tabular-nums ${strong ? 'text-base font-semibold text-foreground' : 'text-sm text-foreground'}`}>{Currency(cents ?? 0, true)}</span>
     </div>
+  )
+}
+
+/** Input clearable → `undefined` al vaciar / valor no numérico (nunca NaN en el value). */
+const parsePesos = (v: string): number | undefined => {
+  if (v === '') return undefined
+  const n = parseFloat(v)
+  return Number.isNaN(n) ? undefined : n
+}
+
+/**
+ * Captura manual de la retención en ventas del periodo (ISR/IVA que clientes MORALES nos retuvieron).
+ * En pesos en la UI; se envía en centavos. Reduce el ISR a pagar y el IVA en flujo. Requiere accounting:manage.
+ */
+function RetencionCard({ period, enabled }: { period: string; enabled: boolean }) {
+  const { t } = useTranslation('reports')
+  const { toast } = useToast()
+  const query = useSalesRetention(period, { enabled })
+  const mutation = useSetSalesRetention()
+  const [isr, setIsr] = useState<number | undefined>(undefined)
+  const [iva, setIva] = useState<number | undefined>(undefined)
+  const [note, setNote] = useState('')
+
+  // Hidrata desde el servidor al llegar el dato / cambiar de periodo.
+  useEffect(() => {
+    const d = query.data
+    setIsr(d?.isrRetenidoCents ? d.isrRetenidoCents / 100 : undefined)
+    setIva(d?.ivaRetenidoCents ? d.ivaRetenidoCents / 100 : undefined)
+    setNote(d?.note ?? '')
+  }, [query.data])
+
+  const onSave = () => {
+    mutation.mutate(
+      {
+        period,
+        isrRetenidoCents: Math.round((isr ?? 0) * 100),
+        ivaRetenidoCents: Math.round((iva ?? 0) * 100),
+        note: note.trim() || null,
+      },
+      {
+        onSuccess: () => toast({ title: t('isr.retencion.saved') }),
+        onError: () => toast({ title: t('isr.retencion.saveError'), variant: 'destructive' }),
+      },
+    )
+  }
+
+  return (
+    <Card className="border-input">
+      <CardContent className="py-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <HandCoins className="h-4 w-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold text-foreground">{t('isr.retencion.title')}</h2>
+        </div>
+        <p className="text-xs text-muted-foreground">{t('isr.retencion.description')}</p>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1">
+            <label htmlFor="ret-isr" className="block text-xs text-muted-foreground">{t('isr.retencion.isrLabel')}</label>
+            <Input
+              id="ret-isr"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="0.01"
+              placeholder="0.00"
+              disabled={!enabled}
+              value={isr ?? ''}
+              onChange={e => setIsr(parsePesos(e.target.value))}
+              className="h-10"
+            />
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="ret-iva" className="block text-xs text-muted-foreground">{t('isr.retencion.ivaLabel')}</label>
+            <Input
+              id="ret-iva"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="0.01"
+              placeholder="0.00"
+              disabled={!enabled}
+              value={iva ?? ''}
+              onChange={e => setIva(parsePesos(e.target.value))}
+              className="h-10"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <label htmlFor="ret-note" className="block text-xs text-muted-foreground">{t('isr.retencion.noteLabel')}</label>
+          <Input
+            id="ret-note"
+            type="text"
+            maxLength={300}
+            placeholder={t('isr.retencion.notePlaceholder')}
+            disabled={!enabled}
+            value={note}
+            onChange={e => setNote(e.target.value)}
+            className="h-10"
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-3 pt-1">
+          <p className="text-xs text-muted-foreground">
+            {query.data?.hasEntry ? t('isr.retencion.captured') : t('isr.retencion.notCaptured')}
+          </p>
+          <Button size="sm" onClick={onSave} disabled={!enabled || mutation.isPending} data-tour="isr-retencion-save">
+            {mutation.isPending ? t('isr.retencion.saving') : t('isr.retencion.save')}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -134,10 +248,15 @@ function IsrInner() {
                 <>
                   <Row label={t('isr.ingresosAcum')} cents={data?.ingresosAcumCents} />
                   <Row label={t('isr.deduccionesAcum')} cents={data?.deduccionesAcumCents} hint={t('isr.deduccionesHint')} />
+                  <Row label={t('isr.costoVentasAcum')} cents={data?.costoVentasAcumCents} hint={t('isr.costoVentasHint')} />
                   <Row label={t('isr.utilidadFiscal')} cents={data?.utilidadFiscalCents} strong />
                   <Row label={t('isr.isrCausadoAcum')} cents={data?.isrCausadoCents} />
                   <Row label={t('isr.pagosPrevios')} cents={data?.pagosProvisionalesPreviosCents} hint={t('isr.pagosPreviosHint')} />
                 </>
+              )}
+
+              {(data?.retencionesIsrCents ?? 0) > 0 && (
+                <Row label={t('isr.retencionesIsr')} cents={data?.retencionesIsrCents} hint={t('isr.retencionesIsrHint')} />
               )}
 
               <div className="mt-2 rounded-lg bg-muted/40 px-3 py-2">
@@ -146,6 +265,8 @@ function IsrInner() {
               </div>
             </CardContent>
           </Card>
+
+          <RetencionCard period={period} enabled={!!hasAccess} />
         </>
       )}
 

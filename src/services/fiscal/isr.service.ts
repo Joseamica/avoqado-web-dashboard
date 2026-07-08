@@ -17,15 +17,21 @@ export interface IsrProvisionalResponse {
   ingresosMesCents: number
   ingresosAcumCents: number
   deduccionesAcumCents: number
+  /** Costo de ventas acumulado del ejercicio (inventario consumido, FIFO) — deducible en GENERAL. */
+  costoVentasAcumCents: number
   utilidadFiscalCents: number
   tasaResico: number | null
   isrCausadoCents: number
   pagosProvisionalesPreviosCents: number
+  /** Retención de ISR en ventas capturada del periodo (clientes morales) — reduce el ISR a pagar. */
+  retencionesIsrCents: number
   isrAPagarCents: number
   excedeTopeResico: boolean
   zeroActivity: boolean
   computedAt16Percent: boolean
   rfcSpansMultipleOrgs: boolean
+  /** SIEMPRE true: es una estimación preliminar, no la cifra final a declarar. */
+  isEstimate?: boolean
 }
 
 export async function getIsrProvisional(venueId: string, period?: string, regime: IsrRegime = 'RESICO'): Promise<IsrProvisionalResponse> {

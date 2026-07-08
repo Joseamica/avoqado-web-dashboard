@@ -1139,7 +1139,7 @@
   "isr": {
     "title": "Income tax · Provisional payment",
     "subtitle": "Estimate of your monthly income tax (individual, by tax ID).",
-    "preliminarBanner": "ESTIMATE: it excludes income-tax withheld on your sales, prior-year losses and profit-sharing, and assumes 16% VAT on income. The general-regime tariff is the 2024/2025 one (in force in 2026 unless newly published). Do not use as a final payment without your accountant.",
+    "preliminarBanner": "ESTIMATE: it excludes prior-year losses and profit-sharing. VAT is computed by real rate (16%/8%/0%) and only falls back to 16% where no rate applies. The general-regime tariff is the 2024/2025 one (in force in 2026 unless newly published). Do not use as a final payment without your accountant.",
     "zeroBody": "No sales collected this period: no income tax accrues. Remember to file even if it is zero.",
     "excedeTope": "Your cumulative income exceeds $3,500,000/year: you can no longer be in RESICO; switch to the general regime.",
     "ingresosMes": "Income collected this month",
@@ -1148,10 +1148,14 @@
     "ingresosAcum": "Cumulative income (fiscal year)",
     "deduccionesAcum": "Authorized deductions",
     "deduccionesHint": "Your deductible expenses PAID this year (CFDI inbox).",
+    "costoVentasAcum": "Cost of goods sold",
+    "costoVentasHint": "Cost of inventory consumed during the year (recipes and products). Deductible under the general regime.",
     "utilidadFiscal": "Taxable profit",
     "isrCausadoAcum": "Cumulative tax accrued",
     "pagosPrevios": "Prior provisional payments",
     "pagosPreviosHint": "Estimated income tax from earlier months of the year.",
+    "retencionesIsr": "ISR withheld on sales",
+    "retencionesIsrHint": "ISR your corporate clients withheld (captured below). Reduces your ISR due.",
     "isrAPagar": "Income tax to pay (estimate)",
     "regime": {
       "RESICO": "RESICO",
@@ -1159,7 +1163,21 @@
     },
     "disclosureEstimate": "This is an estimate: your accountant computes and files the final income tax.",
     "disclosureRegime": "RESICO applies a low rate (1%–2.5%) on collections, with no deductions. The general regime applies the progressive tariff on your profit (income − deductions).",
-    "disclosureTariff": "It excludes VAT, social security, payroll income-tax withholding and state payroll tax; those are computed separately."
+    "disclosureTariff": "It excludes VAT, social security, payroll income-tax withholding and state payroll tax; those are computed separately.",
+    "retencion": {
+      "title": "Sales withholding for the period",
+      "description": "If your clients are companies (personas morales), they withheld ISR and IVA when paying you. Capture it here so your ISR and IVA due aren't overstated. Leave zero or blank if nothing was withheld.",
+      "isrLabel": "ISR withheld (pesos)",
+      "ivaLabel": "IVA withheld (pesos)",
+      "noteLabel": "Note (optional)",
+      "notePlaceholder": "E.g. withholding from Client Inc. per CFDI…",
+      "save": "Save withholding",
+      "saving": "Saving…",
+      "saved": "Withholding saved",
+      "saveError": "Could not save the withholding",
+      "captured": "Captured for this period.",
+      "notCaptured": "Not captured yet for this period."
+    }
   },
   "nomina": {
     "title": "Payroll",

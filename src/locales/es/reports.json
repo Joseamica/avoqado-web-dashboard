@@ -1139,7 +1139,7 @@
   "isr": {
     "title": "ISR · Pago provisional",
     "subtitle": "Estimación de tu ISR del mes (persona física, por RFC).",
-    "preliminarBanner": "ESTIMACIÓN: no incluye retenciones de ISR en tus ventas, pérdidas de ejercicios anteriores ni PTU, y asume 16% de IVA en el ingreso. La tarifa del régimen general es la 2024/2025 (vigente en 2026 salvo publicación nueva). No lo uses como pago final sin tu contador.",
+    "preliminarBanner": "ESTIMACIÓN: no incluye pérdidas de ejercicios anteriores ni PTU. El IVA se calcula por tasa real (16%/8%/0%) y sólo cae a 16% donde no haya tasa. La tarifa del régimen general es la 2024/2025 (vigente en 2026 salvo publicación nueva). No lo uses como pago final sin tu contador.",
     "zeroBody": "Sin ventas cobradas este periodo: no se causa ISR. Recuerda presentar tu declaración aunque sea en ceros.",
     "excedeTope": "Tus ingresos acumulados rebasan los $3,500,000 anuales: ya no puedes tributar en RESICO; cambia a régimen general.",
     "ingresosMes": "Ingresos cobrados del mes",
@@ -1148,10 +1148,14 @@
     "ingresosAcum": "Ingresos acumulados (ejercicio)",
     "deduccionesAcum": "Deducciones autorizadas",
     "deduccionesHint": "Tus gastos deducibles PAGADOS del ejercicio (Buzón de CFDIs).",
+    "costoVentasAcum": "Costo de ventas",
+    "costoVentasHint": "Costo del inventario consumido en el ejercicio (recetas y productos). Deducible en régimen general.",
     "utilidadFiscal": "Utilidad fiscal",
     "isrCausadoAcum": "ISR causado acumulado",
     "pagosPrevios": "Pagos provisionales previos",
     "pagosPreviosHint": "ISR estimado de los meses anteriores del ejercicio.",
+    "retencionesIsr": "Retención de ISR en ventas",
+    "retencionesIsrHint": "ISR que tus clientes morales te retuvieron (capturado abajo). Reduce tu ISR a pagar.",
     "isrAPagar": "ISR a pagar (estimado)",
     "regime": {
       "RESICO": "RESICO",
@@ -1159,7 +1163,21 @@
     },
     "disclosureEstimate": "Es una estimación: el ISR definitivo lo calcula y presenta tu contador.",
     "disclosureRegime": "RESICO aplica una tasa baja (1%–2.5%) sobre lo cobrado, sin deducciones. El régimen general aplica la tarifa progresiva sobre tu utilidad (ingresos − deducciones).",
-    "disclosureTariff": "No incluye IVA, IMSS, ISR de nómina ni impuesto sobre nóminas estatal; esos se calculan aparte."
+    "disclosureTariff": "No incluye IVA, IMSS, ISR de nómina ni impuesto sobre nóminas estatal; esos se calculan aparte.",
+    "retencion": {
+      "title": "Retención en ventas del periodo",
+      "description": "Si tus clientes son personas MORALES, te retuvieron ISR e IVA al pagarte. Captúralo aquí para que tu ISR e IVA a pagar no queden inflados. Déjalo en cero o vacío si no te retuvieron.",
+      "isrLabel": "ISR retenido (pesos)",
+      "ivaLabel": "IVA retenido (pesos)",
+      "noteLabel": "Nota (opcional)",
+      "notePlaceholder": "Ej. retención de Cliente S.A. según CFDI…",
+      "save": "Guardar retención",
+      "saving": "Guardando…",
+      "saved": "Retención guardada",
+      "saveError": "No se pudo guardar la retención",
+      "captured": "Capturada para este periodo.",
+      "notCaptured": "Aún no capturada para este periodo."
+    }
   },
   "nomina": {
     "title": "Nómina",
