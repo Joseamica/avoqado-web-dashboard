@@ -547,6 +547,36 @@
     "net": "Net",
     "status": "Status"
   },
+  "manualSales": {
+    "title": "Upload sales made outside the TPV",
+    "tooltip": "Upload the Excel sheet of SIM sales made outside the TPV (e.g. manually recorded by the promoter).",
+    "subtitle": "Upload the file, review the preview, and confirm to create the sales.",
+    "downloadTemplate": "Download template",
+    "previewTitle": "Preview",
+    "crearCount": "{{count}} to create",
+    "omitirCount": "{{count}} to skip",
+    "errorCount": "{{count}} with error",
+    "noRows": "The file has no rows to process.",
+    "vendedor": "Seller",
+    "tienda": "Store",
+    "fecha": "Date",
+    "monto": "Amount",
+    "estado": "Status",
+    "bucket": {
+      "crear": "Create",
+      "omitir": "Skip",
+      "error": "Error"
+    },
+    "createButton": "Create {{count}} sale",
+    "createButton_plural": "Create {{count}} sales",
+    "resultTitle": "Result",
+    "createdSummary": "{{count}} created",
+    "createdSummary_plural": "{{count}} created",
+    "omittedSummary": "{{count}} skipped",
+    "omittedSummary_plural": "{{count}} skipped",
+    "erroredSummary": "{{count}} with error",
+    "noOrg": "Could not find the current organization"
+  },
   "common": {
     "active": "Active",
     "inactive": "Inactive",

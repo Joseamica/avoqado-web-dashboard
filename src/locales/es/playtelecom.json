@@ -547,6 +547,36 @@
     "net": "Neto",
     "status": "Estado"
   },
+  "manualSales": {
+    "title": "Subir ventas fuera de TPV",
+    "tooltip": "Carga el Excel de ventas de SIMs realizadas fuera del TPV (por ejemplo, capturadas manualmente por el promotor).",
+    "subtitle": "Sube el archivo, revisa la vista previa y confirma para crear las ventas.",
+    "downloadTemplate": "Descargar template",
+    "previewTitle": "Vista previa",
+    "crearCount": "{{count}} a crear",
+    "omitirCount": "{{count}} a omitir",
+    "errorCount": "{{count}} con error",
+    "noRows": "El archivo no contiene filas para procesar.",
+    "vendedor": "Vendedor",
+    "tienda": "Tienda",
+    "fecha": "Fecha",
+    "monto": "Monto",
+    "estado": "Estado",
+    "bucket": {
+      "crear": "Crear",
+      "omitir": "Omitir",
+      "error": "Error"
+    },
+    "createButton": "Crear {{count}} venta",
+    "createButton_plural": "Crear {{count}} ventas",
+    "resultTitle": "Resultado",
+    "createdSummary": "{{count}} creada",
+    "createdSummary_plural": "{{count}} creadas",
+    "omittedSummary": "{{count}} omitida",
+    "omittedSummary_plural": "{{count}} omitidas",
+    "erroredSummary": "{{count}} con error",
+    "noOrg": "No se encontró la organización actual"
+  },
   "common": {
     "active": "Activo",
     "inactive": "Inactivo",
