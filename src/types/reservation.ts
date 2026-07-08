@@ -214,6 +214,14 @@ export interface ReservationSettings {
 		eventDetailLevel?: 'MINIMAL' | 'SERVICE' | 'FULL'
 	}
 	operatingHours: OperatingHours
+	/**
+	 * Computed (read-only, backend-provided) capability flag: whether the venue can
+	 * actually collect money online (has a chargeable e-commerce merchant). Drives
+	 * disabling the deposit/upfront selects + the "connect an e-commerce provider"
+	 * banner. Optional because older backends don't send it (client falls back to a
+	 * Stripe Connect check).
+	 */
+	canChargeOnline?: boolean
 }
 
 export interface PaginatedReservationsResponse {
