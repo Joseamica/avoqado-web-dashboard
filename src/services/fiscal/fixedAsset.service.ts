@@ -53,6 +53,9 @@ export interface GenerateDepreciationResult {
   assetsProcessed: number
   assetsDepreciated: number
   totalPeriodCents: number
+  /** Si el asiento contable ya se generó (requiere mapeo de cuentas de depreciación). */
+  posted?: boolean
+  postedReason?: string
 }
 
 export async function getAssetTypes(venueId: string): Promise<AssetTypeDef[]> {
