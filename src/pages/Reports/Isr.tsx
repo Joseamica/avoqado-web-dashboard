@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { AlertTriangle, HandCoins, Info, Landmark, Receipt } from 'lucide-react'
+import { AlertTriangle, HandCoins, Info, Landmark, Receipt, TrendingDown } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useIsrProvisional } from '@/hooks/useIsr'
 import { useSalesRetention, useSetSalesRetention } from '@/hooks/useSalesRetention'
+import { useFiscalLoss, useSetFiscalLoss } from '@/hooks/useFiscalLoss'
 import { useToast } from '@/hooks/use-toast'
 import type { IsrProvisionalResponse, IsrRegime } from '@/services/fiscal/isr.service'
 import { Currency } from '@/utils/currency'
@@ -20,7 +21,7 @@ import { cn } from '@/lib/utils'
 
 const SAMPLE: IsrProvisionalResponse = {
   needsFiscalSetup: false, organizationId: null, rfc: 'TESC900101AAA', period: new Date().toISOString().slice(0, 7), regime: 'RESICO',
-  venueIds: ['v1'], ingresosMesCents: 4500000, ingresosAcumCents: 27000000, deduccionesAcumCents: 0, costoVentasAcumCents: 0, utilidadFiscalCents: 0,
+  venueIds: ['v1'], ingresosMesCents: 4500000, ingresosAcumCents: 27000000, deduccionesAcumCents: 0, costoVentasAcumCents: 0, perdidasFiscalesAplicadaCents: 0, utilidadFiscalCents: 0,
   tasaResico: 0.011, isrCausadoCents: 49500, pagosProvisionalesPreviosCents: 0, retencionesIsrCents: 0, isrAPagarCents: 49500,
   excedeTopeResico: false, zeroActivity: false, computedAt16Percent: true, rfcSpansMultipleOrgs: false, isEstimate: true,
 }
@@ -149,6 +150,89 @@ function RetencionCard({ period, enabled }: { period: string; enabled: boolean }
   )
 }
 
+/**
+ * Captura del SALDO de pérdidas fiscales de ejercicios anteriores pendiente de amortizar. Solo régimen
+ * GENERAL: el ISR lo resta a la utilidad (topado). En pesos; se envía en centavos. Requiere accounting:manage.
+ */
+function PerdidasCard({ enabled }: { enabled: boolean }) {
+  const { t } = useTranslation('reports')
+  const { toast } = useToast()
+  const query = useFiscalLoss({ enabled })
+  const mutation = useSetFiscalLoss()
+  const [saldo, setSaldo] = useState<number | undefined>(undefined)
+  const [note, setNote] = useState('')
+
+  useEffect(() => {
+    const d = query.data
+    setSaldo(d?.pendingCents ? d.pendingCents / 100 : undefined)
+    setNote(d?.note ?? '')
+  }, [query.data])
+
+  const onSave = () => {
+    mutation.mutate(
+      { pendingCents: Math.round((saldo ?? 0) * 100), note: note.trim() || null },
+      {
+        onSuccess: () => toast({ title: t('isr.perdidas.saved') }),
+        onError: () => toast({ title: t('isr.perdidas.saveError'), variant: 'destructive' }),
+      },
+    )
+  }
+
+  return (
+    <Card className="border-input">
+      <CardContent className="py-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <TrendingDown className="h-4 w-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold text-foreground">{t('isr.perdidas.title')}</h2>
+        </div>
+        <p className="text-xs text-muted-foreground">{t('isr.perdidas.description')}</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1">
+            <label htmlFor="loss-saldo" className="block text-xs text-muted-foreground">
+              {t('isr.perdidas.saldoLabel')}
+            </label>
+            <Input
+              id="loss-saldo"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="0.01"
+              placeholder="0.00"
+              disabled={!enabled}
+              value={saldo ?? ''}
+              onChange={e => setSaldo(parsePesos(e.target.value))}
+              className="h-10"
+            />
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="loss-note" className="block text-xs text-muted-foreground">
+              {t('isr.perdidas.noteLabel')}
+            </label>
+            <Input
+              id="loss-note"
+              type="text"
+              maxLength={300}
+              placeholder={t('isr.perdidas.notePlaceholder')}
+              disabled={!enabled}
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              className="h-10"
+            />
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-3 pt-1">
+          <p className="text-xs text-muted-foreground">
+            {query.data?.hasEntry ? t('isr.perdidas.captured') : t('isr.perdidas.notCaptured')}
+          </p>
+          <Button size="sm" onClick={onSave} disabled={!enabled || mutation.isPending}>
+            {mutation.isPending ? t('isr.perdidas.saving') : t('isr.perdidas.save')}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 function IsrInner() {
   const { t } = useTranslation('reports')
   const { fullBasePath } = useCurrentVenue()
@@ -249,6 +333,9 @@ function IsrInner() {
                   <Row label={t('isr.ingresosAcum')} cents={data?.ingresosAcumCents} />
                   <Row label={t('isr.deduccionesAcum')} cents={data?.deduccionesAcumCents} hint={t('isr.deduccionesHint')} />
                   <Row label={t('isr.costoVentasAcum')} cents={data?.costoVentasAcumCents} hint={t('isr.costoVentasHint')} />
+                  {(data?.perdidasFiscalesAplicadaCents ?? 0) > 0 && (
+                    <Row label={t('isr.perdidasAnteriores')} cents={data?.perdidasFiscalesAplicadaCents} hint={t('isr.perdidasHint')} />
+                  )}
                   <Row label={t('isr.utilidadFiscal')} cents={data?.utilidadFiscalCents} strong />
                   <Row label={t('isr.isrCausadoAcum')} cents={data?.isrCausadoCents} />
                   <Row label={t('isr.pagosPrevios')} cents={data?.pagosProvisionalesPreviosCents} hint={t('isr.pagosPreviosHint')} />
@@ -267,6 +354,7 @@ function IsrInner() {
           </Card>
 
           <RetencionCard period={period} enabled={!!hasAccess} />
+          {regime === 'GENERAL' && <PerdidasCard enabled={!!hasAccess} />}
         </>
       )}
 

@@ -1156,6 +1156,8 @@
     "pagosPreviosHint": "ISR estimado de los meses anteriores del ejercicio.",
     "retencionesIsr": "Retención de ISR en ventas",
     "retencionesIsrHint": "ISR que tus clientes morales te retuvieron (capturado abajo). Reduce tu ISR a pagar.",
+    "perdidasAnteriores": "Pérdidas de ejercicios anteriores",
+    "perdidasHint": "Pérdida fiscal de años previos aplicada este periodo (capturada abajo, topada a tu utilidad).",
     "isrAPagar": "ISR a pagar (estimado)",
     "regime": {
       "RESICO": "RESICO",
@@ -1177,6 +1179,19 @@
       "saveError": "No se pudo guardar la retención",
       "captured": "Capturada para este periodo.",
       "notCaptured": "Aún no capturada para este periodo."
+    },
+    "perdidas": {
+      "title": "Pérdidas de ejercicios anteriores",
+      "description": "Si en años anteriores tu negocio tuvo pérdida fiscal, puedes restarla de la utilidad de este año (hasta 10 años). Captura el saldo pendiente de amortizar; aplica solo en régimen general y no vuelve tu utilidad negativa. Tu contador lleva el detalle por ejercicio.",
+      "saldoLabel": "Saldo pendiente de amortizar (pesos)",
+      "noteLabel": "Nota (opcional)",
+      "notePlaceholder": "Ej. pérdida del ejercicio 2024…",
+      "save": "Guardar pérdidas",
+      "saving": "Guardando…",
+      "saved": "Pérdidas guardadas",
+      "saveError": "No se pudieron guardar las pérdidas",
+      "captured": "Capturado.",
+      "notCaptured": "Aún no capturado."
     }
   },
   "nomina": {

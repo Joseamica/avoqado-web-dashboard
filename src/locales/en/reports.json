@@ -1156,6 +1156,8 @@
     "pagosPreviosHint": "Estimated income tax from earlier months of the year.",
     "retencionesIsr": "ISR withheld on sales",
     "retencionesIsrHint": "ISR your corporate clients withheld (captured below). Reduces your ISR due.",
+    "perdidasAnteriores": "Prior-year losses",
+    "perdidasHint": "Prior-year tax loss applied this period (captured below, capped at your profit).",
     "isrAPagar": "Income tax to pay (estimate)",
     "regime": {
       "RESICO": "RESICO",
@@ -1177,6 +1179,19 @@
       "saveError": "Could not save the withholding",
       "captured": "Captured for this period.",
       "notCaptured": "Not captured yet for this period."
+    },
+    "perdidas": {
+      "title": "Prior-year losses",
+      "description": "If your business had a tax loss in prior years, you can subtract it from this year's profit (up to 10 years). Capture the pending balance to amortize; it applies only under the general regime and won't make your profit negative. Your accountant keeps the per-year detail.",
+      "saldoLabel": "Pending balance to amortize (pesos)",
+      "noteLabel": "Note (optional)",
+      "notePlaceholder": "E.g. loss from fiscal year 2024…",
+      "save": "Save losses",
+      "saving": "Saving…",
+      "saved": "Losses saved",
+      "saveError": "Could not save the losses",
+      "captured": "Captured.",
+      "notCaptured": "Not captured yet."
     }
   },
   "nomina": {
