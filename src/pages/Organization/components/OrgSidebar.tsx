@@ -42,6 +42,7 @@ import {
   Smartphone,
   Store,
   Target,
+  Upload,
   Users,
 } from 'lucide-react'
 import React, { useMemo } from 'react'
@@ -201,6 +202,11 @@ const OrgSidebar: React.FC<OrgSidebarProps> = props => {
                   name: t('organization:sidebar.orgComisiones', { defaultValue: 'Comisiones' }),
                   href: `/organizations/${orgId}/comisiones`,
                   icon: Coins,
+                },
+                {
+                  name: t('organization:sidebar.orgManualSales', { defaultValue: 'Subir ventas fuera de TPV' }),
+                  href: `/organizations/${orgId}/ventas-externas`,
+                  icon: Upload,
                 },
               ],
             },

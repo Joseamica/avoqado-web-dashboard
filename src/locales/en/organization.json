@@ -25,6 +25,7 @@
     "orgStockControl": "Stock Control",
     "sales": "Sales",
     "orgComisiones": "Commissions",
+    "orgManualSales": "Upload sales outside TPV",
     "visionGlobal": "Global Vision",
     "reports": "Reports",
     "managers": "Supervisors"

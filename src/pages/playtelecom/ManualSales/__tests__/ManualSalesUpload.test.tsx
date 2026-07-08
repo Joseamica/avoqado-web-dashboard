@@ -57,7 +57,7 @@ vi.mock('@/hooks/use-current-organization', () => ({
 // the happy-path tests exercise the page content. A dedicated test overrides
 // this to verify the gate actually hides content.
 // ---------------------------------------------------------------------------
-const mockCan = vi.fn(() => true)
+const mockCan = vi.fn((_perm: string) => true)
 vi.mock('@/hooks/use-access', () => ({
   useAccess: () => ({ can: (perm: string) => mockCan(perm), canAny: () => true, canAll: () => true }),
 }))

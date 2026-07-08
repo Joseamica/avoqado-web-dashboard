@@ -138,19 +138,19 @@ function readCellValue(cellValue: ExcelJS.CellValue): unknown {
   }
 
   // Formula cell → use the computed result.
-  if (typeof cellValue === 'object' && 'result' in (cellValue as Record<string, unknown>)) {
-    return (cellValue as { result: unknown }).result
+  if (typeof cellValue === 'object' && 'result' in (cellValue as unknown as Record<string, unknown>)) {
+    return (cellValue as unknown as { result: unknown }).result
   }
 
   // Rich text cell → concatenate the runs' plain text.
-  if (typeof cellValue === 'object' && 'richText' in (cellValue as Record<string, unknown>)) {
-    const richText = (cellValue as { richText: Array<{ text: string }> }).richText
+  if (typeof cellValue === 'object' && 'richText' in (cellValue as unknown as Record<string, unknown>)) {
+    const richText = (cellValue as unknown as { richText: Array<{ text: string }> }).richText
     return richText.map(run => run.text).join('')
   }
 
   // Hyperlink cell → use the visible text.
-  if (typeof cellValue === 'object' && 'text' in (cellValue as Record<string, unknown>)) {
-    return (cellValue as { text: unknown }).text
+  if (typeof cellValue === 'object' && 'text' in (cellValue as unknown as Record<string, unknown>)) {
+    return (cellValue as unknown as { text: unknown }).text
   }
 
   return cellValue

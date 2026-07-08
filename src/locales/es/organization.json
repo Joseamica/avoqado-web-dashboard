@@ -25,6 +25,7 @@
     "orgStockControl": "Control de Stock",
     "sales": "Ventas",
     "orgComisiones": "Comisiones",
+    "orgManualSales": "Subir ventas fuera de TPV",
     "visionGlobal": "Visión Global",
     "reports": "Reportes",
     "managers": "Supervisores"

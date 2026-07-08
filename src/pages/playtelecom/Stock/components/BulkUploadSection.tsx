@@ -20,9 +20,49 @@ interface BulkUploadSectionProps {
   onUpload?: (file: File) => Promise<UploadResult>
   onDownloadTemplate?: () => void
   className?: string
+  /**
+   * File types accepted by the drop zone / file picker, as a comma-separated list of
+   * extensions and/or MIME types (same format as the native `<input accept>` attribute),
+   * e.g. `.xlsx,.csv` or `.csv`. Defaults to `.csv` to preserve the original stock-upload
+   * behavior for existing callers that don't pass this prop.
+   */
+  accept?: string
 }
 
-export const BulkUploadSection: React.FC<BulkUploadSectionProps> = ({ onUpload, onDownloadTemplate: _onDownloadTemplate, className }) => {
+/** MIME types accepted per extension, used to validate a dropped file (drag & drop has no `accept` filtering). */
+const MIME_TYPES_BY_EXTENSION: Record<string, string[]> = {
+  '.csv': ['text/csv', 'application/vnd.ms-excel'],
+  '.xlsx': ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+  '.xls': ['application/vnd.ms-excel'],
+}
+
+/** Whether `file` matches one of the accepted extensions/MIME types in `accept` (e.g. `.xlsx,.csv`). */
+function isAcceptedFile(file: File, accept: string): boolean {
+  const tokens = accept
+    .split(',')
+    .map(token => token.trim().toLowerCase())
+    .filter(Boolean)
+
+  const fileName = file.name.toLowerCase()
+  const fileType = file.type.toLowerCase()
+
+  return tokens.some(token => {
+    if (token.startsWith('.')) {
+      if (fileName.endsWith(token)) return true
+      const mimeTypes = MIME_TYPES_BY_EXTENSION[token] ?? []
+      return mimeTypes.includes(fileType)
+    }
+    // Bare MIME type token (e.g. "text/csv")
+    return fileType === token
+  })
+}
+
+export const BulkUploadSection: React.FC<BulkUploadSectionProps> = ({
+  onUpload,
+  onDownloadTemplate: _onDownloadTemplate,
+  className,
+  accept = '.csv',
+}) => {
   const { t } = useTranslation(['playtelecom', 'common'])
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -39,16 +79,19 @@ export const BulkUploadSection: React.FC<BulkUploadSectionProps> = ({ onUpload, 
     setIsDragging(false)
   }, [])
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      setIsDragging(false)
 
-    const files = e.dataTransfer.files
-    if (files.length > 0 && files[0].type === 'text/csv') {
-      setSelectedFile(files[0])
-      setUploadResult(null)
-    }
-  }, [])
+      const files = e.dataTransfer.files
+      if (files.length > 0 && isAcceptedFile(files[0], accept)) {
+        setSelectedFile(files[0])
+        setUploadResult(null)
+      }
+    },
+    [accept],
+  )
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -209,7 +252,7 @@ export const BulkUploadSection: React.FC<BulkUploadSectionProps> = ({ onUpload, 
               <p className="text-sm text-muted-foreground mb-4">
                 {t('playtelecom:stock.upload.orClick', { defaultValue: 'o haz clic para seleccionar' })}
               </p>
-              <input type="file" accept=".csv" onChange={handleFileSelect} className="hidden" id="csv-upload" />
+              <input type="file" accept={accept} onChange={handleFileSelect} className="hidden" id="csv-upload" />
               <label htmlFor="csv-upload">
                 <Button variant="outline" asChild>
                   <span>

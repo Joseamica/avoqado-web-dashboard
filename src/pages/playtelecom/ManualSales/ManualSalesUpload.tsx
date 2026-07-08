@@ -116,7 +116,7 @@ export default function ManualSalesUpload() {
 
     const toPreviewRows = (bucket: RowBucket, results: RowResult[]): PreviewRow[] =>
       results
-        .map(r => {
+        .map((r): PreviewRow | null => {
           const row = rows[r.index]
           if (!row) return null
           return { bucket, row, motivo: r.motivo }
@@ -157,7 +157,7 @@ export default function ManualSalesUpload() {
           </Button>
         </div>
 
-        <BulkUploadSection onUpload={handleUpload} />
+        <BulkUploadSection onUpload={handleUpload} accept=".xlsx,.csv" />
 
         {preview && (
           <GlassCard className="p-5">
