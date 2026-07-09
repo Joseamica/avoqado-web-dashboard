@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils'
 
 const SAMPLE: IsrProvisionalResponse = {
   needsFiscalSetup: false, organizationId: null, rfc: 'TESC900101AAA', period: new Date().toISOString().slice(0, 7), regime: 'RESICO',
-  venueIds: ['v1'], ingresosMesCents: 4500000, ingresosAcumCents: 27000000, deduccionesAcumCents: 0, costoVentasAcumCents: 0, perdidasFiscalesAplicadaCents: 0, utilidadFiscalCents: 0,
+  venueIds: ['v1'], ingresosMesCents: 4500000, ingresosAcumCents: 27000000, deduccionesAcumCents: 0, costoVentasAcumCents: 0, deduccionInversionesAcumCents: 0, perdidasFiscalesAplicadaCents: 0, utilidadFiscalCents: 0,
   tasaResico: 0.011, isrCausadoCents: 49500, pagosProvisionalesPreviosCents: 0, retencionesIsrCents: 0, isrAPagarCents: 49500,
   excedeTopeResico: false, zeroActivity: false, computedAt16Percent: true, rfcSpansMultipleOrgs: false, isEstimate: true,
 }
@@ -333,6 +333,9 @@ function IsrInner() {
                   <Row label={t('isr.ingresosAcum')} cents={data?.ingresosAcumCents} />
                   <Row label={t('isr.deduccionesAcum')} cents={data?.deduccionesAcumCents} hint={t('isr.deduccionesHint')} />
                   <Row label={t('isr.costoVentasAcum')} cents={data?.costoVentasAcumCents} hint={t('isr.costoVentasHint')} />
+                  {(data?.deduccionInversionesAcumCents ?? 0) > 0 && (
+                    <Row label={t('isr.deduccionInversiones')} cents={data?.deduccionInversionesAcumCents} hint={t('isr.deduccionInversionesHint')} />
+                  )}
                   {(data?.perdidasFiscalesAplicadaCents ?? 0) > 0 && (
                     <Row label={t('isr.perdidasAnteriores')} cents={data?.perdidasFiscalesAplicadaCents} hint={t('isr.perdidasHint')} />
                   )}

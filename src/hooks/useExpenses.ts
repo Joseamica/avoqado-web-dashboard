@@ -39,9 +39,13 @@ export function useCreateExpense() {
 
   return useMutation({
     mutationFn: (expense: NewExpense) => createExpense(venueId!, expense),
-    onSuccess: () => {
+    onSuccess: created => {
       queryClient.invalidateQueries({ queryKey: expenseKeys.all })
       toast({ title: t('expenses.toast.created') })
+      // Sugerencia por monto (decisión: "sugerir, confirmar a mano"): parece inversión → invitar a Activos fijos.
+      if (created.fixedAssetSuggestion) {
+        toast({ title: t('expenses.toast.fixedAssetHintTitle'), description: t('expenses.toast.fixedAssetHint') })
+      }
     },
     onError: (err: any) => {
       toast({ title: t('expenses.toast.createError'), description: err?.response?.data?.message ?? err?.message ?? '', variant: 'destructive' })

@@ -83,7 +83,11 @@
     "reconciliationSub": "{{statements}} estados de cuenta · {{matched}} de {{total}} movimientos conciliados",
     "disclosureRevenue": "Resumen gerencial (Capa A): corre sobre tus pagos y CFDIs, no es contabilidad fiscal.",
     "disclosureInvoiced": "«Facturado» es una aproximación con los CFDIs timbrados del periodo; puede no coincidir al centavo con cada venta.",
-    "disclosureResult": "«Ingreso − comisiones» no es utilidad: todavía no resta costo de ventas, nómina ni otros gastos."
+    "disclosureResult": "«Ingreso − comisiones» no es utilidad: todavía no resta costo de ventas, nómina ni otros gastos.",
+    "cogs": "Costo de ventas",
+    "cogsTip": "Costo del inventario consumido en lo vendido (recetas y productos, FIFO).",
+    "grossProfit": "Utilidad bruta",
+    "grossProfitTip": "Ingreso neto menos costo de ventas. No resta gastos, nómina ni impuestos."
   },
   "bankAndCash": {
     "title": "Bancos y cajas",
@@ -1066,7 +1070,9 @@
       "markedPaid": "Gasto marcado como pagado",
       "markPaidError": "No se pudo marcar el gasto como pagado",
       "imported": "Gasto importado del CFDI",
-      "importError": "No se pudo importar el XML"
+      "importError": "No se pudo importar el XML",
+      "fixedAssetHintTitle": "¿Es un activo fijo?",
+      "fixedAssetHint": "Por su importe, este gasto parece una inversión (bien duradero). Regístralo en Contabilidad → Activos fijos para depreciarlo — tú decides, nada se deprecia solo."
     },
     "modal": {
       "title": "Registrar gasto",
@@ -1150,6 +1156,8 @@
     "deduccionesHint": "Tus gastos deducibles PAGADOS del ejercicio (Buzón de CFDIs).",
     "costoVentasAcum": "Costo de ventas",
     "costoVentasHint": "Costo del inventario consumido en el ejercicio (recetas y productos). Deducible en régimen general.",
+    "deduccionInversiones": "Deducción de inversiones (depreciación)",
+    "deduccionInversionesHint": "Depreciación acumulada de tus activos fijos en el ejercicio (Contabilidad → Activos fijos).",
     "utilidadFiscal": "Utilidad fiscal",
     "isrCausadoAcum": "ISR causado acumulado",
     "pagosPrevios": "Pagos provisionales previos",

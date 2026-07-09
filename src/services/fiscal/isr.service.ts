@@ -19,6 +19,8 @@ export interface IsrProvisionalResponse {
   deduccionesAcumCents: number
   /** Costo de ventas acumulado del ejercicio (inventario consumido, FIFO) — deducible en GENERAL. */
   costoVentasAcumCents: number
+  /** Deducción de inversiones (depreciación de activos fijos) acumulada del ejercicio — GENERAL. */
+  deduccionInversionesAcumCents: number
   /** Pérdida fiscal de ejercicios anteriores aplicada en el periodo (topada) — GENERAL. */
   perdidasFiscalesAplicadaCents: number
   utilidadFiscalCents: number

@@ -46,6 +46,8 @@ export interface ExpenseDTO {
   source: string
   status: string
   createdAt: string
+  /** Solo al CREAR: por su importe, el gasto parece una inversión → sugerir registrarlo como activo fijo. */
+  fixedAssetSuggestion?: boolean
 }
 
 export interface ExpensesResponse {

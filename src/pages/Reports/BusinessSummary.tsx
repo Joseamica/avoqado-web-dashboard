@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { DateTime } from 'luxon'
-import { ArrowRight, Banknote, Calculator, FileCheck2, HandCoins, Landmark, Percent, Receipt, Scissors, Wallet } from 'lucide-react'
+import { ArrowRight, Banknote, Boxes, Calculator, FileCheck2, HandCoins, Landmark, Percent, PiggyBank, Receipt, Scissors, Wallet } from 'lucide-react'
 
 import { MetricCard } from '@/components/ui/metric-card'
 import { Card, CardContent } from '@/components/ui/card'
@@ -127,6 +127,25 @@ export default function BusinessSummary() {
             accent="green"
             tooltip={t('businessSummary.netAfterFeesTip')}
           />
+          {/* Costo de ventas + utilidad bruta: solo cuando hay inventario consumido (COGS > 0). */}
+          {(data?.result.cogsCents ?? 0) > 0 && (
+            <>
+              <MetricCard
+                label={t('businessSummary.cogs')}
+                value={Currency(data?.result.cogsCents ?? 0, true)}
+                icon={<Boxes className="w-4 h-4" />}
+                accent="red"
+                tooltip={t('businessSummary.cogsTip')}
+              />
+              <MetricCard
+                label={t('businessSummary.grossProfit')}
+                value={Currency(data?.result.grossProfitCents ?? 0, true)}
+                icon={<PiggyBank className="w-4 h-4" />}
+                accent="green"
+                tooltip={t('businessSummary.grossProfitTip')}
+              />
+            </>
+          )}
           <MetricCard
             label={t('incomeStatement.tips')}
             value={Currency(data?.tips.totalCents ?? 0, true)}

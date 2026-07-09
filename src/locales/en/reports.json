@@ -83,7 +83,11 @@
     "reconciliationSub": "{{statements}} statements · {{matched}} of {{total}} movements reconciled",
     "disclosureRevenue": "Management summary (Layer A): runs over your payments and CFDIs — not fiscal accounting.",
     "disclosureInvoiced": "“Invoiced” is an approximation from the period's stamped CFDIs; it may not match each sale to the cent.",
-    "disclosureResult": "“Revenue − fees” is not profit: it still excludes cost of goods, payroll and other expenses."
+    "disclosureResult": "“Revenue − fees” is not profit: it still excludes cost of goods, payroll and other expenses.",
+    "cogs": "Cost of goods sold",
+    "cogsTip": "Cost of the inventory consumed by what you sold (recipes and products, FIFO).",
+    "grossProfit": "Gross profit",
+    "grossProfitTip": "Net revenue minus cost of goods sold. Does not subtract expenses, payroll or taxes."
   },
   "bankAndCash": {
     "title": "Banks & cash",
@@ -1066,7 +1070,9 @@
       "markedPaid": "Expense marked as paid",
       "markPaidError": "Could not mark the expense as paid",
       "imported": "Expense imported from CFDI",
-      "importError": "Could not import the XML"
+      "importError": "Could not import the XML",
+      "fixedAssetHintTitle": "Is this a fixed asset?",
+      "fixedAssetHint": "Given its amount, this expense looks like an investment (durable good). Register it in Accounting → Fixed assets to depreciate it — you decide, nothing depreciates on its own."
     },
     "modal": {
       "title": "Add expense",
@@ -1150,6 +1156,8 @@
     "deduccionesHint": "Your deductible expenses PAID this year (CFDI inbox).",
     "costoVentasAcum": "Cost of goods sold",
     "costoVentasHint": "Cost of inventory consumed during the year (recipes and products). Deductible under the general regime.",
+    "deduccionInversiones": "Investment deduction (depreciation)",
+    "deduccionInversionesHint": "Accumulated depreciation of your fixed assets this year (Accounting → Fixed assets).",
     "utilidadFiscal": "Taxable profit",
     "isrCausadoAcum": "Cumulative tax accrued",
     "pagosPrevios": "Prior provisional payments",

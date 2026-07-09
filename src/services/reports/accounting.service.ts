@@ -35,7 +35,13 @@ export interface BusinessSummaryResponse {
   }
   collection: { cashCents: number; electronicCents: number; cashPct: number }
   costs: { processingFeesCents: number }
-  result: { netAfterFeesCents: number }
+  result: {
+    netAfterFeesCents: number
+    /** Costo del inventario consumido en lo vendido (FIFO). */
+    cogsCents: number
+    /** Utilidad bruta = ingreso neto − costo de ventas (no resta gastos/nómina). */
+    grossProfitCents: number
+  }
   tips: { totalCents: number }
   reconciliation: { statements: number; lineCount: number; matchedCount: number }
   metrics: { salesCount: number; refundCount: number; averageTicketCents: number }
