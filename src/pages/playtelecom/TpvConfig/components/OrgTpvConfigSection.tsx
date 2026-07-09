@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { Building2, Loader2, RotateCcw, Save, Clock, Banknote, CreditCard, ScanBarcode, Store, Camera } from 'lucide-react'
+import { Building2, Loader2, RotateCcw, Save, Clock, Banknote, CreditCard, ScanBarcode, Store, Camera, MapPin } from 'lucide-react'
 import { useOrgAttendanceConfig, useUpsertOrgAttendanceConfig, useDeleteOrgAttendanceConfig } from '@/hooks/useOrganizationConfig'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
@@ -52,6 +52,11 @@ const MODULE_TOGGLES = [
     colorClass: 'from-amber-500/20 to-amber-500/5 text-amber-600 dark:text-amber-400',
   },
   {
+    key: 'trackPromoterLocation' as const,
+    icon: MapPin,
+    colorClass: 'from-rose-500/20 to-rose-500/5 text-rose-600 dark:text-rose-400',
+  },
+  {
     key: 'requireFacadePhoto' as const,
     icon: Store,
     colorClass: 'from-orange-500/20 to-orange-500/5 text-orange-600 dark:text-orange-400',
@@ -86,6 +91,7 @@ export default function OrgTpvConfigSection() {
     enableCashPayments: true,
     enableCardPayments: true,
     enableBarcodeScanner: true,
+    trackPromoterLocation: false,
   })
 
   // Attendance config state
@@ -103,6 +109,7 @@ export default function OrgTpvConfigSection() {
         enableCashPayments: config.enableCashPayments,
         enableCardPayments: config.enableCardPayments,
         enableBarcodeScanner: config.enableBarcodeScanner,
+        trackPromoterLocation: config.trackPromoterLocation ?? false,
       })
       setExpectedCheckInTime(config.expectedCheckInTime)
       setLatenessThreshold(String(config.latenessThresholdMinutes))
@@ -146,6 +153,7 @@ export default function OrgTpvConfigSection() {
         enableCashPayments: true,
         enableCardPayments: true,
         enableBarcodeScanner: true,
+        trackPromoterLocation: false,
       })
       setExpectedCheckInTime('09:00')
       setLatenessThreshold('30')

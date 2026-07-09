@@ -396,6 +396,8 @@
       "enableCardPaymentsDesc": "Integración con terminal bancaria",
       "enableBarcodeScanner": "Escáner de Código",
       "enableBarcodeScannerDesc": "Uso de cámara para leer ICCID",
+      "trackPromoterLocation": "Ubicación de Promotor (Cambaceo)",
+      "trackPromoterLocationDesc": "Registra la ubicación cada hora (11:00–18:00). Al guardar se aplica a TODAS las sucursales.",
       "expectedCheckInTime": "Hora esperada de entrada",
       "expectedCheckInTimeDesc": "Hora a la que se espera que el personal registre su entrada",
       "latenessThreshold": "Tolerancia de retardo",

@@ -64,6 +64,7 @@ export interface OrgAttendanceConfig {
   enableCashPayments: boolean
   enableCardPayments: boolean
   enableBarcodeScanner: boolean
+  trackPromoterLocation: boolean
   settings: Record<string, unknown> | null
 }
 
