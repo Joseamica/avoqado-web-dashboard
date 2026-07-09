@@ -13,7 +13,7 @@ import { AccountingErrorState } from '@/components/accounting/AccountingErrorSta
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
-import { useAssetTypes, useFixedAssets, useRegisterFixedAsset, useRunDepreciation } from '@/hooks/useFixedAssets'
+import { useAssetTypes, useDisposeFixedAsset, useFixedAssets, useRegisterFixedAsset, useRunDepreciation } from '@/hooks/useFixedAssets'
 import { useToast } from '@/hooks/use-toast'
 import type { AssetTypeDef, FixedAssetView } from '@/services/fiscal/fixedAsset.service'
 import { Currency } from '@/utils/currency'
@@ -52,6 +52,32 @@ function FixedAssetsInner() {
   const typesQuery = useAssetTypes({ enabled: hasAccess })
   const register = useRegisterFixedAsset()
   const depreciate = useRunDepreciation()
+  const dispose = useDisposeFixedAsset()
+
+  // Baja de activo
+  const [disposeTarget, setDisposeTarget] = useState<FixedAssetView | null>(null)
+  const [disposeDate, setDisposeDate] = useState(today)
+  const [disposePrice, setDisposePrice] = useState<number | undefined>(undefined)
+
+  const openDispose = (a: FixedAssetView) => {
+    setDisposeTarget(a)
+    setDisposeDate(today())
+    setDisposePrice(undefined)
+  }
+  const onDispose = () => {
+    if (!disposeTarget) return
+    dispose.mutate(
+      { assetId: disposeTarget.id, disposalDate: disposeDate, proceedsCents: disposePrice != null ? Math.round(disposePrice * 100) : null },
+      {
+        onSuccess: r => {
+          const gl = r.gainLossCents
+          toast({ title: t(gl >= 0 ? 'fixedAssets.disposedGain' : 'fixedAssets.disposedLoss', { amount: Currency(Math.abs(gl), true) }) })
+          setDisposeTarget(null)
+        },
+        onError: () => toast({ title: t('fixedAssets.disposeError'), variant: 'destructive' }),
+      },
+    )
+  }
 
   const data = hasAccess ? assetsQuery.data : { needsFiscalSetup: false, assets: SAMPLE_ASSETS }
   const types = (hasAccess ? typesQuery.data : SAMPLE_TYPES) ?? []
@@ -183,6 +209,7 @@ function FixedAssetsInner() {
                     <th className="px-4 py-2.5 text-right font-medium">{t('fixedAssets.colRate')}</th>
                     <th className="px-4 py-2.5 font-medium">{t('fixedAssets.colAcquisition')}</th>
                     <th className="px-4 py-2.5 font-medium">{t('fixedAssets.colStatus')}</th>
+                    <th className="px-4 py-2.5" aria-label="acciones" />
                   </tr>
                 </thead>
                 <tbody>
@@ -198,6 +225,13 @@ function FixedAssetsInner() {
                         <Badge variant={a.status === 'ACTIVE' ? 'outline' : 'secondary'} className="text-[10px]">
                           {t(`fixedAssets.status.${a.status}`, { defaultValue: a.status })}
                         </Badge>
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        {a.status === 'ACTIVE' && hasAccess && (
+                          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openDispose(a)}>
+                            {t('fixedAssets.dispose')}
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -319,6 +353,45 @@ function FixedAssetsInner() {
           </div>
 
           <p className="text-xs text-muted-foreground">{t('fixedAssets.formHint')}</p>
+        </div>
+      </FullScreenModal>
+
+      <FullScreenModal
+        open={disposeTarget !== null}
+        onClose={() => setDisposeTarget(null)}
+        title={t('fixedAssets.dispose')}
+        subtitle={disposeTarget?.description}
+        contentClassName="bg-muted/30"
+        actions={
+          <Button size="sm" disabled={dispose.isPending || !disposeDate} onClick={onDispose}>
+            {dispose.isPending ? t('fixedAssets.saving') : t('fixedAssets.disposeConfirm')}
+          </Button>
+        }
+      >
+        <div className="mx-auto max-w-md space-y-4 p-4">
+          <p className="text-xs text-muted-foreground">{t('fixedAssets.disposeHint')}</p>
+          <div className="space-y-1">
+            <label htmlFor="dispose-date" className="block text-xs text-muted-foreground">
+              {t('fixedAssets.disposeDateLabel')}
+            </label>
+            <Input id="dispose-date" type="date" value={disposeDate} onChange={e => setDisposeDate(e.target.value)} className="h-12 text-base" />
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="dispose-price" className="block text-xs text-muted-foreground">
+              {t('fixedAssets.disposePriceLabel')}
+            </label>
+            <Input
+              id="dispose-price"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="0.01"
+              placeholder={t('fixedAssets.disposePricePlaceholder')}
+              value={disposePrice ?? ''}
+              onChange={e => setDisposePrice(parsePesos(e.target.value))}
+              className="h-12 text-base"
+            />
+          </div>
         </div>
       </FullScreenModal>
     </div>

@@ -1277,6 +1277,15 @@
       "ACTIVE": "Active",
       "FULLY_DEPRECIATED": "Depreciated",
       "DISPOSED": "Disposed"
-    }
+    },
+    "dispose": "Dispose",
+    "disposeConfirm": "Confirm disposal",
+    "disposeHint": "Mark the asset as sold or obsolete. It stops depreciating; we compute the gain or loss against its book value.",
+    "disposeDateLabel": "Disposal date",
+    "disposePriceLabel": "Sale price (optional)",
+    "disposePricePlaceholder": "Empty if scrapped / no sale",
+    "disposedGain": "Asset disposed — gain of {{amount}}",
+    "disposedLoss": "Asset disposed — loss of {{amount}}",
+    "disposeError": "Could not dispose the asset"
   }
 }

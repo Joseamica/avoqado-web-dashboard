@@ -83,6 +83,24 @@ export async function runDepreciation(venueId: string, period?: string): Promise
   return res.data
 }
 
+export interface DisposeResult {
+  asset: FixedAssetView
+  accumulatedDepreciationCents: number
+  bookValueCents: number
+  proceedsCents: number
+  /** Ganancia (+) o pérdida (−) = precio de venta − valor en libros. */
+  gainLossCents: number
+}
+
+export async function disposeFixedAsset(
+  venueId: string,
+  assetId: string,
+  input: { disposalDate: string; proceedsCents?: number | null },
+): Promise<DisposeResult> {
+  const res = await api.post<DisposeResult>(`/api/v1/dashboard/venues/${venueId}/accounting/fixed-assets/${assetId}/dispose`, input)
+  return res.data
+}
+
 export const fixedAssetKeys = {
   all: ['fixedAssets'] as const,
   list: (venueId: string | null) => [...fixedAssetKeys.all, venueId] as const,

@@ -1277,6 +1277,15 @@
       "ACTIVE": "Activo",
       "FULLY_DEPRECIATED": "Depreciado",
       "DISPOSED": "Baja"
-    }
+    },
+    "dispose": "Dar de baja",
+    "disposeConfirm": "Confirmar baja",
+    "disposeHint": "Marca el activo como vendido u obsoleto. Deja de depreciarse; calculamos la ganancia o pérdida contra su valor en libros.",
+    "disposeDateLabel": "Fecha de baja",
+    "disposePriceLabel": "Precio de venta (opcional)",
+    "disposePricePlaceholder": "Vacío si fue obsolescencia / sin venta",
+    "disposedGain": "Activo dado de baja — ganancia de {{amount}}",
+    "disposedLoss": "Activo dado de baja — pérdida de {{amount}}",
+    "disposeError": "No se pudo dar de baja el activo"
   }
 }

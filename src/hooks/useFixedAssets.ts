@@ -2,12 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import {
+  disposeFixedAsset,
   fixedAssetKeys,
   getAssetTypes,
   getFixedAssets,
   registerFixedAsset,
   runDepreciation,
   type AssetTypeDef,
+  type DisposeResult,
   type FixedAssetView,
   type RegisterFixedAssetInput,
 } from '@/services/fiscal/fixedAsset.service'
@@ -56,6 +58,19 @@ export function useRunDepreciation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (period?: string) => runDepreciation(venueId!, period),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: fixedAssetKeys.all })
+      qc.invalidateQueries({ queryKey: isrKeys.all })
+    },
+  })
+}
+
+/** Da de baja un activo (venta u obsolescencia). Invalida la lista y el ISR. */
+export function useDisposeFixedAsset() {
+  const { venueId } = useCurrentVenue()
+  const qc = useQueryClient()
+  return useMutation<DisposeResult, unknown, { assetId: string; disposalDate: string; proceedsCents?: number | null }>({
+    mutationFn: ({ assetId, disposalDate, proceedsCents }) => disposeFixedAsset(venueId!, assetId, { disposalDate, proceedsCents }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: fixedAssetKeys.all })
       qc.invalidateQueries({ queryKey: isrKeys.all })
