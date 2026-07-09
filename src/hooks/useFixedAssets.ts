@@ -8,6 +8,7 @@ import {
   getFixedAssets,
   registerFixedAsset,
   runDepreciation,
+  updateFixedAsset,
   type AssetTypeDef,
   type DisposeResult,
   type FixedAssetView,
@@ -58,6 +59,19 @@ export function useRunDepreciation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (period?: string) => runDepreciation(venueId!, period),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: fixedAssetKeys.all })
+      qc.invalidateQueries({ queryKey: isrKeys.all })
+    },
+  })
+}
+
+/** Edita un activo activo (solo los campos enviados). Invalida la lista y el ISR. */
+export function useUpdateFixedAsset() {
+  const { venueId } = useCurrentVenue()
+  const qc = useQueryClient()
+  return useMutation<FixedAssetView, unknown, { assetId: string } & Partial<RegisterFixedAssetInput>>({
+    mutationFn: ({ assetId, ...input }) => updateFixedAsset(venueId!, assetId, input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: fixedAssetKeys.all })
       qc.invalidateQueries({ queryKey: isrKeys.all })

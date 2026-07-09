@@ -13,7 +13,14 @@ import { AccountingErrorState } from '@/components/accounting/AccountingErrorSta
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
-import { useAssetTypes, useDisposeFixedAsset, useFixedAssets, useRegisterFixedAsset, useRunDepreciation } from '@/hooks/useFixedAssets'
+import {
+  useAssetTypes,
+  useDisposeFixedAsset,
+  useFixedAssets,
+  useRegisterFixedAsset,
+  useRunDepreciation,
+  useUpdateFixedAsset,
+} from '@/hooks/useFixedAssets'
 import { useToast } from '@/hooks/use-toast'
 import type { AssetTypeDef, FixedAssetView } from '@/services/fiscal/fixedAsset.service'
 import { Currency } from '@/utils/currency'
@@ -51,8 +58,12 @@ function FixedAssetsInner() {
   const assetsQuery = useFixedAssets({ enabled: hasAccess })
   const typesQuery = useAssetTypes({ enabled: hasAccess })
   const register = useRegisterFixedAsset()
+  const update = useUpdateFixedAsset()
   const depreciate = useRunDepreciation()
   const dispose = useDisposeFixedAsset()
+
+  // Edición: el mismo formulario del registro, precargado. null = modo registrar.
+  const [editTarget, setEditTarget] = useState<FixedAssetView | null>(null)
 
   // Baja de activo
   const [disposeTarget, setDisposeTarget] = useState<FixedAssetView | null>(null)
@@ -92,12 +103,30 @@ function FixedAssetsInner() {
   const [salvage, setSalvage] = useState<number | undefined>(undefined)
 
   const resetForm = () => {
+    setEditTarget(null)
     setDescription('')
     setAssetType('')
     setMonto(undefined)
     setRatePct(undefined)
     setAcquisitionDate(today())
     setSalvage(undefined)
+  }
+
+  const openCreate = () => {
+    resetForm()
+    setOpen(true)
+  }
+
+  /** Abre el formulario precargado con los datos del activo (solo activos ACTIVOS). */
+  const openEdit = (a: FixedAssetView) => {
+    setEditTarget(a)
+    setDescription(a.description)
+    setAssetType(a.assetType)
+    setMonto(a.moiCents / 100)
+    setRatePct(Math.round(a.annualRate * 100 * 100) / 100)
+    setAcquisitionDate(a.acquisitionDate)
+    setSalvage(a.salvageValueCents > 0 ? a.salvageValueCents / 100 : undefined)
+    setOpen(true)
   }
 
   const onPickType = (key: string) => {
@@ -110,24 +139,36 @@ function FixedAssetsInner() {
 
   const onSubmit = () => {
     if (!canSubmit) return
-    register.mutate(
-      {
-        description: description.trim(),
-        assetType,
-        moiCents: Math.round((monto ?? 0) * 100),
-        annualRate: ratePct != null ? ratePct / 100 : undefined,
-        acquisitionDate,
-        salvageValueCents: salvage != null ? Math.round(salvage * 100) : undefined,
-      },
-      {
-        onSuccess: () => {
-          toast({ title: t('fixedAssets.registered') })
-          setOpen(false)
-          resetForm()
+    const payload = {
+      description: description.trim(),
+      assetType,
+      moiCents: Math.round((monto ?? 0) * 100),
+      annualRate: ratePct != null ? ratePct / 100 : undefined,
+      acquisitionDate,
+      salvageValueCents: salvage != null ? Math.round(salvage * 100) : undefined,
+    }
+    if (editTarget) {
+      update.mutate(
+        { assetId: editTarget.id, ...payload },
+        {
+          onSuccess: () => {
+            toast({ title: t('fixedAssets.updated') })
+            setOpen(false)
+            resetForm()
+          },
+          onError: () => toast({ title: t('fixedAssets.updateError'), variant: 'destructive' }),
         },
-        onError: () => toast({ title: t('fixedAssets.registerError'), variant: 'destructive' }),
+      )
+      return
+    }
+    register.mutate(payload, {
+      onSuccess: () => {
+        toast({ title: t('fixedAssets.registered') })
+        setOpen(false)
+        resetForm()
       },
-    )
+      onError: () => toast({ title: t('fixedAssets.registerError'), variant: 'destructive' }),
+    })
   }
 
   const onDepreciate = () => {
@@ -158,7 +199,7 @@ function FixedAssetsInner() {
             <RefreshCw className={`mr-1.5 h-4 w-4 ${depreciate.isPending ? 'animate-spin' : ''}`} />
             {t('fixedAssets.runDepreciation')}
           </Button>
-          <Button size="sm" className="h-10" disabled={!hasAccess} onClick={() => setOpen(true)} data-tour="fixed-asset-new">
+          <Button size="sm" className="h-10" disabled={!hasAccess} onClick={openCreate} data-tour="fixed-asset-new">
             <Plus className="mr-1.5 h-4 w-4" />
             {t('fixedAssets.register')}
           </Button>
@@ -228,9 +269,14 @@ function FixedAssetsInner() {
                       </td>
                       <td className="px-4 py-2.5 text-right">
                         {a.status === 'ACTIVE' && hasAccess && (
-                          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openDispose(a)}>
-                            {t('fixedAssets.dispose')}
-                          </Button>
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEdit(a)} data-tour="fixed-asset-edit">
+                              {t('fixedAssets.edit')}
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openDispose(a)}>
+                              {t('fixedAssets.dispose')}
+                            </Button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -247,12 +293,12 @@ function FixedAssetsInner() {
       <FullScreenModal
         open={open}
         onClose={() => setOpen(false)}
-        title={t('fixedAssets.register')}
-        subtitle={t('fixedAssets.registerSubtitle')}
+        title={editTarget ? t('fixedAssets.edit') : t('fixedAssets.register')}
+        subtitle={editTarget ? t('fixedAssets.editSubtitle') : t('fixedAssets.registerSubtitle')}
         contentClassName="bg-muted/30"
         actions={
-          <Button size="sm" disabled={!canSubmit || register.isPending} onClick={onSubmit}>
-            {register.isPending ? t('fixedAssets.saving') : t('fixedAssets.save')}
+          <Button size="sm" disabled={!canSubmit || register.isPending || update.isPending} onClick={onSubmit}>
+            {register.isPending || update.isPending ? t('fixedAssets.saving') : editTarget ? t('fixedAssets.saveChanges') : t('fixedAssets.save')}
           </Button>
         }
       >

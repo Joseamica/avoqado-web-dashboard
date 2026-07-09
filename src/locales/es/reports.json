@@ -1294,6 +1294,11 @@
     "disposePricePlaceholder": "Vacío si fue obsolescencia / sin venta",
     "disposedGain": "Activo dado de baja — ganancia de {{amount}}",
     "disposedLoss": "Activo dado de baja — pérdida de {{amount}}",
-    "disposeError": "No se pudo dar de baja el activo"
+    "disposeError": "No se pudo dar de baja el activo",
+    "edit": "Editar",
+    "editSubtitle": "Corrige los datos del activo (mientras siga activo).",
+    "saveChanges": "Guardar cambios",
+    "updated": "Activo actualizado",
+    "updateError": "No se pudo actualizar el activo"
   }
 }

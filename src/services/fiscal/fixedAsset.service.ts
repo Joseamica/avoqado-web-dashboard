@@ -83,6 +83,16 @@ export async function runDepreciation(venueId: string, period?: string): Promise
   return res.data
 }
 
+/** Edita un activo (mientras siga ACTIVO). Solo se envían/aplican los campos incluidos. */
+export async function updateFixedAsset(
+  venueId: string,
+  assetId: string,
+  input: Partial<RegisterFixedAssetInput>,
+): Promise<FixedAssetView> {
+  const res = await api.patch<FixedAssetView>(`/api/v1/dashboard/venues/${venueId}/accounting/fixed-assets/${assetId}`, input)
+  return res.data
+}
+
 export interface DisposeResult {
   asset: FixedAssetView
   accumulatedDepreciationCents: number

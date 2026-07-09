@@ -1294,6 +1294,11 @@
     "disposePricePlaceholder": "Empty if scrapped / no sale",
     "disposedGain": "Asset disposed — gain of {{amount}}",
     "disposedLoss": "Asset disposed — loss of {{amount}}",
-    "disposeError": "Could not dispose the asset"
+    "disposeError": "Could not dispose the asset",
+    "edit": "Edit",
+    "editSubtitle": "Fix the asset's details (while it is still active).",
+    "saveChanges": "Save changes",
+    "updated": "Asset updated",
+    "updateError": "Could not update the asset"
   }
 }
