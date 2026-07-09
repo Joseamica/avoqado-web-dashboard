@@ -83,6 +83,11 @@ export interface ReassignToPromoterInput {
 export interface ChangeCategoryInput {
   categoryId: string
   serialNumbers: string[]
+  /**
+   * Correction path: reclassify SOLD SIMs too. Only the SIM's category (its type
+   * in the reports) changes — the sale itself is never modified. Off by default.
+   */
+  allowSold?: boolean
 }
 
 export interface CustodyEventStaff {
@@ -198,7 +203,8 @@ export async function reassignSimsToPromoter(
 
 /**
  * Admin bulk category change: move SIMs to a different org-level ItemCategory.
- * SIMs in any non-SOLD state are eligible.
+ * SIMs in any non-SOLD state are eligible by default; pass `allowSold: true` to
+ * reclassify sold SIMs too (correction path — category only, sale untouched).
  * Partial-success: HTTP 200 always; check summary.failed for per-row errors.
  */
 export async function changeSimsCategory(orgId: string, body: ChangeCategoryInput, venueId?: string | null): Promise<BulkResponse> {

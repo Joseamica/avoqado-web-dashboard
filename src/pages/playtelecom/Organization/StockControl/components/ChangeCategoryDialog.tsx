@@ -22,6 +22,7 @@ import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
 import { toast } from '@/hooks/use-toast'
 import { changeSimsCategory, type BulkResponse } from '@/services/simCustody.service'
 import { getItemCategories } from '@/services/stockDashboard.service'
@@ -51,6 +52,9 @@ export function ChangeCategoryDialog({ open, onOpenChange, orgId, venueId, prese
   const [searchSerials, setSearchSerials] = useState<string[]>(preselectedSerials ?? [])
   const [result, setResult] = useState<BulkResponse | null>(null)
   const [onlyErrors, setOnlyErrors] = useState(false)
+  // Correction path: when on, sold SIMs become eligible (only their category
+  // changes for reporting — the sale is never touched). Off by default.
+  const [allowSold, setAllowSold] = useState(false)
 
   // Org-level ItemCategories — same query key + fn used by AssignToSupervisorDialog
   // and OrgBulkUploadDialog. Filter to source==='organization' to surface only
@@ -76,10 +80,11 @@ export function ChangeCategoryDialog({ open, onOpenChange, orgId, venueId, prese
 
   }, [])
   const { data: stockData } = useOrgStockControl(open ? orgId : undefined, stockParams)
-  // Only show non-sold items in the search combobox (SOLD SIMs can't be moved).
+  // Show non-sold items in the search combobox; include sold ones only when the
+  // correction toggle (allowSold) is on.
   const availableItems = useMemo(
-    () => (stockData?.items ?? []).filter(i => i.status !== 'SOLD'),
-    [stockData?.items],
+    () => (stockData?.items ?? []).filter(i => allowSold || i.status !== 'SOLD'),
+    [stockData?.items, allowSold],
   )
 
   const mutation = useMutation<BulkResponse, Error, void>({
@@ -103,7 +108,7 @@ export function ChangeCategoryDialog({ open, onOpenChange, orgId, venueId, prese
       }
       if (serialNumbers.length === 0) throw new Error('Agrega al menos un ICCID')
 
-      return changeSimsCategory(orgId, { categoryId, serialNumbers }, venueId)
+      return changeSimsCategory(orgId, { categoryId, serialNumbers, allowSold }, venueId)
     },
     onSuccess: r => {
       setResult(r)
@@ -121,6 +126,7 @@ export function ChangeCategoryDialog({ open, onOpenChange, orgId, venueId, prese
     setSearchSerials(preselectedSerials ?? [])
     setResult(null)
     setOnlyErrors(false)
+    setAllowSold(false)
   }
 
   const handleOpenChange = (o: boolean) => {
@@ -136,13 +142,32 @@ export function ChangeCategoryDialog({ open, onOpenChange, orgId, venueId, prese
         <DialogHeader>
           <DialogTitle>Cambiar Categoría</DialogTitle>
           <DialogDescription>
-            Mueve SIMs a una categoría diferente. Los SIMs ya vendidos no pueden moverse. El historial de cambios queda registrado en el
-            ActivityLog.
+            Mueve SIMs a una categoría diferente.{' '}
+            {allowSold
+              ? 'Se incluyen SIMs vendidos: solo cambia su tipo en los reportes, la venta no se modifica.'
+              : 'Los SIMs ya vendidos no pueden moverse.'}{' '}
+            El historial de cambios queda registrado en el ActivityLog.
           </DialogDescription>
         </DialogHeader>
 
         {!result ? (
           <div className="space-y-4">
+            {/* Correction toggle: opt-in to reclassify sold SIMs (category only,
+                sale untouched). Kept off by default so the normal flow protects
+                items that already went out the door. */}
+            <div className="flex items-start gap-3 rounded-lg border border-input p-3">
+              <Switch id="allow-sold" checked={allowSold} onCheckedChange={setAllowSold} className="mt-0.5" />
+              <div className="space-y-0.5">
+                <label htmlFor="allow-sold" className="cursor-pointer text-sm font-medium">
+                  Incluir SIMs vendidos (corrección)
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  Permite recategorizar SIMs ya vendidos —por ejemplo, se vendieron como un tipo por error. Solo cambia el tipo de SIM que
+                  se refleja en los reportes; la venta, el monto y el promotor no se modifican.
+                </p>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <label className="text-sm font-medium">Categoría destino</label>
               <SearchableSelect
@@ -183,12 +208,18 @@ export function ChangeCategoryDialog({ open, onOpenChange, orgId, venueId, prese
               <TabsContent value="search" className="mt-3 space-y-2">
                 <SimMultiSelect
                   items={availableItems}
-                  allowedStates={['ADMIN_HELD', 'SUPERVISOR_HELD', 'PROMOTER_PENDING', 'PROMOTER_HELD', 'PROMOTER_REJECTED']}
+                  allowedStates={
+                    allowSold
+                      ? ['ADMIN_HELD', 'SUPERVISOR_HELD', 'PROMOTER_PENDING', 'PROMOTER_HELD', 'PROMOTER_REJECTED', 'SOLD']
+                      : ['ADMIN_HELD', 'SUPERVISOR_HELD', 'PROMOTER_PENDING', 'PROMOTER_HELD', 'PROMOTER_REJECTED']
+                  }
                   value={searchSerials}
                   onChange={setSearchSerials}
                   placeholder={availableItems.length === 0 ? 'No hay SIMs disponibles' : undefined}
                 />
-                <p className="text-xs text-muted-foreground">Solo se muestran SIMs no vendidos.</p>
+                <p className="text-xs text-muted-foreground">
+                  {allowSold ? 'Se incluyen SIMs vendidos.' : 'Solo se muestran SIMs no vendidos.'}
+                </p>
               </TabsContent>
 
               <TabsContent value="manual" className="mt-3">
