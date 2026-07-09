@@ -101,6 +101,7 @@ function FixedAssetsInner() {
   const [ratePct, setRatePct] = useState<number | undefined>(undefined)
   const [acquisitionDate, setAcquisitionDate] = useState(today)
   const [salvage, setSalvage] = useState<number | undefined>(undefined)
+  const [inpc, setInpc] = useState<number | undefined>(undefined) // factor INPC (solo en edición)
 
   const resetForm = () => {
     setEditTarget(null)
@@ -110,6 +111,7 @@ function FixedAssetsInner() {
     setRatePct(undefined)
     setAcquisitionDate(today())
     setSalvage(undefined)
+    setInpc(undefined)
   }
 
   const openCreate = () => {
@@ -126,6 +128,7 @@ function FixedAssetsInner() {
     setRatePct(Math.round(a.annualRate * 100 * 100) / 100)
     setAcquisitionDate(a.acquisitionDate)
     setSalvage(a.salvageValueCents > 0 ? a.salvageValueCents / 100 : undefined)
+    setInpc(a.inpcFactor ?? undefined)
     setOpen(true)
   }
 
@@ -149,7 +152,7 @@ function FixedAssetsInner() {
     }
     if (editTarget) {
       update.mutate(
-        { assetId: editTarget.id, ...payload },
+        { assetId: editTarget.id, ...payload, inpcFactor: inpc ?? null },
         {
           onSuccess: () => {
             toast({ title: t('fixedAssets.updated') })
@@ -397,6 +400,26 @@ function FixedAssetsInner() {
               />
             </div>
           </div>
+
+          {editTarget && (
+            <div className="space-y-1">
+              <label htmlFor="fa-inpc" className="block text-xs text-muted-foreground">
+                {t('fixedAssets.inpcLabel')}
+              </label>
+              <Input
+                id="fa-inpc"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="0.0001"
+                placeholder="1.0000"
+                value={inpc ?? ''}
+                onChange={e => setInpc(parsePesos(e.target.value))}
+                className="h-12 text-base"
+              />
+              <p className="text-xs text-muted-foreground">{t('fixedAssets.inpcHint')}</p>
+            </div>
+          )}
 
           <p className="text-xs text-muted-foreground">{t('fixedAssets.formHint')}</p>
         </div>

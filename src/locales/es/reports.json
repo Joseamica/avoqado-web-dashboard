@@ -1157,7 +1157,7 @@
     "costoVentasAcum": "Costo de ventas",
     "costoVentasHint": "Costo del inventario consumido en el ejercicio (recetas y productos). Deducible en régimen general.",
     "deduccionInversiones": "Deducción de inversiones (depreciación)",
-    "deduccionInversionesHint": "Depreciación acumulada de tus activos fijos en el ejercicio (Contabilidad → Activos fijos).",
+    "deduccionInversionesHint": "Depreciación acumulada de tus activos fijos en el ejercicio (Contabilidad → Activos fijos), actualizada por el factor INPC si lo capturaste.",
     "utilidadFiscal": "Utilidad fiscal",
     "isrCausadoAcum": "ISR causado acumulado",
     "pagosPrevios": "Pagos provisionales previos",
@@ -1299,6 +1299,8 @@
     "editSubtitle": "Corrige los datos del activo (mientras siga activo).",
     "saveChanges": "Guardar cambios",
     "updated": "Activo actualizado",
-    "updateError": "No se pudo actualizar el activo"
+    "updateError": "No se pudo actualizar el activo",
+    "inpcLabel": "Factor INPC (opcional)",
+    "inpcHint": "Factor de actualización por inflación (te lo da tu contador). Multiplica la deducción fiscal; vacío = 1 (costo histórico)."
   }
 }

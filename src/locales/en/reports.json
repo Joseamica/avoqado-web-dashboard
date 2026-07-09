@@ -1157,7 +1157,7 @@
     "costoVentasAcum": "Cost of goods sold",
     "costoVentasHint": "Cost of inventory consumed during the year (recipes and products). Deductible under the general regime.",
     "deduccionInversiones": "Investment deduction (depreciation)",
-    "deduccionInversionesHint": "Accumulated depreciation of your fixed assets this year (Accounting → Fixed assets).",
+    "deduccionInversionesHint": "Accumulated depreciation of your fixed assets this year (Accounting → Fixed assets), updated by the INPC factor if you captured it.",
     "utilidadFiscal": "Taxable profit",
     "isrCausadoAcum": "Cumulative tax accrued",
     "pagosPrevios": "Prior provisional payments",
@@ -1299,6 +1299,8 @@
     "editSubtitle": "Fix the asset's details (while it is still active).",
     "saveChanges": "Save changes",
     "updated": "Asset updated",
-    "updateError": "Could not update the asset"
+    "updateError": "Could not update the asset",
+    "inpcLabel": "INPC factor (optional)",
+    "inpcHint": "Inflation update factor (your accountant provides it). Multiplies the tax deduction; empty = 1 (historical cost)."
   }
 }

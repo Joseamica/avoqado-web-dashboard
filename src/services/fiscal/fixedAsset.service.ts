@@ -32,6 +32,8 @@ export interface FixedAssetView {
   acquisitionDate: string
   inServiceDate: string
   salvageValueCents: number
+  /** Factor INPC capturado (opcional; solo afecta la deducción fiscal, no el libro). */
+  inpcFactor?: number | null
   status: string
   sourceExpenseId: string | null
   createdAt: string
@@ -45,6 +47,8 @@ export interface RegisterFixedAssetInput {
   acquisitionDate: string
   inServiceDate?: string
   salvageValueCents?: number
+  /** Factor de actualización INPC (art. 31); null lo borra. */
+  inpcFactor?: number | null
 }
 
 export interface GenerateDepreciationResult {
@@ -100,6 +104,9 @@ export interface DisposeResult {
   proceedsCents: number
   /** Ganancia (+) o pérdida (−) = precio de venta − valor en libros. */
   gainLossCents: number
+  /** Si la póliza de baja se llevó al libro (requiere póliza de alta + cuentas). */
+  ledgerPosted?: boolean
+  ledgerReason?: string
 }
 
 export async function disposeFixedAsset(
