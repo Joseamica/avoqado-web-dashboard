@@ -1,6 +1,13 @@
 {
   "title": "PlayTelecom",
   "subtitle": "Serialized Inventory Dashboard",
+  "location": {
+    "none": "No location on record",
+    "viewOnMap": "View on map",
+    "hint": "Updates hourly (11:00–18:00, venue time)",
+    "trackingOff": "Location tracking is off for this venue",
+    "empty": "No terminals with location today"
+  },
   "commandCenter": {
     "title": "Global Overview",
     "subtitle": "Operations overview",
@@ -455,7 +462,8 @@
     "tabs": {
       "operativo": "Operations",
       "checkin": "Check-in",
-      "ventas": "Sales"
+      "ventas": "Sales",
+      "ubicacion": "Terminal Location"
     },
     "evidence": {
       "incomplete": "Incomplete evidence ({{uploaded}}/{{required}})",

@@ -16,6 +16,7 @@ import {
   ChevronsUpDown,
   ChevronRight,
   Receipt,
+  MapPin,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
@@ -92,6 +93,11 @@ const WLOrgSidebar: React.FC<WLOrgSidebarProps> = (props) => {
           name: t('organization:sidebar.managers', { defaultValue: 'Gerentes' }),
           href: `${basePath}/managers`,
           icon: Users,
+        },
+        {
+          name: t('organization:sidebar.liveLocation', { defaultValue: 'Ubicación de TPVs' }),
+          href: `${basePath}/live-location`,
+          icon: MapPin,
         },
       ],
     },

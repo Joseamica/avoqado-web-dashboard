@@ -28,7 +28,8 @@
     "orgManualSales": "Subir ventas fuera de TPV",
     "visionGlobal": "Visión Global",
     "reports": "Reportes",
-    "managers": "Supervisores"
+    "managers": "Supervisores",
+    "liveLocation": "Ubicación de TPVs"
   },
   "header": {
     "backToVenue": "Volver a Sucursal"
@@ -690,5 +691,8 @@
     "accessDenied": "Acceso Denegado",
     "ownerOnlyMessage": "Esta sección solo está disponible para propietarios de la organización."
   },
-  "notYourOrganization": "No tienes acceso a esta organización."
+  "notYourOrganization": "No tienes acceso a esta organización.",
+  "liveLocation": {
+    "title": "Ubicación de TPVs"
+  }
 }

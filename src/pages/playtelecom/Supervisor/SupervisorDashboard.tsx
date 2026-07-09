@@ -51,11 +51,14 @@ import {
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { lazyWithRetry } from '@/lib/lazyWithRetry'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import CreateStoreGoalDialog from './CreateStoreGoalDialog'
 
 import { DateRangePicker } from '@/components/date-range-picker'
+import { LastLocationCell } from '@/components/location/LastLocationCell'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/context/AuthContext'
+import { getSupervisorTerminalLocations } from '@/services/terminalLocation.service'
 import {
   useStoresActivityFeed,
   useStoresOverview,
@@ -74,7 +77,7 @@ import { format } from 'date-fns'
 const AttendanceHeatmap = lazyWithRetry(() => import('./components/AttendanceHeatmap').then(m => ({ default: m.AttendanceHeatmap })))
 const SalesHeatmap = lazyWithRetry(() => import('./components/SalesHeatmap').then(m => ({ default: m.SalesHeatmap })))
 
-const VALID_TABS = ['operativo', 'checkin', 'ventas'] as const
+const VALID_TABS = ['operativo', 'checkin', 'ventas', 'ubicacion'] as const
 const STANDARD_REQUIRED_EVIDENCE_PHOTOS = 1
 const PORTABILITY_REQUIRED_EVIDENCE_PHOTOS = 2
 type SaleEvidenceType = 'portability' | 'linking' | 'unknown'
@@ -186,6 +189,13 @@ export function SupervisorDashboard() {
     filterVenueId: storeFilter !== 'all' ? storeFilter : undefined,
     refetchInterval: 30000,
   })
+  const { data: locData } = useQuery({
+    queryKey: ['supervisor-terminal-locations', activeVenue?.id],
+    queryFn: () => getSupervisorTerminalLocations(activeVenue!.id),
+    enabled: !!activeVenue?.id && activeTab === 'ubicacion',
+    refetchInterval: 60_000,
+  })
+  const terminals = locData?.terminals ?? []
 
   // Extract venues array from response, filtered by state for non-OWNER roles
   const venuesData = useMemo(() => {
@@ -1439,6 +1449,29 @@ export function SupervisorDashboard() {
           <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
             <SalesHeatmap startDate={startDateStr} endDate={endDateStr} filterVenueId={storeFilter !== 'all' ? storeFilter : undefined} />
           </Suspense>
+        </TabsContent>
+
+        {/* Tab: Ubicación de TPVs */}
+        <TabsContent value="ubicacion" className="mt-4 space-y-4">
+          <p className="text-xs text-muted-foreground">{t('playtelecom:location.hint')}</p>
+          {locData && !locData.trackingEnabled && (
+            <Badge variant="outline">{t('playtelecom:location.trackingOff')}</Badge>
+          )}
+          {terminals.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t('playtelecom:location.empty')}</p>
+          ) : (
+            <div className="rounded-lg border border-input divide-y divide-input">
+              {terminals.map(term => (
+                <div key={term.terminalId} className="flex items-center justify-between p-3">
+                  <div>
+                    <p className="font-mono text-sm font-semibold">{term.serialNumber ?? term.terminalId}</p>
+                    <p className="text-xs text-muted-foreground">{term.promoter?.name ?? '—'}</p>
+                  </div>
+                  <LastLocationCell latest={term.latest} />
+                </div>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 

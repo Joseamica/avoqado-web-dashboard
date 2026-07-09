@@ -1,6 +1,13 @@
 {
   "title": "PlayTelecom",
   "subtitle": "Dashboard de Inventario Serializado",
+  "location": {
+    "none": "Sin ubicación registrada",
+    "viewOnMap": "Ver en mapa",
+    "hint": "Se actualiza cada hora (11:00–18:00, hora del local)",
+    "trackingOff": "El seguimiento de ubicación no está activo en esta sucursal",
+    "empty": "Sin TPVs con ubicación hoy"
+  },
   "commandCenter": {
     "title": "Visión Global",
     "subtitle": "Vista general de operaciones",
@@ -455,7 +462,8 @@
     "tabs": {
       "operativo": "Tablero Operativo",
       "checkin": "Check-in",
-      "ventas": "Ventas"
+      "ventas": "Ventas",
+      "ubicacion": "Ubicación de TPVs"
     },
     "evidence": {
       "incomplete": "Evidencia incompleta ({{uploaded}}/{{required}})",
