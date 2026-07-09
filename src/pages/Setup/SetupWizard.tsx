@@ -18,7 +18,7 @@ import { setupService } from '@/services/setup.service'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import type { SetupData } from './types'
-import { track } from '@/lib/posthog'
+import { track, startSessionReplay, stopSessionReplay } from '@/lib/posthog'
 
 import { BusinessInfoStep } from './steps/BusinessInfoStep'
 import { BusinessTypeStep } from './steps/BusinessTypeStep'
@@ -291,6 +291,14 @@ export default function SetupWizard() {
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
   }, [isInitialized, currentStep])
+
+  // PostHog session replay is scoped to onboarding only (global auto-start is disabled
+  // in initPostHog). Record while the user is in the wizard, stop when they leave — so
+  // we see where people drop off in /setup without recording the whole dashboard.
+  useEffect(() => {
+    startSessionReplay()
+    return () => stopSessionReplay()
+  }, [])
 
   // PostHog onboarding funnel: which step each user reaches (drop-off analysis).
   useEffect(() => {
