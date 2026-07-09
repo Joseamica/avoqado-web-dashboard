@@ -38,7 +38,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import type { TpvSettings } from '@/services/tpv-settings.service'
+import type { TpvSettings, TpvSettingsUpdate } from '@/services/tpv-settings.service'
 
 interface Merchant {
   id: string
@@ -47,7 +47,7 @@ interface Merchant {
 
 export interface TpvSettingsFieldsProps {
   settings: TpvSettings
-  onUpdate: (updates: Partial<TpvSettings>) => void
+  onUpdate: (updates: TpvSettingsUpdate) => void
   disabled?: boolean
   isPending?: boolean
   /** 'terminal' shows all fields; 'org' hides kioskDefaultMerchantId (per-terminal only) */
@@ -183,6 +183,17 @@ export function TpvSettingsFields({
     if (isDisabled) return
     const merchantId = value === 'none' ? null : value
     onUpdate({ kioskDefaultMerchantId: merchantId })
+  }
+
+  // Per-terminal override of the venue's promoter-location tracking ("Cambaceo").
+  // Tri-state: 'inherit' (override absent/null) | 'on' (true) | 'off' (false).
+  const trackPromoterLocationTriState: 'inherit' | 'on' | 'off' =
+    settings.trackPromoterLocationOverride === true ? 'on' : settings.trackPromoterLocationOverride === false ? 'off' : 'inherit'
+
+  const handleTrackPromoterLocationChange = (value: string) => {
+    if (isDisabled) return
+    const override = value === 'on' ? true : value === 'off' ? false : null
+    onUpdate({ trackPromoterLocation: override })
   }
 
   const tipOptions = settings.tipSuggestions || [10, 15, 20]
@@ -485,6 +496,28 @@ export function TpvSettingsFields({
                 onCheckedChange={checked => handleToggle('requireClockInToLogin', checked)}
                 disabled={isDisabled}
               />
+              {/* Per-terminal override of promoter location tracking — terminal mode only */}
+              {mode === 'terminal' && (
+                <div className="flex items-center justify-between py-3">
+                  <div className="flex items-start gap-3">
+                    <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <Label className="text-sm font-medium">{t('tpvSettings.trackPromoterLocationOverride')}</Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">{t('tpvSettings.trackPromoterLocationOverrideDesc')}</p>
+                    </div>
+                  </div>
+                  <Select value={trackPromoterLocationTriState} onValueChange={handleTrackPromoterLocationChange} disabled={isDisabled}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="inherit">{t('tpvSettings.trackPromoterLocationInherit')}</SelectItem>
+                      <SelectItem value="on">{t('tpvSettings.trackPromoterLocationOn')}</SelectItem>
+                      <SelectItem value="off">{t('tpvSettings.trackPromoterLocationOff')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           </CollapsibleContent>
         </GlassCard>

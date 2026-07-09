@@ -52,6 +52,10 @@ export interface TpvSettings {
   cellularFailoverBadReadingsThreshold: number // >=1
   cellularFailoverCooldownSeconds: number // >=0
   cellularFailoverMinCellHoldSeconds: number // >=0
+  // Per-terminal override of VenueSettings.trackPromoterLocation ("Cambaceo").
+  // null = inherit venue setting (default). true = always track on this terminal.
+  // false = never track on this terminal, even if the venue has it on.
+  trackPromoterLocationOverride?: boolean | null
 }
 
 /** Cellular failover mode literal used in forms + selects */
@@ -96,12 +100,21 @@ export const DEFAULT_TPV_SETTINGS: TpvSettings = {
   cellularFailoverBadReadingsThreshold: 3,
   cellularFailoverCooldownSeconds: 60,
   cellularFailoverMinCellHoldSeconds: 120,
+  // Inherit venue setting by default (no per-terminal override)
+  trackPromoterLocationOverride: null,
 }
 
 /**
  * Partial update for TPV settings - all fields optional
+ *
+ * `trackPromoterLocation` is write-only and asymmetric with the GET response field
+ * (`trackPromoterLocationOverride`): pass `true`/`false` to set an explicit per-terminal
+ * override, `null` to clear it (revert to inheriting the venue setting), or omit the key
+ * entirely to leave the existing override untouched.
  */
-export type TpvSettingsUpdate = Partial<TpvSettings>
+export type TpvSettingsUpdate = Partial<TpvSettings> & {
+  trackPromoterLocation?: boolean | null
+}
 
 /**
  * Venue-level TPV settings subset (applied to ALL terminals in a venue)
