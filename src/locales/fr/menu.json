@@ -65,20 +65,8 @@
     }
   },
   "forms": {
-    "name": "Nom",
-    "description": "Description",
-    "price": "Prix",
-    "selectCategories": "Sélectionner des catégories...",
-    "selectProducts": "Sélectionner des produits...",
-    "selectMenus": "Sélectionner des menus...",
-    "daysOfWeek": {
-      "monday": "Lundi",
-      "tuesday": "Mardi",
-      "wednesday": "Mercredi",
-      "thursday": "Jeudi",
-      "friday": "Vendredi",
-      "saturday": "Samedi",
-      "sunday": "Dimanche"
+    "buttons": {
+      "cancel": "Annuler"
     }
   },
   "products": {
@@ -412,11 +400,24 @@
       "quantityPerUnitDesc": "Quantité de matière première utilisée par modificateur",
       "unit": "Unité",
       "selectUnit": "Sélectionner l'unité"
-    }
-  },
-  "forms": {
-    "buttons": {
-      "cancel": "Annuler"
+    },
+    "actions": {
+      "edit": "Modifier le groupe"
+    },
+    "editor": {
+      "subtitle": "Options de ce groupe",
+      "addModifier": "Ajouter une option",
+      "empty": "Ce groupe n'a pas encore d'options. Utilisez « Ajouter une option » pour créer la première.",
+      "inactive": "Inactif",
+      "free": "Sans supplément",
+      "deleted": "Option supprimée",
+      "deletedDesc": "L'option a été retirée du groupe.",
+      "deleteTitle": "Supprimer l'option ?",
+      "deleteDescription": "« {{name}} » sera retirée de ce groupe. Cette action est irréversible.",
+      "groupSection": "Informations du groupe"
+    },
+    "forms": {
+      "selectProducts": "Sélectionner des produits"
     }
   }
 }

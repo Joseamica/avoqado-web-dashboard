@@ -21,7 +21,6 @@ export const MenuMakerLayout = lazyWithRetry(() => import('@/pages/Menu/MenuMake
 export const CreateMenu = lazyWithRetry(() => import('@/pages/Menu/Menus/createMenu'))
 export const Menus = lazyWithRetry(() => import('@/pages/Menu/Menus/Menus'))
 export const ModifierGroups = lazyWithRetry(() => import('@/pages/Menu/Modifiers/ModifierGroups'))
-export const ModifierGroupId = lazyWithRetry(() => import('@/pages/Menu/Modifiers/ModifierGroupId'))
 export const CreateModifierGroup = lazyWithRetry(() => import('@/pages/Menu/Modifiers/createModifierGroup'))
 export const MenuOverview = lazyWithRetry(() => import('@/pages/Menu/MenuOverview'))
 export const CreateProduct = lazyWithRetry(() => import('@/pages/Menu/Products/createProduct'))
@@ -150,6 +149,7 @@ export const StockCountDetailPage = lazyWithRetry(() => import('@/pages/Inventor
 export const InventoryTransfersPage = lazyWithRetry(() => import('@/pages/Inventory/Transfers/TransfersPage'))
 export const InventoryTransferDetailPage = lazyWithRetry(() => import('@/pages/Inventory/Transfers/TransferDetailPage'))
 export const AutoReorderSettings = lazyWithRetry(() => import('@/pages/Inventory/AutoReorderSettings'))
+export const MerchantRoutingRules = lazyWithRetry(() => import('@/pages/Payment/MerchantRoutingRules'))
 
 // Settings
 export const SettingsLayout = lazyWithRetry(() => import('@/pages/Settings/SettingsLayout'))

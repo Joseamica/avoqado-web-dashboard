@@ -21,10 +21,13 @@ import {
   deleteOrgCategory,
   getOrgTeam,
   getOrgZones,
+  getOrgPromoterLocationSettings,
+  updateVenuePromoterLocationSettings,
   type CreateOrgGoalInput,
   type UpdateOrgGoalInput,
   type CreateItemCategoryDto,
   type UpdateItemCategoryDto,
+  type UpdateVenuePromoterLocationSettingsInput,
 } from '@/services/organizationConfig.service'
 
 // ===== ORG GOALS =====
@@ -146,6 +149,30 @@ export function useOrgTpvStats(options?: { enabled?: boolean }) {
     queryFn: () => getOrgTpvStats(orgId!),
     enabled: options?.enabled !== false && !!orgId,
     staleTime: 60000,
+  })
+}
+
+export function useOrgPromoterLocationSettings(options?: { enabled?: boolean }) {
+  const { orgId } = useCurrentOrganization()
+
+  return useQuery({
+    queryKey: ['org-config', orgId, 'promoter-location-settings'],
+    queryFn: () => getOrgPromoterLocationSettings(orgId!),
+    enabled: options?.enabled !== false && !!orgId,
+    staleTime: 60000,
+  })
+}
+
+export function useUpdateVenuePromoterLocationSettings() {
+  const { orgId } = useCurrentOrganization()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ venueId, data }: { venueId: string; data: UpdateVenuePromoterLocationSettingsInput }) =>
+      updateVenuePromoterLocationSettings(orgId!, venueId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['org-config', orgId, 'promoter-location-settings'] })
+    },
   })
 }
 

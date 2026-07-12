@@ -363,6 +363,13 @@ export function AppSidebar({
         keywords: ['cobros', 'pagos', 'dinero'],
       },
       {
+        title: t('merchantRouting:sidebar', { defaultValue: 'Reglas de cobro' }),
+        url: 'payments/routing-rules',
+        permission: 'payments:routing-read',
+        locked: !hasKYCAccess,
+        keywords: ['merchant', 'reglas', 'routing', 'cuentas de cobro', 'enrutamiento', 'afiliacion'],
+      },
+      {
         title: t('sidebar:salesMenu.orders', { defaultValue: 'Pedidos' }),
         url: 'orders',
         permission: 'orders:read',

@@ -46,3 +46,6 @@ docs/square-research/
 /*.png
 .gstack/
 .worktrees/
+
+# graphify knowledge graph output
+graphify-out/

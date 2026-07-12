@@ -78,7 +78,16 @@ export const PLAN_TIERS: PlanTierDef[] = [
     featureKeys: ['allPro', 'cfdi', 'inventoryFifo', 'predictiveAnalytics', 'multiVenue', 'prioritySupport'],
     // 'ADVANCED_ANALYTICS' removed 2026-07-01: dead pay-per-feature code (never gated anything).
     // The "analítica predictiva" bullet on the Premium card is featureKeys copy, not this code.
-    includes: ['CFDI', 'INVENTORY_TRACKING', 'COMMISSIONS', 'ATTENDANCE_TRACKING', 'SERIALIZED_INVENTORY', 'AUTO_REORDER', 'TRANSACTION_EXPORT'],
+    includes: [
+      'CFDI',
+      'INVENTORY_TRACKING',
+      'COMMISSIONS',
+      'ATTENDANCE_TRACKING',
+      'SERIALIZED_INVENTORY',
+      'AUTO_REORDER',
+      'TRANSACTION_EXPORT',
+      'MERCHANT_ROUTING_RULES', // Reglas condicionales de merchants en TPV (espejo de PREMIUM_ONLY_CODES backend)
+    ],
   },
   {
     id: 'ENTERPRISE',

@@ -59,7 +59,6 @@ import {
   MenuMakerLayout,
   MenuOverview,
   Menus,
-  ModifierGroupId,
   ModifierGroups,
   ModifierInventory,
   ModifierAnalytics,
@@ -137,6 +136,7 @@ import {
   InventoryTransfersPage,
   InventoryTransferDetailPage,
   AutoReorderSettings,
+  MerchantRoutingRules,
   TeamId,
   Teams,
   TerminalOrderDetail,
@@ -193,7 +193,6 @@ export function createVenueRoutes(): RouteObject[] {
             { path: 'products/create', element: <Navigate to="../products" replace /> },
             { path: 'services', element: <Services /> },
             { path: 'modifier-groups', element: <ModifierGroups /> },
-            { path: 'modifier-groups/:modifierGroupId', element: <ModifierGroupId /> },
             { path: 'modifier-groups/create', element: <CreateModifierGroup /> },
             { path: 'credit-packs', element: <CreditPacks /> },
           ],
@@ -226,6 +225,8 @@ export function createVenueRoutes(): RouteObject[] {
           element: <KYCProtectedRoute />,
           children: [
             { path: 'payments', element: <Payments /> },
+            // Reglas de cuentas de cobro — self-gates con <FeatureGate feature="MERCHANT_ROUTING_RULES"> (PREMIUM)
+            { path: 'payments/routing-rules', element: <MerchantRoutingRules /> },
             { path: 'payments/:paymentId', element: <Payments /> },
           ],
         },

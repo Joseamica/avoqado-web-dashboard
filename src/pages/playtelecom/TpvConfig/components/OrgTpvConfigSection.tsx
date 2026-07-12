@@ -12,8 +12,31 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { Building2, Loader2, RotateCcw, Save, Clock, Banknote, CreditCard, ScanBarcode, Store, Camera, MapPin } from 'lucide-react'
-import { useOrgAttendanceConfig, useUpsertOrgAttendanceConfig, useDeleteOrgAttendanceConfig } from '@/hooks/useOrganizationConfig'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Building2,
+  Loader2,
+  RotateCcw,
+  Save,
+  Clock,
+  Banknote,
+  CreditCard,
+  ScanBarcode,
+  Store,
+  Camera,
+  MapPin,
+  ChevronDown,
+} from 'lucide-react'
+import {
+  useOrgAttendanceConfig,
+  useUpsertOrgAttendanceConfig,
+  useDeleteOrgAttendanceConfig,
+  useOrgPromoterLocationSettings,
+  useUpdateVenuePromoterLocationSettings,
+} from '@/hooks/useOrganizationConfig'
+import type { VenuePromoterLocationSettings } from '@/services/organizationConfig.service'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useToast } from '@/hooks/use-toast'
@@ -29,6 +52,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+
+const START_HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => i) // 0..23
+const END_HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => i + 1) // 1..24
+const formatHourLabel = (hour: number) => `${String(hour).padStart(2, '0')}:00`
 
 const MODULE_TOGGLES = [
   {
@@ -99,6 +126,11 @@ export default function OrgTpvConfigSection() {
   const [latenessThreshold, setLatenessThreshold] = useState('30')
   const [geofenceRadius, setGeofenceRadius] = useState('500')
 
+  // Promoter location capture window (org default)
+  const [promoterLocationStartHour, setPromoterLocationStartHour] = useState(11)
+  const [promoterLocationEndHour, setPromoterLocationEndHour] = useState(18)
+  const is24h = promoterLocationStartHour === 0 && promoterLocationEndHour === 24
+
   // Sync form with fetched config
   useEffect(() => {
     if (config) {
@@ -114,8 +146,20 @@ export default function OrgTpvConfigSection() {
       setExpectedCheckInTime(config.expectedCheckInTime)
       setLatenessThreshold(String(config.latenessThresholdMinutes))
       setGeofenceRadius(String(config.geofenceRadiusMeters))
+      setPromoterLocationStartHour(config.promoterLocationStartHour ?? 11)
+      setPromoterLocationEndHour(config.promoterLocationEndHour ?? 18)
     }
   }, [config])
+
+  const handleToggle24h = useCallback((checked: boolean) => {
+    if (checked) {
+      setPromoterLocationStartHour(0)
+      setPromoterLocationEndHour(24)
+    } else {
+      setPromoterLocationStartHour(11)
+      setPromoterLocationEndHour(18)
+    }
+  }, [])
 
   const handleModuleChange = useCallback((key: ModuleKey, value: boolean) => {
     setModules(prev => {
@@ -130,18 +174,35 @@ export default function OrgTpvConfigSection() {
   }, [])
 
   const handleSave = useCallback(async () => {
+    if (modules.trackPromoterLocation && !is24h && promoterLocationStartHour >= promoterLocationEndHour) {
+      toast({ title: t('playtelecom:tpvConfig.orgTpvConfig.invalidWindow'), variant: 'destructive' })
+      return
+    }
     try {
       await upsertMutation.mutateAsync({
         ...modules,
         expectedCheckInTime,
         latenessThresholdMinutes: Number(latenessThreshold) || 30,
         geofenceRadiusMeters: Number(geofenceRadius) || 500,
+        promoterLocationStartHour,
+        promoterLocationEndHour,
       })
       toast({ title: t('playtelecom:tpvConfig.orgTpvConfig.saveSuccess') })
     } catch {
       toast({ title: t('playtelecom:tpvConfig.orgTpvConfig.error'), variant: 'destructive' })
     }
-  }, [upsertMutation, modules, expectedCheckInTime, latenessThreshold, geofenceRadius, toast, t])
+  }, [
+    upsertMutation,
+    modules,
+    expectedCheckInTime,
+    latenessThreshold,
+    geofenceRadius,
+    promoterLocationStartHour,
+    promoterLocationEndHour,
+    is24h,
+    toast,
+    t,
+  ])
 
   const handleReset = useCallback(async () => {
     try {
@@ -158,6 +219,8 @@ export default function OrgTpvConfigSection() {
       setExpectedCheckInTime('09:00')
       setLatenessThreshold('30')
       setGeofenceRadius('500')
+      setPromoterLocationStartHour(11)
+      setPromoterLocationEndHour(18)
       toast({ title: t('playtelecom:tpvConfig.orgTpvConfig.resetSuccess') })
     } catch {
       toast({ title: t('playtelecom:tpvConfig.orgTpvConfig.error'), variant: 'destructive' })
@@ -256,6 +319,64 @@ export default function OrgTpvConfigSection() {
             </div>
           </div>
 
+          {/* Promoter Location Capture Window (visible when trackPromoterLocation is on) */}
+          {modules.trackPromoterLocation && (
+            <div>
+              <h5 className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-3">
+                {t(`${ns}.locationWindowTitle`)}
+              </h5>
+              <p className="text-[10px] text-muted-foreground mb-3">{t(`${ns}.locationWindowDesc`)}</p>
+              <div className="flex flex-wrap items-end gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">{t(`${ns}.locationWindowStart`)}</Label>
+                  <Select
+                    value={String(promoterLocationStartHour)}
+                    onValueChange={v => setPromoterLocationStartHour(Number(v))}
+                    disabled={is24h}
+                  >
+                    <SelectTrigger className="w-28 h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {START_HOUR_OPTIONS.map(h => (
+                        <SelectItem key={h} value={String(h)}>
+                          {formatHourLabel(h)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">{t(`${ns}.locationWindowEnd`)}</Label>
+                  <Select
+                    value={String(promoterLocationEndHour)}
+                    onValueChange={v => setPromoterLocationEndHour(Number(v))}
+                    disabled={is24h}
+                  >
+                    <SelectTrigger className="w-28 h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {END_HOUR_OPTIONS.map(h => (
+                        <SelectItem key={h} value={String(h)}>
+                          {formatHourLabel(h)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2 pb-1.5">
+                  <Switch checked={is24h} onCheckedChange={handleToggle24h} />
+                  <span className="text-xs text-muted-foreground">{t(`${ns}.locationWindow24h`)}</span>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <PerVenuePromoterLocationSettings ns={ns} />
+              </div>
+            </div>
+          )}
+
           {/* Attendance Config Section (visible when attendanceTracking is on) */}
           {modules.attendanceTracking && (
             <div>
@@ -319,5 +440,152 @@ export default function OrgTpvConfigSection() {
         <p className="text-xs text-muted-foreground mt-3 italic">{t(`${ns}.noConfig`)}</p>
       )}
     </GlassCard>
+  )
+}
+
+/**
+ * PerVenuePromoterLocationSettings - Collapsible list letting OWNER+ override
+ * trackPromoterLocation + the capture window (start/end hour) per venue.
+ * Each row saves independently via a PUT to
+ * /organizations/:orgId/venues/:venueId/promoter-location-settings.
+ */
+function PerVenuePromoterLocationSettings({ ns }: { ns: string }) {
+  const { t } = useTranslation(['playtelecom', 'common'])
+  const [open, setOpen] = useState(false)
+  const { data: venues, isLoading } = useOrgPromoterLocationSettings({ enabled: open })
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} className="rounded-xl border border-input bg-card/50">
+      <CollapsibleTrigger asChild>
+        <button
+          type="button"
+          className="flex w-full items-center justify-between p-3 text-left cursor-pointer"
+        >
+          <div>
+            <p className="text-xs font-semibold">{t(`${ns}.perVenueTitle`)}</p>
+            <p className="text-[10px] text-muted-foreground">{t(`${ns}.perVenueDesc`)}</p>
+          </div>
+          <ChevronDown className={cn('w-4 h-4 text-muted-foreground transition-transform', open && 'rotate-180')} />
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="border-t border-input p-3 space-y-2">
+        {isLoading ? (
+          <div className="space-y-2">
+            {[1, 2, 3].map(i => (
+              <Skeleton key={i} className="h-12 w-full rounded-lg" />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {(venues ?? []).map(venue => (
+              <VenueLocationRow key={venue.venueId} venue={venue} ns={ns} />
+            ))}
+          </div>
+        )}
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
+function VenueLocationRow({ venue, ns }: { venue: VenuePromoterLocationSettings; ns: string }) {
+  const { t } = useTranslation(['playtelecom', 'common'])
+  const { toast } = useToast()
+  const updateMutation = useUpdateVenuePromoterLocationSettings()
+
+  const [trackPromoterLocation, setTrackPromoterLocation] = useState(venue.trackPromoterLocation)
+  const [startHour, setStartHour] = useState(venue.promoterLocationStartHour ?? 11)
+  const [endHour, setEndHour] = useState(venue.promoterLocationEndHour ?? 18)
+
+  useEffect(() => {
+    setTrackPromoterLocation(venue.trackPromoterLocation)
+    setStartHour(venue.promoterLocationStartHour ?? 11)
+    setEndHour(venue.promoterLocationEndHour ?? 18)
+  }, [venue])
+
+  const rowIs24h = startHour === 0 && endHour === 24
+
+  const save = useCallback(
+    (data: { trackPromoterLocation?: boolean; promoterLocationStartHour?: number; promoterLocationEndHour?: number }) => {
+      updateMutation.mutate(
+        { venueId: venue.venueId, data },
+        {
+          onSuccess: () => toast({ title: t(`${ns}.venueUpdated`) }),
+          onError: () => toast({ title: t(`${ns}.error`), variant: 'destructive' }),
+        },
+      )
+    },
+    [updateMutation, venue.venueId, toast, t, ns],
+  )
+
+  const handleTrackChange = (checked: boolean) => {
+    setTrackPromoterLocation(checked)
+    save({ trackPromoterLocation: checked })
+  }
+
+  const handleStartChange = (value: string) => {
+    const newStart = Number(value)
+    setStartHour(newStart)
+    if (newStart >= endHour) {
+      toast({ title: t(`${ns}.invalidWindow`), variant: 'destructive' })
+      return
+    }
+    save({ promoterLocationStartHour: newStart })
+  }
+
+  const handleEndChange = (value: string) => {
+    const newEnd = Number(value)
+    setEndHour(newEnd)
+    if (startHour >= newEnd) {
+      toast({ title: t(`${ns}.invalidWindow`), variant: 'destructive' })
+      return
+    }
+    save({ promoterLocationEndHour: newEnd })
+  }
+
+  const handleToggle24h = (checked: boolean) => {
+    const nextStart = checked ? 0 : 11
+    const nextEnd = checked ? 24 : 18
+    setStartHour(nextStart)
+    setEndHour(nextEnd)
+    save({ promoterLocationStartHour: nextStart, promoterLocationEndHour: nextEnd })
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-input bg-background/50 p-2">
+      <div className="flex items-center gap-2 min-w-0">
+        <Switch checked={trackPromoterLocation} onCheckedChange={handleTrackChange} className="shrink-0" />
+        <p className="text-xs font-medium truncate">{venue.name}</p>
+      </div>
+      <div className={cn('flex items-center gap-2', !trackPromoterLocation && 'opacity-40 pointer-events-none')}>
+        <Select value={String(startHour)} onValueChange={handleStartChange} disabled={rowIs24h || !trackPromoterLocation}>
+          <SelectTrigger className="w-20 h-7 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {START_HOUR_OPTIONS.map(h => (
+              <SelectItem key={h} value={String(h)} className="text-xs">
+                {formatHourLabel(h)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={String(endHour)} onValueChange={handleEndChange} disabled={rowIs24h || !trackPromoterLocation}>
+          <SelectTrigger className="w-20 h-7 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {END_HOUR_OPTIONS.map(h => (
+              <SelectItem key={h} value={String(h)} className="text-xs">
+                {formatHourLabel(h)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="flex items-center gap-1">
+          <Switch checked={rowIs24h} onCheckedChange={handleToggle24h} disabled={!trackPromoterLocation} />
+          <span className="text-[10px] text-muted-foreground whitespace-nowrap">{t(`${ns}.locationWindow24h`)}</span>
+        </div>
+      </div>
+    </div>
   )
 }

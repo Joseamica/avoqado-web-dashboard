@@ -176,7 +176,7 @@
     },
     "actions": {
       "title": "Actions",
-      "edit": "Edit",
+      "edit": "Edit group",
       "assignModifiers": "Assign modifiers and products",
       "assignModifiersAndProducts": "Assign modifiers and products",
       "delete": "Delete",
@@ -211,7 +211,8 @@
       "noModifiers": "No modifiers assigned to this group",
       "noProducts": "No products assigned to this modifier group",
       "save": "Save",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "selectProducts": "Select products"
     },
     "detail": {
       "groupInformation": "Group Information",
@@ -386,6 +387,18 @@
       "quantityPerUnitDesc": "How much raw material is used per modifier",
       "unit": "Unit",
       "selectUnit": "Select unit"
+    },
+    "editor": {
+      "subtitle": "Modifiers in this group",
+      "addModifier": "Add modifier",
+      "empty": "This group has no modifiers yet. Use \"Add modifier\" to create the first one.",
+      "inactive": "Inactive",
+      "free": "No extra charge",
+      "deleted": "Modifier deleted",
+      "deletedDesc": "The modifier was removed from the group.",
+      "deleteTitle": "Delete modifier?",
+      "deleteDescription": "\"{{name}}\" will be removed from this group. This action cannot be undone.",
+      "groupSection": "Group information"
     }
   },
   "products": {
@@ -407,37 +420,6 @@
       "updatedAt": "Last update",
       "available": "Available",
       "unavailable": "86'd"
-    },
-    "actions": {
-      "adjustStock": "Adjust Stock",
-      "adjustStockDialog": {
-        "title": "Adjust Stock - {{productName}}",
-        "currentStock": "Current Stock",
-        "adjustment": "Adjustment",
-        "adjustmentPlaceholder": "Enter amount (+ to add, - to remove)",
-        "reason": "Reason",
-        "reasonPlaceholder": "Why are you adjusting stock?",
-        "reasons": {
-          "recount": "Physical recount",
-          "damage": "Damaged/Spoiled",
-          "theft": "Theft/Loss",
-          "correction": "Correction",
-          "receiving": "Receiving delivery",
-          "other": "Other"
-        },
-        "newStock": "New Stock",
-        "notes": "Notes (optional)",
-        "notesPlaceholder": "Additional details...",
-        "cancel": "Cancel",
-        "save": "Save Adjustment",
-        "saving": "Saving...",
-        "confirmAndSave": "Confirm & Save",
-        "confirmLargeAdjustment": "Confirm large adjustment:",
-        "confirmLargeAdjustmentMessage": "This will change stock by {{amount}} {{unit}} ({{percentage}}% of current stock). Click Save again to confirm.",
-        "warning": "Warning:",
-        "largeAdjustmentWarning": "This is a large adjustment ({{percentage}}% of current stock). Please verify the amount is correct.",
-        "cannotReduceBelowZero": "Cannot reduce stock below 0. Current stock is {{amount}} {{unit}}. Minimum adjustment: {{minimum}}"
-      }
     },
     "actions": {
       "adjustStock": "Adjust Stock",
@@ -588,7 +570,6 @@
         "noIngredients": "No ingredients added yet. Add at least one ingredient for recipe-based tracking.",
         "ingredientName": "Ingredient",
         "quantity": "Quantity",
-        "unit": "Unit",
         "ingredientQuantity": "Quantity",
         "ingredientUnit": "Unit",
         "ingredientCost": "Cost",

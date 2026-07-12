@@ -15,7 +15,6 @@ import { useMenuMakerHeader } from '../MenuMakerLayout'
 
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Menu, MenuCategory } from '@/types'
-import { formatDateInTimeZone } from '@/utils/luxon'
 import { includesNormalized } from '@/lib/utils'
 
 export default function Menus() {
@@ -82,12 +81,10 @@ export default function Menus() {
           return <span>{t('menus.columns.alwaysAvailable')}</span>
         }
 
-        const formattedStart = formatDateInTimeZone(availableFrom, 'America/Mexico_City')
-        const formattedEnd = formatDateInTimeZone(availableUntil, 'America/Mexico_City')
-
+        // availableFrom/availableUntil are plain "HH:mm" venue-local times, not UTC instants
         return (
           <span>
-            {formattedStart} - {formattedEnd}
+            {availableFrom} - {availableUntil}
           </span>
         )
       },

@@ -176,7 +176,7 @@
     },
     "actions": {
       "title": "Acciones",
-      "edit": "Editar",
+      "edit": "Editar grupo",
       "assignModifiers": "Asignar modificadores y productos",
       "assignModifiersAndProducts": "Asignar modificadores y productos",
       "delete": "Eliminar",
@@ -211,7 +211,8 @@
       "noModifiers": "No hay modificadores asignados a este grupo",
       "noProducts": "No hay productos asignados a este grupo modificador",
       "save": "Guardar",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "selectProducts": "Selecciona productos"
     },
     "detail": {
       "groupInformation": "Información del grupo",
@@ -375,6 +376,18 @@
       "quantityPerUnitDesc": "Cuánta Ingrediente se usa por cada modificador",
       "unit": "Unidad",
       "selectUnit": "Seleccionar unidad"
+    },
+    "editor": {
+      "subtitle": "Modificadores del grupo",
+      "addModifier": "Agregar modificador",
+      "empty": "Este grupo no tiene modificadores todavía. Usa \"Agregar modificador\" para crear el primero.",
+      "inactive": "Inactivo",
+      "free": "Sin costo extra",
+      "deleted": "Modificador eliminado",
+      "deletedDesc": "El modificador se eliminó del grupo.",
+      "deleteTitle": "¿Eliminar modificador?",
+      "deleteDescription": "Se eliminará \"{{name}}\" de este grupo. Esta acción no se puede deshacer.",
+      "groupSection": "Información del grupo"
     }
   },
   "products": {

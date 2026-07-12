@@ -22,6 +22,9 @@ import venueFr from '@/locales/fr/venue.json'
 import inventoryEn from '@/locales/en/inventory.json'
 import inventoryEs from '@/locales/es/inventory.json'
 import inventoryFr from '@/locales/fr/inventory.json'
+import merchantRoutingEn from '@/locales/en/merchantRouting.json'
+import merchantRoutingEs from '@/locales/es/merchantRouting.json'
+import merchantRoutingFr from '@/locales/fr/merchantRouting.json'
 import settingsEn from '@/locales/en/settings.json'
 import settingsEs from '@/locales/es/settings.json'
 import commonEn from '@/locales/en/common.json'
@@ -272,6 +275,15 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'inventory', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', merchantRoutingEn],
+    ['es', merchantRoutingEs],
+    ['fr', merchantRoutingFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'merchantRouting', bundle as Record<string, unknown>, true, true)
 })
 ;(
   [

@@ -65,6 +65,8 @@ export interface OrgAttendanceConfig {
   enableCardPayments: boolean
   enableBarcodeScanner: boolean
   trackPromoterLocation: boolean
+  promoterLocationStartHour: number
+  promoterLocationEndHour: number
   settings: Record<string, unknown> | null
 }
 
@@ -94,6 +96,39 @@ export const upsertOrgTpvDefaults = async (orgId: string, settings: Record<strin
 
 export const getOrgTpvStats = async (orgId: string): Promise<Record<string, unknown>> => {
   const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/org-tpv-defaults/stats`)
+  return response.data.data
+}
+
+// ===== ORG PROMOTER LOCATION SETTINGS (per-venue) =====
+
+export interface VenuePromoterLocationSettings {
+  venueId: string
+  name: string
+  trackPromoterLocation: boolean
+  promoterLocationStartHour: number
+  promoterLocationEndHour: number
+}
+
+export const getOrgPromoterLocationSettings = async (orgId: string): Promise<VenuePromoterLocationSettings[]> => {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/promoter-location-settings`)
+  return response.data.data.venues
+}
+
+export interface UpdateVenuePromoterLocationSettingsInput {
+  trackPromoterLocation?: boolean
+  promoterLocationStartHour?: number
+  promoterLocationEndHour?: number
+}
+
+export const updateVenuePromoterLocationSettings = async (
+  orgId: string,
+  venueId: string,
+  data: UpdateVenuePromoterLocationSettingsInput,
+): Promise<VenuePromoterLocationSettings> => {
+  const response = await api.put(
+    `/api/v1/dashboard/organizations/${orgId}/venues/${venueId}/promoter-location-settings`,
+    data,
+  )
   return response.data.data
 }
 
