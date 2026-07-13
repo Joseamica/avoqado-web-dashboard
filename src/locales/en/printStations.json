@@ -1,0 +1,147 @@
+{
+  "title": "Printers & stations",
+  "description": "Set which printer each ticket goes to. That way {{kitchen}} and bar only get what's theirs, with no mix-ups.",
+  "loading": "Loading…",
+  "tabs": {
+    "stations": "Stations",
+    "printers": "Printers",
+    "gateway": "Gateway",
+    "routing": "Routing"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "add": "Add",
+    "edit": "Edit",
+    "delete": "Delete",
+    "close": "Close",
+    "saving": "Saving…"
+  },
+  "errors": {
+    "title": "Couldn't save",
+    "generic": "Something went wrong. Please try again."
+  },
+  "stations": {
+    "intro": "A station is a prep point (for example {{kitchen}} or bar). Each station prints to one printer.",
+    "empty": "No stations yet. Create the first one to start routing tickets.",
+    "add": "Add station",
+    "createTitle": "New station",
+    "editTitle": "Edit station",
+    "colName": "Station",
+    "colPrinter": "Printer",
+    "colCopies": "Copies",
+    "colStatus": "Status",
+    "noPrinter": "No printer",
+    "defaultBadge": "Default",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "fields": {
+      "name": "Station name",
+      "namePlaceholder": "e.g. Hot kitchen",
+      "printer": "Printer",
+      "printerNone": "No printer",
+      "copies": "Copies per ticket",
+      "isDefault": "Default station",
+      "isDefaultHint": "The default station receives products that have no route assigned.",
+      "active": "Station active"
+    },
+    "saved": "Station saved",
+    "deleted": "Station deleted",
+    "deleteTitle": "Delete this station?",
+    "deleteMessage": "\"{{name}}\" will be deleted. Products routed to it will be left unrouted.",
+    "validation": {
+      "nameRequired": "Enter a name for the station."
+    }
+  },
+  "printers": {
+    "intro": "Register each physical printer in the venue. In this version printers connect over the network (WiFi/Ethernet).",
+    "empty": "No printers registered yet.",
+    "add": "Add printer",
+    "createTitle": "New printer",
+    "editTitle": "Edit printer",
+    "colName": "Printer",
+    "colAddress": "Address",
+    "colWidth": "Width",
+    "colStatus": "Status",
+    "widthValue": "{{mm}} mm",
+    "noStatus": "No data",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "connectionNetwork": "Network (WiFi / Ethernet)",
+    "fields": {
+      "name": "Printer name",
+      "namePlaceholder": "e.g. Kitchen printer",
+      "address": "Network address (IP:port)",
+      "addressPlaceholder": "192.168.1.50:9100",
+      "addressHint": "The printer's IP and its port. The usual port is 9100.",
+      "connection": "Connection",
+      "paperWidth": "Paper width",
+      "charset": "Charset",
+      "active": "Printer active"
+    },
+    "saved": "Printer saved",
+    "deleted": "Printer deleted",
+    "deleteTitle": "Delete this printer?",
+    "deleteMessage": "\"{{name}}\" will be deleted. Stations using it will be left without a printer.",
+    "validation": {
+      "nameRequired": "Enter a name for the printer.",
+      "addressRequired": "Enter the network address (IP:port)."
+    }
+  },
+  "gateway": {
+    "intro": "The gateway is the device (a tablet) that stays on and controls the printers on the venue's network.",
+    "none": "No gateway designated. Designate a tablet to control the printers.",
+    "set": "Designate gateway",
+    "edit": "Change gateway",
+    "colTerminal": "Terminal",
+    "colAddress": "Address",
+    "colHeartbeat": "Last signal",
+    "never": "No signal yet",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "createTitle": "Designate gateway",
+    "editTitle": "Change gateway",
+    "fields": {
+      "terminalId": "Terminal (tablet) ID",
+      "terminalIdPlaceholder": "e.g. TABLET-COUNTER-01",
+      "address": "Network address (optional)",
+      "addressPlaceholder": "192.168.1.20",
+      "active": "Gateway active"
+    },
+    "saved": "Gateway updated",
+    "validation": {
+      "terminalRequired": "Enter the terminal ID."
+    }
+  },
+  "routing": {
+    "intro": "Decide which station each {{menu}} category goes to. You can fine-tune by product when one goes to a different station.",
+    "empty": "No categories in your {{menu}} yet. Create the {{menu}} first.",
+    "category": "Category",
+    "product": "Product",
+    "unassigned": "Unassigned",
+    "inherit": "Inherit from category",
+    "save": "Save routing",
+    "saved": "Routing saved",
+    "expandProducts": "Show products",
+    "collapseProducts": "Hide products",
+    "unroutedBadge": "{{count}} categories unrouted",
+    "unroutedBadge_one": "{{count}} category unrouted",
+    "unroutedBadge_other": "{{count}} categories unrouted",
+    "allRouted": "All categories are routed",
+    "noDefaultTitle": "No default station",
+    "noDefaultWarning": "Unrouted products will print a ticket marked NO STATION. Mark a station as \"default\" to avoid this.",
+    "simulator": {
+      "title": "Simulate a ticket",
+      "description": "Pick products and quantities to see which station they'd go to.",
+      "product": "Product",
+      "quantity": "Quantity",
+      "addItem": "Add product",
+      "run": "Simulate",
+      "selectProduct": "Pick a product",
+      "noItems": "Add at least one product to simulate.",
+      "unroutedStation": "NO STATION",
+      "lineFormat": "{{quantity}}x {{name}}",
+      "unroutedNote": "Some products have no station and would come out on a ticket marked NO STATION."
+    }
+  }
+}

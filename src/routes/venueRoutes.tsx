@@ -98,6 +98,7 @@ import {
   CfdiList,
   CfdiConfiguracion,
   RolePermissions,
+  PrintStations,
   SalesByItem,
   SalesByCategory,
   PaymentMethods,
@@ -763,6 +764,13 @@ export function createVenueRoutes(): RouteObject[] {
           path: 'activity-log',
           element: <PermissionProtectedRoute permission="activity:read" />,
           children: [{ index: true, element: <VenueActivityLog /> }],
+        },
+
+        // Este local — impresoras y estaciones (FREE; ruteo de comandas cocina/barra)
+        {
+          path: 'print-stations',
+          element: <PermissionProtectedRoute permission="printers:read" />,
+          children: [{ index: true, element: <PrintStations /> }],
         },
       ],
     },

@@ -1,0 +1,147 @@
+{
+  "title": "Impresoras y estaciones",
+  "description": "Configura a qué impresora se manda cada comanda. Así {{kitchen}} y barra reciben solo lo suyo, sin errores.",
+  "loading": "Cargando…",
+  "tabs": {
+    "stations": "Estaciones",
+    "printers": "Impresoras",
+    "gateway": "Gateway",
+    "routing": "Ruteo"
+  },
+  "actions": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "add": "Agregar",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "close": "Cerrar",
+    "saving": "Guardando…"
+  },
+  "errors": {
+    "title": "No se pudo guardar",
+    "generic": "Ocurrió un error. Intenta de nuevo."
+  },
+  "stations": {
+    "intro": "Una estación es un punto de preparación (por ejemplo {{kitchen}} o barra). Cada estación imprime en una impresora.",
+    "empty": "Aún no hay estaciones. Crea la primera para empezar a rutear comandas.",
+    "add": "Agregar estación",
+    "createTitle": "Nueva estación",
+    "editTitle": "Editar estación",
+    "colName": "Estación",
+    "colPrinter": "Impresora",
+    "colCopies": "Copias",
+    "colStatus": "Estado",
+    "noPrinter": "Sin impresora",
+    "defaultBadge": "Por defecto",
+    "statusActive": "Activa",
+    "statusInactive": "Inactiva",
+    "fields": {
+      "name": "Nombre de la estación",
+      "namePlaceholder": "Ej. Cocina caliente",
+      "printer": "Impresora",
+      "printerNone": "Sin impresora",
+      "copies": "Copias por comanda",
+      "isDefault": "Estación por defecto",
+      "isDefaultHint": "La estación por defecto recibe los productos sin ruta asignada.",
+      "active": "Estación activa"
+    },
+    "saved": "Estación guardada",
+    "deleted": "Estación eliminada",
+    "deleteTitle": "¿Eliminar esta estación?",
+    "deleteMessage": "\"{{name}}\" se eliminará. Los productos ruteados a ella quedarán sin ruta.",
+    "validation": {
+      "nameRequired": "Escribe un nombre para la estación."
+    }
+  },
+  "printers": {
+    "intro": "Registra cada impresora física del local. En esta versión las impresoras se conectan por red (WiFi/Ethernet).",
+    "empty": "Aún no hay impresoras registradas.",
+    "add": "Agregar impresora",
+    "createTitle": "Nueva impresora",
+    "editTitle": "Editar impresora",
+    "colName": "Impresora",
+    "colAddress": "Dirección",
+    "colWidth": "Ancho",
+    "colStatus": "Estado",
+    "widthValue": "{{mm}} mm",
+    "noStatus": "Sin datos",
+    "statusActive": "Activa",
+    "statusInactive": "Inactiva",
+    "connectionNetwork": "Red (WiFi / Ethernet)",
+    "fields": {
+      "name": "Nombre de la impresora",
+      "namePlaceholder": "Ej. Impresora de cocina",
+      "address": "Dirección de red (IP:puerto)",
+      "addressPlaceholder": "192.168.1.50:9100",
+      "addressHint": "IP de la impresora y su puerto. El puerto usual es 9100.",
+      "connection": "Conexión",
+      "paperWidth": "Ancho de papel",
+      "charset": "Codificación",
+      "active": "Impresora activa"
+    },
+    "saved": "Impresora guardada",
+    "deleted": "Impresora eliminada",
+    "deleteTitle": "¿Eliminar esta impresora?",
+    "deleteMessage": "\"{{name}}\" se eliminará. Las estaciones que la usaban quedarán sin impresora.",
+    "validation": {
+      "nameRequired": "Escribe un nombre para la impresora.",
+      "addressRequired": "Escribe la dirección de red (IP:puerto)."
+    }
+  },
+  "gateway": {
+    "intro": "El gateway es el dispositivo (una tablet) que queda encendido y controla las impresoras en la red del local.",
+    "none": "Sin gateway designado. Designa una tablet para que controle las impresoras.",
+    "set": "Designar gateway",
+    "edit": "Cambiar gateway",
+    "colTerminal": "Terminal",
+    "colAddress": "Dirección",
+    "colHeartbeat": "Última señal",
+    "never": "Sin señal aún",
+    "statusActive": "Activo",
+    "statusInactive": "Inactivo",
+    "createTitle": "Designar gateway",
+    "editTitle": "Cambiar gateway",
+    "fields": {
+      "terminalId": "ID de la terminal (tablet)",
+      "terminalIdPlaceholder": "Ej. TABLET-CAJA-01",
+      "address": "Dirección de red (opcional)",
+      "addressPlaceholder": "192.168.1.20",
+      "active": "Gateway activo"
+    },
+    "saved": "Gateway actualizado",
+    "validation": {
+      "terminalRequired": "Escribe el ID de la terminal."
+    }
+  },
+  "routing": {
+    "intro": "Decide a qué estación va cada categoría del {{menu}}. Puedes afinar por producto cuando alguno va a otra estación.",
+    "empty": "Aún no hay categorías en tu {{menu}}. Crea el {{menu}} primero.",
+    "category": "Categoría",
+    "product": "Producto",
+    "unassigned": "Sin asignar",
+    "inherit": "Hereda de la categoría",
+    "save": "Guardar ruteo",
+    "saved": "Ruteo guardado",
+    "expandProducts": "Ver productos",
+    "collapseProducts": "Ocultar productos",
+    "unroutedBadge": "{{count}} categorías sin ruta",
+    "unroutedBadge_one": "{{count}} categoría sin ruta",
+    "unroutedBadge_other": "{{count}} categorías sin ruta",
+    "allRouted": "Todas las categorías tienen ruta",
+    "noDefaultTitle": "Sin estación por defecto",
+    "noDefaultWarning": "Los productos sin ruta imprimirán una comanda marcada SIN ESTACIÓN. Marca una estación como \"por defecto\" para evitarlo.",
+    "simulator": {
+      "title": "Simular una comanda",
+      "description": "Elige productos y cantidades para ver a qué estación irían.",
+      "product": "Producto",
+      "quantity": "Cantidad",
+      "addItem": "Agregar producto",
+      "run": "Simular",
+      "selectProduct": "Elige un producto",
+      "noItems": "Agrega al menos un producto para simular.",
+      "unroutedStation": "SIN ESTACIÓN",
+      "lineFormat": "{{quantity}}x {{name}}",
+      "unroutedNote": "Algunos productos no tienen estación y saldrían en una comanda marcada SIN ESTACIÓN."
+    }
+  }
+}

@@ -17,6 +17,7 @@
       "roles": "Roles & permissions",
       "billing": "Plan & billing",
       "activityLog": "Activity log",
+      "printStations": "Printers & stations",
       "paymentConfig": "Payment config",
       "ecommerceChannels": "E-commerce merchants",
       "merchantAccounts": "Merchant accounts"

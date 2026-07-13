@@ -1,792 +1,794 @@
 {
-	"title": "Reservaciones",
-	"subtitle": "Gestiona reservaciones, disponibilidad y lista de espera",
-	"nav": {
-		"overview": "Resumen",
-		"calendar": "Calendario",
-		"waitlist": "Lista de espera",
-		"settings": "Configuración"
-	},
-	"emptyState": {
-		"title": "Sin reservaciones",
-		"description": "Las reservaciones aparecerán aquí cuando los clientes comiencen a reservar"
-	},
-	"tabs": {
-		"all": "Todas",
-		"pending": "Pendientes",
-		"confirmed": "Confirmadas",
-		"today": "Hoy",
-		"noShow": "No Show"
-	},
-	"filters": {
-		"dateRange": "Rango de fechas",
-		"status": "Estado",
-		"channel": "Canal",
-		"staff": "Personal",
-		"table": "Mesa"
-	},
-	"searchPlaceholder": "Buscar por nombre, teléfono o código...",
-	"columns": {
-		"code": "Código",
-		"guest": "Cliente",
-		"dateTime": "Fecha / Hora",
-		"duration": "Duración",
-		"partySize": "Personas",
-		"table": "Mesa",
-		"staff": "Asignado",
-		"status": "Estado",
-		"channel": "Canal"
-	},
-	"status": {
-		"PENDING": "Pendiente",
-		"CONFIRMED": "Confirmada",
-		"CHECKED_IN": "Check-in",
-		"COMPLETED": "Completada",
-		"CANCELLED": "Cancelada",
-		"NO_SHOW": "No Show"
-	},
-	"channel": {
-		"DASHBOARD": "Dashboard",
-		"WEB": "Web",
-		"PHONE": "Teléfono",
-		"WHATSAPP": "WhatsApp",
-		"APP": "App",
-		"WALK_IN": "Sin cita",
-		"THIRD_PARTY": "Tercero"
-	},
-	"depositStatus": {
-		"PENDING": "Pendiente",
-		"PAID": "Pagado",
-		"REFUNDED": "Reembolsado"
-	},
-	"stats": {
-		"todayCount": "Hoy",
-		"pending": "Pendientes",
-		"checkedIn": "En curso",
-		"noShowRate": "Tasa No Show"
-	},
-	"actions": {
-		"newReservation": "Nueva Reservación",
-		"confirm": "Confirmar",
-		"checkIn": "Check-in",
-		"complete": "Completar",
-		"markNoShow": "Marcar No Show",
-		"cancel": "Cancelar",
-		"reschedule": "Reagendar",
-		"edit": "Editar",
-		"viewDetails": "Ver Detalles",
-		"save": "Guardar",
-		"saveChanges": "Guardar Cambios",
-		"goBack": "Volver"
-	},
-	"form": {
-		"createTitle": "Crear cita",
-		"editTitle": "Editar Reservación",
-		"fields": {
-			"dateTime": "Fecha y Hora",
-			"date": "Fecha",
-			"startTime": "Hora de inicio",
-			"endTime": "Hora de fin",
-			"duration": "Duración",
-			"durationMin": "{{min}} min",
-			"partySize": "Personas",
-			"customer": "Cliente",
-			"guestName": "Nombre del invitado",
-			"guestPhone": "Teléfono",
-			"guestEmail": "Email",
-			"table": "Mesa",
-			"staff": "Personal asignado",
-			"channel": "Canal",
-			"specialRequests": "Solicitudes especiales",
-			"internalNotes": "Notas internas",
-			"tags": "Etiquetas"
-		},
-		"placeholders": {
-			"searchCustomer": "Buscar cliente existente...",
-			"guestName": "Nombre del invitado",
-			"guestPhone": "Teléfono de contacto",
-			"guestEmail": "Email de contacto",
-			"specialRequests": "Alergias, cumpleaños, silla de bebé...",
-			"internalNotes": "Notas visibles solo para el personal",
-			"tags": "Agregar etiqueta..."
-		},
-		"validation": {
-			"dateRequired": "La fecha es requerida",
-			"startTimeRequired": "La hora de inicio es requerida",
-			"endTimeRequired": "La hora de fin es requerida",
-			"endAfterStart": "La hora de fin debe ser posterior a la hora de inicio",
-			"durationRequired": "La duración es requerida",
-			"partySizeRequired": "El número de personas es requerido",
-			"partySizeMin": "Mínimo 1 persona",
-			"guestOrCustomer": "Selecciona un cliente o ingresa nombre del invitado",
-			"guestNameRequired": "El nombre es requerido",
-			"phoneRequired": "El teléfono es requerido",
-			"emailInvalid": "Ingresa un email válido"
-		},
-		"sections": {
-			"service": "Servicios y artículos",
-			"dateTime": "Fecha y hora",
-			"guest": "Información del Cliente",
-			"assignment": "Asignación",
-			"additional": "Información Adicional"
-		},
-		"guestMode": {
-			"existing": "Cliente existente",
-			"new": "Nuevo invitado"
-		},
-		"noServicesAvailable": "No hay servicios creados. Puedes crear uno en MenuMaker.",
-		"noTablesAvailable": "Sin mesas disponibles para este horario",
-		"selectService": "Seleccionar servicio",
-		"addService": "Añadir servicio",
-		"allServices": "Todos los servicios",
-		"createService": "Crear servicio",
-		"noService": "Sin servicio",
-		"selectTable": "Seleccionar mesa",
-		"selectStaff": "Seleccionar personal",
-		"tableCapacity": "Mesa {{number}} ({{capacity}} personas)"
-	},
-	"detail": {
-		"title": "Reservación {{code}}",
-		"confirmationCode": "Código de confirmación",
-		"timeline": "Historial",
-		"timelineEntry": "{{status}} — {{date}}",
-		"timelineBy": "por {{name}}",
-		"deposit": {
-			"title": "Depósito",
-			"amount": "Monto",
-			"status": "Estado"
-		},
-		"reschedule": {
-			"title": "Reagendar Reservación",
-			"newDate": "Nueva fecha",
-			"newStartTime": "Nueva hora de inicio",
-			"newEndTime": "Nueva hora de fin",
-			"confirm": "Confirmar Reagenda",
-			"notificationLabel": "Notificar al cliente",
-			"channels": {
-				"push": "Notificación push",
-				"whatsapp": "WhatsApp",
-				"email": "Correo electrónico",
-				"none": "Sin notificación"
-			},
-			"customMessageLabel": "Mensaje personalizado (opcional)",
-			"customMessagePlaceholder": "Ej. Disculpa el cambio, te esperamos."
-		},
-		"cancel": {
-			"title": "Cancelar Reservación",
-			"description": "¿Estás seguro de que deseas cancelar esta reservación?",
-			"reasonLabel": "Razón de cancelación",
-			"reasonPlaceholder": "Ingresa la razón (opcional)",
-			"confirm": "Confirmar Cancelación"
-		},
-		"noShow": {
-			"title": "Marcar como No Show",
-			"description": "¿Confirmas que el cliente no se presentó?"
-		},
-		"sections": {
-			"guestInfo": "Información del Cliente",
-			"reservationInfo": "Detalles de la Reservación",
-			"assignment": "Asignación",
-			"notes": "Notas"
-		}
-	},
-	"calendar": {
-		"title": "Calendario de Reservaciones",
-		"views": {
-			"day": "Día",
-			"week": "Semana",
-			"5day": "5-días",
-			"month": "Mes"
-		},
-		"interval": "Intervalo",
-		"groupBy": {
-			"label": "Agrupar por",
-			"none": "Sin agrupar",
-			"table": "Mesa",
-			"staff": "Personal",
-			"unassigned": "Sin asignar"
-		},
-		"noReservations": "Sin reservaciones para este período"
-	},
-	"availability": {
-		"title": "Editar disponibilidad",
-		"singleChange": "Cambio único",
-		"recurringSchedule": "Calendario recurrente",
-		"resetWeek": "Restablecer semana a los valores predeterminados",
-		"invalidTime": "Introduce una hora válida",
-		"done": "Listo"
-	},
-	"calendarAttributes": {
-		"title": "Atributos de la cita",
-		"subtitle": "¿Qué atributos te gustaría ver en el calendario?",
-		"confirmed": "Confirmada",
-		"pending": "Sin confirmar",
-		"newCustomer": "Nuevo cliente",
-		"showCancelled": "Consultar citas canceladas",
-		"colorByService": "Ver el calendario por servicio",
-		"colorByServiceHelp": "Asigna colores a cada servicio en el calendario.",
-		"save": "Guardar",
-		"comingSoon": "Muy pronto"
-	},
-	"classSession": {
-		"createTitle": "Agendar clase",
-		"newSession": "Nueva clase",
-		"createSuccess": "Clase agendada exitosamente",
-		"noClassProducts": "No hay clases creadas. Crea un producto tipo \"Clase\" primero.",
-		"fields": {
-			"className": "Nombre de la clase",
-			"classPlaceholder": "Selecciona una clase",
-			"capacity": "Plazas disponibles",
-			"recurrence": "Se repite"
-		},
-		"createClass": "Crear clase",
-		"addClass": "Añadir nueva clase",
-		"allClasses": "Todas las clases",
-		"free": "Gratis",
-		"spotsLeft": "{{count}} lugar disponible",
-		"spotsLeft_other": "{{count}} lugares disponibles",
-		"full": "Lleno",
-		"schedule": "Agendar",
-		"editSuccess": "Clase actualizada exitosamente",
-		"cancelSuccess": "Clase cancelada",
-		"cancelSession": "Cancelar clase",
-		"cancelConfirmTitle": "¿Cancelar esta clase?",
-		"cancelConfirmWithAttendees": "Hay {{count}} asistente(s) registrado(s). Se les notificará de la cancelación.",
-		"cancelConfirmEmpty": "Esta acción no se puede deshacer.",
-		"confirmCancel": "Sí, cancelar",
-		"statusCancelled": "Cancelada",
-		"statusCompleted": "Completada",
-		"attendees": "Asistentes",
-		"attendeeRemoved": "Asistente eliminado",
-		"inlineCreate": {
-			"title": "Nueva clase",
-			"name": "Nombre",
-			"namePlaceholder": "Ej. Yoga, Spinning, Zumba",
-			"description": "Descripción",
-			"descriptionPlaceholder": "Breve descripción de la clase",
-			"price": "Precio",
-			"duration": "Duración (min)",
-			"maxParticipants": "Cupo máximo",
-			"save": "Crear clase",
-			"success": "Clase creada exitosamente"
-		}
-	},
-	"waitlist": {
-		"title": "Lista de Espera",
-		"subtitle": "Gestiona clientes en lista de espera",
-		"emptyState": {
-			"title": "Lista de espera vacía",
-			"description": "No hay clientes esperando en este momento"
-		},
-		"columns": {
-			"position": "Pos.",
-			"guest": "Cliente",
-			"partySize": "Personas",
-			"desiredTime": "Hora deseada",
-			"status": "Estado",
-			"addedAt": "Registrado"
-		},
-		"status": {
-			"WAITING": "Esperando",
-			"NOTIFIED": "Notificado",
-			"PROMOTED": "Promovido",
-			"CANCELLED": "Cancelado",
-			"EXPIRED": "Expirado"
-		},
-		"actions": {
-			"add": "Agregar a Lista",
-			"promote": "Promover",
-			"notify": "Notificar",
-			"remove": "Remover"
-		},
-		"addForm": {
-			"title": "Agregar a Lista de Espera",
-			"fields": {
-				"guestName": "Nombre",
-				"guestPhone": "Teléfono",
-				"partySize": "Personas",
-				"desiredTime": "Hora deseada",
-				"notes": "Notas"
-			}
-		},
-		"promoteDialog": {
-			"title": "Promover de Lista de Espera",
-			"description": "Se creará una reservación para este cliente"
-		},
-		"priorityMode": {
-			"fifo": "Orden de llegada",
-			"party_size": "Por tamaño de grupo",
-			"broadcast": "Notificación masiva"
-		}
-	},
-	"onlineBooking": {
-		"title": "Canales de reserva online",
-		"subtitle": "Comparte tu link público o inserta el formulario de reservas en tu sitio web.",
-		"publicLinkTitle": "Link público de reservaciones",
-		"publicLinkDescription": "Comparte este link con tus clientes por WhatsApp, Instagram, Google Business Profile o en el botón principal de tu sitio. No requiere login.",
-		"openPublicLink": "Abrir link",
-		"shareStep1Title": "1. Activa reservaciones",
-		"shareStep1Description": "En Ajustes confirma que Reservaciones Online esté activo y que tus horarios estén correctos.",
-		"shareStep2Title": "2. Comparte el link",
-		"shareStep2Description": "Pégalo en Instagram, WhatsApp, Google Maps, QR, emails o cualquier botón de tu sitio.",
-		"shareStep3Title": "3. Cobra si aplica",
-		"shareStep3Description": "Si configuraste depósito o prepago y Stripe está activo, el cliente será enviado a Checkout antes de confirmar.",
-		"directHtmlLink": "Link HTML directo para pegar en tu sitio",
-		"settingsLink": "Las reservaciones online se configuran en Configuración de Reservaciones",
-		"settingsLinkDescription": "Activa o desactiva las reservaciones online y configura los campos requeridos allí.",
-		"goToSettings": "Ir a Configuración",
-		"customize": "Personaliza tu widget",
-		"customizeDescription": "Elige idioma, tema y modo de visualización. El código se actualiza automáticamente.",
-		"fields": {
-			"locale": "Idioma",
-			"theme": "Tema",
-			"mode": "Modo de visualización"
-		},
-		"locales": {
-			"es": "Español",
-			"en": "Inglés"
-		},
-		"themes": {
-			"auto": "Automático (sistema)",
-			"light": "Claro",
-			"dark": "Oscuro"
-		},
-		"modes": {
-			"inline": "Integrado (dentro de la página)",
-			"button": "Botón (clic para abrir)",
-			"popup": "Popup (flotante)"
-		},
-		"htmlEmbed": "Código HTML para Incrustar",
-		"htmlEmbedDescription": "Pega esto en cualquier página HTML, tema de WordPress o constructor de sitios. Funciona en Wix, Squarespace, Shopify y sitios personalizados.",
-		"recommended": "Recomendado",
-		"wordpress": "Shortcode de WordPress",
-		"wordpressDescription": "Usa este shortcode en cualquier página, entrada o widget después de instalar el Plugin de Reservaciones Avoqado.",
-		"wordpressPluginNote": "Descarga el Plugin de Reservaciones Avoqado desde nuestro portal de desarrolladores para habilitar el shortcode.",
-		"iframe": "Snippet con iframe",
-		"iframeDescription": "Para sitios que permiten iframes pero bloquean <script> de terceros. El widget se carga desde nuestro CDN dentro de un marco aislado.",
-		"linkButton": "Botón de reserva (sitios restrictivos)",
-		"linkButtonDescription": "Para hostings ultra-restringidos (BUQ, GoDaddy Managed, WordPress.com Free) que filtran iframes y scripts. El botón abre el widget en una pestaña nueva.",
-		"linkButtonNote": "Úsalo solo si el snippet HTML normal y el iframe no se renderizan al publicar la página.",
-		"whichSnippet": "¿Cuál snippet uso?",
-		"whichSnippetDescription": "Sigue estos pasos en orden — para 9 de 10 sitios el primero funciona.",
-		"flowStep1Title": "Empieza con el HTML normal",
-		"flowStep1Description": "Funciona en sitios custom (React, Next.js, HTML), Wix, Squarespace, Shopify y la mayoría de WordPress autoadministrado. Si lo ves en producción, listo.",
-		"flowStep2Title": "Si no se ve, prueba el iframe",
-		"flowStep2Description": "Si tu hosting bloquea <script> de terceros pero permite iframes (algunos WordPress gestionados, ciertos page builders), el iframe te da el widget completo embebido.",
-		"flowStep3Title": "Si tampoco — usa el botón de reserva",
-		"flowStep3Description": "Algunos hostings restrictivos (BUQ/WDesignKit, GoDaddy Managed, WordPress.com Free) borran iframes, scripts y custom elements al guardar. El botón es un link <a> normal que sí sobrevive y abre el widget en una pestaña.",
-		"npm": "Paquete npm",
-		"npmDescription": "Para proyectos en React, Vue o Angular — importa como Web Component.",
-		"preview": "Vista Previa en Vivo",
-		"previewDescription": "Así es como tus clientes ven tu página de reservaciones. El widget en sitios externos se ve idéntico.",
-		"openPreview": "Abrir en nueva pestaña",
-		"publicPages": {
-			"title": "Páginas de reserva públicas",
-			"subtitle": "Comparte estos enlaces con tus clientes. Cada uno abre un flujo distinto de reserva.",
-			"editService": "Edita visualización del servicio",
-			"viewCalendar": "Ver calendario",
-			"show": "Mostrar",
-			"copyUrl": "Copiar URL",
-			"urlCopied": "URL copiada",
-			"appointments": {
-				"title": "Página de reserva de citas",
-				"empty": "No tienes servicios configurados todavía.",
-				"one": "1 servicio",
-				"many": "{{count}} servicios"
-			},
-			"classes": {
-				"title": "Página de reserva de clases",
-				"empty": "No tienes clases configuradas todavía.",
-				"one": "1 clase",
-				"many": "{{count}} clases"
-			}
-		},
-		"brandIdentity": {
-			"business": "Negocio",
-			"moreActions": "Más acciones",
-			"editIdentity": "Editar identidad de marca",
-			"step1Title": "Aplica el diseño de tu marca",
-			"step1Heading": "Añade el logotipo y el color de tu marca",
-			"step1Description": "El logotipo y el color principal de tu negocio aparecerán en tu página pública de reservas, en los recibos y en cualquier otro espacio en el que tus clientes interactúen con tu marca.",
-			"step2Title": "Vista previa y ajustes",
-			"logoFull": "Logotipo completo",
-			"logoFullHelper": "Una versión amplia del logotipo. Aparece como hero en la página de reservas.",
-			"logoSmall": "Logotipo pequeño",
-			"logoSmallHelper": "Una versión cuadrada en miniatura. Se usa en recibos, avatares y la cabecera del widget.",
-			"color": "Color",
-			"colorHelper": "Un color principal para botones, badges y enlaces.",
-			"heroPhoto": "Foto de portada",
-			"heroHelper": "16:9, mín. 1200px de ancho. Aparece detrás del logotipo en la página pública.",
-			"add": "Añadir",
-			"replace": "Reemplazar",
-			"remove": "Quitar",
-			"uploading": "Subiendo…",
-			"uploadHero": "Subir foto",
-			"adjust": "Ajustes de marca",
-			"brandDesign": "Diseño de marca",
-			"previewContext": "Vista previa",
-			"tabAppointments": "Citas",
-			"tabClasses": "Clases",
-			"skip": "Omitir",
-			"next": "Siguiente",
-			"back": "Atrás",
-			"complete": "Completar",
-			"saved": "Identidad de marca guardada",
-			"savedDescription": "Tus cambios ya se reflejan en book.avoqado.io.",
-			"saveError": "No pudimos guardar",
-			"saveErrorDescription": "Inténtalo de nuevo en un momento.",
-			"fileUnsupported": "Archivo no soportado",
-			"fileUnsupportedDescription": "Selecciona una imagen JPG, PNG, WebP o SVG.",
-			"fileTooLarge": "Imagen muy grande",
-			"fileTooLargeDescription": "El máximo es 8 MB.",
-			"uploadError": "Error al subir",
-			"uploadErrorDescription": "Intenta de nuevo en un momento.",
-			"previewCtaAppointments": "Reservar cita",
-			"previewCtaClasses": "Reservar lugar"
-		}
-	},
-	"settings": {
-		"title": "Configuración de Reservaciones",
-		"subtitle": "Configura horarios, depósitos y políticas",
-		"sections": {
-			"operatingHours": "Horario de Operación",
-			"scheduling": "Programación",
-			"pacing": "Ritmo",
-			"deposits": "Depósitos",
-			"publicBooking": "Reservaciones Online",
-			"cancellation": "Cancelación",
-			"waitlist": "Lista de Espera",
-			"reminders": "Recordatorios"
-		},
-		"operatingHours": {
-			"title": "Horario de Operación",
-			"subtitle": "Configura tu horario semanal. Los días cerrados no mostrarán disponibilidad.",
-			"closed": "Cerrado",
-			"addRange": "Agregar rango",
-			"removeRange": "Eliminar rango",
-			"open": "Apertura",
-			"close": "Cierre",
-			"days": {
-				"monday": "Lunes",
-				"tuesday": "Martes",
-				"wednesday": "Miércoles",
-				"thursday": "Jueves",
-				"friday": "Viernes",
-				"saturday": "Sábado",
-				"sunday": "Domingo"
-			},
-			"maxRanges": "Máximo 3 rangos por día"
-		},
-		"scheduling": {
-			"slotInterval": "Intervalo de slots",
-			"slotIntervalHelp": "Cada cuántos minutos se ofrecen horarios",
-			"defaultDuration": "Duración predeterminada",
-			"defaultDurationHelp": "Duración estándar de una reservación",
-			"autoConfirm": "Confirmar automáticamente",
-			"autoConfirmHelp": "Las reservaciones se confirman al crearlas",
-			"maxAdvanceDays": "Días máximos de anticipación",
-			"maxAdvanceDaysHelp": "Qué tan lejos pueden reservar los clientes",
-			"minNotice": "Aviso mínimo",
-			"minNoticeHelp": "Tiempo mínimo antes de la hora de inicio",
-			"noShowGrace": "Gracia para No Show",
-			"noShowGraceHelp": "Minutos de espera antes de marcar No Show"
-		},
-		"pacing": {
-			"maxPerSlot": "Máximo por slot",
-			"maxPerSlotHelp": "Reservaciones simultáneas permitidas por horario. Para servicios 1:1 (citas individuales), el mínimo efectivo es 1 incluso si seleccionas 'Sin límite' — elige el número exacto de recursos paralelos (cabinas, estaciones, sillas) si tu negocio recibe varias reservas a la vez.",
-			"onlineCapacity": "Capacidad online",
-			"onlineCapacityHelp": "Porcentaje de capacidad disponible para reservaciones online"
-		},
-		"scope": {
-			"appointments": "Citas",
-			"classes": "Clases"
-		},
-		"settingsTour": {
-			"start": "Ver tour",
-			"welcome": {
-				"title": "📅 Configuración de Reservaciones",
-				"description": "Te llevo en un recorrido por cada sección. Algunas opciones aplican solo a citas, otras solo a clases — busca los badges \"Citas\" y \"Clases\" junto a los nombres."
-			},
-			"save": {
-				"title": "Guardar Cambios",
-				"description": "El botón queda fijo arriba mientras haces scroll. Solo se habilita cuando hay algo nuevo que guardar."
-			},
-			"scheduling": {
-				"title": "Programación (Citas)",
-				"description": "Define cómo se generan los horarios disponibles para citas: cada cuántos minutos hay un slot, cuánto dura por defecto, qué tan lejos pueden reservar tus clientes y el aviso mínimo antes del inicio. Las clases tienen su propio horario por sesión."
-			},
-			"pacing": {
-				"title": "Ritmo (Citas)",
-				"description": "Controla cuántas reservas simultáneas aceptas por slot y qué porcentaje de tu capacidad expones online. Para clases, la capacidad se define por sesión."
-			},
-			"deposits": {
-				"title": "Depósitos",
-				"description": "Decide si pides depósito al reservar y cómo: retención de tarjeta, monto fijo, porcentaje del total, o solo para grupos grandes. Aplica a ambos tipos."
-			},
-			"payments": {
-				"title": "Pagos por tipo",
-				"description": "Aquí defines cómo cobras por defecto — diferente para citas y clases. Patrón típico: clases con prepago obligatorio, citas se pagan en el local. Cada servicio puede sobreescribir su default."
-			},
-			"publicBooking": {
-				"title": "Reservaciones Online",
-				"description": "Habilita el enlace público (book.avoqado.io/tu-slug) para que tus clientes reserven sin llamarte. Decide si requieres teléfono o email al momento de reservar."
-			},
-			"cancellation": {
-				"title": "Cancelación",
-				"description": "Política de cancelaciones: ¿los clientes pueden cancelar solos? ¿hasta cuántas horas antes? ¿pierden el depósito si cancelan tarde? Aplica a ambos tipos."
-			},
-			"creditRefund": {
-				"title": "Reembolsos en créditos (solo Clases)",
-				"description": "Cuando alguien cancela una clase pagada con paquete de créditos, decide cuántos créditos vuelven a su saldo. Solo aplica a clases — las citas no usan paquetes."
-			},
-			"waitlist": {
-				"title": "Lista de espera",
-				"description": "Si una clase o cita se llena, los clientes pueden anotarse a la lista y se les notifica cuando se libera un lugar. Tú defines el orden de prioridad y cuánto tiempo tienen para responder."
-			},
-			"reminders": {
-				"title": "Recordatorios",
-				"description": "Envía recordatorios automáticos antes de la reserva (email, SMS o WhatsApp) para reducir no-shows. Los canales y tiempos se configuran en backoffice por ahora."
-			}
-		},
-		"payments": {
-			"sectionTitle": "Pagos por tipo",
-			"sectionSubtitle": "Define qué se cobra de entrada según el tipo de reserva: el cobro al venue, prepago obligatorio, o que el cliente elija.",
-			"appointmentUpfrontDefault": "Cobro por adelantado en citas",
-			"appointmentUpfrontDefaultTooltip": "Cómo se cobra una cita por defecto: pagar en el local, requerir prepago al reservar, u opcional. Cada servicio puede sobreescribirlo.",
-			"classUpfrontDefault": "Cobro por adelantado en clases",
-			"classUpfrontDefaultTooltip": "Cómo se cobra una clase por defecto: pagar en el local, requerir prepago al reservar, u opcional. Cada clase puede sobreescribirlo.",
-			"options": {
-				"required": "Prepago obligatorio",
-				"at_venue": "Pagar en el local",
-				"optional": "Opcional (el cliente elige)"
-			}
-		},
-		"deposits": {
-			"enabled": "Requerir depósito",
-			"mode": "Modo de depósito",
-			"modeTooltip": "Define si pides depósito al reservar y de qué tipo: sin depósito, retención de tarjeta, depósito parcial o prepago total.",
-			"modes": {
-				"none": "Sin depósito",
-				"card_hold": "Retención de tarjeta",
-				"deposit": "Depósito parcial",
-				"prepaid": "Prepago total"
-			},
-			"fixedAmount": "Monto fijo",
-			"fixedAmountTooltip": "Cantidad fija que el cliente paga como depósito al reservar.",
-			"percentage": "Porcentaje",
-			"percentageTooltip": "Porcentaje del total de la reserva que se cobra como depósito.",
-			"partySizeGte": "Para grupos de",
-			"partySizeGteHelp": "Solo se exige depósito a partir de este tamaño de grupo. Útil para no fricciones en reservas pequeñas.",
-			"paymentWindow": "Ventana de pago",
-			"paymentWindowHelp": "Horas para completar el pago"
-		},
-		"publicBooking": {
-			"enabled": "Habilitar reservaciones online",
-			"enabledHelp": "Los clientes pueden reservar desde tu sitio web",
-			"requirePhone": "Requerir teléfono",
-			"requirePhoneTooltip": "El cliente debe ingresar su teléfono al hacer la reserva online.",
-			"requireEmail": "Requerir email",
-			"requireEmailTooltip": "El cliente debe ingresar su correo electrónico al hacer la reserva online."
-		},
-		"cancellation": {
-			"allowCustomerCancel": "Permitir cancelación por cliente",
-			"allowCustomerCancelTooltip": "Si los clientes pueden cancelar sus reservas desde el enlace de confirmación, sin tener que contactarte.",
-			"minHoursBefore": "Horas mínimas antes",
-			"minHoursBeforeHelp": "Horas antes del inicio para poder cancelar",
-			"forfeitDeposit": "Perder depósito al cancelar",
-			"forfeitDepositTooltip": "Cuando un cliente cancela dentro de la ventana mínima, el depósito no se reembolsa.",
-			"noShowFee": "Cargo por No Show",
-			"noShowFeeHelp": "Porcentaje del depósito que se cobra",
-			"allowReschedule": "Permitir cambio de horario",
-			"allowRescheduleHelp": "El cliente puede mover su reserva a otro horario de la misma clase, dentro de la ventana de cancelación.",
-			"creditRefundTitle": "Reembolso de créditos al cancelar",
-			"creditRefundHelp": "Decide cuántos créditos recuperan los clientes cuando cancelan una clase pagada con paquete.",
-			"creditRefundMode": "Política de reembolso",
-			"creditRefundModeTooltip": "Cuando un cliente cancela una clase pagada con paquete, decide cuántos créditos se le devuelven a su saldo.",
-			"creditRefundAlways": "Siempre devolver 100%",
-			"creditRefundTimeBased": "Según anticipación",
-			"creditRefundNever": "Nunca devolver",
-			"creditFreeRefundHoursBefore": "Reembolso 100% si cancela con (horas)",
-			"creditFreeRefundHoursHelp": "Cancelar al menos N horas antes del inicio devuelve todos los créditos.",
-			"creditLateRefundPercent": "% de reembolso si cancela tarde",
-			"creditLateRefundHelp": "Aplica cuando se cancela dentro de la ventana de arriba. 0 = pierde todo, 100 = devuelve todo.",
-			"creditNoShowRefund": "Devolver créditos en no-show",
-			"creditNoShowRefundHelp": "Si el cliente no se presentó, ¿se devuelve igualmente el crédito? (Default: no)"
-		},
-		"waitlist": {
-			"enabled": "Habilitar lista de espera",
-			"enabledTooltip": "Cuando una clase o servicio se llena, los clientes pueden anotarse a la lista de espera y serán notificados si se libera un lugar.",
-			"maxSize": "Tamaño máximo",
-			"maxSizeTooltip": "Número máximo de personas que pueden estar simultáneamente en la lista de espera de una misma clase.",
-			"priorityMode": "Modo de prioridad",
-			"priorityModeTooltip": "Orden en que se notifica a la lista cuando se libera un lugar: primero en llegar, por tamaño del grupo o notificación masiva.",
-			"notifyWindow": "Ventana de notificación",
-			"notifyWindowHelp": "Minutos que tiene el cliente para responder"
-		},
-		"reminders": {
-			"enabled": "Enviar recordatorios",
-			"enabledTooltip": "Envía recordatorios automáticos antes del inicio de la reserva por email, SMS o WhatsApp (según los canales activos).",
-			"channelsTooltip": "Los canales por los que se mandan los recordatorios. Puedes elegir uno o varios. Si dejas todo desactivado, no se envía nada.",
-			"whenToSend": "Cuándo enviar",
-			"whenToSendTooltip": "El tiempo de anticipación con el que se envía cada recordatorio. Puedes configurar varios — por ejemplo 24h antes y 2h antes para reforzar.",
-			"channels": "Canales",
-			"channelOptions": {
-				"EMAIL": "Email",
-				"SMS": "SMS",
-				"WHATSAPP": "WhatsApp"
-			},
-			"minutesBefore": "Enviar antes de",
-			"minutesBeforeHelp": "Minutos antes de la reservación"
-		},
-		"saved": "Configuración guardada exitosamente"
-	},
-	"toasts": {
-		"createSuccess": "Reservación creada exitosamente",
-		"updateSuccess": "Reservación actualizada exitosamente",
-		"cancelSuccess": "Reservación cancelada",
-		"confirmSuccess": "Reservación confirmada",
-		"checkInSuccess": "Check-in realizado",
-		"completeSuccess": "Reservación completada",
-		"noShowSuccess": "Marcada como No Show",
-		"rescheduleSuccess": "Reservación reagendada",
-		"waitlistAddSuccess": "Agregado a la lista de espera",
-		"waitlistRemoveSuccess": "Removido de la lista de espera",
-		"waitlistPromoteSuccess": "Cliente promovido de la lista de espera",
-		"error": "Ocurrió un error. Por favor intenta de nuevo."
-	},
-	"minutes": "min",
-	"hours": "hrs",
-	"people": "{{count}} persona",
-	"people_other": "{{count}} personas",
-	"noTable": "Sin mesa",
-	"noStaff": "Sin asignar",
-	"unnamedGuest": "Invitado",
-	"publicBooking": {
-		"pageTitle": "Reservar",
-		"poweredBy": "Con tecnología de Avoqado",
-		"steps": {
-			"service": "Servicio",
-			"date": "Fecha",
-			"time": "Hora",
-			"info": "Datos",
-			"confirmation": "Confirmado"
-		},
-		"service": {
-			"title": "Selecciona un servicio",
-			"duration": "{{min}} min",
-			"noProducts": "No hay servicios disponibles"
-		},
-		"date": {
-			"title": "Selecciona una fecha",
-			"today": "Hoy"
-		},
-		"time": {
-			"title": "Selecciona un horario",
-			"noSlots": "No hay horarios disponibles para esta fecha",
-			"loading": "Cargando horarios...",
-			"full": "Lleno",
-			"spotsLeft": "{{count}} lugares",
-			"spotsLeft_one": "{{count}} lugar"
-		},
-		"guestForm": {
-			"title": "Tus datos",
-			"phone": "Teléfono",
-			"phonePlaceholder": "Tu número de teléfono",
-			"name": "Nombre",
-			"namePlaceholder": "Tu nombre",
-			"email": "Email (opcional)",
-			"emailPlaceholder": "tu@email.com",
-			"partySize": "Personas",
-			"specialRequests": "Solicitudes especiales",
-			"specialRequestsPlaceholder": "Alergias, cumpleaños, necesidades de accesibilidad...",
-			"submit": "Confirmar Reservación",
-			"submitting": "Reservando..."
-		},
-		"validation": {
-			"phoneRequired": "El teléfono es requerido",
-			"nameRequired": "El nombre es requerido",
-			"emailInvalid": "Ingresa un email válido",
-			"emailRequired": "El email es requerido"
-		},
-		"confirmation": {
-			"title": "¡Reservación Confirmada!",
-			"code": "Código de Confirmación",
-			"dateTime": "Fecha y Hora",
-			"guests": "Personas",
-			"service": "Servicio",
-			"addToCalendar": "Agregar a Google Calendar",
-			"downloadIcs": "Descargar .ics",
-			"manageBooking": "Gestionar Reservación",
-			"newBooking": "Reservar Otra"
-		},
-		"manage": {
-			"title": "Tu Reservación",
-			"cancelButton": "Cancelar Reservación",
-			"cancelTitle": "Cancelar Reservación",
-			"cancelDescription": "¿Estás seguro de que deseas cancelar esta reservación? Esta acción no se puede deshacer.",
-			"cancelReasonLabel": "Razón (opcional)",
-			"cancelReasonPlaceholder": "¿Por qué cancelas?",
-			"cancelConfirm": "Confirmar Cancelación",
-			"cancelledStatus": "Esta reservación ha sido cancelada",
-			"cancelledAt": "Cancelada el {{date}}",
-			"deposit": "Depósito",
-			"depositForfeit": "El depósito se perderá",
-			"table": "Mesa",
-			"staff": "Atendido por",
-			"specialRequests": "Solicitudes Especiales",
-			"backToBooking": "Hacer Nueva Reservación"
-		},
-		"cancellationPolicy": {
-			"title": "Política de Cancelación",
-			"allowCancel": "Cancelación gratuita hasta {{hours}} horas antes",
-			"noCancel": "Esta reservación no puede cancelarse en línea",
-			"depositForfeit": "El depósito se perderá si se cancela"
-		},
-		"errors": {
-			"venueNotFound": "Esta página no existe",
-			"venueNotFoundDescription": "El enlace de reservación puede ser incorrecto o el negocio ya no está disponible.",
-			"bookingDisabled": "Reservaciones en línea no disponibles",
-			"bookingDisabledDescription": "Este negocio no está aceptando reservaciones en línea en este momento.",
-			"bookingDisabledContact": "Llama al {{phone}} para hacer una reservación",
-			"reservationNotFound": "Reservación no encontrada",
-			"reservationNotFoundDescription": "Este enlace de reservación puede estar expirado o ser inválido.",
-			"slotTaken": "Este horario ya no está disponible. Por favor elige otro horario.",
-			"generic": "Algo salió mal. Por favor intenta de nuevo."
-		}
-	},
-	"branding": {
-		"title": "Marca",
-		"description": "Personaliza la apariencia de tus páginas públicas de reservación",
-		"venue": "Negocio",
-		"logo": "Logotipo",
-		"logoHint": "Muestra tu logo en la parte superior de la página de reservación",
-		"button": "Botón",
-		"accentColor": "Color de acento",
-		"accentColorInherit": "Heredar",
-		"accentColorInheritHint": "Hereda el color de marca del negocio",
-		"buttonShape": "Forma del botón",
-		"buttonShapeRounded": "Redondo",
-		"buttonShapeSquare": "Cuadrado",
-		"buttonShapePill": "Cápsula",
-		"font": "Fuente",
-		"fontHint": "40 fuentes auto-hostadas. Solo se descarga la que elijas.",
-		"fontPlaceholder": "Buscar fuente…",
-		"fontChange": "Cambiar",
-		"showHeroImage": "Imagen principal",
-		"showDescriptions": "Descripciones",
-		"showDuration": "Duración",
-		"showPrices": "Precios",
-		"preview": "Vista previa",
-		"previewCta": "Siguiente",
-		"sampleServiceName": "Manicura express",
-		"sampleServiceDescription": "Quitarle pellejitos y dejar limpia la uña",
-		"samplePrice": "$250",
-		"sampleDuration": "15 min",
-		"save": "Guardar cambios",
-		"saving": "Guardando…",
-		"saved": "Guardado",
-		"savedTitle": "Cambios guardados",
-		"saveErrorTitle": "No se pudo guardar",
-		"discard": "Descartar"
-	}
+  "title": "Reservaciones",
+  "subtitle": "Gestiona reservaciones, disponibilidad y lista de espera",
+  "nav": {
+    "overview": "Resumen",
+    "calendar": "Calendario",
+    "waitlist": "Lista de espera",
+    "settings": "Configuración"
+  },
+  "emptyState": {
+    "title": "Sin reservaciones",
+    "description": "Las reservaciones aparecerán aquí cuando los clientes comiencen a reservar"
+  },
+  "tabs": {
+    "all": "Todas",
+    "pending": "Pendientes",
+    "confirmed": "Confirmadas",
+    "today": "Hoy",
+    "noShow": "No Show"
+  },
+  "filters": {
+    "dateRange": "Rango de fechas",
+    "status": "Estado",
+    "channel": "Canal",
+    "staff": "Personal",
+    "table": "Mesa"
+  },
+  "searchPlaceholder": "Buscar por nombre, teléfono o código...",
+  "columns": {
+    "code": "Código",
+    "guest": "Cliente",
+    "dateTime": "Fecha / Hora",
+    "duration": "Duración",
+    "partySize": "Personas",
+    "table": "Mesa",
+    "staff": "Asignado",
+    "status": "Estado",
+    "channel": "Canal"
+  },
+  "status": {
+    "PENDING": "Pendiente",
+    "CONFIRMED": "Confirmada",
+    "CHECKED_IN": "Check-in",
+    "COMPLETED": "Completada",
+    "CANCELLED": "Cancelada",
+    "NO_SHOW": "No Show"
+  },
+  "channel": {
+    "DASHBOARD": "Dashboard",
+    "WEB": "Web",
+    "PHONE": "Teléfono",
+    "WHATSAPP": "WhatsApp",
+    "APP": "App",
+    "WALK_IN": "Sin cita",
+    "THIRD_PARTY": "Tercero"
+  },
+  "depositStatus": {
+    "PENDING": "Pendiente",
+    "PAID": "Pagado",
+    "REFUNDED": "Reembolsado"
+  },
+  "stats": {
+    "todayCount": "Hoy",
+    "pending": "Pendientes",
+    "checkedIn": "En curso",
+    "noShowRate": "Tasa No Show"
+  },
+  "actions": {
+    "newReservation": "Nueva Reservación",
+    "confirm": "Confirmar",
+    "checkIn": "Check-in",
+    "complete": "Completar",
+    "markNoShow": "Marcar No Show",
+    "cancel": "Cancelar",
+    "reschedule": "Reagendar",
+    "edit": "Editar",
+    "viewDetails": "Ver Detalles",
+    "save": "Guardar",
+    "saveChanges": "Guardar Cambios",
+    "goBack": "Volver"
+  },
+  "form": {
+    "createTitle": "Crear cita",
+    "editTitle": "Editar Reservación",
+    "fields": {
+      "dateTime": "Fecha y Hora",
+      "date": "Fecha",
+      "startTime": "Hora de inicio",
+      "endTime": "Hora de fin",
+      "duration": "Duración",
+      "durationMin": "{{min}} min",
+      "partySize": "Personas",
+      "customer": "Cliente",
+      "guestName": "Nombre del invitado",
+      "guestPhone": "Teléfono",
+      "guestEmail": "Email",
+      "table": "Mesa",
+      "staff": "Personal asignado",
+      "channel": "Canal",
+      "specialRequests": "Solicitudes especiales",
+      "internalNotes": "Notas internas",
+      "tags": "Etiquetas"
+    },
+    "placeholders": {
+      "searchCustomer": "Buscar cliente existente...",
+      "guestName": "Nombre del invitado",
+      "guestPhone": "Teléfono de contacto",
+      "guestEmail": "Email de contacto",
+      "specialRequests": "Alergias, cumpleaños, silla de bebé...",
+      "internalNotes": "Notas visibles solo para el personal",
+      "tags": "Agregar etiqueta..."
+    },
+    "validation": {
+      "dateRequired": "La fecha es requerida",
+      "startTimeRequired": "La hora de inicio es requerida",
+      "endTimeRequired": "La hora de fin es requerida",
+      "endAfterStart": "La hora de fin debe ser posterior a la hora de inicio",
+      "durationRequired": "La duración es requerida",
+      "partySizeRequired": "El número de personas es requerido",
+      "partySizeMin": "Mínimo 1 persona",
+      "guestOrCustomer": "Selecciona un cliente o ingresa nombre del invitado",
+      "guestNameRequired": "El nombre es requerido",
+      "phoneRequired": "El teléfono es requerido",
+      "emailInvalid": "Ingresa un email válido"
+    },
+    "sections": {
+      "service": "Servicios y artículos",
+      "dateTime": "Fecha y hora",
+      "guest": "Información del Cliente",
+      "assignment": "Asignación",
+      "additional": "Información Adicional"
+    },
+    "guestMode": {
+      "existing": "Cliente existente",
+      "new": "Nuevo invitado"
+    },
+    "noServicesAvailable": "No hay servicios creados. Puedes crear uno en MenuMaker.",
+    "noTablesAvailable": "Sin mesas disponibles para este horario",
+    "selectService": "Seleccionar servicio",
+    "addService": "Añadir servicio",
+    "allServices": "Todos los servicios",
+    "createService": "Crear servicio",
+    "noService": "Sin servicio",
+    "selectTable": "Seleccionar mesa",
+    "selectStaff": "Seleccionar personal",
+    "tableCapacity": "Mesa {{number}} ({{capacity}} personas)"
+  },
+  "detail": {
+    "title": "Reservación {{code}}",
+    "confirmationCode": "Código de confirmación",
+    "timeline": "Historial",
+    "timelineEntry": "{{status}} — {{date}}",
+    "timelineBy": "por {{name}}",
+    "deposit": {
+      "title": "Depósito",
+      "amount": "Monto",
+      "status": "Estado"
+    },
+    "reschedule": {
+      "title": "Reagendar Reservación",
+      "newDate": "Nueva fecha",
+      "newStartTime": "Nueva hora de inicio",
+      "newEndTime": "Nueva hora de fin",
+      "confirm": "Confirmar Reagenda",
+      "notificationLabel": "Notificar al cliente",
+      "channels": {
+        "push": "Notificación push",
+        "whatsapp": "WhatsApp",
+        "email": "Correo electrónico",
+        "none": "Sin notificación"
+      },
+      "customMessageLabel": "Mensaje personalizado (opcional)",
+      "customMessagePlaceholder": "Ej. Disculpa el cambio, te esperamos."
+    },
+    "cancel": {
+      "title": "Cancelar Reservación",
+      "description": "¿Estás seguro de que deseas cancelar esta reservación?",
+      "reasonLabel": "Razón de cancelación",
+      "reasonPlaceholder": "Ingresa la razón (opcional)",
+      "confirm": "Confirmar Cancelación"
+    },
+    "noShow": {
+      "title": "Marcar como No Show",
+      "description": "¿Confirmas que el cliente no se presentó?"
+    },
+    "sections": {
+      "guestInfo": "Información del Cliente",
+      "reservationInfo": "Detalles de la Reservación",
+      "services": "Servicios",
+      "modifiers": "Extras / modificadores",
+      "assignment": "Asignación",
+      "notes": "Notas"
+    }
+  },
+  "calendar": {
+    "title": "Calendario de Reservaciones",
+    "views": {
+      "day": "Día",
+      "week": "Semana",
+      "5day": "5-días",
+      "month": "Mes"
+    },
+    "interval": "Intervalo",
+    "groupBy": {
+      "label": "Agrupar por",
+      "none": "Sin agrupar",
+      "table": "Mesa",
+      "staff": "Personal",
+      "unassigned": "Sin asignar"
+    },
+    "noReservations": "Sin reservaciones para este período"
+  },
+  "availability": {
+    "title": "Editar disponibilidad",
+    "singleChange": "Cambio único",
+    "recurringSchedule": "Calendario recurrente",
+    "resetWeek": "Restablecer semana a los valores predeterminados",
+    "invalidTime": "Introduce una hora válida",
+    "done": "Listo"
+  },
+  "calendarAttributes": {
+    "title": "Atributos de la cita",
+    "subtitle": "¿Qué atributos te gustaría ver en el calendario?",
+    "confirmed": "Confirmada",
+    "pending": "Sin confirmar",
+    "newCustomer": "Nuevo cliente",
+    "showCancelled": "Consultar citas canceladas",
+    "colorByService": "Ver el calendario por servicio",
+    "colorByServiceHelp": "Asigna colores a cada servicio en el calendario.",
+    "save": "Guardar",
+    "comingSoon": "Muy pronto"
+  },
+  "classSession": {
+    "createTitle": "Agendar clase",
+    "newSession": "Nueva clase",
+    "createSuccess": "Clase agendada exitosamente",
+    "noClassProducts": "No hay clases creadas. Crea un producto tipo \"Clase\" primero.",
+    "fields": {
+      "className": "Nombre de la clase",
+      "classPlaceholder": "Selecciona una clase",
+      "capacity": "Plazas disponibles",
+      "recurrence": "Se repite"
+    },
+    "createClass": "Crear clase",
+    "addClass": "Añadir nueva clase",
+    "allClasses": "Todas las clases",
+    "free": "Gratis",
+    "spotsLeft": "{{count}} lugar disponible",
+    "spotsLeft_other": "{{count}} lugares disponibles",
+    "full": "Lleno",
+    "schedule": "Agendar",
+    "editSuccess": "Clase actualizada exitosamente",
+    "cancelSuccess": "Clase cancelada",
+    "cancelSession": "Cancelar clase",
+    "cancelConfirmTitle": "¿Cancelar esta clase?",
+    "cancelConfirmWithAttendees": "Hay {{count}} asistente(s) registrado(s). Se les notificará de la cancelación.",
+    "cancelConfirmEmpty": "Esta acción no se puede deshacer.",
+    "confirmCancel": "Sí, cancelar",
+    "statusCancelled": "Cancelada",
+    "statusCompleted": "Completada",
+    "attendees": "Asistentes",
+    "attendeeRemoved": "Asistente eliminado",
+    "inlineCreate": {
+      "title": "Nueva clase",
+      "name": "Nombre",
+      "namePlaceholder": "Ej. Yoga, Spinning, Zumba",
+      "description": "Descripción",
+      "descriptionPlaceholder": "Breve descripción de la clase",
+      "price": "Precio",
+      "duration": "Duración (min)",
+      "maxParticipants": "Cupo máximo",
+      "save": "Crear clase",
+      "success": "Clase creada exitosamente"
+    }
+  },
+  "waitlist": {
+    "title": "Lista de Espera",
+    "subtitle": "Gestiona clientes en lista de espera",
+    "emptyState": {
+      "title": "Lista de espera vacía",
+      "description": "No hay clientes esperando en este momento"
+    },
+    "columns": {
+      "position": "Pos.",
+      "guest": "Cliente",
+      "partySize": "Personas",
+      "desiredTime": "Hora deseada",
+      "status": "Estado",
+      "addedAt": "Registrado"
+    },
+    "status": {
+      "WAITING": "Esperando",
+      "NOTIFIED": "Notificado",
+      "PROMOTED": "Promovido",
+      "CANCELLED": "Cancelado",
+      "EXPIRED": "Expirado"
+    },
+    "actions": {
+      "add": "Agregar a Lista",
+      "promote": "Promover",
+      "notify": "Notificar",
+      "remove": "Remover"
+    },
+    "addForm": {
+      "title": "Agregar a Lista de Espera",
+      "fields": {
+        "guestName": "Nombre",
+        "guestPhone": "Teléfono",
+        "partySize": "Personas",
+        "desiredTime": "Hora deseada",
+        "notes": "Notas"
+      }
+    },
+    "promoteDialog": {
+      "title": "Promover de Lista de Espera",
+      "description": "Se creará una reservación para este cliente"
+    },
+    "priorityMode": {
+      "fifo": "Orden de llegada",
+      "party_size": "Por tamaño de grupo",
+      "broadcast": "Notificación masiva"
+    }
+  },
+  "onlineBooking": {
+    "title": "Canales de reserva online",
+    "subtitle": "Comparte tu link público o inserta el formulario de reservas en tu sitio web.",
+    "publicLinkTitle": "Link público de reservaciones",
+    "publicLinkDescription": "Comparte este link con tus clientes por WhatsApp, Instagram, Google Business Profile o en el botón principal de tu sitio. No requiere login.",
+    "openPublicLink": "Abrir link",
+    "shareStep1Title": "1. Activa reservaciones",
+    "shareStep1Description": "En Ajustes confirma que Reservaciones Online esté activo y que tus horarios estén correctos.",
+    "shareStep2Title": "2. Comparte el link",
+    "shareStep2Description": "Pégalo en Instagram, WhatsApp, Google Maps, QR, emails o cualquier botón de tu sitio.",
+    "shareStep3Title": "3. Cobra si aplica",
+    "shareStep3Description": "Si configuraste depósito o prepago y Stripe está activo, el cliente será enviado a Checkout antes de confirmar.",
+    "directHtmlLink": "Link HTML directo para pegar en tu sitio",
+    "settingsLink": "Las reservaciones online se configuran en Configuración de Reservaciones",
+    "settingsLinkDescription": "Activa o desactiva las reservaciones online y configura los campos requeridos allí.",
+    "goToSettings": "Ir a Configuración",
+    "customize": "Personaliza tu widget",
+    "customizeDescription": "Elige idioma, tema y modo de visualización. El código se actualiza automáticamente.",
+    "fields": {
+      "locale": "Idioma",
+      "theme": "Tema",
+      "mode": "Modo de visualización"
+    },
+    "locales": {
+      "es": "Español",
+      "en": "Inglés"
+    },
+    "themes": {
+      "auto": "Automático (sistema)",
+      "light": "Claro",
+      "dark": "Oscuro"
+    },
+    "modes": {
+      "inline": "Integrado (dentro de la página)",
+      "button": "Botón (clic para abrir)",
+      "popup": "Popup (flotante)"
+    },
+    "htmlEmbed": "Código HTML para Incrustar",
+    "htmlEmbedDescription": "Pega esto en cualquier página HTML, tema de WordPress o constructor de sitios. Funciona en Wix, Squarespace, Shopify y sitios personalizados.",
+    "recommended": "Recomendado",
+    "wordpress": "Shortcode de WordPress",
+    "wordpressDescription": "Usa este shortcode en cualquier página, entrada o widget después de instalar el Plugin de Reservaciones Avoqado.",
+    "wordpressPluginNote": "Descarga el Plugin de Reservaciones Avoqado desde nuestro portal de desarrolladores para habilitar el shortcode.",
+    "iframe": "Snippet con iframe",
+    "iframeDescription": "Para sitios que permiten iframes pero bloquean <script> de terceros. El widget se carga desde nuestro CDN dentro de un marco aislado.",
+    "linkButton": "Botón de reserva (sitios restrictivos)",
+    "linkButtonDescription": "Para hostings ultra-restringidos (BUQ, GoDaddy Managed, WordPress.com Free) que filtran iframes y scripts. El botón abre el widget en una pestaña nueva.",
+    "linkButtonNote": "Úsalo solo si el snippet HTML normal y el iframe no se renderizan al publicar la página.",
+    "whichSnippet": "¿Cuál snippet uso?",
+    "whichSnippetDescription": "Sigue estos pasos en orden — para 9 de 10 sitios el primero funciona.",
+    "flowStep1Title": "Empieza con el HTML normal",
+    "flowStep1Description": "Funciona en sitios custom (React, Next.js, HTML), Wix, Squarespace, Shopify y la mayoría de WordPress autoadministrado. Si lo ves en producción, listo.",
+    "flowStep2Title": "Si no se ve, prueba el iframe",
+    "flowStep2Description": "Si tu hosting bloquea <script> de terceros pero permite iframes (algunos WordPress gestionados, ciertos page builders), el iframe te da el widget completo embebido.",
+    "flowStep3Title": "Si tampoco — usa el botón de reserva",
+    "flowStep3Description": "Algunos hostings restrictivos (BUQ/WDesignKit, GoDaddy Managed, WordPress.com Free) borran iframes, scripts y custom elements al guardar. El botón es un link <a> normal que sí sobrevive y abre el widget en una pestaña.",
+    "npm": "Paquete npm",
+    "npmDescription": "Para proyectos en React, Vue o Angular — importa como Web Component.",
+    "preview": "Vista Previa en Vivo",
+    "previewDescription": "Así es como tus clientes ven tu página de reservaciones. El widget en sitios externos se ve idéntico.",
+    "openPreview": "Abrir en nueva pestaña",
+    "publicPages": {
+      "title": "Páginas de reserva públicas",
+      "subtitle": "Comparte estos enlaces con tus clientes. Cada uno abre un flujo distinto de reserva.",
+      "editService": "Edita visualización del servicio",
+      "viewCalendar": "Ver calendario",
+      "show": "Mostrar",
+      "copyUrl": "Copiar URL",
+      "urlCopied": "URL copiada",
+      "appointments": {
+        "title": "Página de reserva de citas",
+        "empty": "No tienes servicios configurados todavía.",
+        "one": "1 servicio",
+        "many": "{{count}} servicios"
+      },
+      "classes": {
+        "title": "Página de reserva de clases",
+        "empty": "No tienes clases configuradas todavía.",
+        "one": "1 clase",
+        "many": "{{count}} clases"
+      }
+    },
+    "brandIdentity": {
+      "business": "Negocio",
+      "moreActions": "Más acciones",
+      "editIdentity": "Editar identidad de marca",
+      "step1Title": "Aplica el diseño de tu marca",
+      "step1Heading": "Añade el logotipo y el color de tu marca",
+      "step1Description": "El logotipo y el color principal de tu negocio aparecerán en tu página pública de reservas, en los recibos y en cualquier otro espacio en el que tus clientes interactúen con tu marca.",
+      "step2Title": "Vista previa y ajustes",
+      "logoFull": "Logotipo completo",
+      "logoFullHelper": "Una versión amplia del logotipo. Aparece como hero en la página de reservas.",
+      "logoSmall": "Logotipo pequeño",
+      "logoSmallHelper": "Una versión cuadrada en miniatura. Se usa en recibos, avatares y la cabecera del widget.",
+      "color": "Color",
+      "colorHelper": "Un color principal para botones, badges y enlaces.",
+      "heroPhoto": "Foto de portada",
+      "heroHelper": "16:9, mín. 1200px de ancho. Aparece detrás del logotipo en la página pública.",
+      "add": "Añadir",
+      "replace": "Reemplazar",
+      "remove": "Quitar",
+      "uploading": "Subiendo…",
+      "uploadHero": "Subir foto",
+      "adjust": "Ajustes de marca",
+      "brandDesign": "Diseño de marca",
+      "previewContext": "Vista previa",
+      "tabAppointments": "Citas",
+      "tabClasses": "Clases",
+      "skip": "Omitir",
+      "next": "Siguiente",
+      "back": "Atrás",
+      "complete": "Completar",
+      "saved": "Identidad de marca guardada",
+      "savedDescription": "Tus cambios ya se reflejan en book.avoqado.io.",
+      "saveError": "No pudimos guardar",
+      "saveErrorDescription": "Inténtalo de nuevo en un momento.",
+      "fileUnsupported": "Archivo no soportado",
+      "fileUnsupportedDescription": "Selecciona una imagen JPG, PNG, WebP o SVG.",
+      "fileTooLarge": "Imagen muy grande",
+      "fileTooLargeDescription": "El máximo es 8 MB.",
+      "uploadError": "Error al subir",
+      "uploadErrorDescription": "Intenta de nuevo en un momento.",
+      "previewCtaAppointments": "Reservar cita",
+      "previewCtaClasses": "Reservar lugar"
+    }
+  },
+  "settings": {
+    "title": "Configuración de Reservaciones",
+    "subtitle": "Configura horarios, depósitos y políticas",
+    "sections": {
+      "operatingHours": "Horario de Operación",
+      "scheduling": "Programación",
+      "pacing": "Ritmo",
+      "deposits": "Depósitos",
+      "publicBooking": "Reservaciones Online",
+      "cancellation": "Cancelación",
+      "waitlist": "Lista de Espera",
+      "reminders": "Recordatorios"
+    },
+    "operatingHours": {
+      "title": "Horario de Operación",
+      "subtitle": "Configura tu horario semanal. Los días cerrados no mostrarán disponibilidad.",
+      "closed": "Cerrado",
+      "addRange": "Agregar rango",
+      "removeRange": "Eliminar rango",
+      "open": "Apertura",
+      "close": "Cierre",
+      "days": {
+        "monday": "Lunes",
+        "tuesday": "Martes",
+        "wednesday": "Miércoles",
+        "thursday": "Jueves",
+        "friday": "Viernes",
+        "saturday": "Sábado",
+        "sunday": "Domingo"
+      },
+      "maxRanges": "Máximo 3 rangos por día"
+    },
+    "scheduling": {
+      "slotInterval": "Intervalo de slots",
+      "slotIntervalHelp": "Cada cuántos minutos se ofrecen horarios",
+      "defaultDuration": "Duración predeterminada",
+      "defaultDurationHelp": "Duración estándar de una reservación",
+      "autoConfirm": "Confirmar automáticamente",
+      "autoConfirmHelp": "Las reservaciones se confirman al crearlas",
+      "maxAdvanceDays": "Días máximos de anticipación",
+      "maxAdvanceDaysHelp": "Qué tan lejos pueden reservar los clientes",
+      "minNotice": "Aviso mínimo",
+      "minNoticeHelp": "Tiempo mínimo antes de la hora de inicio",
+      "noShowGrace": "Gracia para No Show",
+      "noShowGraceHelp": "Minutos de espera antes de marcar No Show"
+    },
+    "pacing": {
+      "maxPerSlot": "Máximo por slot",
+      "maxPerSlotHelp": "Reservaciones simultáneas permitidas por horario. Para servicios 1:1 (citas individuales), el mínimo efectivo es 1 incluso si seleccionas 'Sin límite' — elige el número exacto de recursos paralelos (cabinas, estaciones, sillas) si tu negocio recibe varias reservas a la vez.",
+      "onlineCapacity": "Capacidad online",
+      "onlineCapacityHelp": "Porcentaje de capacidad disponible para reservaciones online"
+    },
+    "scope": {
+      "appointments": "Citas",
+      "classes": "Clases"
+    },
+    "settingsTour": {
+      "start": "Ver tour",
+      "welcome": {
+        "title": "📅 Configuración de Reservaciones",
+        "description": "Te llevo en un recorrido por cada sección. Algunas opciones aplican solo a citas, otras solo a clases — busca los badges \"Citas\" y \"Clases\" junto a los nombres."
+      },
+      "save": {
+        "title": "Guardar Cambios",
+        "description": "El botón queda fijo arriba mientras haces scroll. Solo se habilita cuando hay algo nuevo que guardar."
+      },
+      "scheduling": {
+        "title": "Programación (Citas)",
+        "description": "Define cómo se generan los horarios disponibles para citas: cada cuántos minutos hay un slot, cuánto dura por defecto, qué tan lejos pueden reservar tus clientes y el aviso mínimo antes del inicio. Las clases tienen su propio horario por sesión."
+      },
+      "pacing": {
+        "title": "Ritmo (Citas)",
+        "description": "Controla cuántas reservas simultáneas aceptas por slot y qué porcentaje de tu capacidad expones online. Para clases, la capacidad se define por sesión."
+      },
+      "deposits": {
+        "title": "Depósitos",
+        "description": "Decide si pides depósito al reservar y cómo: retención de tarjeta, monto fijo, porcentaje del total, o solo para grupos grandes. Aplica a ambos tipos."
+      },
+      "payments": {
+        "title": "Pagos por tipo",
+        "description": "Aquí defines cómo cobras por defecto — diferente para citas y clases. Patrón típico: clases con prepago obligatorio, citas se pagan en el local. Cada servicio puede sobreescribir su default."
+      },
+      "publicBooking": {
+        "title": "Reservaciones Online",
+        "description": "Habilita el enlace público (book.avoqado.io/tu-slug) para que tus clientes reserven sin llamarte. Decide si requieres teléfono o email al momento de reservar."
+      },
+      "cancellation": {
+        "title": "Cancelación",
+        "description": "Política de cancelaciones: ¿los clientes pueden cancelar solos? ¿hasta cuántas horas antes? ¿pierden el depósito si cancelan tarde? Aplica a ambos tipos."
+      },
+      "creditRefund": {
+        "title": "Reembolsos en créditos (solo Clases)",
+        "description": "Cuando alguien cancela una clase pagada con paquete de créditos, decide cuántos créditos vuelven a su saldo. Solo aplica a clases — las citas no usan paquetes."
+      },
+      "waitlist": {
+        "title": "Lista de espera",
+        "description": "Si una clase o cita se llena, los clientes pueden anotarse a la lista y se les notifica cuando se libera un lugar. Tú defines el orden de prioridad y cuánto tiempo tienen para responder."
+      },
+      "reminders": {
+        "title": "Recordatorios",
+        "description": "Envía recordatorios automáticos antes de la reserva (email, SMS o WhatsApp) para reducir no-shows. Los canales y tiempos se configuran en backoffice por ahora."
+      }
+    },
+    "payments": {
+      "sectionTitle": "Pagos por tipo",
+      "sectionSubtitle": "Define qué se cobra de entrada según el tipo de reserva: el cobro al venue, prepago obligatorio, o que el cliente elija.",
+      "appointmentUpfrontDefault": "Cobro por adelantado en citas",
+      "appointmentUpfrontDefaultTooltip": "Cómo se cobra una cita por defecto: pagar en el local, requerir prepago al reservar, u opcional. Cada servicio puede sobreescribirlo.",
+      "classUpfrontDefault": "Cobro por adelantado en clases",
+      "classUpfrontDefaultTooltip": "Cómo se cobra una clase por defecto: pagar en el local, requerir prepago al reservar, u opcional. Cada clase puede sobreescribirlo.",
+      "options": {
+        "required": "Prepago obligatorio",
+        "at_venue": "Pagar en el local",
+        "optional": "Opcional (el cliente elige)"
+      }
+    },
+    "deposits": {
+      "enabled": "Requerir depósito",
+      "mode": "Modo de depósito",
+      "modeTooltip": "Define si pides depósito al reservar y de qué tipo: sin depósito, retención de tarjeta, depósito parcial o prepago total.",
+      "modes": {
+        "none": "Sin depósito",
+        "card_hold": "Retención de tarjeta",
+        "deposit": "Depósito parcial",
+        "prepaid": "Prepago total"
+      },
+      "fixedAmount": "Monto fijo",
+      "fixedAmountTooltip": "Cantidad fija que el cliente paga como depósito al reservar.",
+      "percentage": "Porcentaje",
+      "percentageTooltip": "Porcentaje del total de la reserva que se cobra como depósito.",
+      "partySizeGte": "Para grupos de",
+      "partySizeGteHelp": "Solo se exige depósito a partir de este tamaño de grupo. Útil para no fricciones en reservas pequeñas.",
+      "paymentWindow": "Ventana de pago",
+      "paymentWindowHelp": "Horas para completar el pago"
+    },
+    "publicBooking": {
+      "enabled": "Habilitar reservaciones online",
+      "enabledHelp": "Los clientes pueden reservar desde tu sitio web",
+      "requirePhone": "Requerir teléfono",
+      "requirePhoneTooltip": "El cliente debe ingresar su teléfono al hacer la reserva online.",
+      "requireEmail": "Requerir email",
+      "requireEmailTooltip": "El cliente debe ingresar su correo electrónico al hacer la reserva online."
+    },
+    "cancellation": {
+      "allowCustomerCancel": "Permitir cancelación por cliente",
+      "allowCustomerCancelTooltip": "Si los clientes pueden cancelar sus reservas desde el enlace de confirmación, sin tener que contactarte.",
+      "minHoursBefore": "Horas mínimas antes",
+      "minHoursBeforeHelp": "Horas antes del inicio para poder cancelar",
+      "forfeitDeposit": "Perder depósito al cancelar",
+      "forfeitDepositTooltip": "Cuando un cliente cancela dentro de la ventana mínima, el depósito no se reembolsa.",
+      "noShowFee": "Cargo por No Show",
+      "noShowFeeHelp": "Porcentaje del depósito que se cobra",
+      "allowReschedule": "Permitir cambio de horario",
+      "allowRescheduleHelp": "El cliente puede mover su reserva a otro horario de la misma clase, dentro de la ventana de cancelación.",
+      "creditRefundTitle": "Reembolso de créditos al cancelar",
+      "creditRefundHelp": "Decide cuántos créditos recuperan los clientes cuando cancelan una clase pagada con paquete.",
+      "creditRefundMode": "Política de reembolso",
+      "creditRefundModeTooltip": "Cuando un cliente cancela una clase pagada con paquete, decide cuántos créditos se le devuelven a su saldo.",
+      "creditRefundAlways": "Siempre devolver 100%",
+      "creditRefundTimeBased": "Según anticipación",
+      "creditRefundNever": "Nunca devolver",
+      "creditFreeRefundHoursBefore": "Reembolso 100% si cancela con (horas)",
+      "creditFreeRefundHoursHelp": "Cancelar al menos N horas antes del inicio devuelve todos los créditos.",
+      "creditLateRefundPercent": "% de reembolso si cancela tarde",
+      "creditLateRefundHelp": "Aplica cuando se cancela dentro de la ventana de arriba. 0 = pierde todo, 100 = devuelve todo.",
+      "creditNoShowRefund": "Devolver créditos en no-show",
+      "creditNoShowRefundHelp": "Si el cliente no se presentó, ¿se devuelve igualmente el crédito? (Default: no)"
+    },
+    "waitlist": {
+      "enabled": "Habilitar lista de espera",
+      "enabledTooltip": "Cuando una clase o servicio se llena, los clientes pueden anotarse a la lista de espera y serán notificados si se libera un lugar.",
+      "maxSize": "Tamaño máximo",
+      "maxSizeTooltip": "Número máximo de personas que pueden estar simultáneamente en la lista de espera de una misma clase.",
+      "priorityMode": "Modo de prioridad",
+      "priorityModeTooltip": "Orden en que se notifica a la lista cuando se libera un lugar: primero en llegar, por tamaño del grupo o notificación masiva.",
+      "notifyWindow": "Ventana de notificación",
+      "notifyWindowHelp": "Minutos que tiene el cliente para responder"
+    },
+    "reminders": {
+      "enabled": "Enviar recordatorios",
+      "enabledTooltip": "Envía recordatorios automáticos antes del inicio de la reserva por email, SMS o WhatsApp (según los canales activos).",
+      "channelsTooltip": "Los canales por los que se mandan los recordatorios. Puedes elegir uno o varios. Si dejas todo desactivado, no se envía nada.",
+      "whenToSend": "Cuándo enviar",
+      "whenToSendTooltip": "El tiempo de anticipación con el que se envía cada recordatorio. Puedes configurar varios — por ejemplo 24h antes y 2h antes para reforzar.",
+      "channels": "Canales",
+      "channelOptions": {
+        "EMAIL": "Email",
+        "SMS": "SMS",
+        "WHATSAPP": "WhatsApp"
+      },
+      "minutesBefore": "Enviar antes de",
+      "minutesBeforeHelp": "Minutos antes de la reservación"
+    },
+    "saved": "Configuración guardada exitosamente"
+  },
+  "toasts": {
+    "createSuccess": "Reservación creada exitosamente",
+    "updateSuccess": "Reservación actualizada exitosamente",
+    "cancelSuccess": "Reservación cancelada",
+    "confirmSuccess": "Reservación confirmada",
+    "checkInSuccess": "Check-in realizado",
+    "completeSuccess": "Reservación completada",
+    "noShowSuccess": "Marcada como No Show",
+    "rescheduleSuccess": "Reservación reagendada",
+    "waitlistAddSuccess": "Agregado a la lista de espera",
+    "waitlistRemoveSuccess": "Removido de la lista de espera",
+    "waitlistPromoteSuccess": "Cliente promovido de la lista de espera",
+    "error": "Ocurrió un error. Por favor intenta de nuevo."
+  },
+  "minutes": "min",
+  "hours": "hrs",
+  "people": "{{count}} persona",
+  "people_other": "{{count}} personas",
+  "noTable": "Sin mesa",
+  "noStaff": "Sin asignar",
+  "unnamedGuest": "Invitado",
+  "publicBooking": {
+    "pageTitle": "Reservar",
+    "poweredBy": "Con tecnología de Avoqado",
+    "steps": {
+      "service": "Servicio",
+      "date": "Fecha",
+      "time": "Hora",
+      "info": "Datos",
+      "confirmation": "Confirmado"
+    },
+    "service": {
+      "title": "Selecciona un servicio",
+      "duration": "{{min}} min",
+      "noProducts": "No hay servicios disponibles"
+    },
+    "date": {
+      "title": "Selecciona una fecha",
+      "today": "Hoy"
+    },
+    "time": {
+      "title": "Selecciona un horario",
+      "noSlots": "No hay horarios disponibles para esta fecha",
+      "loading": "Cargando horarios...",
+      "full": "Lleno",
+      "spotsLeft": "{{count}} lugares",
+      "spotsLeft_one": "{{count}} lugar"
+    },
+    "guestForm": {
+      "title": "Tus datos",
+      "phone": "Teléfono",
+      "phonePlaceholder": "Tu número de teléfono",
+      "name": "Nombre",
+      "namePlaceholder": "Tu nombre",
+      "email": "Email (opcional)",
+      "emailPlaceholder": "tu@email.com",
+      "partySize": "Personas",
+      "specialRequests": "Solicitudes especiales",
+      "specialRequestsPlaceholder": "Alergias, cumpleaños, necesidades de accesibilidad...",
+      "submit": "Confirmar Reservación",
+      "submitting": "Reservando..."
+    },
+    "validation": {
+      "phoneRequired": "El teléfono es requerido",
+      "nameRequired": "El nombre es requerido",
+      "emailInvalid": "Ingresa un email válido",
+      "emailRequired": "El email es requerido"
+    },
+    "confirmation": {
+      "title": "¡Reservación Confirmada!",
+      "code": "Código de Confirmación",
+      "dateTime": "Fecha y Hora",
+      "guests": "Personas",
+      "service": "Servicio",
+      "addToCalendar": "Agregar a Google Calendar",
+      "downloadIcs": "Descargar .ics",
+      "manageBooking": "Gestionar Reservación",
+      "newBooking": "Reservar Otra"
+    },
+    "manage": {
+      "title": "Tu Reservación",
+      "cancelButton": "Cancelar Reservación",
+      "cancelTitle": "Cancelar Reservación",
+      "cancelDescription": "¿Estás seguro de que deseas cancelar esta reservación? Esta acción no se puede deshacer.",
+      "cancelReasonLabel": "Razón (opcional)",
+      "cancelReasonPlaceholder": "¿Por qué cancelas?",
+      "cancelConfirm": "Confirmar Cancelación",
+      "cancelledStatus": "Esta reservación ha sido cancelada",
+      "cancelledAt": "Cancelada el {{date}}",
+      "deposit": "Depósito",
+      "depositForfeit": "El depósito se perderá",
+      "table": "Mesa",
+      "staff": "Atendido por",
+      "specialRequests": "Solicitudes Especiales",
+      "backToBooking": "Hacer Nueva Reservación"
+    },
+    "cancellationPolicy": {
+      "title": "Política de Cancelación",
+      "allowCancel": "Cancelación gratuita hasta {{hours}} horas antes",
+      "noCancel": "Esta reservación no puede cancelarse en línea",
+      "depositForfeit": "El depósito se perderá si se cancela"
+    },
+    "errors": {
+      "venueNotFound": "Esta página no existe",
+      "venueNotFoundDescription": "El enlace de reservación puede ser incorrecto o el negocio ya no está disponible.",
+      "bookingDisabled": "Reservaciones en línea no disponibles",
+      "bookingDisabledDescription": "Este negocio no está aceptando reservaciones en línea en este momento.",
+      "bookingDisabledContact": "Llama al {{phone}} para hacer una reservación",
+      "reservationNotFound": "Reservación no encontrada",
+      "reservationNotFoundDescription": "Este enlace de reservación puede estar expirado o ser inválido.",
+      "slotTaken": "Este horario ya no está disponible. Por favor elige otro horario.",
+      "generic": "Algo salió mal. Por favor intenta de nuevo."
+    }
+  },
+  "branding": {
+    "title": "Marca",
+    "description": "Personaliza la apariencia de tus páginas públicas de reservación",
+    "venue": "Negocio",
+    "logo": "Logotipo",
+    "logoHint": "Muestra tu logo en la parte superior de la página de reservación",
+    "button": "Botón",
+    "accentColor": "Color de acento",
+    "accentColorInherit": "Heredar",
+    "accentColorInheritHint": "Hereda el color de marca del negocio",
+    "buttonShape": "Forma del botón",
+    "buttonShapeRounded": "Redondo",
+    "buttonShapeSquare": "Cuadrado",
+    "buttonShapePill": "Cápsula",
+    "font": "Fuente",
+    "fontHint": "40 fuentes auto-hostadas. Solo se descarga la que elijas.",
+    "fontPlaceholder": "Buscar fuente…",
+    "fontChange": "Cambiar",
+    "showHeroImage": "Imagen principal",
+    "showDescriptions": "Descripciones",
+    "showDuration": "Duración",
+    "showPrices": "Precios",
+    "preview": "Vista previa",
+    "previewCta": "Siguiente",
+    "sampleServiceName": "Manicura express",
+    "sampleServiceDescription": "Quitarle pellejitos y dejar limpia la uña",
+    "samplePrice": "$250",
+    "sampleDuration": "15 min",
+    "save": "Guardar cambios",
+    "saving": "Guardando…",
+    "saved": "Guardado",
+    "savedTitle": "Cambios guardados",
+    "saveErrorTitle": "No se pudo guardar",
+    "discard": "Descartar"
+  }
 }

@@ -8,7 +8,8 @@
  *     (creadas / omitidas / errores).
  *  3. The "Crear" button is disabled when there are zero rows to create.
  *  4. "Descargar template" calls downloadTemplate().
- *  5. The page is gated by <PermissionGate permission="manual-sales:create">.
+ *  5. Regression: the page renders on org routes even when the venue-scoped can()
+ *     denies — it must NOT be wrapped in a venue-scoped <PermissionGate>.
  *
  * `manualSale.service` and `useCurrentOrganization` are mocked so no network calls or
  * router context are needed. `BulkUploadSection` is mocked to a minimal stand-in that
@@ -190,11 +191,17 @@ describe('ManualSalesUpload', () => {
     expect(mockDownloadTemplate).toHaveBeenCalledTimes(1)
   })
 
-  it('hides the page content when the user lacks the manual-sales:create permission', () => {
+  // Regression (the bug Isaac hit): on /organizations/:orgId routes there is no
+  // active venue, so useAccess().can() is disabled and returns false for everyone
+  // (see use-access.ts `enabled: !!venueId`). A venue-scoped <PermissionGate> here
+  // rendered null → the whole page went blank. The page must render regardless of
+  // can(); access is enforced by <OwnerProtectedRoute> + the backend endpoints.
+  it('still renders its content when the venue-scoped can() denies (org route has no venueId)', () => {
     mockCan.mockReturnValue(false)
 
     render(<ManualSalesUpload />)
 
-    expect(screen.queryByText('mock-upload-trigger')).not.toBeInTheDocument()
+    expect(screen.getByText('mock-upload-trigger')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Descargar template/i })).toBeInTheDocument()
   })
 })

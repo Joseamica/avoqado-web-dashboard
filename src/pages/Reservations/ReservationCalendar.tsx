@@ -725,10 +725,18 @@ export default function ReservationCalendar() {
       ? `${reservation.customer.firstName} ${reservation.customer.lastName}`
       : reservation.guestName || t('unnamedGuest')
 
-    // Service + modifiers are the booking's content. Salons need to see them
+    // Service(s) + modifiers are the booking's content. Salons need to see them
     // at a glance on the calendar block (matching how Vagaro / Booksy surface
     // them) instead of having to open the detail page for every reservation.
-    const serviceName = reservation.product?.name
+    // Multi-service appointments list EVERY service, not just the lead one;
+    // falls back to the single `product` for legacy rows.
+    const services =
+      reservation.services && reservation.services.length > 0
+        ? reservation.services
+        : reservation.product
+          ? [{ id: reservation.product.id, name: reservation.product.name, price: reservation.product.price, duration: null }]
+          : []
+    const serviceSummary = services.map(s => s.name).join(' + ')
     const modifiers = reservation.modifiers ?? []
     const modifiersTotal = modifiers.reduce((sum, m) => sum + (m.price ?? 0) * (m.quantity ?? 1), 0)
 
@@ -744,9 +752,9 @@ export default function ReservationCalendar() {
               onClick={() => navigate(`${fullBasePath}/reservations/${reservation.id}`)}
             >
               <div className="font-medium truncate">{guestName}</div>
-              {serviceName && height > 28 && (
+              {serviceSummary && height > 28 && (
                 <div className="truncate text-[11px] opacity-90">
-                  {serviceName}
+                  {serviceSummary}
                   {modifiers.length > 0 && <span className="ml-1 opacity-75">+{modifiers.length}</span>}
                 </div>
               )}
@@ -769,7 +777,9 @@ export default function ReservationCalendar() {
           <TooltipContent side="right" align="start" className="max-w-xs text-xs leading-relaxed">
             <div className="space-y-1">
               <div className="font-semibold">{guestName}</div>
-              {serviceName && <div>{serviceName}</div>}
+              {services.map((s, i) => (
+                <div key={s.id ?? i}>{s.name}</div>
+              ))}
               {modifiers.length > 0 && (
                 <div className="pt-1 border-t border-border/40">
                   {modifiers.map(m => (
@@ -780,7 +790,8 @@ export default function ReservationCalendar() {
                       </span>
                       {m.price > 0 && (
                         <span className="tabular-nums opacity-80">
-                          +{(m.price * m.quantity).toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 })}
+                          +
+                          {(m.price * m.quantity).toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 })}
                         </span>
                       )}
                     </div>
@@ -1075,359 +1086,362 @@ export default function ReservationCalendar() {
 
   return (
     <FeatureGate feature="RESERVATIONS">
-    <div className="p-4 bg-background text-foreground" data-tour="reservations-calendar">
-      {/* Controls */}
-      <div className="flex items-center justify-between gap-4 mb-4">
-        <div className="flex items-center gap-2">
-          {/* Date navigation with popover picker */}
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goPrev}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
+      <div className="p-4 bg-background text-foreground" data-tour="reservations-calendar">
+        {/* Controls */}
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-2">
+            {/* Date navigation with popover picker */}
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goPrev}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
 
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 gap-1.5 font-medium">
-                <CalendarDays className="h-3.5 w-3.5" />
-                {dateDisplay}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-fit p-0" align="start">
-              <div className="inline-flex">
-                {/* Presets */}
-                <div className="border-r border-border p-2 space-y-0.5">
-                  <button
-                    className="block text-left px-3 py-1.5 text-sm rounded-md hover:bg-accent cursor-pointer whitespace-nowrap"
-                    onClick={() => {
-                      setCurrentDate(new Date())
-                    }}
-                  >
-                    {t('tabs.today', { defaultValue: 'Hoy' })}
-                  </button>
-                  {[1, 2, 3, 4, 5, 6].map(n => (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 font-medium">
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  {dateDisplay}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-fit p-0" align="start">
+                <div className="inline-flex">
+                  {/* Presets */}
+                  <div className="border-r border-border p-2 space-y-0.5">
                     <button
-                      key={n}
-                      className="block text-left px-3 py-1.5 text-sm rounded-md hover:bg-accent cursor-pointer text-muted-foreground whitespace-nowrap"
+                      className="block text-left px-3 py-1.5 text-sm rounded-md hover:bg-accent cursor-pointer whitespace-nowrap"
                       onClick={() => {
-                        setCurrentDate(addDays(new Date(), n * 7))
+                        setCurrentDate(new Date())
                       }}
                     >
-                      {t('calendar.inWeeks', { count: n, defaultValue: `En ${n} semana${n > 1 ? 's' : ''}` })}
+                      {t('tabs.today', { defaultValue: 'Hoy' })}
                     </button>
-                  ))}
+                    {[1, 2, 3, 4, 5, 6].map(n => (
+                      <button
+                        key={n}
+                        className="block text-left px-3 py-1.5 text-sm rounded-md hover:bg-accent cursor-pointer text-muted-foreground whitespace-nowrap"
+                        onClick={() => {
+                          setCurrentDate(addDays(new Date(), n * 7))
+                        }}
+                      >
+                        {t('calendar.inWeeks', { count: n, defaultValue: `En ${n} semana${n > 1 ? 's' : ''}` })}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Calendar */}
+                  <div className="p-2">
+                    <Calendar
+                      mode="single"
+                      selected={currentDate}
+                      onSelect={date => {
+                        if (date) setCurrentDate(date)
+                      }}
+                      weekStartsOn={1}
+                      locale={getDateFnsLocale(locale)}
+                    />
+                  </div>
                 </div>
-                {/* Calendar */}
-                <div className="p-2">
-                  <Calendar
-                    mode="single"
-                    selected={currentDate}
-                    onSelect={date => {
-                      if (date) setCurrentDate(date)
-                    }}
-                    weekStartsOn={1}
-                    locale={getDateFnsLocale(locale)}
-                  />
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+              </PopoverContent>
+            </Popover>
 
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goNext}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goNext}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
 
-          {/* View interval — dropdown like Square, next to date picker */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs font-medium">
-                {t('calendar.interval', { defaultValue: 'Intervalo' })}{' '}
-                <span className="font-bold">
-                  {view === 'day'
-                    ? t('calendar.views.day')
-                    : view === '5day'
-                      ? t('calendar.views.5day', { defaultValue: '5-días' })
-                      : view === 'month'
-                        ? t('calendar.views.month', { defaultValue: 'Mes' })
-                        : t('calendar.views.week')}
-                </span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-36">
-              {(['day', 'week', '5day', 'month'] as CalendarView[]).map(v => (
-                <DropdownMenuItem
-                  key={v}
-                  className={`cursor-pointer ${view === v ? 'font-bold bg-accent' : ''}`}
-                  onClick={() => setView(v)}
-                >
-                  {v === 'day'
-                    ? t('calendar.views.day')
-                    : v === '5day'
-                      ? t('calendar.views.5day', { defaultValue: '5-días' })
-                      : v === 'month'
-                        ? t('calendar.views.month', { defaultValue: 'Mes' })
-                        : t('calendar.views.week')}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* GroupBy dropdown — only visible in day view */}
-          {view === 'day' && (
+            {/* View interval — dropdown like Square, next to date picker */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs font-medium">
-                  <Columns3 className="h-3.5 w-3.5" />
-                  {groupBy === 'none' ? t('calendar.groupBy.label') : `${t('calendar.groupBy.label')}: `}
-                  {groupBy !== 'none' && (
-                    <span className="font-bold">{groupBy === 'staff' ? t('calendar.groupBy.staff') : t('calendar.groupBy.table')}</span>
-                  )}
+                  {t('calendar.interval', { defaultValue: 'Intervalo' })}{' '}
+                  <span className="font-bold">
+                    {view === 'day'
+                      ? t('calendar.views.day')
+                      : view === '5day'
+                        ? t('calendar.views.5day', { defaultValue: '5-días' })
+                        : view === 'month'
+                          ? t('calendar.views.month', { defaultValue: 'Mes' })
+                          : t('calendar.views.week')}
+                  </span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-40">
-                {(['none', 'staff', 'table'] as GroupByMode[]).map(mode => (
+              <DropdownMenuContent align="start" className="w-36">
+                {(['day', 'week', '5day', 'month'] as CalendarView[]).map(v => (
                   <DropdownMenuItem
-                    key={mode}
-                    className={`cursor-pointer ${groupBy === mode ? 'font-bold bg-accent' : ''}`}
-                    onClick={() => setGroupBy(mode)}
+                    key={v}
+                    className={`cursor-pointer ${view === v ? 'font-bold bg-accent' : ''}`}
+                    onClick={() => setView(v)}
                   >
-                    {mode === 'none'
-                      ? t('calendar.groupBy.none')
-                      : mode === 'staff'
-                        ? t('calendar.groupBy.staff')
-                        : t('calendar.groupBy.table')}
+                    {v === 'day'
+                      ? t('calendar.views.day')
+                      : v === '5day'
+                        ? t('calendar.views.5day', { defaultValue: '5-días' })
+                        : v === 'month'
+                          ? t('calendar.views.month', { defaultValue: 'Mes' })
+                          : t('calendar.views.week')}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-          )}
-        </div>
 
-        <div className="flex items-center gap-2">
-          {/* Google Calendar overlay toggle — Eye icon flips between "blocks
+            {/* GroupBy dropdown — only visible in day view */}
+            {view === 'day' && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs font-medium">
+                    <Columns3 className="h-3.5 w-3.5" />
+                    {groupBy === 'none' ? t('calendar.groupBy.label') : `${t('calendar.groupBy.label')}: `}
+                    {groupBy !== 'none' && (
+                      <span className="font-bold">{groupBy === 'staff' ? t('calendar.groupBy.staff') : t('calendar.groupBy.table')}</span>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-40">
+                  {(['none', 'staff', 'table'] as GroupByMode[]).map(mode => (
+                    <DropdownMenuItem
+                      key={mode}
+                      className={`cursor-pointer ${groupBy === mode ? 'font-bold bg-accent' : ''}`}
+                      onClick={() => setGroupBy(mode)}
+                    >
+                      {mode === 'none'
+                        ? t('calendar.groupBy.none')
+                        : mode === 'staff'
+                          ? t('calendar.groupBy.staff')
+                          : t('calendar.groupBy.table')}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Google Calendar overlay toggle — Eye icon flips between "blocks
               are visible" and "blocks are hidden". Persists in localStorage
               and gates the network call too. */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 gap-1.5 text-xs font-medium"
-            onClick={() => setGcalOverlayVisible(v => !v)}
-            title={tGcal('overlay.toggle')}
-            aria-pressed={gcalOverlayVisible}
-          >
-            {gcalOverlayVisible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-            <span className="hidden lg:inline">{tGcal('overlay.toggle')}</span>
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs font-medium"
+              onClick={() => setGcalOverlayVisible(v => !v)}
+              title={tGcal('overlay.toggle')}
+              aria-pressed={gcalOverlayVisible}
+            >
+              {gcalOverlayVisible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+              <span className="hidden lg:inline">{tGcal('overlay.toggle')}</span>
+            </Button>
 
-          {/* Calendar attributes — gear icon like Square */}
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setAttributesOpen(true)}
-            title={t('calendarAttributes.title', { defaultValue: 'Atributos de la cita' })}
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
+            {/* Calendar attributes — gear icon like Square */}
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setAttributesOpen(true)}
+              title={t('calendarAttributes.title', { defaultValue: 'Atributos de la cita' })}
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
 
-          {/* Edit availability — clock icon like Square */}
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setAvailabilityOpen(true)}
-            title={t('availability.title', { defaultValue: 'Editar disponibilidad' })}
-          >
-            <Clock className="h-4 w-4" />
-          </Button>
+            {/* Edit availability — clock icon like Square */}
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setAvailabilityOpen(true)}
+              title={t('availability.title', { defaultValue: 'Editar disponibilidad' })}
+            >
+              <Clock className="h-4 w-4" />
+            </Button>
 
-          {/* Crear dropdown — estilo Square */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" className="h-8 gap-1.5">
-                <Plus className="h-3.5 w-3.5" />
-                {t('calendar.create', { defaultValue: 'Crear' })}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem
-                className="gap-2 cursor-pointer"
-                onClick={() => setCreateModal({ open: true, date: formatVenueDateISO(currentDate), startTime: '' })}
+            {/* Crear dropdown — estilo Square */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" className="h-8 gap-1.5">
+                  <Plus className="h-3.5 w-3.5" />
+                  {t('calendar.create', { defaultValue: 'Crear' })}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem
+                  className="gap-2 cursor-pointer"
+                  onClick={() => setCreateModal({ open: true, date: formatVenueDateISO(currentDate), startTime: '' })}
+                >
+                  <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                  {t('calendar.createCita', { defaultValue: 'Cita' })}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="gap-2 cursor-pointer"
+                  onClick={() => setClassModal({ open: true, date: formatVenueDateISO(currentDate), startTime: '' })}
+                >
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  {t('calendar.createClase', { defaultValue: 'Clase' })}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        {/* Calendar Grid */}
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64 text-muted-foreground">{tCommon('loading')}</div>
+        ) : view === 'month' ? (
+          /* Month view — compact grid of day cells */
+          <div className="rounded-xl border border-border overflow-auto max-h-[calc(100vh-220px)]">
+            {/* Weekday headers */}
+            <div className="grid grid-cols-7 border-b border-border">
+              {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(d => (
+                <div
+                  key={d}
+                  className="px-2 py-1.5 text-xs font-medium text-muted-foreground text-center border-r border-border/30 last:border-r-0"
+                >
+                  {t(`settings.operatingHours.days.${d}`).slice(0, 3)}
+                </div>
+              ))}
+            </div>
+            {/* Day cells — padded to start on correct weekday */}
+            <div className="grid grid-cols-7">
+              {/* Empty cells for days before month start */}
+              {Array.from({ length: (displayDays[0].getDay() + 6) % 7 }, (_, i) => (
+                <div key={`pad-${i}`} className="min-h-[100px] border-r border-b border-border/30" />
+              ))}
+              {displayDays.map(day => {
+                const dayKey = formatVenueDateISO(day)
+                const dayReservations = reservationsByDay[dayKey] || []
+                const dayClassSessions = classSessionsByDay[dayKey] || []
+                const dayIsToday = isToday(day)
+                const totalEvents = dayReservations.length + dayClassSessions.length
+
+                return (
+                  <div
+                    key={dayKey}
+                    className={`min-h-[100px] border-r border-b border-border/30 p-1.5 cursor-pointer hover:bg-accent/30 transition-colors ${dayIsToday ? 'bg-primary/5' : ''}`}
+                    onClick={() => {
+                      setCurrentDate(day)
+                      setView('day')
+                    }}
+                  >
+                    <div
+                      className={`text-sm mb-1 ${dayIsToday ? 'bg-primary text-primary-foreground rounded-full w-7 h-7 flex items-center justify-center' : 'text-foreground'}`}
+                    >
+                      {day.getDate()}
+                    </div>
+                    {/* Compact event indicators */}
+                    {dayReservations.slice(0, 3).map(r => (
+                      <div
+                        key={r.id}
+                        className={`text-[10px] leading-tight truncate rounded px-1 py-0.5 mb-0.5 ${statusColorMap[r.status]}`}
+                      >
+                        {r.customer ? r.customer.firstName : r.guestName || '—'} {formatTime(r.startsAt)}
+                      </div>
+                    ))}
+                    {dayClassSessions.slice(0, 2).map(s => (
+                      <div
+                        key={s.id}
+                        className="text-[10px] leading-tight truncate rounded px-1 py-0.5 mb-0.5 bg-violet-500/20 text-violet-700 dark:text-violet-300"
+                      >
+                        {s.product.name} {formatTime(s.startsAt)}
+                      </div>
+                    ))}
+                    {totalEvents > 5 && <div className="text-[10px] text-muted-foreground">+{totalEvents - 5}</div>}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ) : (
+          /* Time-axis view (day, week, 5day) */
+          <div ref={scrollRef} className="rounded-xl border border-border overflow-auto max-h-[calc(100vh-220px)]">
+            <div className="flex min-w-[600px]">
+              {/* Time axis */}
+              <div className="w-14 shrink-0 border-r border-border">
+                {(view !== 'day' || (groupedColumns && groupedColumns.length > 0)) && (
+                  <div className="sticky top-0 bg-background z-10 border-b border-border h-[44px]" />
+                )}
+                <div className="relative" style={{ height: `${HOURS.length * 64 + GRID_TOP_PAD + 8}px` }}>
+                  {HOURS.map(hour => (
+                    <div
+                      key={hour}
+                      className="absolute left-0 right-0 text-xs text-muted-foreground text-right pr-2"
+                      style={{ top: `${(hour - firstHour) * 64 + GRID_TOP_PAD - 8}px` }}
+                    >
+                      {`${String(hour).padStart(2, '0')}:00`}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Day columns — use grouped columns when groupBy is active in day view */}
+              {view === 'day' && groupedColumns && groupedColumns.length > 0
+                ? groupedColumns.map(col => renderGroupedColumn(col, currentDate))
+                : displayDays.map(day => renderDayColumn(day, displayDays.length === 1))}
+            </div>
+          </div>
+        )}
+
+        {/* Grid click — event type picker */}
+        {gridClickMenu.open && (
+          <div
+            ref={gridClickMenuRef}
+            className="fixed z-50 w-48 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95"
+            style={{ top: gridClickMenu.y, left: gridClickMenu.x }}
+          >
+            <div className="p-1">
+              <button
+                className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                onClick={() => handleGridMenuSelect('reservation')}
               >
                 <CalendarDays className="h-4 w-4 text-muted-foreground" />
                 {t('calendar.createCita', { defaultValue: 'Cita' })}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="gap-2 cursor-pointer"
-                onClick={() => setClassModal({ open: true, date: formatVenueDateISO(currentDate), startTime: '' })}
+              </button>
+              <div className="mx-2 my-0.5 h-px bg-border" />
+              <button
+                className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                onClick={() => handleGridMenuSelect('class')}
               >
                 <Users className="h-4 w-4 text-muted-foreground" />
                 {t('calendar.createClase', { defaultValue: 'Clase' })}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-
-      {/* Calendar Grid */}
-      {isLoading ? (
-        <div className="flex items-center justify-center h-64 text-muted-foreground">{tCommon('loading')}</div>
-      ) : view === 'month' ? (
-        /* Month view — compact grid of day cells */
-        <div className="rounded-xl border border-border overflow-auto max-h-[calc(100vh-220px)]">
-          {/* Weekday headers */}
-          <div className="grid grid-cols-7 border-b border-border">
-            {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(d => (
-              <div
-                key={d}
-                className="px-2 py-1.5 text-xs font-medium text-muted-foreground text-center border-r border-border/30 last:border-r-0"
-              >
-                {t(`settings.operatingHours.days.${d}`).slice(0, 3)}
-              </div>
-            ))}
-          </div>
-          {/* Day cells — padded to start on correct weekday */}
-          <div className="grid grid-cols-7">
-            {/* Empty cells for days before month start */}
-            {Array.from({ length: (displayDays[0].getDay() + 6) % 7 }, (_, i) => (
-              <div key={`pad-${i}`} className="min-h-[100px] border-r border-b border-border/30" />
-            ))}
-            {displayDays.map(day => {
-              const dayKey = formatVenueDateISO(day)
-              const dayReservations = reservationsByDay[dayKey] || []
-              const dayClassSessions = classSessionsByDay[dayKey] || []
-              const dayIsToday = isToday(day)
-              const totalEvents = dayReservations.length + dayClassSessions.length
-
-              return (
-                <div
-                  key={dayKey}
-                  className={`min-h-[100px] border-r border-b border-border/30 p-1.5 cursor-pointer hover:bg-accent/30 transition-colors ${dayIsToday ? 'bg-primary/5' : ''}`}
-                  onClick={() => {
-                    setCurrentDate(day)
-                    setView('day')
-                  }}
-                >
-                  <div
-                    className={`text-sm mb-1 ${dayIsToday ? 'bg-primary text-primary-foreground rounded-full w-7 h-7 flex items-center justify-center' : 'text-foreground'}`}
-                  >
-                    {day.getDate()}
-                  </div>
-                  {/* Compact event indicators */}
-                  {dayReservations.slice(0, 3).map(r => (
-                    <div key={r.id} className={`text-[10px] leading-tight truncate rounded px-1 py-0.5 mb-0.5 ${statusColorMap[r.status]}`}>
-                      {r.customer ? r.customer.firstName : r.guestName || '—'} {formatTime(r.startsAt)}
-                    </div>
-                  ))}
-                  {dayClassSessions.slice(0, 2).map(s => (
-                    <div
-                      key={s.id}
-                      className="text-[10px] leading-tight truncate rounded px-1 py-0.5 mb-0.5 bg-violet-500/20 text-violet-700 dark:text-violet-300"
-                    >
-                      {s.product.name} {formatTime(s.startsAt)}
-                    </div>
-                  ))}
-                  {totalEvents > 5 && <div className="text-[10px] text-muted-foreground">+{totalEvents - 5}</div>}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      ) : (
-        /* Time-axis view (day, week, 5day) */
-        <div ref={scrollRef} className="rounded-xl border border-border overflow-auto max-h-[calc(100vh-220px)]">
-          <div className="flex min-w-[600px]">
-            {/* Time axis */}
-            <div className="w-14 shrink-0 border-r border-border">
-              {(view !== 'day' || (groupedColumns && groupedColumns.length > 0)) && (
-                <div className="sticky top-0 bg-background z-10 border-b border-border h-[44px]" />
-              )}
-              <div className="relative" style={{ height: `${HOURS.length * 64 + GRID_TOP_PAD + 8}px` }}>
-                {HOURS.map(hour => (
-                  <div
-                    key={hour}
-                    className="absolute left-0 right-0 text-xs text-muted-foreground text-right pr-2"
-                    style={{ top: `${(hour - firstHour) * 64 + GRID_TOP_PAD - 8}px` }}
-                  >
-                    {`${String(hour).padStart(2, '0')}:00`}
-                  </div>
-                ))}
-              </div>
+              </button>
             </div>
-
-            {/* Day columns — use grouped columns when groupBy is active in day view */}
-            {view === 'day' && groupedColumns && groupedColumns.length > 0
-              ? groupedColumns.map(col => renderGroupedColumn(col, currentDate))
-              : displayDays.map(day => renderDayColumn(day, displayDays.length === 1))}
+            <div className="border-t border-border px-3 py-1.5 text-[11px] text-muted-foreground">{gridClickMenu.startTime}</div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Grid click — event type picker */}
-      {gridClickMenu.open && (
-        <div
-          ref={gridClickMenuRef}
-          className="fixed z-50 w-48 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95"
-          style={{ top: gridClickMenu.y, left: gridClickMenu.x }}
+        {/* Click-to-create reservation modal */}
+        <FullScreenModal
+          open={createModal.open}
+          onClose={closeCreateModal}
+          title={t('form.createTitle')}
+          actions={<Button onClick={() => createFormSubmitRef.current?.()}>{t('actions.save')}</Button>}
         >
-          <div className="p-1">
-            <button
-              className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer"
-              onClick={() => handleGridMenuSelect('reservation')}
-            >
-              <CalendarDays className="h-4 w-4 text-muted-foreground" />
-              {t('calendar.createCita', { defaultValue: 'Cita' })}
-            </button>
-            <div className="mx-2 my-0.5 h-px bg-border" />
-            <button
-              className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer"
-              onClick={() => handleGridMenuSelect('class')}
-            >
-              <Users className="h-4 w-4 text-muted-foreground" />
-              {t('calendar.createClase', { defaultValue: 'Clase' })}
-            </button>
+          <div className="max-w-4xl mx-auto p-6">
+            <CreateReservationForm
+              defaultDate={createModal.date}
+              defaultStartTime={createModal.startTime}
+              submitRef={createFormSubmitRef}
+              onSuccess={() => {
+                closeCreateModal()
+                queryClient.invalidateQueries({ queryKey: ['reservation-calendar'] })
+              }}
+              onCancel={closeCreateModal}
+            />
           </div>
-          <div className="border-t border-border px-3 py-1.5 text-[11px] text-muted-foreground">{gridClickMenu.startTime}</div>
-        </div>
-      )}
+        </FullScreenModal>
 
-      {/* Click-to-create reservation modal */}
-      <FullScreenModal
-        open={createModal.open}
-        onClose={closeCreateModal}
-        title={t('form.createTitle')}
-        actions={<Button onClick={() => createFormSubmitRef.current?.()}>{t('actions.save')}</Button>}
-      >
-        <div className="max-w-4xl mx-auto p-6">
-          <CreateReservationForm
-            defaultDate={createModal.date}
-            defaultStartTime={createModal.startTime}
-            submitRef={createFormSubmitRef}
-            onSuccess={() => {
-              closeCreateModal()
-              queryClient.invalidateQueries({ queryKey: ['reservation-calendar'] })
-            }}
-            onCancel={closeCreateModal}
-          />
-        </div>
-      </FullScreenModal>
+        {/* Create class session dialog */}
+        <CreateClassSessionDialog
+          open={classModal.open}
+          onOpenChange={open => !open && closeClassModal()}
+          defaultDate={classModal.date}
+          defaultStartTime={classModal.startTime || undefined}
+        />
 
-      {/* Create class session dialog */}
-      <CreateClassSessionDialog
-        open={classModal.open}
-        onOpenChange={open => !open && closeClassModal()}
-        defaultDate={classModal.date}
-        defaultStartTime={classModal.startTime || undefined}
-      />
+        {/* Edit class session dialog */}
+        <EditClassSessionDialog open={!!editSessionId} onOpenChange={open => !open && setEditSessionId(null)} sessionId={editSessionId} />
 
-      {/* Edit class session dialog */}
-      <EditClassSessionDialog open={!!editSessionId} onOpenChange={open => !open && setEditSessionId(null)} sessionId={editSessionId} />
+        {/* Edit availability dialog */}
+        <EditAvailabilityDialog open={availabilityOpen} onOpenChange={setAvailabilityOpen} />
 
-      {/* Edit availability dialog */}
-      <EditAvailabilityDialog open={availabilityOpen} onOpenChange={setAvailabilityOpen} />
-
-      {/* Calendar attributes dialog */}
-      <CalendarAttributesDialog open={attributesOpen} onOpenChange={setAttributesOpen} onSave={setCalendarAttrs} />
-    </div>
+        {/* Calendar attributes dialog */}
+        <CalendarAttributesDialog open={attributesOpen} onOpenChange={setAttributesOpen} onSave={setCalendarAttrs} />
+      </div>
     </FeatureGate>
   )
 }

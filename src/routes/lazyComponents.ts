@@ -154,6 +154,7 @@ export const MerchantRoutingRules = lazyWithRetry(() => import('@/pages/Payment/
 // Settings
 export const SettingsLayout = lazyWithRetry(() => import('@/pages/Settings/SettingsLayout'))
 export const RolePermissions = lazyWithRetry(() => import('@/pages/Settings/RolePermissions'))
+export const PrintStations = lazyWithRetry(() => import('@/pages/Settings/PrintStations'))
 export const GoogleIntegration = lazyWithRetry(() => import('@/pages/Settings/GoogleIntegration'))
 
 // Google Calendar Sync — picker page the OAuth callback redirects to with ?session=<token>

@@ -158,6 +158,8 @@ import referralsEn from '@/locales/en/referrals.json'
 import referralsEs from '@/locales/es/referrals.json'
 import cfdiEn from '@/locales/en/cfdi.json'
 import cfdiEs from '@/locales/es/cfdi.json'
+import printStationsEn from '@/locales/en/printStations.json'
+import printStationsEs from '@/locales/es/printStations.json'
 // Lightweight language detector (avoids external dependency)
 const simpleDetector = {
   type: 'languageDetector' as const,
@@ -711,6 +713,14 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'cfdi', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', printStationsEn],
+    ['es', printStationsEs],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'printStations', bundle as Record<string, unknown>, true, true)
 })
 
 export default i18n

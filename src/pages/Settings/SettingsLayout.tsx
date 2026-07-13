@@ -6,6 +6,7 @@ import {
   CreditCard,
   Link2,
   Lock,
+  Printer,
   ScrollText,
   Shield,
   SlidersHorizontal,
@@ -85,6 +86,9 @@ export default function SettingsLayout() {
                 premiumLocked: !hasFeatureAccess('VENUE_AUDIT_LOG'),
               },
             ]
+          : []),
+        ...(can('printers:read')
+          ? [{ to: 'print-stations', label: t('hub.items.printStations'), icon: Printer, dataTour: 'settings-nav-print-stations' }]
           : []),
       ]
     : []

@@ -1,31 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-	CalendarDays,
-	Check,
-	Clock,
-	LogIn,
-	MapPin,
-	Phone,
-	Mail,
-	User,
-	Users,
-	X,
-	AlertTriangle,
-	CalendarClock,
-} from 'lucide-react'
+import { CalendarDays, Check, Clock, LogIn, MapPin, Phone, Mail, User, Users, X, AlertTriangle, CalendarClock } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
 
 import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -43,553 +30,563 @@ import type { RescheduleNotificationChannel } from '@/types/reservation'
 import { ReservationStatusBadge } from './components/ReservationStatusBadge'
 
 export default function ReservationDetail() {
-	const { t } = useTranslation('reservations')
-	const { t: tCommon } = useTranslation()
-	const { t: tGcal } = useTranslation('googleCalendar')
-	const { venueId } = useCurrentVenue()
-	const { reservationId } = useParams<{ reservationId: string }>()
-	const { toast } = useToast()
-	const queryClient = useQueryClient()
-	const { formatDate, formatTime } = useVenueDateTime()
+  const { t } = useTranslation('reservations')
+  const { t: tCommon } = useTranslation()
+  const { t: tGcal } = useTranslation('googleCalendar')
+  const { venueId } = useCurrentVenue()
+  const { reservationId } = useParams<{ reservationId: string }>()
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const { formatDate, formatTime } = useVenueDateTime()
 
-	// Dialog states
-	const [showCancelDialog, setShowCancelDialog] = useState(false)
-	const [showNoShowDialog, setShowNoShowDialog] = useState(false)
-	const [showRescheduleDialog, setShowRescheduleDialog] = useState(false)
-	const [cancelReason, setCancelReason] = useState('')
-	const [rescheduleStart, setRescheduleStart] = useState('')
-	const [rescheduleEnd, setRescheduleEnd] = useState('')
-	const [rescheduleChannel, setRescheduleChannel] = useState<RescheduleNotificationChannel>('push')
-	const [rescheduleCustomMessage, setRescheduleCustomMessage] = useState('')
+  // Dialog states
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [showNoShowDialog, setShowNoShowDialog] = useState(false)
+  const [showRescheduleDialog, setShowRescheduleDialog] = useState(false)
+  const [cancelReason, setCancelReason] = useState('')
+  const [rescheduleStart, setRescheduleStart] = useState('')
+  const [rescheduleEnd, setRescheduleEnd] = useState('')
+  const [rescheduleChannel, setRescheduleChannel] = useState<RescheduleNotificationChannel>('push')
+  const [rescheduleCustomMessage, setRescheduleCustomMessage] = useState('')
 
-	// Fetch reservation
-	const { data: reservation, isLoading } = useQuery({
-		queryKey: ['reservation', venueId, reservationId],
-		queryFn: () => reservationService.getReservation(venueId, reservationId!),
-		enabled: !!reservationId,
-	})
+  // Fetch reservation
+  const { data: reservation, isLoading } = useQuery({
+    queryKey: ['reservation', venueId, reservationId],
+    queryFn: () => reservationService.getReservation(venueId, reservationId!),
+    enabled: !!reservationId,
+  })
 
-	// Mutations
-	const confirmMutation = useMutation({
-		mutationFn: () => reservationService.confirmReservation(venueId, reservationId!),
-		onSuccess: () => {
-			toast({ title: t('toasts.confirmSuccess') })
-			queryClient.invalidateQueries({ queryKey: ['reservation', venueId, reservationId] })
-			queryClient.invalidateQueries({ queryKey: ['reservations', venueId] })
-		},
-		onError: (error: any) => {
-			toast({ title: tCommon('error'), description: error.response?.data?.message || t('toasts.error'), variant: 'destructive' })
-		},
-	})
+  // Mutations
+  const confirmMutation = useMutation({
+    mutationFn: () => reservationService.confirmReservation(venueId, reservationId!),
+    onSuccess: () => {
+      toast({ title: t('toasts.confirmSuccess') })
+      queryClient.invalidateQueries({ queryKey: ['reservation', venueId, reservationId] })
+      queryClient.invalidateQueries({ queryKey: ['reservations', venueId] })
+    },
+    onError: (error: any) => {
+      toast({ title: tCommon('error'), description: error.response?.data?.message || t('toasts.error'), variant: 'destructive' })
+    },
+  })
 
-	const checkInMutation = useMutation({
-		mutationFn: () => reservationService.checkIn(venueId, reservationId!),
-		onSuccess: () => {
-			toast({ title: t('toasts.checkInSuccess') })
-			queryClient.invalidateQueries({ queryKey: ['reservation', venueId, reservationId] })
-			queryClient.invalidateQueries({ queryKey: ['reservations', venueId] })
-		},
-		onError: (error: any) => {
-			toast({ title: tCommon('error'), description: error.response?.data?.message || t('toasts.error'), variant: 'destructive' })
-		},
-	})
+  const checkInMutation = useMutation({
+    mutationFn: () => reservationService.checkIn(venueId, reservationId!),
+    onSuccess: () => {
+      toast({ title: t('toasts.checkInSuccess') })
+      queryClient.invalidateQueries({ queryKey: ['reservation', venueId, reservationId] })
+      queryClient.invalidateQueries({ queryKey: ['reservations', venueId] })
+    },
+    onError: (error: any) => {
+      toast({ title: tCommon('error'), description: error.response?.data?.message || t('toasts.error'), variant: 'destructive' })
+    },
+  })
 
-	const completeMutation = useMutation({
-		mutationFn: () => reservationService.complete(venueId, reservationId!),
-		onSuccess: () => {
-			toast({ title: t('toasts.completeSuccess') })
-			queryClient.invalidateQueries({ queryKey: ['reservation', venueId, reservationId] })
-			queryClient.invalidateQueries({ queryKey: ['reservations', venueId] })
-		},
-		onError: (error: any) => {
-			toast({ title: tCommon('error'), description: error.response?.data?.message || t('toasts.error'), variant: 'destructive' })
-		},
-	})
+  const completeMutation = useMutation({
+    mutationFn: () => reservationService.complete(venueId, reservationId!),
+    onSuccess: () => {
+      toast({ title: t('toasts.completeSuccess') })
+      queryClient.invalidateQueries({ queryKey: ['reservation', venueId, reservationId] })
+      queryClient.invalidateQueries({ queryKey: ['reservations', venueId] })
+    },
+    onError: (error: any) => {
+      toast({ title: tCommon('error'), description: error.response?.data?.message || t('toasts.error'), variant: 'destructive' })
+    },
+  })
 
-	const noShowMutation = useMutation({
-		mutationFn: () => reservationService.markNoShow(venueId, reservationId!),
-		onSuccess: () => {
-			toast({ title: t('toasts.noShowSuccess') })
-			setShowNoShowDialog(false)
-			queryClient.invalidateQueries({ queryKey: ['reservation', venueId, reservationId] })
-			queryClient.invalidateQueries({ queryKey: ['reservations', venueId] })
-		},
-		onError: (error: any) => {
-			toast({ title: tCommon('error'), description: error.response?.data?.message || t('toasts.error'), variant: 'destructive' })
-		},
-	})
+  const noShowMutation = useMutation({
+    mutationFn: () => reservationService.markNoShow(venueId, reservationId!),
+    onSuccess: () => {
+      toast({ title: t('toasts.noShowSuccess') })
+      setShowNoShowDialog(false)
+      queryClient.invalidateQueries({ queryKey: ['reservation', venueId, reservationId] })
+      queryClient.invalidateQueries({ queryKey: ['reservations', venueId] })
+    },
+    onError: (error: any) => {
+      toast({ title: tCommon('error'), description: error.response?.data?.message || t('toasts.error'), variant: 'destructive' })
+    },
+  })
 
-	const cancelMutation = useMutation({
-		mutationFn: () => reservationService.cancelReservation(venueId, reservationId!, cancelReason || undefined),
-		onSuccess: () => {
-			toast({ title: t('toasts.cancelSuccess') })
-			setShowCancelDialog(false)
-			setCancelReason('')
-			queryClient.invalidateQueries({ queryKey: ['reservation', venueId, reservationId] })
-			queryClient.invalidateQueries({ queryKey: ['reservations', venueId] })
-		},
-		onError: (error: any) => {
-			toast({ title: tCommon('error'), description: error.response?.data?.message || t('toasts.error'), variant: 'destructive' })
-		},
-	})
+  const cancelMutation = useMutation({
+    mutationFn: () => reservationService.cancelReservation(venueId, reservationId!, cancelReason || undefined),
+    onSuccess: () => {
+      toast({ title: t('toasts.cancelSuccess') })
+      setShowCancelDialog(false)
+      setCancelReason('')
+      queryClient.invalidateQueries({ queryKey: ['reservation', venueId, reservationId] })
+      queryClient.invalidateQueries({ queryKey: ['reservations', venueId] })
+    },
+    onError: (error: any) => {
+      toast({ title: tCommon('error'), description: error.response?.data?.message || t('toasts.error'), variant: 'destructive' })
+    },
+  })
 
-	const rescheduleMutation = useMutation({
-		mutationFn: () =>
-			reservationService.reschedule(venueId, reservationId!, {
-				startsAt: rescheduleStart,
-				endsAt: rescheduleEnd,
-				notificationChannel: rescheduleChannel,
-				customMessage: rescheduleCustomMessage.trim() || undefined,
-			}),
-		onSuccess: () => {
-			toast({ title: t('toasts.rescheduleSuccess') })
-			setShowRescheduleDialog(false)
-			queryClient.invalidateQueries({ queryKey: ['reservation', venueId, reservationId] })
-			queryClient.invalidateQueries({ queryKey: ['reservations', venueId] })
-		},
-		onError: (error: any) => {
-			// External Google Calendar busy-block conflict during reschedule —
-			// same defensive shape detection as CreateReservation. See
-			// avoqado-server `dashboard/reservation.dashboard.service.ts:886`.
-			const status = error?.response?.status
-			const message = error?.response?.data?.message ?? ''
-			const code =
-				error?.response?.data?.code ??
-				error?.response?.data?.errorCode ??
-				error?.response?.data?.error?.code
-			const isExternalCalendarBusy =
-				code === 'external_calendar_busy' ||
-				(status === 409 && /calendario\s+externo/i.test(message))
-			if (isExternalCalendarBusy) {
-				toast({ title: tGcal('reservationBusyError'), variant: 'destructive' })
-				return
-			}
-			toast({ title: tCommon('error'), description: message || t('toasts.error'), variant: 'destructive' })
-		},
-	})
+  const rescheduleMutation = useMutation({
+    mutationFn: () =>
+      reservationService.reschedule(venueId, reservationId!, {
+        startsAt: rescheduleStart,
+        endsAt: rescheduleEnd,
+        notificationChannel: rescheduleChannel,
+        customMessage: rescheduleCustomMessage.trim() || undefined,
+      }),
+    onSuccess: () => {
+      toast({ title: t('toasts.rescheduleSuccess') })
+      setShowRescheduleDialog(false)
+      queryClient.invalidateQueries({ queryKey: ['reservation', venueId, reservationId] })
+      queryClient.invalidateQueries({ queryKey: ['reservations', venueId] })
+    },
+    onError: (error: any) => {
+      // External Google Calendar busy-block conflict during reschedule —
+      // same defensive shape detection as CreateReservation. See
+      // avoqado-server `dashboard/reservation.dashboard.service.ts:886`.
+      const status = error?.response?.status
+      const message = error?.response?.data?.message ?? ''
+      const code = error?.response?.data?.code ?? error?.response?.data?.errorCode ?? error?.response?.data?.error?.code
+      const isExternalCalendarBusy = code === 'external_calendar_busy' || (status === 409 && /calendario\s+externo/i.test(message))
+      if (isExternalCalendarBusy) {
+        toast({ title: tGcal('reservationBusyError'), variant: 'destructive' })
+        return
+      }
+      toast({ title: tCommon('error'), description: message || t('toasts.error'), variant: 'destructive' })
+    },
+  })
 
-	if (isLoading) {
-		return (
-			<div className="p-4 bg-background text-foreground">
-				<div className="animate-pulse space-y-4">
-					<div className="h-8 w-64 bg-muted rounded" />
-					<div className="h-64 bg-muted rounded-xl" />
-				</div>
-			</div>
-		)
-	}
+  if (isLoading) {
+    return (
+      <div className="p-4 bg-background text-foreground">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 w-64 bg-muted rounded" />
+          <div className="h-64 bg-muted rounded-xl" />
+        </div>
+      </div>
+    )
+  }
 
-	if (!reservation) {
-		return (
-			<div className="p-4 bg-background text-foreground">
-				<p className="text-muted-foreground">{t('emptyState.title')}</p>
-			</div>
-		)
-	}
+  if (!reservation) {
+    return (
+      <div className="p-4 bg-background text-foreground">
+        <p className="text-muted-foreground">{t('emptyState.title')}</p>
+      </div>
+    )
+  }
 
-	const guestName = reservation.customer
-		? `${reservation.customer.firstName} ${reservation.customer.lastName}`
-		: reservation.guestName || t('unnamedGuest')
+  const guestName = reservation.customer
+    ? `${reservation.customer.firstName} ${reservation.customer.lastName}`
+    : reservation.guestName || t('unnamedGuest')
 
-	const guestPhone = reservation.customer?.phone || reservation.guestPhone
-	const guestEmail = reservation.customer?.email || reservation.guestEmail
+  const guestPhone = reservation.customer?.phone || reservation.guestPhone
+  const guestEmail = reservation.customer?.email || reservation.guestEmail
 
-	// Which actions are available based on current status
-	const canConfirm = reservation.status === 'PENDING'
-	const canCheckIn = reservation.status === 'CONFIRMED'
-	const canComplete = reservation.status === 'CHECKED_IN'
-	const canNoShow = reservation.status === 'CONFIRMED'
-	const canCancel = ['PENDING', 'CONFIRMED'].includes(reservation.status)
-	const canReschedule = ['PENDING', 'CONFIRMED'].includes(reservation.status)
+  // Which actions are available based on current status
+  const canConfirm = reservation.status === 'PENDING'
+  const canCheckIn = reservation.status === 'CONFIRMED'
+  const canComplete = reservation.status === 'CHECKED_IN'
+  const canNoShow = reservation.status === 'CONFIRMED'
+  const canCancel = ['PENDING', 'CONFIRMED'].includes(reservation.status)
+  const canReschedule = ['PENDING', 'CONFIRMED'].includes(reservation.status)
 
-	return (
-		<div className="p-4 bg-background text-foreground">
-			{/* Header: stacks on mobile, side-by-side from md+ */}
-			<div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-				<div className="min-w-0">
-					<div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-						<h1 className="text-xl font-bold md:text-2xl">
-							{t('detail.title', { code: reservation.confirmationCode })}
-						</h1>
-						<ReservationStatusBadge status={reservation.status} />
-					</div>
-					<p className="mt-1 text-sm text-muted-foreground md:text-base">{guestName}</p>
-				</div>
+  return (
+    <div className="p-4 bg-background text-foreground">
+      {/* Header: stacks on mobile, side-by-side from md+ */}
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <h1 className="text-xl font-bold md:text-2xl">{t('detail.title', { code: reservation.confirmationCode })}</h1>
+            <ReservationStatusBadge status={reservation.status} />
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground md:text-base">{guestName}</p>
+        </div>
 
-				{/* Action buttons: edge-to-edge horizontal scroll on mobile, wrap on md+. */}
-				{/* -mx-4 + px-4 lets the scroll area bleed to the viewport edges on mobile */}
-				{/* so the last button doesn't look clipped mid-label ("Cancela..."). */}
-				<div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:justify-end md:overflow-visible md:px-0 md:pb-0">
-					{canConfirm && (
-						<Button
-							className="shrink-0"
-							onClick={() => confirmMutation.mutate()}
-							disabled={confirmMutation.isPending}
-						>
-							<Check className="mr-2 h-4 w-4" />
-							{t('actions.confirm')}
-						</Button>
-					)}
-					{canCheckIn && (
-						<Button
-							className="shrink-0"
-							onClick={() => checkInMutation.mutate()}
-							disabled={checkInMutation.isPending}
-						>
-							<LogIn className="mr-2 h-4 w-4" />
-							{t('actions.checkIn')}
-						</Button>
-					)}
-					{canComplete && (
-						<Button
-							className="shrink-0"
-							onClick={() => completeMutation.mutate()}
-							disabled={completeMutation.isPending}
-						>
-							<Check className="mr-2 h-4 w-4" />
-							{t('actions.complete')}
-						</Button>
-					)}
-					{canReschedule && (
-						<Button variant="outline" className="shrink-0" onClick={() => setShowRescheduleDialog(true)}>
-							<CalendarClock className="mr-2 h-4 w-4" />
-							{t('actions.reschedule')}
-						</Button>
-					)}
-					{canNoShow && (
-						<Button variant="outline" className="shrink-0" onClick={() => setShowNoShowDialog(true)}>
-							<AlertTriangle className="mr-2 h-4 w-4" />
-							{t('actions.markNoShow')}
-						</Button>
-					)}
-					{canCancel && (
-						<Button variant="destructive" className="shrink-0" onClick={() => setShowCancelDialog(true)}>
-							<X className="mr-2 h-4 w-4" />
-							{t('actions.cancel')}
-						</Button>
-					)}
-				</div>
-			</div>
+        {/* Action buttons: edge-to-edge horizontal scroll on mobile, wrap on md+. */}
+        {/* -mx-4 + px-4 lets the scroll area bleed to the viewport edges on mobile */}
+        {/* so the last button doesn't look clipped mid-label ("Cancela..."). */}
+        <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:justify-end md:overflow-visible md:px-0 md:pb-0">
+          {canConfirm && (
+            <Button className="shrink-0" onClick={() => confirmMutation.mutate()} disabled={confirmMutation.isPending}>
+              <Check className="mr-2 h-4 w-4" />
+              {t('actions.confirm')}
+            </Button>
+          )}
+          {canCheckIn && (
+            <Button className="shrink-0" onClick={() => checkInMutation.mutate()} disabled={checkInMutation.isPending}>
+              <LogIn className="mr-2 h-4 w-4" />
+              {t('actions.checkIn')}
+            </Button>
+          )}
+          {canComplete && (
+            <Button className="shrink-0" onClick={() => completeMutation.mutate()} disabled={completeMutation.isPending}>
+              <Check className="mr-2 h-4 w-4" />
+              {t('actions.complete')}
+            </Button>
+          )}
+          {canReschedule && (
+            <Button variant="outline" className="shrink-0" onClick={() => setShowRescheduleDialog(true)}>
+              <CalendarClock className="mr-2 h-4 w-4" />
+              {t('actions.reschedule')}
+            </Button>
+          )}
+          {canNoShow && (
+            <Button variant="outline" className="shrink-0" onClick={() => setShowNoShowDialog(true)}>
+              <AlertTriangle className="mr-2 h-4 w-4" />
+              {t('actions.markNoShow')}
+            </Button>
+          )}
+          {canCancel && (
+            <Button variant="destructive" className="shrink-0" onClick={() => setShowCancelDialog(true)}>
+              <X className="mr-2 h-4 w-4" />
+              {t('actions.cancel')}
+            </Button>
+          )}
+        </div>
+      </div>
 
-			{/* Content grid */}
-			<div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
-				{/* Main info */}
-				<div className="space-y-4 lg:col-span-2 lg:space-y-6">
-					{/* Reservation Details */}
-					<div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6">
-						<h3 className="font-semibold mb-4">{t('detail.sections.reservationInfo')}</h3>
-						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-							<div className="flex items-center gap-3">
-								<CalendarDays className="h-5 w-5 text-muted-foreground" />
-								<div>
-									<div className="text-sm text-muted-foreground">{t('form.fields.date')}</div>
-									<div className="font-medium">{formatDate(reservation.startsAt)}</div>
-								</div>
-							</div>
-							<div className="flex items-center gap-3">
-								<Clock className="h-5 w-5 text-muted-foreground" />
-								<div>
-									<div className="text-sm text-muted-foreground">{t('form.fields.startTime')}</div>
-									<div className="font-medium">
-										{formatTime(reservation.startsAt)} – {formatTime(reservation.endsAt)}
-									</div>
-								</div>
-							</div>
-							<div className="flex items-center gap-3">
-								<Clock className="h-5 w-5 text-muted-foreground" />
-								<div>
-									<div className="text-sm text-muted-foreground">{t('form.fields.duration')}</div>
-									<div className="font-medium">{reservation.duration} {t('minutes')}</div>
-								</div>
-							</div>
-							<div className="flex items-center gap-3">
-								<Users className="h-5 w-5 text-muted-foreground" />
-								<div>
-									<div className="text-sm text-muted-foreground">{t('form.fields.partySize')}</div>
-									<div className="font-medium">{reservation.partySize}</div>
-								</div>
-							</div>
-							{reservation.table && (
-								<div className="flex items-center gap-3">
-									<MapPin className="h-5 w-5 text-muted-foreground" />
-									<div>
-										<div className="text-sm text-muted-foreground">{t('form.fields.table')}</div>
-										<div className="font-medium">
-											{t('form.tableCapacity', {
-												number: reservation.table.number,
-												capacity: reservation.table.capacity,
-											})}
-										</div>
-									</div>
-								</div>
-							)}
-							{reservation.assignedStaff && (
-								<div className="flex items-center gap-3">
-									<User className="h-5 w-5 text-muted-foreground" />
-									<div>
-										<div className="text-sm text-muted-foreground">{t('form.fields.staff')}</div>
-										<div className="font-medium">
-											{reservation.assignedStaff.firstName} {reservation.assignedStaff.lastName}
-										</div>
-									</div>
-								</div>
-							)}
-						</div>
-					</div>
+      {/* Content grid */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
+        {/* Main info */}
+        <div className="space-y-4 lg:col-span-2 lg:space-y-6">
+          {/* Reservation Details */}
+          <div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6">
+            <h3 className="font-semibold mb-4">{t('detail.sections.reservationInfo')}</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="flex items-center gap-3">
+                <CalendarDays className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <div className="text-sm text-muted-foreground">{t('form.fields.date')}</div>
+                  <div className="font-medium">{formatDate(reservation.startsAt)}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Clock className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <div className="text-sm text-muted-foreground">{t('form.fields.startTime')}</div>
+                  <div className="font-medium">
+                    {formatTime(reservation.startsAt)} – {formatTime(reservation.endsAt)}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Clock className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <div className="text-sm text-muted-foreground">{t('form.fields.duration')}</div>
+                  <div className="font-medium">
+                    {reservation.duration} {t('minutes')}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Users className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <div className="text-sm text-muted-foreground">{t('form.fields.partySize')}</div>
+                  <div className="font-medium">{reservation.partySize}</div>
+                </div>
+              </div>
+              {reservation.table && (
+                <div className="flex items-center gap-3">
+                  <MapPin className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="text-sm text-muted-foreground">{t('form.fields.table')}</div>
+                    <div className="font-medium">
+                      {t('form.tableCapacity', {
+                        number: reservation.table.number,
+                        capacity: reservation.table.capacity,
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {reservation.assignedStaff && (
+                <div className="flex items-center gap-3">
+                  <User className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="text-sm text-muted-foreground">{t('form.fields.staff')}</div>
+                    <div className="font-medium">
+                      {reservation.assignedStaff.firstName} {reservation.assignedStaff.lastName}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
-					{/* Modifiers — picked add-ons per service (Vagaro-style). Surfaced
-					    so the cashier sees the full breakdown before charging. */}
-					{reservation.modifiers && reservation.modifiers.length > 0 && (
-						<div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6">
-							<h3 className="font-semibold mb-4">{t('detail.sections.modifiers', 'Extras / modificadores')}</h3>
-							<ul className="space-y-2">
-								{reservation.modifiers.map(m => {
-									const lineTotal = m.price * m.quantity
-									const qtyLabel = m.quantity > 1 ? ` × ${m.quantity}` : ''
-									return (
-										<li key={m.id} className="flex justify-between items-baseline text-sm">
-											<span>
-												{m.name ?? t('unnamed', 'Sin nombre')}
-												{qtyLabel}
-											</span>
-											{lineTotal > 0 && (
-												<span className="font-medium tabular-nums">
-													+{lineTotal.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 })}
-												</span>
-											)}
-										</li>
-									)
-								})}
-							</ul>
-						</div>
-					)}
+          {/* Services — EVERY booked service, not just the lead one. Multi-service
+					    appointments (e.g. "Baby Boomer + Manicure/Pedicure/Spa") keep the full
+					    ordered list in reservation.services; each service nests its own picked
+					    add-on modifiers (Vagaro-style) so the cashier sees the full breakdown
+					    before charging. Falls back to the single `product` for legacy rows. */}
+          {(() => {
+            const services =
+              reservation.services && reservation.services.length > 0
+                ? reservation.services
+                : reservation.product
+                  ? [{ id: reservation.product.id, name: reservation.product.name, price: reservation.product.price, duration: null }]
+                  : []
+            const mods = reservation.modifiers ?? []
+            if (services.length === 0 && mods.length === 0) return null
+            const money = (n: number) => n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 })
+            const serviceIds = new Set(services.map(s => s.id))
+            // Add-ons whose service isn't in the resolved list (defensive — keeps
+            // them visible instead of silently dropping like the old bug did).
+            const orphanMods = mods.filter(m => !serviceIds.has(m.productId))
+            return (
+              <div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6">
+                <h3 className="font-semibold mb-4">{t('detail.sections.services', 'Servicios')}</h3>
+                <ul className="space-y-3">
+                  {services.map(s => {
+                    const serviceMods = mods.filter(m => m.productId === s.id)
+                    return (
+                      <li key={s.id} className="space-y-1">
+                        <div className="flex justify-between items-baseline gap-2">
+                          <span className="font-medium">{s.name}</span>
+                          {s.price != null && s.price > 0 && <span className="tabular-nums text-sm">{money(s.price)}</span>}
+                        </div>
+                        {s.duration != null && (
+                          <div className="text-xs text-muted-foreground">
+                            {s.duration} {t('minutes')}
+                          </div>
+                        )}
+                        {serviceMods.length > 0 && (
+                          <ul className="mt-1 space-y-1 border-l border-border/50 pl-3">
+                            {serviceMods.map(m => {
+                              const lineTotal = m.price * m.quantity
+                              const qtyLabel = m.quantity > 1 ? ` × ${m.quantity}` : ''
+                              return (
+                                <li key={m.id} className="flex justify-between items-baseline gap-2 text-sm text-muted-foreground">
+                                  <span>
+                                    + {m.name ?? t('unnamed', 'Sin nombre')}
+                                    {qtyLabel}
+                                  </span>
+                                  {lineTotal > 0 && <span className="tabular-nums">+{money(lineTotal)}</span>}
+                                </li>
+                              )
+                            })}
+                          </ul>
+                        )}
+                      </li>
+                    )
+                  })}
+                  {orphanMods.map(m => {
+                    const lineTotal = m.price * m.quantity
+                    const qtyLabel = m.quantity > 1 ? ` × ${m.quantity}` : ''
+                    return (
+                      <li key={m.id} className="flex justify-between items-baseline gap-2 text-sm">
+                        <span>
+                          {m.name ?? t('unnamed', 'Sin nombre')}
+                          {qtyLabel}
+                        </span>
+                        {lineTotal > 0 && <span className="font-medium tabular-nums">+{money(lineTotal)}</span>}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )
+          })()}
 
-					{/* Notes */}
-					{(reservation.specialRequests || reservation.internalNotes) && (
-						<div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6">
-							<h3 className="font-semibold mb-4">{t('detail.sections.notes')}</h3>
-							{reservation.specialRequests && (
-								<div className="mb-4">
-									<div className="text-sm text-muted-foreground mb-1">{t('form.fields.specialRequests')}</div>
-									<p>{reservation.specialRequests}</p>
-								</div>
-							)}
-							{reservation.internalNotes && (
-								<div>
-									<div className="text-sm text-muted-foreground mb-1">{t('form.fields.internalNotes')}</div>
-									<p>{reservation.internalNotes}</p>
-								</div>
-							)}
-						</div>
-					)}
+          {/* Notes */}
+          {(reservation.specialRequests || reservation.internalNotes) && (
+            <div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6">
+              <h3 className="font-semibold mb-4">{t('detail.sections.notes')}</h3>
+              {reservation.specialRequests && (
+                <div className="mb-4">
+                  <div className="text-sm text-muted-foreground mb-1">{t('form.fields.specialRequests')}</div>
+                  <p>{reservation.specialRequests}</p>
+                </div>
+              )}
+              {reservation.internalNotes && (
+                <div>
+                  <div className="text-sm text-muted-foreground mb-1">{t('form.fields.internalNotes')}</div>
+                  <p>{reservation.internalNotes}</p>
+                </div>
+              )}
+            </div>
+          )}
 
-					{/* Status Timeline */}
-					{reservation.statusLog && reservation.statusLog.length > 0 && (
-						<div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6">
-							<h3 className="font-semibold mb-4">{t('detail.timeline')}</h3>
-							<div className="space-y-3">
-								{reservation.statusLog.map((entry, i) => (
-									<div key={i} className="flex items-start gap-3">
-										<div className="w-2 h-2 mt-2 rounded-full bg-primary" />
-										<div>
-											<div className="font-medium">
-												{t(`status.${entry.status}`)}
-											</div>
-											<div className="text-sm text-muted-foreground">
-												{formatDate(entry.at)} {formatTime(entry.at)}
-												{entry.by && ` — ${entry.by}`}
-											</div>
-											{entry.reason && (
-												<div className="text-sm text-muted-foreground italic">{entry.reason}</div>
-											)}
-										</div>
-									</div>
-								))}
-							</div>
-						</div>
-					)}
-				</div>
+          {/* Status Timeline */}
+          {reservation.statusLog && reservation.statusLog.length > 0 && (
+            <div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6">
+              <h3 className="font-semibold mb-4">{t('detail.timeline')}</h3>
+              <div className="space-y-3">
+                {reservation.statusLog.map((entry, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="w-2 h-2 mt-2 rounded-full bg-primary" />
+                    <div>
+                      <div className="font-medium">{t(`status.${entry.status}`)}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {formatDate(entry.at)} {formatTime(entry.at)}
+                        {entry.by && ` — ${entry.by}`}
+                      </div>
+                      {entry.reason && <div className="text-sm text-muted-foreground italic">{entry.reason}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
-				{/* Sidebar */}
-				<div className="space-y-4 lg:space-y-6">
-					{/* Guest Info */}
-					<div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6">
-						<h3 className="font-semibold mb-4">{t('detail.sections.guestInfo')}</h3>
-						<div className="space-y-3">
-							<div className="flex items-center gap-3">
-								<User className="h-4 w-4 text-muted-foreground" />
-								<span>{guestName}</span>
-							</div>
-							{guestPhone && (
-								<div className="flex items-center gap-3">
-									<Phone className="h-4 w-4 text-muted-foreground" />
-									<span>{guestPhone}</span>
-								</div>
-							)}
-							{guestEmail && (
-								<div className="flex items-center gap-3">
-									<Mail className="h-4 w-4 text-muted-foreground" />
-									<span>{guestEmail}</span>
-								</div>
-							)}
-						</div>
-					</div>
+        {/* Sidebar */}
+        <div className="space-y-4 lg:space-y-6">
+          {/* Guest Info */}
+          <div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6">
+            <h3 className="font-semibold mb-4">{t('detail.sections.guestInfo')}</h3>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span>{guestName}</span>
+              </div>
+              {guestPhone && (
+                <div className="flex items-center gap-3">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <span>{guestPhone}</span>
+                </div>
+              )}
+              {guestEmail && (
+                <div className="flex items-center gap-3">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <span>{guestEmail}</span>
+                </div>
+              )}
+            </div>
+          </div>
 
-					{/* Meta info */}
-					<div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6">
-						<h3 className="font-semibold mb-4">{t('detail.confirmationCode')}</h3>
-						<div className="font-mono text-lg text-center p-3 bg-muted rounded-lg">
-							{reservation.confirmationCode}
-						</div>
-						<div className="mt-4 space-y-2 text-sm text-muted-foreground">
-							<div className="flex justify-between">
-								<span>{t('columns.channel')}</span>
-								<span>{t(`channel.${reservation.channel}`)}</span>
-							</div>
-							{reservation.tags.length > 0 && (
-								<div className="flex flex-wrap gap-1 mt-2">
-									{reservation.tags.map(tag => (
-										<Badge key={tag} variant="secondary" className="text-xs">
-											{tag}
-										</Badge>
-									))}
-								</div>
-							)}
-						</div>
-					</div>
+          {/* Meta info */}
+          <div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6">
+            <h3 className="font-semibold mb-4">{t('detail.confirmationCode')}</h3>
+            <div className="font-mono text-lg text-center p-3 bg-muted rounded-lg">{reservation.confirmationCode}</div>
+            <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+              <div className="flex justify-between">
+                <span>{t('columns.channel')}</span>
+                <span>{t(`channel.${reservation.channel}`)}</span>
+              </div>
+              {reservation.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {reservation.tags.map(tag => (
+                    <Badge key={tag} variant="secondary" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
 
-					{/* Deposit info */}
-					{reservation.depositAmount != null && reservation.depositAmount > 0 && (
-						<div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6">
-							<h3 className="font-semibold mb-4">{t('detail.deposit.title')}</h3>
-							<div className="space-y-2">
-								<div className="flex justify-between">
-									<span className="text-muted-foreground">{t('detail.deposit.amount')}</span>
-									<span className="font-medium">${reservation.depositAmount}</span>
-								</div>
-								{reservation.depositStatus && (
-									<div className="flex justify-between">
-										<span className="text-muted-foreground">{t('detail.deposit.status')}</span>
-										<span className="font-medium">{t(`depositStatus.${reservation.depositStatus}`)}</span>
-									</div>
-								)}
-							</div>
-						</div>
-					)}
-				</div>
-			</div>
+          {/* Deposit info */}
+          {reservation.depositAmount != null && reservation.depositAmount > 0 && (
+            <div className="rounded-2xl border border-border/50 bg-card p-4 sm:p-6">
+              <h3 className="font-semibold mb-4">{t('detail.deposit.title')}</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t('detail.deposit.amount')}</span>
+                  <span className="font-medium">${reservation.depositAmount}</span>
+                </div>
+                {reservation.depositStatus && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{t('detail.deposit.status')}</span>
+                    <span className="font-medium">{t(`depositStatus.${reservation.depositStatus}`)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
-			{/* Cancel Dialog */}
-			<AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>{t('detail.cancel.title')}</AlertDialogTitle>
-						<AlertDialogDescription>{t('detail.cancel.description')}</AlertDialogDescription>
-					</AlertDialogHeader>
-					<div className="py-4">
-						<Label>{t('detail.cancel.reasonLabel')}</Label>
-						<Textarea
-							value={cancelReason}
-							onChange={e => setCancelReason(e.target.value)}
-							placeholder={t('detail.cancel.reasonPlaceholder')}
-							className="mt-2"
-						/>
-					</div>
-					<AlertDialogFooter>
-						<AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
-						<AlertDialogAction
-							onClick={() => cancelMutation.mutate()}
-							disabled={cancelMutation.isPending}
-							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-						>
-							{t('detail.cancel.confirm')}
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
+      {/* Cancel Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('detail.cancel.title')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('detail.cancel.description')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label>{t('detail.cancel.reasonLabel')}</Label>
+            <Textarea
+              value={cancelReason}
+              onChange={e => setCancelReason(e.target.value)}
+              placeholder={t('detail.cancel.reasonPlaceholder')}
+              className="mt-2"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => cancelMutation.mutate()}
+              disabled={cancelMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t('detail.cancel.confirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-			{/* No Show Dialog */}
-			<AlertDialog open={showNoShowDialog} onOpenChange={setShowNoShowDialog}>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>{t('detail.noShow.title')}</AlertDialogTitle>
-						<AlertDialogDescription>{t('detail.noShow.description')}</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
-						<AlertDialogAction
-							onClick={() => noShowMutation.mutate()}
-							disabled={noShowMutation.isPending}
-						>
-							{t('actions.markNoShow')}
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
+      {/* No Show Dialog */}
+      <AlertDialog open={showNoShowDialog} onOpenChange={setShowNoShowDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('detail.noShow.title')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('detail.noShow.description')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => noShowMutation.mutate()} disabled={noShowMutation.isPending}>
+              {t('actions.markNoShow')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-			{/* Reschedule — FullScreenModal */}
-			<FullScreenModal
-				open={showRescheduleDialog}
-				onClose={() => setShowRescheduleDialog(false)}
-				title={t('detail.reschedule.title')}
-				actions={
-					<Button
-						onClick={() => rescheduleMutation.mutate()}
-						disabled={rescheduleMutation.isPending || !rescheduleStart || !rescheduleEnd}
-					>
-						{rescheduleMutation.isPending ? tCommon('loading') : t('detail.reschedule.confirm')}
-					</Button>
-				}
-			>
-				<div className="max-w-2xl mx-auto p-6 space-y-6">
-					<div className="space-y-2">
-						<Label>{t('detail.reschedule.newStartTime')}</Label>
-						<Input
-							type="datetime-local"
-							value={rescheduleStart}
-							onChange={e => setRescheduleStart(e.target.value)}
-						/>
-					</div>
-					<div className="space-y-2">
-						<Label>{t('detail.reschedule.newEndTime')}</Label>
-						<Input
-							type="datetime-local"
-							value={rescheduleEnd}
-							onChange={e => setRescheduleEnd(e.target.value)}
-						/>
-					</div>
-					<div className="space-y-3">
-						<Label>{t('detail.reschedule.notificationLabel')}</Label>
-						<RadioGroup
-							value={rescheduleChannel}
-							onValueChange={(v) => setRescheduleChannel(v as RescheduleNotificationChannel)}
-							className="grid grid-cols-1 sm:grid-cols-2 gap-2"
-						>
-							{(['push', 'whatsapp', 'email', 'none'] as const).map((channel) => (
-								<label
-									key={channel}
-									htmlFor={`reschedule-channel-${channel}`}
-									className="flex items-center gap-3 rounded-lg border border-border/60 p-3 cursor-pointer hover:bg-muted/40"
-								>
-									<RadioGroupItem value={channel} id={`reschedule-channel-${channel}`} />
-									<span className="text-sm">{t(`detail.reschedule.channels.${channel}`)}</span>
-								</label>
-							))}
-						</RadioGroup>
-					</div>
-					{rescheduleChannel !== 'none' && (
-						<div className="space-y-2">
-							<Label>{t('detail.reschedule.customMessageLabel')}</Label>
-							<Textarea
-								value={rescheduleCustomMessage}
-								onChange={e => setRescheduleCustomMessage(e.target.value)}
-								placeholder={t('detail.reschedule.customMessagePlaceholder')}
-								rows={3}
-							/>
-						</div>
-					)}
-				</div>
-			</FullScreenModal>
-		</div>
-	)
+      {/* Reschedule — FullScreenModal */}
+      <FullScreenModal
+        open={showRescheduleDialog}
+        onClose={() => setShowRescheduleDialog(false)}
+        title={t('detail.reschedule.title')}
+        actions={
+          <Button onClick={() => rescheduleMutation.mutate()} disabled={rescheduleMutation.isPending || !rescheduleStart || !rescheduleEnd}>
+            {rescheduleMutation.isPending ? tCommon('loading') : t('detail.reschedule.confirm')}
+          </Button>
+        }
+      >
+        <div className="max-w-2xl mx-auto p-6 space-y-6">
+          <div className="space-y-2">
+            <Label>{t('detail.reschedule.newStartTime')}</Label>
+            <Input type="datetime-local" value={rescheduleStart} onChange={e => setRescheduleStart(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>{t('detail.reschedule.newEndTime')}</Label>
+            <Input type="datetime-local" value={rescheduleEnd} onChange={e => setRescheduleEnd(e.target.value)} />
+          </div>
+          <div className="space-y-3">
+            <Label>{t('detail.reschedule.notificationLabel')}</Label>
+            <RadioGroup
+              value={rescheduleChannel}
+              onValueChange={v => setRescheduleChannel(v as RescheduleNotificationChannel)}
+              className="grid grid-cols-1 sm:grid-cols-2 gap-2"
+            >
+              {(['push', 'whatsapp', 'email', 'none'] as const).map(channel => (
+                <label
+                  key={channel}
+                  htmlFor={`reschedule-channel-${channel}`}
+                  className="flex items-center gap-3 rounded-lg border border-border/60 p-3 cursor-pointer hover:bg-muted/40"
+                >
+                  <RadioGroupItem value={channel} id={`reschedule-channel-${channel}`} />
+                  <span className="text-sm">{t(`detail.reschedule.channels.${channel}`)}</span>
+                </label>
+              ))}
+            </RadioGroup>
+          </div>
+          {rescheduleChannel !== 'none' && (
+            <div className="space-y-2">
+              <Label>{t('detail.reschedule.customMessageLabel')}</Label>
+              <Textarea
+                value={rescheduleCustomMessage}
+                onChange={e => setRescheduleCustomMessage(e.target.value)}
+                placeholder={t('detail.reschedule.customMessagePlaceholder')}
+                rows={3}
+              />
+            </div>
+          )}
+        </div>
+      </FullScreenModal>
+    </div>
+  )
 }

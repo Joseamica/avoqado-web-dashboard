@@ -190,3 +190,60 @@ describe('ReservationDetail — Action Buttons by Status', () => {
     expect(screen.queryByText('actions.cancel')).toBeNull()
   })
 })
+
+// Regression — multi-service appointments (Square pattern) must list EVERY
+// booked service, not just the lead one. This is the exact bug from prod:
+// a booking of "Baby Boomer + Manicure/Pedicure/Spa (Gel semipermanente)"
+// showed only the modifier because the 2nd service lived in productIds[] and
+// was never rendered. See avoqado-server reservation.dashboard.service
+// `attachServices`.
+describe('ReservationDetail — Services breakdown', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('lists ALL booked services with their nested modifiers (multi-service)', () => {
+    mockReservation = {
+      ...createTestReservation('CONFIRMED'),
+      productId: 'svc-baby-boomer',
+      product: { id: 'svc-baby-boomer', name: 'Baby Boomer', price: 150 },
+      productIds: ['svc-baby-boomer', 'svc-mani-pedi-spa'],
+      services: [
+        { id: 'svc-baby-boomer', name: 'Baby Boomer', price: 150, duration: 25 },
+        { id: 'svc-mani-pedi-spa', name: 'Manicure + Pedicure + Spa', price: 800, duration: 70 },
+      ],
+      modifiers: [
+        {
+          id: 'mod-gel',
+          productId: 'svc-mani-pedi-spa',
+          name: 'Gel semipermanente',
+          quantity: 1,
+          price: 220,
+          createdAt: '2026-03-15T09:00:00.000Z',
+        },
+      ],
+    }
+    renderDetail()
+
+    // BOTH services render (the old bug dropped the second one)
+    expect(screen.getByText('Baby Boomer')).toBeDefined()
+    expect(screen.getByText('Manicure + Pedicure + Spa')).toBeDefined()
+    // The modifier still renders, tagged to its service
+    expect(screen.getByText(/Gel semipermanente/)).toBeDefined()
+    // Services section header is shown
+    expect(screen.getByText('detail.sections.services')).toBeDefined()
+  })
+
+  it('falls back to the single product for legacy single-service rows', () => {
+    mockReservation = {
+      ...createTestReservation('CONFIRMED'),
+      productId: 'svc-legacy',
+      product: { id: 'svc-legacy', name: 'Corte de cabello', price: 200 },
+      // no `services` / `productIds` — legacy shape
+    }
+    renderDetail()
+
+    expect(screen.getByText('Corte de cabello')).toBeDefined()
+    expect(screen.getByText('detail.sections.services')).toBeDefined()
+  })
+})
