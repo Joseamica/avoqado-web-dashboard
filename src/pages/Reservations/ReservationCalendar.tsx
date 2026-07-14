@@ -741,11 +741,12 @@ export default function ReservationCalendar() {
     const modifiersTotal = modifiers.reduce((sum, m) => sum + (m.price ?? 0) * (m.quantity ?? 1), 0)
 
     return (
-      <TooltipProvider delayDuration={300}>
+      // key goes on the OUTERMOST element returned in the reservations .map()
+      // (renderReservationBlock), otherwise React can't dedupe siblings and warns.
+      <TooltipProvider key={reservation.id} delayDuration={300}>
         <Tooltip>
           <TooltipTrigger asChild>
             <div
-              key={reservation.id}
               data-reservation="true"
               className={`absolute left-1 right-1 rounded-md border px-2 py-1 text-xs cursor-pointer transition-opacity hover:opacity-80 overflow-hidden ${statusColorMap[reservation.status]}`}
               style={{ top: `${top}px`, height: `${height}px` }}

@@ -72,6 +72,7 @@ export default function NotificationPreferences5() {
     action: 'enable' | 'disable'
   }>({ open: false, channel: NotificationChannel.IN_APP, channelLabel: '', action: 'disable' })
   const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set())
+  const [masterPending, setMasterPending] = useState(false)
   const inFlightCount = useRef(0)
 
   const { data: preferences = [], isLoading } = useQuery({
@@ -195,9 +196,26 @@ export default function NotificationPreferences5() {
       if (next.length !== curr.length) changes.push({ type: td.type, channels: next })
     }
 
+    if (changes.length === 0) return
+
+    // Optimistically flip every affected type, then persist the WHOLE batch in a
+    // single atomic request. Doing this as one transaction (instead of N
+    // best-effort PUTs) is what stops the master toggle from bouncing back "on"
+    // with a lower count when one write fails — the derived toggle now flips in
+    // one step, all-or-nothing.
+    setMasterPending(true)
     for (const c of changes) applyOptimisticUpdate(c.type, { channels: c.channels })
-    await Promise.all(changes.map(c => updatePreference(`master-${channel}`, { type: c.type, channels: c.channels })))
-    toast({ title: t('saved'), description: t('preferencesSaved') })
+    try {
+      await notificationService.updateManyPreferences(changes, venueId)
+      toast({ title: t('saved'), description: t('preferencesSaved') })
+    } catch (error: any) {
+      toast({ title: t('error'), description: error.message || t('failedToUpdate'), variant: 'destructive' })
+    } finally {
+      setMasterPending(false)
+      // Refetch the server truth: confirms the change on success, or reverts the
+      // optimistic update on failure so the UI never shows a half-applied state.
+      queryClient.invalidateQueries({ queryKey: ['notification-preferences', venueId] })
+    }
   }
 
   const normalizedSearch = searchTerm.trim().toLowerCase()
@@ -208,7 +226,8 @@ export default function NotificationPreferences5() {
       return notificationCategories.map(category => ({ category, visibleTypes: category.types }))
     }
 
-    const result: { category: (typeof notificationCategories)[number]; visibleTypes: (typeof notificationCategories)[number]['types'] }[] = []
+    const result: { category: (typeof notificationCategories)[number]; visibleTypes: (typeof notificationCategories)[number]['types'] }[] =
+      []
     for (const category of notificationCategories) {
       const categoryName = t(`categories.${category.id}`, { defaultValue: '' }).toLowerCase()
       const categoryDesc = t(`categoryDescriptions.${category.id}`, { defaultValue: '' }).toLowerCase()
@@ -287,7 +306,11 @@ export default function NotificationPreferences5() {
                   >
                     <ch.icon className={cn('h-4 w-4', isActive ? 'text-foreground' : 'text-muted-foreground')} />
                   </div>
-                  <Switch checked={isActive} onCheckedChange={() => handleMasterChannelToggle(ch.channel, t(`channelNames.${ch.label}`))} />
+                  <Switch
+                    checked={isActive}
+                    disabled={masterPending}
+                    onCheckedChange={() => handleMasterChannelToggle(ch.channel, t(`channelNames.${ch.label}`))}
+                  />
                 </div>
                 <span className="text-sm font-medium text-foreground block">{t(`channelNames.${ch.label}`)}</span>
                 <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
@@ -391,10 +414,7 @@ export default function NotificationPreferences5() {
                   {visibleTypes.map((typeData, i) => {
                     const pref = getPreference(typeData.type)
                     return (
-                      <div
-                        key={typeData.type}
-                        className={cn('px-4 py-3 pl-16', i < visibleTypes.length - 1 && 'border-b border-input/40')}
-                      >
+                      <div key={typeData.type} className={cn('px-4 py-3 pl-16', i < visibleTypes.length - 1 && 'border-b border-input/40')}>
                         <div className="flex items-center justify-between">
                           <div className="min-w-0 flex-1">
                             <span className="text-sm font-medium text-foreground">{t(`types.${typeData.type}`)}</span>
@@ -403,7 +423,7 @@ export default function NotificationPreferences5() {
                           <Switch
                             checked={pref.enabled}
                             onCheckedChange={enabled => handleToggle(typeData.type, enabled)}
-                            disabled={pendingKeys.has(`toggle-${typeData.type}`)}
+                            disabled={masterPending || pendingKeys.has(`toggle-${typeData.type}`)}
                           />
                         </div>
 
@@ -411,7 +431,7 @@ export default function NotificationPreferences5() {
                           <div className="flex items-center gap-1.5 mt-2">
                             {channelConfig.map(({ channel, icon: ChannelIcon, label }) => {
                               const isActive = pref.channels?.includes(channel) || false
-                              const isPending = pendingKeys.has(`channel-${typeData.type}-${channel}`)
+                              const isPending = masterPending || pendingKeys.has(`channel-${typeData.type}-${channel}`)
                               return (
                                 <button
                                   key={channel}

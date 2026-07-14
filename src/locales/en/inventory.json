@@ -592,6 +592,11 @@
       "category": "Category",
       "categoryPlaceholder": "Select a category",
       "categoryRequired": "Category is required",
+      "printStation": {
+        "label": "Prints at",
+        "inheritOption": "Inherit from category",
+        "help": "Choose the station where this item's kitchen/service ticket will print. Optional."
+      },
       "modifierGroups": "Modifier Groups",
       "selectModifierGroups": "Select modifier groups (optional)",
       "imageUrl": "Product Image",

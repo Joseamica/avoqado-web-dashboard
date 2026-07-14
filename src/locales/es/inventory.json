@@ -592,6 +592,11 @@
       "category": "Categoría",
       "categoryPlaceholder": "Selecciona una categoría",
       "categoryRequired": "La categoría es requerida",
+      "printStation": {
+        "label": "Imprime en",
+        "inheritOption": "Hereda de categoría",
+        "help": "Elige la estación donde saldrá la comanda/ticket de este artículo. Opcional."
+      },
       "modifierGroups": "Grupos Modificadores",
       "selectModifierGroups": "Selecciona grupos modificadores (opcional)",
       "imageUrl": "Imagen del Producto",

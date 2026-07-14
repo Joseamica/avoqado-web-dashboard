@@ -570,6 +570,7 @@ export interface ProductWizardStep1Data {
   type?: ProductType
   duration?: number | null        // For APPOINTMENTS_SERVICE (minutes)
   maxParticipants?: number | null // For CLASS
+  printStationId?: string | null  // Print-station override; null inherits from category
 }
 
 export interface ProductWizardStep2Data {

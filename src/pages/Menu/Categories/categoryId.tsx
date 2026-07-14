@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next'
 import { Card as CardShadcn, CardContent as CardContentShadcn } from '@/components/ui/card'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { SatKeyPicker } from '@/components/SatKeyPicker'
+import { PrintStationField } from '@/components/PrintStationField'
 
 export default function CategoryId() {
   const { t } = useTranslation('menu')
@@ -128,6 +129,8 @@ export default function CategoryId() {
       // SAT default fiscal codes (CFDI) — prefill so the pickers show saved keys.
       form.setValue('defaultSatProductKey', (data as any).defaultSatProductKey ?? null)
       form.setValue('defaultSatUnitKey', (data as any).defaultSatUnitKey ?? null)
+      // Print-station default — prefill so the selector shows the saved station.
+      form.setValue('printStationId', (data as any).printStationId ?? null)
     }
   }, [data, form])
 
@@ -158,6 +161,7 @@ export default function CategoryId() {
             defaultSatUnitKey: formValues.defaultSatUnitKey || null,
           }
         : {}),
+      printStationId: formValues.printStationId ?? null,
     }
 
     // Handle time values: send null for empty values, keep valid times
@@ -282,6 +286,14 @@ export default function CategoryId() {
       <div className="mt-4">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Print station default — self-hides (incl. its own card) when the venue has no active stations */}
+            <PrintStationField
+              venueId={venueId}
+              namespace="menu"
+              value={form.watch('printStationId') as string | null}
+              onChange={val => form.setValue('printStationId', val, { shouldDirty: true })}
+            />
+
             {/* Datos fiscales (CFDI) — only for venues with the CFDI feature */}
             {hasCfdi && (
               <CardShadcn className="border-border/60" data-tour="category-sat-keys">

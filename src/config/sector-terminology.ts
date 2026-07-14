@@ -31,6 +31,8 @@ export type TermKey =
   | 'kitchenPlural'
   | 'host'
   | 'hostPlural'
+  | 'printStation'
+  | 'printStationPlural'
 
 export type SectorTerms = Record<TermKey, string>
 
@@ -59,6 +61,8 @@ export const SECTOR_TERMINOLOGY: Record<BusinessCategory, Record<SupportedLocale
       kitchenPlural: 'Cocinas',
       host: 'Host',
       hostPlural: 'Hosts',
+      printStation: 'Estación de impresión',
+      printStationPlural: 'Estaciones de impresión',
     },
     en: {
       menu: 'Menu',
@@ -77,6 +81,8 @@ export const SECTOR_TERMINOLOGY: Record<BusinessCategory, Record<SupportedLocale
       kitchenPlural: 'Kitchens',
       host: 'Host',
       hostPlural: 'Hosts',
+      printStation: 'Print station',
+      printStationPlural: 'Print stations',
     },
   },
   RETAIL: {
@@ -97,6 +103,8 @@ export const SECTOR_TERMINOLOGY: Record<BusinessCategory, Record<SupportedLocale
       kitchenPlural: 'Almacenes',
       host: 'Recepcionista',
       hostPlural: 'Recepcionistas',
+      printStation: 'Estación de surtido',
+      printStationPlural: 'Estaciones de surtido',
     },
     en: {
       menu: 'Catalog',
@@ -115,6 +123,8 @@ export const SECTOR_TERMINOLOGY: Record<BusinessCategory, Record<SupportedLocale
       kitchenPlural: 'Warehouses',
       host: 'Receptionist',
       hostPlural: 'Receptionists',
+      printStation: 'Fulfillment station',
+      printStationPlural: 'Fulfillment stations',
     },
   },
   SERVICES: {
@@ -135,6 +145,8 @@ export const SECTOR_TERMINOLOGY: Record<BusinessCategory, Record<SupportedLocale
       kitchenPlural: 'Areas de Servicio',
       host: 'Recepcionista',
       hostPlural: 'Recepcionistas',
+      printStation: 'Estación de servicio',
+      printStationPlural: 'Estaciones de servicio',
     },
     en: {
       menu: 'Items/Services',
@@ -153,6 +165,8 @@ export const SECTOR_TERMINOLOGY: Record<BusinessCategory, Record<SupportedLocale
       kitchenPlural: 'Service Areas',
       host: 'Receptionist',
       hostPlural: 'Receptionists',
+      printStation: 'Service station',
+      printStationPlural: 'Service stations',
     },
   },
   HOSPITALITY: {
@@ -173,6 +187,8 @@ export const SECTOR_TERMINOLOGY: Record<BusinessCategory, Record<SupportedLocale
       kitchenPlural: 'Servicios a Cuartos',
       host: 'Recepcionista',
       hostPlural: 'Recepcionistas',
+      printStation: 'Estación',
+      printStationPlural: 'Estaciones',
     },
     en: {
       menu: 'Services',
@@ -191,6 +207,8 @@ export const SECTOR_TERMINOLOGY: Record<BusinessCategory, Record<SupportedLocale
       kitchenPlural: 'Room Services',
       host: 'Receptionist',
       hostPlural: 'Receptionists',
+      printStation: 'Station',
+      printStationPlural: 'Stations',
     },
   },
   ENTERTAINMENT: {
@@ -211,6 +229,8 @@ export const SECTOR_TERMINOLOGY: Record<BusinessCategory, Record<SupportedLocale
       kitchenPlural: 'Backstages',
       host: 'Recepcionista',
       hostPlural: 'Recepcionistas',
+      printStation: 'Estación',
+      printStationPlural: 'Estaciones',
     },
     en: {
       menu: 'Events',
@@ -229,6 +249,8 @@ export const SECTOR_TERMINOLOGY: Record<BusinessCategory, Record<SupportedLocale
       kitchenPlural: 'Backstages',
       host: 'Receptionist',
       hostPlural: 'Receptionists',
+      printStation: 'Station',
+      printStationPlural: 'Stations',
     },
   },
   OTHER: {
@@ -249,6 +271,8 @@ export const SECTOR_TERMINOLOGY: Record<BusinessCategory, Record<SupportedLocale
       kitchenPlural: 'Almacenes',
       host: 'Recepcionista',
       hostPlural: 'Recepcionistas',
+      printStation: 'Estación',
+      printStationPlural: 'Estaciones',
     },
     en: {
       menu: 'Catalog',
@@ -267,6 +291,8 @@ export const SECTOR_TERMINOLOGY: Record<BusinessCategory, Record<SupportedLocale
       kitchenPlural: 'Storages',
       host: 'Receptionist',
       hostPlural: 'Receptionists',
+      printStation: 'Station',
+      printStationPlural: 'Stations',
     },
   },
 }

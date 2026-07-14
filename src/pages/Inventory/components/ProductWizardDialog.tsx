@@ -30,6 +30,7 @@ import { Currency } from '@/utils/currency'
 import Cropper from 'react-easy-crop'
 import { AddIngredientDialog } from './AddIngredientDialog'
 import { SimpleConfirmDialog } from './SimpleConfirmDialog'
+import { PrintStationField } from '@/components/PrintStationField'
 import api from '@/api'
 import { cn, includesNormalized } from '@/lib/utils'
 
@@ -94,6 +95,9 @@ interface Step1FormData {
   satProductKey?: string | null
   satUnitKey?: string | null
   objetoImp?: ObjetoImp
+  // Optional print-station override — where this item's kitchen/service ticket
+  // prints. null (or omitted) inherits from the product's category.
+  printStationId?: string | null
 }
 
 /** SAT "ObjetoImp" — whether the product is subject to tax. */
@@ -246,6 +250,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       satProductKey: null,
       satUnitKey: null,
       objetoImp: '02',
+      printStationId: null,
     },
   })
 
@@ -631,6 +636,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       step1Form.setValue('satUnitKey', (existingProduct as any).satUnitKey ?? null)
       step1Form.setValue('objetoImp', ((existingProduct as any).objetoImp as ObjetoImp) || '02')
 
+      // Print-station override — prefill so the selector shows the saved station.
+      step1Form.setValue('printStationId', (existingProduct as any).printStationId ?? null)
+
       // Load modifier groups if available
       // modifierGroups is the junction table (ProductModifierGroup[]), each with a .group relation
       if (existingProduct.modifierGroups && existingProduct.modifierGroups.length > 0) {
@@ -822,6 +830,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
             objetoImp: data.objetoImp || '02',
           }
         : {}),
+      // Print-station override. null clears it so the product falls back to
+      // its category's station. Always sent (unlike SKU/CFDI) since undefined
+      // vs null both mean "no override" here — sending null is harmless.
+      ...(data.printStationId !== undefined ? { printStationId: data.printStationId } : {}),
     }
 
     // Only add imageUrl if it's a non-empty string (backend requires valid URL or field omitted)
@@ -1940,6 +1952,14 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                     )}
                   </section>
                   )}
+
+                  {/* Print station override — self-hides (incl. its own card) when the venue has no active stations */}
+                  <PrintStationField
+                    venueId={venueId}
+                    namespace="inventory"
+                    value={step1Form.watch('printStationId')}
+                    onChange={val => step1Form.setValue('printStationId', val, { shouldDirty: true })}
+                  />
 
                   {/* Datos fiscales (CFDI) — only for venues with the CFDI feature */}
                   {hasCfdi && (

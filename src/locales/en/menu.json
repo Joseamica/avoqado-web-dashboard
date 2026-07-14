@@ -724,6 +724,11 @@
       "basicInfo": "Basic Information",
       "name": "Name",
       "nameDescription": "The name your customers will see"
+    },
+    "printStation": {
+      "label": "Prints at",
+      "inheritOption": "No default station",
+      "help": "Station where this category's items print by default, unless an item has its own station. Optional."
     }
   },
   "services": {

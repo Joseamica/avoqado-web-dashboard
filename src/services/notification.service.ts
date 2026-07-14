@@ -153,14 +153,14 @@ export enum NotificationType {
   // General
   ANNOUNCEMENT = 'ANNOUNCEMENT',
   REMINDER = 'REMINDER',
-  ALERT = 'ALERT'
+  ALERT = 'ALERT',
 }
 
 export enum NotificationPriority {
   LOW = 'LOW',
   NORMAL = 'NORMAL',
   HIGH = 'HIGH',
-  URGENT = 'URGENT'
+  URGENT = 'URGENT',
 }
 
 export enum NotificationChannel {
@@ -168,7 +168,7 @@ export enum NotificationChannel {
   EMAIL = 'EMAIL',
   SMS = 'SMS',
   PUSH = 'PUSH',
-  WEBHOOK = 'WEBHOOK'
+  WEBHOOK = 'WEBHOOK',
 }
 
 // ===== API FUNCTIONS =====
@@ -178,11 +178,11 @@ export enum NotificationChannel {
  */
 export async function getNotifications(
   filters: NotificationFilters = {},
-  pagination: PaginationOptions = {}
+  pagination: PaginationOptions = {},
 ): Promise<NotificationsResponse> {
   const params = {
     ...filters,
-    ...pagination
+    ...pagination,
   }
 
   const response = await api.get('/api/v1/dashboard/notifications', { params })
@@ -251,6 +251,30 @@ export async function updatePreferences(
 }
 
 /**
+ * Atomically update many notification preferences at once.
+ *
+ * Used by the master channel toggle (turn Email/Web on or off for every type).
+ * The whole batch is applied server-side in one transaction, so a partial
+ * failure can't leave the toggle "stuck" on with a lower count after refresh.
+ */
+export async function updateManyPreferences(
+  preferences: Array<{
+    type: NotificationType
+    enabled?: boolean
+    channels?: NotificationChannel[]
+    priority?: NotificationPriority
+    quietStart?: string
+    quietEnd?: string
+  }>,
+  venueId?: string | null,
+): Promise<NotificationPreference[]> {
+  const headers: Record<string, string> = {}
+  if (venueId) headers['x-venue-id'] = venueId
+  const response = await api.put('/api/v1/dashboard/notifications/preferences/bulk', { preferences }, { headers })
+  return response.data.data
+}
+
+/**
  * Get available notification types
  */
 export async function getNotificationTypes(): Promise<{ types: Array<{ value: string; label: string }> }> {
@@ -284,7 +308,7 @@ export async function sendBulkNotification(data: BulkNotificationDto): Promise<{
  */
 export async function sendVenueNotification(
   venueId: string,
-  data: VenueNotificationDto
+  data: VenueNotificationDto,
 ): Promise<{
   sent: number
   notifications: Notification[]
@@ -365,11 +389,10 @@ export interface NotificationTimeTranslations {
  * Default translations (fallback)
  */
 const getDefaultTimeTranslations = (locale: string): NotificationTimeTranslations => ({
-  justNow: locale === 'es' ? 'Justo ahora' : locale === 'fr' ? 'À l\'instant' : 'Just now',
+  justNow: locale === 'es' ? 'Justo ahora' : locale === 'fr' ? "À l'instant" : 'Just now',
   minutesAgo: (minutes: number) =>
     locale === 'es' ? `hace ${minutes} min` : locale === 'fr' ? `il y a ${minutes} min` : `${minutes} min ago`,
-  hoursAgo: (hours: number) =>
-    locale === 'es' ? `hace ${hours} h` : locale === 'fr' ? `il y a ${hours} h` : `${hours} h ago`,
+  hoursAgo: (hours: number) => (locale === 'es' ? `hace ${hours} h` : locale === 'fr' ? `il y a ${hours} h` : `${hours} h ago`),
   daysAgo: (days: number) =>
     locale === 'es'
       ? `hace ${days} ${days === 1 ? 'día' : 'días'}`
@@ -389,7 +412,7 @@ export function formatNotificationTime(
   dateString: string,
   locale: string = 'es',
   timezone: string = 'America/Mexico_City',
-  translations?: NotificationTimeTranslations
+  translations?: NotificationTimeTranslations,
 ): string {
   const date = DateTime.fromISO(dateString, { zone: 'utc' }).setZone(timezone)
   const now = DateTime.now().setZone(timezone)
@@ -438,7 +461,7 @@ export interface NotificationDateTranslations {
  * Default date translations (fallback)
  */
 const getDefaultDateTranslations = (locale: string): NotificationDateTranslations => ({
-  today: locale === 'es' ? 'Hoy' : locale === 'fr' ? 'Aujourd\'hui' : 'Today',
+  today: locale === 'es' ? 'Hoy' : locale === 'fr' ? "Aujourd'hui" : 'Today',
   yesterday: locale === 'es' ? 'Ayer' : locale === 'fr' ? 'Hier' : 'Yesterday',
 })
 
@@ -453,7 +476,7 @@ export function groupNotificationsByDate(
   notifications: Notification[],
   locale: string = 'es',
   timezone: string = 'America/Mexico_City',
-  translations?: NotificationDateTranslations
+  translations?: NotificationDateTranslations,
 ): Record<string, Notification[]> {
   const groups: Record<string, Notification[]> = {}
   const localeCode = getIntlLocale(locale)
@@ -463,9 +486,7 @@ export function groupNotificationsByDate(
   const yesterday = today.minus({ days: 1 })
 
   notifications.forEach(notification => {
-    const date = DateTime.fromISO(notification.createdAt, { zone: 'utc' })
-      .setZone(timezone)
-      .startOf('day')
+    const date = DateTime.fromISO(notification.createdAt, { zone: 'utc' }).setZone(timezone).startOf('day')
 
     let groupKey: string
 

@@ -719,6 +719,11 @@
       "basicInfo": "Información Básica",
       "name": "Nombre",
       "nameDescription": "El nombre que verán tus clientes"
+    },
+    "printStation": {
+      "label": "Imprime en",
+      "inheritOption": "Sin estación predeterminada",
+      "help": "Estación donde saldrá la comanda/ticket de los artículos de esta categoría, salvo que un artículo tenga su propia estación. Opcional."
     }
   },
   "services": {

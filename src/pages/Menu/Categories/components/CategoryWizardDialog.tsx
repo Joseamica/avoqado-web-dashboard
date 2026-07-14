@@ -21,6 +21,7 @@ import { Label } from '@/components/ui/label'
 import { Receipt } from 'lucide-react'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { SatKeyPicker } from '@/components/SatKeyPicker'
+import { PrintStationField } from '@/components/PrintStationField'
 
 interface CategoryWizardDialogProps {
   open: boolean
@@ -41,6 +42,9 @@ interface CategoryFormData {
   // Default SAT fiscal codes inherited by products in this category (CFDI only).
   defaultSatProductKey: string | null
   defaultSatUnitKey: string | null
+  // Optional print-station default for this category's products. null means
+  // no default (products fall through to unrouted unless they set their own).
+  printStationId: string | null
 }
 
 export function CategoryWizardDialog({ open, onOpenChange, onSuccess }: CategoryWizardDialogProps) {
@@ -66,6 +70,7 @@ export function CategoryWizardDialog({ open, onOpenChange, onSuccess }: Category
       active: true,
       defaultSatProductKey: null,
       defaultSatUnitKey: null,
+      printStationId: null,
     },
   })
 
@@ -101,6 +106,7 @@ export function CategoryWizardDialog({ open, onOpenChange, onSuccess }: Category
               defaultSatUnitKey: data.defaultSatUnitKey || null,
             }
           : {}),
+        printStationId: data.printStationId ?? null,
       }
 
       // Time validation logic
@@ -250,6 +256,14 @@ export function CategoryWizardDialog({ open, onOpenChange, onSuccess }: Category
                     </div>
                   </ExampleCard>
                 </div>
+
+                {/* Print station default — self-hides (incl. its own card) when the venue has no active stations */}
+                <PrintStationField
+                  venueId={venueId}
+                  namespace="menu"
+                  value={form.watch('printStationId')}
+                  onChange={val => form.setValue('printStationId', val, { shouldDirty: true })}
+                />
 
                 {/* Datos fiscales (CFDI) — only for venues with the CFDI feature */}
                 {hasCfdi && (
