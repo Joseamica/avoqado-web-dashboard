@@ -54,7 +54,7 @@
     }
   },
   "printers": {
-    "intro": "Registra cada impresora física del local. En esta versión las impresoras se conectan por red (WiFi/Ethernet).",
+    "intro": "Registra cada impresora física del local. Puedes conectarla por red (WiFi/Ethernet) o por Bluetooth.",
     "empty": "Aún no hay impresoras registradas.",
     "add": "Agregar impresora",
     "createTitle": "Nueva impresora",
@@ -68,12 +68,16 @@
     "statusActive": "Activa",
     "statusInactive": "Inactiva",
     "connectionNetwork": "Red (WiFi / Ethernet)",
+    "connectionBluetooth": "Bluetooth",
     "fields": {
       "name": "Nombre de la impresora",
       "namePlaceholder": "Ej. Impresora de cocina",
-      "address": "Dirección de red (IP:puerto)",
-      "addressPlaceholder": "192.168.1.50:9100",
-      "addressHint": "IP de la impresora y su puerto. El puerto usual es 9100.",
+      "addressNetwork": "Dirección IP",
+      "addressNetworkPlaceholder": "192.168.1.50:9100",
+      "addressNetworkHint": "IP de la impresora y su puerto (opcional). Se envían comandos ESC/POS sin procesar; si omites el puerto se usa el 9100 por defecto.",
+      "addressBluetooth": "Dirección MAC",
+      "addressBluetoothPlaceholder": "AA:BB:CC:DD:EE:FF",
+      "addressBluetoothHint": "La impresora debe estar emparejada por Bluetooth con el dispositivo que imprime (el gateway).",
       "connection": "Conexión",
       "paperWidth": "Ancho de papel",
       "charset": "Codificación",
@@ -85,7 +89,9 @@
     "deleteMessage": "\"{{name}}\" se eliminará. Las estaciones que la usaban quedarán sin impresora.",
     "validation": {
       "nameRequired": "Escribe un nombre para la impresora.",
-      "addressRequired": "Escribe la dirección de red (IP:puerto)."
+      "addressRequired": "Escribe la dirección de la impresora.",
+      "addressInvalidNetwork": "La dirección debe ser una IP o IP:puerto válida (ej. 192.168.1.50:9100).",
+      "addressInvalidBluetooth": "La dirección debe ser una MAC válida de 6 pares, separados por ':' o '-' (ej. AA:BB:CC:DD:EE:FF)."
     }
   },
   "gateway": {

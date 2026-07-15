@@ -54,7 +54,7 @@
     }
   },
   "printers": {
-    "intro": "Register each physical printer in the venue. In this version printers connect over the network (WiFi/Ethernet).",
+    "intro": "Register each physical printer in the venue. Connect it over the network (WiFi/Ethernet) or via Bluetooth.",
     "empty": "No printers registered yet.",
     "add": "Add printer",
     "createTitle": "New printer",
@@ -68,12 +68,16 @@
     "statusActive": "Active",
     "statusInactive": "Inactive",
     "connectionNetwork": "Network (WiFi / Ethernet)",
+    "connectionBluetooth": "Bluetooth",
     "fields": {
       "name": "Printer name",
       "namePlaceholder": "e.g. Kitchen printer",
-      "address": "Network address (IP:port)",
-      "addressPlaceholder": "192.168.1.50:9100",
-      "addressHint": "The printer's IP and its port. The usual port is 9100.",
+      "addressNetwork": "IP address",
+      "addressNetworkPlaceholder": "192.168.1.50:9100",
+      "addressNetworkHint": "The printer's IP and its port (optional). Sends raw ESC/POS commands; if you omit the port, 9100 is used by default.",
+      "addressBluetooth": "MAC address",
+      "addressBluetoothPlaceholder": "AA:BB:CC:DD:EE:FF",
+      "addressBluetoothHint": "The printer must be paired over Bluetooth with the device that prints (the gateway).",
       "connection": "Connection",
       "paperWidth": "Paper width",
       "charset": "Charset",
@@ -85,7 +89,9 @@
     "deleteMessage": "\"{{name}}\" will be deleted. Stations using it will be left without a printer.",
     "validation": {
       "nameRequired": "Enter a name for the printer.",
-      "addressRequired": "Enter the network address (IP:port)."
+      "addressRequired": "Enter the printer's address.",
+      "addressInvalidNetwork": "Address must be a valid host or host:port (e.g. 192.168.1.50:9100).",
+      "addressInvalidBluetooth": "Address must be a valid 6-octet MAC, separated by ':' or '-' (e.g. AA:BB:CC:DD:EE:FF)."
     }
   },
   "gateway": {

@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Loader2, Pencil, Plus, Trash2, Wifi } from 'lucide-react'
+import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -29,6 +29,19 @@ import { createPrinter, deletePrinter, getPrinters, updatePrinter, type Printer 
 
 const FORM_ID = 'printer-form'
 const DEFAULT_CHARSET = 'CP858'
+
+// Only these two connection types are servable by the POS gateway today —
+// USB_SPOOLER (Windows desktop POS) and TERMINAL_INTERNAL (PAX internal printer)
+// are backend-rejected and must never be offered here.
+const CONNECTION_TYPES = ['NETWORK', 'BLUETOOTH'] as const
+type FormConnectionType = (typeof CONNECTION_TYPES)[number]
+
+// Mirrors the backend's address shape validation per connection type so the
+// user gets an inline error instead of a 400.
+// NETWORK: host or host:port (e.g. 192.168.1.50:9100) — a MAC is rejected.
+const NETWORK_ADDRESS_REGEX = /^[a-zA-Z0-9.-]+(:\d{1,5})?$/
+// BLUETOOTH: 6-octet MAC, ':' or '-' separators, case-insensitive.
+const BLUETOOTH_MAC_REGEX = /^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$/
 
 const apiError = (e: any, fallback: string): string =>
   e?.response?.data?.message ?? e?.response?.data?.error ?? fallback
@@ -129,19 +142,34 @@ export function PrintersTab({ venueId }: { venueId: string }) {
 
 // ── Form modal ────────────────────────────────────────────────────────────────
 
-const printerSchema = z.object({
-  name: z.string().trim().min(1),
-  address: z.string().trim().min(1),
-  paperWidthMm: z.number(),
-  charset: z.string().trim().min(1),
-  active: z.boolean(),
-})
+const printerSchema = z
+  .object({
+    name: z.string().trim().min(1),
+    connectionType: z.enum(CONNECTION_TYPES),
+    address: z.string().trim().min(1, { message: 'addressRequired' }),
+    paperWidthMm: z.number(),
+    charset: z.string().trim().min(1),
+    active: z.boolean(),
+  })
+  .superRefine((data, ctx) => {
+    const address = data.address.trim()
+    if (!address) return // already caught by address.min(1)
+
+    if (data.connectionType === 'NETWORK' && !NETWORK_ADDRESS_REGEX.test(address)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['address'], message: 'addressInvalidNetwork' })
+    }
+    if (data.connectionType === 'BLUETOOTH' && !BLUETOOTH_MAC_REGEX.test(address)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['address'], message: 'addressInvalidBluetooth' })
+    }
+  })
 type PrinterForm = z.infer<typeof printerSchema>
 
 function PrinterFormModal({ venueId, printer, onClose }: { venueId: string; printer: Printer | null; onClose: () => void }) {
   const { t } = useTranslation('printStations')
   const { toast } = useToast()
   const qc = useQueryClient()
+
+  const initialConnectionType: FormConnectionType = printer?.connectionType === 'BLUETOOTH' ? 'BLUETOOTH' : 'NETWORK'
 
   const {
     register,
@@ -153,6 +181,7 @@ function PrinterFormModal({ venueId, printer, onClose }: { venueId: string; prin
     resolver: zodResolver(printerSchema),
     defaultValues: {
       name: printer?.name ?? '',
+      connectionType: initialConnectionType,
       address: printer?.address ?? '',
       paperWidthMm: printer?.paperWidthMm ?? 80,
       charset: printer?.charset ?? DEFAULT_CHARSET,
@@ -160,15 +189,21 @@ function PrinterFormModal({ venueId, printer, onClose }: { venueId: string; prin
     },
   })
 
+  const connectionType = watch('connectionType')
   const paperWidthMm = watch('paperWidthMm')
   const active = watch('active')
+
+  const handleConnectionTypeChange = (value: string) => {
+    setValue('connectionType', value as FormConnectionType, { shouldDirty: true })
+    // Clear the address so a stale IP isn't submitted as a MAC (and vice versa).
+    setValue('address', '', { shouldDirty: true, shouldValidate: false })
+  }
 
   const mutation = useMutation({
     mutationFn: (values: PrinterForm) => {
       const body = {
         name: values.name.trim(),
-        // v1: NETWORK only — connectionType is fixed by the backend contract.
-        connectionType: 'NETWORK' as const,
+        connectionType: values.connectionType,
         address: values.address.trim(),
         paperWidthMm: values.paperWidthMm,
         charset: values.charset.trim(),
@@ -217,23 +252,41 @@ function PrinterFormModal({ venueId, printer, onClose }: { venueId: string; prin
             {errors.name && <p className="text-xs text-destructive">{t('printers.validation.nameRequired')}</p>}
           </div>
 
-          {/* Connection — fixed to NETWORK in v1, shown read-only */}
-          <div className="flex items-center gap-2 rounded-lg border border-input bg-muted/40 p-3 text-sm">
-            <Wifi className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span className="text-muted-foreground">{t('printers.fields.connection')}:</span>
-            <span className="font-medium">{t('printers.connectionNetwork')}</span>
+          <div className="space-y-2">
+            <Label>{t('printers.fields.connection')}</Label>
+            <Select value={connectionType} onValueChange={handleConnectionTypeChange}>
+              <SelectTrigger className="h-12 text-base" data-tour="printer-connection-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NETWORK">{t('printers.connectionNetwork')}</SelectItem>
+                <SelectItem value="BLUETOOTH">{t('printers.connectionBluetooth')}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="printer-address">{t('printers.fields.address')}</Label>
+            <Label htmlFor="printer-address">
+              {connectionType === 'BLUETOOTH' ? t('printers.fields.addressBluetooth') : t('printers.fields.addressNetwork')}
+            </Label>
             <Input
               id="printer-address"
               className="h-12 font-mono text-base"
-              placeholder={t('printers.fields.addressPlaceholder')}
+              placeholder={
+                connectionType === 'BLUETOOTH'
+                  ? t('printers.fields.addressBluetoothPlaceholder')
+                  : t('printers.fields.addressNetworkPlaceholder')
+              }
               {...register('address')}
             />
-            <p className="text-xs text-muted-foreground">{t('printers.fields.addressHint')}</p>
-            {errors.address && <p className="text-xs text-destructive">{t('printers.validation.addressRequired')}</p>}
+            <p className="text-xs text-muted-foreground">
+              {connectionType === 'BLUETOOTH' ? t('printers.fields.addressBluetoothHint') : t('printers.fields.addressNetworkHint')}
+            </p>
+            {errors.address && (
+              <p className="text-xs text-destructive">
+                {t(`printers.validation.${errors.address.message ?? 'addressRequired'}`)}
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
