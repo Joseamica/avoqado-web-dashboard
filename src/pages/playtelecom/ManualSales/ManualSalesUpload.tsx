@@ -159,7 +159,20 @@ export default function ManualSalesUpload() {
         </Button>
       </div>
 
-      <BulkUploadSection onUpload={handleUpload} accept=".xlsx,.csv" />
+      {/* BulkUploadSection is shared with the SIM-stock upload, whose default copy describes a
+          stock CSV (serial/category/batch_id) and whose own "Plantilla" button downloads that
+          stock template — both wrong here. Pass this page's copy and hide that button; the
+          page header already offers the correct "Descargar template". */}
+      <BulkUploadSection
+        onUpload={handleUpload}
+        accept=".xlsx,.csv"
+        showTemplateButton={false}
+        dragDropLabel={t('manualSales.dragDrop', { defaultValue: 'Arrastra aquí tu Excel de ventas (.xlsx)' })}
+        formatHint={t('manualSales.formatHint', {
+          defaultValue:
+            'Excel (.xlsx) con columnas: ID SIM, Promotor, ID Promotor, ID Tienda, Nombre de la Tienda, Fecha, Tipo de Venta, Forma de Pago, Monto de Venta',
+        })}
+      />
 
       {preview && (
         <GlassCard className="p-5">

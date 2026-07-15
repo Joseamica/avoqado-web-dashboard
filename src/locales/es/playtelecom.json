@@ -448,8 +448,7 @@
         "AMOUNT": "Monto ($)",
         "QUANTITY": "Cantidad de ventas"
       },
-      "goalQuantity": "Meta de ventas (unidades)",
-      "goalAmount": "Meta de venta ($)"
+      "goalQuantity": "Meta de ventas (unidades)"
     },
     "orgGoals": {
       "title": "Metas de Organización",
@@ -571,6 +570,8 @@
     "tooltip": "Carga el Excel de ventas de SIMs realizadas fuera del TPV (por ejemplo, capturadas manualmente por el promotor).",
     "subtitle": "Sube el archivo, revisa la vista previa y confirma para crear las ventas.",
     "downloadTemplate": "Descargar template",
+    "dragDrop": "Arrastra aquí tu Excel de ventas (.xlsx)",
+    "formatHint": "Excel (.xlsx) con columnas: ID SIM, Promotor, ID Promotor, ID Tienda, Nombre de la Tienda, Fecha, Tipo de Venta, Forma de Pago, Monto de Venta",
     "previewTitle": "Vista previa",
     "crearCount": "{{count}} a crear",
     "omitirCount": "{{count}} a omitir",

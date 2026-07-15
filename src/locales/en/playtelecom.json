@@ -448,8 +448,7 @@
         "AMOUNT": "Amount ($)",
         "QUANTITY": "Number of sales"
       },
-      "goalQuantity": "Sales goal (units)",
-      "goalAmount": "Sales goal ($)"
+      "goalQuantity": "Sales goal (units)"
     },
     "orgGoals": {
       "title": "Organization Goals",
@@ -571,6 +570,8 @@
     "tooltip": "Upload the Excel sheet of SIM sales made outside the TPV (e.g. manually recorded by the promoter).",
     "subtitle": "Upload the file, review the preview, and confirm to create the sales.",
     "downloadTemplate": "Download template",
+    "dragDrop": "Drag your sales Excel file here (.xlsx)",
+    "formatHint": "Excel (.xlsx) with columns: ID SIM, Promotor, ID Promotor, ID Tienda, Nombre de la Tienda, Fecha, Tipo de Venta, Forma de Pago, Monto de Venta",
     "previewTitle": "Preview",
     "crearCount": "{{count}} to create",
     "omitirCount": "{{count}} to skip",

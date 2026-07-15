@@ -27,6 +27,17 @@ interface BulkUploadSectionProps {
    * behavior for existing callers that don't pass this prop.
    */
   accept?: string
+  /** Card heading. Defaults to "Carga Masiva". */
+  title?: string
+  /** Drop-zone headline. Defaults to the stock CSV copy — override when the file isn't a stock CSV. */
+  dragDropLabel?: string
+  /** Body of the "Formato requerido:" hint. Defaults to the stock CSV columns. */
+  formatHint?: string
+  /**
+   * Render this card's own "Plantilla" button (which downloads the STOCK template).
+   * Pass false when the page offers its own, format-specific template download.
+   */
+  showTemplateButton?: boolean
 }
 
 /** MIME types accepted per extension, used to validate a dropped file (drag & drop has no `accept` filtering). */
@@ -59,9 +70,13 @@ function isAcceptedFile(file: File, accept: string): boolean {
 
 export const BulkUploadSection: React.FC<BulkUploadSectionProps> = ({
   onUpload,
-  onDownloadTemplate: _onDownloadTemplate,
+  onDownloadTemplate,
   className,
   accept = '.csv',
+  title,
+  dragDropLabel,
+  formatHint,
+  showTemplateButton = true,
 }) => {
   const { t } = useTranslation(['playtelecom', 'common'])
   const [isDragging, setIsDragging] = useState(false)
@@ -142,12 +157,14 @@ export const BulkUploadSection: React.FC<BulkUploadSectionProps> = ({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Upload className="w-4 h-4 text-muted-foreground" />
-          <h3 className="text-lg font-semibold">{t('playtelecom:stock.upload.title', { defaultValue: 'Carga Masiva' })}</h3>
+          <h3 className="text-lg font-semibold">{title ?? t('playtelecom:stock.upload.title', { defaultValue: 'Carga Masiva' })}</h3>
         </div>
-        <Button variant="outline" size="sm" onClick={handleDownloadTemplate}>
-          <Download className="w-4 h-4 mr-1" />
-          {t('playtelecom:stock.upload.template', { defaultValue: 'Plantilla' })}
-        </Button>
+        {showTemplateButton && (
+          <Button variant="outline" size="sm" onClick={onDownloadTemplate ?? handleDownloadTemplate}>
+            <Download className="w-4 h-4 mr-1" />
+            {t('playtelecom:stock.upload.template', { defaultValue: 'Plantilla' })}
+          </Button>
+        )}
       </div>
 
       {/* Upload result */}
@@ -248,7 +265,9 @@ export const BulkUploadSection: React.FC<BulkUploadSectionProps> = ({
           ) : (
             <>
               <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
-              <p className="font-medium mb-1">{t('playtelecom:stock.upload.dragDrop', { defaultValue: 'Arrastra un archivo CSV aquí' })}</p>
+              <p className="font-medium mb-1">
+                {dragDropLabel ?? t('playtelecom:stock.upload.dragDrop', { defaultValue: 'Arrastra un archivo CSV aquí' })}
+              </p>
               <p className="text-sm text-muted-foreground mb-4">
                 {t('playtelecom:stock.upload.orClick', { defaultValue: 'o haz clic para seleccionar' })}
               </p>
@@ -269,8 +288,8 @@ export const BulkUploadSection: React.FC<BulkUploadSectionProps> = ({
       {/* Instructions */}
       <div className="mt-4 p-3 rounded-lg bg-muted/30">
         <p className="text-xs text-muted-foreground">
-          <strong className="text-foreground">{t('playtelecom:stock.upload.format', { defaultValue: 'Formato requerido' })}:</strong> CSV
-          con columnas: serial, category, batch_id, notes (opcional)
+          <strong className="text-foreground">{t('playtelecom:stock.upload.format', { defaultValue: 'Formato requerido' })}:</strong>{' '}
+          {formatHint ?? 'CSV con columnas: serial, category, batch_id, notes (opcional)'}
         </p>
       </div>
     </GlassCard>
