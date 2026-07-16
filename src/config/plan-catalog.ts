@@ -65,6 +65,7 @@ export const PLAN_TIERS: PlanTierDef[] = [
       'BANKING_HUB',
       'VENUE_AUDIT_LOG',
       'GOOGLE_REVIEW_REDIRECT',
+      'TABLE_SERVICE', // servicio de mesas / modo restaurante en iOS-Android (founder 2026-07-16: PRO)
     ],
   },
   {
