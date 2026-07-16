@@ -63,6 +63,11 @@ vi.mock('@/hooks/use-access', () => ({
   useAccess: () => ({ can: (perm: string) => mockCan(perm), canAny: () => true, canAll: () => true }),
 }))
 
+// Mock the toast — the upload handler surfaces parse/preview failures through it
+// (regression guard against the silent-failure prod bug where "Cargar" did nothing).
+const mockToast = vi.fn()
+vi.mock('@/hooks/use-toast', () => ({ toast: (...args: unknown[]) => mockToast(...args) }))
+
 // ---------------------------------------------------------------------------
 // Mock BulkUploadSection — a minimal stand-in exposing onUpload via a button.
 // Its own drag/drop/template-button behavior is covered by the Stock feature's
@@ -108,6 +113,7 @@ describe('ManualSalesUpload', () => {
     mockDownloadTemplate.mockReset()
     mockCan.mockReset()
     mockCan.mockReturnValue(true)
+    mockToast.mockReset()
 
     mockParseSalesFile.mockResolvedValue(SAMPLE_ROWS)
     mockPreviewManualSales.mockResolvedValue(PREVIEW_RESULT)
@@ -203,5 +209,22 @@ describe('ManualSalesUpload', () => {
 
     expect(screen.getByText('mock-upload-trigger')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Descargar template/i })).toBeInTheDocument()
+  })
+
+  // Regression (the second prod bug Isaac hit): the /manual-sales/preview middleware
+  // 400s the ENTIRE batch when a single row is invalid (e.g. a blank "Forma de Pago"),
+  // so previewManualSales rejects. handleUpload used to have no try/catch → the rejection
+  // was swallowed by BulkUploadSection → no preview, no status, dead "Cargar" button.
+  // It must surface the backend message via toast instead of failing silently.
+  it('surfaces a toast error when the preview request rejects (does not fail silently)', async () => {
+    mockPreviewManualSales.mockRejectedValue({ response: { data: { message: 'La forma de pago es requerida' } } })
+
+    render(<ManualSalesUpload />)
+    fireEvent.click(screen.getByText('mock-upload-trigger'))
+
+    await waitFor(() => expect(mockToast).toHaveBeenCalled())
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({ description: 'La forma de pago es requerida', variant: 'destructive' }),
+    )
   })
 })

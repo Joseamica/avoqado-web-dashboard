@@ -595,7 +595,9 @@
     "omittedSummary": "{{count}} skipped",
     "omittedSummary_plural": "{{count}} skipped",
     "erroredSummary": "{{count}} with error",
-    "noOrg": "Could not find the current organization"
+    "noOrg": "Could not find the current organization",
+    "uploadErrorTitle": "Could not process the file",
+    "uploadError": "The file could not be processed. Check it and try again."
   },
   "common": {
     "active": "Active",

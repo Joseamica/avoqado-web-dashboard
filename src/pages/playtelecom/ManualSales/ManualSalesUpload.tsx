@@ -30,6 +30,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { GlassCard } from '@/components/ui/glass-card'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
+import { toast } from '@/hooks/use-toast'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { BulkUploadSection } from '@/pages/playtelecom/Stock/components/BulkUploadSection'
 import {
@@ -73,25 +74,50 @@ export default function ManualSalesUpload() {
 
   const handleUpload = async (file: File) => {
     setResult(null)
-    const parsedRows = await parseSalesFile(file)
-    setRows(parsedRows)
+    setPreview(null)
 
-    if (!orgId) {
+    let parsedRows: ManualSaleRow[] = []
+    try {
+      parsedRows = await parseSalesFile(file)
+      setRows(parsedRows)
+
+      if (!orgId) {
+        return {
+          total: parsedRows.length,
+          success: 0,
+          errors: parsedRows.length,
+          errorDetails: [{ row: 0, error: t('manualSales.noOrg', { defaultValue: 'No se encontró la organización actual' }) }],
+        }
+      }
+
+      const previewResult = await previewManualSales(orgId, parsedRows)
+      setPreview(previewResult)
+
+      return {
+        total: parsedRows.length,
+        success: previewResult.crear.length,
+        errors: previewResult.error.length,
+      }
+    } catch (err) {
+      // Never fail silently. Parse errors and backend validation rejections must surface:
+      // the /manual-sales/preview middleware 400s the ENTIRE batch on any invalid row (naming
+      // the offending field), so a swallowed rejection leaves the operator staring at a dead
+      // "Cargar" button with no preview and no status — the exact bug reported in prod.
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        (err as Error)?.message ||
+        t('manualSales.uploadError', { defaultValue: 'No se pudo procesar el archivo. Revísalo e inténtalo de nuevo.' })
+      toast({
+        title: t('manualSales.uploadErrorTitle', { defaultValue: 'Error al procesar el archivo' }),
+        description: message,
+        variant: 'destructive',
+      })
       return {
         total: parsedRows.length,
         success: 0,
-        errors: parsedRows.length,
-        errorDetails: [{ row: 0, error: t('manualSales.noOrg', { defaultValue: 'No se encontró la organización actual' }) }],
+        errors: parsedRows.length || 1,
+        errorDetails: [{ row: 0, error: message }],
       }
-    }
-
-    const previewResult = await previewManualSales(orgId, parsedRows)
-    setPreview(previewResult)
-
-    return {
-      total: parsedRows.length,
-      success: previewResult.crear.length,
-      errors: previewResult.error.length,
     }
   }
 

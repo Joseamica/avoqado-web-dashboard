@@ -595,7 +595,9 @@
     "omittedSummary": "{{count}} omitida",
     "omittedSummary_plural": "{{count}} omitidas",
     "erroredSummary": "{{count}} con error",
-    "noOrg": "No se encontró la organización actual"
+    "noOrg": "No se encontró la organización actual",
+    "uploadErrorTitle": "Error al procesar el archivo",
+    "uploadError": "No se pudo procesar el archivo. Revísalo e inténtalo de nuevo."
   },
   "common": {
     "active": "Activo",
