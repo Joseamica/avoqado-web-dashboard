@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRightLeft, CheckCircle2, Loader2, AlertTriangle, Search } from 'lucide-react'
 
@@ -7,10 +7,12 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
 import { useToast } from '@/hooks/use-toast'
 import { includesNormalized } from '@/lib/utils'
@@ -49,6 +51,9 @@ export default function MigrateTerminalWizard({ open, onOpenChange, terminal, re
   const [selectedMerchantIds, setSelectedMerchantIds] = useState<string[]>([])
   const [merchantSearch, setMerchantSearch] = useState('')
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false)
+  // Merchant-carry checkbox: unblocks NO_PAYMENT_CONFIG by carrying the origin's
+  // merchant to the destination venue. Toggling it re-runs preflight (below).
+  const [migrateMerchant, setMigrateMerchant] = useState(false)
 
   const { data: venues = [] } = useQuery({ queryKey: ['venues'], queryFn: () => getAllVenues() })
   const venueItems = useMemo<SearchComboboxItem[]>(
@@ -81,6 +86,7 @@ export default function MigrateTerminalWizard({ open, onOpenChange, terminal, re
     setStep('pickVenue'); setSearch(''); setToVenueId(''); setPreflight(null); setCommandId(null)
     setProgressSticky({ delivered: false, rebound: false, online: false })
     setMerchantMode('default'); setSelectedMerchantIds([]); setMerchantSearch(''); setCancelConfirmOpen(false)
+    setMigrateMerchant(false)
   }
   const close = () => { onOpenChange(false); setTimeout(reset, 200) }
 
@@ -99,7 +105,7 @@ export default function MigrateTerminalWizard({ open, onOpenChange, terminal, re
   }
 
   const preflightMutation = useMutation({
-    mutationFn: () => terminalAPI.migratePreflight(terminal!.id, toVenueId),
+    mutationFn: () => terminalAPI.migratePreflight(terminal!.id, toVenueId, migrateMerchant),
     onSuccess: (r) => { setPreflight(r); setStep('preflight') },
     onError: (e: any) => toast({ title: 'Error en pre-vuelo', description: e?.response?.data?.message || e?.message, variant: 'destructive' }),
   })
@@ -109,6 +115,7 @@ export default function MigrateTerminalWizard({ open, onOpenChange, terminal, re
       terminal!.id,
       toVenueId,
       merchantMode === 'specific' && selectedMerchantIds.length ? selectedMerchantIds : undefined,
+      migrateMerchant,
     ),
     onSuccess: (r) => {
       setCommandId(r.commandId)
@@ -118,6 +125,20 @@ export default function MigrateTerminalWizard({ open, onOpenChange, terminal, re
     },
     onError: (e: any) => toast({ title: 'No se pudo iniciar la migración', description: e?.response?.data?.message || e?.message, variant: 'destructive' }),
   })
+
+  // The merchant-carry checkbox changes the preflight blockers (NO_PAYMENT_CONFIG
+  // depends on `migrateMerchant`), and preflight is a mutation — not a query — so
+  // there's no cache to invalidate; we must explicitly re-run it. Do this from an
+  // effect (not directly in the checkbox's onCheckedChange) so `preflightMutation`
+  // reads the fresh `migrateMerchant` value instead of the stale one captured by
+  // the render that owned the click handler. Skip the very first render (mount)
+  // and only fire once the destination venue has actually been chosen.
+  const firstRender = useRef(true)
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return }
+    if (step === 'preflight' && toVenueId) preflightMutation.mutate()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [migrateMerchant])
 
   const cancelMutation = useMutation({
     mutationFn: () => terminalAPI.migrateCancel(terminal!.id),
@@ -197,6 +218,33 @@ export default function MigrateTerminalWizard({ open, onOpenChange, terminal, re
               {preflight.warnings.map((w) => (
                 <p key={w.code} className="text-xs text-amber-600 flex items-start gap-1"><AlertTriangle className="w-3.5 h-3.5 mt-0.5" /> {w.message}</p>
               ))}
+
+              {/*
+                Merchant-carry checkbox: rendered even while `canProceed` is false,
+                since unblocking a NO_PAYMENT_CONFIG-blocked migration is the whole
+                point of this control. `merchantMigration.available` is computed
+                unconditionally by the backend on every preflight call, so it's
+                visible from the very first preflight — no need to check the box
+                first to discover it exists.
+              */}
+              {preflight.merchantMigration.available && (
+                <div className="flex items-start gap-2 rounded-lg border border-input p-3">
+                  <Checkbox
+                    id="migrate-merchant"
+                    className="cursor-pointer"
+                    checked={migrateMerchant}
+                    onCheckedChange={(v) => setMigrateMerchant(v === true)}
+                  />
+                  <div>
+                    <Label htmlFor="migrate-merchant" className="cursor-pointer">
+                      Migrar también el comercio ({preflight.merchantMigration.merchants.map((m) => m.displayName ?? m.id).join(', ')})
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      La TPV se lleva su comercio actual y la sucursal destino queda configurada para cobrar con él.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Optional merchant assignment for the destination venue. */}
               {preflight.canProceed && (

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRightLeft, CheckCircle2, Loader2, AlertTriangle, Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -8,10 +8,12 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
 import { useToast } from '@/hooks/use-toast'
 import { includesNormalized } from '@/lib/utils'
@@ -61,6 +63,9 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
   const [selectedMerchantIds, setSelectedMerchantIds] = useState<string[]>([])
   const [merchantSearch, setMerchantSearch] = useState('')
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false)
+  // Merchant-carry checkbox: unblocks NO_PAYMENT_CONFIG by carrying the origin's
+  // merchant to the destination venue. Toggling it re-runs preflight (below).
+  const [migrateMerchant, setMigrateMerchant] = useState(false)
 
   // Destination venue picker: ONLY the org's venues, excluding the terminal's
   // current venue. This UI restriction mirrors the backend's "dest venue ∈ org"
@@ -96,6 +101,7 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
     setStep('pickVenue'); setSearch(''); setToVenueId(''); setPreflight(null); setCommandId(null)
     setProgressSticky({ delivered: false, rebound: false, online: false })
     setMerchantMode('default'); setSelectedMerchantIds([]); setMerchantSearch(''); setCancelConfirmOpen(false)
+    setMigrateMerchant(false)
   }
   const close = () => { onOpenChange(false); setTimeout(reset, 200) }
 
@@ -114,7 +120,7 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
   }
 
   const preflightMutation = useMutation({
-    mutationFn: () => migratePreflightForOrg(orgId, terminal!.id, toVenueId),
+    mutationFn: () => migratePreflightForOrg(orgId, terminal!.id, toVenueId, migrateMerchant),
     onSuccess: r => { setPreflight(r); setStep('preflight') },
     onError: (e: any) =>
       toast({ title: t('terminals.migrate.preflightError'), description: e?.response?.data?.message || e?.message, variant: 'destructive' }),
@@ -126,6 +132,7 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
       terminal!.id,
       toVenueId,
       merchantMode === 'specific' && selectedMerchantIds.length ? selectedMerchantIds : undefined,
+      migrateMerchant,
     ),
     onSuccess: r => {
       setCommandId(r.commandId)
@@ -135,6 +142,20 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
     onError: (e: any) =>
       toast({ title: t('terminals.migrate.executeError'), description: e?.response?.data?.message || e?.message, variant: 'destructive' }),
   })
+
+  // The merchant-carry checkbox changes the preflight blockers (NO_PAYMENT_CONFIG
+  // depends on `migrateMerchant`), and preflight is a mutation — not a query — so
+  // there's no cache to invalidate; we must explicitly re-run it. Do this from an
+  // effect (not directly in the checkbox's onCheckedChange) so `preflightMutation`
+  // reads the fresh `migrateMerchant` value instead of the stale one captured by
+  // the render that owned the click handler. Skip the very first render (mount)
+  // and only fire once preflight has already run once (destination + staff step done).
+  const firstRender = useRef(true)
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return }
+    if (step === 'preflight' && toVenueId) preflightMutation.mutate()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [migrateMerchant])
 
   const cancelMutation = useMutation({
     mutationFn: () => migrateCancelForOrg(orgId, terminal!.id),
@@ -246,6 +267,33 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
                   <AlertTriangle className="w-3.5 h-3.5 mt-0.5" /> {w.message}
                 </p>
               ))}
+
+              {/*
+                Merchant-carry checkbox: rendered even while `canProceed` is false,
+                since unblocking a NO_PAYMENT_CONFIG-blocked migration is the whole
+                point of this control. `merchantMigration.available` is computed
+                unconditionally by the backend on every preflight call, so it's
+                visible from the very first preflight — no need to check the box
+                first to discover it exists.
+              */}
+              {preflight.merchantMigration.available && (
+                <div className="flex items-start gap-2 rounded-lg border border-input p-3">
+                  <Checkbox
+                    id="org-migrate-merchant"
+                    className="cursor-pointer"
+                    checked={migrateMerchant}
+                    onCheckedChange={v => setMigrateMerchant(v === true)}
+                  />
+                  <div>
+                    <Label htmlFor="org-migrate-merchant" className="cursor-pointer">
+                      {t('terminals.migrate.migrateMerchantLabel', {
+                        merchant: preflight.merchantMigration.merchants.map(m => m.displayName ?? m.id).join(', '),
+                      })}
+                    </Label>
+                    <p className="text-sm text-muted-foreground">{t('terminals.migrate.migrateMerchantHelp')}</p>
+                  </div>
+                </div>
+              )}
 
               {/* Optional merchant assignment for the destination venue. */}
               {preflight.canProceed && (

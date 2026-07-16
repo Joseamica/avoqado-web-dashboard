@@ -263,6 +263,8 @@
       "preflightError": "Error en pre-vuelo",
       "cannotMigrate": "No se puede migrar:",
       "destinationReady": "La sucursal destino está lista.",
+      "migrateMerchantLabel": "Migrar también el comercio ({{merchant}})",
+      "migrateMerchantHelp": "La TPV se lleva su comercio actual y la sucursal destino queda configurada para cobrar con él.",
       "merchantSection": "Comercio en la sucursal destino",
       "merchantDefault": "Comercio por defecto de la sucursal (recomendado)",
       "merchantSpecific": "Comercio específico",

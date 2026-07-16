@@ -728,6 +728,17 @@ export interface OrgMigrationPreflight {
   toVenueId: string
   blockers: Array<{ code: string; message: string }>
   warnings: Array<{ code: string; message: string }>
+  /**
+   * Merchant-carry eligibility for this origin/destination pair (Task 3).
+   * Computed unconditionally on every preflight call, regardless of whether
+   * `migrateMerchant` was set — only the presence of the two hard blockers
+   * that gate `canProceed` depends on the flag.
+   */
+  merchantMigration: {
+    available: boolean
+    reason?: 'CROSS_ORG' | 'ORIGIN_HAS_NO_MERCHANT' | 'DESTINATION_ALREADY_CONFIGURED'
+    merchants: { id: string; displayName: string | null }[]
+  }
 }
 
 export interface OrgMigrateExecuteResult {
@@ -749,15 +760,20 @@ export interface OrgMigrateStatus {
 
 /**
  * Run pre-migration checks before moving a terminal to another venue in the org.
+ *
+ * @param migrateMerchant Optional — when true, the backend also evaluates
+ *   carrying the origin's merchant to the destination venue (Task 3), which
+ *   can introduce/lift hard blockers depending on eligibility.
  */
 export async function migratePreflightForOrg(
   orgId: string,
   terminalId: string,
   toVenueId: string,
+  migrateMerchant?: boolean,
 ): Promise<OrgMigrationPreflight> {
   const response = await api.post(
     `/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/migrate-preflight`,
-    { toVenueId },
+    { toVenueId, migrateMerchant },
   )
   return response.data.data
 }
@@ -768,18 +784,24 @@ export async function migratePreflightForOrg(
  * @param assignedMerchantIds Optional merchant account ids to assign on the
  *   destination venue. Omit (or pass empty) to let the backend use the
  *   destination venue's default merchant.
+ * @param migrateMerchant Optional — when true, carries the origin's merchant
+ *   over to the destination venue (Task 4). `'default'` merchant mode relies
+ *   on this to auto-carry; `'specific'` mode's `assignedMerchantIds` wins
+ *   regardless.
  */
 export async function migrateExecuteForOrg(
   orgId: string,
   terminalId: string,
   toVenueId: string,
   assignedMerchantIds?: string[],
+  migrateMerchant?: boolean,
 ): Promise<OrgMigrateExecuteResult> {
   const response = await api.post(
     `/api/v1/dashboard/organizations/${orgId}/terminals/${terminalId}/migrate-execute`,
     {
       toVenueId,
       ...(assignedMerchantIds?.length ? { assignedMerchantIds } : {}),
+      migrateMerchant,
     },
   )
   return response.data.data

@@ -263,6 +263,8 @@
       "preflightError": "Preflight error",
       "cannotMigrate": "Cannot migrate:",
       "destinationReady": "The destination venue is ready.",
+      "migrateMerchantLabel": "Also migrate the merchant ({{merchant}})",
+      "migrateMerchantHelp": "The terminal keeps its current merchant and the destination venue is set up to charge with it.",
       "merchantSection": "Merchant at the destination venue",
       "merchantDefault": "Default venue merchant (recommended)",
       "merchantSpecific": "Specific merchant",

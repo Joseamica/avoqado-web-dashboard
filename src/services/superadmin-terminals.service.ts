@@ -118,6 +118,17 @@ export interface PreflightResult {
   toVenueId: string
   blockers: MigrationBlocker[]
   warnings: MigrationWarning[]
+  /**
+   * Merchant-carry eligibility for this origin/destination pair (Task 3).
+   * Computed unconditionally on every preflight call, regardless of whether
+   * `migrateMerchant` was set — only the presence of the two hard blockers
+   * that gate `canProceed` depends on the flag.
+   */
+  merchantMigration: {
+    available: boolean
+    reason?: 'CROSS_ORG' | 'ORIGIN_HAS_NO_MERCHANT' | 'DESTINATION_ALREADY_CONFIGURED'
+    merchants: { id: string; displayName: string | null }[]
+  }
 }
 export interface MigrateExecuteResult {
   commandId: string
@@ -290,10 +301,16 @@ export async function getAppUpdates(environment?: 'SANDBOX' | 'PRODUCTION'): Pro
  *
  * @param terminalId Terminal ID
  * @param toVenueId Target venue ID
+ * @param migrateMerchant Optional — when true, the backend also evaluates
+ *   carrying the origin's merchant to the destination venue (Task 3), which
+ *   can introduce/lift hard blockers depending on eligibility.
  * @returns Preflight result with blockers and warnings
  */
-export async function migratePreflight(terminalId: string, toVenueId: string): Promise<PreflightResult> {
-  const response = await api.post(`/api/v1/dashboard/superadmin/terminals/${terminalId}/migrate-preflight`, { toVenueId })
+export async function migratePreflight(terminalId: string, toVenueId: string, migrateMerchant?: boolean): Promise<PreflightResult> {
+  const response = await api.post(`/api/v1/dashboard/superadmin/terminals/${terminalId}/migrate-preflight`, {
+    toVenueId,
+    migrateMerchant,
+  })
   return response.data.data
 }
 
@@ -305,16 +322,22 @@ export async function migratePreflight(terminalId: string, toVenueId: string): P
  * @param assignedMerchantIds Optional merchant account ids to assign on the
  *   destination venue. Omit (or pass empty) to let the backend use the
  *   destination venue's default merchant.
+ * @param migrateMerchant Optional — when true, carries the origin's merchant
+ *   over to the destination venue (Task 4). `'default'` merchant mode relies
+ *   on this to auto-carry; `'specific'` mode's `assignedMerchantIds` wins
+ *   regardless.
  * @returns Migration execution result with command tracking info
  */
 export async function migrateExecute(
   terminalId: string,
   toVenueId: string,
   assignedMerchantIds?: string[],
+  migrateMerchant?: boolean,
 ): Promise<MigrateExecuteResult> {
   const response = await api.post(`/api/v1/dashboard/superadmin/terminals/${terminalId}/migrate-execute`, {
     toVenueId,
     ...(assignedMerchantIds?.length ? { assignedMerchantIds } : {}),
+    migrateMerchant,
   })
   return response.data.data
 }
