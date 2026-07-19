@@ -9,11 +9,12 @@ import {
   CircleDollarSign,
   Link2,
   CalendarCheck,
+  Truck,
 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 
-type Source = 'TPV' | 'QR' | 'WEB' | 'APP' | 'PHONE' | 'POS' | 'SDK' | 'DASHBOARD_TEST' | 'OTHER'
+type Source = 'TPV' | 'QR' | 'WEB' | 'APP' | 'PHONE' | 'POS' | 'SDK' | 'DASHBOARD_TEST' | 'OTHER' | 'DELIVERY_PLATFORM'
 
 interface PaymentSourceBadgeProps {
   source: Source | string
@@ -82,6 +83,10 @@ export function PaymentSourceBadge({ source, externalSource, orderSource, classN
     SDK: { icon: CircleDollarSign, label: 'SDK' },
     DASHBOARD_TEST: { icon: Sparkles, label: 'Test' },
     OTHER: { icon: CircleDollarSign, label: 'Otro' },
+    // Delivery-platform payment (Uber/Rappi/DiDi paid on the aggregator — no
+    // money through Avoqado). Without this entry the badge fell through to the
+    // raw-string fallback and rendered "DELIVERY_PLATFORM" as a pill.
+    DELIVERY_PLATFORM: { icon: Truck, label: 'Delivery' },
   }
 
   const entry = map[source as Source] ?? { icon: CircleDollarSign, label: String(source) }
