@@ -244,13 +244,23 @@ export enum OrderType {
   PICKUP = 'PICKUP',
 }
 
+// Mirrors backend `enum OrderSource` (avoqado-server prisma/schema.prisma).
 export enum OrderSource {
   TPV = 'TPV',
+  KIOSK = 'KIOSK',
   QR = 'QR',
   WEB = 'WEB',
   APP = 'APP',
+  AVOQADO_IOS = 'AVOQADO_IOS',
+  AVOQADO_ANDROID = 'AVOQADO_ANDROID',
   PHONE = 'PHONE',
   POS = 'POS',
+  PAYMENT_LINK = 'PAYMENT_LINK',
+  DASHBOARD_MANUAL = 'DASHBOARD_MANUAL',
+  UBER_EATS = 'UBER_EATS',
+  RAPPI = 'RAPPI',
+  DIDI_FOOD = 'DIDI_FOOD',
+  DELIVERY_PLATFORM = 'DELIVERY_PLATFORM',
 }
 
 export enum OrderStatus {
