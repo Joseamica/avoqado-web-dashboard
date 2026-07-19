@@ -67,7 +67,8 @@
   "forms": {
     "buttons": {
       "cancel": "Annuler"
-    }
+    },
+    "pricePerKg": "Prix par kg"
   },
   "products": {
     "title": "Produits",
@@ -197,7 +198,10 @@
         "imageDeletedDesc": "L'image a été supprimée avec succès.",
         "deleted": "Produit supprimé",
         "deletedDesc": "Le produit a été supprimé avec succès."
-      }
+      },
+      "soldByWeight": "Vendu au poids",
+      "soldByWeightDesc": "Le prix est par kilogramme ; le point de vente capture le poids depuis la balance au paiement.",
+      "pricePerKgHint": "Prix par kilogramme (kg)"
     }
   },
   "createMenu": {

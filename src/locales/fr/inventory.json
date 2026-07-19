@@ -6,7 +6,6 @@
     "pricing": "Tarification",
     "modifiers": "Modificateurs"
   },
-
   "badge": {
     "status": {
       "inStock": "En Stock",
@@ -37,7 +36,6 @@
       "cost": "Coût de la Recette par Portion"
     }
   },
-
   "recipes": {
     "addIngredient": "Ajouter un Ingrédient",
     "fields": {
@@ -73,7 +71,6 @@
       "ingredientAdded": "Ingrédient ajouté avec succès"
     }
   },
-
   "rawMaterials": {
     "inTransit": "En Transit",
     "fields": {
@@ -120,7 +117,6 @@
       "useCalculator": "Utiliser la calculatrice"
     }
   },
-
   "modifierAnalytics": {
     "title": "Analyse d'Inventaire des Modificateurs",
     "description": "Suivez l'utilisation des modificateurs et leur impact sur l'inventaire",
@@ -142,5 +138,11 @@
     "noModifiersTracked": "Aucun Modificateur avec Suivi d'Inventaire",
     "noModifiersDescription": "Configurez le suivi d'inventaire pour les modificateurs pour voir les analyses d'utilisation et l'impact sur les coûts.",
     "configureModifiers": "Configurer les Modificateurs"
+  },
+  "wizard": {
+    "step1": {
+      "soldByWeight": "Vendu au poids",
+      "soldByWeightDesc": "Le prix est par kilogramme ; le point de vente capture le poids depuis la balance au paiement."
+    }
   }
 }

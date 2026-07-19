@@ -2,7 +2,6 @@
   "title": "Gestión de Inventario",
   "subtitle": "Administra materias primas, recetas y niveles de stock",
   "save": "Guardar",
-
   "badge": {
     "status": {
       "inStock": "En Stock",
@@ -33,7 +32,6 @@
       "cost": "Costo de Receta por Porción"
     }
   },
-
   "tabs": {
     "rawMaterials": "Ingredientes",
     "recipes": "Recetas y Costos",
@@ -43,7 +41,6 @@
     "alerts": "Alertas",
     "reports": "Reportes"
   },
-
   "nav": {
     "rawMaterials": "Ingredientes",
     "productStock": "Stock de Productos",
@@ -51,12 +48,10 @@
     "pricing": "Análisis de Costos",
     "modifiers": "Modificadores"
   },
-
   "onboarding": {
     "title": "Comenzando",
     "description": "Empieza agregando tus ingredientes base (harina, huevos, etc). Luego ve a Recetas y Costos para definir qué lleva cada producto."
   },
-
   "rawMaterials": {
     "title": "Ingredientes",
     "subtitle": "Administra ingredientes y suministros",
@@ -221,7 +216,6 @@
       "useCalculator": "Usar calculadora"
     }
   },
-
   "productStock": {
     "title": "Stock de Productos",
     "subtitle": "Ver y administrar el inventario de productos de stock simple",
@@ -259,7 +253,6 @@
       "totalValue": "Valor Total de Inventario"
     }
   },
-
   "recipes": {
     "title": "Recetas",
     "subtitle": "Administra recetas de productos e ingredientes",
@@ -331,7 +324,6 @@
       "customerCanSubstitute": "El cliente podrá sustituir este ingrediente"
     }
   },
-
   "pricing": {
     "title": "Análisis de Precios",
     "subtitle": "Analiza rentabilidad y precios de productos",
@@ -375,7 +367,6 @@
       "priceApplied": "Precio sugerido aplicado exitosamente"
     }
   },
-
   "suppliers": {
     "title": "Proveedores",
     "subtitle": "Administra proveedores y precios",
@@ -419,7 +410,6 @@
       "pricingAdded": "Precios agregados exitosamente"
     }
   },
-
   "purchaseOrders": {
     "title": "Órdenes de Compra",
     "subtitle": "Administra órdenes de compra y recepción",
@@ -468,7 +458,6 @@
       "cancelled": "Orden de compra cancelada exitosamente"
     }
   },
-
   "alerts": {
     "title": "Alertas de Inventario",
     "subtitle": "Administra alertas y notificaciones de stock",
@@ -504,7 +493,6 @@
       "created": "Alerta creada exitosamente"
     }
   },
-
   "reports": {
     "title": "Reportes de Inventario",
     "subtitle": "Analíticas e insights",
@@ -557,7 +545,6 @@
       "generate": "Generar Reporte"
     }
   },
-
   "products": {
     "detail": {
       "configureInventory": "Configurar Inventario",
@@ -567,7 +554,6 @@
       "useManual": "Usar formulario manual"
     }
   },
-
   "wizard": {
     "title": "Asistente de Productos",
     "subtitle": "Crea un nuevo producto con seguimiento de inventario opcional",
@@ -612,7 +598,9 @@
       "replace": "Sustituir",
       "delete": "Eliminar",
       "success": "¡Producto creado exitosamente!",
-      "error": "Error al crear el producto"
+      "error": "Error al crear el producto",
+      "soldByWeight": "Se vende por peso",
+      "soldByWeightDesc": "El precio es por kilogramo; el POS captura el peso con la báscula al cobrar."
     },
     "step2": {
       "title": "Configuración de Inventario",
@@ -707,7 +695,6 @@
       }
     }
   },
-
   "conversion": {
     "toRecipe": {
       "title": "¿Cambiar a Receta?",
@@ -728,7 +715,6 @@
     "confirmationNeeded": "Confirmación Requerida",
     "convertNow": "Convertir Ahora"
   },
-
   "units": {
     "KILOGRAM": "Kilogramo",
     "KILOGRAM_plural": "Kilogramos",
@@ -867,7 +853,6 @@
     "DAY_abbr": "d",
     "DAY_abbr_plural": "ds"
   },
-
   "waste": {
     "title": "Registrar Desperdicio",
     "reason": "Razón del Desperdicio",
@@ -978,7 +963,6 @@
       }
     }
   },
-
   "common": {
     "actions": "Acciones",
     "save": "Guardar",
@@ -1008,7 +992,6 @@
     "saving": "Guardando...",
     "confirmAndSave": "Confirmar y Guardar"
   },
-
   "validation": {
     "required": "Requerido",
     "requiredMinValue": "Requerido (mín: {{value}})",
@@ -1023,7 +1006,6 @@
     "invalidStockLevels": "Niveles de stock inválidos",
     "minimumStockMustBeLessOrEqualToReorderPoint": "El stock mínimo debe ser menor o igual al punto de reorden. El punto de reorden es cuando se activa una orden de compra, así que debe ser mayor que el stock mínimo para considerar el tiempo de entrega."
   },
-
   "lowStockThreshold": {
     "label": "Umbral de Alerta de Stock Bajo",
     "labelPortions": "Umbral de Alerta de Stock Bajo (porciones)",
@@ -1035,13 +1017,11 @@
     "separateFromReorder": "Alerta cuando el stock cae por debajo de este nivel (separado del punto de reorden)",
     "alertWhenBelow": "Alerta cuando las porciones disponibles caen por debajo de este nivel"
   },
-
   "pricingStrategy": {
     "manualDescription": "Establece manualmente los precios de los productos",
     "autoMarkupDescription": "Calcula el precio basado en costo x porcentaje de margen",
     "autoTargetMarginDescription": "Calcula el precio para lograr el porcentaje objetivo de costo de alimentos"
   },
-
   "recipeWizard": {
     "title": "Crear Receta",
     "stepProgress": "Paso {{current}} de {{total}}",
@@ -1079,7 +1059,6 @@
       "highFoodCostWarning": "¡Atención! El costo de alimentos es superior al 40%. Considera revisar tus precios o ingredientes para mejorar la rentabilidad."
     }
   },
-
   "modifierAnalytics": {
     "title": "Análisis de Inventario de Modificadores",
     "description": "Rastrea el uso de modificadores y su impacto en el inventario",
@@ -1313,7 +1292,12 @@
     "saved": "Configuración guardada",
     "runNow": "Ejecutar ahora",
     "runNowDone": "{{orders}} orden(es) creada(s), {{emails}} correo(s) enviado(s)",
-    "urgency": { "LOW": "Baja", "MEDIUM": "Media", "HIGH": "Alta", "CRITICAL": "Crítica" },
+    "urgency": {
+      "LOW": "Baja",
+      "MEDIUM": "Media",
+      "HIGH": "Alta",
+      "CRITICAL": "Crítica"
+    },
     "autoBadge": "Automático",
     "noAddressTitle": "Falta la dirección de tu sucursal",
     "noAddressHelp": "El re-orden automático le manda la orden de compra a tu proveedor con tu dirección de entrega. Agrégala para poder activarlo.",

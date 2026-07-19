@@ -2,7 +2,6 @@
   "title": "Inventory Management",
   "subtitle": "Manage raw materials, recipes, and stock levels",
   "save": "Save",
-
   "badge": {
     "status": {
       "inStock": "In Stock",
@@ -33,7 +32,6 @@
       "cost": "Recipe Cost per Portion"
     }
   },
-
   "tabs": {
     "rawMaterials": "Ingredients",
     "recipes": "Recipes & Costing",
@@ -43,7 +41,6 @@
     "alerts": "Alerts",
     "reports": "Reports"
   },
-
   "nav": {
     "rawMaterials": "Ingredients",
     "productStock": "Product Stock",
@@ -51,12 +48,10 @@
     "pricing": "Cost Analysis",
     "modifiers": "Modifiers"
   },
-
   "onboarding": {
     "title": "Getting Started",
     "description": "Start by adding your base ingredients (flour, eggs, etc). Then go to Recipes & Costing to define what goes into each product."
   },
-
   "rawMaterials": {
     "title": "Ingredients",
     "subtitle": "Manage ingredients and supplies",
@@ -221,7 +216,6 @@
       "useCalculator": "Use calculator"
     }
   },
-
   "productStock": {
     "title": "Product Stock",
     "subtitle": "View and manage simple stock products inventory",
@@ -259,7 +253,6 @@
       "totalValue": "Total Inventory Value"
     }
   },
-
   "recipes": {
     "title": "Recipes",
     "subtitle": "Manage product recipes and ingredients",
@@ -331,7 +324,6 @@
       "customerCanSubstitute": "Customer will be able to substitute this ingredient"
     }
   },
-
   "pricing": {
     "title": "Pricing Analysis",
     "subtitle": "Analyze product profitability and pricing",
@@ -375,7 +367,6 @@
       "priceApplied": "Suggested price applied successfully"
     }
   },
-
   "suppliers": {
     "title": "Suppliers",
     "subtitle": "Manage suppliers and pricing",
@@ -419,7 +410,6 @@
       "pricingAdded": "Pricing added successfully"
     }
   },
-
   "purchaseOrders": {
     "title": "Purchase Orders",
     "subtitle": "Manage purchase orders and receiving",
@@ -468,7 +458,6 @@
       "cancelled": "Purchase order cancelled successfully"
     }
   },
-
   "alerts": {
     "title": "Inventory Alerts",
     "subtitle": "Manage stock alerts and notifications",
@@ -504,7 +493,6 @@
       "created": "Alert created successfully"
     }
   },
-
   "reports": {
     "title": "Inventory Reports",
     "subtitle": "Analytics and insights",
@@ -557,7 +545,6 @@
       "generate": "Generate Report"
     }
   },
-
   "products": {
     "detail": {
       "configureInventory": "Configure Inventory",
@@ -567,7 +554,6 @@
       "useManual": "Use manual form"
     }
   },
-
   "wizard": {
     "title": "Product Wizard",
     "subtitle": "Create a new product with optional inventory tracking",
@@ -612,7 +598,9 @@
       "replace": "Replace",
       "delete": "Delete",
       "success": "Product created successfully!",
-      "error": "Failed to create product"
+      "error": "Failed to create product",
+      "soldByWeight": "Sold by weight",
+      "soldByWeightDesc": "Price is per kilogram; the POS captures the weight from the scale at checkout."
     },
     "step2": {
       "title": "Inventory Configuration",
@@ -707,7 +695,6 @@
       }
     }
   },
-
   "conversion": {
     "toRecipe": {
       "title": "Switch to Recipe?",
@@ -728,7 +715,6 @@
     "confirmationNeeded": "Confirmation Required",
     "convertNow": "Convert Now"
   },
-
   "units": {
     "KILOGRAM": "Kilogram",
     "KILOGRAM_plural": "Kilograms",
@@ -867,7 +853,6 @@
     "DAY_abbr": "d",
     "DAY_abbr_plural": "ds"
   },
-
   "waste": {
     "title": "Log Waste",
     "reason": "Waste Reason",
@@ -978,7 +963,6 @@
       }
     }
   },
-
   "common": {
     "actions": "Actions",
     "save": "Save",
@@ -1008,7 +992,6 @@
     "saving": "Saving...",
     "confirmAndSave": "Confirm & Save"
   },
-
   "validation": {
     "required": "Required",
     "requiredMinValue": "Required (min: {{value}})",
@@ -1023,7 +1006,6 @@
     "invalidStockLevels": "Invalid stock levels",
     "minimumStockMustBeLessOrEqualToReorderPoint": "Minimum stock must be less than or equal to reorder point. The reorder point is when a purchase order is triggered, so it should be higher than minimum stock to account for delivery time."
   },
-
   "lowStockThreshold": {
     "label": "Low Stock Alert Threshold",
     "labelPortions": "Low Stock Alert Threshold (portions)",
@@ -1035,13 +1017,11 @@
     "separateFromReorder": "Alert when stock falls below this level (separate from reorder point)",
     "alertWhenBelow": "Alert when available portions fall below this level"
   },
-
   "pricingStrategy": {
     "manualDescription": "Manually set product prices",
     "autoMarkupDescription": "Calculate price based on cost x markup percentage",
     "autoTargetMarginDescription": "Calculate price to achieve target food cost percentage"
   },
-
   "recipeWizard": {
     "title": "Create Recipe",
     "stepProgress": "Step {{current}} of {{total}}",
@@ -1079,7 +1059,6 @@
       "highFoodCostWarning": "Warning! Food cost is above 40%. Consider reviewing your prices or ingredients to improve profitability."
     }
   },
-
   "modifierAnalytics": {
     "title": "Modifier Inventory Analytics",
     "description": "Track modifier usage and inventory impact",
@@ -1313,7 +1292,12 @@
     "saved": "Settings saved",
     "runNow": "Run now",
     "runNowDone": "{{orders}} order(s) created, {{emails}} email(s) sent",
-    "urgency": { "LOW": "Low", "MEDIUM": "Medium", "HIGH": "High", "CRITICAL": "Critical" },
+    "urgency": {
+      "LOW": "Low",
+      "MEDIUM": "Medium",
+      "HIGH": "High",
+      "CRITICAL": "Critical"
+    },
     "autoBadge": "Automatic",
     "noAddressTitle": "Your branch address is missing",
     "noAddressHelp": "Auto-reorder emails the purchase order to your supplier with your delivery address. Add it to enable.",

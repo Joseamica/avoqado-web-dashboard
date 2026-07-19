@@ -836,6 +836,9 @@ export interface Product {
   price: number
   cost: number | null
   taxRate: number
+  /** Venta por peso (charcutería/granel): cuando es true, `price` es el precio POR
+   *  KILOGRAMO y el POS captura el peso al cobrar (unit se fija en KILOGRAM). */
+  soldByWeight?: boolean
 
   // Display
   imageUrl: string | null

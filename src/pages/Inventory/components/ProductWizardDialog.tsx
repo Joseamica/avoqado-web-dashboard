@@ -20,9 +20,38 @@ import { useToast } from '@/hooks/use-toast'
 import { useImageUploader } from '@/hooks/use-image-uploader'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
-import { productWizardApi, rawMaterialsApi, recipesApi, productInventoryApi, type InventoryMethod, type ProductType } from '@/services/inventory.service'
+import {
+  productWizardApi,
+  rawMaterialsApi,
+  recipesApi,
+  productInventoryApi,
+  type InventoryMethod,
+  type ProductType,
+} from '@/services/inventory.service'
 import { getMenuCategories, getModifierGroups } from '@/services/menu.service'
-import { Loader2, Check, Package, Beef, Plus, Trash2, Info, UtensilsCrossed, Calendar, Ticket, Download, Heart, Users, ImagePlus, Grid3X3, Pencil, ChefHat, ChevronDown, Sparkles, Receipt, Crown } from 'lucide-react'
+import {
+  Loader2,
+  Check,
+  Package,
+  Beef,
+  Plus,
+  Trash2,
+  Info,
+  UtensilsCrossed,
+  Calendar,
+  Ticket,
+  Download,
+  Heart,
+  Users,
+  ImagePlus,
+  Grid3X3,
+  Pencil,
+  ChefHat,
+  ChevronDown,
+  Sparkles,
+  Receipt,
+  Crown,
+} from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -81,6 +110,8 @@ interface Step1FormData {
   name: string
   description?: string
   price: number
+  // Venta por peso: price pasa a ser precio/kg y el backend fuerza unit=KILOGRAM.
+  soldByWeight?: boolean
   categoryId?: string
   imageUrl?: string
   modifierGroups?: Array<{ label: string; value: string }>
@@ -242,6 +273,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       name: '',
       description: '',
       price: undefined,
+      soldByWeight: false,
       categoryId: '',
       imageUrl: '',
       modifierGroups: [],
@@ -388,22 +420,20 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         id: cat.id,
         label: cat.name,
       })),
-    [categories]
+    [categories],
   )
 
   // Filtered category options based on search
   const filteredCategoryOptions = useMemo(
-    () => categorySearch.trim()
-      ? categoryOptions.filter(opt => includesNormalized(opt.label ?? '', categorySearch))
-      : categoryOptions,
-    [categoryOptions, categorySearch]
+    () => (categorySearch.trim() ? categoryOptions.filter(opt => includesNormalized(opt.label ?? '', categorySearch)) : categoryOptions),
+    [categoryOptions, categorySearch],
   )
 
   // Selected category label for display
   const watchedCategoryId = step1Form.watch('categoryId')
   const selectedCategoryLabel = useMemo(
     () => categoryOptions.find(c => c.id === watchedCategoryId)?.label || '',
-    [categoryOptions, watchedCategoryId]
+    [categoryOptions, watchedCategoryId],
   )
 
   // Single mutation: Create product with inventory in one call
@@ -626,6 +656,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       step1Form.setValue('name', existingProduct.name || '')
       step1Form.setValue('description', existingProduct.description || '')
       step1Form.setValue('price', Number(existingProduct.price) || 0)
+      step1Form.setValue('soldByWeight', (existingProduct as any).soldByWeight ?? false)
       step1Form.setValue('categoryId', existingProduct.categoryId || '')
       step1Form.setValue('imageUrl', existingProduct.imageUrl || '')
       step1Form.setValue('sku', (existingProduct as any).sku || '')
@@ -813,6 +844,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       name: data.name,
       description: data.description,
       price: data.price,
+      // Venta por peso: flag + unidad KILOGRAM (el backend también la fuerza).
+      soldByWeight: data.soldByWeight === true,
+      ...(data.soldByWeight === true ? { unit: 'KILOGRAM' } : {}),
       ...(needsCategory && data.categoryId ? { categoryId: data.categoryId } : {}),
       ...(needsModifiers ? { modifierGroupIds } : {}),
       ...(effectiveProductType === 'APPOINTMENTS_SERVICE' && data.duration != null ? { duration: data.duration } : {}),
@@ -940,14 +974,16 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
       if (inventoryMethod === 'QUANTITY') {
         const simpleStockData = step3SimpleForm.getValues()
-        updateProductFirst().then(() => {
-          configureInventoryMutation.mutate({
-            inventoryMethod: 'QUANTITY',
-            simpleStock: simpleStockData,
+        updateProductFirst()
+          .then(() => {
+            configureInventoryMutation.mutate({
+              inventoryMethod: 'QUANTITY',
+              simpleStock: simpleStockData,
+            })
           })
-        }).catch(() => {
-          // Error already handled in updateProductFirst
-        })
+          .catch(() => {
+            // Error already handled in updateProductFirst
+          })
         return
       } else if (inventoryMethod === 'RECIPE') {
         const recipeData = step3RecipeForm.getValues()
@@ -984,14 +1020,16 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
         const cleanedRecipe = cleanRecipeDataForBackend(recipeData)
 
-        updateProductFirst().then(() => {
-          configureInventoryMutation.mutate({
-            inventoryMethod: 'RECIPE',
-            recipe: cleanedRecipe,
+        updateProductFirst()
+          .then(() => {
+            configureInventoryMutation.mutate({
+              inventoryMethod: 'RECIPE',
+              recipe: cleanedRecipe,
+            })
           })
-        }).catch(() => {
-          // Error already handled in updateProductFirst
-        })
+          .catch(() => {
+            // Error already handled in updateProductFirst
+          })
         return
       }
       return
@@ -1053,8 +1091,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // True while edit-mode wizard is fetching the product to prefill the form.
   // During this window we render a skeleton and lock the action buttons so the
   // user can't submit empty data or close mid-fetch.
-  const isInitialLoadingEdit =
-    mode === 'edit' && open && !!productId && (isLoadingProduct || isLoadingExistingData)
+  const isInitialLoadingEdit = mode === 'edit' && open && !!productId && (isLoadingProduct || isLoadingExistingData)
 
   // Render action buttons - single step, always show "Finish"
   const renderActions = () => {
@@ -1085,7 +1122,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         title={
           // Show product name if available, otherwise show wizard title
           // For edit mode, also check existingProductData in case form hasn't loaded yet
-          step1Form.watch('name') || existingProductData?.name || (mode === 'create' ? t('wizard.title') : t('products.detail.configureInventory'))
+          step1Form.watch('name') ||
+          existingProductData?.name ||
+          (mode === 'create' ? t('wizard.title') : t('products.detail.configureInventory'))
         }
         actions={renderActions()}
         contentClassName="bg-muted/30"
@@ -1149,8 +1188,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
               </div>
             </div>
           ) : (
-          /* Single step wizard - product configuration form */
-          <form id="step1-form" onSubmit={step1Form.handleSubmit(handleStep1Submit)}>
+            /* Single step wizard - product configuration form */
+            <form id="step1-form" onSubmit={step1Form.handleSubmit(handleStep1Submit)}>
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Left Column - Main Form (both create and edit modes) */}
                 <div className="lg:col-span-8 space-y-6">
@@ -1167,9 +1206,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                         <div>
                           <p className="text-xs text-muted-foreground">{t('productTypes.label', { defaultValue: 'Tipo de artículo' })}</p>
                           <p className="font-medium">
-                            {isSpanish
-                              ? PRODUCT_TYPE_LABELS[effectiveProductType]?.es
-                              : PRODUCT_TYPE_LABELS[effectiveProductType]?.en}
+                            {isSpanish ? PRODUCT_TYPE_LABELS[effectiveProductType]?.es : PRODUCT_TYPE_LABELS[effectiveProductType]?.en}
                           </p>
                         </div>
                       </div>
@@ -1213,6 +1250,22 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                         {step1Form.formState.errors.price && (
                           <p className="text-xs text-destructive mt-1">{t('wizard.step1.priceRequired')}</p>
                         )}
+                        {step1Form.watch('soldByWeight') && (
+                          <p className="text-xs text-muted-foreground mt-1">{t('wizard.step1.soldByWeightDesc')}</p>
+                        )}
+                      </div>
+
+                      {/* Venta por peso (charcutería/granel) */}
+                      <div className="flex items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FieldLabel htmlFor="soldByWeight" label={t('wizard.step1.soldByWeight')} />
+                          <p className="text-xs text-muted-foreground">{t('wizard.step1.soldByWeightDesc')}</p>
+                        </div>
+                        <Switch
+                          id="soldByWeight"
+                          checked={!!step1Form.watch('soldByWeight')}
+                          onCheckedChange={checked => step1Form.setValue('soldByWeight', checked, { shouldDirty: true })}
+                        />
                       </div>
 
                       {/* SKU + GTIN — both optional. SKU auto-generated if empty. */}
@@ -1302,10 +1355,14 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                           </Button>
                         </div>
                       </div>
-                    ) : (imageUrl || step1Form.watch('imageUrl')) ? (
+                    ) : imageUrl || step1Form.watch('imageUrl') ? (
                       /* Image Preview Mode - Modern hover overlay design */
                       <div className="group relative w-full max-w-xs aspect-[4/3] rounded-xl overflow-hidden bg-muted border border-border/50">
-                        <img src={imageUrl || step1Form.watch('imageUrl')} alt={t('wizard.step1.imageUrl')} className="object-cover w-full h-full" />
+                        <img
+                          src={imageUrl || step1Form.watch('imageUrl')}
+                          alt={t('wizard.step1.imageUrl')}
+                          className="object-cover w-full h-full"
+                        />
                         {/* Overlay with actions - appears on hover */}
                         <div className="absolute inset-0 bg-foreground/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-3">
                           <Button
@@ -1396,7 +1453,11 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                   {/* APPOINTMENTS_SERVICE: duration field */}
                   {effectiveProductType === 'APPOINTMENTS_SERVICE' && (
                     <section className="bg-card rounded-2xl border border-border/50 p-6">
-                      <SectionHeader icon={Calendar} title={isSpanish ? 'Configuración del servicio' : 'Service configuration'} className="mb-4" />
+                      <SectionHeader
+                        icon={Calendar}
+                        title={isSpanish ? 'Configuración del servicio' : 'Service configuration'}
+                        className="mb-4"
+                      />
                       <div className="space-y-2">
                         <Label htmlFor="duration">
                           {isSpanish ? 'Duración (minutos)' : 'Duration (minutes)'}
@@ -1422,505 +1483,518 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
                   {/* Inventory Selection Section - hidden for non-inventoriable types */}
                   {!NO_INVENTORY_TYPES.includes(effectiveProductType as ProductType) && (
-                  <section className="bg-card rounded-2xl border border-border/50 p-6">
-                    <SectionHeader icon={Package} title={t('wizard.step2.title', { defaultValue: 'Inventario' })} className="mb-4" />
+                    <section className="bg-card rounded-2xl border border-border/50 p-6">
+                      <SectionHeader icon={Package} title={t('wizard.step2.title', { defaultValue: 'Inventario' })} className="mb-4" />
 
-                    {/* Recommendations - compact version */}
-                    {recommendations && (
-                      <div className={cn(
-                        'text-xs p-2 rounded-lg mb-4',
-                        recommendations.hasInventoryFeature
-                          ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300'
-                          : 'bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300'
-                      )}>
-                        <strong>{t('wizard.step2.recommendation')}:</strong> {t(recommendations.recommendation)}
-                      </div>
-                    )}
-
-                    <div className="space-y-3">
-                      {/* Toggle Switch for Inventory */}
-                      <div
-                        data-tour="product-wizard-track-inventory"
-                        className={cn(
-                          'flex items-center gap-3 p-4 rounded-lg border transition-colors',
-                          step2Form.watch('useInventory')
-                            ? 'border-primary/50 bg-primary/5'
-                            : 'border-border'
-                        )}
-                      >
-                        <div className={cn(
-                          'p-2 rounded-lg shrink-0',
-                          step2Form.watch('useInventory')
-                            ? 'bg-primary/10'
-                            : 'bg-muted'
-                        )}>
-                          <Package className={cn(
-                            'h-4 w-4',
-                            step2Form.watch('useInventory')
-                              ? 'text-primary'
-                              : 'text-muted-foreground'
-                          )} />
+                      {/* Recommendations - compact version */}
+                      {recommendations && (
+                        <div
+                          className={cn(
+                            'text-xs p-2 rounded-lg mb-4',
+                            recommendations.hasInventoryFeature
+                              ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300'
+                              : 'bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300',
+                          )}
+                        >
+                          <strong>{t('wizard.step2.recommendation')}:</strong> {t(recommendations.recommendation)}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <Label htmlFor="track-inventory-left" className="text-sm font-medium cursor-pointer">
-                            {t('wizard.step2.useInventory')}
-                          </Label>
-                          <p className="text-xs text-muted-foreground">
-                            {t('wizard.step2.useInventoryDesc')}
-                          </p>
-                        </div>
-                        <Switch
-                          id="track-inventory-left"
-                          checked={step2Form.watch('useInventory')}
-                          onCheckedChange={(checked) => {
-                            step2Form.setValue('useInventory', checked)
-                            if (!checked) {
-                              step2Form.setValue('inventoryMethod', undefined)
-                              setSelectedInventoryMethod(null)
-                            }
-                          }}
-                          disabled={!recommendations?.hasInventoryFeature}
-                          className="shrink-0 cursor-pointer"
-                        />
-                      </div>
+                      )}
 
-                      {/* Inventory Method Selection (conditional) */}
-                      {step2Form.watch('useInventory') && (
-                        <div className="space-y-2 pt-3 border-t border-border/50">
-                          <p className="text-xs text-muted-foreground">{t('wizard.step2.inventoryMethodQuestion')}</p>
-
-                          <RadioGroup
-                            value={step2Form.watch('inventoryMethod') || ''}
-                            onValueChange={value => {
-                              // RECIPE is a Premium (INVENTORY_TRACKING) capability — block selection
-                              // for Free venues without access (the option is also disabled below).
-                              if (value === 'RECIPE' && !hasInventoryTracking) return
-                              step2Form.setValue('inventoryMethod', value as InventoryMethod)
-                              setSelectedInventoryMethod(value as InventoryMethod)
+                      <div className="space-y-3">
+                        {/* Toggle Switch for Inventory */}
+                        <div
+                          data-tour="product-wizard-track-inventory"
+                          className={cn(
+                            'flex items-center gap-3 p-4 rounded-lg border transition-colors',
+                            step2Form.watch('useInventory') ? 'border-primary/50 bg-primary/5' : 'border-border',
+                          )}
+                        >
+                          <div className={cn('p-2 rounded-lg shrink-0', step2Form.watch('useInventory') ? 'bg-primary/10' : 'bg-muted')}>
+                            <Package
+                              className={cn('h-4 w-4', step2Form.watch('useInventory') ? 'text-primary' : 'text-muted-foreground')}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <Label htmlFor="track-inventory-left" className="text-sm font-medium cursor-pointer">
+                              {t('wizard.step2.useInventory')}
+                            </Label>
+                            <p className="text-xs text-muted-foreground">{t('wizard.step2.useInventoryDesc')}</p>
+                          </div>
+                          <Switch
+                            id="track-inventory-left"
+                            checked={step2Form.watch('useInventory')}
+                            onCheckedChange={checked => {
+                              step2Form.setValue('useInventory', checked)
+                              if (!checked) {
+                                step2Form.setValue('inventoryMethod', undefined)
+                                setSelectedInventoryMethod(null)
+                              }
                             }}
-                            className="grid grid-cols-1 md:grid-cols-2 gap-3"
-                          >
-                            <Label
-                              htmlFor="quantity-tracking-left"
-                              data-tour="product-wizard-method-quantity"
-                              className={cn(
-                                'flex items-center gap-3 p-4 rounded-lg border transition-colors cursor-pointer',
-                                step2Form.watch('inventoryMethod') === 'QUANTITY'
-                                  ? 'border-green-500 bg-green-50 dark:bg-green-950/30'
-                                  : 'border-border hover:bg-accent/50'
-                              )}
+                            disabled={!recommendations?.hasInventoryFeature}
+                            className="shrink-0 cursor-pointer"
+                          />
+                        </div>
+
+                        {/* Inventory Method Selection (conditional) */}
+                        {step2Form.watch('useInventory') && (
+                          <div className="space-y-2 pt-3 border-t border-border/50">
+                            <p className="text-xs text-muted-foreground">{t('wizard.step2.inventoryMethodQuestion')}</p>
+
+                            <RadioGroup
+                              value={step2Form.watch('inventoryMethod') || ''}
+                              onValueChange={value => {
+                                // RECIPE is a Premium (INVENTORY_TRACKING) capability — block selection
+                                // for Free venues without access (the option is also disabled below).
+                                if (value === 'RECIPE' && !hasInventoryTracking) return
+                                step2Form.setValue('inventoryMethod', value as InventoryMethod)
+                                setSelectedInventoryMethod(value as InventoryMethod)
+                              }}
+                              className="grid grid-cols-1 md:grid-cols-2 gap-3"
                             >
-                              <RadioGroupItem value="QUANTITY" id="quantity-tracking-left" />
-                              <Package className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium">{t('wizard.step2.quantityTracking')}</p>
-                                <p className="text-xs text-muted-foreground">{t('wizard.step2.quantityTrackingDesc')}</p>
-                              </div>
-                            </Label>
-
-                            <Label
-                              htmlFor="recipe-based-left"
-                              data-tour="product-wizard-method-recipe"
-                              aria-disabled={!hasInventoryTracking}
-                              title={!hasInventoryTracking ? t('wizard.step2.recipePremiumLocked') : undefined}
-                              className={cn(
-                                'flex items-center gap-3 p-4 rounded-lg border transition-colors',
-                                !hasInventoryTracking
-                                  ? 'cursor-not-allowed opacity-60 border-input'
-                                  : 'cursor-pointer',
-                                hasInventoryTracking && step2Form.watch('inventoryMethod') === 'RECIPE'
-                                  ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/30'
-                                  : hasInventoryTracking
-                                    ? 'border-border hover:bg-accent/50'
-                                    : ''
-                              )}
-                            >
-                              <RadioGroupItem
-                                value="RECIPE"
-                                id="recipe-based-left"
-                                disabled={!hasInventoryTracking}
-                              />
-                              <Beef className="h-5 w-5 text-orange-600 dark:text-orange-400 shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <p className="text-sm font-medium">{t('wizard.step2.recipeBased')}</p>
-                                  {!hasInventoryTracking && (
-                                    <Badge
-                                      variant="outline"
-                                      className="h-4 shrink-0 gap-0.5 border-amber-400/40 px-1.5 text-[10px] text-amber-500"
-                                    >
-                                      <Crown className="h-2.5 w-2.5" />
-                                      {t('wizard.step2.premiumBadge')}
-                                    </Badge>
-                                  )}
-                                </div>
-                                <p className="text-xs text-muted-foreground">{t('wizard.step2.recipeBasedDesc')}</p>
-                              </div>
-                            </Label>
-                          </RadioGroup>
-
-                          {/* Inventory Configuration (inline after method selection) */}
-                          {step2Form.watch('inventoryMethod') === 'QUANTITY' && (
-                            <div className="space-y-4 pt-4 border-t border-border/50">
-                              <Alert className="bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800">
-                                <Package className="h-4 w-4 text-green-600 dark:text-green-400" />
-                                <AlertDescription className="text-green-800 dark:text-green-200">{t('wizard.step3.simpleStockInfo')}</AlertDescription>
-                              </Alert>
-
-                              <div className="space-y-2" data-tour="product-wizard-initial-stock">
-                                <Label htmlFor="initialStock">{t('wizard.step3.initialStock')} *</Label>
-                                <Input
-                                  id="initialStock"
-                                  type="number"
-                                  step="0.01"
-                                  min="0"
-                                  placeholder="0"
-                                  className="h-12 text-base"
-                                  {...step3SimpleForm.register('initialStock', {
-                                    required: t('wizard.step3.initialStockRequired'),
-                                    valueAsNumber: true,
-                                    min: { value: 0, message: t('wizard.step3.initialStockMinimum') },
-                                  })}
-                                />
-                                {step3SimpleForm.formState.errors.initialStock && (
-                                  <p className="text-xs text-destructive">{step3SimpleForm.formState.errors.initialStock.message}</p>
+                              <Label
+                                htmlFor="quantity-tracking-left"
+                                data-tour="product-wizard-method-quantity"
+                                className={cn(
+                                  'flex items-center gap-3 p-4 rounded-lg border transition-colors cursor-pointer',
+                                  step2Form.watch('inventoryMethod') === 'QUANTITY'
+                                    ? 'border-green-500 bg-green-50 dark:bg-green-950/30'
+                                    : 'border-border hover:bg-accent/50',
                                 )}
-                                <p className="text-xs text-muted-foreground">{t('wizard.step3.initialStockHelp')}</p>
-                              </div>
+                              >
+                                <RadioGroupItem value="QUANTITY" id="quantity-tracking-left" />
+                                <Package className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium">{t('wizard.step2.quantityTracking')}</p>
+                                  <p className="text-xs text-muted-foreground">{t('wizard.step2.quantityTrackingDesc')}</p>
+                                </div>
+                              </Label>
 
-                              <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                  <Label htmlFor="costPerUnit">{t('wizard.step3.costPerUnit')} *</Label>
+                              <Label
+                                htmlFor="recipe-based-left"
+                                data-tour="product-wizard-method-recipe"
+                                aria-disabled={!hasInventoryTracking}
+                                title={!hasInventoryTracking ? t('wizard.step2.recipePremiumLocked') : undefined}
+                                className={cn(
+                                  'flex items-center gap-3 p-4 rounded-lg border transition-colors',
+                                  !hasInventoryTracking ? 'cursor-not-allowed opacity-60 border-input' : 'cursor-pointer',
+                                  hasInventoryTracking && step2Form.watch('inventoryMethod') === 'RECIPE'
+                                    ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/30'
+                                    : hasInventoryTracking
+                                      ? 'border-border hover:bg-accent/50'
+                                      : '',
+                                )}
+                              >
+                                <RadioGroupItem value="RECIPE" id="recipe-based-left" disabled={!hasInventoryTracking} />
+                                <Beef className="h-5 w-5 text-orange-600 dark:text-orange-400 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <p className="text-sm font-medium">{t('wizard.step2.recipeBased')}</p>
+                                    {!hasInventoryTracking && (
+                                      <Badge
+                                        variant="outline"
+                                        className="h-4 shrink-0 gap-0.5 border-amber-400/40 px-1.5 text-[10px] text-amber-500"
+                                      >
+                                        <Crown className="h-2.5 w-2.5" />
+                                        {t('wizard.step2.premiumBadge')}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">{t('wizard.step2.recipeBasedDesc')}</p>
+                                </div>
+                              </Label>
+                            </RadioGroup>
+
+                            {/* Inventory Configuration (inline after method selection) */}
+                            {step2Form.watch('inventoryMethod') === 'QUANTITY' && (
+                              <div className="space-y-4 pt-4 border-t border-border/50">
+                                <Alert className="bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800">
+                                  <Package className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                  <AlertDescription className="text-green-800 dark:text-green-200">
+                                    {t('wizard.step3.simpleStockInfo')}
+                                  </AlertDescription>
+                                </Alert>
+
+                                <div className="space-y-2" data-tour="product-wizard-initial-stock">
+                                  <Label htmlFor="initialStock">{t('wizard.step3.initialStock')} *</Label>
                                   <Input
-                                    id="costPerUnit"
+                                    id="initialStock"
                                     type="number"
                                     step="0.01"
-                                    min="0.01"
-                                    placeholder="0.00"
+                                    min="0"
+                                    placeholder="0"
                                     className="h-12 text-base"
-                                    {...step3SimpleForm.register('costPerUnit', {
-                                      required: t('wizard.step3.costPerUnitRequired'),
+                                    {...step3SimpleForm.register('initialStock', {
+                                      required: t('wizard.step3.initialStockRequired'),
                                       valueAsNumber: true,
-                                      min: { value: 0.01, message: t('wizard.step3.costPerUnitMinimum') },
+                                      min: { value: 0, message: t('wizard.step3.initialStockMinimum') },
                                     })}
                                   />
-                                  {step3SimpleForm.formState.errors.costPerUnit && (
-                                    <p className="text-xs text-destructive">{step3SimpleForm.formState.errors.costPerUnit.message}</p>
+                                  {step3SimpleForm.formState.errors.initialStock && (
+                                    <p className="text-xs text-destructive">{step3SimpleForm.formState.errors.initialStock.message}</p>
                                   )}
-                                  <p className="text-xs text-muted-foreground">{t('wizard.step3.costPerUnitHelp')}</p>
+                                  <p className="text-xs text-muted-foreground">{t('wizard.step3.initialStockHelp')}</p>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <Label htmlFor="costPerUnit">{t('wizard.step3.costPerUnit')} *</Label>
+                                    <Input
+                                      id="costPerUnit"
+                                      type="number"
+                                      step="0.01"
+                                      min="0.01"
+                                      placeholder="0.00"
+                                      className="h-12 text-base"
+                                      {...step3SimpleForm.register('costPerUnit', {
+                                        required: t('wizard.step3.costPerUnitRequired'),
+                                        valueAsNumber: true,
+                                        min: { value: 0.01, message: t('wizard.step3.costPerUnitMinimum') },
+                                      })}
+                                    />
+                                    {step3SimpleForm.formState.errors.costPerUnit && (
+                                      <p className="text-xs text-destructive">{step3SimpleForm.formState.errors.costPerUnit.message}</p>
+                                    )}
+                                    <p className="text-xs text-muted-foreground">{t('wizard.step3.costPerUnitHelp')}</p>
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <Label htmlFor="reorderPoint">{t('wizard.step3.reorderPoint')} *</Label>
+                                    <Input
+                                      id="reorderPoint"
+                                      type="number"
+                                      step="1"
+                                      min="0"
+                                      placeholder="10"
+                                      className="h-12 text-base"
+                                      {...step3SimpleForm.register('reorderPoint', { required: true, valueAsNumber: true, min: 0 })}
+                                    />
+                                    <p className="text-xs text-muted-foreground">{t('wizard.step3.reorderPointHelp')}</p>
+                                  </div>
                                 </div>
 
                                 <div className="space-y-2">
-                                  <Label htmlFor="reorderPoint">{t('wizard.step3.reorderPoint')} *</Label>
+                                  <div className="flex items-center gap-2">
+                                    <Label htmlFor="lowStockThreshold">{t('lowStockThreshold.label')}</Label>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-xs">
+                                          <div className="space-y-2">
+                                            <p className="font-semibold">{t('lowStockThreshold.title')}</p>
+                                            <p className="text-sm">{t('lowStockThreshold.description')}</p>
+                                            <p className="text-sm text-muted-foreground">
+                                              {t('lowStockThreshold.defaultNote', { value: 10 })}
+                                            </p>
+                                          </div>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
                                   <Input
-                                    id="reorderPoint"
+                                    id="lowStockThreshold"
                                     type="number"
                                     step="1"
                                     min="0"
                                     placeholder="10"
+                                    defaultValue={10}
                                     className="h-12 text-base"
-                                    {...step3SimpleForm.register('reorderPoint', { required: true, valueAsNumber: true, min: 0 })}
+                                    {...step3SimpleForm.register('lowStockThreshold', { valueAsNumber: true, min: 0 })}
                                   />
-                                  <p className="text-xs text-muted-foreground">{t('wizard.step3.reorderPointHelp')}</p>
+                                  <p className="text-xs text-muted-foreground">{t('lowStockThreshold.separateFromReorder')}</p>
                                 </div>
                               </div>
+                            )}
 
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <Label htmlFor="lowStockThreshold">{t('lowStockThreshold.label')}</Label>
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                                      </TooltipTrigger>
-                                      <TooltipContent className="max-w-xs">
-                                        <div className="space-y-2">
-                                          <p className="font-semibold">{t('lowStockThreshold.title')}</p>
-                                          <p className="text-sm">{t('lowStockThreshold.description')}</p>
-                                          <p className="text-sm text-muted-foreground">{t('lowStockThreshold.defaultNote', { value: 10 })}</p>
-                                        </div>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                </div>
-                                <Input
-                                  id="lowStockThreshold"
-                                  type="number"
-                                  step="1"
-                                  min="0"
-                                  placeholder="10"
-                                  defaultValue={10}
-                                  className="h-12 text-base"
-                                  {...step3SimpleForm.register('lowStockThreshold', { valueAsNumber: true, min: 0 })}
-                                />
-                                <p className="text-xs text-muted-foreground">{t('lowStockThreshold.separateFromReorder')}</p>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Grandfathered-edit fallback: the product is already RECIPE-based but this
+                            {/* Grandfathered-edit fallback: the product is already RECIPE-based but this
                               venue lost INVENTORY_TRACKING (e.g. downgraded to Free). Don't hard-crash
                               and don't expose the editable recipe form — show a subtle Premium upsell hint. */}
-                          {step2Form.watch('inventoryMethod') === 'RECIPE' && !hasInventoryTracking && (
-                            <div className="space-y-3 pt-4 border-t border-border/50">
-                              <div className="flex items-start gap-3 rounded-lg border border-amber-400/40 bg-amber-400/10 p-4">
-                                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-400/15">
-                                  <Crown className="h-4 w-4 text-amber-500" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-foreground">{t('wizard.step2.recipePremiumTitle')}</p>
-                                  <p className="mt-1 text-xs text-muted-foreground">{t('wizard.step2.recipePremiumBody')}</p>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    className="mt-3 h-8 cursor-pointer gap-1.5 border-amber-400/40 text-amber-600 hover:bg-amber-400/10 dark:text-amber-400"
-                                    onClick={() => navigate(`${fullBasePath}/settings/billing/subscriptions`)}
-                                  >
-                                    <Crown className="h-3.5 w-3.5" />
-                                    {t('wizard.step2.recipePremiumUpgrade')}
-                                  </Button>
+                            {step2Form.watch('inventoryMethod') === 'RECIPE' && !hasInventoryTracking && (
+                              <div className="space-y-3 pt-4 border-t border-border/50">
+                                <div className="flex items-start gap-3 rounded-lg border border-amber-400/40 bg-amber-400/10 p-4">
+                                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-400/15">
+                                    <Crown className="h-4 w-4 text-amber-500" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-foreground">{t('wizard.step2.recipePremiumTitle')}</p>
+                                    <p className="mt-1 text-xs text-muted-foreground">{t('wizard.step2.recipePremiumBody')}</p>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      className="mt-3 h-8 cursor-pointer gap-1.5 border-amber-400/40 text-amber-600 hover:bg-amber-400/10 dark:text-amber-400"
+                                      onClick={() => navigate(`${fullBasePath}/settings/billing/subscriptions`)}
+                                    >
+                                      <Crown className="h-3.5 w-3.5" />
+                                      {t('wizard.step2.recipePremiumUpgrade')}
+                                    </Button>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          )}
+                            )}
 
-                          {step2Form.watch('inventoryMethod') === 'RECIPE' && hasInventoryTracking && (
-                            <div className="space-y-4 pt-4 border-t border-border/50" data-tour="product-wizard-recipe-section">
-                              {/* Portion Yield */}
-                              <div className="space-y-2" data-tour="product-wizard-portion-yield">
-                                <div className="flex items-center gap-2">
-                                  <Label htmlFor="portionYield">{t('recipes.fields.portionYield')} *</Label>
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                                      </TooltipTrigger>
-                                      <TooltipContent className="max-w-xs">
-                                        <div className="space-y-2">
-                                          <p className="font-semibold">{t('recipes.portionYieldHelp.title')}</p>
-                                          <p className="text-sm">{t('recipes.portionYieldHelp.description')}</p>
-                                          <div className="text-sm">
-                                            <p className="font-medium">{t('recipes.portionYieldHelp.examples')}</p>
-                                            <ul className="list-disc list-inside space-y-1 mt-1">
-                                              <li>{t('recipes.portionYieldHelp.example1')}</li>
-                                              <li>{t('recipes.portionYieldHelp.example2')}</li>
-                                              <li>{t('recipes.portionYieldHelp.example3')}</li>
-                                            </ul>
+                            {step2Form.watch('inventoryMethod') === 'RECIPE' && hasInventoryTracking && (
+                              <div className="space-y-4 pt-4 border-t border-border/50" data-tour="product-wizard-recipe-section">
+                                {/* Portion Yield */}
+                                <div className="space-y-2" data-tour="product-wizard-portion-yield">
+                                  <div className="flex items-center gap-2">
+                                    <Label htmlFor="portionYield">{t('recipes.fields.portionYield')} *</Label>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-xs">
+                                          <div className="space-y-2">
+                                            <p className="font-semibold">{t('recipes.portionYieldHelp.title')}</p>
+                                            <p className="text-sm">{t('recipes.portionYieldHelp.description')}</p>
+                                            <div className="text-sm">
+                                              <p className="font-medium">{t('recipes.portionYieldHelp.examples')}</p>
+                                              <ul className="list-disc list-inside space-y-1 mt-1">
+                                                <li>{t('recipes.portionYieldHelp.example1')}</li>
+                                                <li>{t('recipes.portionYieldHelp.example2')}</li>
+                                                <li>{t('recipes.portionYieldHelp.example3')}</li>
+                                              </ul>
+                                            </div>
                                           </div>
-                                        </div>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
+                                  <Input
+                                    id="portionYield"
+                                    type="number"
+                                    step="1"
+                                    min="1"
+                                    placeholder="1"
+                                    className="h-12 text-base"
+                                    {...step3RecipeForm.register('portionYield', { required: true, valueAsNumber: true, min: 1 })}
+                                  />
+                                  <p className="text-xs text-muted-foreground">{t('recipes.portionYieldHelp.description')}</p>
                                 </div>
-                                <Input
-                                  id="portionYield"
-                                  type="number"
-                                  step="1"
-                                  min="1"
-                                  placeholder="1"
-                                  className="h-12 text-base"
-                                  {...step3RecipeForm.register('portionYield', { required: true, valueAsNumber: true, min: 1 })}
-                                />
-                                <p className="text-xs text-muted-foreground">{t('recipes.portionYieldHelp.description')}</p>
-                              </div>
 
-                              {/* Advanced Options - Collapsible */}
-                              <Collapsible open={advancedRecipeOpen} onOpenChange={setAdvancedRecipeOpen}>
-                                <CollapsibleTrigger asChild>
-                                  <Button type="button" variant="ghost" size="sm" className="w-full justify-between text-muted-foreground">
-                                    <span>{t('common:advancedOptions', { defaultValue: 'Opciones avanzadas' })}</span>
-                                    <ChevronDown className={cn('h-4 w-4 transition-transform', advancedRecipeOpen && 'rotate-180')} />
-                                  </Button>
-                                </CollapsibleTrigger>
-                                <CollapsibleContent className="space-y-4 pt-2">
-                                  {/* Prep Time & Cook Time */}
-                                  <div className="grid grid-cols-2 gap-4">
+                                {/* Advanced Options - Collapsible */}
+                                <Collapsible open={advancedRecipeOpen} onOpenChange={setAdvancedRecipeOpen}>
+                                  <CollapsibleTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="w-full justify-between text-muted-foreground"
+                                    >
+                                      <span>{t('common:advancedOptions', { defaultValue: 'Opciones avanzadas' })}</span>
+                                      <ChevronDown className={cn('h-4 w-4 transition-transform', advancedRecipeOpen && 'rotate-180')} />
+                                    </Button>
+                                  </CollapsibleTrigger>
+                                  <CollapsibleContent className="space-y-4 pt-2">
+                                    {/* Prep Time & Cook Time */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div className="space-y-2">
+                                        <Label htmlFor="prepTime">{t('recipes.fields.prepTime')}</Label>
+                                        <Input
+                                          id="prepTime"
+                                          type="number"
+                                          step="1"
+                                          min="0"
+                                          placeholder="0"
+                                          className="h-12 text-base"
+                                          {...step3RecipeForm.register('prepTime', { valueAsNumber: true })}
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                          {t('recipes.prepTimeHelp', { defaultValue: 'Tiempo de preparación en minutos' })}
+                                        </p>
+                                      </div>
+
+                                      <div className="space-y-2">
+                                        <Label htmlFor="cookTime">{t('recipes.fields.cookTime')}</Label>
+                                        <Input
+                                          id="cookTime"
+                                          type="number"
+                                          step="1"
+                                          min="0"
+                                          placeholder="0"
+                                          className="h-12 text-base"
+                                          {...step3RecipeForm.register('cookTime', { valueAsNumber: true })}
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                          {t('recipes.cookTimeHelp', { defaultValue: 'Tiempo de cocción en minutos' })}
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    {/* Notes */}
                                     <div className="space-y-2">
-                                      <Label htmlFor="prepTime">{t('recipes.fields.prepTime')}</Label>
+                                      <Label htmlFor="notes">{t('recipes.fields.notes')}</Label>
+                                      <Textarea
+                                        id="notes"
+                                        rows={2}
+                                        {...step3RecipeForm.register('notes')}
+                                        placeholder={t('wizard.step3.notesPlaceholder')}
+                                        className="resize-none"
+                                      />
+                                      <p className="text-xs text-muted-foreground">
+                                        {t('recipes.notesHelp', { defaultValue: 'Instrucciones o notas adicionales para la preparación' })}
+                                      </p>
+                                    </div>
+
+                                    {/* Low Stock Threshold */}
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2">
+                                        <Label htmlFor="lowStockThresholdRecipe">{t('lowStockThreshold.labelPortions')}</Label>
+                                        <TooltipProvider>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                                            </TooltipTrigger>
+                                            <TooltipContent className="max-w-xs">
+                                              <div className="space-y-2">
+                                                <p className="font-semibold">{t('lowStockThreshold.title')}</p>
+                                                <p className="text-sm">{t('lowStockThreshold.descriptionPortions')}</p>
+                                                <p className="text-sm text-muted-foreground">
+                                                  {t('lowStockThreshold.defaultNotePortions', { value: 5 })}
+                                                </p>
+                                              </div>
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
+                                      </div>
                                       <Input
-                                        id="prepTime"
+                                        id="lowStockThresholdRecipe"
                                         type="number"
                                         step="1"
                                         min="0"
-                                        placeholder="0"
+                                        placeholder="5"
+                                        defaultValue={5}
                                         className="h-12 text-base"
-                                        {...step3RecipeForm.register('prepTime', { valueAsNumber: true })}
+                                        {...step3RecipeForm.register('lowStockThreshold', { valueAsNumber: true, min: 0 })}
                                       />
-                                      <p className="text-xs text-muted-foreground">{t('recipes.prepTimeHelp', { defaultValue: 'Tiempo de preparación en minutos' })}</p>
+                                      <p className="text-xs text-muted-foreground">{t('lowStockThreshold.alertWhenBelow')}</p>
                                     </div>
+                                  </CollapsibleContent>
+                                </Collapsible>
 
+                                {/* Ingredients List */}
+                                <div className="space-y-3" data-tour="product-wizard-ingredients">
+                                  <div className="flex items-center justify-between">
+                                    <Label>{t('recipes.ingredients.title')} *</Label>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      data-tour="product-wizard-add-ingredient"
+                                      onClick={() => {
+                                        setAddIngredientOpen(true)
+                                        setHighlightAddButton(false)
+                                      }}
+                                      className={
+                                        highlightAddButton
+                                          ? 'animate-bounce bg-orange-500 hover:bg-orange-600 text-primary-foreground border-orange-600 shadow-[0_0_20px_rgba(249,115,22,0.6)] ring-4 ring-orange-300'
+                                          : 'border border-border'
+                                      }
+                                    >
+                                      <Plus className="h-4 w-4 mr-1" />
+                                      {t('recipes.addIngredient')}
+                                    </Button>
+                                  </div>
+
+                                  {step3RecipeForm.watch('ingredients').length === 0 ? (
+                                    <Alert>
+                                      <AlertDescription>
+                                        {t('recipes.messages.noRecipe')} - {t('recipes.addIngredient').toLowerCase()}
+                                      </AlertDescription>
+                                    </Alert>
+                                  ) : (
                                     <div className="space-y-2">
-                                      <Label htmlFor="cookTime">{t('recipes.fields.cookTime')}</Label>
-                                      <Input
-                                        id="cookTime"
-                                        type="number"
-                                        step="1"
-                                        min="0"
-                                        placeholder="0"
-                                        className="h-12 text-base"
-                                        {...step3RecipeForm.register('cookTime', { valueAsNumber: true })}
-                                      />
-                                      <p className="text-xs text-muted-foreground">{t('recipes.cookTimeHelp', { defaultValue: 'Tiempo de cocción en minutos' })}</p>
-                                    </div>
-                                  </div>
+                                      {/* Scrollable ingredients list */}
+                                      <div className="max-h-[280px] overflow-y-auto space-y-2 pr-1">
+                                        {step3RecipeForm.watch('ingredients').map((ingredient, index) => {
+                                          const rawMaterial = rawMaterialsData?.find(rm => rm.id === ingredient.rawMaterialId)
+                                          const ingredientName = ingredient.rawMaterialName || rawMaterial?.name || ingredient.rawMaterialId
+                                          const costPerUnit = rawMaterial ? Number(rawMaterial.costPerUnit) : 0
+                                          const lineCost = costPerUnit * Number(ingredient.quantity)
 
-                                  {/* Notes */}
-                                  <div className="space-y-2">
-                                    <Label htmlFor="notes">{t('recipes.fields.notes')}</Label>
-                                    <Textarea
-                                      id="notes"
-                                      rows={2}
-                                      {...step3RecipeForm.register('notes')}
-                                      placeholder={t('wizard.step3.notesPlaceholder')}
-                                      className="resize-none"
-                                    />
-                                    <p className="text-xs text-muted-foreground">{t('recipes.notesHelp', { defaultValue: 'Instrucciones o notas adicionales para la preparación' })}</p>
-                                  </div>
-
-                                  {/* Low Stock Threshold */}
-                                  <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                      <Label htmlFor="lowStockThresholdRecipe">{t('lowStockThreshold.labelPortions')}</Label>
-                                      <TooltipProvider>
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                                          </TooltipTrigger>
-                                          <TooltipContent className="max-w-xs">
-                                            <div className="space-y-2">
-                                              <p className="font-semibold">{t('lowStockThreshold.title')}</p>
-                                              <p className="text-sm">{t('lowStockThreshold.descriptionPortions')}</p>
-                                              <p className="text-sm text-muted-foreground">{t('lowStockThreshold.defaultNotePortions', { value: 5 })}</p>
-                                            </div>
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </TooltipProvider>
-                                    </div>
-                                    <Input
-                                      id="lowStockThresholdRecipe"
-                                      type="number"
-                                      step="1"
-                                      min="0"
-                                      placeholder="5"
-                                      defaultValue={5}
-                                      className="h-12 text-base"
-                                      {...step3RecipeForm.register('lowStockThreshold', { valueAsNumber: true, min: 0 })}
-                                    />
-                                    <p className="text-xs text-muted-foreground">{t('lowStockThreshold.alertWhenBelow')}</p>
-                                  </div>
-                                </CollapsibleContent>
-                              </Collapsible>
-
-                              {/* Ingredients List */}
-                              <div className="space-y-3" data-tour="product-wizard-ingredients">
-                                <div className="flex items-center justify-between">
-                                  <Label>{t('recipes.ingredients.title')} *</Label>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    data-tour="product-wizard-add-ingredient"
-                                    onClick={() => {
-                                      setAddIngredientOpen(true)
-                                      setHighlightAddButton(false)
-                                    }}
-                                    className={
-                                      highlightAddButton
-                                        ? 'animate-bounce bg-orange-500 hover:bg-orange-600 text-primary-foreground border-orange-600 shadow-[0_0_20px_rgba(249,115,22,0.6)] ring-4 ring-orange-300'
-                                        : 'border border-border'
-                                    }
-                                  >
-                                    <Plus className="h-4 w-4 mr-1" />
-                                    {t('recipes.addIngredient')}
-                                  </Button>
-                                </div>
-
-                                {step3RecipeForm.watch('ingredients').length === 0 ? (
-                                  <Alert>
-                                    <AlertDescription>
-                                      {t('recipes.messages.noRecipe')} - {t('recipes.addIngredient').toLowerCase()}
-                                    </AlertDescription>
-                                  </Alert>
-                                ) : (
-                                  <div className="space-y-2">
-                                    {/* Scrollable ingredients list */}
-                                    <div className="max-h-[280px] overflow-y-auto space-y-2 pr-1">
-                                      {step3RecipeForm.watch('ingredients').map((ingredient, index) => {
-                                        const rawMaterial = rawMaterialsData?.find(rm => rm.id === ingredient.rawMaterialId)
-                                        const ingredientName = ingredient.rawMaterialName || rawMaterial?.name || ingredient.rawMaterialId
-                                        const costPerUnit = rawMaterial ? Number(rawMaterial.costPerUnit) : 0
-                                        const lineCost = costPerUnit * Number(ingredient.quantity)
-
-                                        return (
-                                          <div
-                                            key={index}
-                                            className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors"
-                                          >
-                                            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 border border-border">
-                                              <Package className="h-5 w-5 text-primary" />
-                                            </div>
-
-                                            <div className="flex-1">
-                                              <p className="text-sm font-medium text-foreground">
-                                                {ingredientName}
-                                                {ingredient.isOptional && (
-                                                  <span className="ml-2 text-xs text-muted-foreground">({t('recipes.ingredients.optional')})</span>
-                                                )}
-                                              </p>
-                                              <p className="text-xs text-muted-foreground">
-                                                {Number(ingredient.quantity).toFixed(2)} {getShortLabel(ingredient.unit)}
-                                                {rawMaterial && (
-                                                  <>
-                                                    {' '}
-                                                    × {Currency(costPerUnit)} = <span className="text-green-600 dark:text-green-400 font-medium">{Currency(lineCost)}</span>
-                                                  </>
-                                                )}
-                                              </p>
-                                            </div>
-
-                                            <Button
-                                              type="button"
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={() => {
-                                                const current = step3RecipeForm.getValues('ingredients')
-                                                step3RecipeForm.setValue(
-                                                  'ingredients',
-                                                  current.filter((_, i) => i !== index),
-                                                )
-                                              }}
+                                          return (
+                                            <div
+                                              key={index}
+                                              className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors"
                                             >
-                                              <Trash2 className="h-4 w-4 text-destructive" />
-                                            </Button>
-                                          </div>
-                                        )
-                                      })}
-                                    </div>
+                                              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 border border-border">
+                                                <Package className="h-5 w-5 text-primary" />
+                                              </div>
 
-                                    {/* Total Cost - Always visible outside scroll */}
-                                    <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/50">
-                                      <span className="text-sm font-semibold">{t('recipes.totalCost', { defaultValue: 'Costo total de receta' })}</span>
-                                      <span className="text-base font-bold text-green-600 dark:text-green-400">
-                                        {Currency(
-                                          step3RecipeForm.watch('ingredients').reduce((sum, ing) => {
-                                            const rm = rawMaterialsData?.find(r => r.id === ing.rawMaterialId)
-                                            const cost = rm ? Number(rm.costPerUnit) * Number(ing.quantity) : 0
-                                            return sum + cost
-                                          }, 0)
-                                        )}
-                                      </span>
+                                              <div className="flex-1">
+                                                <p className="text-sm font-medium text-foreground">
+                                                  {ingredientName}
+                                                  {ingredient.isOptional && (
+                                                    <span className="ml-2 text-xs text-muted-foreground">
+                                                      ({t('recipes.ingredients.optional')})
+                                                    </span>
+                                                  )}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                  {Number(ingredient.quantity).toFixed(2)} {getShortLabel(ingredient.unit)}
+                                                  {rawMaterial && (
+                                                    <>
+                                                      {' '}
+                                                      × {Currency(costPerUnit)} ={' '}
+                                                      <span className="text-green-600 dark:text-green-400 font-medium">
+                                                        {Currency(lineCost)}
+                                                      </span>
+                                                    </>
+                                                  )}
+                                                </p>
+                                              </div>
+
+                                              <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => {
+                                                  const current = step3RecipeForm.getValues('ingredients')
+                                                  step3RecipeForm.setValue(
+                                                    'ingredients',
+                                                    current.filter((_, i) => i !== index),
+                                                  )
+                                                }}
+                                              >
+                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                              </Button>
+                                            </div>
+                                          )
+                                        })}
+                                      </div>
+
+                                      {/* Total Cost - Always visible outside scroll */}
+                                      <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/50">
+                                        <span className="text-sm font-semibold">
+                                          {t('recipes.totalCost', { defaultValue: 'Costo total de receta' })}
+                                        </span>
+                                        <span className="text-base font-bold text-green-600 dark:text-green-400">
+                                          {Currency(
+                                            step3RecipeForm.watch('ingredients').reduce((sum, ing) => {
+                                              const rm = rawMaterialsData?.find(r => r.id === ing.rawMaterialId)
+                                              const cost = rm ? Number(rm.costPerUnit) * Number(ing.quantity) : 0
+                                              return sum + cost
+                                            }, 0),
+                                          )}
+                                        </span>
+                                      </div>
                                     </div>
-                                  </div>
-                                )}
-                                <p className="text-xs text-muted-foreground">{t('recipes.ingredientsHelp', { defaultValue: 'Los ingredientes se descontarán automáticamente del inventario al vender este producto' })}</p>
+                                  )}
+                                  <p className="text-xs text-muted-foreground">
+                                    {t('recipes.ingredientsHelp', {
+                                      defaultValue:
+                                        'Los ingredientes se descontarán automáticamente del inventario al vender este producto',
+                                    })}
+                                  </p>
+                                </div>
                               </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </section>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </section>
                   )}
                 </div>
 
@@ -1928,29 +2002,31 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                 <div className="lg:col-span-4 space-y-6">
                   {/* Category Section — hidden for digital/donation types */}
                   {!NO_CATEGORY_TYPES.includes(effectiveProductType as ProductType) && (
-                  <section data-tour="product-wizard-category" className="bg-card rounded-2xl border border-border/50 p-6">
-                    <SectionHeader icon={Grid3X3} title={t('wizard.step1.category')} className="mb-4" />
-                    <p className="text-xs text-muted-foreground mb-3">
-                      {t('wizard.step1.categoryHelp', { defaultValue: 'Organiza tus productos en categorías para facilitar la navegación.' })}
-                    </p>
-                    <SearchCombobox
-                      items={filteredCategoryOptions}
-                      value={categorySearch || selectedCategoryLabel}
-                      onChange={val => {
-                        setCategorySearch(val)
-                        if (!val) step1Form.setValue('categoryId', '', { shouldValidate: true })
-                      }}
-                      onSelect={item => {
-                        step1Form.setValue('categoryId', item.id, { shouldValidate: true })
-                        setCategorySearch('')
-                      }}
-                      placeholder={t('wizard.step1.categoryPlaceholder')}
-                      isLoading={isCategoriesLoading}
-                    />
-                    {step1Form.formState.errors.categoryId && (
-                      <p className="text-xs text-destructive mt-2">{t('wizard.step1.categoryRequired')}</p>
-                    )}
-                  </section>
+                    <section data-tour="product-wizard-category" className="bg-card rounded-2xl border border-border/50 p-6">
+                      <SectionHeader icon={Grid3X3} title={t('wizard.step1.category')} className="mb-4" />
+                      <p className="text-xs text-muted-foreground mb-3">
+                        {t('wizard.step1.categoryHelp', {
+                          defaultValue: 'Organiza tus productos en categorías para facilitar la navegación.',
+                        })}
+                      </p>
+                      <SearchCombobox
+                        items={filteredCategoryOptions}
+                        value={categorySearch || selectedCategoryLabel}
+                        onChange={val => {
+                          setCategorySearch(val)
+                          if (!val) step1Form.setValue('categoryId', '', { shouldValidate: true })
+                        }}
+                        onSelect={item => {
+                          step1Form.setValue('categoryId', item.id, { shouldValidate: true })
+                          setCategorySearch('')
+                        }}
+                        placeholder={t('wizard.step1.categoryPlaceholder')}
+                        isLoading={isCategoriesLoading}
+                      />
+                      {step1Form.formState.errors.categoryId && (
+                        <p className="text-xs text-destructive mt-2">{t('wizard.step1.categoryRequired')}</p>
+                      )}
+                    </section>
                   )}
 
                   {/* Print station override — self-hides (incl. its own card) when the venue has no active stations */}
@@ -1963,145 +2039,144 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
                   {/* Datos fiscales (CFDI) — only for venues with the CFDI feature */}
                   {hasCfdi && (
-                  <section data-tour="product-sat-keys" className="bg-card rounded-2xl border border-border/50 p-6">
-                    <SectionHeader icon={Receipt} title={tCfdi('satKeys.sectionTitle')} className="mb-4" />
-                    <p className="text-xs text-muted-foreground mb-4">{tCfdi('satKeys.sectionDescription')}</p>
+                    <section data-tour="product-sat-keys" className="bg-card rounded-2xl border border-border/50 p-6">
+                      <SectionHeader icon={Receipt} title={tCfdi('satKeys.sectionTitle')} className="mb-4" />
+                      <p className="text-xs text-muted-foreground mb-4">{tCfdi('satKeys.sectionDescription')}</p>
 
-                    <div className="space-y-4">
-                      {/* SAT product key (ClaveProdServ) */}
-                      <div className="space-y-1.5">
-                        <Label className="text-sm font-medium">{tCfdi('satKeys.productKey')}</Label>
-                        <SatKeyPicker
-                          type="product"
-                          venueId={venueId}
-                          value={step1Form.watch('satProductKey') ?? null}
-                          onChange={key => step1Form.setValue('satProductKey', key, { shouldDirty: true })}
-                        />
-                        <p className="text-xs text-muted-foreground">{tCfdi('satKeys.productKeyHint')}</p>
-                      </div>
+                      <div className="space-y-4">
+                        {/* SAT product key (ClaveProdServ) */}
+                        <div className="space-y-1.5">
+                          <Label className="text-sm font-medium">{tCfdi('satKeys.productKey')}</Label>
+                          <SatKeyPicker
+                            type="product"
+                            venueId={venueId}
+                            value={step1Form.watch('satProductKey') ?? null}
+                            onChange={key => step1Form.setValue('satProductKey', key, { shouldDirty: true })}
+                          />
+                          <p className="text-xs text-muted-foreground">{tCfdi('satKeys.productKeyHint')}</p>
+                        </div>
 
-                      {/* SAT unit key (ClaveUnidad) */}
-                      <div className="space-y-1.5">
-                        <Label className="text-sm font-medium">{tCfdi('satKeys.unitKey')}</Label>
-                        <SatKeyPicker
-                          type="unit"
-                          venueId={venueId}
-                          value={step1Form.watch('satUnitKey') ?? null}
-                          onChange={key => step1Form.setValue('satUnitKey', key, { shouldDirty: true })}
-                        />
-                      </div>
+                        {/* SAT unit key (ClaveUnidad) */}
+                        <div className="space-y-1.5">
+                          <Label className="text-sm font-medium">{tCfdi('satKeys.unitKey')}</Label>
+                          <SatKeyPicker
+                            type="unit"
+                            venueId={venueId}
+                            value={step1Form.watch('satUnitKey') ?? null}
+                            onChange={key => step1Form.setValue('satUnitKey', key, { shouldDirty: true })}
+                          />
+                        </div>
 
-                      {/* ObjetoImp */}
-                      <div className="space-y-1.5">
-                        <Label className="text-sm font-medium">{tCfdi('satKeys.objetoImp')}</Label>
-                        <Select
-                          value={step1Form.watch('objetoImp') || '02'}
-                          onValueChange={value => step1Form.setValue('objetoImp', value as ObjetoImp, { shouldDirty: true })}
-                        >
-                          <SelectTrigger className="h-12 text-base">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {OBJETO_IMP_OPTIONS.map(option => (
-                              <SelectItem key={option} value={option}>
-                                {tCfdi(`satKeys.objetoImpOptions.${option}`)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">{tCfdi('satKeys.objetoImpHint')}</p>
+                        {/* ObjetoImp */}
+                        <div className="space-y-1.5">
+                          <Label className="text-sm font-medium">{tCfdi('satKeys.objetoImp')}</Label>
+                          <Select
+                            value={step1Form.watch('objetoImp') || '02'}
+                            onValueChange={value => step1Form.setValue('objetoImp', value as ObjetoImp, { shouldDirty: true })}
+                          >
+                            <SelectTrigger className="h-12 text-base">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {OBJETO_IMP_OPTIONS.map(option => (
+                                <SelectItem key={option} value={option}>
+                                  {tCfdi(`satKeys.objetoImpOptions.${option}`)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">{tCfdi('satKeys.objetoImpHint')}</p>
+                        </div>
                       </div>
-                    </div>
-                  </section>
+                    </section>
                   )}
 
                   {/* Modifier Groups Section — hidden for service/class/digital/donation types */}
                   {!NO_MODIFIER_GROUP_TYPES.includes(effectiveProductType as ProductType) && (
-                  <section className="bg-card rounded-2xl border border-border/50 p-6">
-                    <SectionHeader icon={Plus} title={t('wizard.step1.modifierGroups')} className="mb-4" />
-                    <p className="text-xs text-muted-foreground mb-3">
-                      {t('wizard.step1.modifierGroupsHelp', { defaultValue: 'Agrega opciones y extras que los clientes pueden elegir.' })}
-                    </p>
+                    <section className="bg-card rounded-2xl border border-border/50 p-6">
+                      <SectionHeader icon={Plus} title={t('wizard.step1.modifierGroups')} className="mb-4" />
+                      <p className="text-xs text-muted-foreground mb-3">
+                        {t('wizard.step1.modifierGroupsHelp', { defaultValue: 'Agrega opciones y extras que los clientes pueden elegir.' })}
+                      </p>
 
-                    {/* Searchable multiselect via SearchCombobox */}
-                    {(() => {
-                      const selectedModifierGroups = step1Form.watch('modifierGroups') || []
-                      const selectedIds = new Set(selectedModifierGroups.map(g => g.value))
-                      const availableOptions: SearchComboboxItem[] = (modifierGroups ?? [])
-                        .filter(mg => !selectedIds.has(mg.id))
-                        .filter(mg => !modifierGroupSearch.trim() || includesNormalized(mg.name ?? '', modifierGroupSearch))
-                        .map(mg => ({ id: mg.id, label: mg.name }))
-                      const hasModifierGroups = (modifierGroups ?? []).length > 0
+                      {/* Searchable multiselect via SearchCombobox */}
+                      {(() => {
+                        const selectedModifierGroups = step1Form.watch('modifierGroups') || []
+                        const selectedIds = new Set(selectedModifierGroups.map(g => g.value))
+                        const availableOptions: SearchComboboxItem[] = (modifierGroups ?? [])
+                          .filter(mg => !selectedIds.has(mg.id))
+                          .filter(mg => !modifierGroupSearch.trim() || includesNormalized(mg.name ?? '', modifierGroupSearch))
+                          .map(mg => ({ id: mg.id, label: mg.name }))
+                        const hasModifierGroups = (modifierGroups ?? []).length > 0
 
-                      return hasModifierGroups ? (
-                        <SearchCombobox
-                          items={availableOptions}
-                          value={modifierGroupSearch}
-                          onChange={setModifierGroupSearch}
-                          onSelect={item => {
-                            const current = step1Form.watch('modifierGroups') || []
-                            step1Form.setValue('modifierGroups', [...current, { label: item.label, value: item.id }])
-                            setModifierGroupSearch('')
-                          }}
-                          placeholder={t('wizard.step1.selectModifierGroups')}
-                          isLoading={isModifierGroupsLoading}
-                        />
-                      ) : (
-                        <p className="text-xs text-muted-foreground italic">
-                          {t('wizard.step1.noModifierGroupsAvailable', { defaultValue: 'No hay grupos de modificadores disponibles' })}
-                        </p>
-                      )
-                    })()}
+                        return hasModifierGroups ? (
+                          <SearchCombobox
+                            items={availableOptions}
+                            value={modifierGroupSearch}
+                            onChange={setModifierGroupSearch}
+                            onSelect={item => {
+                              const current = step1Form.watch('modifierGroups') || []
+                              step1Form.setValue('modifierGroups', [...current, { label: item.label, value: item.id }])
+                              setModifierGroupSearch('')
+                            }}
+                            placeholder={t('wizard.step1.selectModifierGroups')}
+                            isLoading={isModifierGroupsLoading}
+                          />
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic">
+                            {t('wizard.step1.noModifierGroupsAvailable', { defaultValue: 'No hay grupos de modificadores disponibles' })}
+                          </p>
+                        )
+                      })()}
 
-                    {/* Selected Modifier Groups List */}
-                    {(step1Form.watch('modifierGroups') || []).length > 0 && (
-                      <div className="mt-4 space-y-2">
-                        {(step1Form.watch('modifierGroups') || []).map(selectedGroup => {
-                          // Find full modifier group data to show details
-                          const fullGroupData = modifierGroups?.find(mg => mg.id === selectedGroup.value)
-                          const modifiersList = fullGroupData?.modifiers?.map(m => m.name).join(', ') || ''
-                          const minMax = fullGroupData
-                            ? (fullGroupData.required
-                                ? t('wizard.step1.modifierRequired', { min: fullGroupData.minSelections, max: fullGroupData.maxSelections || '∞', defaultValue: `Requerido: ${fullGroupData.minSelections}-${fullGroupData.maxSelections || '∞'}` })
-                                : t('wizard.step1.modifierOptional', { defaultValue: 'Opcional' }))
-                            : ''
+                      {/* Selected Modifier Groups List */}
+                      {(step1Form.watch('modifierGroups') || []).length > 0 && (
+                        <div className="mt-4 space-y-2">
+                          {(step1Form.watch('modifierGroups') || []).map(selectedGroup => {
+                            // Find full modifier group data to show details
+                            const fullGroupData = modifierGroups?.find(mg => mg.id === selectedGroup.value)
+                            const modifiersList = fullGroupData?.modifiers?.map(m => m.name).join(', ') || ''
+                            const minMax = fullGroupData
+                              ? fullGroupData.required
+                                ? t('wizard.step1.modifierRequired', {
+                                    min: fullGroupData.minSelections,
+                                    max: fullGroupData.maxSelections || '∞',
+                                    defaultValue: `Requerido: ${fullGroupData.minSelections}-${fullGroupData.maxSelections || '∞'}`,
+                                  })
+                                : t('wizard.step1.modifierOptional', { defaultValue: 'Opcional' })
+                              : ''
 
-                          return (
-                            <div
-                              key={selectedGroup.value}
-                              className="flex items-start justify-between p-3 rounded-lg border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors"
-                            >
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm">{selectedGroup.label}</p>
-                                {modifiersList && (
-                                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                                    {modifiersList}
-                                  </p>
-                                )}
-                                {minMax && (
-                                  <p className="text-xs text-muted-foreground mt-0.5">
-                                    {minMax}
-                                  </p>
-                                )}
-                              </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
-                                onClick={() => {
-                                  const currentValues = step1Form.watch('modifierGroups') || []
-                                  step1Form.setValue('modifierGroups', currentValues.filter(g => g.value !== selectedGroup.value))
-                                }}
+                            return (
+                              <div
+                                key={selectedGroup.value}
+                                className="flex items-start justify-between p-3 rounded-lg border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors"
                               >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </section>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm">{selectedGroup.label}</p>
+                                  {modifiersList && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{modifiersList}</p>}
+                                  {minMax && <p className="text-xs text-muted-foreground mt-0.5">{minMax}</p>}
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
+                                  onClick={() => {
+                                    const currentValues = step1Form.watch('modifierGroups') || []
+                                    step1Form.setValue(
+                                      'modifierGroups',
+                                      currentValues.filter(g => g.value !== selectedGroup.value),
+                                    )
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </section>
                   )}
 
                   {/* Live Preview Card */}
@@ -2134,9 +2209,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                               {step1Form.watch('name') || t('wizard.preview.productName', { defaultValue: 'Nombre del producto' })}
                             </p>
                             {step1Form.watch('price') > 0 && (
-                              <p className="text-sm text-muted-foreground">
-                                {Currency(step1Form.watch('price'))}
-                              </p>
+                              <p className="text-sm text-muted-foreground">{Currency(step1Form.watch('price'))}</p>
                             )}
                           </div>
                         </div>
@@ -2161,13 +2234,25 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                 }
                                 if (minSelections > 0 || maxSelections > 0) {
                                   if (minSelections === maxSelections && minSelections > 0) {
-                                    requirementText += (requirementText ? ' · ' : '') + t('wizard.preview.selectExact', { count: minSelections, defaultValue: 'Selecciona {{count}}' })
+                                    requirementText +=
+                                      (requirementText ? ' · ' : '') +
+                                      t('wizard.preview.selectExact', { count: minSelections, defaultValue: 'Selecciona {{count}}' })
                                   } else if (minSelections > 0 && maxSelections > 0) {
-                                    requirementText += (requirementText ? ' · ' : '') + t('wizard.preview.selectRange', { min: minSelections, max: maxSelections, defaultValue: 'Min {{min}}, Máx {{max}}' })
+                                    requirementText +=
+                                      (requirementText ? ' · ' : '') +
+                                      t('wizard.preview.selectRange', {
+                                        min: minSelections,
+                                        max: maxSelections,
+                                        defaultValue: 'Min {{min}}, Máx {{max}}',
+                                      })
                                   } else if (minSelections > 0) {
-                                    requirementText += (requirementText ? ' · ' : '') + t('wizard.preview.selectMin', { min: minSelections, defaultValue: 'Mínimo {{min}}' })
+                                    requirementText +=
+                                      (requirementText ? ' · ' : '') +
+                                      t('wizard.preview.selectMin', { min: minSelections, defaultValue: 'Mínimo {{min}}' })
                                   } else if (maxSelections > 0) {
-                                    requirementText += (requirementText ? ' · ' : '') + t('wizard.preview.selectMax', { max: maxSelections, defaultValue: 'Máximo {{max}}' })
+                                    requirementText +=
+                                      (requirementText ? ' · ' : '') +
+                                      t('wizard.preview.selectMax', { max: maxSelections, defaultValue: 'Máximo {{max}}' })
                                   }
                                 }
 
@@ -2189,7 +2274,11 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                         {minSelections === maxSelections && minSelections > 0
                                           ? t('wizard.preview.selectExact', { count: minSelections, defaultValue: 'Selecciona {{count}}' })
                                           : minSelections > 0 && maxSelections > 0
-                                            ? t('wizard.preview.selectRange', { min: minSelections, max: maxSelections, defaultValue: 'Min {{min}}, Máx {{max}}' })
+                                            ? t('wizard.preview.selectRange', {
+                                                min: minSelections,
+                                                max: maxSelections,
+                                                defaultValue: 'Min {{min}}, Máx {{max}}',
+                                              })
                                             : minSelections > 0
                                               ? t('wizard.preview.selectMin', { min: minSelections, defaultValue: 'Mínimo {{min}}' })
                                               : t('wizard.preview.selectMax', { max: maxSelections, defaultValue: 'Máximo {{max}}' })}
@@ -2200,54 +2289,69 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                         {/* Modifiers with inventory tracking */}
                                         {fullGroup.modifiers.filter(mod => mod.rawMaterialId).length > 0 && (
                                           <div className="space-y-1">
-                                            {fullGroup.modifiers.filter(mod => mod.rawMaterialId).map(mod => (
-                                              <div
-                                                key={mod.id}
-                                                className={cn(
-                                                  'flex items-center gap-1.5 px-2 py-1 rounded-md border',
-                                                  mod.inventoryMode === 'SUBSTITUTION'
-                                                    ? 'bg-blue-500/5 border-blue-500/20'
-                                                    : 'bg-green-500/5 border-green-500/20'
-                                                )}
-                                              >
-                                                <span className="text-[10px]">
-                                                  {getCategoryEmoji(mod.rawMaterial?.unit ? 'OTHER' : undefined)}
-                                                </span>
-                                                <div className="flex-1 min-w-0">
-                                                  <div className="flex items-center gap-1.5">
-                                                    <span className="text-[10px] font-medium truncate">{mod.name}</span>
-                                                    <span className={cn(
-                                                      'text-[8px] px-1 py-0.5 rounded-full font-medium shrink-0',
-                                                      mod.inventoryMode === 'SUBSTITUTION'
-                                                        ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
-                                                        : 'bg-green-500/10 text-green-600 dark:text-green-400'
-                                                    )}>
-                                                      {mod.inventoryMode === 'SUBSTITUTION'
-                                                        ? t('wizard.preview.modifierInventory.substitution', { defaultValue: 'Sustitución' })
-                                                        : t('wizard.preview.modifierInventory.addition', { defaultValue: 'Adición' })}
-                                                    </span>
-                                                  </div>
-                                                  <p className="text-[9px] text-muted-foreground truncate">
-                                                    {t('wizard.preview.modifierInventory.uses', { defaultValue: 'Usa' })} {mod.quantityPerUnit || 1} {getShortLabel(mod.unit || mod.rawMaterial?.unit || 'UNIT')} {mod.rawMaterial?.name || ''}
-                                                  </p>
-                                                </div>
-                                                {mod.rawMaterial?.costPerUnit && (
-                                                  <span className="text-[9px] text-muted-foreground shrink-0">
-                                                    {Currency(Number(mod.rawMaterial.costPerUnit) * (mod.quantityPerUnit || 1))}
+                                            {fullGroup.modifiers
+                                              .filter(mod => mod.rawMaterialId)
+                                              .map(mod => (
+                                                <div
+                                                  key={mod.id}
+                                                  className={cn(
+                                                    'flex items-center gap-1.5 px-2 py-1 rounded-md border',
+                                                    mod.inventoryMode === 'SUBSTITUTION'
+                                                      ? 'bg-blue-500/5 border-blue-500/20'
+                                                      : 'bg-green-500/5 border-green-500/20',
+                                                  )}
+                                                >
+                                                  <span className="text-[10px]">
+                                                    {getCategoryEmoji(mod.rawMaterial?.unit ? 'OTHER' : undefined)}
                                                   </span>
-                                                )}
-                                              </div>
-                                            ))}
+                                                  <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-1.5">
+                                                      <span className="text-[10px] font-medium truncate">{mod.name}</span>
+                                                      <span
+                                                        className={cn(
+                                                          'text-[8px] px-1 py-0.5 rounded-full font-medium shrink-0',
+                                                          mod.inventoryMode === 'SUBSTITUTION'
+                                                            ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                                                            : 'bg-green-500/10 text-green-600 dark:text-green-400',
+                                                        )}
+                                                      >
+                                                        {mod.inventoryMode === 'SUBSTITUTION'
+                                                          ? t('wizard.preview.modifierInventory.substitution', {
+                                                              defaultValue: 'Sustitución',
+                                                            })
+                                                          : t('wizard.preview.modifierInventory.addition', { defaultValue: 'Adición' })}
+                                                      </span>
+                                                    </div>
+                                                    <p className="text-[9px] text-muted-foreground truncate">
+                                                      {t('wizard.preview.modifierInventory.uses', { defaultValue: 'Usa' })}{' '}
+                                                      {mod.quantityPerUnit || 1}{' '}
+                                                      {getShortLabel(mod.unit || mod.rawMaterial?.unit || 'UNIT')}{' '}
+                                                      {mod.rawMaterial?.name || ''}
+                                                    </p>
+                                                  </div>
+                                                  {mod.rawMaterial?.costPerUnit && (
+                                                    <span className="text-[9px] text-muted-foreground shrink-0">
+                                                      {Currency(Number(mod.rawMaterial.costPerUnit) * (mod.quantityPerUnit || 1))}
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              ))}
                                           </div>
                                         )}
                                         {/* Modifiers without inventory tracking */}
                                         {fullGroup.modifiers.filter(mod => !mod.rawMaterialId).length > 0 && (
                                           <div className="flex flex-wrap gap-1">
-                                            {fullGroup.modifiers.filter(mod => !mod.rawMaterialId).slice(0, 3).map(mod => (
-                                              <span key={mod.id} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                                                {mod.name}
-                                              </span>
-                                            ))}
+                                            {fullGroup.modifiers
+                                              .filter(mod => !mod.rawMaterialId)
+                                              .slice(0, 3)
+                                              .map(mod => (
+                                                <span
+                                                  key={mod.id}
+                                                  className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+                                                >
+                                                  {mod.name}
+                                                </span>
+                                              ))}
                                             {fullGroup.modifiers.filter(mod => !mod.rawMaterialId).length > 3 && (
                                               <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                                                 +{fullGroup.modifiers.filter(mod => !mod.rawMaterialId).length - 3}
@@ -2290,7 +2394,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                           <span className="text-sm">{getCategoryEmoji(rawMaterial?.category)}</span>
                                           <div className="flex-1 min-w-0">
                                             <p className="text-[11px] font-medium truncate">
-                                              {ingredient.rawMaterialName || rawMaterial?.name || t('wizard.preview.unknownIngredient', { defaultValue: 'Ingrediente' })}
+                                              {ingredient.rawMaterialName ||
+                                                rawMaterial?.name ||
+                                                t('wizard.preview.unknownIngredient', { defaultValue: 'Ingrediente' })}
                                             </p>
                                             <p className="text-[10px] text-muted-foreground">
                                               {ingredient.quantity} {getShortLabel(ingredient.unit)}
@@ -2313,7 +2419,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                           step3RecipeForm.watch('ingredients').reduce((total, ing) => {
                                             const rm = rawMaterialsData?.find((r: any) => r.id === ing.rawMaterialId)
                                             return total + (rm ? Number(rm.costPerUnit) * Number(ing.quantity) : 0)
-                                          }, 0)
+                                          }, 0),
                                         )}
                                       </span>
                                     </div>
@@ -2330,7 +2436,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                 <div className="flex-1">
                                   <p className="text-xs font-medium">{t('wizard.preview.stock', { defaultValue: 'Stock directo' })}</p>
                                   <p className="text-[10px] text-muted-foreground">
-                                    {t('wizard.preview.stockValue', { value: step3SimpleForm.watch('initialStock') || 0, defaultValue: 'Stock: {{value}}' })}
+                                    {t('wizard.preview.stockValue', {
+                                      value: step3SimpleForm.watch('initialStock') || 0,
+                                      defaultValue: 'Stock: {{value}}',
+                                    })}
                                   </p>
                                 </div>
                               </div>
@@ -2367,7 +2476,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         onOpenChange={setAddIngredientOpen}
         product={{
           id: createdProductId || productId || 'temp-product',
-          name: step1Form.watch('name') || step1Data?.name || t('wizard.newProduct', { defaultValue: 'Nuevo Producto' })
+          name: step1Form.watch('name') || step1Data?.name || t('wizard.newProduct', { defaultValue: 'Nuevo Producto' }),
         }}
         mode="create"
         onAddTempIngredient={ingredient => {

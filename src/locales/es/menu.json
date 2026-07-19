@@ -127,7 +127,8 @@
       "create": "Crear",
       "goBack": "Volver",
       "cancel": "Cancelar"
-    }
+    },
+    "pricePerKg": "Precio por kg"
   },
   "categoryDetail": {
     "toasts": {
@@ -579,7 +580,10 @@
         "imageDeletedDesc": "La imagen se ha eliminado correctamente.",
         "deleted": "Producto eliminado",
         "deletedDesc": "El producto se ha eliminado correctamente."
-      }
+      },
+      "soldByWeight": "Se vende por peso",
+      "soldByWeightDesc": "El precio es por kilogramo; el punto de venta captura el peso con la báscula al cobrar.",
+      "pricePerKgHint": "Precio por kilogramo (kg)"
     }
   },
   "createMenu": {

@@ -127,7 +127,8 @@
       "create": "Create",
       "goBack": "Go back",
       "cancel": "Cancel"
-    }
+    },
+    "pricePerKg": "Price per kg"
   },
   "categoryDetail": {
     "toasts": {
@@ -584,7 +585,10 @@
         "imageDeletedDesc": "The image has been deleted successfully.",
         "deleted": "Product deleted",
         "deletedDesc": "The product has been deleted successfully."
-      }
+      },
+      "soldByWeight": "Sold by weight",
+      "soldByWeightDesc": "Price is per kilogram; the POS captures the weight from the scale at checkout.",
+      "pricePerKgHint": "Price per kilogram (kg)"
     }
   },
   "createMenu": {

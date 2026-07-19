@@ -41,6 +41,9 @@ type CreateProductPayload = {
   modifierGroupIds?: string[]
   allowCreditRedemption?: boolean
   requireCreditForBooking?: boolean
+  // Venta por peso: price pasa a ser precio/kg y el backend fuerza unit=KILOGRAM.
+  soldByWeight?: boolean
+  unit?: string
 }
 
 export default function CreateProduct() {
@@ -103,6 +106,7 @@ export default function CreateProduct() {
       modifierGroups: [],
       allowCreditRedemption: true,
       requireCreditForBooking: false,
+      soldByWeight: false,
     },
     // values: {
     //   name: data?.avoqadoProduct.name || '',
@@ -190,6 +194,10 @@ export default function CreateProduct() {
       modifierGroupIds,
       allowCreditRedemption: formValues.allowCreditRedemption,
       requireCreditForBooking: formValues.requireCreditForBooking,
+      // Venta por peso: mandamos el flag y fijamos la unidad a KILOGRAM (el backend
+      // también lo fuerza, pero lo enviamos explícito para dejar el catálogo consistente).
+      soldByWeight: formValues.soldByWeight === true,
+      ...(formValues.soldByWeight === true ? { unit: 'KILOGRAM' } : {}),
     })
   }
 
@@ -315,10 +323,11 @@ export default function CreateProduct() {
             render={({ field }) => {
               return (
                 <FormItem>
-                  <FormLabel>{t('forms.price')}</FormLabel>
+                  <FormLabel>{form.watch('soldByWeight') ? t('forms.pricePerKg') : t('forms.price')}</FormLabel>
                   <FormControl>
                     <Input placeholder={t('products.create.pricePlaceholder')} className="max-w-96" {...field} />
                   </FormControl>
+                  {form.watch('soldByWeight') && <FormDescription>{t('products.detail.pricePerKgHint')}</FormDescription>}
                   <FormMessage />
                 </FormItem>
               )
@@ -557,6 +566,23 @@ export default function CreateProduct() {
                   />
                 </FormControl>
                 <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Venta por peso (charcutería/granel) */}
+          <FormField
+            control={form.control}
+            name="soldByWeight"
+            render={({ field }) => (
+              <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">{t('products.detail.soldByWeight')}</FormLabel>
+                  <FormDescription>{t('products.detail.soldByWeightDesc')}</FormDescription>
+                </div>
+                <FormControl>
+                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                </FormControl>
               </FormItem>
             )}
           />
