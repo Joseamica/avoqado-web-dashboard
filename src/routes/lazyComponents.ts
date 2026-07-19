@@ -207,6 +207,9 @@ export const ReferralsSettings = lazyWithRetry(() => import('@/pages/Referrals/R
 export const CfdiList = lazyWithRetry(() => import('@/pages/Cfdi/CfdiList'))
 export const CfdiConfiguracion = lazyWithRetry(() => import('@/pages/Cfdi/CfdiConfiguracion'))
 
+// Delivery — visible teaser (Premium feature, 4 data-driven states inside the page)
+export const DeliveryPage = lazyWithRetry(() => import('@/pages/Delivery/DeliveryPage'))
+
 // Promotions
 export const Discounts = lazyWithRetry(() => import('@/pages/Promotions/Discounts'))
 export const DiscountForm = lazyWithRetry(() => import('@/pages/Promotions/DiscountForm'))

@@ -1,0 +1,54 @@
+{
+  "page": {
+    "title": "Livraison",
+    "loading": "Chargement de la livraison..."
+  },
+  "teaser": {
+    "title": "Recevez vos commandes Uber Eats, Rappi et DiDi directement sur votre caisse",
+    "description": "Connectez vos plateformes de livraison et les commandes arrivent seules dans Avoqado, aux côtés de vos ventes au comptoir : même menu, même rapport, même inventaire.",
+    "benefit1": "Les commandes arrivent directement sur votre caisse, prêtes à préparer",
+    "benefit2": "Un seul endroit pour voir les ventes au comptoir et la livraison",
+    "benefit3": "Votre menu reste synchronisé automatiquement",
+    "cta": "Demander l'activation"
+  },
+  "requestDialog": {
+    "title": "Demander l'activation de la livraison",
+    "description": "Dites-nous quelles plateformes vous avez ou souhaitez utiliser. Notre équipe vous contactera pour connecter vos canaux.",
+    "channelsLabel": "Quelles plateformes avez-vous ou souhaitez-vous activer ?",
+    "noteLabel": "Note (facultatif)",
+    "notePlaceholder": "Ex. j'ai déjà un compte Uber Eats, il me manque Rappi...",
+    "validationHint": "Sélectionnez au moins une plateforme",
+    "cancel": "Annuler",
+    "submit": "Envoyer la demande",
+    "toastSuccess": "Demande envoyée. Nous vous contacterons bientôt.",
+    "toastError": "Impossible d'envoyer la demande"
+  },
+  "pending": {
+    "title": "Nous avons reçu votre demande",
+    "description": "Nous connectons vos canaux de livraison. Nous vous contacterons dès qu'ils seront actifs.",
+    "requestedOn": "Demandé le {{date}}",
+    "channelsLabel": "Plateformes demandées",
+    "noteLabel": "Votre note"
+  },
+  "live": {
+    "statsTitle": "Aujourd'hui",
+    "statsEmpty": "Pas encore de commandes de livraison aujourd'hui.",
+    "ordersLabel": "commandes",
+    "channelsTitle": "Vos canaux",
+    "statusActive": "Actif",
+    "statusPaused": "En pause",
+    "statusPending": "En attente",
+    "statusDisabled": "Désactivé",
+    "lastSync": "Dernière synchronisation du menu",
+    "lastSyncNever": "Jamais",
+    "modeLabel": "Mode d'acceptation",
+    "modeAuto": "Automatique",
+    "modeManual": "Manuel",
+    "pauseAction": "Mettre en pause",
+    "resumeAction": "Reprendre",
+    "pauseToastSuccess": "Canal mis en pause",
+    "resumeToastSuccess": "Canal réactivé",
+    "pauseToastError": "Impossible de mettre à jour le canal",
+    "viewOrders": "Voir les commandes de livraison"
+  }
+}

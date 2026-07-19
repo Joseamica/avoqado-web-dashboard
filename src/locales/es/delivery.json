@@ -1,0 +1,54 @@
+{
+  "page": {
+    "title": "Delivery",
+    "loading": "Cargando delivery..."
+  },
+  "teaser": {
+    "title": "Recibe pedidos de Uber Eats, Rappi y DiDi directo en tu POS",
+    "description": "Conecta tus plataformas de delivery y los pedidos entran solos a Avoqado, junto con tus ventas de mostrador: mismo menú, mismo reporte, mismo inventario.",
+    "benefit1": "Los pedidos llegan directo a tu POS, listos para preparar",
+    "benefit2": "Un solo lugar para ver ventas de mostrador y delivery",
+    "benefit3": "Tu menú se mantiene sincronizado automáticamente",
+    "cta": "Solicitar activación"
+  },
+  "requestDialog": {
+    "title": "Solicitar activación de delivery",
+    "description": "Cuéntanos qué plataformas tienes o quieres usar. Nuestro equipo te contacta para conectar tus canales.",
+    "channelsLabel": "¿Qué plataformas tienes o quieres activar?",
+    "noteLabel": "Nota (opcional)",
+    "notePlaceholder": "Ej. ya tengo cuenta en Uber Eats, me falta Rappi...",
+    "validationHint": "Selecciona al menos una plataforma",
+    "cancel": "Cancelar",
+    "submit": "Enviar solicitud",
+    "toastSuccess": "Solicitud enviada. Te contactaremos pronto.",
+    "toastError": "No se pudo enviar la solicitud"
+  },
+  "pending": {
+    "title": "Recibimos tu solicitud",
+    "description": "Estamos conectando tus canales de delivery. Te contactaremos en cuanto queden activos.",
+    "requestedOn": "Solicitado el {{date}}",
+    "channelsLabel": "Plataformas solicitadas",
+    "noteLabel": "Tu nota"
+  },
+  "live": {
+    "statsTitle": "Hoy",
+    "statsEmpty": "Todavía no hay pedidos de delivery hoy.",
+    "ordersLabel": "pedidos",
+    "channelsTitle": "Tus canales",
+    "statusActive": "Activo",
+    "statusPaused": "Pausado",
+    "statusPending": "Pendiente",
+    "statusDisabled": "Desactivado",
+    "lastSync": "Última sincronización de menú",
+    "lastSyncNever": "Nunca",
+    "modeLabel": "Modo de aceptación",
+    "modeAuto": "Automático",
+    "modeManual": "Manual",
+    "pauseAction": "Pausar",
+    "resumeAction": "Reanudar",
+    "pauseToastSuccess": "Canal pausado",
+    "resumeToastSuccess": "Canal reactivado",
+    "pauseToastError": "No se pudo actualizar el canal",
+    "viewOrders": "Ver pedidos de delivery"
+  }
+}

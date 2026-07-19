@@ -97,6 +97,7 @@ import {
   Reviews,
   CfdiList,
   CfdiConfiguracion,
+  DeliveryPage,
   RolePermissions,
   PrintStations,
   SalesByItem,
@@ -634,6 +635,16 @@ export function createVenueRoutes(): RouteObject[] {
       path: 'cfdi/configuracion',
       element: <PermissionProtectedRoute permission="cfdi:configure" />,
       children: [{ index: true, element: <CfdiConfiguracion /> }],
+    },
+
+    // Delivery — VISIBLE TEASER (Premium feature DELIVERY_CHANNELS, plan-catalog.ts), same pattern
+    // as CFDI above: no FeatureProtectedRoute wrapper, the page always renders so it stays
+    // discoverable and the <FeatureGate> INSIDE DeliveryPage handles the paywall for venues that
+    // lack the feature. Gated by the delivery-channels:read permission only.
+    {
+      path: 'delivery',
+      element: <PermissionProtectedRoute permission="delivery-channels:read" />,
+      children: [{ index: true, element: <DeliveryPage /> }],
     },
 
     // Legacy: activity log moved into the Settings Hub

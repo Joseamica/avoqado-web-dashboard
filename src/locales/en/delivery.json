@@ -1,0 +1,54 @@
+{
+  "page": {
+    "title": "Delivery",
+    "loading": "Loading delivery..."
+  },
+  "teaser": {
+    "title": "Get Uber Eats, Rappi and DiDi orders straight into your POS",
+    "description": "Connect your delivery platforms and orders flow into Avoqado on their own, right alongside your counter sales: same menu, same reports, same inventory.",
+    "benefit1": "Orders land directly in your POS, ready to prepare",
+    "benefit2": "One place to see counter sales and delivery together",
+    "benefit3": "Your menu stays in sync automatically",
+    "cta": "Request activation"
+  },
+  "requestDialog": {
+    "title": "Request delivery activation",
+    "description": "Tell us which platforms you have or want. Our team will reach out to connect your channels.",
+    "channelsLabel": "Which platforms do you have or want to activate?",
+    "noteLabel": "Note (optional)",
+    "notePlaceholder": "E.g. I already have Uber Eats, still need Rappi...",
+    "validationHint": "Select at least one platform",
+    "cancel": "Cancel",
+    "submit": "Send request",
+    "toastSuccess": "Request sent. We'll reach out soon.",
+    "toastError": "Couldn't send the request"
+  },
+  "pending": {
+    "title": "We received your request",
+    "description": "We're connecting your delivery channels. We'll reach out as soon as they're active.",
+    "requestedOn": "Requested on {{date}}",
+    "channelsLabel": "Requested platforms",
+    "noteLabel": "Your note"
+  },
+  "live": {
+    "statsTitle": "Today",
+    "statsEmpty": "No delivery orders yet today.",
+    "ordersLabel": "orders",
+    "channelsTitle": "Your channels",
+    "statusActive": "Active",
+    "statusPaused": "Paused",
+    "statusPending": "Pending",
+    "statusDisabled": "Disabled",
+    "lastSync": "Last menu sync",
+    "lastSyncNever": "Never",
+    "modeLabel": "Acceptance mode",
+    "modeAuto": "Automatic",
+    "modeManual": "Manual",
+    "pauseAction": "Pause",
+    "resumeAction": "Resume",
+    "pauseToastSuccess": "Channel paused",
+    "resumeToastSuccess": "Channel resumed",
+    "pauseToastError": "Couldn't update the channel",
+    "viewOrders": "View delivery orders"
+  }
+}
