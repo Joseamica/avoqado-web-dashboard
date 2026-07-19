@@ -88,6 +88,7 @@ export const PLAN_TIERS: PlanTierDef[] = [
       'AUTO_REORDER',
       'TRANSACTION_EXPORT',
       'MERCHANT_ROUTING_RULES', // Reglas condicionales de merchants en TPV (espejo de PREMIUM_ONLY_CODES backend)
+      'DELIVERY_CHANNELS', // Canales de entrega (Uber Eats, Rappi, DiDi, etc.)
     ],
   },
   {

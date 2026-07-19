@@ -11,6 +11,8 @@ describe('plan-catalog', () => {
   it('maps a feature to the lowest tier that includes it', () => {
     // CFDI is a Premium differentiator
     expect(getTierForFeature('CFDI')).toBe('PREMIUM')
+    // Delivery channels are Premium
+    expect(getTierForFeature('DELIVERY_CHANNELS')).toBe('PREMIUM')
     // Reports/AI are Pro
     expect(getTierForFeature('ADVANCED_REPORTS')).toBe('PRO')
     // Chatbot ships in Free (Beta)
