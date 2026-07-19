@@ -4,6 +4,7 @@ import api from '@/api'
 import { AddToAIButton } from '@/components/AddToAIButton'
 import DataTable from '@/components/data-table'
 import { DateRangePicker } from '@/components/date-range-picker'
+import { ChannelBadge } from '@/components/delivery/ChannelBadge'
 import { AmountFilterContent, CheckboxFilterContent, ColumnCustomizer, FilterPill, FilterPillBar, type AmountFilter } from '@/components/filters'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { SelectionSummaryBar } from '@/components/selection-summary-bar'
@@ -624,12 +625,22 @@ export default function Orders() {
           const orderNumber = row.original.orderNumber || '-'
 
           // Show last 6 digits for ALL orders: "ORD-1767664106975" → "#106975", "FAST-1766069887997" → "#887997"
-          if (orderNumber !== '-' && orderNumber.length > 6) {
-            const shortNumber = orderNumber.slice(-6)
-            return <span className="font-mono text-sm text-foreground">#{shortNumber}</span>
-          }
+          const numberEl =
+            orderNumber !== '-' && orderNumber.length > 6 ? (
+              <span className="font-mono text-sm text-foreground">#{orderNumber.slice(-6)}</span>
+            ) : (
+              <span className="text-sm">{orderNumber}</span>
+            )
 
-          return <span className="text-sm">{orderNumber}</span>
+          // ChannelBadge renders null for non-delivery sources (TPV, QR, WEB...),
+          // so normal rows keep their exact previous layout — only delivery-sourced
+          // orders (UBER_EATS/RAPPI/DIDI_FOOD/DELIVERY_PLATFORM) show the extra pill.
+          return (
+            <div className="flex items-center gap-1.5">
+              {numberEl}
+              <ChannelBadge source={row.original.source} />
+            </div>
+          )
         },
       },
       {

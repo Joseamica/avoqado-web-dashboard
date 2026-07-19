@@ -50,6 +50,7 @@ import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { PaymentDrawerContent } from './PaymentDrawerContent'
 import { ManualPaymentDialog } from '@/components/ManualPaymentDialog/ManualPaymentDialog'
 import { PaymentSourceBadge } from '@/components/PaymentSourceBadge'
+import { ChannelBadge } from '@/components/delivery/ChannelBadge'
 import { useAccess } from '@/hooks/use-access'
 
 const isRefundPayment = (payment: PaymentType) =>
@@ -820,7 +821,13 @@ export default function Payments() {
       {
         // Source column — renders PaymentSourceBadge, which shows the
         // externalSource text (e.g. "BUQ") when source=OTHER, or the matching
-        // built-in icon/label otherwise (TPV, QR, WEB, App, etc.).
+        // built-in icon/label otherwise (TPV, QR, WEB, App, etc.). ChannelBadge
+        // adds a second pill for delivery-platform rows: payment.source only
+        // ever carries the generic DELIVERY_PLATFORM value (PaymentSource enum
+        // has no UBER_EATS/RAPPI/DIDI_FOOD members), so we prefer the parent
+        // order's granular source when present, falling back to payment.source.
+        // Renders null for non-delivery rows, so normal payments keep their
+        // exact previous layout.
         accessorKey: 'source',
         id: 'source',
         meta: { label: t('columns.source') },
@@ -828,11 +835,14 @@ export default function Payments() {
         cell: ({ row }) => {
           const payment = row.original as any
           return (
-            <PaymentSourceBadge
-              source={payment.source}
-              externalSource={payment.externalSource}
-              orderSource={payment.order?.source}
-            />
+            <div className="flex items-center gap-1.5">
+              <PaymentSourceBadge
+                source={payment.source}
+                externalSource={payment.externalSource}
+                orderSource={payment.order?.source}
+              />
+              <ChannelBadge source={payment.order?.source ?? payment.source} />
+            </div>
           )
         },
       },
