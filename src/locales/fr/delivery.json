@@ -33,6 +33,7 @@
   "live": {
     "statsTitle": "Aujourd'hui",
     "statsEmpty": "Pas encore de commandes de livraison aujourd'hui.",
+    "statsError": "Impossible de charger les statistiques du jour.",
     "ordersLabel": "commandes",
     "channelsTitle": "Vos canaux",
     "statusActive": "Actif",

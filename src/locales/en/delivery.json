@@ -33,6 +33,7 @@
   "live": {
     "statsTitle": "Today",
     "statsEmpty": "No delivery orders yet today.",
+    "statsError": "Couldn't load today's stats.",
     "ordersLabel": "orders",
     "channelsTitle": "Your channels",
     "statusActive": "Active",

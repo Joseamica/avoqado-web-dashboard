@@ -47,7 +47,7 @@ export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps)
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  const { data: summary, isLoading: summaryLoading } = useQuery({
+  const { data: summary, isLoading: summaryLoading, isError: summaryError } = useQuery({
     queryKey: ['deliverySummary', venueId],
     queryFn: () => getDeliverySummary(venueId),
     enabled: !!venueId,
@@ -82,6 +82,10 @@ export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps)
             <div className="flex items-center justify-center py-6">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
+          ) : summaryError ? (
+            // Distinguish a failed fetch from a genuine "no orders yet" — otherwise a transient
+            // summary error would masquerade as zero delivery activity (Minor #1, task-6 review).
+            <p className="text-sm text-destructive">{t('live.statsError')}</p>
           ) : !summary?.channels.length ? (
             <p className="text-sm text-muted-foreground">{t('live.statsEmpty')}</p>
           ) : (
