@@ -9,7 +9,8 @@
     "benefit1": "Orders land directly in your POS, ready to prepare",
     "benefit2": "One place to see counter sales and delivery together",
     "benefit3": "Your menu stays in sync automatically",
-    "cta": "Request activation"
+    "cta": "Request activation",
+    "needsAdmin": "Contact an administrator to enable delivery."
   },
   "requestDialog": {
     "title": "Request delivery activation",

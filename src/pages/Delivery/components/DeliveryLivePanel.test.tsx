@@ -11,6 +11,11 @@ vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: mockToast }) }))
 // t returns the key verbatim so assertions can match i18n keys directly (repo test convention).
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
 
+// useAccess mock — controls `can('delivery-channels:manage')` per test. Defaults to true so the
+// existing pause tests exercise the interactive Switch; the gating test flips it to false.
+const mockCan = vi.fn((_perm: string) => true)
+vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: mockCan }) }))
+
 vi.mock('@/hooks/use-current-venue', () => ({
   useCurrentVenue: () => ({ fullBasePath: '/venues/test' }),
 }))
@@ -62,6 +67,7 @@ function renderPanel(channels: DeliveryChannelLink[]) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockCan.mockReturnValue(true) // default: OWNER/ADMIN — can manage
   mockGetDeliverySummary.mockResolvedValue(summaryWith([]))
   mockPauseChannel.mockResolvedValue(channel({ status: 'PAUSED' }))
 })
@@ -98,6 +104,21 @@ describe('DeliveryLivePanel', () => {
 
     await screen.findByText('live.channelsTitle')
     expect(screen.queryByRole('switch')).not.toBeInTheDocument()
+  })
+
+  it('sin delivery-channels:manage → Switch disabled + status como badge de solo-lectura; al intentar pausar NO llama a pauseChannel', async () => {
+    mockCan.mockImplementation((perm: string) => perm !== 'delivery-channels:manage') // MANAGER: read pero no manage
+    renderPanel([channel({ status: 'ACTIVE' })])
+
+    const sw = await screen.findByRole('switch')
+    expect(sw).toBeDisabled()
+    // El estado sigue visible como badge de solo-lectura (no se pierde información).
+    expect(screen.getByText('live.statusActive')).toBeInTheDocument()
+
+    fireEvent.click(sw)
+    // Un Switch disabled no dispara onCheckedChange → el guard evita el 403 muerto.
+    await new Promise(r => setTimeout(r, 0))
+    expect(mockPauseChannel).not.toHaveBeenCalled()
   })
 
   // -------------------------------------------------------------------------------------------

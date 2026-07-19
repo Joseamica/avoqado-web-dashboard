@@ -9,7 +9,8 @@
     "benefit1": "Los pedidos llegan directo a tu POS, listos para preparar",
     "benefit2": "Un solo lugar para ver ventas de mostrador y delivery",
     "benefit3": "Tu menú se mantiene sincronizado automáticamente",
-    "cta": "Solicitar activación"
+    "cta": "Solicitar activación",
+    "needsAdmin": "Contacta a un administrador para activar el delivery."
   },
   "requestDialog": {
     "title": "Solicitar activación de delivery",

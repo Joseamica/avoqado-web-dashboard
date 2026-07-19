@@ -6,6 +6,7 @@ import { ArrowRight, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
+import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useVenueDateTime } from '@/utils/datetime'
 import { Currency } from '@/utils/currency'
@@ -42,6 +43,11 @@ const STATUS_LABEL_KEY: Record<DeliveryChannelStatus, string> = {
  */
 export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps) {
   const { t } = useTranslation('delivery')
+  const { can } = useAccess()
+  // Pause/resume is `delivery-channels:manage` (OWNER/ADMIN — MANAGER reaches this panel via `:read`
+  // but the backend 403s the pause). Without it the Switch renders disabled: the ACTIVE/PAUSED badge
+  // still reads the status, but the control can't be operated (no dead 403 button).
+  const canManage = can('delivery-channels:manage')
   const { fullBasePath } = useCurrentVenue()
   const { formatDateTime } = useVenueDateTime()
   const { toast } = useToast()
@@ -135,7 +141,7 @@ export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps)
                       <span className="text-sm">{channel.status === 'ACTIVE' ? t('live.pauseAction') : t('live.resumeAction')}</span>
                       <Switch
                         checked={channel.status === 'ACTIVE'}
-                        disabled={isMutatingThis}
+                        disabled={isMutatingThis || !canManage}
                         onCheckedChange={checked => pauseMutation.mutate({ linkId: channel.id, paused: !checked })}
                       />
                     </div>

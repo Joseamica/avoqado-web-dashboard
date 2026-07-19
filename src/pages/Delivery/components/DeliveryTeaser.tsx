@@ -4,6 +4,7 @@ import { Bike, CheckCircle2 } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { useAccess } from '@/hooks/use-access'
 import { RequestActivationDialog } from './RequestActivationDialog'
 
 /** Brand names shown as pills — hardcoded, not translated (real trademarks). */
@@ -17,9 +18,15 @@ interface DeliveryTeaserProps {
  * TEASER state: PREMIUM but no activation request yet. Honest sales pitch (delivery isn't live
  * for anyone yet — Deliverect staging is still pending, design spec §1) + self-serve
  * "Solicitar activación" CTA that opens {@link RequestActivationDialog}.
+ *
+ * The CTA is gated by `delivery-channels:request` (OWNER/ADMIN only — MANAGER reaches the page via
+ * `:read` but the backend 403s the request; permissions.ts comment: "OWNER/ADMIN, NO MANAGER").
+ * Without it we show a hint instead of a dead button, but keep the sales copy visible.
  */
 export function DeliveryTeaser({ venueId }: DeliveryTeaserProps) {
   const { t } = useTranslation('delivery')
+  const { can } = useAccess()
+  const canRequest = can('delivery-channels:request')
   const [dialogOpen, setDialogOpen] = useState(false)
 
   return (
@@ -51,10 +58,14 @@ export function DeliveryTeaser({ venueId }: DeliveryTeaserProps) {
           ))}
         </ul>
 
-        <Button onClick={() => setDialogOpen(true)}>{t('teaser.cta')}</Button>
+        {canRequest ? (
+          <Button onClick={() => setDialogOpen(true)}>{t('teaser.cta')}</Button>
+        ) : (
+          <p className="text-sm text-muted-foreground">{t('teaser.needsAdmin')}</p>
+        )}
       </CardContent>
 
-      <RequestActivationDialog venueId={venueId} open={dialogOpen} onOpenChange={setDialogOpen} />
+      {canRequest && <RequestActivationDialog venueId={venueId} open={dialogOpen} onOpenChange={setDialogOpen} />}
     </Card>
   )
 }

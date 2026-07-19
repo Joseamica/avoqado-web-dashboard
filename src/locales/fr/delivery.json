@@ -9,7 +9,8 @@
     "benefit1": "Les commandes arrivent directement sur votre caisse, prêtes à préparer",
     "benefit2": "Un seul endroit pour voir les ventes au comptoir et la livraison",
     "benefit3": "Votre menu reste synchronisé automatiquement",
-    "cta": "Demander l'activation"
+    "cta": "Demander l'activation",
+    "needsAdmin": "Contactez un administrateur pour activer la livraison."
   },
   "requestDialog": {
     "title": "Demander l'activation de la livraison",
