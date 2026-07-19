@@ -64,8 +64,8 @@ Migración + `MODEL_TO_DOMAIN` en `scripts/generate-schema-map.ts` + `npm run sc
 ### 4.2 Endpoints
 
 - **Dueño** (namespace dashboard, gated `checkFeatureAccess('DELIVERY_CHANNELS')` + permiso):
-  - `POST /venues/:venueId/delivery/activation-request` — crea la solicitud (idempotente: si ya hay una PENDING/CONTACTED, la devuelve en vez de duplicar). ActivityLog `DELIVERY_ACTIVATION_REQUESTED`.
-  - `GET /venues/:venueId/delivery/activation-request` — estado actual (para pintar estado 3). Devuelve `null` si no hay.
+  - `POST /venues/:venueId/activation-request` — crea la solicitud (idempotente: si ya hay una PENDING/CONTACTED, la devuelve en vez de duplicar). ActivityLog `DELIVERY_ACTIVATION_REQUESTED`.
+  - `GET /venues/:venueId/activation-request` — estado actual (para pintar estado 3). Devuelve `null` si no hay.
 - **Ops** (namespace superadmin): `GET` lista de solicitudes (cola) + `PATCH .../:id` para avanzar status (CONTACTED/CONNECTED/DISMISSED). ActivityLog en cada transición. `connectedAt` se sella cuando el canal real queda ACTIVE (o manualmente al conectar).
 
 ### 4.3 MCP lockstep + auditoría
@@ -89,7 +89,7 @@ Patrón ya rodado (mapa: CFDI/inventario/comisiones). Referencias exactas: `plan
 El hook decide cuál de los 4 estados pintar con 3 lecturas (React Query, cacheadas):
 - `useVenueTier()` / `useTierFeatureAccess('DELIVERY_CHANNELS')` → ¿tiene el feature? (estado 1 vs resto).
 - `GET /venues/:venueId/channels` → ¿hay canal ACTIVE? → **estado 4**.
-- `GET /venues/:venueId/delivery/activation-request` → ¿solicitud PENDING/CONTACTED? → **estado 3**; si no → **estado 2**.
+- `GET /venues/:venueId/activation-request` → ¿solicitud PENDING/CONTACTED? → **estado 3**; si no → **estado 2**.
 
 La tira de stats del panel usa los números por-canal que el backend ya calcula (misma fuente que el MCP tool `delivery_channels`); expuesto vía un `GET` de resumen o el endpoint de channels enriquecido — se define en el plan.
 
