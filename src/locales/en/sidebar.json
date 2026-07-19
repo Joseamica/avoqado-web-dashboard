@@ -44,7 +44,8 @@
     "subscriptions": "Subscriptions",
     "disputes": "Disputes",
     "back": "Sales",
-    "ecommerce": "E-commerce"
+    "ecommerce": "E-commerce",
+    "delivery": "Delivery"
   },
   "growth": "Growth",
   "paymentProviders": "Payment Providers",

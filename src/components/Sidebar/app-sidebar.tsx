@@ -47,6 +47,7 @@
   Percent,
   Scale,
   Upload,
+  Truck,
 } from 'lucide-react'
 import * as React from 'react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -396,6 +397,19 @@ export function AppSidebar({
         permission: 'payment-link:read',
         locked: !hasKYCAccess,
         keywords: ['ecommerce', 'e-commerce', 'widget', 'embebido', 'insertar', 'sitio web', 'cobrar en mi pagina', 'embed', 'checkout', 'stripe', 'mercado pago'],
+      },
+      // Delivery — VISIBLE TEASER (Premium feature, Task 1 plan-catalog). Sales channel sibling of
+      // E-commerce: single page (4 data-driven states, Task 6), not a whole subSidebar section. Navigates
+      // NORMALLY to its url; the page itself renders the <FeatureGate> paywall when premiumLocked.
+      // Never use checkFeatureAccess/canFeature here — it can't tier-gate (short-circuits true).
+      {
+        title: t('sidebar:salesMenu.delivery', { defaultValue: 'Delivery' }),
+        url: 'delivery',
+        icon: Truck,
+        permission: 'delivery-channels:read',
+        premiumLocked: !hasFeatureAccess('DELIVERY_CHANNELS'),
+        gatedFeature: 'DELIVERY_CHANNELS',
+        keywords: ['delivery', 'domicilio', 'entrega', 'reparto', 'uber eats', 'rappi', 'didi', 'didi food', 'canales de entrega', 'pedidos a domicilio', 'deliverect'],
       },
       {
         title: t('sidebar:salesMenu.virtualTerminal', { defaultValue: 'Terminal Virtual' }),
