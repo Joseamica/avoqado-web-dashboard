@@ -1,13 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/api', () => ({
-  default: { get: vi.fn(), post: vi.fn() },
+  default: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
 }))
 
 import api from '@/api'
-import { getChannels, getActivationRequest, createActivationRequest, getDeliverySummary, pauseChannel } from '@/services/delivery.service'
+import {
+  getChannels,
+  getActivationRequest,
+  createActivationRequest,
+  getDeliverySummary,
+  pauseChannel,
+  updateChannel,
+} from '@/services/delivery.service'
 
-const mocked = api as unknown as { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn> }
+const mocked = api as unknown as { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn>; patch: ReturnType<typeof vi.fn> }
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -131,5 +138,28 @@ describe('delivery.service', () => {
 
     expect(mocked.post).toHaveBeenCalledWith('/api/v1/delivery-channels/venues/v1/channels/link-1/pause', { paused: true })
     expect(result.status).toBe('PAUSED')
+  })
+
+  it('updateChannel: PATCH el body exacto al link correcto y desenvuelve data', async () => {
+    mocked.patch.mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          id: 'link-1',
+          venueId: 'v1',
+          provider: 'UBER_EATS',
+          status: 'ACTIVE',
+          orderAcceptanceMode: 'MANUAL',
+          autoSyncMenu: true,
+          lastMenuSyncAt: null,
+          externalLocationId: 'ext-1',
+        },
+      },
+    })
+
+    const result = await updateChannel('v1', 'link-1', { orderAcceptanceMode: 'MANUAL' })
+
+    expect(mocked.patch).toHaveBeenCalledWith('/api/v1/delivery-channels/venues/v1/channels/link-1', { orderAcceptanceMode: 'MANUAL' })
+    expect(result.orderAcceptanceMode).toBe('MANUAL')
   })
 })

@@ -33,3 +33,13 @@ export const getDeliverySummary = async (venueId: string): Promise<DeliverySumma
 /** POST .../channels/:linkId/pause — pausa o reactiva un canal vinculado. */
 export const pauseChannel = async (venueId: string, linkId: string, paused: boolean): Promise<DeliveryChannelLink> =>
   (await api.post(`${base(venueId)}/channels/${linkId}/pause`, { paused })).data.data
+
+/**
+ * PATCH .../channels/:linkId — actualiza el canal (modo de aceptación auto/manual, auto-sync de
+ * menú, etc.). Todos los campos son opcionales; el backend exige al menos uno (`updateChannelSchema`).
+ */
+export const updateChannel = async (
+  venueId: string,
+  linkId: string,
+  body: { orderAcceptanceMode?: 'AUTO' | 'MANUAL'; autoSyncMenu?: boolean },
+): Promise<DeliveryChannelLink> => (await api.patch(`${base(venueId)}/channels/${linkId}`, body)).data.data

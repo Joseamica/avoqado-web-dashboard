@@ -51,6 +51,8 @@
     "pauseToastSuccess": "Channel paused",
     "resumeToastSuccess": "Channel resumed",
     "pauseToastError": "Couldn't update the channel",
+    "modeToastSuccess": "Acceptance mode updated",
+    "modeToastError": "Couldn't update the acceptance mode",
     "viewOrders": "View delivery orders"
   }
 }

@@ -26,9 +26,11 @@ vi.mock('@/utils/datetime', () => ({
 
 const mockGetDeliverySummary = vi.fn()
 const mockPauseChannel = vi.fn()
+const mockUpdateChannel = vi.fn()
 vi.mock('@/services/delivery.service', () => ({
   getDeliverySummary: (...args: unknown[]) => mockGetDeliverySummary(...args),
   pauseChannel: (...args: unknown[]) => mockPauseChannel(...args),
+  updateChannel: (...args: unknown[]) => mockUpdateChannel(...args),
 }))
 
 import { DeliveryLivePanel } from './DeliveryLivePanel'
@@ -70,6 +72,7 @@ beforeEach(() => {
   mockCan.mockReturnValue(true) // default: OWNER/ADMIN — can manage
   mockGetDeliverySummary.mockResolvedValue(summaryWith([]))
   mockPauseChannel.mockResolvedValue(channel({ status: 'PAUSED' }))
+  mockUpdateChannel.mockResolvedValue(channel({ orderAcceptanceMode: 'MANUAL' }))
 })
 
 describe('DeliveryLivePanel', () => {
@@ -119,6 +122,54 @@ describe('DeliveryLivePanel', () => {
     // Un Switch disabled no dispara onCheckedChange → el guard evita el 403 muerto.
     await new Promise(r => setTimeout(r, 0))
     expect(mockPauseChannel).not.toHaveBeenCalled()
+  })
+
+  // -------------------------------------------------------------------------------------------
+  // Acceptance mode control (AUTO/MANUAL) — backend PATCH .../channels/:linkId, gated the same
+  // way as the pause Switch: always rendered, `disabled` without delivery-channels:manage.
+  // -------------------------------------------------------------------------------------------
+  it('modo AUTO → click en MANUAL llama a updateChannel(venueId, linkId, { orderAcceptanceMode: "MANUAL" }) EXACTO + invalida ["deliveryChannels", venueId]', async () => {
+    const { invalidateSpy } = renderPanel([channel({ id: 'link-1', orderAcceptanceMode: 'AUTO' })])
+
+    const manualBtn = await screen.findByRole('button', { name: 'live.modeManual' })
+    fireEvent.click(manualBtn)
+
+    await waitFor(() => expect(mockUpdateChannel).toHaveBeenCalledWith('venue-1', 'link-1', { orderAcceptanceMode: 'MANUAL' }))
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['deliveryChannels', 'venue-1'] }))
+  })
+
+  it('modo MANUAL → click en AUTO llama a updateChannel(venueId, linkId, { orderAcceptanceMode: "AUTO" })', async () => {
+    renderPanel([channel({ id: 'link-2', orderAcceptanceMode: 'MANUAL' })])
+
+    const autoBtn = await screen.findByRole('button', { name: 'live.modeAuto' })
+    fireEvent.click(autoBtn)
+
+    await waitFor(() => expect(mockUpdateChannel).toHaveBeenCalledWith('venue-1', 'link-2', { orderAcceptanceMode: 'AUTO' }))
+  })
+
+  it('el botón del modo actual está marcado (aria-pressed) y un click sobre el modo ya activo NO llama a updateChannel', async () => {
+    renderPanel([channel({ orderAcceptanceMode: 'AUTO' })])
+
+    const autoBtn = await screen.findByRole('button', { name: 'live.modeAuto' })
+    const manualBtn = await screen.findByRole('button', { name: 'live.modeManual' })
+    expect(autoBtn).toHaveAttribute('aria-pressed', 'true')
+    expect(manualBtn).toHaveAttribute('aria-pressed', 'false')
+
+    fireEvent.click(autoBtn)
+    await new Promise(r => setTimeout(r, 0))
+    expect(mockUpdateChannel).not.toHaveBeenCalled()
+  })
+
+  it('sin delivery-channels:manage → controles de modo disabled; al intentar cambiar NO llama a updateChannel', async () => {
+    mockCan.mockImplementation((perm: string) => perm !== 'delivery-channels:manage')
+    renderPanel([channel({ orderAcceptanceMode: 'AUTO' })])
+
+    const manualBtn = await screen.findByRole('button', { name: 'live.modeManual' })
+    expect(manualBtn).toBeDisabled()
+
+    fireEvent.click(manualBtn)
+    await new Promise(r => setTimeout(r, 0))
+    expect(mockUpdateChannel).not.toHaveBeenCalled()
   })
 
   // -------------------------------------------------------------------------------------------

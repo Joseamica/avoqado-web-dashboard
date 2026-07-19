@@ -51,6 +51,8 @@
     "pauseToastSuccess": "Canal mis en pause",
     "resumeToastSuccess": "Canal réactivé",
     "pauseToastError": "Impossible de mettre à jour le canal",
+    "modeToastSuccess": "Mode d'acceptation mis à jour",
+    "modeToastError": "Impossible de mettre à jour le mode d'acceptation",
     "viewOrders": "Voir les commandes de livraison"
   }
 }

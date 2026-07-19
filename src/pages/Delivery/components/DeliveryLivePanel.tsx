@@ -6,12 +6,14 @@ import { ArrowRight, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useVenueDateTime } from '@/utils/datetime'
 import { Currency } from '@/utils/currency'
 import { useToast } from '@/hooks/use-toast'
-import { getDeliverySummary, pauseChannel } from '@/services/delivery.service'
+import { getDeliverySummary, pauseChannel, updateChannel } from '@/services/delivery.service'
 import { providerLabel } from '../providerLabels'
 import type { DeliveryChannelLink, DeliveryChannelStatus } from '@/types/delivery'
 
@@ -76,6 +78,23 @@ export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps)
     },
   })
 
+  const modeMutation = useMutation({
+    mutationFn: ({ linkId, orderAcceptanceMode }: { linkId: string; orderAcceptanceMode: 'AUTO' | 'MANUAL' }) =>
+      updateChannel(venueId, linkId, { orderAcceptanceMode }),
+    onSuccess: () => {
+      // Same queryKey as pauseMutation — keeps the card's displayed mode in sync with the server.
+      queryClient.invalidateQueries({ queryKey: ['deliveryChannels', venueId] })
+      toast({ title: t('live.modeToastSuccess') })
+    },
+    onError: (err: any) => {
+      toast({
+        title: t('live.modeToastError'),
+        description: err?.response?.data?.message ?? err?.message ?? '',
+        variant: 'destructive',
+      })
+    },
+  })
+
   return (
     <div className="space-y-6">
       {/* (a) Today's stats strip, per channel */}
@@ -129,11 +148,33 @@ export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps)
                     <p>
                       {t('live.lastSync')}: {channel.lastMenuSyncAt ? formatDateTime(channel.lastMenuSyncAt) : t('live.lastSyncNever')}
                     </p>
-                    {/* orderAcceptanceMode is read-only here — auto/manual selection needs updateChannel,
-                        not yet in delivery.service.ts (fast-follow, see design plan Task 6 Step 5). */}
-                    <p>
-                      {t('live.modeLabel')}: {channel.orderAcceptanceMode === 'AUTO' ? t('live.modeAuto') : t('live.modeManual')}
-                    </p>
+                  </div>
+
+                  {/* Acceptance mode (AUTO/MANUAL) — editable via updateChannel. Gated by
+                      delivery-channels:manage the same way as the pause Switch below: always
+                      rendered, `disabled` (not hidden) without the permission. */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">{t('live.modeLabel')}</span>
+                    <div className="flex items-center gap-1 rounded-lg border border-input p-0.5">
+                      {(['AUTO', 'MANUAL'] as const).map(mode => {
+                        const isActive = channel.orderAcceptanceMode === mode
+                        const isMutatingThisMode = modeMutation.isPending && modeMutation.variables?.linkId === channel.id
+                        return (
+                          <Button
+                            key={mode}
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            aria-pressed={isActive}
+                            disabled={isMutatingThisMode || !canManage}
+                            className={cn('h-6 px-2 text-[11px]', isActive && 'bg-primary text-primary-foreground hover:bg-primary/90')}
+                            onClick={() => !isActive && modeMutation.mutate({ linkId: channel.id, orderAcceptanceMode: mode })}
+                          >
+                            {mode === 'AUTO' ? t('live.modeAuto') : t('live.modeManual')}
+                          </Button>
+                        )
+                      })}
+                    </div>
                   </div>
 
                   {isTogglable && (
