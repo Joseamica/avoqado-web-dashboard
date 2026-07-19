@@ -30,7 +30,12 @@ export interface DeliveryStatus {
 export function useDeliveryStatus(venueId: string | undefined): DeliveryStatus {
   const { hasFeatureAccess, isLoading: tierLoading } = useVenueTier()
   const hasFeature = hasFeatureAccess('DELIVERY_CHANNELS')
-  const enabled = !!venueId && hasFeature
+  // `!tierLoading` es OBLIGATORIO: useVenueTier hace fail-open mientras carga (hasFeatureAccess()
+  // devuelve true para TODOS los venues hasta que el tier asienta — use-tier-feature-access.ts:95).
+  // Sin descontarlo, un venue LOCKED dispararía getChannels/getActivationRequest durante el cold-load
+  // → 403 (el backend las gatea con checkFeatureAccess). Con `!tierLoading`, no se pega al API hasta
+  // que el tier resuelve; ya resuelto, un venue sin feature tiene hasFeature=false y sigue sin pegar.
+  const enabled = !!venueId && hasFeature && !tierLoading
 
   const { data: channels = [], isLoading: chLoading } = useQuery({
     queryKey: ['deliveryChannels', venueId],

@@ -180,6 +180,26 @@ describe('useDeliveryStatus', () => {
     expect(result.current.isLoading).toBe(true)
   })
 
+  it('FAIL-OPEN durante carga de tier (hasFeatureAccess true + isLoading true) → enabled false en ambas queries, NO pega al API', () => {
+    // useVenueTier hace fail-open: mientras planTierInfo === undefined, hasFeatureAccess() devuelve true
+    // para TODOS los venues (incl. los LOCKED) — ver use-tier-feature-access.ts:95. Si el gate de las
+    // queries no descuenta tierLoading, esa ventana de cold-load dispararía getChannels/getActivationRequest
+    // en un venue SIN el feature → 403 (el backend las gatea con checkFeatureAccess). Debe seguir sin pegar
+    // al API hasta que el tier asiente; cuando asiente, si el venue no tiene el feature, hasFeature ya es
+    // false y sigue sin pegar.
+    mockUseVenueTier.mockReturnValue({ hasFeatureAccess: () => true, isLoading: true })
+    mockQueries({})
+
+    const { result } = renderHook(() => useDeliveryStatus('venue-1'), { wrapper })
+
+    expect(mockUseQuery.mock.calls.length).toBeGreaterThan(0)
+    for (const [queryOpts] of mockUseQuery.mock.calls as [MockQueryOptions][]) {
+      expect(queryOpts.enabled).toBe(false)
+    }
+    // Sin flash de contenido: mientras carga el tier, isLoading sigue true.
+    expect(result.current.isLoading).toBe(true)
+  })
+
   it('con feature, query de canales en vuelo → isLoading true', () => {
     mockUseVenueTier.mockReturnValue({ hasFeatureAccess: () => true, isLoading: false })
     mockQueries({ channelsLoading: true, activationLoading: false })
