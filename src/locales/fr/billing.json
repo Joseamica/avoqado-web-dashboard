@@ -8,6 +8,11 @@
     "paymentMethods": "Moyens de Paiement",
     "tokens": "Tokens IA"
   },
+  "plan": {
+    "features": {
+      "delivery": "Livraison (Uber Eats, Rappi, DiDi)"
+    }
+  },
   "activeSubscriptions": {
     "title": "Abonnements Actifs",
     "noSubscriptions": "Vous n'avez pas encore d'abonnements actifs",

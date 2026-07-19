@@ -1,6 +1,9 @@
 // src/config/__tests__/plan-catalog.test.ts
 import { describe, it, expect } from 'vitest'
 import { PLAN_TIERS, getTierForFeature, TIER_ORDER } from '../plan-catalog'
+import billingEn from '@/locales/en/billing.json'
+import billingEs from '@/locales/es/billing.json'
+import billingFr from '@/locales/fr/billing.json'
 
 describe('plan-catalog', () => {
   it('defines exactly the four tiers in ascending order', () => {
@@ -27,5 +30,18 @@ describe('plan-catalog', () => {
     const premium = PLAN_TIERS.find(t => t.id === 'PREMIUM')!
     expect(premium.checkout).toBe('self_serve')
     expect(premium.priceMonthly).toBe(1699)
+  })
+
+  it('Premium card lists the delivery bullet (Uber Eats/Rappi/DiDi teaser)', () => {
+    const premium = PLAN_TIERS.find(t => t.id === 'PREMIUM')!
+    expect(premium.featureKeys).toContain('delivery')
+  })
+
+  it('plan.features.delivery i18n copy exists in en/es/fr billing locales', () => {
+    expect(billingEn.plan.features.delivery).toBe('Delivery (Uber Eats, Rappi, DiDi)')
+    expect(billingEs.plan.features.delivery).toBe('Delivery (Uber Eats, Rappi, DiDi)')
+    expect((billingFr as { plan?: { features?: { delivery?: string } } }).plan?.features?.delivery).toBe(
+      'Livraison (Uber Eats, Rappi, DiDi)',
+    )
   })
 })

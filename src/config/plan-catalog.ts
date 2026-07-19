@@ -76,7 +76,7 @@ export const PLAN_TIERS: PlanTierDef[] = [
     priceMonthly: 1699,
     priceAnnual: 16990,
     checkout: 'self_serve', // Premium purchasable — Stripe product seeded (plan_premium_*)
-    featureKeys: ['allPro', 'cfdi', 'inventoryFifo', 'predictiveAnalytics', 'multiVenue', 'prioritySupport'],
+    featureKeys: ['allPro', 'cfdi', 'inventoryFifo', 'delivery', 'predictiveAnalytics', 'multiVenue', 'prioritySupport'],
     // 'ADVANCED_ANALYTICS' removed 2026-07-01: dead pay-per-feature code (never gated anything).
     // The "analítica predictiva" bullet on the Premium card is featureKeys copy, not this code.
     includes: [

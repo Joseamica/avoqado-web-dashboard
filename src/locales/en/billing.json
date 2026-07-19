@@ -113,6 +113,7 @@
       "allPro": "Everything in Pro",
       "cfdi": "CFDI invoicing",
       "inventoryFifo": "FIFO inventory + recipes + costing",
+      "delivery": "Delivery (Uber Eats, Rappi, DiDi)",
       "predictiveAnalytics": "Predictive analytics",
       "multiVenue": "Consolidated multi-location",
       "prioritySupport": "Priority support",
