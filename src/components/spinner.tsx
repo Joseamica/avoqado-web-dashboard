@@ -92,7 +92,9 @@ export function LoadingScreenProvider({ children }: { children: React.ReactNode 
   }, [])
 
   const registry = useMemo(() => ({ register, unregister }), [register, unregister])
-  const activeRequest = requests.at(-1)
+  // Last request wins. Index access instead of `.at(-1)` because tsconfig lib is ES2020
+  // (Array.prototype.at needs ES2022) — this keeps `tsc` green in the production build.
+  const activeRequest = requests.length > 0 ? requests[requests.length - 1] : undefined
 
   return (
     <LoadingScreenContext.Provider value={registry}>
