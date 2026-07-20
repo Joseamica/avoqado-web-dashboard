@@ -36,6 +36,7 @@ import { BreadcrumbProvider, useBreadcrumb } from './context/BreadcrumbContext'
 import { ChatReferencesProvider } from './context/ChatReferencesContext'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import api from './api'
+import { LoadingScreen } from './components/spinner'
 
 // Route segment -> i18n key mapping
 const routeKeyMap: Record<string, string> = {
@@ -191,14 +192,7 @@ function DashboardContent() {
 
   // Si está cargando el venue, mostrar estado de carga
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">{t('dashboardShell.loadingVenue')}</p>
-        </div>
-      </div>
-    )
+    return <LoadingScreen message={t('dashboardShell.loadingVenue')} />
   }
 
   // Verificar si el venue está suspendido/cerrado (bloquear acceso completo)
@@ -228,14 +222,7 @@ function DashboardContent() {
   if (venueSlug && !hasVenueAccess && !hasGlobalVenueAccess) {
     // Mientras se restaura al último slug válido, mostrar estado de transición.
     if (lastAccessibleVenueSlug && lastAccessibleVenueSlug !== venueSlug) {
-      return (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">{t('dashboardShell.restoringAccess')}</p>
-          </div>
-        </div>
-      )
+      return <LoadingScreen message={t('dashboardShell.restoringAccess')} />
     }
 
     // Si no hay venue válido anterior o no es privilegiado, mostrar mensaje de acceso denegado

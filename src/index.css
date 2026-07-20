@@ -104,6 +104,143 @@
 }
 
 @layer utilities {
+  .avoqado-loader {
+    display: block;
+    contain: layout paint style;
+    overflow: visible;
+  }
+
+  .avoqado-loader__mark,
+  .avoqado-loader__seed,
+  .avoqado-loader__green-traced,
+  .avoqado-loader__green-complete,
+  .avoqado-loader__growth-path {
+    animation-duration: 1.8s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  .avoqado-loader__mark {
+    animation-name: avoqado-loader-settle;
+  }
+
+  .avoqado-loader__seed {
+    animation-name: avoqado-loader-seed;
+  }
+
+  .avoqado-loader__green-traced {
+    animation-name: avoqado-loader-green-traced;
+  }
+
+  .avoqado-loader__green-complete {
+    animation-name: avoqado-loader-green-complete;
+  }
+
+  .avoqado-loader__growth-path {
+    stroke-dasharray: 1400;
+    stroke-dashoffset: 1400;
+    animation-name: avoqado-loader-growth;
+  }
+
+  @keyframes avoqado-loader-seed {
+    0% {
+      opacity: 0;
+      transform: scale(0.72) rotate(-5deg);
+    }
+    7% {
+      opacity: 1;
+    }
+    15%,
+    67% {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+    76% {
+      opacity: 1;
+      transform: scale(0.965) rotate(0deg);
+    }
+    84%,
+    91% {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(0.82) rotate(3deg);
+    }
+  }
+
+  @keyframes avoqado-loader-growth {
+    0%,
+    13% {
+      stroke-dashoffset: 1400;
+    }
+    62%,
+    100% {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes avoqado-loader-green-traced {
+    0%,
+    12% {
+      opacity: 0;
+    }
+    18%,
+    83% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes avoqado-loader-green-complete {
+    0%,
+    52% {
+      opacity: 0;
+    }
+    64%,
+    84% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes avoqado-loader-settle {
+    0%,
+    55% {
+      transform: scale(0.985);
+    }
+    70%,
+    91% {
+      transform: scale(1);
+    }
+    100% {
+      transform: scale(0.985);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .avoqado-loader__mark,
+    .avoqado-loader__seed,
+    .avoqado-loader__green-complete {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+
+    .avoqado-loader__green-traced,
+    .avoqado-loader__growth-path {
+      animation: none;
+      opacity: 0;
+    }
+  }
+
   /* Hide scrollbars while preserving scroll behavior */
   .scrollbar-hidden {
     -ms-overflow-style: none; /* IE and Edge */

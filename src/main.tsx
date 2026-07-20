@@ -4,6 +4,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import ErrorBoundary from './components/ErrorBoundary'
+import { LoadingScreen } from './components/spinner'
 import './i18n'
 import './index.css'
 import './theme.css'
@@ -27,6 +28,7 @@ window.addEventListener('vite:preloadError', () => {
 })
 
 const queryClient = new QueryClient()
+const showLoaderPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).get('loaderPreview') === '1'
 
 const rootElement = document.getElementById('root')
 if (!rootElement) throw new Error('Failed to find the root element')
@@ -37,7 +39,7 @@ root.render(
   <React.StrictMode>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <App />
+        {showLoaderPreview ? <LoadingScreen /> : <App />}
       </QueryClientProvider>
     </ErrorBoundary>
   </React.StrictMode>,
