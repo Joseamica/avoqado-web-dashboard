@@ -100,7 +100,7 @@ function readFileAsArrayBuffer(file: File): Promise<ArrayBuffer> {
   })
 }
 
-/** Formats a JS Date as a venue-local calendar day string YYYY-MM-DD. */
+/** Formats a JS Date as a local calendar day string YYYY-MM-DD (for locally-parsed strings). */
 function formatDateOnly(date: Date): string {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -108,10 +108,26 @@ function formatDateOnly(date: Date): string {
   return `${year}-${month}-${day}`
 }
 
+/**
+ * Formats an ExcelJS date cell as its calendar day YYYY-MM-DD using UTC components.
+ *
+ * ExcelJS reads a date-only cell (which carries no timezone) as UTC midnight — e.g. the
+ * cell "22/05/2026" comes back as `2026-05-22T00:00:00.000Z`. Formatting that with LOCAL
+ * getters in a browser west of UTC (America/Mexico_City, -06) yields the PREVIOUS day
+ * (2026-05-21) — an off-by-one that filed every sale one day early. UTC getters read back
+ * the exact day the operator typed.
+ */
+function formatExcelDateUTC(date: Date): string {
+  const year = date.getUTCFullYear()
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(date.getUTCDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 /** Normalizes a raw "Fecha" cell (Excel Date, string, or number) to YYYY-MM-DD. */
 function normalizeSaleDate(rawValue: unknown): string {
   if (rawValue instanceof Date) {
-    return formatDateOnly(rawValue)
+    return formatExcelDateUTC(rawValue)
   }
 
   const asString = String(rawValue ?? '').trim()

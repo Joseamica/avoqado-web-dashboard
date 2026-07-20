@@ -128,6 +128,26 @@ describe('parseSalesFile', () => {
     })
   })
 
+  // Regression (off-by-one, prod 2026-07-20): ExcelJS reads a date-only cell as UTC
+  // midnight (e.g. 2026-05-22T00:00:00.000Z). It MUST be formatted by its UTC day — a
+  // browser west of UTC (America/Mexico_City, -06) filed every sale one day early
+  // (2026-05-21) when local getters were used.
+  it('formats an ExcelJS UTC-midnight date cell by its UTC day (no -06 off-by-one)', async () => {
+    const workbook = new ExcelJS.Workbook()
+    const sheet = workbook.addWorksheet('Ventas')
+    sheet.addRow([])
+    sheet.addRow(['ID SIM', 'Nombre de la Tienda', 'Fecha', 'Tipo de Venta', 'Forma de Pago', 'Monto de Venta'])
+    sheet.addRow(['8952140063000009999', 'BAE Test (1)', new Date('2026-05-22T00:00:00.000Z'), 'Línea nueva', 'Efectivo', 100])
+    const buffer = await workbook.xlsx.writeBuffer()
+    const file = new File([buffer as ArrayBuffer], 'ventas.xlsx', {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
+
+    const rows = await parseSalesFile(file)
+
+    expect(rows[0].saleDate).toBe('2026-05-22')
+  })
+
   it('ignores extra columns (Estado, Mes, Estado Avoqado, Sucursal Avoqado)', async () => {
     const file = await buildSampleWorkbookFile()
 
