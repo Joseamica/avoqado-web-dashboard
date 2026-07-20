@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { LoadingScreen, Spinner } from './spinner'
+import { LoadingScreen, LoadingScreenProvider, Spinner } from './spinner'
 
 describe('Avoqado loading components', () => {
   it('renders the branded tail-first loader with its loading message', () => {
@@ -26,5 +26,26 @@ describe('Avoqado loading components', () => {
 
     expect(maskIds).toHaveLength(2)
     expect(new Set(maskIds).size).toBe(2)
+  })
+
+  it('renders one persistent screen loader when several loading states overlap', () => {
+    const { container, rerender } = render(
+      <LoadingScreenProvider>
+        <LoadingScreen message="Verificando sesión" />
+        <LoadingScreen message="Cargando sucursal" />
+      </LoadingScreenProvider>,
+    )
+
+    expect(container.querySelectorAll('.loading-screen')).toHaveLength(1)
+    expect(screen.getByRole('status')).toHaveTextContent('Cargando sucursal')
+
+    rerender(
+      <LoadingScreenProvider>
+        <LoadingScreen message="Verificando sesión" />
+      </LoadingScreenProvider>,
+    )
+
+    expect(container.querySelectorAll('.loading-screen')).toHaveLength(1)
+    expect(screen.getByRole('status')).toHaveTextContent('Verificando sesión')
   })
 })
