@@ -736,7 +736,14 @@ export default function ReservationCalendar() {
         : reservation.product
           ? [{ id: reservation.product.id, name: reservation.product.name, price: reservation.product.price, duration: null }]
           : []
-    const serviceSummary = services.map(s => s.name).join(' + ')
+    // One service per line beats a single truncated "A + B + C + D" run, which
+    // hid everything past the first service and made it impossible to tell what
+    // was actually booked. Fit as many lines as the block's height allows and
+    // roll the rest into a "+N más" counter; the tooltip always lists them all.
+    const SERVICE_LINE_PX = 13
+    const CHROME_PX = 34 // guest name + the start–end time row
+    const visibleServiceCount = Math.max(0, Math.min(services.length, Math.floor((height - CHROME_PX) / SERVICE_LINE_PX)))
+    const hiddenServiceCount = services.length - visibleServiceCount
     const modifiers = reservation.modifiers ?? []
     const modifiersTotal = modifiers.reduce((sum, m) => sum + (m.price ?? 0) * (m.quantity ?? 1), 0)
 
@@ -753,10 +760,20 @@ export default function ReservationCalendar() {
               onClick={() => navigate(`${fullBasePath}/reservations/${reservation.id}`)}
             >
               <div className="font-medium truncate">{guestName}</div>
-              {serviceSummary && height > 28 && (
-                <div className="truncate text-[11px] opacity-90">
-                  {serviceSummary}
-                  {modifiers.length > 0 && <span className="ml-1 opacity-75">+{modifiers.length}</span>}
+              {services.length > 0 && visibleServiceCount > 0 && (
+                <div className="text-[11px] opacity-90">
+                  {services.slice(0, visibleServiceCount).map((s, i) => (
+                    <div key={s.id ?? i} className="truncate leading-tight">
+                      {s.name}
+                    </div>
+                  ))}
+                  {(hiddenServiceCount > 0 || modifiers.length > 0) && (
+                    <div className="truncate leading-tight opacity-75">
+                      {hiddenServiceCount > 0 && t('calendar.moreServices', { count: hiddenServiceCount, defaultValue: `+${hiddenServiceCount} más` })}
+                      {hiddenServiceCount > 0 && modifiers.length > 0 && ' · '}
+                      {modifiers.length > 0 && `+${modifiers.length}`}
+                    </div>
+                  )}
                 </div>
               )}
               <div className="opacity-70 truncate">

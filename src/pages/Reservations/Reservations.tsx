@@ -185,6 +185,27 @@ export default function Reservations() {
         ),
       },
       {
+        id: 'services',
+        header: t('columns.services', 'Servicios'),
+        cell: ({ row }) => {
+          // What the guest actually booked. Multi-service appointments list
+          // EVERY service (the backend attaches them in booking order); legacy
+          // single-service rows fall back to the lead `product`.
+          const r = row.original
+          const names = r.services?.length ? r.services.map(s => s.name) : r.product ? [r.product.name] : []
+          if (names.length === 0) return <span className="text-muted-foreground">—</span>
+          return (
+            <div className="max-w-[260px] space-y-0.5">
+              {names.map((name, i) => (
+                <div key={i} className="text-sm leading-tight">
+                  {name}
+                </div>
+              ))}
+            </div>
+          )
+        },
+      },
+      {
         accessorKey: 'duration',
         header: t('columns.duration'),
         cell: ({ row }) => (
