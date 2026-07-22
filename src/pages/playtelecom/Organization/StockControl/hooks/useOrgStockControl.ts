@@ -6,6 +6,12 @@ export function useOrgStockControl(orgId: string | undefined, params: OrgStockOv
     queryKey: ['org-stock-control', orgId, params.dateFrom ?? null, params.dateTo ?? null],
     queryFn: () => getOrgStockOverview(orgId!, params),
     enabled: !!orgId,
-    staleTime: 60_000,
+    // Control de Stock is the supervisor's day-to-day screen and must reflect a SIM's
+    // real status quickly (Isaac 2026-07-21: a SIM sold mid-bulk still showed "Disponible"
+    // here because the list was cached fresh for 60s). Show cached instantly but always
+    // refetch fresh on entering the page and on returning to the tab.
+    staleTime: 10_000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   })
 }
