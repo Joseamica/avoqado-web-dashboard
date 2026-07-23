@@ -144,5 +144,25 @@
       "soldByWeight": "Vendu au poids",
       "soldByWeightDesc": "Le prix est par kilogramme ; le point de vente capture le poids depuis la balance au paiement."
     }
+  },
+  "interVenueTransfers": {
+    "title": "Transferts entre sites", "subtitle": "Demandez, expédiez et recevez des matières premières avec traçabilité FIFO.",
+    "create": "Nouveau transfert", "empty": "Aucun transfert ne correspond aux filtres.",
+    "tabs": { "transfers": "Transferts", "consolidated": "Stock consolidé" },
+    "filters": { "search": "Rechercher par numéro ou référence", "allStatuses": "Tous les statuts", "allDirections": "Toutes les directions", "incoming": "Entrants", "outgoing": "Sortants", "requiresAction": "Nécessite mon action" },
+    "columns": { "date": "Date", "number": "Numéro", "route": "Trajet", "mode": "Mode", "items": "Articles", "status": "Statut" },
+    "modes": { "PULL": "Demande du destinataire", "PUSH": "Envoi de l'origine" },
+    "statuses": { "REQUESTED": "Demandé", "APPROVED": "Approuvé", "IN_TRANSIT": "En transit", "PARTIALLY_RECEIVED": "Partiellement reçu", "COMPLETED": "Terminé", "COMPLETED_WITH_VARIANCE": "Terminé avec écart", "REJECTED": "Refusé", "CANCELLED": "Annulé" },
+    "form": {
+      "title": "Créer un transfert entre sites", "routeSection": "Origine et destination", "itemsSection": "Articles", "detailsSection": "Détails facultatifs", "mode": "Mode", "sourceVenue": "Site d'origine", "destinationVenue": "Site de destination", "selectVenue": "Sélectionnez un site", "noCounterpart": "Aucun autre site accessible dans cette organisation.",
+      "sourceMaterial": "Matière première d'origine", "destinationMaterial": "Matière première de destination", "selectMaterial": "Sélectionnez une matière", "quantity": "Quantité", "addItem": "Ajouter", "removeItem": "Retirer", "externalReference": "Référence externe", "notes": "Notes", "submit": "Créer le transfert", "required": "Ce champ est obligatoire.", "unitMismatch": "Les matières doivent utiliser la même unité de base.", "shortfallReason": "Motif de la quantité non expédiée", "shortfallRequired": "Expliquez pourquoi la quantité expédiée est inférieure.", "reasonRequired": "Saisissez un motif d'au moins 3 caractères.", "exceedsPending": "La quantité dépasse le solde disponible."
+    },
+    "actions": { "approve": "Approuver", "reject": "Refuser", "cancel": "Annuler", "dispatch": "Expédier", "receive": "Recevoir", "variance": "Clore l'écart", "reason": "Motif", "varianceReason": "Type d'écart", "confirm": "Confirmer", "back": "Retour", "available": "Disponible : {{quantity}}" },
+    "confirm": { "reject": "Le transfert sera refusé. Indiquez le motif.", "cancel": "Le transfert sera annulé avant tout mouvement de stock.", "dispatch": "Cette action déduit le stock FIFO à l'origine et ne peut pas être annulée ici.", "receive": "Cette action crée des lots et augmente le stock de destination.", "variance": "Cette action clôt les quantités en attente avec le motif choisi." },
+    "detail": { "mode": "Mode", "activeVenue": "Site actif", "nextResponsible": "Prochain responsable", "closed": "Fermé", "items": "Quantités", "material": "Matière", "requested": "Demandé", "dispatched": "Expédié", "received": "Reçu", "variance": "Écart résolu", "fifo": "Affectations FIFO", "sourceBatch": "Lot origine", "destinationBatch": "Lot destination", "unitCost": "Coût unitaire", "expiration": "Expiration", "timeline": "Chronologie" },
+    "timeline": { "requested": "Demande créée", "approved": "Demande approuvée", "dispatched": "Stock expédié", "received": "Réception enregistrée", "variance": "Écart résolu", "completed": "Transfert terminé", "rejected": "Transfert refusé", "cancelled": "Transfert annulé" },
+    "varianceReasons": { "NOT_DISPATCHED": "Non expédié", "DAMAGED": "Endommagé", "LOST_IN_TRANSIT": "Perdu en transit", "QUANTITY_ERROR": "Erreur de quantité", "OTHER": "Autre" },
+    "consolidated": { "venue": "Établissement", "material": "Matière", "sku": "SKU", "currentStock": "Stock actuel", "availableStock": "Stock disponible", "empty": "Aucun stock accessible à afficher." },
+    "messages": { "created": "Transfert créé.", "createError": "Impossible de créer le transfert.", "loadError": "Impossible de charger les transferts.", "notFound": "Transfert introuvable.", "actionSuccess": "Transfert mis à jour.", "actionError": "Impossible de mettre à jour le transfert." }
   }
 }

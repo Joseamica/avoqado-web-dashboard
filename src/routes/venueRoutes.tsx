@@ -137,6 +137,8 @@ import {
   StockCountDetailPage,
   InventoryTransfersPage,
   InventoryTransferDetailPage,
+  InterVenueTransfersPage,
+  InterVenueTransferDetailPage,
   AutoReorderSettings,
   MerchantRoutingRules,
   TeamId,
@@ -813,6 +815,13 @@ export function createVenueRoutes(): RouteObject[] {
                 // Inventory transfers — READ-ONLY audit view. Transfers are created in the mobile POS apps.
                 { path: 'transfers', element: <InventoryTransfersPage /> },
                 { path: 'transfers/:transferId', element: <InventoryTransferDetailPage /> },
+                {
+                  element: <PermissionProtectedRoute permission="inventory-transfers:read" />,
+                  children: [
+                    { path: 'inter-venue-transfers', element: <InterVenueTransfersPage /> },
+                    { path: 'inter-venue-transfers/:transferId', element: <InterVenueTransferDetailPage /> },
+                  ],
+                },
                 { path: 'purchase-orders', element: <PurchaseOrdersPage /> },
                 { path: 'purchase-orders/:poId', element: <PurchaseOrderDetailPage /> },
                 { path: 'vendors', element: <div>Vendors</div> }, // Placeholder

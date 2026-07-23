@@ -148,6 +148,8 @@ export const StockCountsPage = lazyWithRetry(() => import('@/pages/Inventory/Sto
 export const StockCountDetailPage = lazyWithRetry(() => import('@/pages/Inventory/StockCounts/StockCountDetailPage'))
 export const InventoryTransfersPage = lazyWithRetry(() => import('@/pages/Inventory/Transfers/TransfersPage'))
 export const InventoryTransferDetailPage = lazyWithRetry(() => import('@/pages/Inventory/Transfers/TransferDetailPage'))
+export const InterVenueTransfersPage = lazyWithRetry(() => import('@/pages/Inventory/InterVenueTransfers/InterVenueTransfersPage'))
+export const InterVenueTransferDetailPage = lazyWithRetry(() => import('@/pages/Inventory/InterVenueTransfers/InterVenueTransferDetailPage'))
 export const AutoReorderSettings = lazyWithRetry(() => import('@/pages/Inventory/AutoReorderSettings'))
 export const MerchantRoutingRules = lazyWithRetry(() => import('@/pages/Payment/MerchantRoutingRules'))
 

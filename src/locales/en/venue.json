@@ -151,6 +151,8 @@
     "labels": {
       "name": "Venue Name",
       "type": "Venue Type",
+      "operationalRole": "Operational role",
+      "salesEnabled": "Sales enabled",
       "state": "State",
       "zipCode": "Zip Code",
       "address": "Address",
@@ -169,6 +171,12 @@
       "latitude": "Latitude",
       "longitude": "Longitude"
     },
+    "descriptions": {
+      "operationalRole": "Identifies a store, distribution center, or hybrid operation without changing its fiscal business type.",
+      "salesEnabled": "Allows orders and charges to be created at this venue.",
+      "cedisSalesDisabled": "A distribution-only venue cannot record sales; the backend also blocks older clients."
+    },
+    "operationalRoles": { "STORE": "Store", "CEDIS": "Distribution center", "HYBRID": "Hybrid" },
     "placeholders": {
       "name": "Enter venue name",
       "type": "Select venue type",

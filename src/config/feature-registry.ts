@@ -232,6 +232,8 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       { path: 'inventory', element: 'Inventory' },
       { path: 'inventory/ingredients', element: 'Ingredients' },
       { path: 'inventory/recipes', element: 'Recipes' },
+      { path: 'inventory/inter-venue-transfers', element: 'InterVenueTransfersPage' },
+      { path: 'inventory/inter-venue-transfers/:transferId', element: 'InterVenueTransferDetailPage' },
     ],
 
     configSchema: {

@@ -151,6 +151,8 @@
     "labels": {
       "name": "Nombre del Local",
       "type": "Tipo de Local",
+      "operationalRole": "Rol operativo",
+      "salesEnabled": "Ventas habilitadas",
       "state": "Estado",
       "zipCode": "Código Postal",
       "address": "Dirección",
@@ -169,6 +171,12 @@
       "latitude": "Latitud",
       "longitude": "Longitud"
     },
+    "descriptions": {
+      "operationalRole": "Distingue una tienda, un CEDIS o una operación híbrida sin cambiar el giro fiscal.",
+      "salesEnabled": "Permite crear órdenes y cobros en esta sucursal.",
+      "cedisSalesDisabled": "Un CEDIS puro no puede registrar ventas; el backend también bloquea clientes antiguos."
+    },
+    "operationalRoles": { "STORE": "Tienda", "CEDIS": "CEDIS", "HYBRID": "Híbrido" },
     "placeholders": {
       "name": "Ingresa el nombre del local",
       "type": "Selecciona el tipo de local",

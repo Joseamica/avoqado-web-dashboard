@@ -1303,5 +1303,67 @@
     "noAddressHelp": "Auto-reorder emails the purchase order to your supplier with your delivery address. Add it to enable.",
     "addAddress": "Add address",
     "saveError": "Couldn't save the settings"
+  },
+  "interVenueTransfers": {
+    "title": "Inter-venue transfers",
+    "subtitle": "Request, dispatch, and receive raw materials with FIFO traceability.",
+    "create": "New transfer",
+    "empty": "No transfers match the selected filters.",
+    "tabs": { "transfers": "Transfers", "consolidated": "Consolidated inventory" },
+    "filters": {
+      "search": "Search by number or reference", "allStatuses": "All statuses", "allDirections": "All directions",
+      "incoming": "Incoming", "outgoing": "Outgoing", "requiresAction": "Requires my action"
+    },
+    "columns": { "date": "Date", "number": "Number", "route": "Route", "mode": "Mode", "items": "Items", "status": "Status" },
+    "modes": { "PULL": "Destination request", "PUSH": "Source shipment" },
+    "statuses": {
+      "REQUESTED": "Requested", "APPROVED": "Approved", "IN_TRANSIT": "In transit",
+      "PARTIALLY_RECEIVED": "Partially received", "COMPLETED": "Completed",
+      "COMPLETED_WITH_VARIANCE": "Completed with variance", "REJECTED": "Rejected", "CANCELLED": "Cancelled"
+    },
+    "form": {
+      "title": "Create inter-venue transfer", "routeSection": "Source and destination", "itemsSection": "Items",
+      "detailsSection": "Optional details", "mode": "Mode", "sourceVenue": "Source venue", "destinationVenue": "Destination venue",
+      "selectVenue": "Select a venue", "noCounterpart": "You do not have another accessible venue in this organization.",
+      "sourceMaterial": "Source raw material", "destinationMaterial": "Destination raw material",
+      "selectMaterial": "Select a raw material", "quantity": "Quantity", "addItem": "Add item", "removeItem": "Remove item",
+      "externalReference": "External reference", "notes": "Notes", "submit": "Create transfer", "required": "This field is required.",
+      "unitMismatch": "Raw materials must use the same base unit.", "shortfallReason": "Reason for the dispatch shortfall",
+      "shortfallRequired": "Explain why less than requested is being dispatched.",
+      "reasonRequired": "Enter a reason with at least 3 characters.", "exceedsPending": "The quantity exceeds the balance available for this reason."
+    },
+    "actions": {
+      "approve": "Approve", "reject": "Reject", "cancel": "Cancel", "dispatch": "Dispatch", "receive": "Receive",
+      "variance": "Close variance", "reason": "Reason", "varianceReason": "Variance type", "confirm": "Confirm",
+      "back": "Back", "available": "Available: {{quantity}}"
+    },
+    "confirm": {
+      "reject": "The transfer will be closed as rejected. Enter a reason.",
+      "cancel": "The transfer will be cancelled before inventory moves. Enter a reason.",
+      "dispatch": "This action deducts FIFO inventory at the source and cannot be undone from this flow.",
+      "receive": "This action creates batches and increases destination inventory.",
+      "variance": "This action closes pending quantities using the selected reason."
+    },
+    "detail": {
+      "mode": "Mode", "activeVenue": "Active venue", "nextResponsible": "Next responsible venue", "closed": "Closed",
+      "items": "Item quantities", "material": "Raw material", "requested": "Requested", "dispatched": "Dispatched",
+      "received": "Received", "variance": "Resolved variance", "fifo": "FIFO allocations", "sourceBatch": "Source batch",
+      "destinationBatch": "Destination batch", "unitCost": "Unit cost", "expiration": "Expiration", "timeline": "Timeline"
+    },
+    "timeline": {
+      "requested": "Request created", "approved": "Request approved", "dispatched": "Inventory dispatched",
+      "received": "Receipt recorded", "variance": "Variance resolved", "completed": "Transfer completed",
+      "rejected": "Transfer rejected", "cancelled": "Transfer cancelled"
+    },
+    "varianceReasons": {
+      "NOT_DISPATCHED": "Not dispatched", "DAMAGED": "Damaged", "LOST_IN_TRANSIT": "Lost in transit",
+      "QUANTITY_ERROR": "Quantity error", "OTHER": "Other"
+    },
+    "consolidated": { "venue": "Venue", "material": "Raw material", "sku": "SKU", "currentStock": "Current stock", "availableStock": "Available stock", "empty": "No accessible inventory to display." },
+    "messages": {
+      "created": "Transfer created.", "createError": "The transfer could not be created.",
+      "loadError": "Transfer information could not be loaded.", "notFound": "The transfer was not found.",
+      "actionSuccess": "The transfer was updated.", "actionError": "The transfer could not be updated."
+    }
   }
 }

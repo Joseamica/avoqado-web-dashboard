@@ -157,6 +157,11 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'inventory:update',
     'inventory:delete',
     'inventory:adjust',
+    'inventory-transfers:read',
+    'inventory-transfers:request',
+    'inventory-transfers:approve',
+    'inventory-transfers:dispatch',
+    'inventory-transfers:receive',
     'reviews:read',
     'reviews:respond',
     'teams:read',
@@ -308,6 +313,16 @@ export const PERMISSION_CATEGORIES = {
   INVENTORY: {
     label: 'Inventory',
     permissions: ['inventory:read', 'inventory:create', 'inventory:update', 'inventory:delete', 'inventory:adjust'],
+  },
+  INVENTORY_TRANSFERS: {
+    label: 'Inter-venue Transfers',
+    permissions: [
+      'inventory-transfers:read',
+      'inventory-transfers:request',
+      'inventory-transfers:approve',
+      'inventory-transfers:dispatch',
+      'inventory-transfers:receive',
+    ],
   },
   REVIEWS: {
     label: 'Reviews',

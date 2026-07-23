@@ -351,6 +351,12 @@ export function AppSidebar({
       { title: 'Modificadores', url: 'inventory/modifier-analytics', permission: 'inventory:read' },
       { title: 'Conteos de inventario', url: 'inventory/stock-counts', permission: 'inventory:read', keywords: ['recuentos', 'conteo fisico', 'auditoria'] },
       { title: 'Transferencias', url: 'inventory/transfers', permission: 'inventory:read', keywords: ['traslados', 'movimientos entre ubicaciones'] },
+      {
+        title: t('inventory:interVenueTransfers.title', { defaultValue: 'Traslados entre sucursales' }),
+        url: 'inventory/inter-venue-transfers',
+        permission: 'inventory-transfers:read',
+        keywords: ['cedis', 'traslados', 'transferencias entre sucursales', 'inventario en transito'],
+      },
       { title: 'Reabastecimientos pendientes', url: 'inventory/restocks', permission: 'inventory:read', comingSoon: true },
     ].filter(item => !item.permission || can(item.permission)) as any[]
 

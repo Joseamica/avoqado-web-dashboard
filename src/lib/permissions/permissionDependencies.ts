@@ -138,6 +138,11 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
     'inventory:delete',
     'products:read',
   ],
+  'inventory-transfers:read': ['inventory-transfers:read', 'inventory:read'],
+  'inventory-transfers:request': ['inventory-transfers:read', 'inventory-transfers:request', 'inventory:read'],
+  'inventory-transfers:approve': ['inventory-transfers:read', 'inventory-transfers:approve', 'inventory:read'],
+  'inventory-transfers:dispatch': ['inventory-transfers:read', 'inventory-transfers:dispatch', 'inventory:read'],
+  'inventory-transfers:receive': ['inventory-transfers:read', 'inventory-transfers:receive', 'inventory:read'],
 
   // ===========================
   // TEAMS - Staff Management

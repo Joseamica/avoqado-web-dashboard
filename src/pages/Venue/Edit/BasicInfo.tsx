@@ -80,6 +80,8 @@ const basicInfoFormSchema = z.object({
 
   // Optional fields
   type: z.preprocess(value => coerceBusinessType(value), z.nativeEnum(BusinessType)).default(BusinessType.RESTAURANT),
+  operationalRole: z.enum(['STORE', 'CEDIS', 'HYBRID']).default('STORE'),
+  salesEnabled: z.boolean().default(true),
   timezone: z.string().default('America/Mexico_City'),
   currency: z.string().default('MXN'),
   latitude: z.preprocess(coerceNullableNumber, z.number().nullable().optional()),
@@ -163,6 +165,8 @@ export default function BasicInfo() {
       country: 'MX',
       zipCode: '',
       type: BusinessType.RESTAURANT,
+      operationalRole: 'STORE',
+      salesEnabled: true,
       timezone: 'America/Mexico_City',
       currency: 'MXN',
       latitude: null,
@@ -186,6 +190,8 @@ export default function BasicInfo() {
         country: venue.country || 'MX',
         zipCode: venue.zipCode || '',
         type: coerceBusinessType(venue.type),
+        operationalRole: venue.operationalRole || 'STORE',
+        salesEnabled: venue.salesEnabled ?? true,
         timezone: venue.timezone || 'America/Mexico_City',
         currency: venue.currency || 'MXN',
         latitude: venue.latitude ?? null,
@@ -210,6 +216,8 @@ export default function BasicInfo() {
         country: data.country,
         zipCode: data.zipCode,
         type: data.type,
+        operationalRole: data.operationalRole,
+        salesEnabled: data.operationalRole === 'CEDIS' ? false : data.salesEnabled,
         timezone: data.timezone,
         currency: data.currency,
         latitude: data.latitude,
@@ -681,6 +689,7 @@ export default function BasicInfo() {
                             })
                           }}
                           value={coerceBusinessType(field.value)}
+                          disabled={!canEdit || form.watch('operationalRole') === 'CEDIS'}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -699,6 +708,63 @@ export default function BasicInfo() {
                       </FormItem>
                     )}
                   />
+
+                  <div className="grid gap-4 rounded-xl border border-border p-4 md:grid-cols-2" data-tour="venue-operational-settings">
+                    <FormField
+                      control={form.control}
+                      name="operationalRole"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('edit.labels.operationalRole')}</FormLabel>
+                          <Select
+                            value={field.value}
+                            onValueChange={value => {
+                              field.onChange(value)
+                              if (value === 'CEDIS') {
+                                form.setValue('type', BusinessType.OTHER, { shouldDirty: true })
+                                form.setValue('salesEnabled', false, { shouldDirty: true })
+                              }
+                            }}
+                          >
+                            <FormControl>
+                              <SelectTrigger data-tour="venue-operational-role"><SelectValue /></SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {(['STORE', 'CEDIS', 'HYBRID'] as const).map(role => (
+                                <SelectItem key={role} value={role}>{t(`edit.operationalRoles.${role}`)}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>{t('edit.descriptions.operationalRole')}</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="salesEnabled"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center justify-between gap-4 rounded-lg bg-muted/40 p-3">
+                          <div className="space-y-1">
+                            <FormLabel>{t('edit.labels.salesEnabled')}</FormLabel>
+                            <FormDescription>{
+                              form.watch('operationalRole') === 'CEDIS'
+                                ? t('edit.descriptions.cedisSalesDisabled')
+                                : t('edit.descriptions.salesEnabled')
+                            }</FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={form.watch('operationalRole') === 'CEDIS' ? false : field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={!canEdit || form.watch('operationalRole') === 'CEDIS'}
+                              data-tour="venue-sales-enabled"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   <FormField
                     control={form.control}

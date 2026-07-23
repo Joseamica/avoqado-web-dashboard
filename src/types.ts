@@ -533,6 +533,8 @@ export interface Venue {
   name: string
   slug: string
   type: VenueType
+  operationalRole?: 'STORE' | 'CEDIS' | 'HYBRID'
+  salesEnabled?: boolean
   timezone: string
   currency: string
 

@@ -1303,5 +1303,76 @@
     "noAddressHelp": "El re-orden automático le manda la orden de compra a tu proveedor con tu dirección de entrega. Agrégala para poder activarlo.",
     "addAddress": "Agregar dirección",
     "saveError": "No se pudo guardar la configuración"
+  },
+  "interVenueTransfers": {
+    "title": "Traslados entre sucursales",
+    "subtitle": "Solicita, despacha y recibe materias primas con trazabilidad FIFO.",
+    "create": "Nuevo traslado",
+    "empty": "No hay traslados que coincidan con los filtros.",
+    "tabs": { "transfers": "Traslados", "consolidated": "Inventario consolidado" },
+    "filters": {
+      "search": "Buscar por folio o referencia",
+      "allStatuses": "Todos los estados",
+      "allDirections": "Todas las direcciones",
+      "incoming": "Entrantes",
+      "outgoing": "Salientes",
+      "requiresAction": "Requieren mi acción"
+    },
+    "columns": { "date": "Fecha", "number": "Folio", "route": "Ruta", "mode": "Modo", "items": "Insumos", "status": "Estado" },
+    "modes": { "PULL": "Solicitud del destino", "PUSH": "Envío del origen" },
+    "statuses": {
+      "REQUESTED": "Solicitado", "APPROVED": "Aprobado", "IN_TRANSIT": "En tránsito",
+      "PARTIALLY_RECEIVED": "Recepción parcial", "COMPLETED": "Completado",
+      "COMPLETED_WITH_VARIANCE": "Completado con diferencia", "REJECTED": "Rechazado", "CANCELLED": "Cancelado"
+    },
+    "form": {
+      "title": "Crear traslado entre sucursales", "routeSection": "Origen y destino", "itemsSection": "Insumos",
+      "detailsSection": "Detalles opcionales", "mode": "Modo", "sourceVenue": "Sucursal de origen",
+      "destinationVenue": "Sucursal de destino", "selectVenue": "Selecciona una sucursal",
+      "noCounterpart": "No tienes otra sucursal accesible dentro de esta organización.",
+      "sourceMaterial": "Insumo de origen", "destinationMaterial": "Insumo de destino",
+      "selectMaterial": "Selecciona un insumo", "quantity": "Cantidad", "addItem": "Agregar insumo",
+      "removeItem": "Quitar insumo", "externalReference": "Referencia externa", "notes": "Notas",
+      "submit": "Crear traslado", "required": "Este campo es obligatorio.",
+      "unitMismatch": "Los insumos deben usar la misma unidad base.",
+      "shortfallReason": "Motivo de la cantidad no despachada",
+      "shortfallRequired": "Explica por qué se despacha menos de lo solicitado.",
+      "reasonRequired": "Escribe un motivo de al menos 3 caracteres.",
+      "exceedsPending": "La cantidad supera el saldo disponible para este motivo."
+    },
+    "actions": {
+      "approve": "Aprobar", "reject": "Rechazar", "cancel": "Cancelar", "dispatch": "Despachar",
+      "receive": "Recibir", "variance": "Cerrar diferencia", "reason": "Motivo", "varianceReason": "Tipo de diferencia",
+      "confirm": "Confirmar", "back": "Volver", "available": "Disponible: {{quantity}}"
+    },
+    "confirm": {
+      "reject": "El traslado quedará cerrado como rechazado. Indica el motivo.",
+      "cancel": "El traslado se cancelará antes de mover inventario. Indica el motivo.",
+      "dispatch": "Esta acción descontará inventario FIFO del origen y no se puede deshacer desde este flujo.",
+      "receive": "Esta acción creará lotes e incrementará el inventario del destino.",
+      "variance": "Esta acción cerrará cantidades pendientes con el motivo seleccionado."
+    },
+    "detail": {
+      "mode": "Modo", "activeVenue": "Sucursal activa", "nextResponsible": "Siguiente responsable", "closed": "Cerrado",
+      "items": "Cantidades por insumo", "material": "Insumo", "requested": "Solicitado", "dispatched": "Despachado",
+      "received": "Recibido", "variance": "Diferencia resuelta", "fifo": "Asignaciones FIFO",
+      "sourceBatch": "Lote origen", "destinationBatch": "Lote destino", "unitCost": "Costo unitario",
+      "expiration": "Caducidad", "timeline": "Cronología"
+    },
+    "timeline": {
+      "requested": "Solicitud creada", "approved": "Solicitud aprobada", "dispatched": "Inventario despachado",
+      "received": "Recepción registrada", "variance": "Diferencia resuelta", "completed": "Traslado completado",
+      "rejected": "Traslado rechazado", "cancelled": "Traslado cancelado"
+    },
+    "varianceReasons": {
+      "NOT_DISPATCHED": "No despachado", "DAMAGED": "Dañado", "LOST_IN_TRANSIT": "Perdido en tránsito",
+      "QUANTITY_ERROR": "Error de cantidad", "OTHER": "Otro"
+    },
+    "consolidated": { "venue": "Sucursal", "material": "Insumo", "sku": "SKU", "currentStock": "Existencia actual", "availableStock": "Existencia disponible", "empty": "No hay inventario accesible para mostrar." },
+    "messages": {
+      "created": "Traslado creado.", "createError": "No se pudo crear el traslado.",
+      "loadError": "No se pudo cargar la información de traslados.", "notFound": "No se encontró el traslado.",
+      "actionSuccess": "El traslado se actualizó correctamente.", "actionError": "No se pudo actualizar el traslado."
+    }
   }
 }
