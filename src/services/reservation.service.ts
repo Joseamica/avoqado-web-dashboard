@@ -9,6 +9,9 @@ import type {
   CreateReservationRequest,
   UpdateReservationRequest,
   RescheduleRequest,
+  StaffSchedulePayload,
+  StaffScheduleResult,
+  ProductStaffResult,
 } from '@/types/reservation'
 
 // Query parameters
@@ -33,6 +36,10 @@ export interface AvailabilityQueryParams {
   tableId?: string
   staffId?: string
   productId?: string
+  productIds?: string[]
+  includeFull?: boolean
+  windowSemantics?: 'base'
+  reservationId?: string
 }
 
 export const reservationService = {
@@ -139,6 +146,10 @@ export const reservationService = {
     if (params.tableId) searchParams.append('tableId', params.tableId)
     if (params.staffId) searchParams.append('staffId', params.staffId)
     if (params.productId) searchParams.append('productId', params.productId)
+    if (params.productIds?.length) searchParams.append('productIds', params.productIds.join(','))
+    if (params.includeFull !== undefined) searchParams.append('includeFull', String(params.includeFull))
+    if (params.windowSemantics) searchParams.append('windowSemantics', params.windowSemantics)
+    if (params.reservationId) searchParams.append('reservationId', params.reservationId)
 
     const response = await api.get(`/api/v1/dashboard/venues/${venueId}/reservations/availability?${searchParams}`)
     return response.data
@@ -188,6 +199,44 @@ export const reservationService = {
 
   async updateSettings(venueId: string, data: Partial<ReservationSettings>): Promise<ReservationSettings> {
     const response = await api.put(`/api/v1/dashboard/venues/${venueId}/reservations/settings`, data)
+    return response.data
+  },
+
+  async getStaffSchedule(venueId: string, staffVenueId: string): Promise<StaffScheduleResult> {
+    const response = await api.get(
+      `/api/v1/dashboard/venues/${venueId}/reservations/staff/${staffVenueId}/schedule`,
+    )
+    return response.data
+  },
+
+  async replaceStaffSchedule(
+    venueId: string,
+    staffVenueId: string,
+    data: StaffSchedulePayload,
+  ): Promise<StaffScheduleResult> {
+    const response = await api.put(
+      `/api/v1/dashboard/venues/${venueId}/reservations/staff/${staffVenueId}/schedule`,
+      data,
+    )
+    return response.data
+  },
+
+  async getProductStaff(venueId: string, productId: string): Promise<ProductStaffResult> {
+    const response = await api.get(
+      `/api/v1/dashboard/venues/${venueId}/reservations/products/${productId}/staff`,
+    )
+    return response.data
+  },
+
+  async replaceProductStaff(
+    venueId: string,
+    productId: string,
+    staffVenueIds: string[],
+  ): Promise<ProductStaffResult> {
+    const response = await api.put(
+      `/api/v1/dashboard/venues/${venueId}/reservations/products/${productId}/staff`,
+      { staffVenueIds },
+    )
     return response.data
   },
 }

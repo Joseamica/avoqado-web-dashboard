@@ -144,6 +144,8 @@ export interface AvailableSlot {
   endsAt: string
   availableTables: { id: string; number: string; capacity: number }[]
   availableStaff: { id: string; firstName: string; lastName: string }[]
+  available?: false
+  reason?: 'FULL'
 }
 
 export interface DaySchedule {
@@ -171,6 +173,8 @@ export interface ReservationSettings {
     noShowGraceMin: number
     pacingMaxPerSlot: number | null
     onlineCapacityPercent: number
+    /** Optional while older API versions are still in the rollout window. */
+    capacityMode?: 'pacing' | 'per_staff'
   }
   deposits: {
     enabled: boolean
@@ -204,6 +208,8 @@ export interface ReservationSettings {
   }
   publicBooking: {
     enabled: boolean
+    /** Optional while older API versions are still in the rollout window. */
+    showStaffPicker?: boolean
     requirePhone: boolean
     requireEmail: boolean
   }
@@ -259,10 +265,38 @@ export interface CreateReservationRequest {
   partySize?: number
   tableId?: string
   productId?: string
+  productIds?: string[]
   assignedStaffId?: string
+  windowSemantics?: 'base'
+  allowOverCapacity?: boolean
   specialRequests?: string
   internalNotes?: string
   tags?: string[]
+}
+
+export interface StaffScheduleException {
+  startDate: string
+  endDate: string
+  kind: 'OFF' | 'HOURS'
+  startTime?: string
+  endTime?: string
+  note?: string
+}
+
+export interface StaffSchedulePayload {
+  weekly: OperatingHours | null
+  exceptions: StaffScheduleException[]
+}
+
+export interface StaffScheduleResult extends StaffSchedulePayload {
+  staffVenueId: string
+}
+
+export interface ProductStaffResult {
+  productId: string
+  staffVenueIds: string[]
+  staff: Array<{ staffVenueId: string; staffId: string }>
+  explicit: boolean
 }
 
 export interface UpdateReservationRequest {

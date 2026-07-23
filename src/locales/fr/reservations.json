@@ -1,207 +1,286 @@
 {
-	"title": "Reservations",
-	"subtitle": "Manage reservations, availability, and waitlist",
-	"nav": {
-		"overview": "Aperçu",
-		"calendar": "Calendrier",
-		"waitlist": "Liste d'attente",
-		"settings": "Paramètres"
-	},
-	"emptyState": {
-		"title": "No reservations",
-		"description": "Reservations will appear here when customers start booking"
-	},
-	"tabs": {
-		"all": "All",
-		"pending": "Pending",
-		"confirmed": "Confirmed",
-		"today": "Today",
-		"noShow": "No Show"
-	},
-	"filters": {
-		"dateRange": "Date range",
-		"status": "Status",
-		"channel": "Channel",
-		"staff": "Staff",
-		"table": "Table"
-	},
-	"searchPlaceholder": "Search by name, phone, or code...",
-	"columns": {
-		"code": "Code",
-		"guest": "Guest",
-		"dateTime": "Date / Time",
-		"duration": "Duration",
-		"partySize": "Party Size",
-		"table": "Table",
-		"staff": "Assigned",
-		"status": "Status",
-		"channel": "Channel"
-	},
-	"status": {
-		"PENDING": "Pending",
-		"CONFIRMED": "Confirmed",
-		"CHECKED_IN": "Checked In",
-		"COMPLETED": "Completed",
-		"CANCELLED": "Cancelled",
-		"NO_SHOW": "No Show"
-	},
-	"channel": {
-		"DASHBOARD": "Dashboard",
-		"WEB": "Web",
-		"PHONE": "Phone",
-		"WHATSAPP": "WhatsApp",
-		"APP": "App",
-		"WALK_IN": "Walk-in",
-		"THIRD_PARTY": "Third Party"
-	},
-	"actions": {
-		"newReservation": "New Reservation",
-		"confirm": "Confirm",
-		"checkIn": "Check In",
-		"complete": "Complete",
-		"markNoShow": "Mark No Show",
-		"cancel": "Cancel",
-		"reschedule": "Reschedule",
-		"edit": "Edit",
-		"viewDetails": "View Details",
-		"save": "Save",
-		"saveChanges": "Save Changes",
-		"goBack": "Go Back"
-	},
-	"toasts": {
-		"createSuccess": "Reservation created successfully",
-		"updateSuccess": "Reservation updated successfully",
-		"cancelSuccess": "Reservation cancelled",
-		"confirmSuccess": "Reservation confirmed",
-		"checkInSuccess": "Checked in successfully",
-		"completeSuccess": "Reservation completed",
-		"noShowSuccess": "Marked as No Show",
-		"rescheduleSuccess": "Reservation rescheduled",
-		"error": "An error occurred. Please try again."
-	},
-	"publicBooking": {
-		"pageTitle": "Réserver",
-		"poweredBy": "Propulsé par Avoqado",
-		"steps": {
-			"service": "Service",
-			"date": "Date",
-			"time": "Heure",
-			"info": "Détails",
-			"confirmation": "Confirmé"
-		},
-		"service": {
-			"title": "Choisissez un service",
-			"duration": "{{min}} min",
-			"noProducts": "Aucun service disponible"
-		},
-		"date": {
-			"title": "Choisissez une date",
-			"today": "Aujourd'hui"
-		},
-		"time": {
-			"title": "Choisissez une heure",
-			"noSlots": "Aucun créneau disponible pour cette date",
-			"loading": "Chargement des créneaux..."
-		},
-		"guestForm": {
-			"title": "Vos informations",
-			"phone": "Téléphone",
-			"phonePlaceholder": "Votre numéro de téléphone",
-			"name": "Nom",
-			"namePlaceholder": "Votre nom",
-			"email": "Email (facultatif)",
-			"emailPlaceholder": "votre@email.com",
-			"partySize": "Personnes",
-			"specialRequests": "Demandes spéciales",
-			"specialRequestsPlaceholder": "Allergies, anniversaire, besoins d'accessibilité...",
-			"submit": "Confirmer la réservation",
-			"submitting": "Réservation en cours..."
-		},
-		"validation": {
-			"phoneRequired": "Le téléphone est requis",
-			"nameRequired": "Le nom est requis",
-			"emailInvalid": "Entrez un email valide",
-			"emailRequired": "L'email est requis"
-		},
-		"confirmation": {
-			"title": "Réservation Confirmée !",
-			"code": "Code de Confirmation",
-			"dateTime": "Date et Heure",
-			"guests": "Personnes",
-			"service": "Service",
-			"addToCalendar": "Ajouter à Google Calendar",
-			"downloadIcs": "Télécharger .ics",
-			"manageBooking": "Gérer la Réservation",
-			"newBooking": "Nouvelle Réservation"
-		},
-		"manage": {
-			"title": "Votre Réservation",
-			"cancelButton": "Annuler la Réservation",
-			"cancelTitle": "Annuler la Réservation",
-			"cancelDescription": "Êtes-vous sûr de vouloir annuler cette réservation ? Cette action est irréversible.",
-			"cancelReasonLabel": "Raison (facultatif)",
-			"cancelReasonPlaceholder": "Pourquoi annulez-vous ?",
-			"cancelConfirm": "Confirmer l'Annulation",
-			"cancelledStatus": "Cette réservation a été annulée",
-			"cancelledAt": "Annulée le {{date}}",
-			"deposit": "Acompte",
-			"depositForfeit": "L'acompte sera perdu",
-			"table": "Table",
-			"staff": "Attribué à",
-			"specialRequests": "Demandes Spéciales",
-			"backToBooking": "Nouvelle Réservation"
-		},
-		"cancellationPolicy": {
-			"title": "Politique d'Annulation",
-			"allowCancel": "Annulation gratuite jusqu'à {{hours}} heures avant",
-			"noCancel": "Cette réservation ne peut pas être annulée en ligne",
-			"depositForfeit": "L'acompte sera perdu en cas d'annulation"
-		},
-		"errors": {
-			"venueNotFound": "Cette page n'existe pas",
-			"venueNotFoundDescription": "Le lien de réservation peut être incorrect ou le lieu n'est plus disponible.",
-			"bookingDisabled": "Réservation en ligne non disponible",
-			"bookingDisabledDescription": "Ce lieu n'accepte pas les réservations en ligne pour le moment.",
-			"bookingDisabledContact": "Appelez le {{phone}} pour réserver",
-			"reservationNotFound": "Réservation introuvable",
-			"reservationNotFoundDescription": "Ce lien de réservation peut être expiré ou invalide.",
-			"slotTaken": "Ce créneau n'est plus disponible. Veuillez en choisir un autre.",
-			"generic": "Une erreur est survenue. Veuillez réessayer."
-		}
-	},
-	"branding": {
-		"title": "Identité visuelle",
-		"description": "Personnalisez l’apparence de vos pages publiques de réservation",
-		"venue": "Établissement",
-		"logo": "Logo",
-		"logoHint": "Affichez votre logo en haut de la page de réservation",
-		"button": "Bouton",
-		"accentColor": "Couleur d’accent",
-		"accentColorInherit": "Hériter",
-		"accentColorInheritHint": "Hérite de la couleur de marque de l’établissement",
-		"buttonShape": "Forme du bouton",
-		"buttonShapeRounded": "Arrondi",
-		"buttonShapeSquare": "Carré",
-		"buttonShapePill": "Pilule",
-		"font": "Police",
-		"fontHint": "40 polices auto-hébergées. Seule celle choisie est téléchargée.",
-		"fontPlaceholder": "Rechercher une police…",
-		"fontChange": "Changer",
-		"showHeroImage": "Image principale",
-		"showDescriptions": "Descriptions",
-		"showDuration": "Durée",
-		"showPrices": "Prix",
-		"preview": "Aperçu",
-		"previewCta": "Suivant",
-		"sampleServiceName": "Manucure express",
-		"sampleServiceDescription": "Couper les cuticules et nettoyer l’ongle",
-		"samplePrice": "$250",
-		"sampleDuration": "15 min",
-		"save": "Enregistrer les modifications",
-		"saving": "Enregistrement…",
-		"saved": "Enregistré",
-		"savedTitle": "Modifications enregistrées",
-		"saveErrorTitle": "Impossible d’enregistrer",
-		"discard": "Annuler"
-	}
+  "title": "Reservations",
+  "subtitle": "Manage reservations, availability, and waitlist",
+  "nav": {
+    "overview": "Aperçu",
+    "calendar": "Calendrier",
+    "waitlist": "Liste d'attente",
+    "settings": "Paramètres"
+  },
+  "emptyState": {
+    "title": "No reservations",
+    "description": "Reservations will appear here when customers start booking"
+  },
+  "tabs": {
+    "all": "All",
+    "pending": "Pending",
+    "confirmed": "Confirmed",
+    "today": "Today",
+    "noShow": "No Show"
+  },
+  "filters": {
+    "dateRange": "Date range",
+    "status": "Status",
+    "channel": "Channel",
+    "staff": "Staff",
+    "table": "Table"
+  },
+  "searchPlaceholder": "Search by name, phone, or code...",
+  "columns": {
+    "code": "Code",
+    "guest": "Guest",
+    "dateTime": "Date / Time",
+    "duration": "Duration",
+    "partySize": "Party Size",
+    "table": "Table",
+    "staff": "Assigned",
+    "status": "Status",
+    "channel": "Channel"
+  },
+  "status": {
+    "PENDING": "Pending",
+    "CONFIRMED": "Confirmed",
+    "CHECKED_IN": "Checked In",
+    "COMPLETED": "Completed",
+    "CANCELLED": "Cancelled",
+    "NO_SHOW": "No Show"
+  },
+  "channel": {
+    "DASHBOARD": "Dashboard",
+    "WEB": "Web",
+    "PHONE": "Phone",
+    "WHATSAPP": "WhatsApp",
+    "APP": "App",
+    "WALK_IN": "Walk-in",
+    "THIRD_PARTY": "Third Party"
+  },
+  "actions": {
+    "newReservation": "New Reservation",
+    "confirm": "Confirm",
+    "checkIn": "Check In",
+    "complete": "Complete",
+    "markNoShow": "Mark No Show",
+    "cancel": "Cancel",
+    "reschedule": "Reschedule",
+    "edit": "Edit",
+    "viewDetails": "View Details",
+    "save": "Save",
+    "saveChanges": "Save Changes",
+    "goBack": "Go Back"
+  },
+  "form": {
+    "slotFull": "Complet",
+    "staffNotEligible": "Non éligible",
+    "staffUnavailable": "Indisponible",
+    "staffMappingLoadError": "Impossible de charger l'éligibilité des professionnels. Réessayez avant d'en attribuer un.",
+    "staffMappingRequired": "Aucun professionnel n'est configuré pour ce service. Assignez-en au moins un dans les paramètres de réservation.",
+    "overCapacityTitle": "Surréserver cet horaire ?",
+    "overCapacityDescription": "La limite globale est atteinte. Le serveur vérifiera de nouveau l'éligibilité et la disponibilité avant de créer le rendez-vous.",
+    "overCapacityCancel": "Choisir une autre heure",
+    "overCapacityConfirm": "Confirmer la surréservation",
+    "windowChangedTitle": "La durée du service a changé",
+    "windowChangedDescription": "Le service et les disponibilités ont été actualisés. Sélectionnez de nouveau une heure."
+  },
+  "toasts": {
+    "createSuccess": "Reservation created successfully",
+    "updateSuccess": "Reservation updated successfully",
+    "cancelSuccess": "Reservation cancelled",
+    "confirmSuccess": "Reservation confirmed",
+    "checkInSuccess": "Checked in successfully",
+    "completeSuccess": "Reservation completed",
+    "noShowSuccess": "Marked as No Show",
+    "rescheduleSuccess": "Reservation rescheduled",
+    "error": "An error occurred. Please try again."
+  },
+  "publicBooking": {
+    "pageTitle": "Réserver",
+    "poweredBy": "Propulsé par Avoqado",
+    "steps": {
+      "service": "Service",
+      "date": "Date",
+      "time": "Heure",
+      "info": "Détails",
+      "confirmation": "Confirmé"
+    },
+    "service": {
+      "title": "Choisissez un service",
+      "duration": "{{min}} min",
+      "noProducts": "Aucun service disponible"
+    },
+    "date": {
+      "title": "Choisissez une date",
+      "today": "Aujourd'hui"
+    },
+    "time": {
+      "title": "Choisissez une heure",
+      "noSlots": "Aucun créneau disponible pour cette date",
+      "loading": "Chargement des créneaux..."
+    },
+    "guestForm": {
+      "title": "Vos informations",
+      "phone": "Téléphone",
+      "phonePlaceholder": "Votre numéro de téléphone",
+      "name": "Nom",
+      "namePlaceholder": "Votre nom",
+      "email": "Email (facultatif)",
+      "emailPlaceholder": "votre@email.com",
+      "partySize": "Personnes",
+      "specialRequests": "Demandes spéciales",
+      "specialRequestsPlaceholder": "Allergies, anniversaire, besoins d'accessibilité...",
+      "submit": "Confirmer la réservation",
+      "submitting": "Réservation en cours..."
+    },
+    "validation": {
+      "phoneRequired": "Le téléphone est requis",
+      "nameRequired": "Le nom est requis",
+      "emailInvalid": "Entrez un email valide",
+      "emailRequired": "L'email est requis"
+    },
+    "confirmation": {
+      "title": "Réservation Confirmée !",
+      "code": "Code de Confirmation",
+      "dateTime": "Date et Heure",
+      "guests": "Personnes",
+      "service": "Service",
+      "addToCalendar": "Ajouter à Google Calendar",
+      "downloadIcs": "Télécharger .ics",
+      "manageBooking": "Gérer la Réservation",
+      "newBooking": "Nouvelle Réservation"
+    },
+    "manage": {
+      "title": "Votre Réservation",
+      "cancelButton": "Annuler la Réservation",
+      "cancelTitle": "Annuler la Réservation",
+      "cancelDescription": "Êtes-vous sûr de vouloir annuler cette réservation ? Cette action est irréversible.",
+      "cancelReasonLabel": "Raison (facultatif)",
+      "cancelReasonPlaceholder": "Pourquoi annulez-vous ?",
+      "cancelConfirm": "Confirmer l'Annulation",
+      "cancelledStatus": "Cette réservation a été annulée",
+      "cancelledAt": "Annulée le {{date}}",
+      "deposit": "Acompte",
+      "depositForfeit": "L'acompte sera perdu",
+      "table": "Table",
+      "staff": "Attribué à",
+      "specialRequests": "Demandes Spéciales",
+      "backToBooking": "Nouvelle Réservation"
+    },
+    "cancellationPolicy": {
+      "title": "Politique d'Annulation",
+      "allowCancel": "Annulation gratuite jusqu'à {{hours}} heures avant",
+      "noCancel": "Cette réservation ne peut pas être annulée en ligne",
+      "depositForfeit": "L'acompte sera perdu en cas d'annulation"
+    },
+    "errors": {
+      "venueNotFound": "Cette page n'existe pas",
+      "venueNotFoundDescription": "Le lien de réservation peut être incorrect ou le lieu n'est plus disponible.",
+      "bookingDisabled": "Réservation en ligne non disponible",
+      "bookingDisabledDescription": "Ce lieu n'accepte pas les réservations en ligne pour le moment.",
+      "bookingDisabledContact": "Appelez le {{phone}} pour réserver",
+      "reservationNotFound": "Réservation introuvable",
+      "reservationNotFoundDescription": "Ce lien de réservation peut être expiré ou invalide.",
+      "slotTaken": "Ce créneau n'est plus disponible. Veuillez en choisir un autre.",
+      "generic": "Une erreur est survenue. Veuillez réessayer."
+    }
+  },
+  "settings": {
+    "sections": {
+      "staffing": "Professionnels et horaires"
+    },
+    "scheduling": {
+      "capacityMode": "Capacité des rendez-vous",
+      "capacityModeHelp": "Choisissez si la disponibilité dépend du rythme global ou des horaires du personnel éligible.",
+      "capacityModes": {
+        "pacing": "Rythme de l'établissement",
+        "perStaff": "Personnel disponible"
+      }
+    },
+    "publicBooking": {
+      "showStaffPicker": "Permettre au client de choisir un professionnel",
+      "showStaffPickerHelp": "Affiche les professionnels éligibles et disponibles. Désactivez cette option pour une attribution automatique."
+    },
+    "staffing": {
+      "sectionHelp": "Choisissez les professionnels de chaque service et configurez leur disponibilité.",
+      "serviceMappingTitle": "Professionnels par service",
+      "serviceMappingHelp": "Limitez un service à certains membres actifs. Sans restriction, tous les membres actifs restent éligibles.",
+      "mappingReadPermission": "Les droits de lecture de l'équipe et du menu sont requis.",
+      "service": "Service sur rendez-vous",
+      "selectService": "Sélectionner un service",
+      "mappingLoadError": "Impossible de charger les professionnels de ce service.",
+      "restrictStaff": "Limiter aux professionnels sélectionnés",
+      "restrictStaffHelp": "Désactivez cette option pour rendre toute l'équipe active éligible.",
+      "noActiveStaff": "Aucun membre actif à sélectionner.",
+      "allStaffEligible": "Toute l'équipe active est éligible pour ce service.",
+      "saveMapping": "Enregistrer l'attribution",
+      "mappingSaved": "Professionnels du service enregistrés",
+      "selectAtLeastOne": "Sélectionnez au moins un professionnel ou désactivez la restriction.",
+      "mappingUpdatePermission": "Le droit de modification du menu est requis.",
+      "scheduleTitle": "Horaire du professionnel",
+      "scheduleHelp": "Utilisez les heures de l'établissement ou définissez un horaire et des exceptions.",
+      "scheduleReadPermission": "Le droit de lecture de l'équipe est requis.",
+      "professional": "Professionnel",
+      "selectProfessional": "Sélectionner un professionnel",
+      "scheduleLoadError": "Impossible de charger cet horaire.",
+      "customWeekly": "Utiliser un horaire hebdomadaire personnalisé",
+      "customWeeklyHelp": "Lorsque cette option est désactivée, les heures de l'établissement sont utilisées.",
+      "exceptions": "Exceptions par date",
+      "exceptionsHelp": "Ajoutez une absence ou des heures spéciales. Maximum 30.",
+      "addException": "Ajouter une exception",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "exceptionType": "Type",
+      "exceptionOff": "Absence",
+      "exceptionHours": "Heures spéciales",
+      "startTime": "Heure de début",
+      "endTime": "Heure de fin",
+      "note": "Note (facultatif)",
+      "notePlaceholder": "Vacances, formation, horaire spécial…",
+      "removeException": "Supprimer l'exception",
+      "noExceptions": "Aucune exception configurée.",
+      "saveSchedule": "Enregistrer l'horaire",
+      "scheduleSaved": "Horaire enregistré",
+      "scheduleUpdatePermission": "Le droit de modification de l'équipe est requis.",
+      "exceptionErrors": {
+        "MAX_EXCEPTIONS": "Un professionnel peut avoir au maximum 30 exceptions.",
+        "DATE_REQUIRED": "Chaque exception requiert une date de début et de fin.",
+        "DATE_RANGE": "La date de fin ne peut pas précéder la date de début.",
+        "HOURS_REQUIRED": "Les heures spéciales requièrent un début et une fin.",
+        "INVALID_HOURS": "L'heure de fin doit suivre l'heure de début."
+      }
+    }
+  },
+  "branding": {
+    "title": "Identité visuelle",
+    "description": "Personnalisez l’apparence de vos pages publiques de réservation",
+    "venue": "Établissement",
+    "logo": "Logo",
+    "logoHint": "Affichez votre logo en haut de la page de réservation",
+    "button": "Bouton",
+    "accentColor": "Couleur d’accent",
+    "accentColorInherit": "Hériter",
+    "accentColorInheritHint": "Hérite de la couleur de marque de l’établissement",
+    "buttonShape": "Forme du bouton",
+    "buttonShapeRounded": "Arrondi",
+    "buttonShapeSquare": "Carré",
+    "buttonShapePill": "Pilule",
+    "font": "Police",
+    "fontHint": "40 polices auto-hébergées. Seule celle choisie est téléchargée.",
+    "fontPlaceholder": "Rechercher une police…",
+    "fontChange": "Changer",
+    "showHeroImage": "Image principale",
+    "showDescriptions": "Descriptions",
+    "showDuration": "Durée",
+    "showPrices": "Prix",
+    "preview": "Aperçu",
+    "previewCta": "Suivant",
+    "sampleServiceName": "Manucure express",
+    "sampleServiceDescription": "Couper les cuticules et nettoyer l’ongle",
+    "samplePrice": "$250",
+    "sampleDuration": "15 min",
+    "save": "Enregistrer les modifications",
+    "saving": "Enregistrement…",
+    "saved": "Enregistré",
+    "savedTitle": "Modifications enregistrées",
+    "saveErrorTitle": "Impossible d’enregistrer",
+    "discard": "Annuler"
+  }
 }

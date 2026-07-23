@@ -10,23 +10,22 @@ import { useNavigate } from 'react-router-dom'
 
 import { cn, includesNormalized } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { DatePicker } from '@/components/ui/date-picker'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { DatePicker } from '@/components/ui/date-picker'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { TimePicker } from '@/components/ui/time-picker'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -43,11 +42,26 @@ import CustomerForm from '@/pages/Customers/components/CustomerForm'
 import { ServiceTypeSelectorDialog } from '@/pages/Menu/Services/ServiceTypeSelectorDialog'
 import { ServiceFormDialog } from '@/pages/Menu/Services/ServiceFormDialog'
 import type { ProductType as ServiceProductType } from '@/services/inventory.service'
+import {
+  buildAppointmentCreateContract,
+  buildStaffSelectionOptions,
+  getReservationConflictCode,
+  isStaffAwareSettings,
+  type StaffSelectionOption,
+} from './create-reservation-staff'
 
 const VENUE_TYPES_WITH_TABLES = new Set<VenueType>([
-  VenueType.RESTAURANT, VenueType.BAR, VenueType.CAFE, VenueType.BAKERY,
-  VenueType.FAST_FOOD, VenueType.CATERING, VenueType.FOOD_TRUCK, VenueType.CLOUD_KITCHEN,
-  VenueType.HOTEL, VenueType.HOSTEL, VenueType.RESORT,
+  VenueType.RESTAURANT,
+  VenueType.BAR,
+  VenueType.CAFE,
+  VenueType.BAKERY,
+  VenueType.FAST_FOOD,
+  VenueType.CATERING,
+  VenueType.FOOD_TRUCK,
+  VenueType.CLOUD_KITCHEN,
+  VenueType.HOTEL,
+  VenueType.HOSTEL,
+  VenueType.RESORT,
 ])
 
 const createSchema = z
@@ -93,7 +107,13 @@ interface CreateReservationFormProps {
   submitRef?: MutableRefObject<(() => void) | null>
 }
 
-export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess, onCancel: _onCancel, submitRef }: CreateReservationFormProps) {
+export function CreateReservationForm({
+  defaultDate,
+  defaultStartTime,
+  onSuccess,
+  onCancel: _onCancel,
+  submitRef,
+}: CreateReservationFormProps) {
   const { t } = useTranslation('reservations')
   const { t: tCommon } = useTranslation()
   const { venue, venueId, fullBasePath } = useCurrentVenue()
@@ -110,6 +130,7 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
   const [showServiceTypeSelector, setShowServiceTypeSelector] = useState(false)
   const [showServiceForm, setShowServiceForm] = useState(false)
   const [newServiceType, setNewServiceType] = useState<ServiceProductType | null>(null)
+  const [pendingOverCapacity, setPendingOverCapacity] = useState<CreateFormData | null>(null)
 
   const {
     register,
@@ -184,6 +205,18 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
 
   // Auto-fill duration when a service with duration is selected
   const selectedProduct = useMemo(() => bookableProducts.find(p => p.id === watchProductId), [bookableProducts, watchProductId])
+  const isAppointmentProduct = selectedProduct?.type === ProductType.APPOINTMENTS_SERVICE
+
+  const { data: reservationSettings } = useQuery({
+    queryKey: ['reservation-settings', venueId],
+    queryFn: () => reservationService.getSettings(venueId),
+    enabled: !!venueId,
+    staleTime: 60_000,
+  })
+  const staffAware = isStaffAwareSettings({
+    capacityMode: reservationSettings?.scheduling.capacityMode,
+    showStaffPicker: reservationSettings?.publicBooking.showStaffPicker,
+  })
 
   useEffect(() => {
     if (selectedProduct?.duration) {
@@ -213,6 +246,13 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
 
   const staffMembers = useMemo(() => staffData?.data ?? [], [staffData])
 
+  const productStaffQuery = useQuery({
+    queryKey: ['reservation-product-staff', venueId, watchProductId],
+    queryFn: () => reservationService.getProductStaff(venueId, watchProductId!),
+    enabled: !!venueId && !!watchProductId && isAppointmentProduct && staffAware,
+    staleTime: 60_000,
+  })
+
   // Fetch customers with search + infinite scroll (alphabetical)
   const debouncedCustomerSearch = useDebounce(customerSearch, 300)
   const {
@@ -230,7 +270,7 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
         pageSize: 30,
         sortOrder: 'asc',
       }),
-    getNextPageParam: (lastPage) => {
+    getNextPageParam: lastPage => {
       const { currentPage, totalPages } = lastPage.meta
       return currentPage < totalPages ? currentPage + 1 : undefined
     },
@@ -259,6 +299,7 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
       watchProductId,
       watchTableId,
       watchAssignedStaffId,
+      staffAware,
     ],
     queryFn: () =>
       reservationService.getAvailability(venueId, {
@@ -266,8 +307,11 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
         partySize: watchPartySize || undefined,
         duration: watchDuration || undefined,
         productId: watchProductId || undefined,
+        productIds: staffAware && isAppointmentProduct && watchProductId ? [watchProductId] : undefined,
         tableId: watchTableId || undefined,
         staffId: watchAssignedStaffId || undefined,
+        includeFull: staffAware && isAppointmentProduct ? true : undefined,
+        windowSemantics: staffAware && isAppointmentProduct ? 'base' : undefined,
       }),
     enabled: !!watchDate,
   })
@@ -277,13 +321,37 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
   // When a slot is selected, update start/end time and available tables
   const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null)
   const showTables = venue?.type ? VENUE_TYPES_WITH_TABLES.has(venue.type) : false
+  const requiresProductStaffMapping = staffAware && isAppointmentProduct
+
+  const staffSelectionOptions = useMemo(() => {
+    // Undefined mapping data means "not loaded", not the legacy permissive
+    // explicit=false state. A slow/failed request must not temporarily make
+    // the full roster selectable.
+    if (requiresProductStaffMapping && !productStaffQuery.data) return []
+    return buildStaffSelectionOptions({
+      members: staffMembers,
+      mapping: requiresProductStaffMapping ? productStaffQuery.data : undefined,
+      availableStaffIds: selectedSlot ? new Set(selectedSlot.availableStaff.map(staff => staff.id)) : undefined,
+    })
+  }, [staffMembers, requiresProductStaffMapping, productStaffQuery.data, selectedSlot])
+  const productStaffUnavailable =
+    requiresProductStaffMapping && (!productStaffQuery.data || productStaffQuery.data.staff.length === 0)
+
+  useEffect(() => {
+    if (!watchAssignedStaffId) return
+    const selectedStaff = staffSelectionOptions.find(option => option.staffId === watchAssignedStaffId)
+    if (!selectedStaff || selectedStaff.disabled) {
+      setValue('assignedStaffId', '')
+    }
+  }, [staffSelectionOptions, watchAssignedStaffId, setValue])
 
   useEffect(() => {
     if (!selectedSlot) return
-    const slotStillAvailable = availableSlots.some(slot => slot.startsAt === selectedSlot.startsAt)
+    const slotStillAvailable = availableSlots.some(slot => slot.startsAt === selectedSlot.startsAt && slot.endsAt === selectedSlot.endsAt)
     if (!slotStillAvailable) {
       setSelectedSlot(null)
       setValue('tableId', '')
+      setValue('assignedStaffId', '')
     }
   }, [availableSlots, selectedSlot, setValue])
 
@@ -300,7 +368,7 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
 
   // Create mutation
   const createMutation = useMutation({
-    mutationFn: (data: CreateFormData) => {
+    mutationFn: ({ data, allowOverCapacity = false }: { data: CreateFormData; allowOverCapacity?: boolean }) => {
       const startsAtDt = DateTime.fromISO(`${data.date}T${data.startTime}:00`, { zone: venueTimezone })
       const endsAtDt = DateTime.fromISO(`${data.date}T${data.endTime}:00`, { zone: venueTimezone })
 
@@ -315,6 +383,12 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
         throw new Error('Invalid reservation datetime')
       }
 
+      const appointmentProductId = allProducts.some(
+        product => product.id === data.productId && product.type === ProductType.APPOINTMENTS_SERVICE,
+      )
+        ? data.productId
+        : undefined
+
       return reservationService.createReservation(venueId, {
         startsAt,
         endsAt,
@@ -322,6 +396,11 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
         partySize: data.partySize,
         channel: 'DASHBOARD',
         productId: data.productId || undefined,
+        ...buildAppointmentCreateContract({
+          staffAware,
+          appointmentProductId,
+          allowOverCapacity,
+        }),
         customerId: data.guestMode === 'existing' && data.customerId ? data.customerId : undefined,
         guestName: data.guestMode === 'new' ? data.guestName : undefined,
         guestPhone: data.guestPhone || undefined,
@@ -333,6 +412,7 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
       })
     },
     onSuccess: reservation => {
+      setPendingOverCapacity(null)
       toast({ title: t('toasts.createSuccess') })
       queryClient.invalidateQueries({ queryKey: ['reservations', venueId] })
       if (onSuccess) {
@@ -341,7 +421,7 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
         navigate(`${fullBasePath}/reservations/${reservation.id}`)
       }
     },
-    onError: (error: any) => {
+    onError: (error: any, variables) => {
       // External Google Calendar busy-block conflict — backend currently
       // signals this as a 409 ConflictError with a Spanish message and no
       // structured code (see avoqado-server `dashboard/reservation.dashboard.service.ts`).
@@ -349,13 +429,28 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
       // matching once the backend adds one without redeploying the dashboard.
       const status = error?.response?.status
       const message = error?.response?.data?.message ?? ''
-      const code =
-        error?.response?.data?.code ??
-        error?.response?.data?.errorCode ??
-        error?.response?.data?.error?.code
-      const isExternalCalendarBusy =
-        code === 'external_calendar_busy' ||
-        (status === 409 && /calendario\s+externo/i.test(message))
+      const code = getReservationConflictCode(error)
+      if (status === 409 && code === 'OVER_CAPACITY_CONFIRMATION_REQUIRED') {
+        setPendingOverCapacity(variables.data)
+        return
+      }
+      if (status === 409 && code === 'APPOINTMENT_WINDOW_CHANGED') {
+        setSelectedSlot(null)
+        setValue('startTime', '')
+        setValue('endTime', '')
+        setValue('tableId', '')
+        void Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['products', venueId, 'all'] }),
+          queryClient.invalidateQueries({ queryKey: ['reservation-availability', venueId] }),
+        ])
+        toast({
+          title: t('form.windowChangedTitle'),
+          description: t('form.windowChangedDescription'),
+          variant: 'destructive',
+        })
+        return
+      }
+      const isExternalCalendarBusy = code === 'external_calendar_busy' || (status === 409 && /calendario\s+externo/i.test(message))
       if (isExternalCalendarBusy) {
         toast({
           title: t('googleCalendar:reservationBusyError'),
@@ -372,13 +467,30 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
   })
 
   // Expose submit to parent via ref
-  const onSubmit = handleSubmit(data => createMutation.mutate(data))
+  const onSubmit = handleSubmit(data => {
+    if (productStaffUnavailable) {
+      toast({
+        title: tCommon('error'),
+        description: t('form.staffMappingRequired'),
+        variant: 'destructive',
+      })
+      return
+    }
+    createMutation.mutate({ data })
+  })
   if (submitRef) {
     submitRef.current = onSubmit
   }
 
   // Compute subtotal from selected services
   const subtotal = selectedProduct ? Number(selectedProduct.price) : 0
+  const clearAppointmentWindow = (clearStaff = false) => {
+    setSelectedSlot(null)
+    setValue('startTime', '')
+    setValue('endTime', '')
+    setValue('tableId', '')
+    if (clearStaff) setValue('assignedStaffId', '')
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
@@ -414,7 +526,7 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
               isLoading={customersLoading}
               value={customerSearch}
               onChange={setCustomerSearch}
-              onSelect={(item) => {
+              onSelect={item => {
                 setGuestMode('existing')
                 setValue('guestMode', 'existing')
                 setValue('customerId', item.id)
@@ -443,13 +555,7 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
               <p className="text-sm text-muted-foreground">
                 {t('form.noServicesAvailable', { defaultValue: 'No hay servicios creados. Puedes crear uno en MenuMaker.' })}
               </p>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                onClick={() => setShowServiceTypeSelector(true)}
-              >
+              <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => setShowServiceTypeSelector(true)}>
                 <Plus className="h-3.5 w-3.5" />
                 {t('form.createService', { defaultValue: 'Crear servicio' })}
               </Button>
@@ -465,6 +571,7 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
                 onClick={() => {
                   setValue('productId', '')
                   setProductSearch('')
+                  clearAppointmentWindow(true)
                 }}
               >
                 {t('form.changeService', { defaultValue: 'Cambiar' })}
@@ -477,9 +584,10 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
               isLoading={productsLoading}
               value={productSearch}
               onChange={setProductSearch}
-              onSelect={(item) => {
+              onSelect={item => {
                 setValue('productId', item.id)
                 setProductSearch('')
+                clearAppointmentWindow(true)
               }}
               onCreateNew={() => setShowServiceTypeSelector(true)}
               createNewLabel={() => t('form.createService', { defaultValue: 'Crear servicio' })}
@@ -492,9 +600,7 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
               <span>{selectedProduct.name}</span>
               <div className="flex items-center gap-3 text-muted-foreground">
                 {selectedProduct.duration && <span>{selectedProduct.duration} min.</span>}
-                {Number(selectedProduct.price) > 0 && (
-                  <span className="text-foreground">${Number(selectedProduct.price).toFixed(2)}</span>
-                )}
+                {Number(selectedProduct.price) > 0 && <span className="text-foreground">${Number(selectedProduct.price).toFixed(2)}</span>}
               </div>
             </div>
           )}
@@ -526,8 +632,7 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
                   const mm = String(date.getMonth() + 1).padStart(2, '0')
                   const dd = String(date.getDate()).padStart(2, '0')
                   setValue('date', `${yyyy}-${mm}-${dd}`, { shouldValidate: true })
-                  // Clear slot selection when date changes
-                  setSelectedSlot(null)
+                  clearAppointmentWindow()
                 }
               }}
             />
@@ -553,10 +658,14 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
           {/* Duration + Party size + End time info */}
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2">
-              <Label className="text-xs text-muted-foreground">
-                {t('form.fields.duration', { defaultValue: 'Duración' })}
-              </Label>
-              <Select value={String(watch('duration'))} onValueChange={v => setValue('duration', Number(v))}>
+              <Label className="text-xs text-muted-foreground">{t('form.fields.duration', { defaultValue: 'Duración' })}</Label>
+              <Select
+                value={String(watch('duration'))}
+                onValueChange={v => {
+                  setValue('duration', Number(v))
+                  clearAppointmentWindow()
+                }}
+              >
                 <SelectTrigger className="w-[88px] h-8 text-xs">
                   <SelectValue />
                 </SelectTrigger>
@@ -571,15 +680,8 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
             </div>
             <div className="w-px h-4 bg-border" />
             <div className="flex items-center gap-2">
-              <Label className="text-xs text-muted-foreground">
-                {t('form.fields.partySize', { defaultValue: 'Personas' })}
-              </Label>
-              <Input
-                type="number"
-                min={1}
-                className="w-14 h-8 text-center text-xs"
-                {...register('partySize')}
-              />
+              <Label className="text-xs text-muted-foreground">{t('form.fields.partySize', { defaultValue: 'Personas' })}</Label>
+              <Input type="number" min={1} className="w-14 h-8 text-center text-xs" {...register('partySize')} />
             </div>
             {watchStartTime && watch('endTime') && (
               <>
@@ -608,6 +710,7 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
                   const timeStr = `${String(start.hour).padStart(2, '0')}:${String(start.minute).padStart(2, '0')}`
                   const isSelected = selectedSlot?.startsAt === slot.startsAt
                   const isCurrentTime = !isSelected && watchStartTime === timeStr
+                  const isFull = slot.available === false && slot.reason === 'FULL'
                   return (
                     <button
                       key={slot.startsAt}
@@ -617,23 +720,27 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
                         'inline-flex items-center h-8 px-3 rounded-md text-xs font-medium tabular-nums transition-all duration-150 cursor-pointer',
                         isSelected
                           ? 'bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/30'
-                          : isCurrentTime
-                            ? 'bg-accent text-accent-foreground ring-1 ring-border'
-                            : 'bg-background text-foreground hover:bg-accent/60 border border-border/60',
+                          : isFull
+                            ? 'border border-destructive/40 bg-destructive/5 text-destructive hover:bg-destructive/10'
+                            : isCurrentTime
+                              ? 'bg-accent text-accent-foreground ring-1 ring-border'
+                              : 'bg-background text-foreground hover:bg-accent/60 border border-border/60',
                       )}
                     >
                       {timeStr}
+                      {isFull ? <span className="ml-1.5">{t('form.slotFull')}</span> : null}
                     </button>
                   )
                 })}
               </div>
             </div>
           )}
-
         </div>
 
         {/* Assignment — Mesa (solo para venues con mesas) + Personal */}
-        <div className={`grid gap-3 ${showTables && selectedSlot && selectedSlot.availableTables.length > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+        <div
+          className={`grid gap-3 ${showTables && selectedSlot && selectedSlot.availableTables.length > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}
+        >
           {showTables && selectedSlot && selectedSlot.availableTables.length > 0 && (
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">{t('form.fields.table', { defaultValue: 'Mesa' })}</Label>
@@ -643,7 +750,7 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
                 onChange={v => setValue('tableId', v)}
                 placeholder={t('form.selectTable', { defaultValue: 'Seleccionar mesa' })}
                 noneLabel={t('noTable', { defaultValue: 'Sin mesa' })}
-                formatLabel={(table) =>
+                formatLabel={table =>
                   t('form.tableCapacity', {
                     number: table.number,
                     capacity: table.capacity,
@@ -654,15 +761,29 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
             </div>
           )}
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.5" data-tour="reservation-staff-picker">
             <Label className="text-xs text-muted-foreground">{t('form.fields.staff', { defaultValue: 'Personal asignado' })}</Label>
             <StaffPicker
-              staff={staffMembers}
+              staff={staffSelectionOptions}
               value={watch('assignedStaffId') || ''}
-              onChange={v => setValue('assignedStaffId', v)}
+              onChange={v => {
+                clearAppointmentWindow()
+                setValue('assignedStaffId', v)
+              }}
               placeholder={t('form.selectStaff', { defaultValue: 'Buscar personal…' })}
               noneLabel={t('noStaff', { defaultValue: 'Sin asignar' })}
+              isLoading={isAppointmentProduct && staffAware && productStaffQuery.isLoading}
+              reasonLabels={{
+                NOT_ELIGIBLE: t('form.staffNotEligible'),
+                UNAVAILABLE: t('form.staffUnavailable'),
+              }}
             />
+            {requiresProductStaffMapping && productStaffQuery.isError ? (
+              <p className="text-xs text-destructive">{t('form.staffMappingLoadError')}</p>
+            ) : null}
+            {requiresProductStaffMapping && productStaffQuery.data && productStaffQuery.data.staff.length === 0 ? (
+              <p className="text-xs text-destructive">{t('form.staffMappingRequired')}</p>
+            ) : null}
           </div>
         </div>
 
@@ -689,14 +810,14 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
                 </div>
                 <div>
                   <h4 className="font-semibold text-sm">{selectedCustomerName}</h4>
-                  <p className="text-xs text-muted-foreground">
-                    {t('form.customerSelected', { defaultValue: 'Cliente seleccionado' })}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{t('form.customerSelected', { defaultValue: 'Cliente seleccionado' })}</p>
                 </div>
               </div>
               {/* Special requests for existing customer */}
               <div className="space-y-1.5 pt-2">
-                <Label className="text-xs text-muted-foreground">{t('form.fields.specialRequests', { defaultValue: 'Peticiones especiales' })}</Label>
+                <Label className="text-xs text-muted-foreground">
+                  {t('form.fields.specialRequests', { defaultValue: 'Peticiones especiales' })}
+                </Label>
                 <Textarea
                   {...register('specialRequests')}
                   placeholder={t('form.placeholders.specialRequests', { defaultValue: 'Alergias, preferencias...' })}
@@ -729,7 +850,10 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
                 <div className="space-y-3 pt-2">
                   <div className="space-y-1.5">
                     <Label className="text-xs text-muted-foreground">{t('form.fields.guestName', { defaultValue: 'Nombre' })}</Label>
-                    <Input {...register('guestName')} placeholder={t('form.placeholders.guestName', { defaultValue: 'Nombre del invitado' })} />
+                    <Input
+                      {...register('guestName')}
+                      placeholder={t('form.placeholders.guestName', { defaultValue: 'Nombre del invitado' })}
+                    />
                     {errors.guestName && <p className="text-xs text-destructive">{t('form.validation.guestNameRequired')}</p>}
                   </div>
                   <div className="space-y-1.5">
@@ -738,12 +862,18 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs text-muted-foreground">{t('form.fields.guestEmail', { defaultValue: 'Email' })}</Label>
-                    <Input type="email" {...register('guestEmail')} placeholder={t('form.placeholders.guestEmail', { defaultValue: 'correo@ejemplo.com' })} />
+                    <Input
+                      type="email"
+                      {...register('guestEmail')}
+                      placeholder={t('form.placeholders.guestEmail', { defaultValue: 'correo@ejemplo.com' })}
+                    />
                   </div>
 
                   {/* Special requests */}
                   <div className="space-y-1.5 pt-2">
-                    <Label className="text-xs text-muted-foreground">{t('form.fields.specialRequests', { defaultValue: 'Peticiones especiales' })}</Label>
+                    <Label className="text-xs text-muted-foreground">
+                      {t('form.fields.specialRequests', { defaultValue: 'Peticiones especiales' })}
+                    </Label>
                     <Textarea
                       {...register('specialRequests')}
                       placeholder={t('form.placeholders.specialRequests', { defaultValue: 'Alergias, preferencias...' })}
@@ -781,7 +911,7 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
       <ServiceTypeSelectorDialog
         open={showServiceTypeSelector}
         onOpenChange={setShowServiceTypeSelector}
-        onSelect={(type) => {
+        onSelect={type => {
           setNewServiceType(type)
           setShowServiceForm(true)
         }}
@@ -791,13 +921,41 @@ export function CreateReservationForm({ defaultDate, defaultStartTime, onSuccess
         onOpenChange={setShowServiceForm}
         mode="create"
         serviceType={newServiceType}
-        onSuccess={(productId) => {
+        onSuccess={productId => {
           setShowServiceForm(false)
           setValue('productId', productId)
           setProductSearch('')
+          clearAppointmentWindow(true)
           queryClient.invalidateQueries({ queryKey: ['products', venueId] })
         }}
       />
+
+      <AlertDialog
+        open={pendingOverCapacity !== null}
+        onOpenChange={open => {
+          if (!open) setPendingOverCapacity(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('form.overCapacityTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('form.overCapacityDescription')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('form.overCapacityCancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!pendingOverCapacity) return
+                const pendingData = pendingOverCapacity
+                setPendingOverCapacity(null)
+                createMutation.mutate({ data: pendingData, allowOverCapacity: true })
+              }}
+            >
+              {t('form.overCapacityConfirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
@@ -830,11 +988,7 @@ export default function CreateReservation() {
 
 // ---------- Sub-components ----------
 
-interface StaffOption {
-  staffId: string
-  firstName?: string | null
-  lastName?: string | null
-}
+type StaffOption = Pick<StaffSelectionOption, 'staffId' | 'firstName' | 'lastName' | 'disabled' | 'reason'>
 
 interface StaffPickerProps {
   staff: StaffOption[]
@@ -842,19 +996,26 @@ interface StaffPickerProps {
   onChange: (id: string) => void
   placeholder: string
   noneLabel: string
+  isLoading?: boolean
+  reasonLabels: Record<'NOT_ELIGIBLE' | 'UNAVAILABLE', string>
 }
 
-function StaffPicker({ staff, value, onChange, placeholder, noneLabel }: StaffPickerProps) {
+function StaffPicker({ staff, value, onChange, placeholder, noneLabel, isLoading, reasonLabels }: StaffPickerProps) {
   const [search, setSearch] = useState('')
 
   const labelFor = (s: StaffOption) => `${s.firstName ?? ''} ${s.lastName ?? ''}`.trim() || s.staffId
 
-  const selected = useMemo(() => (value ? staff.find(s => s.staffId === value) ?? null : null), [staff, value])
+  const selected = useMemo(() => (value ? (staff.find(s => s.staffId === value) ?? null) : null), [staff, value])
 
   const items = useMemo<SearchComboboxItem[]>(() => {
     const filtered = !search ? staff : staff.filter(s => includesNormalized(labelFor(s), search))
-    return filtered.map(s => ({ id: s.staffId, label: labelFor(s) }))
-  }, [staff, search])
+    return filtered.map(s => ({
+      id: s.staffId,
+      label: labelFor(s),
+      disabled: s.disabled,
+      disabledLabel: s.reason ? reasonLabels[s.reason] : undefined,
+    }))
+  }, [staff, search, reasonLabels])
 
   if (selected) {
     return (
@@ -881,6 +1042,7 @@ function StaffPicker({ staff, value, onChange, placeholder, noneLabel }: StaffPi
     <SearchCombobox
       placeholder={placeholder}
       items={items}
+      isLoading={isLoading}
       value={search}
       onChange={setSearch}
       onSelect={item => {
@@ -909,7 +1071,7 @@ interface TablePickerProps {
 function TablePicker({ tables, value, onChange, placeholder, noneLabel, formatLabel }: TablePickerProps) {
   const [search, setSearch] = useState('')
 
-  const selected = useMemo(() => (value ? tables.find(t => t.id === value) ?? null : null), [tables, value])
+  const selected = useMemo(() => (value ? (tables.find(t => t.id === value) ?? null) : null), [tables, value])
 
   const items = useMemo<SearchComboboxItem[]>(() => {
     const filtered = !search ? tables : tables.filter(tbl => includesNormalized(formatLabel(tbl), search))
