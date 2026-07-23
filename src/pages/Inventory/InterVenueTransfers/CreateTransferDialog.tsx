@@ -84,7 +84,13 @@ export function CreateTransferDialog({ open, onClose, onCreated }: Props) {
   const watchedItems = form.watch('items')
 
   const counterpartVenues = useMemo(
-    () => allVenues.filter(candidate => candidate.id !== venueId && candidate.organizationId === venue?.organizationId && candidate.active),
+    // Venue "active" gating: the session venue shape (/auth/status) carries `status`,
+    // NOT an `active` boolean — filtering on `candidate.active` silently discarded
+    // every sibling venue and the destination dropdown was always empty.
+    () =>
+      allVenues.filter(
+        candidate => candidate.id !== venueId && candidate.organizationId === venue?.organizationId && candidate.status === 'ACTIVE',
+      ),
     [allVenues, venue?.organizationId, venueId],
   )
   const sourceVenueId = mode === 'PULL' ? counterpartVenueId : venueId
