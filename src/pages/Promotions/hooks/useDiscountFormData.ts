@@ -13,7 +13,7 @@ export function useDiscountFormData(venueId: string | undefined) {
   // Fetch products for selector
   const { data: products, isLoading: isLoadingProducts } = useQuery({
     queryKey: ['products', venueId, 'orderBy:name'],
-    queryFn: () => getProducts(venueId!, { orderBy: 'name' }),
+    queryFn: () => getProducts(venueId!, { orderBy: 'name', includeRecipe: false, includeModifiers: false }),
     enabled: !!venueId,
   })
 

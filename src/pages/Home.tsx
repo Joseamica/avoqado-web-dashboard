@@ -229,7 +229,7 @@ export default function Home() {
 
   const { data: productsData, isLoading: isProductsLoading } = useQuery({
     queryKey: ['home-business-products-count', venueId],
-    queryFn: () => getProducts(venueId!),
+    queryFn: () => getProducts(venueId!, { includeRecipe: false, includeModifiers: false }),
     enabled: businessEnabled,
     staleTime: 60_000,
   })

@@ -167,7 +167,7 @@ export default function OnlineBookingPage() {
 	const venueId = venue?.id
 	const { data: products } = useQuery({
 		queryKey: ['products', venueId, 'all'],
-		queryFn: () => getProducts(venueId!),
+		queryFn: () => getProducts(venueId!, { includeRecipe: false, includeModifiers: false }),
 		enabled: !!venueId,
 		staleTime: 60_000,
 	})

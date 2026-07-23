@@ -185,7 +185,7 @@ export function CreateClassSessionDialog({ open, onOpenChange, defaultDate, defa
   // Fetch CLASS products
   const { data: allProducts = [], isLoading: productsLoading } = useQuery({
     queryKey: ['products', venueId, 'all'],
-    queryFn: () => getProducts(venueId!),
+    queryFn: () => getProducts(venueId!, { includeRecipe: false, includeModifiers: false }),
     enabled: open && !!venueId,
     staleTime: 60_000,
   })

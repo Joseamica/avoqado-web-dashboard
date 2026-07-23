@@ -53,7 +53,7 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
 
   const { data: products } = useQuery({
     queryKey: ['products', venueId],
-    queryFn: () => menuService.getProducts(venueId!),
+    queryFn: () => menuService.getProducts(venueId!, { includeRecipe: false }),
     enabled: !!venueId && open,
   })
 

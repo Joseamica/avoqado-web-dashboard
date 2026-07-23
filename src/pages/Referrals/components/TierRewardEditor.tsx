@@ -187,7 +187,7 @@ export default function TierRewardEditor({
 
   const { data: productsData, isLoading: productsLoading } = useQuery({
     queryKey: ['products', venueId, 'for-referrals-tier-editor'],
-    queryFn: () => getProducts(venueId, { orderBy: 'name' }),
+    queryFn: () => getProducts(venueId, { orderBy: 'name', includeRecipe: false, includeModifiers: false }),
     enabled: !!venueId,
   })
   const products = (productsData ?? []) as ProductOption[]

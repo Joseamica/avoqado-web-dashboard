@@ -122,12 +122,18 @@ export const getProducts = async (
     orderBy?: 'displayOrder' | 'name'
     categoryId?: string
     includeRecipe?: boolean
+    includeModifiers?: boolean
   },
 ): Promise<Product[]> => {
   const params = new URLSearchParams()
   if (options?.orderBy) params.append('orderBy', options.orderBy)
   if (options?.categoryId) params.append('categoryId', options.categoryId)
   if (options?.includeRecipe) params.append('includeRecipe', 'true')
+  // The recipe + modifier trees default ON server-side (backward-compatible). Callers that only
+  // need id/name/price OPT OUT with includeRecipe/includeModifiers:false to skip the deep includes
+  // — a big speed win on large catalogs (this list is fanned out to ~10 dashboard pages).
+  if (options?.includeRecipe === false) params.append('includeRecipe', 'false')
+  if (options?.includeModifiers === false) params.append('includeModifiers', 'false')
 
   const url = `/api/v1/dashboard/venues/${venueId}/products${params.toString() ? `?${params.toString()}` : ''}`
   const response = await api.get(url)
