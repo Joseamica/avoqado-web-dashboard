@@ -89,6 +89,7 @@ export const PLAN_TIERS: PlanTierDef[] = [
       'TRANSACTION_EXPORT',
       'MERCHANT_ROUTING_RULES', // Reglas condicionales de merchants en TPV (espejo de PREMIUM_ONLY_CODES backend)
       'DELIVERY_CHANNELS', // Canales de entrega (Uber Eats, Rappi, DiDi, etc.)
+      'OFFLINE_LAN_HUB', // Hub LAN offline: los POS se coordinan por red local sin internet
     ],
   },
   {
