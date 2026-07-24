@@ -615,6 +615,8 @@ export interface VenueSettings {
   shiftDuration: number
   enableShifts: boolean
   requirePinLogin: boolean
+  /** Propiedad de mesa (PRO): solo el mesero dueño modifica/cierra sus mesas. */
+  enforceTableOwnership?: boolean
 
   // Auto Clock-Out (HR automation)
   autoClockOutEnabled: boolean
@@ -1734,6 +1736,8 @@ export interface SessionVenue {
   settings?: {
     enableShifts: boolean
     hiddenSidebarItems: string[]
+    /** Propiedad de mesa (PRO): solo el mesero dueño modifica/cierra sus mesas. */
+    enforceTableOwnership?: boolean
   } | null
 }
 

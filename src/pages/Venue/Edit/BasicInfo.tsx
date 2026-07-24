@@ -88,6 +88,8 @@ const basicInfoFormSchema = z.object({
   longitude: z.preprocess(coerceNullableNumber, z.number().nullable().optional()),
   enableShifts: z.boolean().default(true).optional(),
   requireClockInPhoto: z.boolean().default(false).optional(),
+  // Propiedad de mesa (PRO): solo el mesero dueño modifica/cierra sus mesas.
+  enforceTableOwnership: z.boolean().default(false).optional(),
   // Auto Clock-Out settings
   autoClockOutEnabled: z.boolean().default(false).optional(),
   autoClockOutTime: z.string().nullable().optional(),
@@ -198,6 +200,7 @@ export default function BasicInfo() {
         longitude: venue.longitude ?? null,
         enableShifts: venue.settings?.enableShifts ?? true,
         requireClockInPhoto: venue.settings?.requireClockInPhoto ?? false,
+        enforceTableOwnership: venue.settings?.enforceTableOwnership ?? false,
         autoClockOutEnabled: venue.settings?.autoClockOutEnabled ?? false,
         autoClockOutTime: venue.settings?.autoClockOutTime ?? null,
         maxShiftDurationEnabled: venue.settings?.maxShiftDurationEnabled ?? false,
@@ -338,6 +341,38 @@ export default function BasicInfo() {
       })
       queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
       console.error('Error toggling clock-in photo:', error)
+    },
+  })
+
+  // Propiedad de mesa (PRO): "Solo el propietario puede modificar sus mesas".
+  // Aplica al Modo restaurante (TABLE_SERVICE) en iOS/Android; el backend
+  // refuerza la regla y los gerentes conservan acceso (tables:manage-all).
+  const toggleTableOwnership = useMutation({
+    mutationFn: async (enforceTableOwnership: boolean) => {
+      await api.put(`/api/v1/dashboard/venues/${venueId}/settings`, {
+        enforceTableOwnership,
+      })
+      return enforceTableOwnership
+    },
+    onSuccess: enforceTableOwnership => {
+      form.setValue('enforceTableOwnership', enforceTableOwnership, { shouldDirty: false })
+      toast({
+        title: enforceTableOwnership ? 'Propiedad de mesas activada' : 'Propiedad de mesas desactivada',
+        description: enforceTableOwnership
+          ? 'Cada mesero solo podrá modificar y cobrar las mesas que abrió; los demás las verán en solo lectura.'
+          : 'Cualquier miembro del personal puede volver a modificar cualquier mesa.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.message || 'Error al guardar la configuración'
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      })
+      queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
+      console.error('Error toggling table ownership:', error)
     },
   })
 
@@ -1051,6 +1086,32 @@ export default function BasicInfo() {
                         </div>
                       )}
                     />
+
+                    {/* Propiedad de mesas (PRO — Modo restaurante iOS/Android) */}
+                    <div className="mt-3 rounded-xl border border-border/50 bg-card shadow-sm">
+                      <div className="flex flex-row items-center justify-between p-4">
+                        <div className="space-y-0.5">
+                          <p className="text-base font-medium">
+                            Propiedad de mesas
+                            <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              PRO
+                            </span>
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Solo el mesero que abrió una mesa puede modificarla y cobrarla; los demás la ven en solo lectura. Los
+                            gerentes conservan acceso total. Aplica al Modo restaurante en el POS.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {toggleTableOwnership.isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                          <Switch
+                            checked={form.watch('enforceTableOwnership') ?? false}
+                            onCheckedChange={checked => toggleTableOwnership.mutate(checked)}
+                            disabled={!canEdit || toggleTableOwnership.isPending}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
