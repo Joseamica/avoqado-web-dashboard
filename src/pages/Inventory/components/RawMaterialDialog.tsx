@@ -11,6 +11,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { SearchableSelect, type SearchableSelectOption } from '@/components/ui/searchable-select'
 import { MultiSelectCombobox } from '@/components/multi-select-combobox'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useAccess } from '@/hooks/use-access'
+import { RawMaterialPresentationsSection } from './RawMaterialPresentationsSection'
 import { useToast } from '@/hooks/use-toast'
 import { rawMaterialsApi, type RawMaterial, type CreateRawMaterialDto } from '@/services/inventory.service'
 import { supplierService } from '@/services/supplier.service'
@@ -63,6 +65,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
   const { t } = useTranslation('inventory')
   const { t: _tCommon } = useTranslation('common')
   const { venueId } = useCurrentVenue()
+  const { can } = useAccess()
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -868,6 +871,17 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
             />
           </div>
         </section>
+
+        {/* Presentaciones de compra/salida — sólo al editar: necesita un insumo ya
+            creado, y se guardan por su cuenta (endpoint propio, replace-all). */}
+        {mode === 'edit' && rawMaterial?.id && venueId && (
+          <RawMaterialPresentationsSection
+            venueId={venueId}
+            rawMaterialId={rawMaterial.id}
+            baseUnit={selectedUnit}
+            canEdit={can('inventory:update')}
+          />
+        )}
 
         {/* Bottom padding for scroll */}
         <div className="h-8" />

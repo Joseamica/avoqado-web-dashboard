@@ -973,3 +973,50 @@ export async function runAutoReorderNow(venueId: string): Promise<{ result: { or
   const { data } = await api.post(`/api/v1/dashboard/venues/${venueId}/inventory/auto-reorder/run-now`, {})
   return data
 }
+
+// ===========================================
+// PRESENTACIONES DE COMPRA/SALIDA (CEDIS)
+// ===========================================
+
+/**
+ * Unidad en la que un insumo se COMPRA o se REMISIONA (caja, cono, kilo…), con
+ * su equivalencia a la unidad base del insumo. El factor es explícito por
+ * producto, así que puede cruzar dimensiones: "1 kilo = 18.18 huevos".
+ * Un insumo sin presentaciones opera sólo en su unidad base.
+ */
+export interface RawMaterialPresentation {
+  id: string
+  rawMaterialId: string
+  venueId: string
+  name: string
+  factorToBase: string | number
+  isPurchase: boolean
+  isDefaultOut: boolean
+}
+
+export interface RawMaterialPresentationInput {
+  name: string
+  factorToBase: number
+  isPurchase?: boolean
+  isDefaultOut?: boolean
+}
+
+export async function getRawMaterialPresentations(venueId: string, rawMaterialId: string): Promise<RawMaterialPresentation[]> {
+  const response = await api.get<{ success: boolean; data: RawMaterialPresentation[] }>(
+    `/api/v1/dashboard/venues/${venueId}/inventory/raw-materials/${rawMaterialId}/presentations`,
+  )
+  return response.data.data
+}
+
+/** Reemplaza el conjunto COMPLETO de presentaciones del insumo. */
+export async function setRawMaterialPresentations(
+  venueId: string,
+  rawMaterialId: string,
+  presentations: RawMaterialPresentationInput[],
+): Promise<RawMaterialPresentation[]> {
+  const response = await api.put<{ success: boolean; data: RawMaterialPresentation[] }>(
+    `/api/v1/dashboard/venues/${venueId}/inventory/raw-materials/${rawMaterialId}/presentations`,
+    { presentations },
+  )
+  return response.data.data
+}
