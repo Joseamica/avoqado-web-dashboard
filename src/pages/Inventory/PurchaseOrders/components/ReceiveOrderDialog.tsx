@@ -60,7 +60,10 @@ export function ReceiveOrderDialog({ purchaseOrder, open, onClose }: ReceiveOrde
         return {
           purchaseOrderItemId: item.id,
           rawMaterialName: item.rawMaterial.name,
-          rawMaterialUnit: item.rawMaterial.unit,
+          // Si se compró en presentación, la cantidad de este renglón está EN
+          // CAJAS. Mostrar la unidad base aquí haría que quien recibe cuente
+          // piezas y capture 50 huevos donde llegaron 50 cajas.
+          rawMaterialUnit: item.presentationName || item.rawMaterial.unit,
           quantityOrdered: item.quantityOrdered,
           quantityReceived: alreadyReceived,
           quantityToReceive: remaining, // Pre-fill with remaining

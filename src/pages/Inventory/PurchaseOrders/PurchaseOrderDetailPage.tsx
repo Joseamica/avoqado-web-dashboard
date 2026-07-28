@@ -581,7 +581,10 @@ export default function PurchaseOrderDetailPage() {
                         {item.rawMaterial.name}
                       </TableCell>
                       <TableCell className="text-right py-6">
-                        {item.quantityOrdered} {formatUnitWithQuantity(item.quantityOrdered, item.rawMaterial.unit, true)}
+                        {/* Comprado en presentación: se DEBE leer "50 cajas", no "50 piezas"
+                            — quien recibe cuenta cajas, y ver la unidad base lo haría
+                            capturar 50 huevos en vez de 50 cajas. */}
+                        {item.quantityOrdered} {item.presentationName || formatUnitWithQuantity(item.quantityOrdered, item.rawMaterial.unit, true)}
                       </TableCell>
                       <TableCell className="text-right py-6">
                         {formatPrice(item.unitPrice)}
@@ -955,11 +958,18 @@ export default function PurchaseOrderDetailPage() {
                   className="[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
                 <span className="text-sm text-muted-foreground min-w-[80px] uppercase">
-                  {receiveItemDialog.item?.rawMaterial?.unit ? formatUnitWithQuantity(receiveItemDialog.quantity, receiveItemDialog.item.rawMaterial.unit, true) : ''}
+                  {receiveItemDialog.item?.presentationName ||
+                    (receiveItemDialog.item?.rawMaterial?.unit
+                      ? formatUnitWithQuantity(receiveItemDialog.quantity, receiveItemDialog.item.rawMaterial.unit, true)
+                      : '')}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                {t('actions.quantityOrderedLabel')} {receiveItemDialog.item?.quantityOrdered || 0} {receiveItemDialog.item?.rawMaterial?.unit ? formatUnitWithQuantity(receiveItemDialog.item.quantityOrdered, receiveItemDialog.item.rawMaterial.unit, true) : ''}
+                {t('actions.quantityOrderedLabel')} {receiveItemDialog.item?.quantityOrdered || 0}{' '}
+                {receiveItemDialog.item?.presentationName ||
+                  (receiveItemDialog.item?.rawMaterial?.unit
+                    ? formatUnitWithQuantity(receiveItemDialog.item.quantityOrdered, receiveItemDialog.item.rawMaterial.unit, true)
+                    : '')}
               </p>
               {receiveItemDialog.quantity > (receiveItemDialog.item?.quantityOrdered || 0) && (
                 <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
