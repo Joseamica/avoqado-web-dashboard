@@ -222,6 +222,14 @@ jobs:
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL || 'https://api.avoqado.io' }}
           VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
+          # MUST match the backend's ENABLE_VENUE_BASE_SUBSCRIPTION (Render), which is ON.
+          # Vite inlines this at BUILD time: when it is unset, SetupWizard.tsx evaluates
+          # `undefined === 'true'` → false, drops the PlanStep from SETUP_STEPS, and the
+          # wizard submits /v2/complete with no plan — which the backend rejects with
+          # "Falta elegir tu plan" and no step to go back to. That is exactly what happened:
+          # this var was never defined here, so from 2026-05-27 to 2026-07-27 NOT ONE
+          # organization could finish onboarding. Never flip one side alone.
+          VITE_ENABLE_VENUE_BASE_SUBSCRIPTION: ${{ vars.VITE_ENABLE_VENUE_BASE_SUBSCRIPTION || 'true' }}
 
       - name: 🏭 Deploy to Cloudflare Pages (Production)
         uses: cloudflare/wrangler-action@v3
