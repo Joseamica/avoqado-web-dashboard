@@ -87,6 +87,8 @@ export interface PurchaseOrderItem {
   quantityOrdered: number
   quantityReceived: number
   unit: Unit
+  /** Unidad de compra congelada ("caja"); null = se compró en unidad base. */
+  presentationName?: string | null
   unitPrice: string // Decimal as string
   total: string // Decimal as string
   receiveStatus: PurchaseOrderItemStatus
@@ -111,6 +113,8 @@ export interface CreatePurchaseOrderDto {
     quantityOrdered: number
     unit: Unit
     unitPrice: number
+    /** Unidad de compra ("caja"): cantidad y precio van EN ESA unidad. */
+    presentationName?: string
   }>
 }
 
@@ -132,6 +136,8 @@ export interface UpdatePurchaseOrderDto {
     quantityOrdered: number
     unit: Unit
     unitPrice: number
+    /** Unidad de compra ("caja"): cantidad y precio van EN ESA unidad. */
+    presentationName?: string
   }>
 }
 

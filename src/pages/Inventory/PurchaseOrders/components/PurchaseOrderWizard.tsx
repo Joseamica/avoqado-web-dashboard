@@ -25,6 +25,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn, includesNormalized } from '@/lib/utils'
+import { PurchaseUnitSelect } from './PurchaseUnitSelect'
 
 // Validation schema
 const orderItemSchema = z.object({
@@ -32,6 +33,9 @@ const orderItemSchema = z.object({
   quantityOrdered: z.number().positive('Cantidad debe ser mayor a 0'),
   unit: z.nativeEnum(Unit),
   unitPrice: z.number().positive('Precio debe ser mayor a 0'),
+  // Unidad de compra ("caja"). Si viene, cantidad y precio están EN ESA unidad
+  // y el backend convierte a la unidad base al recibir.
+  presentationName: z.string().optional(),
 })
 
 const purchaseOrderSchema = z.object({
@@ -134,6 +138,9 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
         quantityOrdered: Number(item.quantityOrdered),
         unit: item.rawMaterial?.unit || item.unit,
         unitPrice: Number(item.unitPrice),
+        // sin esto, editar o duplicar una orden comprada en cajas la devolvería
+        // a unidad base y el costo del lote saldría inflado por el factor
+        presentationName: item.presentationName ?? undefined,
       })) || [],
     } : {
       supplierId: '',
@@ -200,6 +207,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
           quantityOrdered: Number(item.quantityOrdered),
           unit: item.rawMaterial?.unit || item.unit,
           unitPrice: Number(item.unitPrice),
+          presentationName: item.presentationName ?? undefined,
         })) || [],
       }
       // console.log('📋 Form values to reset:', formValues)
@@ -383,6 +391,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
           quantityOrdered: Number(item.quantityOrdered),
           unit: item.unit,
           unitPrice: Number(item.unitPrice),
+          presentationName: item.presentationName || undefined,
         })),
       }
 
@@ -999,11 +1008,15 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                                         ref={field.ref}
                                         className={cn('w-full', unitLabel && 'pr-10')}
                                       />
-                                      {unitLabel && (
-                                        <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs font-medium text-muted-foreground">
-                                          {unitLabel}
-                                        </span>
-                                      )}
+                                      <PurchaseUnitSelect
+                                        venueId={venue?.id ?? ''}
+                                        rawMaterialId={item?.rawMaterialId}
+                                        baseUnitLabel={unitLabel}
+                                        value={item?.presentationName}
+                                        onChange={presentationName =>
+                                          form.setValue(`items.${index}.presentationName`, presentationName, { shouldDirty: true })
+                                        }
+                                      />
                                     </div>
                                   </FormControl>
                                   <FormMessage />
