@@ -299,6 +299,7 @@
     "unsaved": "Vous avez des modifications non enregistrées",
     "errorNameRequired": "Saisissez le nom de la présentation",
     "errorDuplicate": "\"{{name}}\" est en double",
+    "errorNameChars": "\"{{name}}\" contient des caractères non autorisés ; utilisez uniquement lettres, chiffres et . , ' / ( ) -",
     "errorFactor": "L'équivalence de \"{{name}}\" doit être supérieure à zéro"
   }
 }

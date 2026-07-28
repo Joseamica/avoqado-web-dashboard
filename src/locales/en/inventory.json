@@ -1458,6 +1458,7 @@
     "unsaved": "You have unsaved changes",
     "errorNameRequired": "Enter the presentation name",
     "errorDuplicate": "\"{{name}}\" is duplicated",
+    "errorNameChars": "\"{{name}}\" has invalid characters; use only letters, numbers and . , ' / ( ) -",
     "errorFactor": "The equivalence of \"{{name}}\" must be greater than zero"
   }
 }

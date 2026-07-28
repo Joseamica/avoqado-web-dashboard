@@ -1458,6 +1458,7 @@
     "unsaved": "Tienes cambios sin guardar",
     "errorNameRequired": "Escribe el nombre de la presentación",
     "errorDuplicate": "\"{{name}}\" está repetida",
+    "errorNameChars": "\"{{name}}\" tiene caracteres no permitidos; usa sólo letras, números y . , ' / ( ) -",
     "errorFactor": "La equivalencia de \"{{name}}\" debe ser mayor que cero"
   }
 }

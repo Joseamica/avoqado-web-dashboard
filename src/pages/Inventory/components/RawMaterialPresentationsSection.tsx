@@ -13,6 +13,9 @@ import {
   setRawMaterialPresentations,
 } from '@/services/inventory.service'
 
+/** Espejo exacto del regex del backend (`SetRawMaterialPresentationsSchema`). */
+const NAME_PATTERN = /^[\p{L}\p{N} .,'/()-]+$/u
+
 interface PresentationRow {
   name: string
   /** Clearable: vacío mientras el usuario escribe (regla de inputs numéricos). */
@@ -79,6 +82,9 @@ export function RawMaterialPresentationsSection({ venueId, rawMaterialId, baseUn
     for (const row of rows) {
       const name = row.name.trim()
       if (!name) return t('presentations.errorNameRequired')
+      // Espeja el regex del backend para que el error salga al escribir, no al
+      // guardar. El nombre se imprime después en la orden de compra.
+      if (!NAME_PATTERN.test(name)) return t('presentations.errorNameChars', { name })
       if (names.has(name)) return t('presentations.errorDuplicate', { name })
       names.add(name)
       if (row.factorToBase === undefined || !Number.isFinite(row.factorToBase) || row.factorToBase <= 0) {
