@@ -17,7 +17,8 @@
     "deactivating": "Desactivando...",
     "lock": "Bloqueo",
     "locked": "Bloqueado",
-    "unlocked": "Desbloqueado"
+    "unlocked": "Desbloqueado",
+    "globalConfig": "Config. Global"
   },
   "create": {
     "title": "Crear Nuevo Terminal",
@@ -56,7 +57,11 @@
     "nSelected": "{{count}} seleccionados",
     "noVersion": "Sin versión",
     "justNow": "Ahora",
-    "never": "Nunca"
+    "never": "Nunca",
+    "deviceKind": "Tipo",
+    "origin": "Origen",
+    "provisioned": "Dado de alta por admin",
+    "selfRegistered": "Auto-registrado"
   },
   "table": {
     "columns": {
@@ -67,9 +72,13 @@
       "actions": "Acciones",
       "connection": "Conexión",
       "lastConnection": "Última conexión",
-      "activation": "Activación"
+      "activation": "Activación",
+      "deviceKind": "Tipo",
+      "todaySales": "Ventas hoy"
     },
-    "noVersion": "No especificada"
+    "noVersion": "No especificada",
+    "transaction": "transacción",
+    "transactions": "transacciones"
   },
   "status": {
     "online": "En línea",
@@ -91,7 +100,8 @@
     "MAINTENANCE_MODE": "Entrar en mantenimiento",
     "EXIT_MAINTENANCE": "Salir de mantenimiento",
     "UPDATE_STATUS": "Actualizar estado",
-    "REACTIVATE": "Reactivar"
+    "REACTIVATE": "Reactivar",
+    "RESTART_QUEUED": "Reiniciar (al conectarse)"
   },
   "commands": {
     "sent": "Comando enviado",
@@ -271,7 +281,9 @@
       "printerReceipt": "Impresora Recibos",
       "printerKitchen": "Impresora Cocina",
       "kds": "KDS"
-    }
+    },
+    "quickCreate": "Crear Rápido",
+    "quickCreateTooltip": "Crear terminal directamente (solo Superadmin)"
   },
   "detail": {
     "terminal": "Terminal",
@@ -812,5 +824,29 @@
         }
       }
     }
+  },
+  "deviceKind": {
+    "phone": "Teléfono",
+    "tablet": "Tablet",
+    "handheldPos": "Terminal de mano",
+    "countertopPos": "POS de mostrador",
+    "desktop": "Computadora",
+    "unknown": "Sin identificar",
+    "selfRegistered": "Auto-registrado"
+  },
+  "delete": {
+    "title": "¿Eliminar terminal?",
+    "description": "Esta acción eliminará permanentemente la terminal \"{{name}}\". Esta acción no se puede deshacer."
+  },
+  "info": "Administra terminales TPV, su estado y acciones remotas.",
+  "messages": {
+    "deleted": "Terminal eliminada",
+    "deletedSuccess": "La terminal ha sido eliminada correctamente."
+  },
+  "metrics": {
+    "total": "Total",
+    "online": "En línea",
+    "pendingActivation": "Sin activar",
+    "maintenance": "Mantenimiento"
   }
 }

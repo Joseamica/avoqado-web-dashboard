@@ -9,8 +9,12 @@ export interface TpvFilters {
   statuses?: string[]
   types?: string[]
   versions?: string[]
+  /** Clase de aparato — espeja `DeviceFormFactor` del backend por nombre exacto. */
+  formFactors?: string[]
   connections?: Array<'online' | 'offline'>
   activations?: Array<'activated' | 'notActivated'>
+  /** Hardware dado de alta por un admin vs dispositivo que se registró solo al entrar. */
+  origins?: Array<'provisioned' | 'selfRegistered'>
   search?: string
 }
 
@@ -22,8 +26,10 @@ export const getTpvs = async (venueId: string, pagination: { pageIndex: number; 
       ...(filters?.statuses && filters.statuses.length > 0 && { statuses: filters.statuses.join(',') }),
       ...(filters?.types && filters.types.length > 0 && { types: filters.types.join(',') }),
       ...(filters?.versions && filters.versions.length > 0 && { versions: filters.versions.join(',') }),
+      ...(filters?.formFactors && filters.formFactors.length > 0 && { formFactors: filters.formFactors.join(',') }),
       ...(filters?.connections && filters.connections.length > 0 && { connections: filters.connections.join(',') }),
       ...(filters?.activations && filters.activations.length > 0 && { activations: filters.activations.join(',') }),
+      ...(filters?.origins && filters.origins.length > 0 && { origins: filters.origins.join(',') }),
       ...(filters?.search && { search: filters.search }),
     },
   })

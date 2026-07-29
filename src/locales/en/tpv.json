@@ -17,7 +17,8 @@
     "deactivating": "Deactivating...",
     "lock": "Lock",
     "locked": "Locked",
-    "unlocked": "Unlocked"
+    "unlocked": "Unlocked",
+    "globalConfig": "Global config"
   },
   "create": {
     "title": "Create New Terminal",
@@ -56,7 +57,11 @@
     "nSelected": "{{count}} selected",
     "noVersion": "No version",
     "justNow": "Now",
-    "never": "Never"
+    "never": "Never",
+    "deviceKind": "Type",
+    "origin": "Origin",
+    "provisioned": "Added by admin",
+    "selfRegistered": "Self-registered"
   },
   "table": {
     "columns": {
@@ -67,9 +72,13 @@
       "actions": "Actions",
       "connection": "Connection",
       "lastConnection": "Last connection",
-      "activation": "Activation"
+      "activation": "Activation",
+      "deviceKind": "Type",
+      "todaySales": "Today's sales"
     },
-    "noVersion": "Not specified"
+    "noVersion": "Not specified",
+    "transaction": "transaction",
+    "transactions": "transactions"
   },
   "status": {
     "online": "Online",
@@ -91,7 +100,8 @@
     "MAINTENANCE_MODE": "Enter maintenance",
     "EXIT_MAINTENANCE": "Exit maintenance",
     "UPDATE_STATUS": "Update status",
-    "REACTIVATE": "Reactivate"
+    "REACTIVATE": "Reactivate",
+    "RESTART_QUEUED": "Restart (when online)"
   },
   "commands": {
     "sent": "Command sent",
@@ -258,7 +268,9 @@
       "printerReceipt": "Receipt Printer",
       "printerKitchen": "Kitchen Printer",
       "kds": "KDS"
-    }
+    },
+    "quickCreate": "Quick create",
+    "quickCreateTooltip": "Create terminal directly (Superadmin only)"
   },
   "detail": {
     "terminal": "Terminal",
@@ -791,5 +803,29 @@
         }
       }
     }
+  },
+  "deviceKind": {
+    "phone": "Phone",
+    "tablet": "Tablet",
+    "handheldPos": "Handheld terminal",
+    "countertopPos": "Countertop POS",
+    "desktop": "Computer",
+    "unknown": "Unidentified",
+    "selfRegistered": "Self-registered"
+  },
+  "delete": {
+    "title": "Delete terminal?",
+    "description": "This will permanently delete the terminal \"{{name}}\". This action cannot be undone."
+  },
+  "info": "Manage POS terminals, their status and remote actions.",
+  "messages": {
+    "deleted": "Terminal deleted",
+    "deletedSuccess": "The terminal was deleted successfully."
+  },
+  "metrics": {
+    "total": "Total",
+    "online": "Online",
+    "pendingActivation": "Not activated",
+    "maintenance": "Maintenance"
   }
 }

@@ -9,7 +9,8 @@
     "offline": "Terminal disconnected",
     "exitMaintenance": "Exit Maintenance",
     "maintenanceMode": "Maintenance",
-    "update": "Update"
+    "update": "Update",
+    "globalConfig": "Config. globale"
   },
   "create": {
     "title": "Créer un Nouveau Terminal",
@@ -36,9 +37,13 @@
       "status": "Status",
       "serial": "Serial Number",
       "version": "Version",
-      "actions": "Actions"
+      "actions": "Actions",
+      "deviceKind": "Type",
+      "todaySales": "Ventes du jour"
     },
-    "noVersion": "Not specified"
+    "noVersion": "Not specified",
+    "transaction": "transaction",
+    "transactions": "transactions"
   },
   "status": {
     "online": "Online",
@@ -55,7 +60,8 @@
     "MAINTENANCE_MODE": "Enter maintenance",
     "EXIT_MAINTENANCE": "Exit maintenance",
     "UPDATE_STATUS": "Update status",
-    "REACTIVATE": "Reactivate"
+    "REACTIVATE": "Reactivate",
+    "RESTART_QUEUED": "Redémarrer (à la connexion)"
   },
   "commands": {
     "sent": "Commande envoyée",
@@ -382,5 +388,39 @@
     "securitySection": "Sécurité et Vérification",
     "securitySectionDesc": "Contrôle d'accès et validation des ventes",
     "attendanceSectionDesc": "Configuration de la pointeuse"
+  },
+  "filter": {
+    "deviceKind": "Type",
+    "origin": "Origine",
+    "provisioned": "Ajouté par l'admin",
+    "selfRegistered": "Auto-enregistré"
+  },
+  "deviceKind": {
+    "phone": "Téléphone",
+    "tablet": "Tablette",
+    "handheldPos": "Terminal portable",
+    "countertopPos": "POS de comptoir",
+    "desktop": "Ordinateur",
+    "unknown": "Non identifié",
+    "selfRegistered": "Auto-enregistré"
+  },
+  "delete": {
+    "title": "Supprimer le terminal ?",
+    "description": "Cette action supprimera définitivement le terminal « {{name}} ». Elle est irréversible."
+  },
+  "info": "Gérez les terminaux TPV, leur état et les actions à distance.",
+  "messages": {
+    "deleted": "Terminal supprimé",
+    "deletedSuccess": "Le terminal a été supprimé."
+  },
+  "metrics": {
+    "total": "Total",
+    "online": "En ligne",
+    "pendingActivation": "Non activé",
+    "maintenance": "Maintenance"
+  },
+  "superadmin": {
+    "quickCreate": "Création rapide",
+    "quickCreateTooltip": "Créer un terminal directement (Superadmin uniquement)"
   }
 }
