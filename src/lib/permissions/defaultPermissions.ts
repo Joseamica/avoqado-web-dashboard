@@ -63,6 +63,9 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'orders:read',
     'orders:update',
     'menu:read',
+    'area-tickets:issue',
+    'area-tickets:deliver',
+    'scale:use',
   ],
 
   /**
@@ -79,6 +82,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'orders:update',
     'payments:read',
     'payments:create',
+    'area-tickets:issue',
+    'scale:use',
     'shifts:read',
     'tables:read',
     'tables:update',
@@ -105,6 +110,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'payments:read',
     'payments:create',
     'payments:refund',
+    'area-tickets:checkout',
     'shifts:read',
     'reviews:read',
     'teams:read',
@@ -139,6 +145,13 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'orders:create',
     'orders:update',
     'orders:cancel',
+    'area-tickets:issue',
+    'area-tickets:checkout',
+    'area-tickets:cancel',
+    'area-tickets:deliver',
+    'area-tickets:configure',
+    'scale:use',
+    'scale:configure',
     'payments:read',
     'payments:create',
     'payments:refund',
@@ -282,6 +295,14 @@ export const PERMISSION_CATEGORIES = {
   ORDERS: {
     label: 'Orders',
     permissions: ['orders:read', 'orders:create', 'orders:update', 'orders:cancel'],
+  },
+  AREA_TICKETS: {
+    label: 'Vales por área',
+    permissions: ['area-tickets:issue', 'area-tickets:checkout', 'area-tickets:cancel', 'area-tickets:deliver', 'area-tickets:configure'],
+  },
+  SCALES: {
+    label: 'Básculas',
+    permissions: ['scale:use', 'scale:configure'],
   },
   PAYMENTS: {
     label: 'Payments',

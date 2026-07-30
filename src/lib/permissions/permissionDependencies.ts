@@ -25,28 +25,46 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   // ===========================
   'orders:read': [
     'orders:read',
-    'products:read',    // Need to see what products are in the order
-    'payments:read',    // Need to see payment status/method (basic info)
+    'products:read', // Need to see what products are in the order
+    'payments:read', // Need to see payment status/method (basic info)
     // Note: Full payment details (amounts, refunds) still require explicit payments:read
   ],
   'orders:create': [
-    'orders:read',      // Inherit read capabilities
+    'orders:read', // Inherit read capabilities
     'orders:create',
-    'products:read',    // Need to select products
-    'menu:read',        // Need to browse menu
-    'inventory:read',   // Need to check stock availability
+    'products:read', // Need to select products
+    'menu:read', // Need to browse menu
+    'inventory:read', // Need to check stock availability
   ],
   'orders:update': [
     'orders:read',
     'orders:update',
     'products:read',
-    'inventory:read',   // May need to update stock when modifying order
+    'inventory:read', // May need to update stock when modifying order
   ],
   'orders:cancel': [
     'orders:read',
     'orders:cancel',
-    'payments:read',    // Need to see if refund is needed
+    'payments:read', // Need to see if refund is needed
   ],
+
+  // ===========================
+  // AREA TICKETS + SCALES
+  // ===========================
+  'area-tickets:issue': ['area-tickets:issue', 'menu:read', 'products:read', 'inventory:read'],
+  'area-tickets:checkout': ['area-tickets:checkout', 'orders:read', 'orders:create', 'orders:update', 'payments:read', 'payments:create'],
+  'area-tickets:cancel': ['area-tickets:cancel', 'area-tickets:checkout', 'orders:cancel', 'payments:read'],
+  'area-tickets:deliver': ['area-tickets:deliver', 'orders:read', 'payments:read'],
+  'area-tickets:configure': [
+    'area-tickets:configure',
+    'area-tickets:issue',
+    'area-tickets:checkout',
+    'area-tickets:cancel',
+    'area-tickets:deliver',
+    'tpv:read',
+  ],
+  'scale:use': ['scale:use', 'products:read'],
+  'scale:configure': ['scale:configure', 'scale:use', 'tpv:read'],
 
   // ===========================
   // MENU - Products and Categories
@@ -56,34 +74,28 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
     // Note: Categories and modifiers are part of menu system, no separate permission needed
   ],
   'menu:create': [
-    'menu:read',        // Need to see existing menu structure
+    'menu:read', // Need to see existing menu structure
     'menu:create',
   ],
-  'menu:update': [
-    'menu:read',
-    'menu:update',
-  ],
-  'menu:delete': [
-    'menu:read',
-    'menu:delete',
-  ],
+  'menu:update': ['menu:read', 'menu:update'],
+  'menu:delete': ['menu:read', 'menu:delete'],
 
   // ===========================
   // PAYMENTS
   // ===========================
   'payments:read': [
     'payments:read',
-    'orders:read',      // Payments are tied to orders
+    'orders:read', // Payments are tied to orders
   ],
   'payments:create': [
     'payments:read',
     'payments:create',
-    'orders:read',      // Need to see order being paid
+    'orders:read', // Need to see order being paid
   ],
   'payments:refund': [
     'payments:read',
     'payments:refund',
-    'orders:read',      // Need to see original order
+    'orders:read', // Need to see original order
   ],
 
   // ===========================
@@ -91,24 +103,20 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   // ===========================
   'shifts:read': [
     'shifts:read',
-    'teams:read',       // Need to see team members in shift
-    'payments:read',    // Need to see shift revenue
+    'teams:read', // Need to see team members in shift
+    'payments:read', // Need to see shift revenue
   ],
   'shifts:create': [
     'shifts:read',
     'shifts:create',
-    'teams:read',       // Need to assign team members
+    'teams:read', // Need to assign team members
   ],
-  'shifts:update': [
-    'shifts:read',
-    'shifts:update',
-    'teams:read',
-  ],
+  'shifts:update': ['shifts:read', 'shifts:update', 'teams:read'],
   'shifts:close': [
     'shifts:read',
     'shifts:close',
-    'payments:read',    // Need to see all payments to close shift
-    'orders:read',      // Need to see all orders in shift
+    'payments:read', // Need to see all payments to close shift
+    'orders:read', // Need to see all orders in shift
   ],
 
   // ===========================
@@ -116,28 +124,12 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   // ===========================
   'inventory:read': [
     'inventory:read',
-    'products:read',    // Inventory items are linked to products
+    'products:read', // Inventory items are linked to products
   ],
-  'inventory:create': [
-    'inventory:read',
-    'inventory:create',
-    'products:read',
-  ],
-  'inventory:update': [
-    'inventory:read',
-    'inventory:update',
-    'products:read',
-  ],
-  'inventory:adjust': [
-    'inventory:read',
-    'inventory:adjust',
-    'products:read',
-  ],
-  'inventory:delete': [
-    'inventory:read',
-    'inventory:delete',
-    'products:read',
-  ],
+  'inventory:create': ['inventory:read', 'inventory:create', 'products:read'],
+  'inventory:update': ['inventory:read', 'inventory:update', 'products:read'],
+  'inventory:adjust': ['inventory:read', 'inventory:adjust', 'products:read'],
+  'inventory:delete': ['inventory:read', 'inventory:delete', 'products:read'],
   'inventory-transfers:read': ['inventory-transfers:read', 'inventory:read'],
   'inventory-transfers:request': ['inventory-transfers:read', 'inventory-transfers:request', 'inventory:read'],
   'inventory-transfers:approve': ['inventory-transfers:read', 'inventory-transfers:approve', 'inventory:read'],
@@ -151,75 +143,48 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
     'teams:read',
     // Note: Team member details are part of teams system
   ],
-  'teams:create': [
-    'teams:read',
-    'teams:create',
-  ],
-  'teams:update': [
-    'teams:read',
-    'teams:update',
-  ],
-  'teams:delete': [
-    'teams:read',
-    'teams:delete',
-  ],
-  'teams:invite': [
-    'teams:read',
-    'teams:invite',
-  ],
+  'teams:create': ['teams:read', 'teams:create'],
+  'teams:update': ['teams:read', 'teams:update'],
+  'teams:delete': ['teams:read', 'teams:delete'],
+  'teams:invite': ['teams:read', 'teams:invite'],
 
   // ===========================
   // TPV (Point of Sale)
   // ===========================
   'tpv:read': [
     'tpv:read',
-    'orders:read',      // TPV creates orders
-    'products:read',    // Need to see products to sell
-    'payments:read',    // Need to process payments
+    'orders:read', // TPV creates orders
+    'products:read', // Need to see products to sell
+    'payments:read', // Need to process payments
   ],
   'tpv:create': [
     'tpv:read',
     'tpv:create',
-    'orders:create',    // TPV creates orders
-    'payments:create',  // TPV processes payments
+    'orders:create', // TPV creates orders
+    'payments:create', // TPV processes payments
   ],
-  'tpv:command': [
-    'tpv:read',
-    'tpv:command',
-    'orders:read',
-  ],
-  'tpv:delete': [
-    'tpv:read',
-    'tpv:delete',
-  ],
+  'tpv:command': ['tpv:read', 'tpv:command', 'orders:read'],
+  'tpv:delete': ['tpv:read', 'tpv:delete'],
 
   // ===========================
   // REVIEWS
   // ===========================
   'reviews:read': [
     'reviews:read',
-    'orders:read',      // Reviews are linked to orders
+    'orders:read', // Reviews are linked to orders
   ],
-  'reviews:respond': [
-    'reviews:read',
-    'reviews:respond',
-  ],
+  'reviews:respond': ['reviews:read', 'reviews:respond'],
 
   // ===========================
   // ANALYTICS
   // ===========================
   'analytics:read': [
     'analytics:read',
-    'orders:read',      // Analytics show order data
-    'payments:read',    // Analytics show payment data
-    'products:read',    // Analytics show product performance
+    'orders:read', // Analytics show order data
+    'payments:read', // Analytics show payment data
+    'products:read', // Analytics show product performance
   ],
-  'analytics:export': [
-    'analytics:read',
-    'analytics:export',
-    'orders:read',
-    'payments:read',
-  ],
+  'analytics:export': ['analytics:read', 'analytics:export', 'orders:read', 'payments:read'],
 
   // ===========================
   // VENUES - Settings
@@ -228,19 +193,16 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
     'venues:read',
     // Venue settings are standalone
   ],
-  'venues:update': [
-    'venues:read',
-    'venues:update',
-  ],
+  'venues:update': ['venues:read', 'venues:update'],
 
   // ===========================
   // HOME - Dashboard
   // ===========================
   'home:read': [
     'home:read',
-    'orders:read',      // Dashboard shows order stats
-    'payments:read',    // Dashboard shows payment stats
-    'analytics:read',   // Dashboard uses analytics data
+    'orders:read', // Dashboard shows order stats
+    'payments:read', // Dashboard shows payment stats
+    'analytics:read', // Dashboard uses analytics data
   ],
 
   // ===========================
@@ -248,76 +210,46 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   // ===========================
   'tables:read': [
     'tables:read',
-    'orders:read',      // Tables show active orders
+    'orders:read', // Tables show active orders
   ],
-  'tables:update': [
-    'tables:read',
-    'tables:update',
-  ],
+  'tables:update': ['tables:read', 'tables:update'],
 
   // ===========================
   // RESERVATIONS
   // ===========================
   'reservations:read': [
     'reservations:read',
-    'tables:read',      // Reservations are for tables
+    'tables:read', // Reservations are for tables
   ],
-  'reservations:create': [
-    'reservations:read',
-    'reservations:create',
-    'tables:read',
-  ],
-  'reservations:update': [
-    'reservations:read',
-    'reservations:update',
-  ],
+  'reservations:create': ['reservations:read', 'reservations:create', 'tables:read'],
+  'reservations:update': ['reservations:read', 'reservations:update'],
   'reservations:cancel': [
     'reservations:read',
     'reservations:cancel',
-    'tables:read',      // Need to see table when canceling
+    'tables:read', // Need to see table when canceling
   ],
 
   // ===========================
   // SETTINGS
   // ===========================
-  'settings:read': [
-    'settings:read',
-  ],
-  'settings:manage': [
-    'settings:read',
-    'settings:manage',
-  ],
+  'settings:read': ['settings:read'],
+  'settings:manage': ['settings:read', 'settings:manage'],
 
   // ===========================
   // REFERRAL PROGRAM
   // ===========================
   'referral:read': [
     'referral:read',
-    'customers:read',   // Need to display the referrer / referred customer in lists
+    'customers:read', // Need to display the referrer / referred customer in lists
   ],
-  'referral:configure': [
-    'referral:read',
-    'referral:configure',
-    'customers:read',
-  ],
+  'referral:configure': ['referral:read', 'referral:configure', 'customers:read'],
 
   // ===========================
   // ORG-LEVEL MANAGEMENT
   // ===========================
-  'goals:org-manage': [
-    'goals:org-manage',
-    'commissions:read',
-  ],
-  'commissions:org-manage': [
-    'commissions:org-manage',
-    'commissions:read',
-    'teams:read',
-  ],
-  'inventory:org-manage': [
-    'inventory:org-manage',
-    'inventory:read',
-    'serialized-inventory:create',
-  ],
+  'goals:org-manage': ['goals:org-manage', 'commissions:read'],
+  'commissions:org-manage': ['commissions:org-manage', 'commissions:read', 'teams:read'],
+  'inventory:org-manage': ['inventory:org-manage', 'inventory:read', 'serialized-inventory:create'],
 }
 
 /**

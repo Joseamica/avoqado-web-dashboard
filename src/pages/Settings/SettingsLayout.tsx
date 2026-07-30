@@ -12,6 +12,7 @@ import {
   SlidersHorizontal,
   Star,
   Store,
+  TicketCheck,
   User,
   type LucideIcon,
 } from 'lucide-react'
@@ -90,15 +91,40 @@ export default function SettingsLayout() {
         ...(can('printers:read')
           ? [{ to: 'print-stations', label: t('hub.items.printStations'), icon: Printer, dataTour: 'settings-nav-print-stations' }]
           : []),
+        ...(can('area-tickets:configure')
+          ? [
+              {
+                to: 'area-tickets',
+                label: t('hub.items.areaTickets', 'Vales por área'),
+                icon: TicketCheck,
+                dataTour: 'settings-nav-area-tickets',
+              },
+            ]
+          : []),
       ]
     : []
 
   const superadminItems: HubItem[] =
     role === 'SUPERADMIN'
       ? [
-          { to: `${fullBasePath}/payment-config`, label: t('hub.items.paymentConfig'), icon: Shield, dataTour: 'settings-nav-sa-payment-config' },
-          { to: `${fullBasePath}/ecommerce-merchants`, label: t('hub.items.ecommerceChannels'), icon: Shield, dataTour: 'settings-nav-sa-ecommerce' },
-          { to: `${fullBasePath}/merchant-accounts`, label: t('hub.items.merchantAccounts'), icon: Shield, dataTour: 'settings-nav-sa-merchants' },
+          {
+            to: `${fullBasePath}/payment-config`,
+            label: t('hub.items.paymentConfig'),
+            icon: Shield,
+            dataTour: 'settings-nav-sa-payment-config',
+          },
+          {
+            to: `${fullBasePath}/ecommerce-merchants`,
+            label: t('hub.items.ecommerceChannels'),
+            icon: Shield,
+            dataTour: 'settings-nav-sa-ecommerce',
+          },
+          {
+            to: `${fullBasePath}/merchant-accounts`,
+            label: t('hub.items.merchantAccounts'),
+            icon: Shield,
+            dataTour: 'settings-nav-sa-merchants',
+          },
         ]
       : []
 
@@ -115,9 +141,7 @@ export default function SettingsLayout() {
           <p
             className={cn(
               'px-2.5 pb-1.5 pt-3 text-[11px] font-semibold uppercase tracking-wider',
-              group.superadmin
-                ? 'bg-gradient-to-r from-amber-400 to-pink-500 bg-clip-text text-transparent'
-                : 'text-muted-foreground/70',
+              group.superadmin ? 'bg-gradient-to-r from-amber-400 to-pink-500 bg-clip-text text-transparent' : 'text-muted-foreground/70',
             )}
           >
             {group.label}
@@ -160,22 +184,24 @@ export default function SettingsLayout() {
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            {groups.flatMap(g => g.items).map(item => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                data-tour={item.dataTour}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center whitespace-nowrap rounded-full px-3 py-1.5 text-sm',
-                    isActive ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground',
-                  )
-                }
-              >
-                {item.label}
-                {item.premiumLocked && <Star className="ml-1 inline h-3 w-3 text-emerald-400" />}
-              </NavLink>
-            ))}
+            {groups
+              .flatMap(g => g.items)
+              .map(item => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  data-tour={item.dataTour}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center whitespace-nowrap rounded-full px-3 py-1.5 text-sm',
+                      isActive ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground',
+                    )
+                  }
+                >
+                  {item.label}
+                  {item.premiumLocked && <Star className="ml-1 inline h-3 w-3 text-emerald-400" />}
+                </NavLink>
+              ))}
           </div>
         </div>
 

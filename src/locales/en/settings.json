@@ -18,6 +18,7 @@
       "billing": "Plan & billing",
       "activityLog": "Activity log",
       "printStations": "Printers & stations",
+      "areaTickets": "Area tickets",
       "paymentConfig": "Payment config",
       "ecommerceChannels": "E-commerce merchants",
       "merchantAccounts": "Merchant accounts"
@@ -562,5 +563,8 @@
     "preview": "Preview",
     "hideRole": "Hide this role from selectors",
     "showRole": "Show this role in selectors"
+  },
+  "areaTickets": {
+    "title": "Area tickets and scales"
   }
 }

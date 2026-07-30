@@ -100,6 +100,7 @@ import {
   DeliveryPage,
   RolePermissions,
   PrintStations,
+  AreaTickets,
   SalesByItem,
   SalesByCategory,
   PaymentMethods,
@@ -674,7 +675,6 @@ export function createVenueRoutes(): RouteObject[] {
       ],
     },
 
-
     // Notifications
     { path: 'notifications', element: <Notifications /> },
     { path: 'notifications/preferences', element: <NotificationPreferences /> },
@@ -784,6 +784,11 @@ export function createVenueRoutes(): RouteObject[] {
           path: 'print-stations',
           element: <PermissionProtectedRoute permission="printers:read" />,
           children: [{ index: true, element: <PrintStations /> }],
+        },
+        {
+          path: 'area-tickets',
+          element: <PermissionProtectedRoute permission="area-tickets:configure" />,
+          children: [{ index: true, element: <AreaTickets /> }],
         },
       ],
     },

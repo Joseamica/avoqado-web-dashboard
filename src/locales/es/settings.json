@@ -18,6 +18,7 @@
       "billing": "Plan y facturación",
       "activityLog": "Bitácora",
       "printStations": "Impresoras y estaciones",
+      "areaTickets": "Vales por área",
       "paymentConfig": "Config. de pagos",
       "ecommerceChannels": "Comercios e-commerce",
       "merchantAccounts": "Cuentas merchant"
@@ -600,5 +601,8 @@
     "preview": "Vista Previa",
     "hideRole": "Ocultar este rol de los selectores",
     "showRole": "Mostrar este rol en los selectores"
+  },
+  "areaTickets": {
+    "title": "Vales por área y básculas"
   }
 }
