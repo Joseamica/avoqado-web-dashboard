@@ -636,7 +636,7 @@
       "modeTooltip": "Defines whether to require a deposit at booking and what type: none, card hold, partial deposit or full prepayment.",
       "modes": {
         "none": "No deposit",
-        "card_hold": "Card hold",
+        "card_hold": "Card hold (coming soon)",
         "deposit": "Partial deposit",
         "prepaid": "Full prepayment"
       },

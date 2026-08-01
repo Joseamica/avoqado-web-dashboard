@@ -899,7 +899,15 @@ export default function ReservationSettings() {
                     </SelectTrigger>
                     <SelectContent>
                       {DEPOSIT_MODE_OPTIONS.map(mode => (
-                        <SelectItem key={mode} value={mode} disabled={mode !== 'none' && !canChargeOnline}>
+                        <SelectItem
+                          key={mode}
+                          value={mode}
+                          // card_hold: SIEMPRE deshabilitado — el camino de cobro no existe todavía
+                          // (el backend lo rechaza al guardar; elegirlo rompía TODA reserva pública).
+                          // Se deja visible como teaser porque Square no puede hacer retención y
+                          // nosotros sí podremos (SetupIntent + captura manual).
+                          disabled={mode === 'card_hold' || (mode !== 'none' && !canChargeOnline)}
+                        >
                           {t(`settings.deposits.modes.${mode}`)}
                         </SelectItem>
                       ))}

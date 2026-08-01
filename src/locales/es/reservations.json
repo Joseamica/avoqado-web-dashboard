@@ -636,7 +636,7 @@
       "modeTooltip": "Define si pides depósito al reservar y de qué tipo: sin depósito, retención de tarjeta, depósito parcial o prepago total.",
       "modes": {
         "none": "Sin depósito",
-        "card_hold": "Retención de tarjeta",
+        "card_hold": "Retención de tarjeta (próximamente)",
         "deposit": "Depósito parcial",
         "prepaid": "Prepago total"
       },
