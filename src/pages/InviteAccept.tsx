@@ -14,8 +14,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Icons } from '@/components/icons'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
+import { stashInviteToken } from '@/lib/pendingInvitation'
 import { EmailMismatchWarning } from './Auth/components/EmailMismatchWarning'
 import { DirectAcceptInvitation } from './Auth/components/DirectAcceptInvitation'
 import api from '@/api'
@@ -79,7 +81,8 @@ export default function InviteAccept() {
   const navigate = useNavigate()
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const { isAuthenticated, user } = useAuth()
+  const { isAuthenticated, user, loginWithGoogle } = useAuth()
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [invitationDetails, setInvitationDetails] = useState<InvitationDetails | null>(null)
@@ -322,15 +325,35 @@ export default function InviteAccept() {
     window.location.reload()
   }
 
+  // Accept the invitation using Google instead of inventing a password.
+  //
+  // The OAuth redirect leaves the app, so the invitation token is parked in sessionStorage first;
+  // /auth/google/callback picks it up and comes back here. On return the session is live and the
+  // account has no password, so the direct-accept branch takes over. This also covers the case the
+  // backend can't help with on its own: someone who ALREADY has other venues gets no
+  // `pendingInvitations` in the login response, and would otherwise land on the dashboard with the
+  // invitation silently untouched.
+  const handleGoogleAccept = async () => {
+    if (!token) return
+    try {
+      setIsGoogleLoading(true)
+      stashInviteToken(token)
+      await loginWithGoogle()
+    } catch {
+      setIsGoogleLoading(false)
+      // Error is surfaced by AuthContext
+    }
+  }
+
   // Handle direct acceptance for users already logged in with matching email
-  const handleDirectAccept = async () => {
+  const handleDirectAccept = async (pin?: string) => {
     if (!invitationDetails) return
 
     try {
-      // For logged-in users, we just need to link the invitation to their existing account
-      await api.post(`/api/v1/invitations/${token}/accept`, {
-        // Backend should detect existing session and just link the invitation
-      })
+      // Logged-in user with no password (Google / PIN-only account): the invitation just gets
+      // linked to the existing account. `pin` travels only when the inviter demanded one — the
+      // backend rejects the accept outright if a requirePin invitation arrives without it.
+      await api.post(`/api/v1/invitations/${token}/accept`, pin ? { pin } : {})
 
       // Note: No localStorage cleanup needed - we use URL-based state now (Stripe/GitHub pattern)
 
@@ -418,15 +441,17 @@ export default function InviteAccept() {
     )
   }
 
-  // Direct accept only when a password re-verification is NOT required.
-  // requirePin invitations can't use direct accept (empty body) — fall through
-  // to the full form so the PIN gets captured.
-  if (sessionStatus.hasSession && sessionStatus.emailMatches && !invitationDetails.userAlreadyHasPassword && !invitationDetails.requirePin) {
+  // Direct accept when the session already proves the identity and no password re-verification is
+  // owed (account has no password at all — Google or PIN-only). A requirePin invitation stays on
+  // this path and collects the PIN inline; sending it to the full form instead would demand a
+  // password from someone who authenticated with Google and never had one.
+  if (sessionStatus.hasSession && sessionStatus.emailMatches && !invitationDetails.userAlreadyHasPassword) {
     return (
       <DirectAcceptInvitation
         invitationDetails={invitationDetails}
         onAccept={handleDirectAccept}
         isAccepting={acceptInvitationMutation.isPending}
+        requirePin={invitationDetails.requirePin === true}
       />
     )
   }
@@ -553,14 +578,44 @@ export default function InviteAccept() {
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                {t('emailLabel')}: <strong>{invitationDetails.email}</strong>
-              </AlertDescription>
-            </Alert>
+          <Alert className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {t('emailLabel')}: <strong>{invitationDetails.email}</strong>
+            </AlertDescription>
+          </Alert>
 
+          {/* Google first: an invited person may already have (or want) a Google account, and this
+              page used to offer only "create a password" — including to people whose Avoqado
+              account was created with Google and therefore has no password at all. */}
+          <div className="space-y-4 mb-4">
+            <Button
+              variant="outline"
+              className="w-full"
+              type="button"
+              size="lg"
+              disabled={isGoogleLoading || acceptInvitationMutation.isPending}
+              onClick={handleGoogleAccept}
+            >
+              {isGoogleLoading ? (
+                <Icons.spinner className="mr-2 w-4 h-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Icons.google className="mr-2 w-4 h-4" aria-hidden="true" />
+              )}
+              {t('continueWithGoogle')}
+            </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="bg-background px-4 text-muted-foreground">{t('orCreatePassword')}</span>
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Name Fields */}
             <div className="space-y-2">
               <div className="grid grid-cols-2 gap-4">

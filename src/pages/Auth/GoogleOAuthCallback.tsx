@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { LoadingScreen } from '@/components/spinner'
 import { useToast } from '@/hooks/use-toast'
 import * as authService from '@/services/auth.service'
+import { clearInviteToken, resolvePostLoginRedirect } from '@/lib/pendingInvitation'
 
 const GoogleOAuthCallback: React.FC = () => {
   const { t } = useTranslation('common')
@@ -19,6 +20,7 @@ const GoogleOAuthCallback: React.FC = () => {
       const error = searchParams.get('error')
 
       if (error) {
+        clearInviteToken()
         toast({
           title: t('auth.google.error'),
           variant: 'destructive',
@@ -29,6 +31,7 @@ const GoogleOAuthCallback: React.FC = () => {
       }
 
       if (!code) {
+        clearInviteToken()
         toast({
           title: t('auth.google.error'),
           variant: 'destructive',
@@ -45,15 +48,24 @@ const GoogleOAuthCallback: React.FC = () => {
         // invalidateQueries doesn't wait - causes race condition on slow networks
         await queryClient.refetchQueries({ queryKey: ['status'] })
 
-        const isNewUser = (result as any)?.isNewUser
+        const isNewUser = result?.isNewUser
         toast({
-          title: (result as any)?.message || t('auth.google.success'),
+          title: result?.message || t('auth.google.success'),
           description: isNewUser ? t('auth.google.welcomeNewUser') : undefined,
         })
 
-        // Navigate to home - AuthContext will handle the redirect
-        navigate('/', { replace: true })
+        // An invitation still waiting on this person must win over the normal landing page.
+        // The email/password path has always done this (AuthContext's login mutation); Google
+        // dropped it, so anyone whose ONLY access was a pending invitation signed in successfully
+        // and landed on an empty dashboard with no way to reach the invitation.
+        const inviteRedirect = resolvePostLoginRedirect({
+          pendingInvitations: result?.pendingInvitations,
+          isNewUser,
+        })
+
+        navigate(inviteRedirect ?? '/', { replace: true })
       } catch (error: any) {
+        clearInviteToken()
         toast({
           title: t('auth.google.error'),
           variant: 'destructive',

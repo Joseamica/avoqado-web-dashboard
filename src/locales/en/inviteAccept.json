@@ -4,6 +4,8 @@
   "at": "at",
   "as": "as",
   "emailLabel": "Email",
+  "continueWithGoogle": "Continue with Google",
+  "orCreatePassword": "or create a password",
   "loading": "Loading invitation...",
   "invalidTitle": "Invalid Invitation",
   "expiredTitle": "Invitation Expired",

@@ -10,6 +10,7 @@ import { LoadingScreen } from '@/components/spinner'
 import { useToast } from '@/hooks/use-toast'
 import { User, Venue, SessionVenue, StaffRole } from '@/types'
 import { identifyUser, resetUser } from '@/lib/posthog'
+import { resolvePostLoginRedirect } from '@/lib/pendingInvitation'
 import { FEATURE_ROUTE_MAP } from '@/hooks/useWhiteLabelConfig'
 
 // Tipos y la Interfaz del Contexto
@@ -894,7 +895,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const loginWithOneTap = useCallback(
     async (credential: string): Promise<void> => {
       try {
-        await authService.googleOneTapLogin(credential)
+        const result = await authService.googleOneTapLogin(credential)
 
         // SECURITY: Use refetchQueries to ensure auth state is updated before navigation
         await queryClient.refetchQueries({ queryKey: ['status'] })
@@ -903,6 +904,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           title: t('toast.login_success_title'),
           description: t('toast.login_success_desc'),
         })
+
+        // Same rule as the login mutation and the OAuth callback: a pending invitation is the only
+        // access this person has, so it has to come before the normal landing page.
+        const inviteRedirect = resolvePostLoginRedirect({
+          pendingInvitations: result?.pendingInvitations,
+          isNewUser: result?.isNewUser,
+        })
+        if (inviteRedirect) {
+          navigate(inviteRedirect, { replace: true })
+        }
       } catch (error: any) {
         toast({
           title: t('toast.auth_error_title'),
@@ -912,7 +923,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw error
       }
     },
-    [toast, t, queryClient],
+    [toast, t, queryClient, navigate],
   )
 
   // --- FUNCIONES EXPUESTAS ---

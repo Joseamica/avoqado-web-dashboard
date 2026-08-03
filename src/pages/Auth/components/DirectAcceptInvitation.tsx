@@ -1,6 +1,9 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CheckCircle, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
@@ -16,16 +19,29 @@ interface InvitationDetails {
 
 interface DirectAcceptInvitationProps {
   invitationDetails: InvitationDetails
-  onAccept: () => void
+  onAccept: (pin?: string) => void
   isAccepting?: boolean
+  /**
+   * The inviter demanded a PIN for TPV access. The identity is already proven by the session, so
+   * this screen collects the PIN and nothing else — asking someone who signed in with Google to
+   * also invent a password would be asking for a credential they never wanted.
+   */
+  requirePin?: boolean
 }
+
+const PIN_PATTERN = /^\d{4,10}$/
 
 export function DirectAcceptInvitation({
   invitationDetails,
   onAccept,
   isAccepting = false,
+  requirePin = false,
 }: DirectAcceptInvitationProps) {
   const { t } = useTranslation(['inviteAccept', 'common'])
+  const [pin, setPin] = useState('')
+
+  const pinValid = !requirePin || PIN_PATTERN.test(pin)
+  const showPinError = requirePin && pin.length > 0 && !PIN_PATTERN.test(pin)
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8">
@@ -61,7 +77,28 @@ export function DirectAcceptInvitation({
             </p>
           </div>
 
-          <Button onClick={onAccept} className="w-full" size="lg" disabled={isAccepting}>
+          {requirePin && (
+            <div className="space-y-2">
+              <Label htmlFor="direct-accept-pin">{t('labels.pinRequired')}</Label>
+              <Input
+                id="direct-accept-pin"
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={10}
+                placeholder={t('placeholders.pin')}
+                value={pin}
+                onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
+              />
+              {showPinError && <p className="text-sm text-red-600">{t('validation.pinFormat')}</p>}
+            </div>
+          )}
+
+          <Button
+            onClick={() => onAccept(requirePin ? pin : undefined)}
+            className="w-full"
+            size="lg"
+            disabled={isAccepting || !pinValid}
+          >
             {isAccepting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

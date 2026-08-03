@@ -41,6 +41,9 @@ export interface AuthResponse {
   }
   // Enterprise pattern: returned when user has no active venues but has pending invitations
   pendingInvitations?: PendingInvitation[]
+  // Google OAuth only: true when this sign-in created the account from an invitation, meaning the
+  // backend already marked that invitation ACCEPTED.
+  isNewUser?: boolean
 }
 
 export interface AuthStatusResponse {

@@ -44,7 +44,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { useTranslation } from 'react-i18next'
-import { getIntlLocale } from '@/utils/i18n-locale'
 import { useVenueDateTime } from '@/utils/datetime'
 
 import EditTeamMemberForm from './components/EditTeamMemberForm'
@@ -170,7 +169,7 @@ export default function Teams() {
   const getAmountFilterLabel = useCallback(
     (filter: AmountFilter | null, label: string): string => {
       if (!filter) return label
-      const formatValue = (val: number) => Currency(val, true, i18n.language)
+      const formatValue = (val: number) => Currency(val, false, i18n.language)
       switch (filter.operator) {
         case 'gt':
           return `${label}: > ${formatValue(filter.value)}`
@@ -558,9 +557,7 @@ export default function Teams() {
             <ArrowUpDown className="w-4 h-4 ml-2" />
           </Button>
         ),
-        cell: ({ row }) => (
-          <div className="text-right font-medium">{Number(row.original.totalSales).toLocaleString(getIntlLocale(i18n.language))}</div>
-        ),
+        cell: ({ row }) => <div className="text-right font-medium">{Currency(row.original.totalSales || 0, false, i18n.language)}</div>,
       },
       {
         accessorKey: 'totalTips',
