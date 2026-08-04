@@ -21,6 +21,7 @@ import {
   getAreaTicketOperations,
   getAreaTicketOverview,
   updateAreaTicketSettings,
+  toUpdateAreaTicketSettingsInput,
   updateAreaTicketTerminal,
   updateFulfillmentArea,
   updateScaleProfile,
@@ -35,6 +36,9 @@ import {
 } from '@/services/areaTickets.service'
 
 const NONE = '__none__'
+const panelClass = 'border-border/50 shadow-sm'
+const tabTriggerClass =
+  'group rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-muted/80 hover:text-foreground data-[state=active]:border-foreground data-[state=active]:bg-foreground data-[state=active]:text-background'
 const apiError = (error: any, fallback: string): string => error?.response?.data?.message ?? error?.response?.data?.error ?? fallback
 const SCALE_PRESETS = {
   RHINO_BAR8RS: {
@@ -78,8 +82,8 @@ function SettingRow({
   onCheckedChange: (checked: boolean) => void
 }) {
   return (
-    <div className="flex items-center justify-between gap-6 rounded-lg border p-4">
-      <div>
+    <div className="flex min-h-16 items-center justify-between gap-6 rounded-lg bg-muted/40 px-4 py-3">
+      <div className="space-y-0.5">
         <p className="font-medium">{title}</p>
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
@@ -139,12 +143,22 @@ export default function AreaTickets() {
       </div>
 
       <Tabs defaultValue="flow">
-        <TabsList className="flex h-auto flex-wrap justify-start">
-          <TabsTrigger value="flow">Flujo</TabsTrigger>
-          <TabsTrigger value="areas">Áreas</TabsTrigger>
-          <TabsTrigger value="terminals">Terminales</TabsTrigger>
-          <TabsTrigger value="scales">Básculas</TabsTrigger>
-          <TabsTrigger value="operations">Operación</TabsTrigger>
+        <TabsList className="inline-flex h-auto flex-wrap items-center justify-start rounded-full border border-border bg-muted/60 p-1 text-muted-foreground">
+          <TabsTrigger value="flow" className={tabTriggerClass}>
+            Flujo
+          </TabsTrigger>
+          <TabsTrigger value="areas" className={tabTriggerClass}>
+            Áreas
+          </TabsTrigger>
+          <TabsTrigger value="terminals" className={tabTriggerClass}>
+            Terminales
+          </TabsTrigger>
+          <TabsTrigger value="scales" className={tabTriggerClass}>
+            Básculas
+          </TabsTrigger>
+          <TabsTrigger value="operations" className={tabTriggerClass}>
+            Operación
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="flow" className="mt-6">
@@ -194,7 +208,7 @@ function FlowSettings({
   const [form, setForm] = useState(initial)
   useEffect(() => setForm(initial), [initial])
   const mutation = useMutation({
-    mutationFn: () => updateAreaTicketSettings(venueId, form),
+    mutationFn: () => updateAreaTicketSettings(venueId, toUpdateAreaTicketSettingsInput(form)),
     onSuccess: () => {
       toast({ title: 'Configuración guardada' })
       onSaved()
@@ -204,7 +218,7 @@ function FlowSettings({
   })
 
   return (
-    <Card>
+    <Card className={panelClass}>
       <CardHeader>
         <CardTitle>Comportamiento del local</CardTitle>
         <CardDescription>Se aplica sólo a las terminales que habilites en la pestaña Terminales.</CardDescription>
@@ -331,7 +345,7 @@ function AreasSettings({ venueId, areas, onSaved }: { venueId: string; areas: Fu
 
   return (
     <div className="space-y-4">
-      <Card>
+      <Card className={panelClass}>
         <CardHeader>
           <CardTitle>Nueva área</CardTitle>
           <CardDescription>Ejemplos: Cremería, Panadería, Cafetería o Mostrador.</CardDescription>
@@ -354,7 +368,7 @@ function AreasSettings({ venueId, areas, onSaved }: { venueId: string; areas: Fu
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={panelClass}>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -429,7 +443,7 @@ function TerminalSettings({
   })
 
   return (
-    <Card>
+    <Card className={panelClass}>
       <CardHeader>
         <CardTitle>Capacidades por terminal</CardTitle>
         <CardDescription>
@@ -438,7 +452,7 @@ function TerminalSettings({
       </CardHeader>
       <CardContent className="space-y-4">
         {terminals.map(terminal => (
-          <div key={terminal.id} className="rounded-lg border p-4">
+          <div key={terminal.id} className="rounded-xl border border-border/50 bg-muted/20 p-4">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className="font-medium">{terminal.name}</p>
@@ -473,7 +487,7 @@ function TerminalSettings({
                 ['canCheckoutAreaTickets', 'Cobrar vales'],
                 ['canDeliverAreaTickets', 'Entregar'],
               ].map(([key, label]) => (
-                <label key={key} className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
+                <label key={key} className="flex min-h-10 items-center justify-between gap-2 rounded-lg bg-muted/40 px-3 py-2 text-sm">
                   {label}
                   <Switch
                     checked={Boolean(terminal[key as keyof AreaTicketTerminal])}
@@ -564,7 +578,7 @@ function ScaleSettings({
 
   return (
     <div className="space-y-4">
-      <Card>
+      <Card className={panelClass}>
         <CardContent className="pt-6">
           <SettingRow
             title="Activar integración de básculas"
@@ -578,7 +592,7 @@ function ScaleSettings({
           )}
         </CardContent>
       </Card>
-      <Card>
+      <Card className={panelClass}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Scale className="h-5 w-5" /> Nuevo perfil
@@ -628,7 +642,7 @@ function ScaleSettings({
       </Card>
       <div className="grid gap-3 md:grid-cols-2">
         {profiles.map(profile => (
-          <Card key={profile.id}>
+          <Card key={profile.id} className={panelClass}>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">{profile.name}</CardTitle>
@@ -669,19 +683,19 @@ function Operations({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-3">
-        <Card>
+        <Card className={panelClass}>
           <CardHeader>
             <CardDescription>Pendientes de entrega</CardDescription>
             <CardTitle>{counters.tickets.PAID ?? 0}</CardTitle>
           </CardHeader>
         </Card>
-        <Card>
+        <Card className={panelClass}>
           <CardHeader>
             <CardDescription>Sesiones abiertas</CardDescription>
             <CardTitle>{counters.checkouts.OPEN ?? 0}</CardTitle>
           </CardHeader>
         </Card>
-        <Card>
+        <Card className={panelClass}>
           <CardHeader>
             <CardDescription>Requieren conciliación</CardDescription>
             <CardTitle>{counters.paymentReconciliationCount}</CardTitle>
@@ -695,7 +709,7 @@ function Operations({
           <AlertDescription>No vuelvas a cobrar esas órdenes hasta confirmar el estado del proveedor.</AlertDescription>
         </Alert>
       )}
-      <Card>
+      <Card className={panelClass}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ScanBarcode className="h-5 w-5" /> Vales pagados por entregar

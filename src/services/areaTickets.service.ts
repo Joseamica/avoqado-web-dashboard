@@ -24,6 +24,23 @@ export interface AreaTicketSettings {
   inventoryReservationMode: InventoryReservationMode
 }
 
+export type UpdateAreaTicketSettingsInput = Omit<AreaTicketSettings, 'codeSymbology'>
+
+export function toUpdateAreaTicketSettingsInput(settings: AreaTicketSettings): UpdateAreaTicketSettingsInput {
+  return {
+    enabled: settings.enabled,
+    allowMixedCart: settings.allowMixedCart,
+    claimTtlSeconds: settings.claimTtlSeconds,
+    checkoutSessionMaxAgeMinutes: settings.checkoutSessionMaxAgeMinutes,
+    ticketExpiryPolicy: settings.ticketExpiryPolicy,
+    ticketExpiryMinutes: settings.ticketExpiryMinutes,
+    deliveryVerificationMode: settings.deliveryVerificationMode,
+    requireManagerForCancel: settings.requireManagerForCancel,
+    recordWasteOnCancel: settings.recordWasteOnCancel,
+    inventoryReservationMode: settings.inventoryReservationMode,
+  }
+}
+
 export interface FulfillmentArea {
   id: string
   name: string
@@ -115,7 +132,10 @@ export async function getAreaTicketOverview(venueId: string): Promise<AreaTicket
   return response.data.data
 }
 
-export async function updateAreaTicketSettings(venueId: string, input: Partial<AreaTicketSettings>): Promise<AreaTicketSettings> {
+export async function updateAreaTicketSettings(
+  venueId: string,
+  input: UpdateAreaTicketSettingsInput,
+): Promise<AreaTicketSettings> {
   const response = await api.put(`${base(venueId)}/settings`, input)
   return response.data.data
 }
