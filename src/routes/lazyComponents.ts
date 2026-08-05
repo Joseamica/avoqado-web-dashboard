@@ -220,6 +220,7 @@ export const Discounts = lazyWithRetry(() => import('@/pages/Promotions/Discount
 export const DiscountForm = lazyWithRetry(() => import('@/pages/Promotions/DiscountForm'))
 export const DiscountDetail = lazyWithRetry(() => import('@/pages/Promotions/Discounts/DiscountDetail'))
 export const Coupons = lazyWithRetry(() => import('@/pages/Promotions/Coupons'))
+export const Upsell = lazyWithRetry(() => import('@/pages/Promotions/Upsell'))
 export const CouponForm = lazyWithRetry(() => import('@/pages/Promotions/CouponForm'))
 export const CreditPacks = lazyWithRetry(() => import('@/pages/CreditPacks/CreditPacks'))
 

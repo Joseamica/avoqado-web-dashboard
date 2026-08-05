@@ -56,6 +56,12 @@ const routeKeyMap: Record<string, string> = {
   editvenue: 'sidebar:routes.editvenue',
   'credit-packs': 'sidebar:routes.creditPacks',
   'payment-links': 'sidebar:routes.paymentLinks',
+  // Toda el área de promociones venía saliendo en inglés en la miga de pan
+  // ("Promotions › Discounts") porque nunca se mapearon sus segmentos.
+  promotions: 'sidebar:promotionsMenu.title',
+  discounts: 'sidebar:promotionsMenu.discounts',
+  coupons: 'sidebar:promotionsMenu.coupons',
+  upsell: 'sidebar:promotionsMenu.upsell',
 }
 
 function DashboardContent() {

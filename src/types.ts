@@ -843,6 +843,11 @@ export interface Product {
   /** Venta por peso (charcutería/granel): cuando es true, `price` es el precio POR
    *  KILOGRAMO y el POS captura el peso al cobrar (unit se fija en KILOGRAM). */
   soldByWeight?: boolean
+  /**
+   * Upsell "¿Algo más?": permiso del dueño para que este producto pueda sugerirse
+   * al cobrar. Es un VETO — en false no lo sugiere ninguna capa, ni la IA.
+   */
+  upsellEnabled?: boolean
 
   // Display
   imageUrl: string | null

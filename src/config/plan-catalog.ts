@@ -66,6 +66,9 @@ export const PLAN_TIERS: PlanTierDef[] = [
       'VENUE_AUDIT_LOG',
       'GOOGLE_REVIEW_REDIRECT',
       'TABLE_SERVICE', // servicio de mesas / modo restaurante en iOS-Android (founder 2026-07-16: PRO)
+      // Upsell "¿Algo más?" en la pantalla del cliente y la franja del cajero.
+      // El MOTOR es PRO; sólo la generación por IA es Premium (ver UPSELL_AI abajo).
+      'UPSELL',
     ],
   },
   {
@@ -90,6 +93,10 @@ export const PLAN_TIERS: PlanTierDef[] = [
       'MERCHANT_ROUTING_RULES', // Reglas condicionales de merchants en TPV (espejo de PREMIUM_ONLY_CODES backend)
       'DELIVERY_CHANNELS', // Canales de entrega (Uber Eats, Rappi, DiDi, etc.)
       'OFFLINE_LAN_HUB', // Hub LAN offline: los POS se coordinan por red local sin internet
+      // Generación de sugerencias de upsell por IA. Premium porque son tokens que
+      // paga Avoqado. Espejo EXACTO de PREMIUM_ONLY_CODES en el backend
+      // (basePlan.service.ts) — el motor `UPSELL` va en PRO, arriba, NO aquí.
+      'UPSELL_AI',
     ],
   },
   {

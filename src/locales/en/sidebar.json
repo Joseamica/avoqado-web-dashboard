@@ -20,7 +20,8 @@
   "promotionsMenu": {
     "title": "Promotions",
     "discounts": "Discounts",
-    "coupons": "Coupon Codes"
+    "coupons": "Coupon Codes",
+    "upsell": "Checkout suggestions"
   },
   "teamMenu": {
     "title": "Team",

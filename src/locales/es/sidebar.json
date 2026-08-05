@@ -19,7 +19,8 @@
   "promotionsMenu": {
     "title": "Promociones",
     "discounts": "Descuentos",
-    "coupons": "Códigos de Cupón"
+    "coupons": "Códigos de Cupón",
+    "upsell": "Sugerencias al cobrar"
   },
   "teamMenu": {
     "title": "Equipo",

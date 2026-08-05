@@ -47,6 +47,7 @@ import {
   DiscountDetail,
   DiscountForm,
   Discounts,
+  Upsell,
   GoogleIntegration,
   Home,
   HomeDashboardCharts,
@@ -653,6 +654,11 @@ export function createVenueRoutes(): RouteObject[] {
     // Legacy: activity log moved into the Settings Hub
     { path: 'activity-log', element: <LegacyRedirect to="settings/activity-log" /> },
 
+    // La miga de pan enlaza CADA segmento, así que "Promociones" era un enlace
+    // que llevaba a un 404 — en Descuentos, Cupones y Sugerencias por igual.
+    // Cae en la primera página del grupo, como hace Configuración con su índice.
+    { path: 'promotions', element: <LegacyRedirect to="promotions/discounts" /> },
+
     // Promotions - Discounts (requires discounts:read permission)
     {
       path: 'promotions/discounts',
@@ -662,6 +668,14 @@ export function createVenueRoutes(): RouteObject[] {
         { path: 'create', element: <DiscountForm /> },
         { path: ':discountId', element: <DiscountDetail /> },
       ],
+    },
+
+    // Promotions - Upsell "¿Algo más?" (requiere upsells:read; la página se auto-gatea
+    // con <FeatureGate feature="UPSELL"> para que PRO lo vea y FREE reciba el upsell)
+    {
+      path: 'promotions/upsell',
+      element: <PermissionProtectedRoute permission="upsells:read" />,
+      children: [{ index: true, element: <Upsell /> }],
     },
 
     // Promotions - Coupons (requires coupons:read permission)

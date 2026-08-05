@@ -130,6 +130,7 @@ export default function ProductId() {
         allowCreditRedemption: formValues.allowCreditRedemption,
         requireCreditForBooking: formValues.requireCreditForBooking,
         soldByWeight: formValues.soldByWeight === true,
+        upsellEnabled: formValues.upsellEnabled === true,
         // Inventory tracking configuration
         trackInventory: trackInventory,
         inventoryMethod: trackInventory ? inventoryMethod : null,
@@ -204,6 +205,7 @@ export default function ProductId() {
       allowCreditRedemption: true,
       requireCreditForBooking: false,
       soldByWeight: false,
+      upsellEnabled: false,
       // Inventory fields
       trackInventory: false,
       inventoryMethod: null as 'QUANTITY' | 'RECIPE' | null,
@@ -313,6 +315,7 @@ export default function ProductId() {
       allowCreditRedemption: data.allowCreditRedemption ?? true,
       requireCreditForBooking: data.requireCreditForBooking ?? false,
       soldByWeight: data.soldByWeight ?? false,
+      upsellEnabled: data.upsellEnabled ?? false,
       // Inventory fields
       trackInventory: hasInventory,
       inventoryMethod: method,
@@ -810,6 +813,26 @@ export default function ProductId() {
                       <div className="space-y-0.5">
                         <FormLabel className="text-base">{t('products.detail.soldByWeight')}</FormLabel>
                         <FormDescription>{t('products.detail.soldByWeightDesc')}</FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {/* Upsell "¿Algo más?" — permiso del dueño para sugerir este producto */}
+                <FormField
+                  control={form.control}
+                  name="upsellEnabled"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Sugerir en promociones</FormLabel>
+                        <FormDescription>
+                          Permite que este producto aparezca como sugerencia al cobrar, en la pantalla del
+                          cliente. Apagado, no lo sugiere nada ni nadie.
+                        </FormDescription>
                       </div>
                       <FormControl>
                         <Switch checked={field.value} onCheckedChange={field.onChange} />

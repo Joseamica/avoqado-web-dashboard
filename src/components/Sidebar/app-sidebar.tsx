@@ -561,6 +561,16 @@ export function AppSidebar({
       const promoItems = [
         { title: t('sidebar:promotionsMenu.discounts'), url: 'promotions/discounts', permission: 'discounts:read', premiumLocked: !hasPromotionsFeature, gatedFeature: 'PROMOTIONS', keywords: ['ofertas', 'promociones'] },
         { title: t('sidebar:promotionsMenu.coupons'), url: 'promotions/coupons', permission: 'coupons:read', premiumLocked: !hasPromotionsFeature, gatedFeature: 'PROMOTIONS', keywords: ['codigos', 'vouchers'] },
+        // Upsell "¿Algo más?" — se gatea con su PROPIO feature (UPSELL, PRO), no con
+        // PROMOTIONS: son ventas distintas y un venue puede tener uno sin el otro.
+        {
+          title: t('sidebar:promotionsMenu.upsell'),
+          url: 'promotions/upsell',
+          permission: 'upsells:read',
+          premiumLocked: !hasFeatureAccess('UPSELL'),
+          gatedFeature: 'UPSELL',
+          keywords: ['sugerencias', 'algo mas', 'upsell', 'cobrar', 'ticket promedio'],
+        },
       ].filter(sub => !sub.permission || can(sub.permission))
 
       if (promoItems.length > 0 && canWL('AVOQADO_PROMOTIONS')) {
