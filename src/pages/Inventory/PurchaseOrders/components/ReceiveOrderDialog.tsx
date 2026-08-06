@@ -1,3 +1,19 @@
+/**
+ * ⚠️ NO ESTÁ MONTADO EN NINGUNA PANTALLA — y aun así NO LO BORRES.
+ *
+ * Verificado el 2026-08-06: ningún archivo lo importa. Parece código muerto y la
+ * tentación es eliminarlo, pero es **el único consumidor de
+ * `POST /purchase-orders/:id/receive`**, que es la recepción TRANSACCIONAL de una
+ * sola llamada.
+ *
+ * La pantalla de detalle recibe de otra forma: dispara una llamada por renglón a
+ * `/items/:id/status` y después `/recalculate-status`. Ese abanico de N llamadas es
+ * un defecto conocido —no es atómico, y si una falla a la mitad la orden queda
+ * inconsistente— y la solución es justamente volver a este endpoint.
+ *
+ * O sea: borrarlo hoy sería tirar la solución del problema de mañana. Se queda
+ * congelado hasta que se decida cómo se arregla la recepción por renglón.
+ */
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'

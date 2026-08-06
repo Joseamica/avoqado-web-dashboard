@@ -224,34 +224,6 @@ export default function PurchaseOrderDetailPage() {
     setReceiveItemDialog({ open: false, item: null, quantity: 0 })
   }
 
-  // Mark item as damaged (local state only) - reserved for future use
-  const _markItemDamaged = (itemId: string) => {
-    setLocalItemStatuses(prev => ({
-      ...prev,
-      [itemId]: 'damaged',
-    }))
-    // Set quantity to 0 when marking as damaged
-    setLocalQuantities(prev => ({
-      ...prev,
-      [itemId]: 0,
-    }))
-    setHasUnsavedChanges(true)
-  }
-
-  // Mark item as not processed (local state only) - reserved for future use
-  const _markItemNotProcessed = (itemId: string) => {
-    setLocalItemStatuses(prev => ({
-      ...prev,
-      [itemId]: 'not_processed',
-    }))
-    // Set quantity to 0 when marking as not processed
-    setLocalQuantities(prev => ({
-      ...prev,
-      [itemId]: 0,
-    }))
-    setHasUnsavedChanges(true)
-  }
-
   // Receive all items (set all quantities to ordered amount)
   // BUT keep items that are already saved as damaged or not_processed
   const handleReceiveAll = () => {
