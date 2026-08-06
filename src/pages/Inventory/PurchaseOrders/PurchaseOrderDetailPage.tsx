@@ -3,7 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { purchaseOrderService, formatPrice, PurchaseOrderItemStatus, PurchaseOrderStatus } from '@/services/purchaseOrder.service'
+import {
+  purchaseOrderService,
+  formatPrice,
+  PurchaseOrderItemStatus,
+  PurchaseOrderStatus,
+  nombreDelRenglon,
+  objetivoDelRenglon,
+} from '@/services/purchaseOrder.service'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -578,13 +585,18 @@ export default function PurchaseOrderDetailPage() {
                   return (
                     <TableRow key={item.id} className="hover:bg-background/50 border-border/50">
                       <TableCell className="pl-8 py-6 font-medium">
-                        {item.rawMaterial.name}
+                        {/* Insumo de cocina o mercancía de reventa: leer `rawMaterial`
+                            directo dejaba la pantalla en blanco para las órdenes de
+                            tienda de conveniencia. */}
+                        {nombreDelRenglon(item)}
                       </TableCell>
                       <TableCell className="text-right py-6">
                         {/* Comprado en presentación: se DEBE leer "50 cajas", no "50 piezas"
                             — quien recibe cuenta cajas, y ver la unidad base lo haría
                             capturar 50 huevos en vez de 50 cajas. */}
-                        {item.quantityOrdered} {item.presentationName || formatUnitWithQuantity(item.quantityOrdered, item.rawMaterial.unit, true)}
+                        {item.quantityOrdered}{' '}
+                        {item.presentationName ||
+                          formatUnitWithQuantity(item.quantityOrdered, objetivoDelRenglon(item)?.unit ?? item.unit, true)}
                       </TableCell>
                       <TableCell className="text-right py-6">
                         {formatPrice(item.unitPrice)}

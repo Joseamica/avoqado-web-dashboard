@@ -9,6 +9,7 @@ import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { supplierService, CreateSupplierDto } from '@/services/supplier.service'
 import { purchaseOrderService, Unit, CreatePurchaseOrderDto, PurchaseOrderStatus } from '@/services/purchaseOrder.service'
 import { rawMaterialsApi } from '@/services/inventory.service'
+import { getProducts } from '@/services/menu.service'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Button } from '@/components/ui/button'
@@ -27,16 +28,46 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn, includesNormalized } from '@/lib/utils'
 import { PurchaseUnitSelect } from './PurchaseUnitSelect'
 
+/**
+ * Un artículo que se puede comprar: insumo de cocina o mercancía de reventa.
+ * `kind` es lo que decide a cuál de los dos campos del renglón se manda el id.
+ */
+type ArticuloComprable = { id: string; name: string; unit: string; kind: 'RAW_MATERIAL' | 'PRODUCT' }
+
 // Validation schema
-const orderItemSchema = z.object({
-  rawMaterialId: z.string().min(1, 'Selecciona un material'),
-  quantityOrdered: z.number().positive('Cantidad debe ser mayor a 0'),
-  unit: z.nativeEnum(Unit),
-  unitPrice: z.number().positive('Precio debe ser mayor a 0'),
-  // Unidad de compra ("caja"). Si viene, cantidad y precio están EN ESA unidad
-  // y el backend convierte a la unidad base al recibir.
-  presentationName: z.string().optional(),
-})
+//
+// Un renglón apunta a UN insumo de cocina O a UN producto de reventa (mercancía de
+// tienda), nunca a los dos. Antes `rawMaterialId` era obligatorio aquí, así que por
+// el dashboard era IMPOSIBLE comprar mercancía para revender aunque el backend ya lo
+// soportara: el formulario ni siquiera dejaba armar la orden.
+const orderItemSchema = z
+  .object({
+    rawMaterialId: z.string().optional(),
+    productId: z.string().optional(),
+    quantityOrdered: z.number().positive('Cantidad debe ser mayor a 0'),
+    unit: z.nativeEnum(Unit),
+    unitPrice: z.number().positive('Precio debe ser mayor a 0'),
+    // Unidad de compra ("caja"). Si viene, cantidad y precio están EN ESA unidad
+    // y el backend convierte a la unidad base al recibir. Sólo aplica a insumos.
+    presentationName: z.string().optional(),
+  })
+  .superRefine((item, ctx) => {
+    const insumo = !!item.rawMaterialId
+    const producto = !!item.productId
+    if (insumo && producto) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Un renglón no puede ser insumo y producto a la vez', path: ['rawMaterialId'] })
+    }
+    if (!insumo && !producto) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Selecciona un artículo', path: ['rawMaterialId'] })
+    }
+    if (producto && item.presentationName) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Las presentaciones de compra todavía no aplican a mercancía de reventa',
+        path: ['presentationName'],
+      })
+    }
+  })
 
 const purchaseOrderSchema = z.object({
   supplierId: z.string().min(1, 'Selecciona un proveedor'),
@@ -134,7 +165,8 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
       },
       notes: sourceData.notes || '',
       items: sourceData.items?.map((item: any) => ({
-        rawMaterialId: item.rawMaterial?.id || item.rawMaterialId,
+        rawMaterialId: item.rawMaterial?.id || item.rawMaterialId || undefined,
+        productId: item.product?.id || item.productId || undefined,
         quantityOrdered: Number(item.quantityOrdered),
         unit: item.rawMaterial?.unit || item.unit,
         unitPrice: Number(item.unitPrice),
@@ -163,6 +195,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
       items: [
         {
           rawMaterialId: '',
+          productId: undefined,
           quantityOrdered: 0,
           unit: Unit.KILOGRAM,
           unitPrice: 0,
@@ -203,7 +236,8 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
         },
         notes: sourceData.notes || '',
         items: sourceData.items?.map((item: any) => ({
-          rawMaterialId: item.rawMaterial?.id || item.rawMaterialId,
+          rawMaterialId: item.rawMaterial?.id || item.rawMaterialId || undefined,
+        productId: item.product?.id || item.productId || undefined,
           quantityOrdered: Number(item.quantityOrdered),
           unit: item.rawMaterial?.unit || item.unit,
           unitPrice: Number(item.unitPrice),
@@ -236,6 +270,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
         items: [
           {
             rawMaterialId: '',
+          productId: undefined,
             quantityOrdered: 0,
             unit: Unit.KILOGRAM,
             unitPrice: 0,
@@ -260,6 +295,29 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
     },
     enabled: !!venue,
   })
+
+  // Mercancía de reventa (tienda de conveniencia). Sólo los productos que RASTREAN
+  // inventario y tienen unidad: sin eso el backend rechaza la compra, y descubrirlo
+  // cuando el camión ya está en la puerta no le sirve a nadie. `includeRecipe:false`
+  // y `includeModifiers:false` porque aquí sólo hacen falta id, nombre y unidad.
+  const { data: productosComprables } = useQuery({
+    queryKey: ['productos-comprables', venue?.id],
+    queryFn: async () => {
+      const productos = await getProducts(venue!.id, { includeRecipe: false, includeModifiers: false })
+      return productos.filter(p => p.trackInventory && p.unit)
+    },
+    enabled: !!venue,
+  })
+
+  // Una sola lista para el selector: el usuario busca "refresco" sin tener que saber
+  // de antemano si está catalogado como insumo o como producto.
+  const articulosComprables = useMemo<ArticuloComprable[]>(
+    () => [
+      ...(rawMaterials?.data ?? []).map((m: any) => ({ id: m.id, name: m.name, unit: m.unit, kind: 'RAW_MATERIAL' as const })),
+      ...(productosComprables ?? []).map(p => ({ id: p.id, name: p.name, unit: p.unit as string, kind: 'PRODUCT' as const })),
+    ],
+    [rawMaterials?.data, productosComprables],
+  )
 
   // Mutations
   const createMutation = useMutation({
@@ -351,9 +409,11 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
       }
 
       // Filter out empty/incomplete items before validation
-      // An item is considered valid if it has: rawMaterialId, quantity > 0, and price > 0
+      // Un renglón vale si apunta a un insumo O a un producto de reventa, con
+      // cantidad y precio > 0. Antes exigía `rawMaterialId`, así que descartaba en
+      // SILENCIO toda la mercancía de tienda justo antes de enviar.
       const validItems = values.items.filter(
-        (item) => item.rawMaterialId && Number(item.quantityOrdered) > 0 && Number(item.unitPrice) > 0
+        (item) => (item.rawMaterialId || item.productId) && Number(item.quantityOrdered) > 0 && Number(item.unitPrice) > 0
       )
 
       if (validItems.length === 0) {
@@ -387,11 +447,15 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
         shippingZipCode: values.shippingAddress?.type === 'custom' ? values.shippingAddress.zipCode : undefined,
         // Only send valid items (filtered above)
         items: validItems.map((item) => ({
-          rawMaterialId: item.rawMaterialId,
+          // Exactamente uno de los dos, nunca ambos ni cadenas vacías: el backend
+          // valida la exclusividad en Zod, en el servicio y con un CHECK en la base.
+          rawMaterialId: item.rawMaterialId || undefined,
+          productId: item.productId || undefined,
           quantityOrdered: Number(item.quantityOrdered),
           unit: item.unit,
           unitPrice: Number(item.unitPrice),
-          presentationName: item.presentationName || undefined,
+          // Las presentaciones de compra sólo aplican a insumos.
+          presentationName: item.productId ? undefined : item.presentationName || undefined,
         })),
       }
 
@@ -430,6 +494,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
   const handleAddItem = useCallback(() => {
     append({
       rawMaterialId: '',
+          productId: undefined,
       quantityOrdered: 0,
       unit: Unit.KILOGRAM,
       unitPrice: 0,
@@ -958,7 +1023,10 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                       const qty = Number(item?.quantityOrdered) || 0
                       const price = Number(item?.unitPrice) || 0
                       const itemSubtotal = qty * price
-                      const selectedMaterial = rawMaterials?.data?.find((m) => m.id === item?.rawMaterialId)
+                      // El artículo puede ser insumo o mercancía de reventa: se busca
+                      // por el id que traiga el renglón, sea cual sea.
+                      const idSeleccionado = item?.rawMaterialId || item?.productId || ''
+                      const selectedMaterial = articulosComprables.find(a => a.id === idSeleccionado)
                       const unitLabel = selectedMaterial ? getShortLabel(selectedMaterial.unit) : ''
 
                       return (
@@ -970,9 +1038,23 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
                               render={({ field }) => (
                                 <FormItem>
                                   <MaterialCombobox
-                                    materials={rawMaterials?.data || []}
-                                    value={field.value}
-                                    onChange={(value) => field.onChange(value)}
+                                    materials={articulosComprables}
+                                    value={idSeleccionado}
+                                    onChange={(value, kind) => {
+                                      // Exclusivo: se llena uno y se LIMPIA el otro.
+                                      // Sin el limpiado, cambiar de insumo a producto
+                                      // dejaría los dos ids puestos y el backend
+                                      // rechazaría la orden entera.
+                                      if (kind === 'PRODUCT') {
+                                        field.onChange('')
+                                        form.setValue(`items.${index}.productId`, value, { shouldDirty: true })
+                                        // Las presentaciones sólo aplican a insumos.
+                                        form.setValue(`items.${index}.presentationName`, undefined, { shouldDirty: true })
+                                      } else {
+                                        field.onChange(value)
+                                        form.setValue(`items.${index}.productId`, undefined, { shouldDirty: true })
+                                      }
+                                    }}
                                   />
                                   <FormMessage />
                                 </FormItem>
@@ -1422,9 +1504,11 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
 
 // Material Combobox Component
 interface MaterialComboboxProps {
-  materials: Array<{ id: string; name: string; unit: string }>
+  materials: ArticuloComprable[]
   value: string
-  onChange: (value: string) => void
+  // `kind` viaja con el id porque el llamador tiene que saber a cuál de los dos
+  // campos del renglón mandarlo (insumo de cocina vs mercancía de reventa).
+  onChange: (value: string, kind: ArticuloComprable['kind']) => void
 }
 
 function MaterialCombobox({ materials, value, onChange }: MaterialComboboxProps) {
@@ -1481,10 +1565,10 @@ function MaterialCombobox({ materials, value, onChange }: MaterialComboboxProps)
               <CommandGroup>
                 {filteredMaterials.map((material) => (
                   <CommandItem
-                    key={material.id}
-                    value={material.id}
+                    key={`${material.kind}:${material.id}`}
+                    value={`${material.kind}:${material.id}`}
                     onSelect={() => {
-                      onChange(material.id)
+                      onChange(material.id, material.kind)
                       setOpen(false)
                       setSearchValue('')
                     }}
@@ -1497,7 +1581,15 @@ function MaterialCombobox({ materials, value, onChange }: MaterialComboboxProps)
                     />
                     <div className="flex-1">
                       <p className="font-medium">{material.name}</p>
-                      <p className="text-xs text-muted-foreground">{getShortLabel(material.unit)}</p>
+                      {/* Un insumo de cocina y una mercancía de tienda pueden llamarse
+                          igual ("Coca 600"). Sin la etiqueta, quien captura no sabe
+                          cuál de los dos está eligiendo y el inventario se va al
+                          sistema equivocado. */}
+                      <p className="text-xs text-muted-foreground">
+                        {getShortLabel(material.unit)}
+                        {' · '}
+                        {material.kind === 'PRODUCT' ? 'Mercancía de reventa' : 'Insumo'}
+                      </p>
                     </div>
                   </CommandItem>
                 ))}

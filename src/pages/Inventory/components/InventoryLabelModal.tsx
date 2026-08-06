@@ -176,7 +176,10 @@ export function InventoryLabelModal({ open, onClose, venueId }: InventoryLabelMo
     const newItems: LabelItemRow[] = []
 
     for (const poItem of po.items) {
-      const rm = poItem.rawMaterial
+      // Insumo de cocina o mercancía de reventa. Saltarse los renglones sin
+      // `rawMaterial` descartaba en silencio justo la mercancía de tienda, que es
+      // la que más necesita etiqueta de precio.
+      const rm = poItem.rawMaterial ?? poItem.product
       if (!rm) continue
 
       // Try to find a matching product by SKU

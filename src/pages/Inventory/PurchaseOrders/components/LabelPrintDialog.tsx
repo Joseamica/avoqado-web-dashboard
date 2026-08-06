@@ -298,8 +298,15 @@ export function LabelPrintDialog({ open, onOpenChange, purchaseOrder, venueId }:
                         )}
                       >
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{item.rawMaterial?.name || 'Unknown'}</p>
-                          <p className="text-xs text-muted-foreground">SKU: {item.rawMaterial?.sku || 'N/A'}</p>
+                          {/* Insumo de cocina o mercancía de reventa: mostrar
+                              "Unknown" hacía que el usuario seleccionara renglones
+                              sin nombre y el backend le tirara error al generar. */}
+                          <p className="font-medium text-sm truncate">
+                            {item.rawMaterial?.name || item.product?.name || 'Sin nombre'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            SKU: {item.rawMaterial?.sku || item.product?.sku || 'N/A'}
+                          </p>
                         </div>
                         <div className="flex items-center gap-2">
                           <Input

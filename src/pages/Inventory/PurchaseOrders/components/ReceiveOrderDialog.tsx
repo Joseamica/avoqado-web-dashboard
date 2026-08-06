@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { purchaseOrderService } from '@/services/purchaseOrder.service'
+import { purchaseOrderService, nombreDelRenglon, unidadDelRenglon } from '@/services/purchaseOrder.service'
 import type { PurchaseOrder } from '@/services/purchaseOrder.service'
 import {
   Dialog,
@@ -59,11 +59,15 @@ export function ReceiveOrderDialog({ purchaseOrder, open, onClose }: ReceiveOrde
 
         return {
           purchaseOrderItemId: item.id,
-          rawMaterialName: item.rawMaterial.name,
+          // Un renglón puede ser mercancía de reventa (`product`) en vez de insumo.
+          // Leer `item.rawMaterial.name` directo reventaba al MONTAR el diálogo, así
+          // que una sola línea de tienda impedía recibir la orden COMPLETA — insumos
+          // incluidos. El helper resuelve venga por donde venga y nunca lanza.
+          rawMaterialName: nombreDelRenglon(item),
           // Si se compró en presentación, la cantidad de este renglón está EN
           // CAJAS. Mostrar la unidad base aquí haría que quien recibe cuente
           // piezas y capture 50 huevos donde llegaron 50 cajas.
-          rawMaterialUnit: item.presentationName || item.rawMaterial.unit,
+          rawMaterialUnit: unidadDelRenglon(item),
           quantityOrdered: item.quantityOrdered,
           quantityReceived: alreadyReceived,
           quantityToReceive: remaining, // Pre-fill with remaining

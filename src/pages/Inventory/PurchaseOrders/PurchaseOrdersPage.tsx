@@ -13,6 +13,8 @@ import {
   PurchaseOrderFilters,
   getStatusBadgeColor,
   formatPrice,
+  nombreDelRenglon,
+  objetivoDelRenglon,
 } from '@/services/purchaseOrder.service'
 import { supplierService } from '@/services/supplier.service'
 import { StaffRole } from '@/types'
@@ -383,9 +385,13 @@ export default function PurchaseOrdersPage() {
     const duplicateData = {
       supplierId: po.supplierId,
       supplier: po.supplier,
+      // Se propagan los DOS ids: duplicar una orden de tienda de conveniencia con
+      // sólo rawMaterialId perdía todos sus renglones de mercancía.
       items: po.items.map(item => ({
-        rawMaterialId: item.rawMaterial.id,
+        rawMaterialId: item.rawMaterial?.id,
+        productId: item.product?.id,
         rawMaterial: item.rawMaterial,
+        product: item.product,
         quantityOrdered: item.quantityOrdered,
         unit: item.unit,
         unitPrice: item.unitPrice,
@@ -424,8 +430,10 @@ export default function PurchaseOrdersPage() {
   const handleSaveAsCSV = useCallback((po: PurchaseOrder) => {
     const headers = ['Item', 'SKU', 'Quantity', 'Unit Price', 'Total']
     const rows = po.items.map(item => [
-      item.rawMaterial.name,
-      item.rawMaterial.sku || 'N/A',
+      // Sin protección, exportar una orden con mercancía de reventa tiraba
+      // TypeError y no se generaba ningún archivo.
+      nombreDelRenglon(item, 'N/A'),
+      objetivoDelRenglon(item)?.sku || 'N/A',
       item.quantityOrdered,
       item.unitPrice,
       (Number(item.quantityOrdered) * Number(item.unitPrice)).toFixed(2),

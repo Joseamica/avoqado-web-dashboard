@@ -151,6 +151,10 @@ export default function RawMaterials() {
       if (response.data) {
         for (const po of response.data) {
           for (const item of po.items) {
+            // Esta pantalla es de INSUMOS. Un renglón de mercancía de reventa no
+            // tiene rawMaterialId, y acumularlo metería todos esos renglones bajo la
+            // clave `undefined`, contaminando el "confirmado" que se muestra aquí.
+            if (!item.rawMaterialId) continue
             const currentConfirmed = confirmedStockMap.get(item.rawMaterialId) || 0
             // Prisma Decimals are serialized as strings, convert to numbers
             const pendingQuantity = Number(item.quantityOrdered) - Number(item.quantityReceived)

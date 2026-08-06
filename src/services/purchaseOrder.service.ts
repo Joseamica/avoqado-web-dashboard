@@ -80,10 +80,35 @@ export interface PurchaseOrder {
   createdBy?: any // Nested staff object
 }
 
+/**
+ * Artículo al que apunta un renglón: insumo de cocina o mercancía de reventa.
+ * Los dos traen los mismos campos, que es lo que permite pintarlos igual.
+ */
+export interface PurchaseOrderLineTarget {
+  id: string
+  name: string
+  sku?: string | null
+  unit?: Unit | null
+}
+
+/**
+ * Un renglón apunta a UN insumo de cocina O a UN producto de reventa (tienda de
+ * conveniencia), nunca a los dos ni a ninguno.
+ *
+ * ⚠️ `rawMaterial` era `any` y `rawMaterialId` obligatorio. Ese `any` es exactamente
+ * la razón por la que TypeScript no marcó ni uno de los lugares que hacían
+ * `item.rawMaterial.name` sin protección: la pantalla de detalle, el diálogo de
+ * recibir, las dos exportaciones a CSV y el duplicado de orden. Con la mercancía de
+ * reventa esos accesos revientan la pantalla completa. Tipado de verdad, el
+ * compilador señala solo los sitios que faltan.
+ *
+ * Usa el helper `nombreDelRenglon(item)` en vez de leer las relaciones a mano.
+ */
 export interface PurchaseOrderItem {
   id: string
   purchaseOrderId: string
-  rawMaterialId: string
+  rawMaterialId?: string | null
+  productId?: string | null
   quantityOrdered: number
   quantityReceived: number
   unit: Unit
@@ -93,7 +118,47 @@ export interface PurchaseOrderItem {
   total: string // Decimal as string
   receiveStatus: PurchaseOrderItemStatus
   receivedNotes?: string | null
-  rawMaterial?: any // Nested raw material object
+  rawMaterial?: PurchaseOrderLineTarget | null
+  product?: PurchaseOrderLineTarget | null
+}
+
+/** El artículo del renglón, venga por donde venga. */
+export function objetivoDelRenglon(item: PurchaseOrderItem): PurchaseOrderLineTarget | null {
+  return item.rawMaterial ?? item.product ?? null
+}
+
+/** Nombre a mostrar. Nunca lanza: un renglón sin nombre no puede tumbar una pantalla. */
+export function nombreDelRenglon(item: PurchaseOrderItem, fallback = '—'): string {
+  return objetivoDelRenglon(item)?.name ?? fallback
+}
+
+/** Unidad a mostrar: la de compra si se compró en presentación, si no la del artículo. */
+export function unidadDelRenglon(item: PurchaseOrderItem): string {
+  return item.presentationName || objetivoDelRenglon(item)?.unit || item.unit
+}
+
+/** Si el renglón es mercancía para revender (tienda) o un insumo de cocina. */
+export function esMercanciaDeReventa(item: PurchaseOrderItem): boolean {
+  return !!item.productId || (!item.rawMaterialId && !!item.product)
+}
+
+/**
+ * Renglón que se MANDA al backend al crear o editar. Insumo de cocina O producto de
+ * reventa, nunca los dos: el backend lo valida con Zod, con una comprobación en el
+ * servicio y con un CHECK en la base.
+ *
+ * Es una sola definición para crear y editar a propósito. Cuando eran dos, sólo se
+ * actualizó la de crear, y como editar borra y recrea los renglones, editar una orden
+ * de tienda se llevaba por delante sus líneas de producto.
+ */
+export interface PurchaseOrderItemInput {
+  rawMaterialId?: string
+  productId?: string
+  quantityOrdered: number
+  unit: Unit
+  unitPrice: number
+  /** Unidad de compra ("caja"): cantidad y precio van EN ESA unidad. Sólo insumos. */
+  presentationName?: string
 }
 
 export interface CreatePurchaseOrderDto {
@@ -108,14 +173,7 @@ export interface CreatePurchaseOrderDto {
   shippingCity?: string
   shippingState?: string
   shippingZipCode?: string
-  items: Array<{
-    rawMaterialId: string
-    quantityOrdered: number
-    unit: Unit
-    unitPrice: number
-    /** Unidad de compra ("caja"): cantidad y precio van EN ESA unidad. */
-    presentationName?: string
-  }>
+  items: Array<PurchaseOrderItemInput>
 }
 
 export interface UpdatePurchaseOrderDto {
@@ -131,14 +189,7 @@ export interface UpdatePurchaseOrderDto {
   shippingCity?: string
   shippingState?: string
   shippingZipCode?: string
-  items?: Array<{
-    rawMaterialId: string
-    quantityOrdered: number
-    unit: Unit
-    unitPrice: number
-    /** Unidad de compra ("caja"): cantidad y precio van EN ESA unidad. */
-    presentationName?: string
-  }>
+  items?: Array<PurchaseOrderItemInput>
 }
 
 export interface ReceivePurchaseOrderDto {

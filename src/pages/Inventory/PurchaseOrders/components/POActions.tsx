@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { purchaseOrderService, PurchaseOrderStatus } from '@/services/purchaseOrder.service'
+import { purchaseOrderService, PurchaseOrderStatus, nombreDelRenglon, objetivoDelRenglon } from '@/services/purchaseOrder.service'
 import type { PurchaseOrder } from '@/services/purchaseOrder.service'
 import { Button } from '@/components/ui/button'
 import {
@@ -226,9 +226,13 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
     const duplicateData = {
       supplierId: purchaseOrder.supplierId,
       supplier: purchaseOrder.supplier,
+      // Se propagan los DOS ids: duplicar una orden de tienda de conveniencia con
+      // sólo rawMaterialId perdía todos sus renglones de mercancía.
       items: purchaseOrder.items.map(item => ({
-        rawMaterialId: item.rawMaterial.id,
+        rawMaterialId: item.rawMaterial?.id,
+        productId: item.product?.id,
         rawMaterial: item.rawMaterial,
+        product: item.product,
         quantityOrdered: item.quantityOrdered,
         unit: item.unit,
         unitPrice: item.unitPrice,
@@ -274,8 +278,10 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
   const handleSaveAsCSV = () => {
     const headers = ['Item', 'SKU', 'Quantity', 'Unit Price', 'Total']
     const rows = purchaseOrder.items.map(item => [
-      item.rawMaterial.name,
-      item.rawMaterial.sku || 'N/A',
+      // Sin protección, exportar una orden con mercancía de reventa tiraba
+      // TypeError y no se generaba ningún archivo.
+      nombreDelRenglon(item, 'N/A'),
+      objetivoDelRenglon(item)?.sku || 'N/A',
       item.quantityOrdered,
       item.unitPrice,
       (Number(item.quantityOrdered) * Number(item.unitPrice)).toFixed(2),
