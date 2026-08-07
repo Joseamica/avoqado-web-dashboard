@@ -33,6 +33,7 @@ import {
   type FulfillmentMode,
   type InventoryReservationMode,
   type ScaleProfile,
+  type ScaleSettings as ScaleSettingsData,
 } from '@/services/areaTickets.service'
 
 const NONE = '__none__'
@@ -180,8 +181,9 @@ export default function AreaTickets() {
           <ScaleSettings
             venueId={venueId}
             profiles={data.scaleProfiles}
-            enabled={data.scaleSettings.enabled}
-            entitled={data.entitlements.scaleIntegration}
+            settings={data.scaleSettings}
+            scaleEntitled={data.entitlements.scaleIntegration}
+            barcodeEntitled={data.entitlements.variableWeightBarcode}
             onSaved={refresh}
           />
         </TabsContent>
@@ -527,25 +529,46 @@ function TerminalSettings({
 function ScaleSettings({
   venueId,
   profiles,
-  enabled,
-  entitled,
+  settings,
+  scaleEntitled,
+  barcodeEntitled,
   onSaved,
 }: {
   venueId: string
   profiles: ScaleProfile[]
-  enabled: boolean
-  entitled: boolean
+  settings: ScaleSettingsData
+  scaleEntitled: boolean
+  barcodeEntitled: boolean
   onSaved: () => void
 }) {
   const { toast } = useToast()
   const [name, setName] = useState('')
   const [location, setLocation] = useState('CREMERIA')
   const [presetKey, setPresetKey] = useState<ScalePresetKey>('RHINO_BAR8RS')
+  const [variableBarcodeEnabled, setVariableBarcodeEnabled] = useState(settings.variableBarcodeEnabled)
+  const [variableBarcodePrefix, setVariableBarcodePrefix] = useState(settings.variableBarcodePrefix)
+  useEffect(() => {
+    setVariableBarcodeEnabled(settings.variableBarcodeEnabled)
+    setVariableBarcodePrefix(settings.variableBarcodePrefix)
+  }, [settings])
   const preset = SCALE_PRESETS[presetKey]
   const settingMutation = useMutation({
-    mutationFn: (next: boolean) => updateScaleSettings(venueId, next),
+    mutationFn: (next: boolean) => updateScaleSettings(venueId, { enabled: next }),
     onSuccess: onSaved,
     onError: error => toast({ title: 'No se pudo activar', description: apiError(error, 'Revisa el plan.'), variant: 'destructive' }),
+  })
+  const barcodeMutation = useMutation({
+    mutationFn: () =>
+      updateScaleSettings(venueId, {
+        variableBarcodeEnabled,
+        variableBarcodePrefix,
+      }),
+    onSuccess: () => {
+      toast({ title: 'Lectura de etiquetas guardada' })
+      onSaved()
+    },
+    onError: error =>
+      toast({ title: 'No se pudo guardar', description: apiError(error, 'Revisa el prefijo.'), variant: 'destructive' }),
   })
   const createMutation = useMutation({
     mutationFn: () =>
@@ -583,13 +606,59 @@ function ScaleSettings({
           <SettingRow
             title="Activar integración de básculas"
             description="Los perfiles manuales siguen disponibles como respaldo; USB/bridge requiere el módulo del plan."
-            checked={enabled}
-            disabled={!entitled}
+            checked={settings.enabled}
+            disabled={!scaleEntitled}
             onCheckedChange={next => settingMutation.mutate(next)}
           />
-          {!entitled && (
+          {!scaleEntitled && (
             <p className="mt-2 text-sm text-amber-600">La integración física de básculas no está incluida en el plan actual.</p>
           )}
+        </CardContent>
+      </Card>
+      <Card className={panelClass}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ScanBarcode className="h-5 w-5" /> Etiquetas impresas por una báscula externa
+          </CardTitle>
+          <CardDescription>
+            Para EAN-13 con formato prefijo de 2 dígitos + PLU de 5 dígitos + peso en gramos de 5 dígitos. El precio siempre sale del catálogo.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <SettingRow
+            title="Leer peso desde la etiqueta"
+            description="Caja agrega directamente el producto pesado; no requiere conectar la báscula a la tablet."
+            checked={variableBarcodeEnabled}
+            disabled={!barcodeEntitled}
+            onCheckedChange={setVariableBarcodeEnabled}
+          />
+          <div className="grid gap-3 rounded-lg bg-muted/40 p-4 md:grid-cols-[minmax(0,1fr)_8rem_auto] md:items-end">
+            <div className="space-y-1">
+              <Label>Correspondencia de producto</Label>
+              <p className="text-sm text-muted-foreground">El PLU de la etiqueta debe coincidir con el SKU del producto vendido por peso.</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="variable-barcode-prefix">Prefijo</Label>
+              <Input
+                id="variable-barcode-prefix"
+                inputMode="numeric"
+                maxLength={2}
+                value={variableBarcodePrefix}
+                onChange={event => setVariableBarcodePrefix(event.target.value.replace(/\D/g, '').slice(0, 2))}
+                placeholder="20"
+              />
+            </div>
+            <Button
+              disabled={!barcodeEntitled || variableBarcodePrefix.length !== 2 || barcodeMutation.isPending}
+              onClick={() => barcodeMutation.mutate()}
+            >
+              {barcodeMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Guardar etiquetas
+            </Button>
+          </div>
+          {!barcodeEntitled && <p className="text-sm text-amber-600">El plan actual no incluye lectura de etiquetas de peso variable.</p>}
+          <p className="text-xs text-muted-foreground">
+            Un folio opaco como VPZ1617070 no contiene PLU ni peso y no puede reconstruirse sin una integración del fabricante.
+          </p>
         </CardContent>
       </Card>
       <Card className={panelClass}>
@@ -632,7 +701,7 @@ function ScaleSettings({
             </SelectContent>
           </Select>
           <Input value={`${preset.baudRate} · 8N1 · USB serial`} disabled aria-label="Configuración serial" />
-          <Button disabled={!entitled || !name.trim() || createMutation.isPending} onClick={() => createMutation.mutate()}>
+          <Button disabled={!scaleEntitled || !name.trim() || createMutation.isPending} onClick={() => createMutation.mutate()}>
             <Plus className="mr-2 h-4 w-4" /> Crear
           </Button>
           <p className="text-xs text-muted-foreground md:col-span-2 lg:col-span-5">

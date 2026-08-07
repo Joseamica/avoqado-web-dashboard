@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   toUpdateAreaTicketSettingsInput,
+  toUpdateScaleSettingsInput,
   type AreaTicketSettings,
 } from '@/services/areaTickets.service'
 
@@ -33,6 +34,22 @@ describe('toUpdateAreaTicketSettingsInput()', () => {
       requireManagerForCancel: true,
       recordWasteOnCancel: false,
       inventoryReservationMode: 'NONE',
+    })
+  })
+})
+
+describe('toUpdateScaleSettingsInput()', () => {
+  it('keeps serial and printed-label workflows independent', () => {
+    expect(
+      toUpdateScaleSettingsInput({
+        enabled: false,
+        variableBarcodeEnabled: true,
+        variableBarcodePrefix: '21',
+      }),
+    ).toEqual({
+      enabled: false,
+      variableBarcodeEnabled: true,
+      variableBarcodePrefix: '21',
     })
   })
 })

@@ -88,10 +88,10 @@ export interface ScaleProfile {
 }
 
 export interface AreaTicketOverview {
-  entitlements: { areaTickets: boolean; scaleIntegration: boolean }
-  effective: { areaTickets: boolean; scales: boolean }
+  entitlements: { areaTickets: boolean; scaleIntegration: boolean; variableWeightBarcode: boolean }
+  effective: { areaTickets: boolean; scales: boolean; variableWeightBarcode: boolean }
   settings: AreaTicketSettings
-  scaleSettings: { enabled: boolean }
+  scaleSettings: ScaleSettings
   areas: FulfillmentArea[]
   terminals: AreaTicketTerminal[]
   scaleProfiles: ScaleProfile[]
@@ -176,8 +176,24 @@ export async function updateAreaTicketTerminal(
   return response.data.data
 }
 
-export async function updateScaleSettings(venueId: string, enabled: boolean): Promise<{ enabled: boolean }> {
-  const response = await api.put(`${base(venueId)}/scale-settings`, { enabled })
+export interface ScaleSettings {
+  enabled: boolean
+  variableBarcodeEnabled: boolean
+  variableBarcodePrefix: string
+}
+
+export type UpdateScaleSettingsInput = Partial<ScaleSettings>
+
+export function toUpdateScaleSettingsInput(settings: ScaleSettings): ScaleSettings {
+  return {
+    enabled: settings.enabled,
+    variableBarcodeEnabled: settings.variableBarcodeEnabled,
+    variableBarcodePrefix: settings.variableBarcodePrefix,
+  }
+}
+
+export async function updateScaleSettings(venueId: string, input: UpdateScaleSettingsInput): Promise<ScaleSettings> {
+  const response = await api.put(`${base(venueId)}/scale-settings`, input)
   return response.data.data
 }
 
