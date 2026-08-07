@@ -241,7 +241,8 @@
     "rejectReason": "Motivo de Rechazo",
     "rejectReasonPlaceholder": "Explica por qué se rechaza esta orden...",
     "cancelReasonRequired": "El motivo de cancelación es requerido",
-    "rejectReasonRequired": "El motivo de rechazo es requerido"
+    "rejectReasonRequired": "El motivo de rechazo es requerido",
+    "resubmit": "Corregir y reenviar"
   },
   "items": {
     "rawMaterial": "Material",

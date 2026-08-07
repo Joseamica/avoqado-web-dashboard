@@ -163,10 +163,16 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
     },
   })
 
-  // Reject mutation (PENDING_APPROVAL → CANCELLED)
+  // Reject mutation (PENDING_APPROVAL → REJECTED)
+  //
+  // Antes esto llamaba a `cancelPurchaseOrder`: el botón decía "Rechazar" y cancelaba.
+  // Por eso `rejectedBy`, `rejectedAt` y `rejectionReason` estaban vacíos en TODAS las
+  // órdenes de la base — el motivo que el gerente escribía se perdía.
+  //
+  // La diferencia importa para quien captura: una orden cancelada está muerta y hay que
+  // rehacerla desde cero; una rechazada se corrige y se reenvía.
   const rejectMutation = useMutation({
-    mutationFn: (reason: string) =>
-      purchaseOrderService.cancelPurchaseOrder(venueId!, purchaseOrder.id, reason),
+    mutationFn: (reason: string) => purchaseOrderService.rejectPurchaseOrder(venueId!, purchaseOrder.id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-order', venueId, purchaseOrder.id] })
       queryClient.invalidateQueries({ queryKey: ['purchase-orders', venueId] })
@@ -198,11 +204,13 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
     },
   })
 
-  // Submit for approval (DRAFT → PENDING_APPROVAL)
+  // Submit for approval (DRAFT o REJECTED → PENDING_APPROVAL)
+  //
+  // Usa la ruta dedicada, no el PUT genérico con `status`: esa vía escribe el estado a
+  // pelo, se salta la validación de transición y no deja rastro de quién lo movió.
+  // Además acepta órdenes RECHAZADAS, que es lo que permite corregir y reenviar.
   const submitApprovalMutation = useMutation({
-    mutationFn: () => purchaseOrderService.updatePurchaseOrder(venueId!, purchaseOrder.id, {
-      status: PurchaseOrderStatus.PENDING_APPROVAL,
-    }),
+    mutationFn: () => purchaseOrderService.submitForApproval(venueId!, purchaseOrder.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-order', venueId, purchaseOrder.id] })
       queryClient.invalidateQueries({ queryKey: ['purchase-orders', venueId] })
@@ -548,6 +556,26 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
       // Final statuses - only allow viewing/duplicating (via dropdown)
       actionButtons = (
         <div className="flex flex-wrap items-center gap-2">
+          <MoreActionsDropdown />
+        </div>
+      )
+      break
+
+    // Una orden RECHAZADA no es el final del camino: quien la capturó la corrige y la
+    // vuelve a mandar. Sin esta rama caía al `default` y se quedaba VARADA, sin una
+    // sola acción disponible — el gerente rechazaba y el comprador tenía que rehacer
+    // la orden desde cero, que es la razón por la que la gente deja de usar la
+    // autorización y compra por fuera del sistema.
+    case PurchaseOrderStatus.REJECTED:
+      actionButtons = (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={handleEdit} disabled={isLoading}>
+            {t('actions.edit')}
+          </Button>
+          <Button onClick={() => submitApprovalMutation.mutate()} disabled={isLoading}>
+            {submitApprovalMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {t('actions.resubmit')}
+          </Button>
           <MoreActionsDropdown />
         </div>
       )

@@ -325,6 +325,27 @@ export const purchaseOrderService = {
   },
 
   /**
+   * Rechazar una orden pendiente de autorización.
+   *
+   * RECHAZAR NO ES CANCELAR. El botón "Rechazar" llamaba a `cancelPurchaseOrder`, y por
+   * eso `rejectedBy`, `rejectedAt` y `rejectionReason` estaban vacíos en todas las
+   * órdenes de la base: el dato nunca se escribió.
+   *
+   * Una orden CANCELADA está muerta; una RECHAZADA la corrige quien la capturó y la
+   * vuelve a enviar con `submitForApproval`.
+   */
+  rejectPurchaseOrder: async (venueId: string, poId: string, reason: string) => {
+    const { data } = await api.post(`/api/v1/dashboard/venues/${venueId}/inventory/purchase-orders/${poId}/reject`, { reason })
+    return data
+  },
+
+  /** Enviar a autorización. Acepta borradores y órdenes rechazadas (corregir y reenviar). */
+  submitForApproval: async (venueId: string, poId: string) => {
+    const { data } = await api.post(`/api/v1/dashboard/venues/${venueId}/inventory/purchase-orders/${poId}/submit-for-approval`)
+    return data
+  },
+
+  /**
    * Delete a purchase order (DRAFT only)
    */
   deletePurchaseOrder: async (venueId: string, poId: string) => {

@@ -196,7 +196,8 @@
     "receiveAllSuccess": "Tous les articles marqués comme reçus",
     "receiveAllError": "Erreur lors de la réception des articles",
     "receiveNoneSuccess": "Commande annulée - articles non traités",
-    "receiveNoneError": "Erreur lors de l'annulation de la commande"
+    "receiveNoneError": "Erreur lors de l'annulation de la commande",
+    "resubmit": "Corriger et renvoyer"
   },
   "items": {
     "rawMaterial": "Matériel",

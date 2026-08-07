@@ -241,7 +241,8 @@
     "rejectReason": "Rejection Reason",
     "rejectReasonPlaceholder": "Explain why this order is being rejected...",
     "cancelReasonRequired": "Cancellation reason is required",
-    "rejectReasonRequired": "Rejection reason is required"
+    "rejectReasonRequired": "Rejection reason is required",
+    "resubmit": "Fix and resubmit"
   },
   "items": {
     "rawMaterial": "Material",
