@@ -149,6 +149,7 @@ import {
   Tpv,
   TpvId,
   VenueDocuments,
+  VenueFiscalProfile,
   VenueActivityLog,
   VenueEditLayout,
   VenueIntegrations,
@@ -723,6 +724,13 @@ export function createVenueRoutes(): RouteObject[] {
                 { path: 'basic-info', element: <BasicInfo /> },
                 { path: 'contact-images', element: <ContactImages /> },
                 { path: 'documents', element: <VenueDocuments /> },
+                // Datos fiscales del venue como receptor de las facturas de Avoqado — más
+                // estricto que el resto de "local" (ADMIN): sólo OWNER captura estos datos.
+                {
+                  path: 'fiscal',
+                  element: <AdminProtectedRoute requiredRole={AdminAccessLevel.OWNER} />,
+                  children: [{ index: true, element: <VenueFiscalProfile /> }],
+                },
               ],
             },
             // Legacy: WhatsApp chat moved into the Integrations catalog

@@ -2,9 +2,11 @@ import { createContext, useContext, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Outlet } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { NavTabs } from '@/components/ui/nav-tabs'
+import { NavTabs, type NavTabItem } from '@/components/ui/nav-tabs'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useAccess } from '@/hooks/use-access'
+import { StaffRole } from '@/types'
 
 // Context para controlar los botones de acción desde las páginas hijas
 interface VenueEditContextType {
@@ -43,6 +45,12 @@ export const useVenueEditActions = () => {
 export default function VenueEditLayout() {
   const { fullBasePath } = useCurrentVenue()
   const { t } = useTranslation('venue')
+  const { role } = useAccess()
+  // Pestaña de datos fiscales: gate más estricto que el resto de "local" (ADMIN) — sólo
+  // OWNER captura el RFC/razón social con el que Avoqado factura al venue. La ruta ya lo
+  // exige vía su propio <AdminProtectedRoute requiredRole={OWNER}>; esto sólo evita mostrar
+  // un tab a quien de todas formas rebotaría al entrar.
+  const isOwner = role === StaffRole.OWNER || role === StaffRole.SUPERADMIN
 
   const [actions, setActions] = useState<{
     // Legacy interface
@@ -137,6 +145,14 @@ export default function VenueEditLayout() {
             { to: `${fullBasePath}/settings/local/basic-info`, label: t('edit.nav.basicInfo', { defaultValue: 'Información Básica' }) },
             { to: `${fullBasePath}/settings/local/contact-images`, label: t('edit.nav.contactImages', { defaultValue: 'Contacto e Imágenes' }) },
             { to: `${fullBasePath}/settings/local/documents`, label: t('edit.nav.documents', { defaultValue: 'Documentación' }) },
+            ...(isOwner
+              ? [
+                  {
+                    to: `${fullBasePath}/settings/local/fiscal`,
+                    label: t('edit.nav.fiscal', { defaultValue: 'Datos de facturación' }),
+                  } satisfies NavTabItem,
+                ]
+              : []),
           ]}
         />
 
