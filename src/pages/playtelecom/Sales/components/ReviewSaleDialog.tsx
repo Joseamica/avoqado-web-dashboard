@@ -16,19 +16,18 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { CheckCircle2, XCircle, Ban, Loader2, AlertTriangle } from 'lucide-react'
+import { CheckCircle2, XCircle, Ban, Loader2 } from 'lucide-react'
 import {
   reviewSaleVerification,
-  SALE_VERIFICATION_REJECTION_REASON_LABELS,
   type SaleVerification,
   type SaleVerificationRejectionReason,
   type ReviewSaleVerificationParams,
 } from '@/services/saleVerification.service'
 import { reviewOrgSaleVerification } from '@/services/saleVerification.org.service'
+import { ReviewReasonsFields, isPromoterFeedbackValid, PROMOTER_FEEDBACK_ERROR } from '@/components/sale-verification/ReviewReasonsFields'
 
 export type ReviewMode = 'approve' | 'reject' | 'mark-rejected'
 
@@ -59,14 +58,6 @@ interface ReviewSaleDialogProps {
   /** Optional callback fired after a successful review. */
   onReviewed?: (updated: SaleVerification | unknown) => void
 }
-
-const REJECTION_REASONS: SaleVerificationRejectionReason[] = [
-  'REVIEW_MISSING_LINKING_IMAGE',
-  'REVIEW_PORTABILIDAD',
-  'REVIEW_ILLEGIBLE_IMAGES',
-  'REVIEW_DUPLICATE_VINCULACION',
-  'OTHER',
-]
 
 export function ReviewSaleDialog({ open, mode, verification, venueId, orgId, onClose, onReviewed }: ReviewSaleDialogProps) {
   const { toast } = useToast()
@@ -125,21 +116,14 @@ export function ReviewSaleDialog({ open, mode, verification, venueId, orgId, onC
     },
   })
 
-  const toggleReason = (reason: SaleVerificationRejectionReason) => {
-    setValidationError(null)
-    setSelectedReasons(prev => (prev.includes(reason) ? prev.filter(r => r !== reason) : [...prev, reason]))
-  }
-
   const handleSubmit = () => {
     if (!verification) return
 
-    if (mode === 'reject') {
-      const hasReason = selectedReasons.length > 0
-      const hasNotes = reviewNotes.trim().length > 0
-      if (!hasReason && !hasNotes) {
-        setValidationError('Selecciona al menos una opción o escribe una observación.')
-        return
-      }
+    // "Revisar por promotor" SIEMPRE lleva comentario: un checkbox solo no le dice
+    // al promotor CUÁL imagen está mal. Los motivos siguen siendo opcionales.
+    if (mode === 'reject' && !isPromoterFeedbackValid(reviewNotes)) {
+      setValidationError(PROMOTER_FEEDBACK_ERROR)
+      return
     }
 
     reviewMutation.mutate({
@@ -222,49 +206,20 @@ export function ReviewSaleDialog({ open, mode, verification, venueId, orgId, onC
             </div>
           </div>
         ) : (
-          <div className="space-y-4 py-2">
-            <div>
-              <Label className="text-sm font-bold mb-2 block">Motivos de revisión</Label>
-              <div className="space-y-2">
-                {REJECTION_REASONS.map(reason => (
-                  <div key={reason} className="flex items-start gap-2">
-                    <Checkbox
-                      id={`reason-${reason}`}
-                      checked={selectedReasons.includes(reason)}
-                      onCheckedChange={() => toggleReason(reason)}
-                    />
-                    <Label htmlFor={`reason-${reason}`} className="text-sm leading-tight cursor-pointer">
-                      {SALE_VERIFICATION_REJECTION_REASON_LABELS[reason]}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="reviewNotes" className="text-sm font-bold mb-2 block">
-                Observaciones (opcional)
-              </Label>
-              <Textarea
-                id="reviewNotes"
-                value={reviewNotes}
-                onChange={e => {
-                  setValidationError(null)
-                  setReviewNotes(e.target.value)
-                }}
-                placeholder="Escribe lo que el promotor necesita revisar"
-                rows={3}
-                maxLength={500}
-              />
-              <p className="text-[10px] text-muted-foreground mt-1 text-right">{reviewNotes.length}/500</p>
-            </div>
-
-            {validationError && (
-              <div className="flex items-start gap-2 text-xs text-red-600 dark:text-red-400">
-                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-                <span>{validationError}</span>
-              </div>
-            )}
+          <div className="py-2">
+            <ReviewReasonsFields
+              reasons={selectedReasons}
+              onReasonsChange={next => {
+                setValidationError(null)
+                setSelectedReasons(next)
+              }}
+              notes={reviewNotes}
+              onNotesChange={next => {
+                setValidationError(null)
+                setReviewNotes(next)
+              }}
+              showError={Boolean(validationError)}
+            />
           </div>
         )}
 
@@ -274,7 +229,7 @@ export function ReviewSaleDialog({ open, mode, verification, venueId, orgId, onC
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isLoading}
+            disabled={isLoading || (mode === 'reject' && !isPromoterFeedbackValid(reviewNotes))}
             className={
               mode === 'approve'
                 ? 'bg-green-600 hover:bg-green-700 text-white'

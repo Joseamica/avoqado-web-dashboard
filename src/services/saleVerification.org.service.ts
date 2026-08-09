@@ -375,6 +375,10 @@ export interface EditOrgSaleParams {
   status?: SaleVerificationStatus
   /** Mandatory, min 5 chars — recorded in the audit log. */
   reason: string
+  /** Qué debe corregir el promotor. Obligatorio (>=5 chars) cuando `status === 'FAILED'`. Lo lee en su TPV. */
+  reviewNotes?: string
+  /** Motivos categorizados (opcionales) para el reporte a Walmart. */
+  rejectionReasons?: SaleVerificationRejectionReason[]
 }
 
 /**

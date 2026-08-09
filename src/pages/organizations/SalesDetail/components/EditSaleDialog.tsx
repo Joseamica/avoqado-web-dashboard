@@ -16,7 +16,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { editOrgSaleVerification, type EditOrgSaleParams, type OrgSaleRow } from '@/services/saleVerification.org.service'
-import type { SaleVerificationStatus } from '@/services/saleVerification.service'
+import type { SaleVerificationRejectionReason, SaleVerificationStatus } from '@/services/saleVerification.service'
+import { ReviewReasonsFields, isPromoterFeedbackValid, PROMOTER_FEEDBACK_ERROR } from '@/components/sale-verification/ReviewReasonsFields'
 
 type PaymentFormChoice = 'CASH' | 'CARD' | 'OTHER'
 
@@ -46,6 +47,8 @@ export function EditSaleDialog({
   const [isPortabilidad, setIsPortabilidad] = useState(false)
   const [status, setStatus] = useState<SaleVerificationStatus>('COMPLETED')
   const [reason, setReason] = useState('')
+  const [reviewNotes, setReviewNotes] = useState('')
+  const [rejectionReasons, setRejectionReasons] = useState<SaleVerificationRejectionReason[]>([])
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -55,6 +58,8 @@ export function EditSaleDialog({
       setIsPortabilidad(row.saleType === 'PORTABILIDAD')
       setStatus(row.status)
       setReason('')
+      setReviewNotes('')
+      setRejectionReasons([])
       setError(null)
     }
   }, [open, row])
@@ -86,7 +91,20 @@ export function EditSaleDialog({
       setError('Escribe un motivo de al menos 5 caracteres (queda en la auditoría).')
       return
     }
-    mutation.mutate({ amount, paymentForm, isPortabilidad, status, reason: reason.trim() })
+    // Candado: dejar la venta en "Revisar por promotor" sin decirle qué corregir
+    // lo deja atorado en su TPV sin instrucciones.
+    if (status === 'FAILED' && !isPromoterFeedbackValid(reviewNotes)) {
+      setError(PROMOTER_FEEDBACK_ERROR)
+      return
+    }
+    mutation.mutate({
+      amount,
+      paymentForm,
+      isPortabilidad,
+      status,
+      reason: reason.trim(),
+      ...(status === 'FAILED' ? { reviewNotes: reviewNotes.trim(), rejectionReasons } : {}),
+    })
   }
 
   return (
@@ -151,7 +169,13 @@ export function EditSaleDialog({
 
         <div className="space-y-1.5">
           <Label>Estado</Label>
-          <Select value={status} onValueChange={v => setStatus(v as SaleVerificationStatus)}>
+          <Select
+            value={status}
+            onValueChange={v => {
+              setError(null)
+              setStatus(v as SaleVerificationStatus)
+            }}
+          >
             <SelectTrigger className="h-12">
               <SelectValue />
             </SelectTrigger>
@@ -163,6 +187,25 @@ export function EditSaleDialog({
             </SelectContent>
           </Select>
         </div>
+
+        {status === 'FAILED' && (
+          <div className="rounded-lg border border-input bg-card p-4">
+            <p className="text-xs text-muted-foreground mb-3">El promotor va a ver esto en su TPV para poder corregir la venta.</p>
+            <ReviewReasonsFields
+              reasons={rejectionReasons}
+              onReasonsChange={next => {
+                setError(null)
+                setRejectionReasons(next)
+              }}
+              notes={reviewNotes}
+              onNotesChange={next => {
+                setError(null)
+                setReviewNotes(next)
+              }}
+              showError={error === PROMOTER_FEEDBACK_ERROR}
+            />
+          </div>
+        )}
 
         <div className="space-y-1.5">
           <Label htmlFor="edit-reason">
@@ -178,7 +221,9 @@ export function EditSaleDialog({
             placeholder="Explica por qué editas esta venta (mín. 5 caracteres). Queda registrado con tu nombre y la fecha."
             rows={3}
           />
-          {error && <p className="text-xs text-red-600">{error}</p>}
+          {/* El error del comentario al promotor se muestra dentro de su propio bloque,
+              no aquí — si no, parecería que el motivo de auditoría es el que está mal. */}
+          {error && error !== PROMOTER_FEEDBACK_ERROR && <p className="text-xs text-red-600">{error}</p>}
         </div>
       </div>
     </FullScreenModal>

@@ -31,11 +31,18 @@ Object.defineProperty(window, 'matchMedia', {
 })
 
 // Mock ResizeObserver
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}))
+//
+// Clase real, NO `vi.fn().mockImplementation(...)`: la config tiene `mockReset: true`,
+// que borra la implementación de cualquier vi.fn() antes de cada test. Con un mock
+// reseteado, `new ResizeObserver()` devolvía un objeto vacío y todo componente que
+// use Radix Popper (Select, Popover, Tooltip…) tronaba con
+// "resizeObserver.observe is not a function".
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+global.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver
 
 // Mock scrollIntoView
 Element.prototype.scrollIntoView = vi.fn()
