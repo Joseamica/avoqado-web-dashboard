@@ -1,0 +1,19 @@
+{
+  "errors": {
+    "governanceRequired": {
+      "title": "Créez ce produit dans le catalogue principal",
+      "description": "Votre organisation gère les produits vendables de manière centralisée. Créez-le ou activez-le dans le catalogue principal, puis publiez-le dans l'établissement."
+    },
+    "codeAlreadyAssigned": {
+      "title": "Ce code est déjà utilisé",
+      "description": "Un autre produit utilise déjà ce code. Recherchez-le dans le catalogue principal ou utilisez un autre code."
+    },
+    "dependencyUnavailable": {
+      "title": "Impossible de consulter le catalogue principal",
+      "description": "Aucune donnée n'a été enregistrée. Réessayez dans un instant."
+    },
+    "openMasterCatalog": "Ouvrir le catalogue principal",
+    "importRow": "Catégorie {{category}}, produit {{product}}, SKU {{sku}}",
+    "additionalRows": "{{count}} lignes supplémentaires ne sont pas affichées."
+  }
+}

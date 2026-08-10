@@ -14,6 +14,7 @@
     "settings": "Ajustes",
     "terminals": "Terminales",
     "activityLog": "Registro de Actividad",
+    "masterCatalog": "Catálogo maestro",
     "quickAccess": "Acceso Rápido",
     "viewAll": "Ver todo ({{count}})",
     "orgConfig": "Configuración Org.",

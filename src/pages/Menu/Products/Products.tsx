@@ -22,7 +22,6 @@ import { useCallback, useEffect, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDebounce } from '@/hooks/useDebounce'
 import { FilterPill, CheckboxFilterContent, ColumnCustomizer } from '@/components/filters'
-import { includesNormalized } from '@/lib/utils'
 import { useVenueDateTime } from '@/utils/datetime'
 import { Link } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -62,6 +61,7 @@ import { useMenuSocketEvents } from '@/hooks/use-menu-socket-events'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 
 import { ProductWizardDialog } from '@/pages/Inventory/components/ProductWizardDialog'
+import { matchesLegacyProductSearch } from '@/services/menu.service'
 import { ProductTypeSelectorModal } from '@/pages/Inventory/components/ProductTypeSelectorModal'
 import { type ProductType } from '@/services/inventory.service'
 import { Sparkles, ArrowRightLeft, HelpCircle, ChefHat as ChefHatIcon, Package as PackageIcon } from 'lucide-react'
@@ -337,13 +337,7 @@ export default function Products() {
 
     // Filter by search term
     if (debouncedSearchTerm) {
-      result = result.filter(product => {
-        const nameMatches = includesNormalized(product.name ?? '', debouncedSearchTerm)
-        const categoryMatches = includesNormalized(product.category?.name ?? '', debouncedSearchTerm)
-        const modifierMatches =
-          product.modifierGroups?.some(mg => includesNormalized(mg.group?.name ?? '', debouncedSearchTerm)) || false
-        return nameMatches || categoryMatches || modifierMatches
-      })
+      result = result.filter(product => matchesLegacyProductSearch(product, debouncedSearchTerm))
     }
 
     // Filter by category

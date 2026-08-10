@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { Product, ProductType } from '@/types'
 import { ProductWizardDialog } from '@/pages/Inventory/components/ProductWizardDialog'
+import { useMasterCatalogError } from '@/features/master-catalog/use-master-catalog-error'
 import {
   getSkuValidationRules,
   getNameValidationRules,
@@ -37,6 +38,7 @@ type CreateProductPayload = {
   categoryId: string
   type: ProductType
   price: number
+  gtin?: string
   imageUrl?: string | null
   modifierGroupIds?: string[]
   allowCreditRedemption?: boolean
@@ -50,6 +52,7 @@ export default function CreateProduct() {
   const { t } = useTranslation('menu')
   const { t: tCommon } = useTranslation('common')
   const { venue, venueId, venueSlug } = useCurrentVenue()
+  const handleMasterCatalogError = useMasterCatalogError(venue?.organizationId)
   const { checkFeatureAccess } = useAuth()
   // const [selectedCategories, setSelectedCategories] = useState<Option[]>([])
   const [wizardOpen, setWizardOpen] = useState(false)
@@ -85,6 +88,7 @@ export default function CreateProduct() {
       navigate(from)
     },
     onError: (error: any) => {
+      if (handleMasterCatalogError(error)) return
       toast({
         title: t('products.create.toasts.createError'),
         description: error.message || t('products.create.toasts.createErrorDesc'),
@@ -185,6 +189,7 @@ export default function CreateProduct() {
 
     createProductMutation.mutate({
       sku: formValues.sku,
+      gtin: formValues.gtin,
       name: formValues.name,
       description: formValues.description,
       categoryId: formValues.categoryId,

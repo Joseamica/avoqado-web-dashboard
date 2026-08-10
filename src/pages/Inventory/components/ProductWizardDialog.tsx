@@ -62,6 +62,7 @@ import { SimpleConfirmDialog } from './SimpleConfirmDialog'
 import { PrintStationField } from '@/components/PrintStationField'
 import api from '@/api'
 import { cn, includesNormalized } from '@/lib/utils'
+import { useMasterCatalogError } from '@/features/master-catalog/use-master-catalog-error'
 
 // Icon mapping for product types
 const PRODUCT_TYPE_ICONS: Record<ProductType, React.ElementType> = {
@@ -236,7 +237,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // Recipe-based products belong to the advanced-inventory feature (INVENTORY_TRACKING = Premium 👑),
   // exactly like the Recipes page. Free venues without an explicit grant cannot build recipe products.
   const { hasAccess: hasInventoryTracking } = useTierFeatureAccess('INVENTORY_TRACKING')
-  const { venueId, venueSlug, fullBasePath } = useCurrentVenue()
+  const { venue, venueId, venueSlug, fullBasePath } = useCurrentVenue()
+  const handleMasterCatalogError = useMasterCatalogError(venue?.organizationId)
   const navigate = useNavigate()
   const isSpanish = i18n.language.startsWith('es')
   const { toast } = useToast()
@@ -459,6 +461,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       handleWizardComplete()
     },
     onError: (error: any) => {
+      if (handleMasterCatalogError(error)) return
       toast({
         title: tCommon('error'),
         description: error.response?.data?.message || t('wizard.error'),
@@ -538,6 +541,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       handleWizardComplete()
     },
     onError: (error: any) => {
+      if (handleMasterCatalogError(error)) return
       // Check for 409 conflict error
       if (error.response?.status === 409) {
         // Store the pending configuration to retry after conversion
@@ -600,6 +604,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       }
     },
     onError: (error: any) => {
+      if (handleMasterCatalogError(error)) return
       toast({
         title: t(`conversion.${conversionDirection}.error`),
         description: error.response?.data?.message || 'Failed to switch inventory method',

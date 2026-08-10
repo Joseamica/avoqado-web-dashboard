@@ -15,8 +15,9 @@ import { useAuth } from '@/context/AuthContext'
 import { notifyVenueChange } from '@/services/chatService'
 
 import { Venue, StaffRole, SessionVenue } from '@/types'
+import { getMasterCatalogOrganizationLinks } from '@/features/master-catalog/types'
 import { VenueStatus } from '@/types/superadmin'
-import { Building2, ChevronRight, ChevronsUpDown, Plus, AlertTriangle, Ban, XCircle, Check } from 'lucide-react'
+import { Building2, ChevronRight, ChevronsUpDown, Plus, AlertTriangle, Ban, XCircle, Check, LibraryBig } from 'lucide-react'
 import { useState, useMemo, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AddVenueDialog } from './add-venue-dialog'
@@ -53,6 +54,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [searchValue, setSearchValue] = useState('')
   const canAddVenue = (user?.role as StaffRole) === StaffRole.SUPERADMIN
+  const masterCatalogOrganizations = useMemo(() => getMasterCatalogOrganizationLinks(user), [user])
 
   // Check if user can see organization link (OWNER or SUPERADMIN)
   const isSuperadmin = user?.role === StaffRole.SUPERADMIN
@@ -238,6 +240,32 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                   <CommandEmpty className="py-8 text-center text-sm text-muted-foreground">
                     {t('venuesSwitcher.noResults')}
                   </CommandEmpty>
+
+                  {masterCatalogOrganizations.length > 0 && (
+                    <>
+                      <CommandGroup heading={t('venuesSwitcher.organizationCatalogs')}>
+                        {masterCatalogOrganizations.map(membership => (
+                          <CommandItem
+                            key={membership.organizationId}
+                            value={`master-catalog-${membership.organizationId}`}
+                            keywords={[membership.organizationName, t('venuesSwitcher.masterCatalog')]}
+                            onSelect={() => {
+                              setPopoverOpen(false)
+                              navigate(`/organizations/${membership.organizationId}/master-catalog`)
+                            }}
+                            className="gap-2.5 py-2.5 cursor-pointer"
+                          >
+                            <LibraryBig className="size-4 shrink-0 text-primary" />
+                            <div className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-medium">{t('venuesSwitcher.masterCatalog')}</span>
+                              <span className="block truncate text-xs text-muted-foreground">{membership.organizationName}</span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                      <CommandSeparator className="my-1" />
+                    </>
+                  )}
 
                   {venueGroups.map((group, groupIndex) => {
                     const showOrgHeader = isSuperadmin || group.venues.length > 1

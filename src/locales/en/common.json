@@ -240,6 +240,8 @@
     "adminSuspended": "Suspended by Admin",
     "closed": "Closed",
     "otherVenues": "Other venues",
+    "organizationCatalogs": "Organization catalogs",
+    "masterCatalog": "Master catalog",
     "searchPlaceholder": "Search venues...",
     "noResults": "No venues found.",
     "tier": {

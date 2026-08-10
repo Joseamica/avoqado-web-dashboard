@@ -240,6 +240,8 @@
     "adminSuspended": "Suspendido por Admin",
     "closed": "Cerrado",
     "otherVenues": "Otras sucursales",
+    "organizationCatalogs": "Catálogos de la organización",
+    "masterCatalog": "Catálogo maestro",
     "searchPlaceholder": "Buscar sucursales...",
     "noResults": "No se encontraron sucursales.",
     "tier": {

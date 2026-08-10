@@ -1,5 +1,5 @@
 import api from '@/api'
-import { StaffRole } from '@/types'
+import { StaffRole, User, Venue } from '@/types'
 
 export interface LoginDto {
   email: string
@@ -48,31 +48,8 @@ export interface AuthResponse {
 
 export interface AuthStatusResponse {
   authenticated: boolean
-  user: {
-    id: string
-    firstName: string | null
-    lastName: string | null
-    email: string
-    isVerified: boolean
-    photoUrl: string | null
-    venues: {
-      id: string
-      name: string
-      slug: string
-      logo: string | null
-      type?: string // Business type for sector-aware UI terminology
-      role: StaffRole
-      // Venue operational status (single source of truth)
-      status?: string
-      features?: {
-        active: boolean
-        feature: {
-          code: string
-          name: string
-        }
-      }[]
-    }[]
-  } | null
+  user: User | null
+  allVenues?: Venue[]
 }
 
 export const login = async (credentials: { email: string; password: string; venueId?: string }) => {
@@ -85,8 +62,8 @@ export const logout = async () => {
   return response.data
 }
 
-export const getAuthStatus = async () => {
-  const response = await api.get('/api/v1/dashboard/auth/status')
+export const getAuthStatus = async (): Promise<AuthStatusResponse> => {
+  const response = await api.get<AuthStatusResponse>('/api/v1/dashboard/auth/status')
   return response.data
 }
 

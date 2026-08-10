@@ -227,6 +227,12 @@ export const CreditPacks = lazyWithRetry(() => import('@/pages/CreditPacks/Credi
 
 // Organization (OWNER dashboard)
 export const OrganizationLayout = lazyWithRetry(() => import('@/pages/Organization/OrganizationLayout'))
+export const MasterCatalogLayout = lazyWithRetry(() =>
+  import('@/pages/Organization/OrganizationLayout').then(module => ({ default: module.MasterCatalogLayout })),
+)
+export const MasterCatalogLanding = lazyWithRetry(() =>
+  import('@/pages/Organization/OrganizationLayout').then(module => ({ default: module.MasterCatalogLanding })),
+)
 export const OrganizationDashboard = lazyWithRetry(() => import('@/pages/Organization/OrganizationDashboard'))
 export const OrganizationVenues = lazyWithRetry(() => import('@/pages/Organization/OrganizationVenues'))
 export const OrganizationTeam = lazyWithRetry(() => import('@/pages/Organization/OrganizationTeam'))

@@ -1,4 +1,3 @@
- 
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import testingEn from '@/locales/en/testing.json'
@@ -102,6 +101,9 @@ import googleCalendarFr from '@/locales/fr/googleCalendar.json'
 import menuImportEn from '@/locales/en/menuImport.json'
 import menuImportEs from '@/locales/es/menuImport.json'
 import menuImportFr from '@/locales/fr/menuImport.json'
+import masterCatalogEn from '@/locales/en/masterCatalog.json'
+import masterCatalogEs from '@/locales/es/masterCatalog.json'
+import masterCatalogFr from '@/locales/fr/masterCatalog.json'
 import terminalsEn from '@/locales/en/terminals.json'
 import terminalsEs from '@/locales/es/terminals.json'
 import terminalsFr from '@/locales/fr/terminals.json'
@@ -528,6 +530,15 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'menuImport', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', masterCatalogEn],
+    ['es', masterCatalogEs],
+    ['fr', masterCatalogFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'masterCatalog', bundle as Record<string, unknown>, true, true)
 })
 ;(
   [

@@ -5,6 +5,7 @@ import { getOrganizationStats, OrganizationStats, OrganizationVenue, getOrganiza
 import { useCurrentVenue } from './use-current-venue'
 import { StaffRole } from '@/types'
 import { useMemo } from 'react'
+import { findMasterCatalogMembership, type MasterCatalogMembership } from '@/features/master-catalog/types'
 
 interface UseCurrentOrganizationReturn {
   organization: OrganizationStats | null
@@ -24,6 +25,8 @@ interface UseCurrentOrganizationReturn {
   hasSerializedInventory: boolean
   isLoading: boolean
   isOwner: boolean
+  /** Present for organization members allowed to enter the catalog-only shell. */
+  masterCatalogMembership?: MasterCatalogMembership | null
   error: Error | null
 }
 
@@ -82,6 +85,7 @@ export const useCurrentOrganization = (): UseCurrentOrganizationReturn => {
 
   // Priority: URL param > orgSlug mapping > venue's org > user's org
   const orgId = orgIdFromUrl || orgIdFromSlug || orgIdFromVenue || orgIdFromUser || null
+  const masterCatalogMembership = useMemo(() => findMasterCatalogMembership(user, orgId), [user, orgId])
 
   // Check if we're on an organization route (not a venue route)
   const _isOnOrgRoute = location.pathname.startsWith('/organizations/') || location.pathname.startsWith('/wl/organizations/')
@@ -99,9 +103,7 @@ export const useCurrentOrganization = (): UseCurrentOrganizationReturn => {
   const isSuperadmin = user?.role === StaffRole.SUPERADMIN
 
   // Check if user is OWNER in the organization being viewed (for org routes)
-  const isOwnerInTargetOrg = orgId ? allVenues.some(
-    v => v.organizationId === orgId && v.role === StaffRole.OWNER
-  ) : false
+  const isOwnerInTargetOrg = orgId ? allVenues.some(v => v.organizationId === orgId && v.role === StaffRole.OWNER) : false
 
   // For API calls, determine if we can fetch org data:
   // - SUPERADMIN can always fetch
@@ -132,10 +134,7 @@ export const useCurrentOrganization = (): UseCurrentOrganizationReturn => {
   })
 
   // Fetch organization venues (for venue selector)
-  const {
-    data: venues,
-    isLoading: isLoadingVenues,
-  } = useQuery({
+  const { data: venues, isLoading: isLoadingVenues } = useQuery({
     queryKey: ['organization', 'venues', orgId || orgSlugFromUrl],
     queryFn: () => getOrganizationVenues(orgId!),
     enabled: shouldFetch && !!orgId,
@@ -152,25 +151,29 @@ export const useCurrentOrganization = (): UseCurrentOrganizationReturn => {
   // If we're in /wl/organizations/:orgSlug, use that pattern
   // Otherwise use legacy /organizations/:orgId pattern
   const isNewOrgRoute = location.pathname.startsWith('/wl/organizations/')
-  const basePath = isNewOrgRoute && orgSlug
-    ? `/wl/organizations/${orgSlug}`
-    : orgId
-      ? `/organizations/${orgId}`
-      : '/organizations'
+  const basePath = isNewOrgRoute && orgSlug ? `/wl/organizations/${orgSlug}` : orgId ? `/organizations/${orgId}` : '/organizations'
 
   // Derive hasSerializedInventory from the auth context venues. `allVenues`
   // is populated from /auth/status and already includes `modules[]`, so we
   // avoid extra network calls. Scope: only venues inside this organization.
   const hasSerializedInventory = useMemo(() => {
     if (!orgId || !allVenues.length) return false
-    return allVenues.some(v =>
-      v.organizationId === orgId &&
-      (v.modules ?? []).some(m => m.module.code === 'SERIALIZED_INVENTORY' && m.enabled),
+    return allVenues.some(
+      v => v.organizationId === orgId && (v.modules ?? []).some(m => m.module.code === 'SERIALIZED_INVENTORY' && m.enabled),
     )
   }, [allVenues, orgId])
 
   return {
-    organization: organization || null,
+    organization:
+      organization ||
+      (masterCatalogMembership
+        ? {
+            id: masterCatalogMembership.organizationId,
+            name: masterCatalogMembership.organizationName || masterCatalogMembership.organizationId,
+            venueCount: 0,
+            staffCount: 0,
+          }
+        : null),
     orgId,
     orgSlug,
     basePath,
@@ -178,6 +181,7 @@ export const useCurrentOrganization = (): UseCurrentOrganizationReturn => {
     hasSerializedInventory,
     isLoading: shouldFetch && (isLoadingOrg || isLoadingVenues),
     isOwner,
+    masterCatalogMembership,
     error: orgError as Error | null,
   }
 }

@@ -344,16 +344,15 @@ export async function importMenu(
   categories: ParsedCategory[],
   mode: 'merge' | 'replace' = 'merge',
 ): Promise<ImportResult> {
-  try {
-    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/menu/import`, {
-      mode,
-      categories,
-    })
+  // Preserve the original Axios envelope. Callers need its stable code and
+  // bounded per-row details to explain catalog governance failures; wrapping
+  // it in a plain Error silently discarded both.
+  const response = await api.post(`/api/v1/dashboard/venues/${venueId}/menu/import`, {
+    mode,
+    categories,
+  })
 
-    return response.data
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || 'Failed to import menu')
-  }
+  return response.data
 }
 
 /**

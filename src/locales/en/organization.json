@@ -14,6 +14,7 @@
     "settings": "Settings",
     "terminals": "Terminals",
     "activityLog": "Activity Log",
+    "masterCatalog": "Master catalog",
     "quickAccess": "Quick Access",
     "viewAll": "View all ({{count}})",
     "orgConfig": "Org Configuration",

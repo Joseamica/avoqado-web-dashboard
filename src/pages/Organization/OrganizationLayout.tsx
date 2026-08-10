@@ -13,19 +13,24 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ShieldAlert } from 'lucide-react'
 import OrgSidebar from './components/OrgSidebar'
+import { ComingSoon } from '@/components/ComingSoon'
 
-const OrganizationLayout: React.FC = () => {
+interface OrganizationLayoutProps {
+  catalogOnly?: boolean
+}
+
+const OrganizationLayout: React.FC<OrganizationLayoutProps> = ({ catalogOnly = false }) => {
   const { t } = useTranslation('organization')
   const location = useLocation()
   const { orgId } = useParams<{ orgId: string }>()
-  const { organization } = useCurrentOrganization()
+  const { organization, masterCatalogMembership } = useCurrentOrganization()
   const { user, allVenues, isLoading: isAuthLoading } = useAuth()
 
   // Organization pages require OWNER or SUPERADMIN role IN THIS ORGANIZATION
   // SUPERADMIN can access any org, OWNER can only access their own org
   const isSuperadmin = user?.role === StaffRole.SUPERADMIN
   const isOwnerInThisOrg = allVenues.some(venue => venue.organizationId === orgId && venue.role === StaffRole.OWNER)
-  const canAccessOrg = isSuperadmin || isOwnerInThisOrg
+  const canAccessOrg = catalogOnly ? Boolean(masterCatalogMembership) : isSuperadmin || isOwnerInThisOrg
 
   // Build breadcrumb from path
   const pathSegments = location.pathname.split('/').filter(segment => segment && segment !== 'organizations' && segment !== orgId)
@@ -40,6 +45,7 @@ const OrganizationLayout: React.FC = () => {
       analytics: t('breadcrumb.analytics'),
       terminals: t('breadcrumb.terminals'),
       'activity-log': t('breadcrumb.activityLog'),
+      'master-catalog': t('sidebar.masterCatalog'),
       'stock-control': 'Control de Stock',
       'org-config': 'Configuración TPV',
       'org-goals': 'Metas',
@@ -87,7 +93,7 @@ const OrganizationLayout: React.FC = () => {
 
   return (
     <SidebarProvider className="theme-scaled">
-      <OrgSidebar variant="inset" />
+      <OrgSidebar variant="inset" catalogOnly={catalogOnly} />
       <SidebarInset
         style={
           {
@@ -147,6 +153,14 @@ const OrganizationLayout: React.FC = () => {
       </SidebarInset>
     </SidebarProvider>
   )
+}
+
+/** Catalog shell for VIEWER/ADMIN/OWNER members; authorization lives in the outer catalog guard. */
+export const MasterCatalogLayout: React.FC = () => <OrganizationLayout catalogOnly />
+
+export const MasterCatalogLanding: React.FC = () => {
+  const { t } = useTranslation('common')
+  return <ComingSoon feature={t('venuesSwitcher.masterCatalog')} />
 }
 
 export default OrganizationLayout

@@ -48,6 +48,10 @@ interface AuthContextType {
   clearLoginError: () => void // Clear login error
 }
 
+export function selectAuthenticatedUser(statusData: authService.AuthStatusResponse | undefined): User | null {
+  return statusData?.authenticated === true && statusData.user ? statusData.user : null
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function hasVenueAccessForSlug(
@@ -112,7 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   })
 
   const isAuthenticated = !!statusData?.authenticated
-  const user = statusData?.user || null
+  const user = selectAuthenticatedUser(statusData)
 
   // PostHog: identify the logged-in user for product analytics + the onboarding funnel.
   // Only reset on an ACTUAL logout (had a user, now gone) — never on the initial
@@ -230,8 +234,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // IMPORTANT: Use user.venues for all users (backend already combines direct + OWNER org venues)
   // Only SUPERADMIN uses statusData.allVenues (all system venues)
   // This was a bug where OWNER users would see different venues based on current venue role
-  const allVenues = useMemo(
-    () => (user?.role === 'SUPERADMIN' ? statusData?.allVenues : user?.venues) ?? [],
+  const allVenues = useMemo<Venue[]>(
+    () => ((user?.role === 'SUPERADMIN' ? statusData?.allVenues : user?.venues) ?? []) as Venue[],
     [user?.role, user?.venues, statusData?.allVenues],
   )
 
@@ -259,7 +263,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Returns the default landing page for a venue.
   // For WL venues where AVOQADO_DASHBOARD (Home) is not enabled, picks the first navigation item.
-  const getVenueDefaultPage = useCallback((venue: Venue): string => {
+  const getVenueDefaultPage = useCallback((venue: Venue | SessionVenue): string => {
     if (!venue?.modules) return 'home'
     const wlModule = venue.modules.find(m => m.module.code === 'WHITE_LABEL_DASHBOARD' && m.enabled)
     if (!wlModule?.config) return 'home'
@@ -392,7 +396,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (venueFromSlug) {
           // Si encontramos el venue y no es el activo, actualizarlo
           if (activeVenue?.id !== venueFromSlug.id) {
-            setActiveVenue(venueFromSlug)
+            setActiveVenue(venueFromSlug as Venue)
           }
         } else {
           // Si el slug no corresponde a ningún venue accesible, redirigir al default.
@@ -569,12 +573,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
           // Find venue with highest role
           const roleHierarchy: Record<string, number> = {
-            SUPERADMIN: 100, OWNER: 90, ADMIN: 80, MANAGER: 70,
-            CASHIER: 60, WAITER: 50, KITCHEN: 40, HOST: 30, VIEWER: 10,
+            SUPERADMIN: 100,
+            OWNER: 90,
+            ADMIN: 80,
+            MANAGER: 70,
+            CASHIER: 60,
+            WAITER: 50,
+            KITCHEN: 40,
+            HOST: 30,
+            VIEWER: 10,
           }
-          const sorted = [...userVenues].sort((a: any, b: any) =>
-            (roleHierarchy[b.role] || 0) - (roleHierarchy[a.role] || 0)
-          )
+          const sorted = [...userVenues].sort((a: any, b: any) => (roleHierarchy[b.role] || 0) - (roleHierarchy[a.role] || 0))
           return sorted[0] || userVenues[0]
         }
 
@@ -660,7 +669,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoginError(errorMessage || t('toast.login_error_desc'))
     },
   })
-
 
   const signupMutation = useMutation({
     mutationFn: (signupData: SignupData) => authService.signup(signupData),
@@ -837,9 +845,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Determine target base path based on new venue's WL capability
         // If the new venue has WHITE_LABEL_DASHBOARD → always use /wl/venues/
         // Otherwise → always use /venues/
-        const basePath = newVenueHasWL
-          ? `/wl/venues/${newVenue.slug}`
-          : `/venues/${newVenue.slug}`
+        const basePath = newVenueHasWL ? `/wl/venues/${newVenue.slug}` : `/venues/${newVenue.slug}`
 
         // Extract the page part (after /venues/:slug/ or /wl/venues/:slug/)
         // This regex matches /venues/slug/, /wl/venues/slug/, and /organizations/:id/ patterns
@@ -850,9 +856,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // WL-only routes (managers, supervisor, tpv-config, users, etc.) don't exist under /venues/
         if (!newVenueHasWL && pagePart) {
           const WL_ONLY_ROUTES = [
-            'command-center', 'stock', 'promoters', 'stores',
-            'managers', 'sales', 'supervisor', 'tpv-config',
-            'reporte', 'users', 'appraisals', 'consignment',
+            'command-center',
+            'stock',
+            'promoters',
+            'stores',
+            'managers',
+            'sales',
+            'supervisor',
+            'tpv-config',
+            'reporte',
+            'users',
+            'appraisals',
+            'consignment',
           ]
           const firstSegment = pagePart.split('/')[0]
           if (WL_ONLY_ROUTES.includes(firstSegment)) {

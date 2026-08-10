@@ -26,6 +26,8 @@ import {
 import { Upload, Download, FileText, AlertCircle, CheckCircle2, XCircle, Loader2, AlertTriangle, FileDown } from 'lucide-react'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import * as menuService from '@/services/menu.service'
+import { describeMasterCatalogRowError, parseMasterCatalogError } from '@/features/master-catalog/errors'
+import { useMasterCatalogError } from '@/features/master-catalog/use-master-catalog-error'
 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Switch } from '@/components/ui/switch'
@@ -40,7 +42,8 @@ type ImportStep = 'select' | 'mapping' | 'upload' | 'preview' | 'import'
 
 export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) {
   const { t } = useTranslation('menuImport')
-  const { venueId } = useCurrentVenue()
+  const { venue, venueId } = useCurrentVenue()
+  const handleMasterCatalogError = useMasterCatalogError(venue?.organizationId)
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -287,6 +290,25 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
         })
       }
     } catch (error: any) {
+      const catalogError = parseMasterCatalogError(error)
+      if (catalogError) {
+        handleMasterCatalogError(error)
+        if (catalogError.rows.length > 0) {
+          const rowErrors = catalogError.rows.map(row => describeMasterCatalogRowError(row, t))
+          const hiddenCount = catalogError.totalRows ? Math.max(0, catalogError.totalRows - rowErrors.length) : 0
+          if (catalogError.truncated && hiddenCount > 0) {
+            rowErrors.push(
+              t('masterCatalog:errors.additionalRows', {
+                count: hiddenCount,
+                defaultValue: `No se mostraron ${hiddenCount} filas adicionales.`,
+              }),
+            )
+          }
+          setValidationErrors(rowErrors)
+          setStep('preview')
+        }
+        return
+      }
       toast({
         title: t('errors.uploadError'),
         description: t('errors.serverError', { message: error.message }),
@@ -295,7 +317,7 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
     } finally {
       setIsImporting(false)
     }
-  }, [venueId, parsedData, importMode, toast, t, onOpenChange, queryClient])
+  }, [venueId, parsedData, importMode, toast, t, onOpenChange, queryClient, handleMasterCatalogError])
 
   // Calculate stats
   const totalProducts = parsedData.reduce((sum, cat) => sum + cat.products.length, 0)

@@ -34,6 +34,7 @@ import {
   ChevronsUpDown,
   Coins,
   LayoutDashboard,
+  LibraryBig,
   MessageSquare,
   Package,
   Receipt,
@@ -58,9 +59,9 @@ interface OrgGroup {
   isCurrentOrg: boolean
 }
 
-type OrgSidebarProps = React.ComponentProps<typeof Sidebar>
+type OrgSidebarProps = React.ComponentProps<typeof Sidebar> & { catalogOnly?: boolean }
 
-const OrgSidebar: React.FC<OrgSidebarProps> = props => {
+const OrgSidebar: React.FC<OrgSidebarProps> = ({ catalogOnly = false, ...props }) => {
   const { t } = useTranslation('organization')
   const navigate = useNavigate()
   const { orgId } = useParams<{ orgId: string }>()
@@ -137,7 +138,22 @@ const OrgSidebar: React.FC<OrgSidebarProps> = props => {
   }, [allVenues, orgId])
 
   const navigationItems = useMemo(
-    () => [
+    () =>
+      catalogOnly
+        ? [
+            {
+              title: t('sidebar.masterCatalog', { defaultValue: 'Catálogo maestro' }),
+              items: [
+                {
+                  name: t('sidebar.masterCatalog', { defaultValue: 'Catálogo maestro' }),
+                  href: `/organizations/${orgId}/master-catalog`,
+                  icon: LibraryBig,
+                  end: true,
+                },
+              ],
+            },
+          ]
+        : [
       {
         title: t('sidebar.overview'),
         items: [
@@ -219,7 +235,7 @@ const OrgSidebar: React.FC<OrgSidebarProps> = props => {
           ]
         : []),
     ],
-    [t, orgId, isWhiteLabelOrg],
+    [t, orgId, isWhiteLabelOrg, catalogOnly],
   )
 
   const handleVenueClick = (slug: string) => {
@@ -360,7 +376,8 @@ const OrgSidebar: React.FC<OrgSidebarProps> = props => {
         ))}
 
         {/* Quick Access to Venues (only this org's venues) */}
-        {(() => {
+        {!catalogOnly &&
+          (() => {
           const currentOrgVenues = orgGroups.find(g => g.isCurrentOrg)?.venues ?? []
           if (currentOrgVenues.length === 0) return null
           return (
@@ -395,7 +412,7 @@ const OrgSidebar: React.FC<OrgSidebarProps> = props => {
               </SidebarGroupContent>
             </SidebarGroup>
           )
-        })()}
+          })()}
       </SidebarContent>
 
       <SidebarFooter>

@@ -1,0 +1,19 @@
+{
+  "errors": {
+    "governanceRequired": {
+      "title": "Create this product in the master catalog",
+      "description": "Your organization manages sellable products centrally. Create or activate it in the master catalog, then publish it to the venue."
+    },
+    "codeAlreadyAssigned": {
+      "title": "That code is already in use",
+      "description": "Another product already has that code. Find it in the master catalog or use a different code."
+    },
+    "dependencyUnavailable": {
+      "title": "We could not check the master catalog",
+      "description": "Nothing was saved. Try again in a moment."
+    },
+    "openMasterCatalog": "Open master catalog",
+    "importRow": "Category {{category}}, product {{product}}, SKU {{sku}}",
+    "additionalRows": "{{count}} additional rows were not shown."
+  }
+}

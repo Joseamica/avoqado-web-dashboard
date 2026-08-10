@@ -30,6 +30,7 @@ import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import api from '@/api'
 import { ProductWizardDialog } from '@/pages/Inventory/components/ProductWizardDialog'
+import { useMasterCatalogError } from '@/features/master-catalog/use-master-catalog-error'
 import { cn } from '@/lib/utils'
 import {
   getSkuValidationRules,
@@ -57,7 +58,8 @@ import {
 export default function ProductId() {
   const { t } = useTranslation('menu')
   const { productId } = useParams()
-  const { venueId, venueSlug } = useCurrentVenue()
+  const { venue, venueId, venueSlug } = useCurrentVenue()
+  const handleMasterCatalogError = useMasterCatalogError(venue?.organizationId)
   const queryClient = useQueryClient()
   const location = useLocation()
   const { toast } = useToast()
@@ -157,6 +159,7 @@ export default function ProductId() {
       queryClient.invalidateQueries({ queryKey: ['product', venueId, productId] }) // Refetch product data
     },
     onError: (error: any) => {
+      if (handleMasterCatalogError(error)) return
       toast({
         title: t('products.detail.toasts.saveError'),
         description: error.message || t('products.detail.toasts.saveErrorDesc'),

@@ -175,6 +175,8 @@
     "adminSuspended": "Suspendu par l'admin",
     "closed": "Fermé",
     "otherVenues": "Autres établissements",
+    "organizationCatalogs": "Catalogues de l'organisation",
+    "masterCatalog": "Catalogue principal",
     "searchPlaceholder": "Rechercher...",
     "noResults": "Aucun établissement trouvé.",
     "tier": {

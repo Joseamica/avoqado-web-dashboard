@@ -1678,6 +1678,14 @@ export interface Customer {
 // ==========================================
 
 // Representa la información del usuario logueado (transformación del Staff para el frontend)
+export interface OrganizationMembership {
+  organizationId: string
+  organizationName: string
+  role: 'OWNER' | 'ADMIN' | 'VIEWER' | 'MEMBER'
+  /** Navigation hint only. The organization-scoped access endpoint remains authoritative. */
+  masterCatalogVisible: boolean
+}
+
 export interface User {
   id: string
   firstName: string
@@ -1691,6 +1699,10 @@ export interface User {
   venues: SessionVenue[]
   // El rol más alto que tiene el usuario en todas sus asignaciones
   role: StaffRole
+  // Optional during the staged rollout so older auth servers fail closed.
+  organizationMemberships?: OrganizationMembership[]
+  wizardVersion?: number | null
+  onboardingCompleted?: boolean
   createdAt: string
   lastLogin: string | null
 }

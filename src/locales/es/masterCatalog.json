@@ -1,0 +1,19 @@
+{
+  "errors": {
+    "governanceRequired": {
+      "title": "Crea este producto en el Catálogo maestro",
+      "description": "Tu organización administra los productos vendibles de forma central. Créalo o actívalo en el Catálogo maestro y después publícalo en la sucursal."
+    },
+    "codeAlreadyAssigned": {
+      "title": "Ese código ya está en uso",
+      "description": "Otro producto ya tiene ese código. Búscalo en el Catálogo maestro o usa un código distinto."
+    },
+    "dependencyUnavailable": {
+      "title": "No pudimos consultar el Catálogo maestro",
+      "description": "No se guardó nada. Inténtalo de nuevo en un momento."
+    },
+    "openMasterCatalog": "Ir al Catálogo maestro",
+    "importRow": "Categoría {{category}}, producto {{product}}, SKU {{sku}}",
+    "additionalRows": "No se mostraron {{count}} filas adicionales."
+  }
+}

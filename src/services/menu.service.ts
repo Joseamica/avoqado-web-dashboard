@@ -1,5 +1,6 @@
 import api from '@/api'
 import type { Menu, MenuCategory, CreateMenuDto, UpdateMenuDto, CloneMenuDto, Product, ModifierGroup, Modifier } from '@/types'
+import { includesNormalized } from '@/lib/utils'
 
 // ==========================================
 // MENU OPERATIONS
@@ -151,9 +152,39 @@ export const getProduct = async (venueId: string, productId: string): Promise<Pr
 /**
  * Create a new product
  */
-export const createProduct = async (venueId: string, productData: any): Promise<Product> => {
-  const response = await api.post(`/api/v1/dashboard/venues/${venueId}/products`, productData)
+export interface CreateProductPayload extends Record<string, unknown> {
+  sku: string
+  name: string
+  gtin?: string
+}
+
+export function normalizeCreateProductPayload<T extends CreateProductPayload>(productData: T): Omit<T, 'gtin'> & { gtin?: string } {
+  const trimmedGtin = productData.gtin?.trim()
+  const { gtin: _gtin, ...rest } = productData
+  return trimmedGtin ? { ...rest, gtin: trimmedGtin } : rest
+}
+
+export const createProduct = async (venueId: string, productData: CreateProductPayload): Promise<Product> => {
+  const response = await api.post(`/api/v1/dashboard/venues/${venueId}/products`, normalizeCreateProductPayload(productData))
   return (response.data?.data ?? response.data) as Product
+}
+
+interface LegacyProductSearchCandidate {
+  name?: string | null
+  sku?: string | null
+  gtin?: string | null
+  category?: { name?: string | null } | null
+  modifierGroups?: Array<{ group?: { name?: string | null } | null }> | null
+}
+
+export function matchesLegacyProductSearch(product: LegacyProductSearchCandidate, searchTerm: string): boolean {
+  return (
+    includesNormalized(product.name ?? '', searchTerm) ||
+    includesNormalized(product.sku ?? '', searchTerm) ||
+    includesNormalized(product.gtin ?? '', searchTerm) ||
+    includesNormalized(product.category?.name ?? '', searchTerm) ||
+    product.modifierGroups?.some(group => includesNormalized(group.group?.name ?? '', searchTerm)) === true
+  )
 }
 
 /**

@@ -24,6 +24,8 @@ import {
   KYCReview,
   Login,
   MasterTotpSetup,
+  MasterCatalogLayout,
+  MasterCatalogLanding,
   MerchantAccounts,
   EcommerceMerchantsGlobal,
   ModuleManagement,
@@ -126,6 +128,7 @@ import { ManagerProtectedRoute } from './ManagerProtectedRoute'
 import { ModuleProtectedRoute } from './ModuleProtectedRoute'
 import { OwnerProtectedRoute } from './OwnerProtectedRoute'
 import { SuperProtectedRoute } from './SuperProtectedRoute'
+import { MasterCatalogProtectedRoute } from './MasterCatalogProtectedRoute'
 
 const router = createBrowserRouter(
   [
@@ -542,6 +545,19 @@ const router = createBrowserRouter(
                     { path: 'trainings', element: <TrainingManagement /> },
                     { path: 'trainings/:trainingId', element: <TrainingDetail /> },
                   ],
+                },
+              ],
+            },
+
+            // Catalog is deliberately a sibling of the OWNER tree: VIEWERs may
+            // read it without inheriting access to organization settings/team.
+            {
+              path: '/organizations/:orgId/master-catalog',
+              element: <MasterCatalogProtectedRoute />,
+              children: [
+                {
+                  element: <MasterCatalogLayout />,
+                  children: [{ index: true, element: <MasterCatalogLanding /> }],
                 },
               ],
             },
