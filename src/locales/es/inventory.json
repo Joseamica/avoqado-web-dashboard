@@ -61,6 +61,7 @@
     "activate": "Activar",
     "deactivate": "Desactivar",
     "adjustStock": "Ajustar Stock",
+    "logWaste": "Registrar merma",
     "viewMovements": "Ver Movimientos",
     "inTransit": "En Tránsito",
     "fields": {

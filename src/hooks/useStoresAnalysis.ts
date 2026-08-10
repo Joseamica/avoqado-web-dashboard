@@ -196,7 +196,10 @@ export function useStoresActivityFeed(
   limit: number = 50,
   options?: {
     enabled?: boolean
-    refetchInterval?: number
+    refetchInterval?: number | false
+    refetchOnMount?: boolean
+    refetchOnWindowFocus?: boolean
+    refetchOnReconnect?: boolean
     startDate?: string
     endDate?: string
     filterVenueId?: string
@@ -215,7 +218,10 @@ export function useStoresActivityFeed(
       }),
     enabled: options?.enabled !== false && !!venueId,
     staleTime: 30000,
-    refetchInterval: options?.refetchInterval || 60000,
+    refetchInterval: options?.refetchInterval ?? 60000,
+    refetchOnMount: options?.refetchOnMount,
+    refetchOnWindowFocus: options?.refetchOnWindowFocus,
+    refetchOnReconnect: options?.refetchOnReconnect,
   })
 }
 

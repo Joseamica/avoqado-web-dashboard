@@ -23,6 +23,7 @@ import {
   ChevronRight,
   FileText,
   LogIn,
+  LogOut,
   Plus,
   ScrollText,
   Search,
@@ -59,6 +60,12 @@ const ACTION_CONFIG: Record<string, ActionConfig> = {
   USER_DEACTIVATED: { icon: UserX, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-100 dark:bg-red-900/30' },
   MASTER_LOGIN_SUCCESS: { icon: LogIn, color: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
   MASTER_LOGIN_FAILED: { icon: LogIn, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-100 dark:bg-red-900/30' },
+  // Routine staff access. Deliberately gray: these are the highest-volume rows in the
+  // audit log and must not compete visually with the anomalies (emergency logins, role
+  // changes, deactivations), which are what an auditor actually comes here looking for.
+  STAFF_LOGIN: { icon: LogIn, color: 'text-muted-foreground', bgColor: 'bg-muted' },
+  STAFF_LOGOUT: { icon: LogOut, color: 'text-muted-foreground', bgColor: 'bg-muted' },
+  ACCOUNT_LOCKED: { icon: Shield, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-100 dark:bg-red-900/30' },
   VENUE_CREATED: { icon: Store, color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
   VENUE_UPDATED: { icon: Store, color: 'text-muted-foreground', bgColor: 'bg-muted' },
   VENUE_DELETED: { icon: Trash2, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-100 dark:bg-red-900/30' },

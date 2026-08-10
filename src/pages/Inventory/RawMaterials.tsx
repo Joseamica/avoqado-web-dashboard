@@ -41,6 +41,7 @@ import { Currency } from '@/utils/currency'
 import { RawMaterialDialog } from './components/RawMaterialDialog'
 import { getCategoryInfo, RAW_MATERIAL_CATEGORIES } from '@/lib/inventory-constants'
 import { AdjustStockDialog } from './components/AdjustStockDialog'
+import { WasteLogDialog } from './components/WasteLogDialog'
 import { StockMovementsDialog } from './components/StockMovementsDialog'
 import { RecipeUsageDialog } from './components/RecipeUsageDialog'
 import { RecipeDialog } from './components/RecipeDialog'
@@ -79,6 +80,7 @@ export default function RawMaterials() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [adjustStockDialogOpen, setAdjustStockDialogOpen] = useState(false)
+  const [wasteLogDialogOpen, setWasteLogDialogOpen] = useState(false)
   const [movementsDialogOpen, setMovementsDialogOpen] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [recipeUsageDialogOpen, setRecipeUsageDialogOpen] = useState(false)
@@ -826,6 +828,23 @@ export default function RawMaterials() {
                     {t('rawMaterials.adjustStock')}
                   </DropdownMenuItem>
                 </PermissionGate>
+                {/* Log waste. The dialog had been written long ago and was never mounted on
+                    any screen: recording waste meant using "adjust stock" and typing the
+                    reason by hand, so the reason catalog — the one thing that lets you
+                    report WHY product is being lost — was never used. */}
+                <PermissionGate permission="inventory:adjust">
+                  <DropdownMenuItem
+                    onClick={e => {
+                      e.stopPropagation()
+                      setSelectedMaterial(material)
+                      setWasteLogDialogOpen(true)
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {t('rawMaterials.logWaste', 'Registrar merma')}
+                  </DropdownMenuItem>
+                </PermissionGate>
                 <DropdownMenuItem
                   onClick={e => {
                     e.stopPropagation()
@@ -1150,6 +1169,8 @@ export default function RawMaterials() {
       <RawMaterialDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} mode="edit" rawMaterial={selectedMaterial} />
 
       <AdjustStockDialog open={adjustStockDialogOpen} onOpenChange={setAdjustStockDialogOpen} rawMaterial={selectedMaterial} />
+
+      <WasteLogDialog open={wasteLogDialogOpen} onOpenChange={setWasteLogDialogOpen} rawMaterial={selectedMaterial} />
 
       <StockMovementsDialog open={movementsDialogOpen} onOpenChange={setMovementsDialogOpen} rawMaterial={selectedMaterial} />
 

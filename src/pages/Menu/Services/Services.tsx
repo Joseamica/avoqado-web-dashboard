@@ -345,6 +345,18 @@ export default function Services() {
               </span>
             )
           }
+          // Sin duración propia la agenda NO falla: cae al `defaultDurationMin` del
+          // venue. Es un comportamiento válido (hay locales que no fijan tiempos),
+          // pero era INVISIBLE — la celda salía vacía. Un servicio largo heredando
+          // un default corto es como se agendó un cliente encima de otro en Amaena
+          // (RES-PY45XU). Mostrarlo lo vuelve una decisión, no un accidente.
+          if (product.type === 'APPOINTMENTS_SERVICE') {
+            return (
+              <Badge variant="outline" className="text-[10px] font-normal" title={t('services.detail.durationInheritedHelp')}>
+                {t('services.detail.durationInherited')}
+              </Badge>
+            )
+          }
           if (product.type === 'CLASS' && product.maxParticipants) {
             return (
               <span className="text-muted-foreground text-sm">

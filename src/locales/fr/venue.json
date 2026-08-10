@@ -137,6 +137,21 @@
     "cancel": "Annuler",
     "save": "Enregistrer",
     "saving": "Enregistrement...",
+    "cashReconciliation": {
+      "title": "Rapprochement de caisse à la clôture",
+      "description": "Demande de compter les espèces physiques avant la clôture et les compare à la caisse attendue.",
+      "proBadge": "PRO",
+      "switchLabel": "Activer le rapprochement de caisse",
+      "enabledTitle": "Rapprochement de caisse activé",
+      "disabledTitle": "Rapprochement de caisse désactivé",
+      "saved": "Le réglage a été enregistré.",
+      "downgraded": "Le forfait actuel n’inclut plus cette fonction. Elle est inactive ; vous pouvez désactiver le réglage enregistré.",
+      "readOnly": "Vous devez avoir l’autorisation de modifier les réglages de l’établissement.",
+      "errorTitle": "La modification n’a pas été enregistrée",
+      "permissionError": "Vous n’avez pas l’autorisation de modifier ce réglage.",
+      "unavailableError": "Impossible de vérifier ou d’enregistrer le réglage. Réessayez.",
+      "saveError": "Une erreur s’est produite lors de l’enregistrement."
+    },
     "documents": {
       "title": "Documentation Fiscale",
       "subtitle": "Documents officiels et fiscaux de l'établissement",

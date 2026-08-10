@@ -1,5 +1,9 @@
 # CLAUDE.md — Avoqado Web Dashboard
 
+> **Reglas de entorno** — sesiones de IA en paralelo, y cuándo verificar según la carga de la
+> máquina — están en el `CLAUDE.md` del workspace (`../CLAUDE.md`), que auto-carga junto con este
+> archivo. Léelas antes de correr builds/tests o de tocar git.
+
 ## How This Configuration Works
 
 | Layer     | Path                 | Loaded              | Purpose                  |
@@ -13,7 +17,7 @@
 
 When rules conflict: `.claude/rules/` wins > this file > `docs/guides/` > `docs/`
 
-## 🔴 CRITICAL — Ask which payment tier BEFORE building or changing anything
+## 🔴 CRITICAL — Ask which payment tier (and how it gets turned on) BEFORE building or changing anything
 
 Avoqado is a tier-gated SaaS (**FREE · PRO · PREMIUM · ENTERPRISE**). Whenever you add a new
 feature, modify existing behavior, or expose a new capability, **STOP and ask the founder which
@@ -26,8 +30,10 @@ behind a paywall. **This is the one client that already enforces tiers** — wir
 - **Backend (authoritative):** `avoqado-server/src/services/access/basePlan.service.ts` +
   `avoqado-server/src/middlewares/checkFeatureAccess.middleware.ts`. Obligatory gating questions:
   `avoqado-server/.claude/rules/feature-gating.md`. PREMIUM-only codes today: `CFDI`, `INVENTORY_TRACKING`.
-- **Enforcement status:** ✅ only **avoqado-web-dashboard** enforces tiers today; **avoqado-ios** and
-  **avoqado-android** have NO tier gating yet. Treat tier codes like permissions: a name mismatch fails silently.
+- **Enforcement status:** ✅ this is still the ONLY client enforcing tiers; iOS/Android mirror the codes by exact name (mismatch = silent).
+- **Activación (regla completa en `../CLAUDE.md`): aquí vive el switch canónico y la UI de apagado.** Un feature que el cliente debe activar
+  y no tiene pantalla de activación en este repo está **incompleto** — un `UPDATE` en Postgres no cuenta como switch. Apagado se ve y se
+  explica, nunca desaparece en silencio.
 
 **Maintaining this file:** Short rules (1-3 lines) go directly here. Detailed content (code examples, tables, >10 lines) goes in `docs/` or
 `.claude/rules/`. Keep this file under ~200 lines — it loads every session.

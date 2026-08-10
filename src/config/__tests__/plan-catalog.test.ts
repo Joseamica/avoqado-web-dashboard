@@ -18,6 +18,8 @@ describe('plan-catalog', () => {
     expect(getTierForFeature('DELIVERY_CHANNELS')).toBe('PREMIUM')
     // Reports/AI are Pro
     expect(getTierForFeature('ADVANCED_REPORTS')).toBe('PRO')
+    // Per-shift cash reconciliation is a Pro capability.
+    expect(getTierForFeature('CASH_RECONCILIATION')).toBe('PRO')
     // Chatbot ships in Free (Beta)
     expect(getTierForFeature('CHATBOT')).toBe('FREE')
   })

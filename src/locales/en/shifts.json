@@ -124,6 +124,19 @@
       "total": "Total",
       "ofSubtotal": "of subtotal"
     },
+    "cashReconciliation": {
+      "title": "Cash reconciliation",
+      "notCounted": "Not counted",
+      "notCountedDescription": "The shift was closed without recording physical cash.",
+      "balanced": "Drawer balanced",
+      "balancedDescription": "Counted cash matches the expected drawer.",
+      "shortage": "Shortage",
+      "shortageDescription": "The drawer is {{amount}} below expected cash.",
+      "overage": "Overage",
+      "overageDescription": "The drawer is {{amount}} above expected cash.",
+      "countedCash": "Counted cash",
+      "difference": "Difference"
+    },
     "fields": {
       "turnId": "Turn ID",
       "systemId": "System ID",

@@ -121,6 +121,40 @@ export interface ActivityFeedResponse {
   total: number
 }
 
+export interface SalesExportRow {
+  id: string
+  venueName: string
+  product: string
+  iccid: string | null
+  staffId: string | null
+  staffName: string
+  staffEmployeeCode: string | null
+  amount: number
+  timestamp: string
+}
+
+export interface SalesExportRowsParams {
+  startDate: string
+  endDate: string
+  filterVenueId?: string
+  cursor?: string
+  limit?: number
+}
+
+export interface SalesExportRowsResponse {
+  rows: SalesExportRow[]
+  nextCursor: string | null
+  total?: number
+}
+
+export interface SalesExportAuditInput {
+  format: 'csv' | 'excel' | 'sheets'
+  startDate: string
+  endDate: string
+  filterVenueId?: string
+  rowCount: number
+}
+
 export interface ChartDataPoint {
   day: string
   date: string
@@ -254,6 +288,20 @@ export const getActivityFeed = async (
 ): Promise<ActivityFeedResponse> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/activity-feed`, { params })
   return response.data.data
+}
+
+/** Fetch one lean, cursor-paginated page used only for browser exports. */
+export const getSalesExportRows = async (
+  venueId: string,
+  params: SalesExportRowsParams,
+): Promise<SalesExportRowsResponse> => {
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/stores-analysis/sales-export-rows`, { params })
+  return response.data.data
+}
+
+/** Best-effort caller-side audit after a report has been generated successfully. */
+export const recordSalesExportAudit = async (venueId: string, input: SalesExportAuditInput): Promise<void> => {
+  await api.post(`/api/v1/dashboard/venues/${venueId}/stores-analysis/sales-export-audit`, input)
 }
 
 // ===========================================

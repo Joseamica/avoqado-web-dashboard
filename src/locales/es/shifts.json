@@ -124,6 +124,19 @@
       "total": "Total",
       "ofSubtotal": "del subtotal"
     },
+    "cashReconciliation": {
+      "title": "Arqueo de caja",
+      "notCounted": "Sin conteo",
+      "notCountedDescription": "El turno se cerró sin registrar el efectivo físico.",
+      "balanced": "Caja cuadrada",
+      "balancedDescription": "El efectivo contado coincide con la caja esperada.",
+      "shortage": "Faltante",
+      "shortageDescription": "Faltaron {{amount}} frente al efectivo esperado.",
+      "overage": "Sobrante",
+      "overageDescription": "Sobran {{amount}} frente al efectivo esperado.",
+      "countedCash": "Efectivo contado",
+      "difference": "Diferencia"
+    },
     "fields": {
       "turnId": "ID de Turno",
       "systemId": "ID del Sistema",

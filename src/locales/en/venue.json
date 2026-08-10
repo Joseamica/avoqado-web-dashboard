@@ -176,6 +176,21 @@
       "salesEnabled": "Allows orders and charges to be created at this venue.",
       "cedisSalesDisabled": "A distribution-only venue cannot record sales; the backend also blocks older clients."
     },
+    "cashReconciliation": {
+      "title": "Cash reconciliation at shift close",
+      "description": "Asks staff to count physical cash before closing and compares it with the expected drawer.",
+      "proBadge": "PRO",
+      "switchLabel": "Enable cash reconciliation",
+      "enabledTitle": "Cash reconciliation enabled",
+      "disabledTitle": "Cash reconciliation disabled",
+      "saved": "The setting was saved successfully.",
+      "downgraded": "The current plan no longer includes this feature. It is inactive; you can turn off the stored setting.",
+      "readOnly": "You need permission to update venue settings.",
+      "errorTitle": "The change was not saved",
+      "permissionError": "You do not have permission to change this setting.",
+      "unavailableError": "We could not verify or save the setting. Please try again.",
+      "saveError": "An error occurred while saving the setting."
+    },
     "operationalRoles": { "STORE": "Store", "CEDIS": "Distribution center", "HYBRID": "Hybrid" },
     "placeholders": {
       "name": "Enter venue name",

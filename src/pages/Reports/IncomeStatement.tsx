@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
-import { Banknote, Calculator, DollarSign, HandCoins, Landmark, Percent, Receipt, RotateCcw } from 'lucide-react'
+import { Banknote, Calculator, DollarSign, Download, HandCoins, Landmark, Percent, Receipt, RotateCcw } from 'lucide-react'
 
 import { MetricCard } from '@/components/ui/metric-card'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
@@ -12,9 +13,18 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useIncomeStatement } from '@/hooks/useIncomeStatement'
 import { Currency } from '@/utils/currency'
 import { getLast7Days } from '@/utils/datetime'
+import { exportToExcel, generateFilename } from '@/utils/export'
 
 /** JS Date (from the picker) → YYYY-MM-DD in the venue timezone, matching the backend's day boundaries. */
 const toYmd = (d: Date, tz: string): string => DateTime.fromJSDate(d).setZone(tz).toFormat('yyyy-MM-dd')
+
+/**
+ * The accounting read-model stores whole CENTS (`...Cents`). Everything leaving for a human
+ * — screen, spreadsheet, PDF — divides by 100. This is the one place in the platform where
+ * money is not already in pesos 1:1, and a 100x error in a file an accountant loads into
+ * their own system surfaces weeks later, if at all.
+ */
+const pesos = (cents: number | undefined | null): number => Math.round(cents ?? 0) / 100
 
 /**
  * Capa A — Estado de resultados ("¿Cuánto gané?").
@@ -35,6 +45,25 @@ export default function IncomeStatement() {
   const rev = data?.revenue
   const ivaPct = Math.round((data?.taxRateAssumed ?? 0.16) * 100)
 
+  /** One row per line of the statement — the shape an accountant expects, not the KPI grid's. */
+  const exportar = () => {
+    if (!data?.revenue) return
+    const r = data.revenue
+    const filas = [
+      { [t('incomeStatement.grossSales')]: pesos(r.grossSalesCents) },
+      { [t('incomeStatement.refunds')]: pesos(r.refundsCents) },
+      { [t('incomeStatement.netRevenue')]: pesos(r.netRevenueCents) },
+      { [t('incomeStatement.taxableBase')]: pesos(r.taxableBaseCents) },
+      { [t('incomeStatement.iva', { pct: ivaPct })]: pesos(r.ivaCents) },
+    ].map(o => ({ [t('incomeStatement.concept')]: Object.keys(o)[0], [t('incomeStatement.amount')]: Object.values(o)[0] }))
+
+    void exportToExcel(
+      [{ [t('incomeStatement.concept')]: t('incomeStatement.period'), [t('incomeStatement.amount')]: `${from} → ${to}` }, ...filas],
+      generateFilename('estado-de-resultados', data.venueName ?? venue?.name),
+      t('incomeStatement.title'),
+    )
+  }
+
   return (
     <div className="p-4 space-y-5 bg-background">
       {/* Header */}
@@ -47,13 +76,19 @@ export default function IncomeStatement() {
               : t('incomeStatement.subtitle')}
           </p>
         </div>
-        <DateRangePicker
-          initialDateFrom={range.from}
-          initialDateTo={range.to}
-          align="end"
-          showCompare={false}
-          onUpdate={({ range: r }) => r.to && setRange({ from: r.from, to: r.to })}
-        />
+        <div className="flex items-center gap-2">
+          <DateRangePicker
+            initialDateFrom={range.from}
+            initialDateTo={range.to}
+            align="end"
+            showCompare={false}
+            onUpdate={({ range: r }) => r.to && setRange({ from: r.from, to: r.to })}
+          />
+          <Button size="sm" variant="outline" onClick={exportar} disabled={isLoading || isError || !data?.revenue}>
+            <Download className="h-4 w-4" />
+            {t('incomeStatement.export')}
+          </Button>
+        </div>
       </header>
 
       {/* KPI grid */}

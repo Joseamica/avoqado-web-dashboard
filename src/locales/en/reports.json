@@ -53,7 +53,11 @@
     "error": "Could not load the revenue statement.",
     "disclosureRevenue": "This board shows revenue, not profit: it does not yet subtract cost of goods or expenses.",
     "disclosureIva": "VAT assumes {{pct}}% (general rate); it does not reflect 0% or exempt products.",
-    "disclosureTips": "Tips are shown for reference only and are not counted as income."
+    "disclosureTips": "Tips are shown for reference only and are not counted as income.",
+    "export": "Export",
+    "concept": "Concept",
+    "amount": "Amount",
+    "period": "Period"
   },
   "businessSummary": {
     "title": "Business summary",
@@ -318,7 +322,13 @@
     "emptyBody": "There are no journal entries in the selected period's fiscal year. Record entries in the journal.",
     "error": "Could not load the accounting reports.",
     "disclosureSource": "Computed on the fly from the journal entries; the income statement accumulates from the start of the fiscal year.",
-    "disclosureEquation": "The balance sheet balances by design: the period result is added to equity and Assets = Liabilities + Equity."
+    "disclosureEquation": "The balance sheet balances by design: the period result is added to equity and Assets = Liabilities + Equity.",
+    "export": "Export",
+    "section": "Section",
+    "code": "Account",
+    "account": "Name",
+    "amount": "Amount",
+    "total": "Total"
   },
   "cashBasisVat": {
     "title": "Cash-basis VAT · DIOT",
@@ -1111,7 +1121,15 @@
     "balanza": "Trial balance (XML)",
     "disclaimer": "Unsealed XML. Validate and seal it with your accountant (e.firma) before submitting to the SAT.",
     "empty": "No data to generate the XML for this period.",
-    "error": "Could not generate the XML."
+    "error": "Could not generate the XML.",
+    "polizas": "Journal entries",
+    "polizasScope": "Journal entries are filed only on SAT request:",
+    "tipoDE": "Refund",
+    "tipoCO": "Offset",
+    "tipoAF": "Audit",
+    "tipoFC": "Cross-check",
+    "numOrden": "Order number",
+    "numTramite": "Case number"
   },
   "accountsPayable": {
     "title": "Accounts payable",

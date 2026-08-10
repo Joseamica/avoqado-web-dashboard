@@ -783,6 +783,7 @@
       "categoryHelp": "Organize your services into categories.",
       "activeHelp": "Inactive services don't appear in bookings or the POS.",
       "durationHelp": "Used to calculate the end time when creating an appointment.",
+      "durationOptionalHelp": "Optional. Leave it empty and the calendar uses the default duration from your Reservations settings. Set it if this service takes a different amount of time, so another customer isn't booked on top of it.",
       "maxParticipantsHelp": "Capacity can be adjusted per session when creating the schedule.",
       "saving": "Saving...",
       "preview": "Preview",
@@ -814,6 +815,8 @@
       "deleteMessage": "Are you sure you want to delete this service? This action cannot be undone.",
       "deleteConfirm": "Delete",
       "duration": "{{minutes}} min",
+      "durationInherited": "Uses the venue's default duration",
+      "durationInheritedHelp": "This service has no duration of its own, so the calendar uses the default duration set in Reservations. If the service actually takes longer, another customer can be booked on top of it.",
       "participants": "{{count}} participants"
     },
     "convert": {

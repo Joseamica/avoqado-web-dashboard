@@ -65,6 +65,7 @@ export const PLAN_TIERS: PlanTierDef[] = [
       'BANKING_HUB',
       'VENUE_AUDIT_LOG',
       'GOOGLE_REVIEW_REDIRECT',
+      'CASH_RECONCILIATION', // arqueo de caja por turno; efectivo contado vs. esperado
       'TABLE_SERVICE', // servicio de mesas / modo restaurante en iOS-Android (founder 2026-07-16: PRO)
       // Upsell "¿Algo más?" en la pantalla del cliente y la franja del cajero.
       // El MOTOR es PRO; sólo la generación por IA es Premium (ver UPSELL_AI abajo).

@@ -6,6 +6,8 @@ import { AlertTriangle, BarChart3, CheckCircle2, FileCode, FileDown, Landmark, L
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { exportToExcel, generateFilename } from '@/utils/export'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
@@ -14,12 +16,22 @@ import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useToast } from '@/hooks/use-toast'
 import { useAccountingReports } from '@/hooks/useAccountingReports'
 import type { AccountingReportsResponse, ReportLine } from '@/services/fiscal/accountingReports.service'
-import { getCatalogoXml, getBalanzaXml, downloadXml } from '@/services/fiscal/contabilidadElectronica.service'
+import {
+  getCatalogoXml,
+  getBalanzaXml,
+  getPolizasXml,
+  downloadXml,
+  type PolizasTipoSolicitud,
+} from '@/services/fiscal/contabilidadElectronica.service'
 import { Currency } from '@/utils/currency'
 import { cn } from '@/lib/utils'
 
 const SAMPLE: AccountingReportsResponse = {
-  needsFiscalSetup: false, organizationId: null, rfc: 'TESC900101AAA', period: new Date().toISOString().slice(0, 7), fiscalYearStart: `${new Date().getFullYear()}-01`,
+  needsFiscalSetup: false,
+  organizationId: null,
+  rfc: 'TESC900101AAA',
+  period: new Date().toISOString().slice(0, 7),
+  fiscalYearStart: `${new Date().getFullYear()}-01`,
   incomeStatement: {
     ingresos: { lines: [{ code: '401.01', name: 'Ventas tasa general', amountCents: 1000000 }], totalCents: 1000000 },
     costos: { lines: [{ code: '501.01', name: 'Costo de venta', amountCents: 400000 }], totalCents: 400000 },
@@ -31,8 +43,53 @@ const SAMPLE: AccountingReportsResponse = {
     activo: { lines: [{ code: '102.01', name: 'Bancos nacionales', amountCents: 560000 }], totalCents: 560000 },
     pasivo: { lines: [{ code: '208.01', name: 'IVA trasladado cobrado', amountCents: 160000 }], totalCents: 160000 },
     capital: { lines: [{ code: '~RESULT', name: 'Resultado del ejercicio', amountCents: 400000 }], totalCents: 400000 },
-    resultadoEjercicioCents: 400000, balanced: true,
+    resultadoEjercicioCents: 400000,
+    balanced: true,
   },
+}
+
+/**
+ * The accounting read-model stores whole CENTS (`...Cents`). Everything leaving for a human
+ * — screen, spreadsheet, PDF — divides by 100. This is the one place in the platform where
+ * money is not already in pesos 1:1, and a 100x error in a file an accountant loads into
+ * their own system surfaces weeks later, if at all.
+ */
+const pesosDeCentavos = (cents: number | undefined | null): number => Math.round(cents ?? 0) / 100
+
+/**
+ * Both statements flattened to one row per account — code, name, amount — which is the shape
+ * an accountant loads, not the two-column layout the screen uses. Section headers travel as
+ * rows too so the file reads on its own, away from this page.
+ */
+function filasDeEstados(
+  is: AccountingReportsResponse['incomeStatement'],
+  bs: AccountingReportsResponse['balanceSheet'],
+  etiqueta: (k: string) => string,
+): Record<string, string | number>[] {
+  const filas: Record<string, string | number>[] = []
+  const push = (seccion: string, code: string, name: string, cents: number) =>
+    filas.push({
+      [etiqueta('section')]: seccion,
+      [etiqueta('code')]: code,
+      [etiqueta('account')]: name,
+      [etiqueta('amount')]: pesosDeCentavos(cents),
+    })
+
+  const bloque = (seccion: string, grupo: { lines: { code: string; name: string; amountCents: number }[]; totalCents: number }) => {
+    grupo.lines.forEach(l => push(seccion, l.code, l.name, l.amountCents))
+    push(seccion, '', etiqueta('total'), grupo.totalCents)
+  }
+
+  bloque(etiqueta('ingresos'), is.ingresos)
+  bloque(etiqueta('costos'), is.costos)
+  push(etiqueta('incomeStatement'), '', etiqueta('utilidadBruta'), is.utilidadBrutaCents)
+  bloque(etiqueta('gastos'), is.gastos)
+  push(etiqueta('incomeStatement'), '', is.resultadoCents >= 0 ? etiqueta('utilidad') : etiqueta('perdida'), is.resultadoCents)
+
+  bloque(etiqueta('activo'), bs.activo)
+  bloque(etiqueta('pasivo'), bs.pasivo)
+  bloque(etiqueta('capital'), bs.capital)
+  return filas
 }
 
 /** Líneas de una sección + su total. */
@@ -69,7 +126,8 @@ function AccountingReportsInner() {
   const needsFiscalSetup = hasAccess && query.data?.needsFiscalSetup
   const is = data?.incomeStatement
   const bs = data?.balanceSheet
-  const hasData = !!is && (is.ingresos.lines.length > 0 || is.costos.lines.length > 0 || is.gastos.lines.length > 0 || (bs?.activo.lines.length ?? 0) > 0)
+  const hasData =
+    !!is && (is.ingresos.lines.length > 0 || is.costos.lines.length > 0 || is.gastos.lines.length > 0 || (bs?.activo.lines.length ?? 0) > 0)
 
   return (
     <div className="p-4 space-y-5 bg-background">
@@ -83,7 +141,9 @@ function AccountingReportsInner() {
           </p>
         </div>
         <div className="space-y-1">
-          <label htmlFor="reports-period" className="block text-[10px] text-muted-foreground">{t('trialBalance.period')}</label>
+          <label htmlFor="reports-period" className="block text-[10px] text-muted-foreground">
+            {t('trialBalance.period')}
+          </label>
           <Input id="reports-period" type="month" value={period} onChange={e => setPeriod(e.target.value)} className="h-10 w-44" />
         </div>
       </header>
@@ -120,6 +180,23 @@ function AccountingReportsInner() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="lg:col-span-2 flex justify-end">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                void exportToExcel(
+                  filasDeEstados(is!, bs!, k => t(`accountingReports.${k}`)),
+                  generateFilename(`estados-financieros-${period}`, venue?.name),
+                  t('accountingReports.title'),
+                )
+              }
+            >
+              <FileDown className="h-4 w-4" />
+              {t('accountingReports.export')}
+            </Button>
+          </div>
+
           {/* Estado de resultados */}
           <Card className="border-input">
             <CardContent className="py-4 space-y-4">
@@ -131,7 +208,14 @@ function AccountingReportsInner() {
                 <span className="tabular-nums text-foreground">{Currency(is!.utilidadBrutaCents, true)}</span>
               </div>
               <Section title={t('accountingReports.gastos')} lines={is!.gastos.lines} totalCents={is!.gastos.totalCents} />
-              <div className={cn('flex items-center justify-between rounded-lg px-3 py-2 text-base font-semibold', is!.resultadoCents >= 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/10 text-red-600 dark:text-red-400')}>
+              <div
+                className={cn(
+                  'flex items-center justify-between rounded-lg px-3 py-2 text-base font-semibold',
+                  is!.resultadoCents >= 0
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-red-500/10 text-red-600 dark:text-red-400',
+                )}
+              >
                 <span>{is!.resultadoCents >= 0 ? t('accountingReports.utilidad') : t('accountingReports.perdida')}</span>
                 <span className="tabular-nums">{Currency(Math.abs(is!.resultadoCents), true)}</span>
               </div>
@@ -145,7 +229,9 @@ function AccountingReportsInner() {
               <div
                 className={cn(
                   'flex items-center gap-2 rounded-lg border p-2 text-xs',
-                  bs!.balanced ? 'border-emerald-500/40 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400' : 'border-amber-500/40 bg-amber-500/5 text-amber-600 dark:text-amber-400',
+                  bs!.balanced
+                    ? 'border-emerald-500/40 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400'
+                    : 'border-amber-500/40 bg-amber-500/5 text-amber-600 dark:text-amber-400',
                 )}
               >
                 {bs!.balanced ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
@@ -176,18 +262,33 @@ function ContaElectronicaCard({ period, hasAccess }: { period: string; hasAccess
   const { t } = useTranslation('reports')
   const { toast } = useToast()
   const { venueId } = useCurrentVenue()
-  const [loading, setLoading] = useState<'catalogo' | 'balanza' | null>(null)
+  const [loading, setLoading] = useState<'catalogo' | 'balanza' | 'polizas' | null>(null)
+  // Journal entries are only ever filed in response to a specific SAT case, so the request
+  // type and its case number are part of the export — not settings buried elsewhere. AF/CO
+  // travel with an order number, FC/DE with a procedure number; the wrong pairing gets the
+  // filing rejected. Default DE (devolución), which is the common case.
+  const [tipoSolicitud, setTipoSolicitud] = useState<PolizasTipoSolicitud>('DE')
+  const [numeroSolicitud, setNumeroSolicitud] = useState('')
 
-  const download = async (kind: 'catalogo' | 'balanza') => {
+  const download = async (kind: 'catalogo' | 'balanza' | 'polizas') => {
     if (!venueId || !hasAccess) return
     setLoading(kind)
     try {
-      const r = kind === 'catalogo' ? await getCatalogoXml(venueId, period) : await getBalanzaXml(venueId, period)
+      const r =
+        kind === 'catalogo'
+          ? await getCatalogoXml(venueId, period)
+          : kind === 'balanza'
+            ? await getBalanzaXml(venueId, period)
+            : await getPolizasXml(venueId, period, { tipoSolicitud, numero: numeroSolicitud })
       if (r.needsFiscalSetup) toast({ title: t('chartOfAccounts.needsFiscalSetupTitle'), variant: 'destructive' })
       else if (r.empty || !r.xml || !r.filename) toast({ title: t('electronicAccounting.empty'), variant: 'destructive' })
       else downloadXml(r.xml, r.filename)
     } catch (err: any) {
-      toast({ title: t('electronicAccounting.error'), description: err?.response?.data?.message ?? err?.message ?? '', variant: 'destructive' })
+      toast({
+        title: t('electronicAccounting.error'),
+        description: err?.response?.data?.message ?? err?.message ?? '',
+        variant: 'destructive',
+      })
     } finally {
       setLoading(null)
     }
@@ -210,6 +311,33 @@ function ContaElectronicaCard({ period, hasAccess }: { period: string; hasAccess
             {loading === 'balanza' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
             {t('electronicAccounting.balanza')}
           </Button>
+          <Button size="sm" variant="outline" disabled={!hasAccess || loading !== null} onClick={() => download('polizas')}>
+            {loading === 'polizas' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+            {t('electronicAccounting.polizas')}
+          </Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-input p-2">
+          <span className="text-[11px] text-muted-foreground">{t('electronicAccounting.polizasScope')}</span>
+          <Select value={tipoSolicitud} onValueChange={v => setTipoSolicitud(v as PolizasTipoSolicitud)} disabled={!hasAccess}>
+            <SelectTrigger className="h-7 w-[190px] text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="DE">{t('electronicAccounting.tipoDE')}</SelectItem>
+              <SelectItem value="CO">{t('electronicAccounting.tipoCO')}</SelectItem>
+              <SelectItem value="AF">{t('electronicAccounting.tipoAF')}</SelectItem>
+              <SelectItem value="FC">{t('electronicAccounting.tipoFC')}</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input
+            className="h-7 w-[170px] text-xs"
+            placeholder={
+              tipoSolicitud === 'AF' || tipoSolicitud === 'CO' ? t('electronicAccounting.numOrden') : t('electronicAccounting.numTramite')
+            }
+            value={numeroSolicitud}
+            onChange={e => setNumeroSolicitud(e.target.value)}
+            disabled={!hasAccess}
+          />
         </div>
         <p className="text-[11px] text-muted-foreground">{t('electronicAccounting.disclaimer')}</p>
       </CardContent>

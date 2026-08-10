@@ -13,6 +13,8 @@ export interface TierFeatureAccess {
   requiredTier: TierId
   /** True while plan/feature data is still loading (callers may render optimistically). */
   isLoading: boolean
+  /** True only when entitlement was positively resolved or an explicit bypass applies. */
+  isResolved: boolean
 }
 
 /**
@@ -35,7 +37,12 @@ export interface TierFeatureAccess {
  * for every non-white-label venue, so they can't gate normal venues by tier — and a pure tier check
  * would wrongly paywall grandfathered à-la-carte grants. This hook handles both.
  */
-export function useVenueTier(): { venueTier: TierId; hasFeatureAccess: (feature: string) => boolean; isLoading: boolean } {
+export function useVenueTier(): {
+  venueTier: TierId
+  hasFeatureAccess: (feature: string) => boolean
+  isLoading: boolean
+  isResolved: boolean
+} {
   const { canFeature, role, isWhiteLabelEnabled } = useAccess()
   const { venueId, venue } = useCurrentVenue()
 
@@ -50,7 +57,7 @@ export function useVenueTier(): { venueTier: TierId; hasFeatureAccess: (feature:
   // `features:read`. This is the gate's source of truth: GET /plan is ADMIN/OWNER-only
   // (`billing:subscriptions:read`, returns price + Stripe ids), so sub-ADMIN staff
   // (MANAGER/CASHIER/WAITER/…) couldn't read grandfathered/tier and were wrongly paywalled.
-  const { data: planTierInfo, isLoading: planLoading } = useQuery({
+  const { data: planTierInfo, isLoading: planLoading, isSuccess: planResolved } = useQuery({
     queryKey: ['venuePlanTier', venueId],
     queryFn: () => getVenuePlanTierInfo(venueId!),
     enabled: gateEnabled,
@@ -78,6 +85,9 @@ export function useVenueTier(): { venueTier: TierId; hasFeatureAccess: (feature:
 
   const venueTier: TierId = planTierInfo?.tier ?? 'FREE'
   const isLoading = planLoading || featLoading
+  // Keep the shared display gate fail-open, but expose a stricter signal for mutations that must
+  // never enable paid behavior based on an unresolved/error state.
+  const isResolved = Boolean(venueId) && (!gateEnabled || planResolved)
 
   const hasFeatureAccess = useCallback(
     (feature: string): boolean => {
@@ -102,7 +112,7 @@ export function useVenueTier(): { venueTier: TierId; hasFeatureAccess: (feature:
     [isSuperadmin, isDemoVenue, isWhiteLabelEnabled, canFeature, planTierInfo, grantedCodes, venueTier],
   )
 
-  return { venueTier, hasFeatureAccess, isLoading }
+  return { venueTier, hasFeatureAccess, isLoading, isResolved }
 }
 
 /**
@@ -128,10 +138,10 @@ export function useVenuePlanTier(venueId: string | undefined, enabled = true): {
 
 /** Single-feature convenience wrapper around {@link useVenueTier}. */
 export function useTierFeatureAccess(feature: string, requiredTierOverride?: TierId): TierFeatureAccess {
-  const { hasFeatureAccess, isLoading } = useVenueTier()
+  const { hasFeatureAccess, isLoading, isResolved } = useVenueTier()
   const requiredTier = useMemo(
     () => requiredTierOverride ?? getTierForFeature(feature) ?? 'PRO',
     [requiredTierOverride, feature],
   )
-  return { hasAccess: hasFeatureAccess(feature), requiredTier, isLoading }
+  return { hasAccess: hasFeatureAccess(feature), requiredTier, isLoading, isResolved }
 }

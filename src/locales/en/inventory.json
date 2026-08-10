@@ -61,6 +61,7 @@
     "activate": "Activate",
     "deactivate": "Deactivate",
     "adjustStock": "Adjust Stock",
+    "logWaste": "Log waste",
     "viewMovements": "View Movements",
     "inTransit": "In Transit",
     "fields": {

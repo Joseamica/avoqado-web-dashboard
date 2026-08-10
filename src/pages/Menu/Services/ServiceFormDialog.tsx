@@ -392,9 +392,7 @@ export function ServiceFormDialog({ open, onOpenChange, onSuccess, mode, product
 
                 {isAppointment && (
                   <div className="space-y-1.5">
-                    <Label htmlFor="duration">
-                      {t('services.form.durationLabel')} <span className="text-destructive">*</span>
-                    </Label>
+                    <Label htmlFor="duration">{t('services.form.durationLabel')}</Label>
                     <Input
                       id="duration"
                       type="number"
@@ -402,14 +400,16 @@ export function ServiceFormDialog({ open, onOpenChange, onSuccess, mode, product
                       max="1440"
                       placeholder={t('services.form.durationPlaceholder')}
                       {...register('duration', {
-                        required: { value: true, message: t('services.form.durationRequired') },
+                        // Opcional a propósito: hay locales que no fijan tiempos por
+                        // servicio. Sin duración, la agenda usa el predeterminado del
+                        // local — el texto de abajo lo dice para que no sea sorpresa.
+                        setValueAs: raw => (raw === '' || raw === null ? null : Number(raw)),
                         min: { value: 5, message: t('services.form.durationMin') },
                         max: { value: 1440, message: t('services.form.durationMax') },
-                        valueAsNumber: true,
                       })}
                     />
                     {errors.duration && <p className="text-xs text-destructive">{errors.duration.message as string}</p>}
-                    <p className="text-xs text-muted-foreground">{t('services.form.durationHelp')}</p>
+                    <p className="text-xs text-muted-foreground">{t('services.form.durationOptionalHelp')}</p>
                   </div>
                 )}
 

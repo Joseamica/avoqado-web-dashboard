@@ -62,6 +62,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { CashReconciliationSummary } from './components/CashReconciliationSummary'
 
 // ========== TYPES & INTERFACES ==========
 interface SectionState {
@@ -1025,6 +1026,13 @@ export default function ShiftId() {
                   </div>
                 </CardContent>
               </Card>
+
+              {shiftStatus === 'CLOSED' && (
+                <CashReconciliationSummary
+                  cashDeclared={shift.cashDeclared ?? null}
+                  cashDifference={shift.cashDifference ?? null}
+                />
+              )}
 
               {/* Financial Summary */}
               <Card

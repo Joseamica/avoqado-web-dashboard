@@ -176,6 +176,21 @@
       "salesEnabled": "Permite crear órdenes y cobros en esta sucursal.",
       "cedisSalesDisabled": "Un CEDIS puro no puede registrar ventas; el backend también bloquea clientes antiguos."
     },
+    "cashReconciliation": {
+      "title": "Arqueo de caja al cerrar turno",
+      "description": "Pide contar el efectivo físico antes de cerrar y lo compara contra la caja esperada.",
+      "proBadge": "PRO",
+      "switchLabel": "Activar arqueo de caja",
+      "enabledTitle": "Arqueo de caja activado",
+      "disabledTitle": "Arqueo de caja desactivado",
+      "saved": "La configuración se guardó correctamente.",
+      "downgraded": "El plan actual ya no incluye esta función. Está inactiva; puedes apagar el ajuste guardado.",
+      "readOnly": "Necesitas permiso para actualizar la configuración del local.",
+      "errorTitle": "No se guardó el cambio",
+      "permissionError": "No tienes permiso para cambiar esta configuración.",
+      "unavailableError": "No pudimos verificar o guardar la configuración. Intenta de nuevo.",
+      "saveError": "Ocurrió un error al guardar la configuración."
+    },
     "operationalRoles": { "STORE": "Tienda", "CEDIS": "CEDIS", "HYBRID": "Híbrido" },
     "placeholders": {
       "name": "Ingresa el nombre del local",

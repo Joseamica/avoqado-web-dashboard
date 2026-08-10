@@ -14,6 +14,8 @@ export interface ShiftSocketEvent {
   endTime?: string
   startingCash?: number
   endingCash?: number
+  cashDeclared?: number | null
+  cashDifference?: number | null
   totalSales?: number
   totalTips?: number
   totalOrders?: number

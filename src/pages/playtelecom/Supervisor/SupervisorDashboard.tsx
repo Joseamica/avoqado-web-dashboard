@@ -22,7 +22,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { ZoomableImage } from '@/components/ui/zoomable-image'
 import { useToast } from '@/hooks/use-toast'
-import { exportToCSV, exportToExcel, formatCurrencyForExport, formatDateForExport, generateFilename } from '@/utils/export'
+import { exportToCSV, exportToExcel, generateFilename } from '@/utils/export'
 import getIcon from '@/utils/getIcon'
 import {
   AlertTriangle,
@@ -72,16 +72,23 @@ import { cn } from '@/lib/utils'
 import { getToday } from '@/utils/datetime'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { format } from 'date-fns'
+import { recordSalesExportAudit } from '@/services/storesAnalysis.service'
+import {
+  fetchAllSalesExportRows,
+  mapSalesExportRows,
+  resolveSupervisorTab,
+  shouldPollSupervisorActivity,
+  SUPERVISOR_TABS,
+  type SupervisorTab,
+} from './supervisorExport'
 
 // `lazyWithRetry` → auto hard-reload on stale chunks after deploys.
 const AttendanceHeatmap = lazyWithRetry(() => import('./components/AttendanceHeatmap').then(m => ({ default: m.AttendanceHeatmap })))
 const SalesHeatmap = lazyWithRetry(() => import('./components/SalesHeatmap').then(m => ({ default: m.SalesHeatmap })))
 
-const VALID_TABS = ['operativo', 'checkin', 'ventas', 'ubicacion'] as const
 const STANDARD_REQUIRED_EVIDENCE_PHOTOS = 1
 const PORTABILITY_REQUIRED_EVIDENCE_PHOTOS = 2
 type SaleEvidenceType = 'portability' | 'linking' | 'unknown'
-type TabValue = (typeof VALID_TABS)[number]
 
 export function SupervisorDashboard() {
   const { t, i18n } = useTranslation(['playtelecom', 'common'])
@@ -100,6 +107,8 @@ export function SupervisorDashboard() {
   const [editGoalAmount, setEditGoalAmount] = useState<number | undefined>()
   const [editGoalType, setEditGoalType] = useState<'AMOUNT' | 'QUANTITY' | undefined>()
   const [editGoalPeriod, setEditGoalPeriod] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY' | undefined>()
+  const [isExporting, setIsExporting] = useState(false)
+  const [exportProgress, setExportProgress] = useState<{ fetched: number; total?: number } | null>(null)
 
   // Photo & location dialog state
   const [photoDialog, setPhotoDialog] = useState<{
@@ -124,13 +133,13 @@ export function SupervisorDashboard() {
   } | null>(null)
 
   // Tab state (hash-based persistence)
-  const [activeTab, setActiveTab] = useState<TabValue>('operativo')
+  const [activeTab, setActiveTab] = useState<SupervisorTab>(() => resolveSupervisorTab(window.location.hash))
 
   useEffect(() => {
     const syncTabFromHash = () => {
       const hash = window.location.hash.replace('#', '')
-      if (VALID_TABS.includes(hash as TabValue)) {
-        setActiveTab(hash as TabValue)
+      if (SUPERVISOR_TABS.includes(hash as SupervisorTab)) {
+        setActiveTab(hash as SupervisorTab)
       }
     }
     syncTabFromHash()
@@ -139,7 +148,7 @@ export function SupervisorDashboard() {
   }, [])
 
   const handleTabChange = useCallback((value: string) => {
-    const tab = value as TabValue
+    const tab = value as SupervisorTab
     setActiveTab(tab)
     window.history.replaceState(null, '', `#${tab}`)
   }, [])
@@ -173,11 +182,15 @@ export function SupervisorDashboard() {
   })
   const { data: _stockSummary } = useStoresStockSummary()
   const { data: venuesResponse, isLoading: venuesLoading } = useStoresVenues()
-  // Limit must cover all transactions in the selected date range, not just the most recent ones.
-  // The Ventas tab and Excel export both consume this feed, so a small limit silently truncates
-  // older days when ordering is desc by createdAt (see organizationDashboard.service.ts:1311).
-  const { data: activityFeed } = useStoresActivityFeed(10000, {
-    refetchInterval: 30000,
+  const pollActivityFeed = shouldPollSupervisorActivity(activeTab, selectedRange)
+  // This feed only drives the live table. Full reports use the lean paginated
+  // endpoint on demand, so this request stays small and stops outside this tab.
+  const { data: activityFeed } = useStoresActivityFeed(100, {
+    enabled: activeTab === 'operativo',
+    refetchInterval: pollActivityFeed ? 30000 : false,
+    refetchOnMount: pollActivityFeed,
+    refetchOnWindowFocus: pollActivityFeed,
+    refetchOnReconnect: pollActivityFeed,
     startDate: startDateISO,
     endDate: endDateISO,
     filterVenueId: storeFilter !== 'all' ? storeFilter : undefined,
@@ -483,68 +496,83 @@ export function SupervisorDashboard() {
     [],
   )
 
-  const buildExportData = useCallback(() => {
-    if (!activityFeed?.events?.length) return null
-    const events = activityFeed.events.filter(e => e.type === 'sale')
-    if (events.length === 0) return null
-    return events.map(e => {
-      const metadata = (e.metadata ?? {}) as Record<string, unknown>
-      const sellerName = e.staffName?.trim() || ''
-      const sellerUserFromMetadata = [
-        metadata.sellerUsername,
-        metadata.staffUsername,
-        metadata.username,
-        metadata.userName,
-        metadata.sellerUser,
-        metadata.staffUser,
-        metadata.staffEmail,
-        metadata.email,
-      ].find((value): value is string => typeof value === 'string' && value.trim().length > 0)
-      const sellerUser = sellerUserFromMetadata?.trim() || (e.staffId ? `ID:${e.staffId.slice(-6).toUpperCase()}` : '')
-
-      return {
-        ID: e.id.slice(-6).toUpperCase(),
-        [t('playtelecom:supervisor.exportHeaders.store', { defaultValue: 'Tienda' })]: e.venueName || '',
-        [t('playtelecom:supervisor.exportHeaders.product', { defaultValue: 'Producto' })]: e.title,
-        ICCID: (e.metadata?.iccid as string) || '',
-        [t('playtelecom:supervisor.exportHeaders.seller', { defaultValue: 'Vendedor' })]: sellerName,
-        // Org-internal ID (white-label orgs like PlayTelecom). Blank when unset.
-        [t('playtelecom:supervisor.exportHeaders.sellerEmployeeCode', { defaultValue: 'ID Vendedor' })]: e.staffEmployeeCode ?? '',
-        [t('playtelecom:supervisor.exportHeaders.sellerUser', { defaultValue: 'Usuario vendedor' })]: sellerUser,
-        [t('playtelecom:supervisor.exportHeaders.amount', { defaultValue: 'Monto' })]: formatCurrencyForExport(
-          (e.metadata?.total as number) || (e.metadata?.amount as number) || 0,
-        ),
-        [t('playtelecom:supervisor.exportHeaders.date', { defaultValue: 'Fecha' })]: formatDateForExport(e.timestamp),
-      }
-    })
-  }, [activityFeed, t])
-
   const handleExport = useCallback(
     async (format: 'csv' | 'excel' | 'sheets') => {
-      const data = buildExportData()
-      if (!data) return
+      if (isExporting || !activeVenue?.id) return
+
+      // Must happen in the original click event. Opening it after the paginated
+      // requests finish is commonly blocked by browsers as an unsolicited popup.
+      const sheetsWindow = format === 'sheets' ? window.open('about:blank', '_blank') : null
+      const snapshot = {
+        startDate: startDateISO,
+        endDate: endDateISO,
+        filterVenueId: storeFilter !== 'all' ? storeFilter : undefined,
+      }
       const filename = generateFilename('transacciones')
+      setIsExporting(true)
+      setExportProgress({ fetched: 0 })
+
       try {
+        const rows = await fetchAllSalesExportRows({
+          venueId: activeVenue.id,
+          ...snapshot,
+          onProgress: setExportProgress,
+        })
+        if (rows.length === 0) {
+          sheetsWindow?.close()
+          toast({
+            title: t('playtelecom:supervisor.exportEmpty', { defaultValue: 'No hay ventas en el rango seleccionado' }),
+          })
+          return
+        }
+
+        const data = mapSalesExportRows(rows, {
+          store: t('playtelecom:supervisor.exportHeaders.store', { defaultValue: 'Tienda' }),
+          product: t('playtelecom:supervisor.exportHeaders.product', { defaultValue: 'Producto' }),
+          seller: t('playtelecom:supervisor.exportHeaders.seller', { defaultValue: 'Vendedor' }),
+          sellerEmployeeCode: t('playtelecom:supervisor.exportHeaders.sellerEmployeeCode', { defaultValue: 'ID Vendedor' }),
+          sellerUser: t('playtelecom:supervisor.exportHeaders.sellerUser', { defaultValue: 'Usuario vendedor' }),
+          amount: t('playtelecom:supervisor.exportHeaders.amount', { defaultValue: 'Monto' }),
+          date: t('playtelecom:supervisor.exportHeaders.date', { defaultValue: 'Fecha' }),
+        })
+
         if (format === 'csv') {
           exportToCSV(data, filename)
         } else if (format === 'excel') {
           await exportToExcel(data, filename, 'Transacciones')
         } else {
-          // Google Sheets: export CSV then open Google Sheets import
           exportToCSV(data, filename)
-          window.open('https://sheets.new', '_blank')
+          if (!sheetsWindow) throw new Error('El navegador bloqueó la pestaña de Google Sheets')
+          sheetsWindow.location.href = 'https://sheets.new'
         }
+
+        // The file already exists at this point. Audit remains best-effort and
+        // cannot turn a successful browser download into a reported failure.
+        await recordSalesExportAudit(activeVenue.id, { format, ...snapshot, rowCount: rows.length }).catch(() => undefined)
         toast({
           title: t('playtelecom:supervisor.exportSuccess', { defaultValue: 'Reporte descargado' }),
         })
-      } catch (_error) {
+      } catch (error) {
+        sheetsWindow?.close()
+        const apiMessage =
+          typeof error === 'object' &&
+          error !== null &&
+          'response' in error &&
+          typeof (error as { response?: { data?: { message?: unknown } } }).response?.data?.message === 'string'
+            ? (error as { response: { data: { message: string } } }).response.data.message
+            : error instanceof Error
+              ? error.message
+              : undefined
         toast({
-          title: t('playtelecom:supervisor.exportError', { defaultValue: 'Error al descargar reporte' }),
+          title: apiMessage || t('playtelecom:supervisor.exportError', { defaultValue: 'Error al descargar reporte' }),
           variant: 'destructive',
         })
+      } finally {
+        setIsExporting(false)
+        setExportProgress(null)
       }
     },
-    [buildExportData, toast, t],
+    [activeVenue?.id, endDateISO, isExporting, startDateISO, storeFilter, toast, t],
   )
 
   const isLoading = overviewLoading || venuesLoading
@@ -618,7 +646,7 @@ export function SupervisorDashboard() {
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <div className="border-b border-border">
           <nav className="flex items-center gap-3 sm:gap-6 overflow-x-auto">
-            {VALID_TABS.map(tab => (
+            {SUPERVISOR_TABS.map(tab => (
               <button
                 key={tab}
                 onClick={() => handleTabChange(tab)}
@@ -1175,21 +1203,23 @@ export function SupervisorDashboard() {
               </h3>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" className="bg-green-600 hover:bg-green-500 gap-2">
+                  <Button size="sm" className="bg-green-600 hover:bg-green-500 gap-2" disabled={isExporting}>
                     <Download className="w-3.5 h-3.5" />
-                    {t('playtelecom:supervisor.downloadReport', { defaultValue: 'DESCARGAR REPORTE' })}
+                    {isExporting
+                      ? `${exportProgress?.fetched ?? 0}${exportProgress?.total !== undefined ? ` / ${exportProgress.total}` : ''}`
+                      : t('playtelecom:supervisor.downloadReport', { defaultValue: 'DESCARGAR REPORTE' })}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleExport('excel')} className="gap-2">
+                  <DropdownMenuItem onClick={() => handleExport('excel')} className="gap-2" disabled={isExporting}>
                     <FileSpreadsheet className="w-4 h-4" />
                     Excel (.xlsx)
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleExport('sheets')} className="gap-2">
+                  <DropdownMenuItem onClick={() => handleExport('sheets')} className="gap-2" disabled={isExporting}>
                     <Sheet className="w-4 h-4" />
                     Google Sheets
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleExport('csv')} className="gap-2">
+                  <DropdownMenuItem onClick={() => handleExport('csv')} className="gap-2" disabled={isExporting}>
                     <FileText className="w-4 h-4" />
                     CSV
                   </DropdownMenuItem>

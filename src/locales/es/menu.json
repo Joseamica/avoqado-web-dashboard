@@ -778,6 +778,7 @@
       "categoryHelp": "Organiza tus servicios en categorías.",
       "activeHelp": "Los servicios inactivos no aparecen en reservas ni en el TPV.",
       "durationHelp": "Se usa para calcular la hora de fin al crear una cita.",
+      "durationOptionalHelp": "Opcional. Si lo dejas vacío, la agenda usa la duración predeterminada de tus Reservaciones. Ponla si este servicio dura distinto, para que no se agende a otro cliente encima.",
       "maxParticipantsHelp": "El cupo puede ajustarse por sesión al crear el calendario.",
       "saving": "Guardando...",
       "preview": "Vista previa",
@@ -809,6 +810,8 @@
       "deleteMessage": "¿Estás seguro de que quieres eliminar este servicio? Esta acción no se puede deshacer.",
       "deleteConfirm": "Eliminar",
       "duration": "{{minutes}} min",
+      "durationInherited": "Usa la duración predeterminada del local",
+      "durationInheritedHelp": "Este servicio no tiene duración propia, así que la agenda usa la duración predeterminada configurada en Reservaciones. Si el servicio dura más, se puede agendar a otro cliente encima.",
       "participants": "{{count}} participantes"
     },
     "convert": {

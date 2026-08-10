@@ -124,6 +124,19 @@
       "total": "Total",
       "ofSubtotal": "du sous-total"
     },
+    "cashReconciliation": {
+      "title": "Rapprochement de caisse",
+      "notCounted": "Non comptée",
+      "notCountedDescription": "Le shift a été clôturé sans enregistrer les espèces physiques.",
+      "balanced": "Caisse équilibrée",
+      "balancedDescription": "Les espèces comptées correspondent à la caisse attendue.",
+      "shortage": "Manquant",
+      "shortageDescription": "La caisse est inférieure de {{amount}} au montant attendu.",
+      "overage": "Excédent",
+      "overageDescription": "La caisse dépasse de {{amount}} le montant attendu.",
+      "countedCash": "Espèces comptées",
+      "difference": "Différence"
+    },
     "fields": {
       "turnId": "ID de Tour",
       "systemId": "ID Systeme",

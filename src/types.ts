@@ -614,6 +614,8 @@ export interface VenueSettings {
   autoCloseShifts: boolean
   shiftDuration: number
   enableShifts: boolean
+  /** Venue opt-in; effective only while the PRO entitlement is active. */
+  cashReconciliationEnabled?: boolean
   requirePinLogin: boolean
   /** Propiedad de mesa (PRO): solo el mesero dueño modifica/cierra sus mesas. */
   enforceTableOwnership?: boolean
@@ -1440,6 +1442,7 @@ export interface Shift {
   // Cash management
   startingCash: number
   endingCash: number | null
+  cashDeclared?: number | null
   cashDifference: number | null
 
   // Summary

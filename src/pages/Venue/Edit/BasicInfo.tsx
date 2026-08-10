@@ -20,8 +20,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { AddressAutocomplete, type PlaceDetails } from '@/components/address-autocomplete'
 import { useToast } from '@/hooks/use-toast'
-import { useAuth } from '@/context/AuthContext'
-import { StaffRole } from '@/types'
+import { useAccess } from '@/hooks/use-access'
 import { isDemoVenueStatus } from '@/types/superadmin'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -37,6 +36,7 @@ import { TimezoneCombobox } from '@/components/timezone-combobox'
 import { useVenueEditActions } from '../VenueEditLayout'
 import { BusinessType } from '@/types'
 import type { FieldErrors } from 'react-hook-form'
+import { CashReconciliationSetting } from './components/CashReconciliationSetting'
 
 const LEGACY_BUSINESS_TYPE_MAP: Record<string, BusinessType> = {
   HOTEL_RESTAURANT: BusinessType.HOTEL,
@@ -122,8 +122,8 @@ function BasicInfoSkeleton() {
 export default function BasicInfo() {
   const { t } = useTranslation(['venue', 'common'])
   const { venueId, venueSlug: _venueSlug, fullBasePath } = useCurrentVenue()
-  const { user } = useAuth()
-  const canEdit = [StaffRole.OWNER, StaffRole.ADMIN, StaffRole.SUPERADMIN].includes((user?.role as StaffRole) || ('' as any))
+  const { can } = useAccess()
+  const canEdit = can('venues:update')
   const { setActions } = useVenueEditActions()
 
   const countries = useMemo(() => {
@@ -967,6 +967,13 @@ export default function BasicInfo() {
                           {/* Sub-options — only when shifts enabled */}
                           {field.value && (
                             <div className="px-4 pb-4 space-y-4">
+                              {venueId && (
+                                <CashReconciliationSetting
+                                  venueId={venueId}
+                                  storedSetting={venue.settings?.cashReconciliationEnabled ?? false}
+                                />
+                              )}
+
                               {/* Clock-in photo */}
                               <div className="flex items-center justify-between">
                                 <div className="space-y-0.5">
