@@ -20,6 +20,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
    */
   [StaffRole.VIEWER]: [
     'home:read',
+    'catalog-venue:read',
     'analytics:read',
     'menu:read',
     'orders:read',
@@ -130,6 +131,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
    */
   [StaffRole.MANAGER]: [
     'home:read',
+    'catalog-venue:read',
+    'catalog-venue:request-override',
     'analytics:read',
     'analytics:export',
     'reports:read',
@@ -230,6 +233,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
    */
   [StaffRole.ADMIN]: [
     '*:*', // All permissions
+    'catalog-venue:read',
+    'catalog-venue:request-override',
   ],
 
   /**
@@ -238,6 +243,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
    */
   [StaffRole.OWNER]: [
     '*:*', // All permissions
+    'catalog-venue:read',
+    'catalog-venue:request-override',
   ],
 
   /**
