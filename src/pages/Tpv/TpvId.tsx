@@ -53,6 +53,7 @@ import {
   Lock,
   LockOpen,
   MemoryStick,
+  MonitorSmartphone,
   PencilIcon,
   RotateCcw,
   SaveIcon,
@@ -111,6 +112,7 @@ interface TpvData {
   lockReason?: string | null // 🆕 Why terminal was locked
   lockedAt?: string | null // 🆕 When terminal was locked
   lockedBy?: string | null // 🆕 StaffId who locked
+  customerDisplayInverted?: boolean // 🆕 Dual-screen Sunmi: customer sees the large screen, cashier the small one
   systemInfo?: {
     platform?: string
     memory?: {
@@ -440,6 +442,35 @@ export default function TpvId() {
         variant: 'destructive',
       })
       console.error('Error updating TPV:', error)
+    },
+  })
+
+  // Mutation for toggling customer-display inversion (Sunmi dual-screen POS).
+  // Same endpoint/query-invalidation as updateTpvMutation, but fires immediately on toggle
+  // instead of going through the edit form — matches the Maintenance/Lock quick actions below.
+  const updateDisplayInvertedMutation = useMutation({
+    mutationFn: async (customerDisplayInverted: boolean) => {
+      if (!venueId || !tpvId) {
+        throw new Error(t('detail.errors.venueOrTpvUndefined'))
+      }
+      const response = await api.put(`/api/v1/dashboard/venues/${venueId}/tpv/${tpvId}`, { customerDisplayInverted })
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tpv', venueId, tpvId] })
+      queryClient.invalidateQueries({ queryKey: ['tpvs', venueId] })
+      toast({
+        title: t('detail.toast.updateSuccess'),
+        description: t('detail.toast.updateSuccessDesc'),
+      })
+    },
+    onError: error => {
+      toast({
+        title: t('common:error'),
+        description: t('detail.errors.updateFailed'),
+        variant: 'destructive',
+      })
+      console.error('Error updating customerDisplayInverted:', error)
     },
   })
 
@@ -1247,6 +1278,29 @@ export default function TpvId() {
                             className="data-[state=checked]:bg-red-500"
                           />
                         </div>
+                      </PermissionGate>
+
+                      {/* Customer Display Inverted Toggle (Sunmi dual-screen POS) */}
+                      <PermissionGate permission="tpv:update">
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
+                          <div className="flex items-center space-x-3">
+                            {updateDisplayInvertedMutation.isPending ? (
+                              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                            ) : (
+                              <MonitorSmartphone className="w-5 h-5 text-muted-foreground" />
+                            )}
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{t('actions.customerDisplayInverted')}</p>
+                              <p className="text-xs text-muted-foreground">{t('detail.tooltips.customerDisplayInverted')}</p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={tpv?.customerDisplayInverted ?? false}
+                            onCheckedChange={checked => updateDisplayInvertedMutation.mutate(checked)}
+                            disabled={updateDisplayInvertedMutation.isPending}
+                          />
+                        </div>
+                        <p className="text-[11px] text-muted-foreground/70 pl-3 -mt-2">{t('detail.notes.customerDisplaySync')}</p>
                       </PermissionGate>
 
                       {/* Terminal status alert - only show if status is INACTIVE (different from disconnected) */}

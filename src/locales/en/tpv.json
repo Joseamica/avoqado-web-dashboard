@@ -18,7 +18,8 @@
     "lock": "Lock",
     "locked": "Locked",
     "unlocked": "Unlocked",
-    "globalConfig": "Global config"
+    "globalConfig": "Global config",
+    "customerDisplayInverted": "Invert screens"
   },
   "create": {
     "title": "Create New Terminal",
@@ -337,7 +338,8 @@
       "maintenanceMode": "Put terminal in maintenance mode",
       "updateStatus": "Request terminal to send updated status",
       "lock": "Lock terminal remotely",
-      "unlock": "Unlock terminal"
+      "unlock": "Unlock terminal",
+      "customerDisplayInverted": "The customer sees the large screen and the cashier works on the small one. Only applies to dual-screen devices with a second touchscreen."
     },
     "selectStatus": "Select status",
     "statusOptions": {
@@ -360,6 +362,9 @@
     "toast": {
       "updateSuccess": "Terminal updated",
       "updateSuccessDesc": "Terminal information has been updated successfully"
+    },
+    "notes": {
+      "customerDisplaySync": "The device applies the change the next time it syncs."
     },
     "deactivateConfirmTitle": "Deactivate Terminal? (Superadmin Only)",
     "deactivateConfirmDescription": "Are you sure you want to deactivate the terminal \"{{name}}\"? This will clear the activation and allow generating a new activation code.",

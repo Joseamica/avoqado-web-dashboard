@@ -10,7 +10,8 @@
     "exitMaintenance": "Exit Maintenance",
     "maintenanceMode": "Maintenance",
     "update": "Update",
-    "globalConfig": "Config. globale"
+    "globalConfig": "Config. globale",
+    "customerDisplayInverted": "Inverser les écrans"
   },
   "create": {
     "title": "Créer un Nouveau Terminal",
@@ -266,7 +267,8 @@
     "tooltips": {
       "reactivate": "Reactivate terminal",
       "maintenanceMode": "Put terminal in maintenance mode",
-      "updateStatus": "Request terminal to send updated status"
+      "updateStatus": "Request terminal to send updated status",
+      "customerDisplayInverted": "Le client voit le grand écran et le caissier travaille sur le petit. S'applique uniquement aux appareils à double écran avec un second écran tactile."
     },
     "validation": {
       "nameRequired": "Terminal name is required",
@@ -281,6 +283,9 @@
     "toast": {
       "updateSuccess": "Terminal updated",
       "updateSuccessDesc": "Terminal information has been updated successfully"
+    },
+    "notes": {
+      "customerDisplaySync": "L'appareil applique le changement lors de sa prochaine synchronisation."
     }
   },
   "pagination": {

@@ -18,7 +18,8 @@
     "lock": "Bloqueo",
     "locked": "Bloqueado",
     "unlocked": "Desbloqueado",
-    "globalConfig": "Config. Global"
+    "globalConfig": "Config. Global",
+    "customerDisplayInverted": "Invertir pantallas"
   },
   "create": {
     "title": "Crear Nuevo Terminal",
@@ -350,7 +351,8 @@
       "maintenanceMode": "Poner terminal en modo mantenimiento",
       "updateStatus": "Solicitar al terminal que envíe estado actualizado",
       "lock": "Bloquear terminal remotamente",
-      "unlock": "Desbloquear terminal"
+      "unlock": "Desbloquear terminal",
+      "customerDisplayInverted": "El cliente ve la pantalla grande y el cajero trabaja en la chica. Solo aplica en equipos de doble pantalla con segunda pantalla táctil."
     },
     "selectStatus": "Seleccionar estado",
     "statusOptions": {
@@ -373,6 +375,9 @@
     "toast": {
       "updateSuccess": "Terminal actualizado",
       "updateSuccessDesc": "La información del terminal se ha actualizado correctamente"
+    },
+    "notes": {
+      "customerDisplaySync": "El equipo aplica el cambio la próxima vez que sincroniza."
     },
     "deactivateConfirmTitle": "¿Desactivar Terminal? (Solo Superadmin)",
     "deactivateConfirmDescription": "¿Estás seguro de que deseas desactivar el terminal \"{{name}}\"? Esto limpiará la activación y permitirá generar un nuevo código de activación.",
