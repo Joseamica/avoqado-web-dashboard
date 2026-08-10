@@ -131,9 +131,6 @@ run_e2e_check() {
 
 run_sequential_core() {
   echo "📏 Step $STEP/$TOTAL_STEPS: Running ESLint..."
-  echo "   Auto-fixing issues..."
-  npm run lint:fix 2>/dev/null || true
-  echo "   Checking for remaining issues..."
   if npm run lint -- --quiet; then
     echo -e "${GREEN}✅ ESLint passed!${NC}"
   else
@@ -166,8 +163,6 @@ run_sequential_core() {
 
 run_smart_core() {
   echo "🧠 Step $STEP/$TOTAL_STEPS: Running intelligent core checks (worker pool)..."
-  echo "   Auto-fixing lint issues before parallel checks..."
-  npm run lint:fix 2>/dev/null || true
 
   local log_dir=".cache/pre-deploy-logs"
   if ! mkdir -p "$log_dir" 2>/dev/null; then

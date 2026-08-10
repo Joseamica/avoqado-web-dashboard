@@ -117,7 +117,7 @@ function Section({ title, lines, totalCents, strong }: { title: string; lines: R
 
 function AccountingReportsInner() {
   const { t } = useTranslation('reports')
-  const { fullBasePath } = useCurrentVenue()
+  const { venue, fullBasePath } = useCurrentVenue()
   const { hasAccess } = useTierFeatureAccess('CFDI')
   const [period, setPeriod] = useState(() => new Date().toISOString().slice(0, 7))
 
