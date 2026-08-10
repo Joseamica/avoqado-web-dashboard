@@ -160,8 +160,22 @@ async function setupSalesExecutiveMocks(page: Page) {
           month: '2026-06',
           days: ['2026-06-01', '2026-06-02', '2026-06-03'],
           rows: [
-            { staffId: 'p1', promoterName: 'Nancy Casillas', byDay: { '2026-06-01': 7, '2026-06-02': 79, '2026-06-03': 104 }, total: 190, toReview: 4, toReviewPrevious: 2 },
-            { staffId: 'p2', promoterName: 'Patricia Navarro', byDay: { '2026-06-01': 4, '2026-06-02': 85 }, total: 89, toReview: 3, toReviewPrevious: 0 },
+            {
+              staffId: 'p1',
+              promoterName: 'Nancy Casillas',
+              byDay: { '2026-06-01': 7, '2026-06-02': 79, '2026-06-03': 104 },
+              total: 190,
+              toReview: 4,
+              toReviewPrevious: 2,
+            },
+            {
+              staffId: 'p2',
+              promoterName: 'Patricia Navarro',
+              byDay: { '2026-06-01': 4, '2026-06-02': 85 },
+              total: 89,
+              toReview: 3,
+              toReviewPrevious: 0,
+            },
             // only to-review (no confirmed) → must still appear so the promoter acts
             { staffId: 'p3', promoterName: 'Lucia Briones', byDay: {}, total: 0, toReview: 6, toReviewPrevious: 5 },
           ],
@@ -181,8 +195,8 @@ test.describe('SalesExecutive (org Ventas)', () => {
     await expect(page.getByRole('heading', { name: 'Ventas', exact: true })).toBeVisible({ timeout: 15_000 })
   })
 
-  test('1 — "Monto confirmado" shows confirmedRevenue, not totalRevenue', async ({ page }) => {
-    const kpiCard = page.locator('text=Monto confirmado').locator('..')
+  test('1 — "Monto aprobado" shows confirmedRevenue, not totalRevenue', async ({ page }) => {
+    const kpiCard = page.getByText('Monto aprobado', { exact: true }).locator('..')
     await expect(kpiCard).toContainText('$1,000')
     await expect(kpiCard).not.toContainText('$1,850')
   })
@@ -226,7 +240,9 @@ test.describe('SalesExecutive (org Ventas)', () => {
 
   test('5 — promoter table renders with country total on top', async ({ page }) => {
     // exact:true so it doesn't also match "Ventas Totales por Promotor por día"
-    const promoterCard = page.locator('div', { has: page.getByRole('heading', { name: 'Ventas Totales por Promotor', exact: true }) }).last()
+    const promoterCard = page
+      .locator('div', { has: page.getByRole('heading', { name: 'Ventas Totales por Promotor', exact: true }) })
+      .last()
     await expect(promoterCard).toContainText('Susana Valdez')
     await expect(promoterCard).toContainText('Ricardo Martinez')
 

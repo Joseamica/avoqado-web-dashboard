@@ -11,12 +11,7 @@
 
 import { test, expect, Page } from '@playwright/test'
 import { setupApiMocks } from '../../fixtures/api-mocks'
-import {
-  StaffRole,
-  PLAYTELECOM_VENUE_ALPHA,
-  createMockUser,
-  createAuthStatusResponse,
-} from '../../fixtures/mock-data'
+import { StaffRole, PLAYTELECOM_VENUE_ALPHA, createMockUser, createAuthStatusResponse } from '../../fixtures/mock-data'
 
 const VENUE_ID = PLAYTELECOM_VENUE_ALPHA.id
 const VENUE_SLUG = PLAYTELECOM_VENUE_ALPHA.slug
@@ -114,9 +109,7 @@ async function setupSalesReportMocks(page: Page, opts: { withReviewPermission: b
   const user = createMockUser(StaffRole.OWNER, [venue])
 
   // Catch-all so unmocked endpoints don't 404 the test
-  await page.route('**/api/v1/**', route =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) }),
-  )
+  await page.route('**/api/v1/**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) }))
 
   // me/access — provides corePermissions to useAccess() which gates the action column
   await page.route('**/api/v1/me/access*', route =>
@@ -235,30 +228,34 @@ test.describe('PlayTelecom Sales Review (back-office)', () => {
     await page.getByTestId('btn-approve-sv-pending-1').click({ force: true })
 
     // The review dialog title appears
-    await expect(page.getByRole('heading', { name: 'Confirmar venta' })).toBeVisible({ timeout: 10000 })
-    await page.getByRole('button', { name: 'Confirmar venta' }).click({ force: true })
+    await expect(page.getByRole('heading', { name: 'Aprobar venta' })).toBeVisible({ timeout: 10000 })
+    await page.getByRole('button', { name: 'Aprobar venta' }).click({ force: true })
 
     await expect.poll(() => patchSeen, { timeout: 10000 }).toBe(true)
   })
 
-  test('reject flow requires at least one reason or notes', async ({ page }) => {
+  test('reject flow keeps submission disabled until observations are valid', async ({ page }) => {
     await setupApiMocks(page, { userRole: StaffRole.OWNER, venues: [PLAYTELECOM_VENUE_ALPHA] })
     await setupSalesReportMocks(page, { withReviewPermission: true })
 
     let patchSeen = false
     await page.route(/.*\/sale-verifications\/sv-pending-1\/review$/, async route => {
       patchSeen = true
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: PENDING_VERIFICATION }) })
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: PENDING_VERIFICATION }),
+      })
     })
 
     await gotoSalesPage(page)
 
     await page.getByTestId('btn-reject-sv-pending-1').click({ force: true })
 
-    // Try to submit with no reason and no notes
-    await page.getByRole('button', { name: 'Marcar para revisar' }).click({ force: true })
-
-    await expect(page.getByText(/al menos una opción o escribe una observación/i)).toBeVisible()
+    const submit = page.getByRole('button', { name: 'Marcar para revisar' })
+    await expect(submit).toBeDisabled()
+    await page.getByLabel('Observaciones *').fill('abcd')
+    await expect(submit).toBeDisabled()
     expect(patchSeen).toBe(false)
   })
 
@@ -292,12 +289,16 @@ test.describe('PlayTelecom Sales Review (back-office)', () => {
 
     // Tick the portability reason
     await page.getByLabel('Falta imagen de portabilidad').check()
+    await page.getByLabel('Observaciones *').fill('La imagen de portabilidad no se alcanza a leer')
     await page.getByRole('button', { name: 'Marcar para revisar' }).click({ force: true })
 
-    await expect.poll(() => capturedBody, { timeout: 10000 }).toMatchObject({
-      decision: 'REJECT',
-      rejectionReasons: ['REVIEW_PORTABILIDAD'],
-    })
+    await expect
+      .poll(() => capturedBody, { timeout: 10000 })
+      .toMatchObject({
+        decision: 'REJECT',
+        rejectionReasons: ['REVIEW_PORTABILIDAD'],
+        reviewNotes: 'La imagen de portabilidad no se alcanza a leer',
+      })
   })
 
   test('hides action buttons when user lacks sale-verifications:review permission', async ({ page }) => {

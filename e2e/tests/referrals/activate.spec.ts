@@ -36,11 +36,7 @@ const ADMIN_PERMISSIONS = [
   'referral:export-csv',
 ]
 
-const VIEWER_PERMISSIONS = [
-  'home:read',
-  'customers:read',
-  'referral:read',
-]
+const VIEWER_PERMISSIONS = ['home:read', 'customers:read', 'referral:read']
 
 function makeVenue(permissions: string[]) {
   return createMockVenue({
@@ -103,10 +99,7 @@ async function hideDevtools(page: Page): Promise<void> {
  * Mock the referrals API. `state` selects which config the GET /config endpoint returns.
  * Returns the array of captured activate POST bodies (for assertion).
  */
-async function setupReferralsMocks(
-  page: Page,
-  state: 'inactive' | 'active',
-): Promise<{ captured: unknown[] }> {
+async function setupReferralsMocks(page: Page, state: 'inactive' | 'active'): Promise<{ captured: unknown[] }> {
   const captured: unknown[] = []
 
   // POST /activate — capture the body, return ok
@@ -180,14 +173,10 @@ test.describe('Referrals MVP — multi-persona', () => {
     await navigateToReferrals(page)
 
     // Page title visible
-    await expect(
-      page.getByRole('heading', { name: /Programa de Referidos|Referral Program/i }).first(),
-    ).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole('heading', { name: /Programa de Referidos|Referral Program/i }).first()).toBeVisible({ timeout: 15_000 })
 
     // The activation header copy is visible (inactive flow)
-    await expect(
-      page.getByText(/Activar el programa de referidos|Activate the referral program/i).first(),
-    ).toBeVisible()
+    await expect(page.getByText(/Activar el programa de referidos|Activate the referral program/i).first()).toBeVisible()
 
     // Submit button is visible (PermissionGate allows it for ADMIN)
     const submitBtn = page.locator('[data-tour="referrals-activate-btn"]')
@@ -207,10 +196,20 @@ test.describe('Referrals MVP — multi-persona', () => {
     await expect.poll(() => captured.length, { timeout: 10_000 }).toBeGreaterThan(0)
 
     // Payload sanity: defaults round-tripped
-    const body = captured[0] as Record<string, number>
+    const body = captured[0] as {
+      newCustomerDiscountPercent: number
+      tier1ReferralsRequired: number
+      rewardCouponExpiryDays: number
+      tiers: Array<{ tierLevel: number; rewardType: string; recurrence: string; rewardPercent: number }>
+    }
     expect(body.newCustomerDiscountPercent).toBe(10)
     expect(body.tier1ReferralsRequired).toBe(7)
-    expect(body.tier3RewardPercent).toBe(25)
+    expect(body.tiers).toContainEqual({
+      tierLevel: 3,
+      rewardType: 'PERCENT_COUPON',
+      recurrence: 'ONE_TIME',
+      rewardPercent: 25,
+    })
     expect(body.rewardCouponExpiryDays).toBe(90)
   })
 
@@ -225,22 +224,16 @@ test.describe('Referrals MVP — multi-persona', () => {
     await navigateToReferrals(page)
 
     // Title still renders
-    await expect(
-      page.getByRole('heading', { name: /Programa de Referidos|Referral Program/i }).first(),
-    ).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole('heading', { name: /Programa de Referidos|Referral Program/i }).first()).toBeVisible({ timeout: 15_000 })
 
     // Activation header copy is still shown (page is read-only for VIEWER)
-    await expect(
-      page.getByText(/Activar el programa de referidos|Activate the referral program/i).first(),
-    ).toBeVisible()
+    await expect(page.getByText(/Activar el programa de referidos|Activate the referral program/i).first()).toBeVisible()
 
     // The activate button must NOT be present (permission gate hides it)
     await expect(page.locator('[data-tour="referrals-activate-btn"]')).toHaveCount(0)
 
     // The "no permission" notice is shown instead
-    await expect(
-      page.getByText(/No tienes permisos para configurar|You don't have permission to configure/i).first(),
-    ).toBeVisible()
+    await expect(page.getByText(/No tienes permisos para configurar|You don't have permission to configure/i).first()).toBeVisible()
   })
 
   test('3 — OWNER sees summary + pause button on active state', async ({ page }) => {
@@ -254,9 +247,7 @@ test.describe('Referrals MVP — multi-persona', () => {
     await navigateToReferrals(page)
 
     // Title visible
-    await expect(
-      page.getByRole('heading', { name: /Programa de Referidos|Referral Program/i }).first(),
-    ).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole('heading', { name: /Programa de Referidos|Referral Program/i }).first()).toBeVisible({ timeout: 15_000 })
 
     // "Activo desde / Active since" banner
     await expect(page.getByText(/Activo desde|Active since/i).first()).toBeVisible()
