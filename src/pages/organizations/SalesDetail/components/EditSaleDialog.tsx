@@ -58,8 +58,8 @@ export function EditSaleDialog({
       setIsPortabilidad(row.saleType === 'PORTABILIDAD')
       setStatus(row.status)
       setReason('')
-      setReviewNotes('')
-      setRejectionReasons([])
+      setReviewNotes(row.status === 'FAILED' ? (row.reviewNotes?.trim() ?? '') : '')
+      setRejectionReasons(row.status === 'FAILED' ? row.rejectionReasons : [])
       setError(null)
     }
   }, [open, row])

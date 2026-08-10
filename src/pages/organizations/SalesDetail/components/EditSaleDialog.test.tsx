@@ -36,6 +36,15 @@ function renderDialog() {
   )
 }
 
+function renderDialogFor(rowOverride: OrgSaleRow) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <QueryClientProvider client={qc}>
+      <EditSaleDialog open row={rowOverride} orgId="org-1" onClose={vi.fn()} />
+    </QueryClientProvider>,
+  )
+}
+
 /** El Select de Radix necesita abrirse antes de poder elegir la opción. */
 async function selectRevisarPorPromotor() {
   const triggers = screen.getAllByRole('combobox')
@@ -89,6 +98,29 @@ describe('EditSaleDialog — candado "Revisar por promotor"', () => {
       status: 'FAILED',
       reviewNotes: 'Falta la imagen de vinculación',
       rejectionReasons: ['REVIEW_MISSING_LINKING_IMAGE'],
+    })
+  })
+
+  it('conserva las instrucciones existentes al editar una venta que ya está FAILED', async () => {
+    renderDialogFor({
+      ...row,
+      status: 'FAILED',
+      reviewNotes: 'Corrige la imagen de portabilidad',
+      rejectionReasons: ['REVIEW_PORTABILIDAD'],
+    } as OrgSaleRow)
+
+    fireEvent.change(screen.getByLabelText(/monto/i), { target: { value: '100' } })
+    fireEvent.change(screen.getByPlaceholderText(/explica por qué editas/i), {
+      target: { value: 'Corrección del monto capturado' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /guardar/i }))
+
+    await waitFor(() => expect(editMock).toHaveBeenCalledTimes(1))
+    expect(editMock.mock.calls[0][2]).toMatchObject({
+      amount: 100,
+      status: 'FAILED',
+      reviewNotes: 'Corrige la imagen de portabilidad',
+      rejectionReasons: ['REVIEW_PORTABILIDAD'],
     })
   })
 })
