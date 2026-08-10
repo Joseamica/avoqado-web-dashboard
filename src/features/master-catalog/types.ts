@@ -129,3 +129,214 @@ export function getMasterCatalogOrganizationLinks(user: unknown): Array<{ organi
   }
   return links
 }
+
+export type CatalogItemKind = 'RETAIL_PRODUCT' | 'PREPARED_DISH'
+export type CatalogItemStatus = 'ACTIVE' | 'RETIRED'
+export type CatalogReferenceStatus = 'ACTIVE' | 'RETIRED'
+
+export interface CatalogReference {
+  id: string
+  name: string
+  status: CatalogReferenceStatus
+  revision: number
+  parent?: { id: string; name: string; status: CatalogReferenceStatus } | null
+}
+
+export interface CatalogItemSummary {
+  id: string
+  sku: string
+  name: string
+  kind: CatalogItemKind
+  status: CatalogItemStatus
+  revision: number
+  bindingSummary: { total: number }
+}
+
+export interface CatalogOrganizationValueInput {
+  kind: 'SALE_PRICE' | 'PURCHASE_COST'
+  amount: string
+  currency: string
+  expectedRuleRevision?: number
+}
+
+export interface CatalogItemCommand {
+  sku: string
+  kind: CatalogItemKind
+  name: string
+  description: string
+  imageUrl: string
+  brandId: string
+  manufacturerId: string
+  familyId: string
+  presentationLabel: string
+  unit: string
+  taxRate: string
+  satProductKey: string
+  satUnitKey: string
+  objetoImp: string
+  productType: string
+  iepsMode: string
+  iepsRate: string | null
+  iepsQuota: string | null
+  iepsQuotaUnit: string | null
+  businessTypes: string[]
+  organizationValues: CatalogOrganizationValueInput[]
+}
+
+export interface CatalogItemDetail extends CatalogItemSummary, CatalogItemCommand {
+  organizationId: string
+  brand: CatalogReference
+  manufacturer: CatalogReference
+  family: CatalogReference & { parent: CatalogReference }
+  organizationValues: Array<CatalogOrganizationValueInput & { id: string; revision: number; active: boolean }>
+  createdById: string
+  updatedById: string
+  createdAt: string
+  updatedAt: string
+  validation: { state: string; summary: string | null }
+}
+
+export interface CursorPage<T> {
+  items: T[]
+  nextCursor: string | null
+}
+
+export interface CatalogImportFinding {
+  sheet?: string
+  sourceSheet?: string
+  row?: number
+  sourceRow?: number
+  column?: string | null
+  code: string
+  message: string
+  rejectedValue?: string | null
+}
+
+export interface CatalogImportPreview {
+  importBatchId: string
+  canConfirm: boolean
+  previewToken: string | null
+  targetHash: string
+  expiresAt: string | null
+  errors: CatalogImportFinding[]
+  errorCount: number
+  errorsTruncated: boolean
+  blockingReasons: Array<{ code: string; message: string }>
+}
+
+export interface CatalogImportResult {
+  importBatchId: string
+  state: 'APPLIED'
+  appliedItemIds: string[]
+}
+
+export type CatalogBindingDecision =
+  | { decision: 'LINK'; productId: string }
+  | { decision: 'CREATE'; create: { categoryId: string; localSku: string; initialPrice: string } }
+  | { decision: 'SKIP' }
+
+export interface CatalogBindingPreviewLine {
+  catalogItemId: string
+  venueId: string
+  proposal: 'LINK' | 'CREATE' | 'SKIP'
+  decision: CatalogBindingDecision | null
+  status: 'READY' | 'CONFLICT' | 'INVALID'
+  errorCode: string | null
+  candidates: Array<{ id: string; sku: string; name: string }>
+  readiness: 'NOT_REQUIRED' | 'READY' | 'MISSING_RECIPE' | 'INVALID' | 'STALE'
+}
+
+export interface CatalogBindingPreview {
+  bindingBatchId: string | null
+  previewToken: string | null
+  targetHash: string
+  expiresAt: string | null
+  canConfirm: boolean
+  lines: CatalogBindingPreviewLine[]
+}
+
+export interface CatalogBindingResult {
+  bindingBatchId: string
+  state: 'APPLIED'
+  lines: Array<{
+    catalogItemId: string
+    venueId: string
+    decision: 'LINK' | 'CREATE' | 'SKIP'
+    status: 'APPLIED' | 'SKIPPED'
+    productId: string | null
+    bindingId: string | null
+  }>
+}
+
+export type CatalogPublicationOperation = 'CATALOG_FIELDS_PUBLISH' | 'CATALOG_FIELDS_REVERSION' | 'CATALOG_PRODUCT_ACTIVATION'
+export type CatalogPublicationDecision = 'PUBLISH_CORPORATE' | 'APPROVE_LOCAL_OVERRIDE' | 'UNDECIDED'
+
+export interface CatalogPublicationPreviewField {
+  field: string
+  before: unknown
+  proposed: unknown
+  after: unknown
+  decision: CatalogPublicationDecision
+  overrideId: string | null
+}
+
+export interface CatalogPublicationPreview {
+  publicationBatchId: string
+  operation: CatalogPublicationOperation
+  previewToken: string
+  targetHash: string
+  expiresAt: string
+  canConfirm: boolean
+  lines: Array<{
+    catalogItemId: string
+    venueId: string
+    productId: string
+    bindingId: string
+    status: string
+    fieldMask: string[]
+    canonicalTargetHash: string
+    diagnosticCode: string | null
+    diagnostic: string | null
+    fields: CatalogPublicationPreviewField[]
+  }>
+}
+
+export interface CatalogPublicationResult {
+  publicationBatchId: string
+  operation: CatalogPublicationOperation
+  state: 'PREVIEWED' | 'IN_PROGRESS' | 'APPLIED' | 'FAILED' | 'EXPIRED' | 'SUPERSEDED'
+  expiresAt?: string
+  retryAfterSeconds?: number
+  lines: Array<Record<string, unknown>>
+}
+
+export interface CatalogPublicationListItem {
+  publicationBatchId: string
+  operation: CatalogPublicationOperation
+  state: string
+  previewExpiresAt: string | null
+  appliedAt: string | null
+  completedAt: string | null
+  createdAt: string
+  updatedAt: string
+  failureCode: string | null
+  failureMessage: string | null
+  lineCount: number
+}
+
+export interface CatalogAuditLog {
+  id: string
+  action: string
+  entity: string
+  entityId: string | null
+  createdAt: string
+  staff: { firstName: string; lastName: string } | null
+  venue: { id: string; name: string } | null
+  actorType?: 'HUMAN' | 'SERVICE' | null
+  servicePrincipalId?: string | null
+}
+
+export interface CatalogAuditPage {
+  logs: CatalogAuditLog[]
+  pagination: { page: number; pageSize: number; total: number; totalPages: number }
+}

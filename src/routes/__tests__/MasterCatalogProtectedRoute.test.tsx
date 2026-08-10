@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MasterCatalogProtectedRoute } from '@/routes/MasterCatalogProtectedRoute'
 import { useMasterCatalogAccess } from '@/features/master-catalog/use-master-catalog-access'
+import { useAuth } from '@/context/AuthContext'
 import { deniedAccess } from '@/features/master-catalog/types'
 import type { MasterCatalogAccess } from '@/features/master-catalog/types'
 
@@ -11,11 +12,16 @@ vi.mock('@/features/master-catalog/use-master-catalog-access', () => ({
   useMasterCatalogAccess: vi.fn(),
 }))
 
+vi.mock('@/context/AuthContext', () => ({
+  useAuth: vi.fn(),
+}))
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
 
 const mockedUseAccess = vi.mocked(useMasterCatalogAccess)
+const mockedUseAuth = vi.mocked(useAuth)
 
 const ORG_ID = 'org_pits'
 const CATALOG_PATH = `/organizations/${ORG_ID}/master-catalog/items`
@@ -75,10 +81,20 @@ function renderGuard(props: { require?: 'read' | 'mutate' } = {}) {
 
 beforeEach(() => {
   mockedUseAccess.mockReset()
+  mockedUseAuth.mockReturnValue({ user: { id: 'staff_1' }, isLoading: false } as unknown as ReturnType<typeof useAuth>)
 })
 
 describe('MasterCatalogProtectedRoute', () => {
   describe('renders nothing until the server has answered', () => {
+    it('does not redirect a deep link while the authenticated user is still hydrating', () => {
+      mockedUseAuth.mockReturnValue({ user: null, isLoading: true } as unknown as ReturnType<typeof useAuth>)
+      mockAccess(deniedAccess(ORG_ID, 'ROLE_DENIED'))
+      renderGuard()
+
+      expect(screen.queryByTestId('location')).not.toBeInTheDocument()
+      expect(screen.getByRole('status')).toHaveAccessibleName('loading')
+    })
+
     it('shows no catalog content while the access probe is loading', () => {
       mockAccess(deniedAccess(ORG_ID, 'DEPENDENCY_UNAVAILABLE'), true)
       renderGuard()

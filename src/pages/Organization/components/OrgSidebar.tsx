@@ -34,12 +34,13 @@ import {
   ChevronsUpDown,
   Coins,
   LayoutDashboard,
-  LibraryBig,
+  Link2,
   MessageSquare,
   Package,
   Receipt,
   MapPin,
   ScrollText,
+  Send,
   Settings,
   Smartphone,
   Store,
@@ -145,96 +146,116 @@ const OrgSidebar: React.FC<OrgSidebarProps> = ({ catalogOnly = false, ...props }
               title: t('sidebar.masterCatalog', { defaultValue: 'Catálogo maestro' }),
               items: [
                 {
-                  name: t('sidebar.masterCatalog', { defaultValue: 'Catálogo maestro' }),
-                  href: `/organizations/${orgId}/master-catalog`,
-                  icon: LibraryBig,
+                  name: t('masterCatalog.navigation.items', { defaultValue: 'Artículos' }),
+                  href: `/organizations/${orgId}/master-catalog/items`,
+                  icon: Package,
                   end: true,
+                },
+                {
+                  name: t('masterCatalog.navigation.imports', { defaultValue: 'Importar' }),
+                  href: `/organizations/${orgId}/master-catalog/imports`,
+                  icon: Upload,
+                },
+                {
+                  name: t('masterCatalog.navigation.bindings', { defaultValue: 'Asignaciones' }),
+                  href: `/organizations/${orgId}/master-catalog/bindings`,
+                  icon: Link2,
+                },
+                {
+                  name: t('masterCatalog.navigation.publications', { defaultValue: 'Publicaciones' }),
+                  href: `/organizations/${orgId}/master-catalog/publications`,
+                  icon: Send,
+                },
+                {
+                  name: t('masterCatalog.navigation.audit', { defaultValue: 'Bitácora' }),
+                  href: `/organizations/${orgId}/master-catalog/audit`,
+                  icon: ScrollText,
                 },
               ],
             },
           ]
         : [
-      {
-        title: t('sidebar.overview'),
-        items: [
-          { name: t('sidebar.dashboard'), href: `/organizations/${orgId}`, icon: LayoutDashboard, end: true },
-          { name: t('sidebar.analytics'), href: `/organizations/${orgId}/analytics`, icon: BarChart3 },
-        ],
-      },
-      {
-        title: t('sidebar.management'),
-        items: [
-          { name: t('sidebar.venues'), href: `/organizations/${orgId}/venues`, icon: Store },
-          { name: t('sidebar.team'), href: `/organizations/${orgId}/team`, icon: Users },
-          { name: t('sidebar.terminals'), href: `/organizations/${orgId}/terminals`, icon: Smartphone },
-          { name: t('sidebar.activityLog'), href: `/organizations/${orgId}/activity-log`, icon: ScrollText },
-        ],
-      },
-      {
-        title: t('sidebar.configuration'),
-        items: [{ name: t('sidebar.settings'), href: `/organizations/${orgId}/settings`, icon: Settings }],
-      },
-      // White-label org config section (only shown for orgs with WL module)
-      ...(isWhiteLabelOrg
-        ? [
             {
-              title: t('organization:sidebar.orgConfig', { defaultValue: 'Configuración Org.' }),
+              title: t('sidebar.overview'),
               items: [
-                {
-                  name: t('organization:sidebar.orgUsers', { defaultValue: 'Usuarios' }),
-                  href: `/organizations/${orgId}/users`,
-                  icon: Users,
-                },
-                {
-                  name: t('organization:sidebar.orgTpvConfig', { defaultValue: 'Configuración TPV' }),
-                  href: `/organizations/${orgId}/org-config`,
-                  icon: Smartphone,
-                },
-                {
-                  name: t('organization:sidebar.orgGoals', { defaultValue: 'Metas' }),
-                  href: `/organizations/${orgId}/org-goals`,
-                  icon: Target,
-                },
-                {
-                  name: t('organization:sidebar.orgCategories', { defaultValue: 'Categorías' }),
-                  href: `/organizations/${orgId}/org-categories`,
-                  icon: Store,
-                },
-                {
-                  name: t('organization:sidebar.orgMessages', { defaultValue: 'Mensajes' }),
-                  href: `/organizations/${orgId}/org-messages`,
-                  icon: MessageSquare,
-                },
-                {
-                  name: t('organization:sidebar.orgStockControl', { defaultValue: 'Control de Stock' }),
-                  href: `/organizations/${orgId}/stock-control`,
-                  icon: Package,
-                },
-                {
-                  name: t('organization:sidebar.sales', { defaultValue: 'Ventas' }),
-                  href: `/organizations/${orgId}/sales`,
-                  icon: Receipt,
-                },
-                {
-                  name: t('organization:sidebar.orgComisiones', { defaultValue: 'Comisiones' }),
-                  href: `/organizations/${orgId}/comisiones`,
-                  icon: Coins,
-                },
-                {
-                  name: t('organization:sidebar.orgManualSales', { defaultValue: 'Subir ventas fuera de TPV' }),
-                  href: `/organizations/${orgId}/ventas-externas`,
-                  icon: Upload,
-                },
-                {
-                  name: t('organization:sidebar.liveLocation', { defaultValue: 'Ubicación de TPVs' }),
-                  href: `/organizations/${orgId}/ubicacion-tpvs`,
-                  icon: MapPin,
-                },
+                { name: t('sidebar.dashboard'), href: `/organizations/${orgId}`, icon: LayoutDashboard, end: true },
+                { name: t('sidebar.analytics'), href: `/organizations/${orgId}/analytics`, icon: BarChart3 },
               ],
             },
-          ]
-        : []),
-    ],
+            {
+              title: t('sidebar.management'),
+              items: [
+                { name: t('sidebar.venues'), href: `/organizations/${orgId}/venues`, icon: Store },
+                { name: t('sidebar.team'), href: `/organizations/${orgId}/team`, icon: Users },
+                { name: t('sidebar.terminals'), href: `/organizations/${orgId}/terminals`, icon: Smartphone },
+                { name: t('sidebar.activityLog'), href: `/organizations/${orgId}/activity-log`, icon: ScrollText },
+              ],
+            },
+            {
+              title: t('sidebar.configuration'),
+              items: [{ name: t('sidebar.settings'), href: `/organizations/${orgId}/settings`, icon: Settings }],
+            },
+            // White-label org config section (only shown for orgs with WL module)
+            ...(isWhiteLabelOrg
+              ? [
+                  {
+                    title: t('organization:sidebar.orgConfig', { defaultValue: 'Configuración Org.' }),
+                    items: [
+                      {
+                        name: t('organization:sidebar.orgUsers', { defaultValue: 'Usuarios' }),
+                        href: `/organizations/${orgId}/users`,
+                        icon: Users,
+                      },
+                      {
+                        name: t('organization:sidebar.orgTpvConfig', { defaultValue: 'Configuración TPV' }),
+                        href: `/organizations/${orgId}/org-config`,
+                        icon: Smartphone,
+                      },
+                      {
+                        name: t('organization:sidebar.orgGoals', { defaultValue: 'Metas' }),
+                        href: `/organizations/${orgId}/org-goals`,
+                        icon: Target,
+                      },
+                      {
+                        name: t('organization:sidebar.orgCategories', { defaultValue: 'Categorías' }),
+                        href: `/organizations/${orgId}/org-categories`,
+                        icon: Store,
+                      },
+                      {
+                        name: t('organization:sidebar.orgMessages', { defaultValue: 'Mensajes' }),
+                        href: `/organizations/${orgId}/org-messages`,
+                        icon: MessageSquare,
+                      },
+                      {
+                        name: t('organization:sidebar.orgStockControl', { defaultValue: 'Control de Stock' }),
+                        href: `/organizations/${orgId}/stock-control`,
+                        icon: Package,
+                      },
+                      {
+                        name: t('organization:sidebar.sales', { defaultValue: 'Ventas' }),
+                        href: `/organizations/${orgId}/sales`,
+                        icon: Receipt,
+                      },
+                      {
+                        name: t('organization:sidebar.orgComisiones', { defaultValue: 'Comisiones' }),
+                        href: `/organizations/${orgId}/comisiones`,
+                        icon: Coins,
+                      },
+                      {
+                        name: t('organization:sidebar.orgManualSales', { defaultValue: 'Subir ventas fuera de TPV' }),
+                        href: `/organizations/${orgId}/ventas-externas`,
+                        icon: Upload,
+                      },
+                      {
+                        name: t('organization:sidebar.liveLocation', { defaultValue: 'Ubicación de TPVs' }),
+                        href: `/organizations/${orgId}/ubicacion-tpvs`,
+                        icon: MapPin,
+                      },
+                    ],
+                  },
+                ]
+              : []),
+          ],
     [t, orgId, isWhiteLabelOrg, catalogOnly],
   )
 
@@ -378,40 +399,40 @@ const OrgSidebar: React.FC<OrgSidebarProps> = ({ catalogOnly = false, ...props }
         {/* Quick Access to Venues (only this org's venues) */}
         {!catalogOnly &&
           (() => {
-          const currentOrgVenues = orgGroups.find(g => g.isCurrentOrg)?.venues ?? []
-          if (currentOrgVenues.length === 0) return null
-          return (
-            <SidebarGroup>
-              <SidebarGroupLabel>{t('sidebar.quickAccess')}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {currentOrgVenues.slice(0, 5).map(venue => (
-                    <SidebarMenuItem key={venue.id}>
-                      <SidebarMenuButton asChild>
-                        <NavLink to={`/venues/${venue.slug}/home`} className="flex items-center gap-2">
-                          <Avatar className="h-4 w-4 rounded">
-                            <AvatarImage src={venue.logo} alt={venue.name} />
-                            <AvatarFallback className="text-[10px]">{venue.name?.charAt(0).toUpperCase() || 'V'}</AvatarFallback>
-                          </Avatar>
-                          <span className="truncate">{venue.name}</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                  {currentOrgVenues.length > 5 && (
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink to={`/organizations/${orgId}/venues`} className="flex items-center gap-2 text-primary">
-                          <ChevronRight className="size-4" />
-                          <span>{t('sidebar.viewAll', { count: currentOrgVenues.length })}</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          )
+            const currentOrgVenues = orgGroups.find(g => g.isCurrentOrg)?.venues ?? []
+            if (currentOrgVenues.length === 0) return null
+            return (
+              <SidebarGroup>
+                <SidebarGroupLabel>{t('sidebar.quickAccess')}</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {currentOrgVenues.slice(0, 5).map(venue => (
+                      <SidebarMenuItem key={venue.id}>
+                        <SidebarMenuButton asChild>
+                          <NavLink to={`/venues/${venue.slug}/home`} className="flex items-center gap-2">
+                            <Avatar className="h-4 w-4 rounded">
+                              <AvatarImage src={venue.logo} alt={venue.name} />
+                              <AvatarFallback className="text-[10px]">{venue.name?.charAt(0).toUpperCase() || 'V'}</AvatarFallback>
+                            </Avatar>
+                            <span className="truncate">{venue.name}</span>
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                    {currentOrgVenues.length > 5 && (
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild>
+                          <NavLink to={`/organizations/${orgId}/venues`} className="flex items-center gap-2 text-primary">
+                            <ChevronRight className="size-4" />
+                            <span>{t('sidebar.viewAll', { count: currentOrgVenues.length })}</span>
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )
           })()}
       </SidebarContent>
 

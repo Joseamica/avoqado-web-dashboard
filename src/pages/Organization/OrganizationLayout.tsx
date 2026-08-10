@@ -13,7 +13,6 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ShieldAlert } from 'lucide-react'
 import OrgSidebar from './components/OrgSidebar'
-import { ComingSoon } from '@/components/ComingSoon'
 
 interface OrganizationLayoutProps {
   catalogOnly?: boolean
@@ -159,8 +158,8 @@ const OrganizationLayout: React.FC<OrganizationLayoutProps> = ({ catalogOnly = f
 export const MasterCatalogLayout: React.FC = () => <OrganizationLayout catalogOnly />
 
 export const MasterCatalogLanding: React.FC = () => {
-  const { t } = useTranslation('common')
-  return <ComingSoon feature={t('venuesSwitcher.masterCatalog')} />
+  const { orgId } = useParams<{ orgId: string }>()
+  return <Link to={`/organizations/${orgId}/master-catalog/items`} replace />
 }
 
 export default OrganizationLayout

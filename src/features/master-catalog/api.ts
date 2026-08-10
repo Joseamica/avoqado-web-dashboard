@@ -1,5 +1,26 @@
 import api from '@/api'
-import type { GovernanceMode, MasterCatalogAccess, MasterCatalogAccessReasonCode, MasterCatalogModuleConfigV1 } from './types'
+import type {
+  CatalogAuditPage,
+  CatalogBindingDecision,
+  CatalogBindingPreview,
+  CatalogBindingResult,
+  CatalogImportPreview,
+  CatalogImportResult,
+  CatalogItemCommand,
+  CatalogItemDetail,
+  CatalogItemStatus,
+  CatalogItemSummary,
+  CatalogPublicationListItem,
+  CatalogPublicationOperation,
+  CatalogPublicationPreview,
+  CatalogPublicationResult,
+  CatalogReference,
+  CursorPage,
+  GovernanceMode,
+  MasterCatalogAccess,
+  MasterCatalogAccessReasonCode,
+  MasterCatalogModuleConfigV1,
+} from './types'
 
 /**
  * Server route: `src/routes/dashboard.routes.ts` mounts the organization
@@ -100,4 +121,179 @@ export function parseMasterCatalogAccessPayload(body: unknown, expectedOrganizat
 export async function fetchMasterCatalogAccess(organizationId: string): Promise<MasterCatalogAccess | null> {
   const response = await api.get(masterCatalogAccessUrl(organizationId))
   return parseMasterCatalogAccessPayload(response?.data, organizationId)
+}
+
+function catalogBaseUrl(organizationId: string): string {
+  return `/api/v1/dashboard/organizations/${encodeURIComponent(organizationId)}/master-catalog`
+}
+
+function queryString(values: Record<string, string | number | undefined>): string {
+  const query = new URLSearchParams()
+  Object.entries(values).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') query.set(key, String(value))
+  })
+  const rendered = query.toString()
+  return rendered ? `?${rendered}` : ''
+}
+
+function unwrap<T>(response: unknown): T {
+  if (!isRecord(response) || !isRecord(response.data) || response.data.success !== true || !('data' in response.data)) {
+    throw new Error('CATALOG_RESPONSE_INVALID')
+  }
+  return response.data.data as T
+}
+
+export async function listCatalogItems(
+  organizationId: string,
+  input: { cursor?: string; pageSize?: number; status?: CatalogItemStatus } = {},
+): Promise<CursorPage<CatalogItemSummary>> {
+  return unwrap(
+    await api.get(
+      `${catalogBaseUrl(organizationId)}/items${queryString({ cursor: input.cursor, pageSize: input.pageSize, status: input.status })}`,
+    ),
+  )
+}
+
+export async function getCatalogItem(organizationId: string, catalogItemId: string): Promise<CatalogItemDetail> {
+  return unwrap(await api.get(`${catalogBaseUrl(organizationId)}/items/${encodeURIComponent(catalogItemId)}`))
+}
+
+export async function createCatalogItem(organizationId: string, input: CatalogItemCommand): Promise<CatalogItemDetail> {
+  return unwrap(await api.post(`${catalogBaseUrl(organizationId)}/items`, input))
+}
+
+export async function updateCatalogItem(
+  organizationId: string,
+  catalogItemId: string,
+  input: CatalogItemCommand & { expectedRevision: number; organizationValueDeactivations: unknown[] },
+): Promise<CatalogItemDetail> {
+  return unwrap(await api.patch(`${catalogBaseUrl(organizationId)}/items/${encodeURIComponent(catalogItemId)}`, input))
+}
+
+export async function listCatalogReferences(
+  organizationId: string,
+  kind: 'brands' | 'manufacturers' | 'families',
+  input: { cursor?: string; pageSize?: number; status?: CatalogItemStatus } = {},
+): Promise<CursorPage<CatalogReference>> {
+  return unwrap(
+    await api.get(
+      `${catalogBaseUrl(organizationId)}/catalogs/${kind}${queryString({ cursor: input.cursor, pageSize: input.pageSize, status: input.status })}`,
+    ),
+  )
+}
+
+export async function previewCatalogImport(organizationId: string, file: File): Promise<CatalogImportPreview> {
+  const body = new FormData()
+  body.append('file', file)
+  return unwrap(await api.post(`${catalogBaseUrl(organizationId)}/imports/preview`, body))
+}
+
+export async function confirmCatalogImport(
+  organizationId: string,
+  input: { importBatchId: string; previewToken: string; confirm: true; idempotencyKey: string },
+): Promise<CatalogImportResult> {
+  const { importBatchId, ...body } = input
+  return unwrap(await api.post(`${catalogBaseUrl(organizationId)}/imports/${encodeURIComponent(importBatchId)}/confirm`, body))
+}
+
+export function catalogImportErrorsUrl(organizationId: string, importBatchId: string): string {
+  return `${catalogBaseUrl(organizationId)}/imports/${encodeURIComponent(importBatchId)}/errors.xlsx`
+}
+
+export function catalogExportUrl(organizationId: string, businessType?: string): string {
+  const path = businessType ? '/exports/catalog-by-business-type.xlsx' : '/exports/catalog-master.xlsx'
+  return `${catalogBaseUrl(organizationId)}${path}${queryString({ businessType })}`
+}
+
+export function catalogImportTemplateUrl(organizationId: string): string {
+  return `${catalogBaseUrl(organizationId)}/templates/catalog-master-import-v1.xlsx`
+}
+
+export async function previewCatalogBindings(
+  organizationId: string,
+  lines: Array<{ catalogItemId: string; venueId: string; decision?: CatalogBindingDecision }>,
+): Promise<CatalogBindingPreview> {
+  return unwrap(await api.post(`${catalogBaseUrl(organizationId)}/bindings/preview`, { lines }))
+}
+
+export async function confirmCatalogBindings(
+  organizationId: string,
+  input: { bindingBatchId: string; previewToken: string; confirm: true; idempotencyKey: string },
+): Promise<CatalogBindingResult> {
+  return unwrap(await api.post(`${catalogBaseUrl(organizationId)}/bindings/confirm`, input))
+}
+
+export async function listCatalogPublications(
+  organizationId: string,
+  input: { cursor?: string; pageSize?: number; operation?: CatalogPublicationOperation; state?: string } = {},
+): Promise<CursorPage<CatalogPublicationListItem>> {
+  return unwrap(
+    await api.get(
+      `${catalogBaseUrl(organizationId)}/publications${queryString({
+        cursor: input.cursor,
+        pageSize: input.pageSize,
+        operation: input.operation,
+        state: input.state,
+      })}`,
+    ),
+  )
+}
+
+export async function previewCatalogPublication(
+  organizationId: string,
+  input: {
+    operation: CatalogPublicationOperation
+    idempotencyKey: string
+    targets: Array<{
+      catalogItemId: string
+      venueId: string
+      productId: string
+      decisions?: Array<
+        | { field: string; decision: 'PUBLISH_CORPORATE' | 'UNDECIDED' }
+        | { field: string; decision: 'APPROVE_LOCAL_OVERRIDE'; overrideId: string }
+      >
+    }>
+  },
+): Promise<CatalogPublicationPreview> {
+  return unwrap(await api.post(`${catalogBaseUrl(organizationId)}/publications/preview`, input))
+}
+
+export async function confirmCatalogPublication(
+  organizationId: string,
+  input: { publicationBatchId: string; previewToken: string; confirm: true; idempotencyKey: string },
+): Promise<CatalogPublicationResult> {
+  const { publicationBatchId, ...body } = input
+  return unwrap(await api.post(`${catalogBaseUrl(organizationId)}/publications/${encodeURIComponent(publicationBatchId)}/confirm`, body))
+}
+
+export async function recoverCatalogPublication(
+  organizationId: string,
+  operation: CatalogPublicationOperation,
+  idempotencyKey: string,
+): Promise<CatalogPublicationResult> {
+  return unwrap(
+    await api.get(
+      `${catalogBaseUrl(organizationId)}/publications/by-idempotency-key/${encodeURIComponent(operation)}/${encodeURIComponent(idempotencyKey)}`,
+    ),
+  )
+}
+
+export async function listCatalogAuditActions(organizationId: string): Promise<string[]> {
+  return unwrap(await api.get(`${catalogBaseUrl(organizationId)}/audit/actions`))
+}
+
+export async function listCatalogAudit(
+  organizationId: string,
+  input: { page?: number; pageSize?: number; action?: string; search?: string } = {},
+): Promise<CatalogAuditPage> {
+  return unwrap(
+    await api.get(
+      `${catalogBaseUrl(organizationId)}/audit${queryString({ page: input.page, pageSize: input.pageSize, action: input.action, search: input.search })}`,
+    ),
+  )
+}
+
+export function newCatalogIdempotencyKey(prefix: string): string {
+  const random = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  return `${prefix}-${random}`
 }

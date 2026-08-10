@@ -127,6 +127,7 @@ import promotionsEs from '@/locales/es/promotions.json'
 import promotionsFr from '@/locales/fr/promotions.json'
 import organizationEn from '@/locales/en/organization.json'
 import organizationEs from '@/locales/es/organization.json'
+import organizationFr from '@/locales/fr/organization.json'
 import reportsEn from '@/locales/en/reports.json'
 import reportsEs from '@/locales/es/reports.json'
 import commissionsEn from '@/locales/en/commissions.json'
@@ -607,6 +608,7 @@ i18n
   [
     ['en', organizationEn],
     ['es', organizationEs],
+    ['fr', organizationFr],
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'organization', bundle as Record<string, unknown>, true, true)

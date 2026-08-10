@@ -26,6 +26,7 @@
 import { Navigate, Outlet, useLocation, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
+import { useAuth } from '@/context/AuthContext'
 import { useMasterCatalogAccess } from '@/features/master-catalog/use-master-catalog-access'
 
 interface MasterCatalogProtectedRouteProps {
@@ -42,9 +43,14 @@ export function MasterCatalogProtectedRoute({ require = 'read', fallbackPath = '
   const { t } = useTranslation('common')
   const { orgId } = useParams<{ orgId: string }>()
   const location = useLocation()
+  const { isLoading: isAuthLoading } = useAuth()
   const { access, isLoading, canRead, canMutateContent, reasonCode } = useMasterCatalogAccess({ orgId: orgId ?? null })
 
-  if (isLoading) {
+  // ProtectedRoute deliberately renders optimistically when a session hint is
+  // present. Wait for the actual user before interpreting a missing cached
+  // membership as a denial, otherwise a valid catalog deep-link briefly sees
+  // `user=null` and is redirected to the default venue.
+  if (isAuthLoading || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[200px]" role="status" aria-label={t('loading')}>
         <div className="motion-safe:animate-spin rounded-full h-8 w-8 border-b-2 border-primary" aria-hidden="true" />

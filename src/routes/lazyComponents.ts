@@ -233,6 +233,12 @@ export const MasterCatalogLayout = lazyWithRetry(() =>
 export const MasterCatalogLanding = lazyWithRetry(() =>
   import('@/pages/Organization/OrganizationLayout').then(module => ({ default: module.MasterCatalogLanding })),
 )
+export const CatalogItemsPage = lazyWithRetry(() => import('@/pages/Organization/MasterCatalog/CatalogItemsPage'))
+export const CatalogItemPage = lazyWithRetry(() => import('@/pages/Organization/MasterCatalog/CatalogItemPage'))
+export const CatalogImportPage = lazyWithRetry(() => import('@/pages/Organization/MasterCatalog/CatalogImportPage'))
+export const CatalogBindingsPage = lazyWithRetry(() => import('@/pages/Organization/MasterCatalog/CatalogBindingsPage'))
+export const CatalogPublicationsPage = lazyWithRetry(() => import('@/pages/Organization/MasterCatalog/CatalogPublicationsPage'))
+export const CatalogAuditPage = lazyWithRetry(() => import('@/pages/Organization/MasterCatalog/CatalogAuditPage'))
 export const OrganizationDashboard = lazyWithRetry(() => import('@/pages/Organization/OrganizationDashboard'))
 export const OrganizationVenues = lazyWithRetry(() => import('@/pages/Organization/OrganizationVenues'))
 export const OrganizationTeam = lazyWithRetry(() => import('@/pages/Organization/OrganizationTeam'))
