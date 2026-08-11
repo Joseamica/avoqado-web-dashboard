@@ -80,6 +80,8 @@
       "addressBluetoothHint": "The printer must be paired over Bluetooth with the device that prints (the gateway).",
       "connection": "Connection",
       "paperWidth": "Paper width",
+      "leftMargin": "Shift right (columns)",
+      "leftMarginHint": "Leave this at 0 unless you fitted a narrow roll with adapters into a wider printer: the paper then doesn't start where the printer thinks it does, and receipts come out cut off on the left. Print the test page from the POS, read the first ruler number you can see, and enter it here.",
       "charset": "Charset",
       "active": "Printer active"
     },
@@ -91,7 +93,8 @@
       "nameRequired": "Enter a name for the printer.",
       "addressRequired": "Enter the printer's address.",
       "addressInvalidNetwork": "Address must be a valid host or host:port (e.g. 192.168.1.50:9100).",
-      "addressInvalidBluetooth": "Address must be a valid 6-octet MAC, separated by ':' or '-' (e.g. AA:BB:CC:DD:EE:FF)."
+      "addressInvalidBluetooth": "Address must be a valid 6-octet MAC, separated by ':' or '-' (e.g. AA:BB:CC:DD:EE:FF).",
+      "leftMarginRange": "The shift must be between 0 and 16 columns."
     }
   },
   "gateway": {

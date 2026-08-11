@@ -148,6 +148,10 @@ const printerSchema = z
     connectionType: z.enum(CONNECTION_TYPES),
     address: z.string().trim().min(1, { message: 'addressRequired' }),
     paperWidthMm: z.number(),
+    // Tope 16: es el desperdicio máximo posible (48 columnas de un cabezal de
+    // 80 mm menos las 32 de un rollo de 58 mm). Más que eso corre el ticket
+    // fuera del papel por el otro lado, que es el mismo bug al revés.
+    leftMarginChars: z.number().int().min(0).max(16),
     charset: z.string().trim().min(1),
     active: z.boolean(),
   })
@@ -184,6 +188,7 @@ function PrinterFormModal({ venueId, printer, onClose }: { venueId: string; prin
       connectionType: initialConnectionType,
       address: printer?.address ?? '',
       paperWidthMm: printer?.paperWidthMm ?? 80,
+      leftMarginChars: printer?.leftMarginChars ?? 0,
       charset: printer?.charset ?? DEFAULT_CHARSET,
       active: printer?.active ?? true,
     },
@@ -206,6 +211,7 @@ function PrinterFormModal({ venueId, printer, onClose }: { venueId: string; prin
         connectionType: values.connectionType,
         address: values.address.trim(),
         paperWidthMm: values.paperWidthMm,
+        leftMarginChars: values.leftMarginChars,
         charset: values.charset.trim(),
       }
       return printer
@@ -309,6 +315,21 @@ function PrinterFormModal({ venueId, printer, onClose }: { venueId: string; prin
               <Label htmlFor="printer-charset">{t('printers.fields.charset')}</Label>
               <Input id="printer-charset" className="h-12 text-base" {...register('charset')} />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="printer-left-margin">{t('printers.fields.leftMargin')}</Label>
+            <Input
+              id="printer-left-margin"
+              type="number"
+              min={0}
+              max={16}
+              step={1}
+              className="h-12 text-base"
+              {...register('leftMarginChars', { valueAsNumber: true })}
+            />
+            <p className="text-xs text-muted-foreground">{t('printers.fields.leftMarginHint')}</p>
+            {errors.leftMarginChars && <p className="text-xs text-destructive">{t('printers.validation.leftMarginRange')}</p>}
           </div>
 
           {printer && (

@@ -18,6 +18,8 @@ export interface Printer {
   stableKey: string | null
   address: string | null
   paperWidthMm: number // 58 | 80
+  /** Corrimiento a la derecha en columnas (ESC/POS `GS L`). 0 = sin corrimiento. */
+  leftMarginChars: number
   charset: string
   active: boolean
   lastStatus: string | null
@@ -85,6 +87,7 @@ export interface CreatePrinterInput {
   address?: string
   stableKey?: string
   paperWidthMm?: number
+  leftMarginChars?: number
   charset?: string
 }
 export type UpdatePrinterInput = Partial<CreatePrinterInput> & { active?: boolean }
