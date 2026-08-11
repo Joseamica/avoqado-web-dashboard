@@ -603,6 +603,46 @@
     "showRole": "Mostrar este rol en los selectores"
   },
   "areaTickets": {
-    "title": "Vales por área y básculas"
+    "title": "Vales por área y básculas",
+    "externalRoute": {
+      "sectionTitle": "Ruta de cobro por área",
+      "sectionDescription": "Por default, Avoqado cobra y registra los vales de cada área. Cámbialo sólo si otra caja del local ya cobra por su cuenta.",
+      "cardSubtitle": "Dónde se cobran los vales de esta área",
+      "toggleLabel": "Cobrar en caja externa",
+      "toggleDescription": "Otro punto de venta, en otra caja, cobra los vales de esta área en vez de Avoqado.",
+      "statusAvoqado": "Avoqado cobra y registra los vales de esta área.",
+      "statusExternal": "Otra caja cobra los vales de esta área.",
+      "noPermission": "No tienes permiso para cambiar esto. Pídeselo a un administrador del local.",
+      "saved": "Ruta de cobro actualizada",
+      "saveError": "No se pudo guardar",
+      "saveErrorFallback": "Intenta de nuevo.",
+      "policiesDisabledNote": "Estas políticas sólo aplican cuando otra caja cobra los vales de esta área.",
+      "confirmDialog": {
+        "title": "¿Cambiar la ruta de cobro?",
+        "description": "Los vales de esta área se cobrarán en otra caja. Avoqado no registrará esas ventas ni emitirá factura por ellas.",
+        "confirm": "Sí, cobrar en otra caja"
+      },
+      "confirmationMode": {
+        "label": "Cómo se confirma el cobro",
+        "manual": "Alguien lo confirma a mano",
+        "manualHint": "Un encargado con permiso confirma el cobro antes de marcarlo pagado.",
+        "assumeOnPrint": "Se asume cobrado al imprimir",
+        "assumeOnPrintHint": "Se marca como cobrado al imprimir el vale, sin confirmación — no es un pago verificado."
+      },
+      "offlinePolicy": {
+        "label": "Vales sin conexión",
+        "block": "Bloquear",
+        "blockHint": "El área no puede emitir vales si se queda sin conexión.",
+        "allow": "Permitir",
+        "allowHint": "El área puede seguir emitiendo vales sin conexión, sin verificar el cobro al emitir."
+      },
+      "deliveryTracking": {
+        "label": "Seguimiento de entrega",
+        "tracked": "Con seguimiento",
+        "trackedHint": "Cada entrega queda registrada y aparece en la cola de pendientes.",
+        "untracked": "Sin seguimiento",
+        "untrackedHint": "El área entrega mirando el papel del vale; no queda registro ni cola."
+      }
+    }
   }
 }

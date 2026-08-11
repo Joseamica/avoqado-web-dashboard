@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { ExternalRouteAreaCard } from '@/pages/Settings/components/ExternalRouteAreaCard'
 import {
   createFulfillmentArea,
   createScaleProfile,
@@ -326,6 +327,7 @@ function FlowSettings({
 }
 
 function AreasSettings({ venueId, areas, onSaved }: { venueId: string; areas: FulfillmentArea[]; onSaved: () => void }) {
+  const { t } = useTranslation('settings')
   const { toast } = useToast()
   const [name, setName] = useState('')
   const [mode, setMode] = useState<FulfillmentMode>('HOLD_UNTIL_PAID')
@@ -419,6 +421,18 @@ function AreasSettings({ venueId, areas, onSaved }: { venueId: string; areas: Fu
           </Table>
         </CardContent>
       </Card>
+
+      {areas.length > 0 && (
+        <div className="space-y-3">
+          <div>
+            <h2 className="text-lg font-semibold">{t('areaTickets.externalRoute.sectionTitle')}</h2>
+            <p className="text-sm text-muted-foreground">{t('areaTickets.externalRoute.sectionDescription')}</p>
+          </div>
+          {areas.map(area => (
+            <ExternalRouteAreaCard key={area.id} venueId={venueId} area={area} onSaved={onSaved} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

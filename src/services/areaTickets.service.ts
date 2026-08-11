@@ -9,6 +9,12 @@ export type InventoryReservationMode = 'NONE' | 'HOLD_AVAILABLE_STOCK'
 export type TerminalWorkspace = 'STANDARD_POS' | 'AREA_OPERATIONS'
 export type ScaleTransport = 'ANDROID_USB_SERIAL' | 'DESKTOP_BRIDGE' | 'MANUAL'
 export type ScaleContext = 'AREA_TICKET_LINE' | 'INVENTORY_RECEIPT' | 'INVENTORY_TRANSFER_DISPATCH' | 'STOCK_COUNT' | 'STOCK_ADJUSTMENT'
+// Ruta de cobro externa (§caja externa fase 1) — otro POS cobra los vales de esta área
+// en su propia caja. Default AVOQADO: Avoqado cobra y registra, como hoy.
+export type AreaSettlementRoute = 'AVOQADO' | 'EXTERNAL'
+export type ExternalConfirmationMode = 'MANUAL' | 'ASSUME_ON_PRINT'
+export type ExternalOfflinePolicy = 'ALLOW' | 'BLOCK'
+export type ExternalDeliveryTracking = 'TRACKED' | 'UNTRACKED'
 
 export interface AreaTicketSettings {
   enabled: boolean
@@ -48,6 +54,10 @@ export interface FulfillmentArea {
   printStationId: string | null
   active: boolean
   displayOrder: number
+  settlementRoute: AreaSettlementRoute
+  externalConfirmationMode: ExternalConfirmationMode
+  externalOfflinePolicy: ExternalOfflinePolicy
+  externalDeliveryTracking: ExternalDeliveryTracking
   printStation?: { id: string; name: string; active: boolean } | null
   _count?: { terminals: number; areaTickets: number }
 }
@@ -154,6 +164,31 @@ export async function updateFulfillmentArea(
   input: Partial<Pick<FulfillmentArea, 'name' | 'fulfillmentMode' | 'printStationId' | 'active' | 'displayOrder'>>,
 ): Promise<FulfillmentArea> {
   const response = await api.put(`${base(venueId)}/areas/${areaId}`, input)
+  return response.data.data
+}
+
+export interface UpdateAreaSettlementRouteInput {
+  settlementRoute: AreaSettlementRoute
+  externalConfirmationMode: ExternalConfirmationMode
+  externalOfflinePolicy: ExternalOfflinePolicy
+  externalDeliveryTracking: ExternalDeliveryTracking
+}
+
+/**
+ * Ruta de cobro externa de UN área (§caja externa fase 1) — el switch canónico: las
+ * apps lo LEEN, no lo escriben. Las cuatro políticas viajan siempre juntas porque son
+ * una sola decisión de negocio (dónde entra el dinero de esta área), no cuatro campos
+ * sueltos — nunca mandes un PATCH parcial aquí.
+ *
+ * Vive fuera de `base()` a propósito: no es un endpoint de `/area-tickets`, es un
+ * ajuste de la entidad FulfillmentArea.
+ */
+export async function updateAreaSettlementRoute(
+  venueId: string,
+  areaId: string,
+  input: UpdateAreaSettlementRouteInput,
+): Promise<FulfillmentArea> {
+  const response = await api.patch(`/api/v1/dashboard/venues/${venueId}/fulfillment-areas/${areaId}/settlement-route`, input)
   return response.data.data
 }
 
