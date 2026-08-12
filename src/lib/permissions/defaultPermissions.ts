@@ -153,6 +153,11 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'area-tickets:cancel',
     'area-tickets:deliver',
     'area-tickets:configure',
+    // Confirmar cobro en caja externa (ruta EXTERNAL): afirmación sobre dinero que
+    // alguien con autoridad hace a mano — trabajo de gerencia, no de cajero.
+    // Espejo EXACTO de `DEFAULT_PERMISSIONS[MANAGER]` en avoqado-server/src/lib/permissions.ts;
+    // omitirlo aquí hace que el editor de roles guarde un PermissionSet que se lo REVOCA.
+    'area-tickets:confirm-external',
     'scale:use',
     'scale:configure',
     'payments:read',
@@ -305,7 +310,15 @@ export const PERMISSION_CATEGORIES = {
   },
   AREA_TICKETS: {
     label: 'Vales por área',
-    permissions: ['area-tickets:issue', 'area-tickets:checkout', 'area-tickets:cancel', 'area-tickets:deliver', 'area-tickets:configure'],
+    permissions: [
+      'area-tickets:issue',
+      'area-tickets:checkout',
+      'area-tickets:cancel',
+      'area-tickets:deliver',
+      'area-tickets:configure',
+      // Espejo de INDIVIDUAL_PERMISSIONS_BY_RESOURCE['area-tickets'] del server.
+      'area-tickets:confirm-external',
+    ],
   },
   SCALES: {
     label: 'Básculas',
