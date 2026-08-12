@@ -588,16 +588,16 @@
       "confirmationMode": {
         "label": "How the charge is confirmed",
         "manual": "Someone confirms it by hand",
-        "manualHint": "A staff member with permission confirms the charge before it's marked paid.",
+        "manualHint": "A staff member with permission confirms the charge; until they do, the ticket stays pending.",
         "assumeOnPrint": "Assumed charged on print",
-        "assumeOnPrintHint": "Marked as charged when the ticket prints, with no confirmation — not a verified payment."
+        "assumeOnPrintPending": "“Assumed charged on print” can't be selected yet: the Android and iPhone apps are what record the print, and it ships with their next release.",
+        "assumeOnPrintStuck": "This area is saved as “Assumed charged on print”, a mode that doesn't work yet: its charges stay pending confirmation and no incident is opened. Switch it to “Someone confirms it by hand”."
       },
       "offlinePolicy": {
         "label": "Tickets while offline",
         "block": "Block",
-        "blockHint": "The area can't issue tickets while it has no connection.",
         "allow": "Allow",
-        "allowHint": "The area can keep issuing tickets while offline, without verifying the charge at issue time."
+        "pendingHint": "No effect yet: the Android and iPhone apps are what know the area lost its connection, and it ships with their next release. Today the area issues tickets the same way under either option."
       },
       "deliveryTracking": {
         "label": "Delivery tracking",

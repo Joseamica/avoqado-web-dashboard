@@ -147,29 +147,53 @@ export function ExternalRouteAreaCard({ venueId, area, onSaved }: { venueId: str
                 disabled={disabled || !isExternal}
                 onValueChange={(value: ExternalConfirmationMode) => savePolicy('externalConfirmationMode', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger data-tour="area-external-confirmation-mode">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="MANUAL">{t('areaTickets.externalRoute.confirmationMode.manual')}</SelectItem>
-                  <SelectItem value="ASSUME_ON_PRINT">{t('areaTickets.externalRoute.confirmationMode.assumeOnPrint')}</SelectItem>
+                  {/* FASE 2 — quien escribe el estado ASSUMED es el registro de impresión de las
+                      apps (Android/iOS), que no existe todavía: hoy NADIE lo escribe. Un área en
+                      este modo emitiría vales que se quedan pendientes para siempre, y el job de
+                      conciliación los ignora a propósito (sólo mira MANUAL), así que tampoco se
+                      abriría una incidencia. Se ve pero no se puede elegir; reactivar en Fase 2 =
+                      quitar este `disabled` y el <Badge>. */}
+                  <SelectItem value="ASSUME_ON_PRINT" disabled>
+                    {t('areaTickets.externalRoute.confirmationMode.assumeOnPrint')}
+                    <Badge variant="outline" className="ml-2 h-4 px-1.5 text-[10px]">
+                      {t('common:comingSoon')}
+                    </Badge>
+                  </SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                {area.externalConfirmationMode === 'MANUAL'
-                  ? t('areaTickets.externalRoute.confirmationMode.manualHint')
-                  : t('areaTickets.externalRoute.confirmationMode.assumeOnPrintHint')}
-              </p>
+              {area.externalConfirmationMode === 'ASSUME_ON_PRINT' ? (
+                // Un área que ya haya quedado guardada así (por API/DB) no puede mentir sobre
+                // lo que hace: se le dice qué pasa de verdad y cómo salir.
+                <p className="text-xs text-warning-foreground">{t('areaTickets.externalRoute.confirmationMode.assumeOnPrintStuck')}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">{t('areaTickets.externalRoute.confirmationMode.manualHint')}</p>
+              )}
+              <p className="text-xs text-muted-foreground">{t('areaTickets.externalRoute.confirmationMode.assumeOnPrintPending')}</p>
             </div>
 
             <div className="space-y-1.5">
-              <Label>{t('areaTickets.externalRoute.offlinePolicy.label')}</Label>
+              <div className="flex items-center gap-2">
+                <Label>{t('areaTickets.externalRoute.offlinePolicy.label')}</Label>
+                <Badge variant="outline" className="h-4 px-1.5 text-[10px]">
+                  {t('common:comingSoon')}
+                </Badge>
+              </div>
+              {/* FASE 2 — este campo tiene CERO lectores en el server: se valida, se persiste y se
+                  audita, pero nada cambia de comportamiento según su valor. Quien sabe si el área
+                  se quedó sin conexión son las apps (Android/iOS). Deshabilitado siempre — no sólo
+                  cuando la ruta está apagada — para no prometer algo que hoy no ocurre. Reactivar
+                  en Fase 2 = devolverle `disabled={disabled || !isExternal}` y quitar el <Badge>. */}
               <Select
                 value={area.externalOfflinePolicy}
-                disabled={disabled || !isExternal}
+                disabled
                 onValueChange={(value: ExternalOfflinePolicy) => savePolicy('externalOfflinePolicy', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger data-tour="area-external-offline-policy">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -177,11 +201,7 @@ export function ExternalRouteAreaCard({ venueId, area, onSaved }: { venueId: str
                   <SelectItem value="ALLOW">{t('areaTickets.externalRoute.offlinePolicy.allow')}</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                {area.externalOfflinePolicy === 'BLOCK'
-                  ? t('areaTickets.externalRoute.offlinePolicy.blockHint')
-                  : t('areaTickets.externalRoute.offlinePolicy.allowHint')}
-              </p>
+              <p className="text-xs text-muted-foreground">{t('areaTickets.externalRoute.offlinePolicy.pendingHint')}</p>
             </div>
 
             <div className="space-y-1.5">

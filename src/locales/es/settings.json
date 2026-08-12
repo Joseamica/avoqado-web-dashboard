@@ -626,16 +626,16 @@
       "confirmationMode": {
         "label": "Cómo se confirma el cobro",
         "manual": "Alguien lo confirma a mano",
-        "manualHint": "Un encargado con permiso confirma el cobro antes de marcarlo pagado.",
+        "manualHint": "Un encargado con permiso confirma el cobro; hasta que lo haga, el vale sigue pendiente.",
         "assumeOnPrint": "Se asume cobrado al imprimir",
-        "assumeOnPrintHint": "Se marca como cobrado al imprimir el vale, sin confirmación — no es un pago verificado."
+        "assumeOnPrintPending": "«Se asume cobrado al imprimir» todavía no se puede elegir: quien registra la impresión son las apps de Android y iPhone, y llega con su próxima versión.",
+        "assumeOnPrintStuck": "Esta área quedó guardada en «Se asume cobrado al imprimir», un modo que todavía no funciona: sus cobros se quedan pendientes de confirmar y no se abre ninguna incidencia. Cámbiala a «Alguien lo confirma a mano»."
       },
       "offlinePolicy": {
         "label": "Vales sin conexión",
         "block": "Bloquear",
-        "blockHint": "El área no puede emitir vales si se queda sin conexión.",
         "allow": "Permitir",
-        "allowHint": "El área puede seguir emitiendo vales sin conexión, sin verificar el cobro al emitir."
+        "pendingHint": "Todavía no tiene efecto: quien sabe si el área se quedó sin conexión son las apps de Android y iPhone, y llega con su próxima versión. Hoy el área emite vales igual con cualquiera de las dos opciones."
       },
       "deliveryTracking": {
         "label": "Seguimiento de entrega",
