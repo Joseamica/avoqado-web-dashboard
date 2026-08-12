@@ -158,8 +158,19 @@ export async function getCatalogItem(organizationId: string, catalogItemId: stri
   return unwrap(await api.get(`${catalogBaseUrl(organizationId)}/items/${encodeURIComponent(catalogItemId)}`))
 }
 
+/**
+ * The command endpoints answer with `{ detail, auditEnvelope }`, not the item
+ * itself. Returning the envelope made `result.id` undefined at every call site,
+ * so a successful create redirected to `/items/undefined` and rendered an error
+ * over a row that had just been written.
+ */
+function commandDetail(payload: unknown): CatalogItemDetail {
+  if (isRecord(payload) && isRecord(payload.detail)) return payload.detail as unknown as CatalogItemDetail
+  return payload as CatalogItemDetail
+}
+
 export async function createCatalogItem(organizationId: string, input: CatalogItemCommand): Promise<CatalogItemDetail> {
-  return unwrap(await api.post(`${catalogBaseUrl(organizationId)}/items`, input))
+  return commandDetail(unwrap(await api.post(`${catalogBaseUrl(organizationId)}/items`, input)))
 }
 
 export async function updateCatalogItem(
@@ -167,7 +178,7 @@ export async function updateCatalogItem(
   catalogItemId: string,
   input: CatalogItemCommand & { expectedRevision: number; organizationValueDeactivations: unknown[] },
 ): Promise<CatalogItemDetail> {
-  return unwrap(await api.patch(`${catalogBaseUrl(organizationId)}/items/${encodeURIComponent(catalogItemId)}`, input))
+  return commandDetail(unwrap(await api.patch(`${catalogBaseUrl(organizationId)}/items/${encodeURIComponent(catalogItemId)}`, input)))
 }
 
 export async function listCatalogReferences(
