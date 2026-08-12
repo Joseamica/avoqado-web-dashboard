@@ -85,6 +85,12 @@ jobs:
 
       - name: 🔍 TypeScript compilation check
         run: npx tsc --noEmit
+        env:
+          # Same fix as the `build` script (package.json): tsc's default V8 heap
+          # ceiling (~2GB) is well under what ubuntu-latest actually has (16GB) —
+          # without this, project-wide type-checking on this codebase OOMs
+          # ("FATAL ERROR: Ineffective mark-compacts near heap limit").
+          NODE_OPTIONS: '--max-old-space-size=8192'
 
       - name: 🔐 Run auth/routing regression suite
         timeout-minutes: 15
