@@ -14,6 +14,24 @@ import { useMasterCatalogAccess } from '@/features/master-catalog/use-master-cat
 export default function CatalogItemsPage() {
   const { orgId } = useParams<{ orgId: string }>()
   const { t } = useTranslation('organization')
+
+  /**
+   * The table used to print the raw Prisma enum — `RETAIL_PRODUCT`, `ACTIVE` —
+   * straight into cells a client reads. Unknown values fall through to the code
+   * itself so a new enum member degrades to something legible instead of blank.
+   */
+  const kindLabel = (kind: string) =>
+    ({
+      RETAIL_PRODUCT: t('masterCatalog.kind.retailProduct', { defaultValue: 'Producto de retail' }),
+      PREPARED_DISH: t('masterCatalog.kind.preparedDish', { defaultValue: 'Platillo preparado' }),
+    })[kind] ?? kind
+
+  const statusLabel = (status: string) =>
+    ({
+      ACTIVE: t('masterCatalog.status.active', { defaultValue: 'Activo' }),
+      RETIRED: t('masterCatalog.status.retired', { defaultValue: 'Retirado' }),
+    })[status] ?? status
+
   const access = useMasterCatalogAccess({ orgId })
   const catalog = useCatalogItems(orgId)
 
@@ -116,9 +134,9 @@ export default function CatalogItemsPage() {
                         {item.name}
                       </Link>
                     </TableCell>
-                    <TableCell>{item.kind}</TableCell>
+                    <TableCell>{kindLabel(item.kind)}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{item.status}</Badge>
+                      <Badge variant="secondary">{statusLabel(item.status)}</Badge>
                     </TableCell>
                     <TableCell>{item.bindingSummary.total}</TableCell>
                   </TableRow>
