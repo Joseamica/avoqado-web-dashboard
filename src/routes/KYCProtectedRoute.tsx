@@ -25,9 +25,20 @@ import { canAccessOperationalFeatures } from '@/lib/kyc-utils'
 import { StaffRole } from '@/types'
 
 export function KYCProtectedRoute() {
-  const { activeVenue, user } = useAuth()
+  const { activeVenue, user, isLoading } = useAuth()
   const location = useLocation()
   const { slug } = useParams<{ slug: string }>()
+
+  // While the session resolves, `activeVenue` is still null and
+  // `canAccessOperationalFeatures(null)` is false — so without this the guard
+  // bounced every deep link to kyc-required (and from there to home) before it
+  // could ever know the venue's real KYC status. It only looked intermittent
+  // because a warm tab sometimes resolved the venue before the route rendered.
+  // Rendering the outlet is safe: the backend still enforces KYC on every call,
+  // which is the same reasoning PermissionProtectedRoute already uses.
+  if (isLoading) {
+    return <Outlet />
+  }
 
   // SUPERADMIN bypass: global operational access for audit/recovery tasks.
   if (user?.role === StaffRole.SUPERADMIN) {

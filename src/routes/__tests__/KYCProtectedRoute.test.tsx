@@ -75,6 +75,39 @@ describe('KYCProtectedRoute', () => {
     })
   })
 
+  it('waits instead of redirecting while the session is still loading', async () => {
+    // The session resolves in seconds against a real API, and until it does
+    // `activeVenue` is null — which the KYC predicate reads as "blocked". Without
+    // the isLoading check every deep link bounced to kyc-required (and on to
+    // home) before the guard could know the venue's actual KYC status.
+    mockedUseAuth.mockReturnValue({
+      user: undefined,
+      activeVenue: null,
+      isLoading: true,
+    } as any)
+
+    renderKycGuard('/venues/test-venue/orders')
+
+    await waitFor(() => {
+      expect(screen.getByText('operational-content')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('location')).not.toBeInTheDocument()
+  })
+
+  it('still redirects once loading finishes and the venue is blocked', async () => {
+    mockedUseAuth.mockReturnValue({
+      user: { role: 'ADMIN' },
+      activeVenue: { status: 'LIVE', kycStatus: 'NOT_SUBMITTED' },
+      isLoading: false,
+    } as any)
+
+    renderKycGuard('/venues/test-venue/orders')
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location')).toHaveTextContent('/venues/test-venue/kyc-required')
+    })
+  })
+
   it('renders content when venue kycStatus is VERIFIED', async () => {
     mockedUseAuth.mockReturnValue({
       user: { role: 'ADMIN' },
