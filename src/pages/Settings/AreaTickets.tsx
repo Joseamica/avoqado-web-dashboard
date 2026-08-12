@@ -818,7 +818,7 @@ function Operations({
       <Card className={panelClass}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <ScanBarcode className="h-5 w-5" /> Vales pagados por entregar
+            <ScanBarcode className="h-5 w-5" /> Vales por entregar
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
